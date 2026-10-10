@@ -82,7 +82,8 @@ Documentation Impact: REQUIRED
 ### Canonical owners
 
 - `docs/architecture/runtime.md`
-- `docs/decisions/reference-architecture-policy.md`
+- `docs/decisions/per-app-docker-architecture.md`
+- `docs/operations/setup.md`
 
 ### Documentation verification
 
@@ -97,10 +98,15 @@ Documentation Impact: REQUIRED
 | Baseline commit verified                   | `git rev-parse HEAD` (`837248e`)                                                           | 2026-10-10 | PASS   |
 | Seiza reference commit verified            | `git -C d:\work\seiza rev-parse HEAD` (`0e15dd1`)                                          | 2026-10-10 | PASS   |
 | Compose configurations valid               | `docker compose config` (release, dev, distribution)                                       | 2026-10-10 | PASS   |
+| Clean no-cache build verified              | `docker compose build --no-cache` produced all 5 images                                    | 2026-10-10 | PASS   |
+| Local release startup verified             | `docker compose -p nexora-rel-test up --build -d --wait`                                   | 2026-10-10 | PASS   |
+| Local HTTP contract verified               | GET /, /live, /ready, /missing on published test port 3001                                 | 2026-10-10 | PASS   |
+| Runtime persistence verified               | Data intact across container restart and down/up --no-build                                | 2026-10-10 | PASS   |
 | Web runtime noise profile established      | 11,319 total entries in baseline A and B; 44 non-identical Next.js build-ID noise paths    | 2026-10-10 | PASS   |
 | Web runtime refactor artifact parity       | 11,319 total entries matching baseline noise; 0 net file difference; 0 unintended files    | 2026-10-10 | PASS   |
 | Shared builder freshness verified          | Build marker propagation via named context `base: service:builder` without stale cache     | 2026-10-10 | PASS   |
-| Docker & Compose compatibility verified    | Docker 29.6.1, Compose v5.3.0, Buildx v0.35.0 supporting named service contexts            | 2026-10-10 | PASS   |
+| Docker & Compose compatibility verified    | Docker 29.6.1, Compose v5.3.0, Buildx v0.35.0 (min Compose v2.22.0+ documented)            | 2026-10-10 | PASS   |
+| ADR-004 introduced & ADR-003 restored      | Historical ADR-003 preserved; ADR-004 accepted for per-app Docker layout                   | 2026-10-10 | PASS   |
 | Bi-directional manifest checker passed     | `node scripts/boundaries.mjs` verifying workspace packages against Dockerfile COPYs        | 2026-10-10 | PASS   |
 | Line endings normalized with gitattributes | `.gitattributes` added; LF enforced for `Dockerfile*` and `*.sh`                           | 2026-10-10 | PASS   |
 | Quality suite passed                       | `sh scripts/quality-docker.sh`                                                             | 2026-10-10 | PASS   |

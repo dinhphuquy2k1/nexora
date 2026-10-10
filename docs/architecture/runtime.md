@@ -48,7 +48,7 @@ Manifest `COPY` declarations are centralized exclusively in `docker/Dockerfile.t
 
 ### BuildKit features, secrets, and caches
 
-- **BuildKit requirement**: Requires Docker Compose v2.20+ / Docker 24+ with BuildKit enabled for `additional_contexts: { base: "service:builder" }`.
+- **BuildKit requirement**: Requires Docker Compose v2.22.0+ / Docker 24+ with BuildKit enabled for `additional_contexts: { base: "service:builder" }` (see [ADR-004](../decisions/per-app-docker-architecture.md)).
 - **Build CA secret**: All network-capable RUN instructions support an optional `--mount=type=secret,id=build_ca` secret. When present, `NODE_EXTRA_CA_CERTS=/run/secrets/build_ca` is exported without persisting the certificate or disabling TLS checks.
 - **Dependency cache**: `docker/Dockerfile.tools` defines `FROM scratch AS dependency-cache` and binds `/dependency-cache` during `pnpm install`, allowing external pre-population via `pnpm-cache.tar`.
 
