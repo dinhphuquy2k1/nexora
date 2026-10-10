@@ -27,7 +27,7 @@ Nexora establishes an explicit distinction between its **technical foundation ba
 │ • Next.js 16 (App Router)        │ • Step-by-step implementation flow  │
 │ • PostgreSQL 17.11 & Prisma 7.10 │ • Canonical documentation ownership │
 │ • Local file storage & catalog   │ • Mandatory Documentation Impact    │
-│ • Shared multi-stage Dockerfile  │ • Canonical Evidence tables         │
+│ • Per-app Dockerfiles/shared deps│ • Canonical Evidence tables         │
 │ • Deterministic OpenAPI / SDK    │ • Lightweight documentation checks  │
 └──────────────────────────────────┴─────────────────────────────────────┘
 ```
