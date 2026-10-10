@@ -74,7 +74,10 @@ Documentation Impact: REQUIRED
 
 - Migrated frontend application shell from legacy static layout to modular AppShell with collapsible Sidebar, Header, and dynamic breadcrumbs.
 - Established centralized semantic design tokens (`apps/web/styles/tokens.css`) and scoped CSS Modules styling model without Tailwind CSS.
-- Defined single source of truth navigation contract with truthful planned item treatment and pure logic resolvers.
+- Defined single source of truth navigation contract with truthful planned item treatment, contract validation tests, and pure logic resolvers.
+- Implemented accessible W3C disclosure popovers with Escape focus restoration, outside-click dismissal, and stable callback handling.
+- Ensured truthful notification UI representation ("Chức năng thông báo chưa được triển khai") and removed misleading operational status statements.
+- Added independent accessible names (`aria-label`) and `:focus-within` visibility for collapsed sidebar tooltips.
 - Preserved existing Overview, System Health (real SDK check), and Settings pages within the new shell.
 - Explicitly documented exclusion of prototype sourcing/financial features per ADR-002 product scope.
 
@@ -93,7 +96,8 @@ Documentation Impact: REQUIRED
 | Claim                                                                      | Evidence                                                        | Date       | Result |
 | :------------------------------------------------------------------------- | :-------------------------------------------------------------- | :--------- | :----- |
 | Baseline commit and clean working tree confirmed                           | `git status; git rev-parse HEAD` (`f11be98`)                    | 2026-10-10 | PASS   |
-| Pure navigation logic resolver passes unit tests                           | `node --test apps/web/test/navigation.test.mjs`                 | 2026-10-10 | PASS   |
+| Approved navigation contract test with negative assertions passes          | `node --test apps/web/test/navigation.test.mjs`                 | 2026-10-10 | PASS   |
+| Web workspace test suite passes                                            | `pnpm --filter @nexora/web test`                                | 2026-10-10 | PASS   |
 | Full workspace tests pass including web and API                            | `pnpm test`                                                     | 2026-10-10 | PASS   |
 | Web workspace typecheck passes                                             | `pnpm --filter @nexora/web typecheck`                           | 2026-10-10 | PASS   |
 | Production build passes across all packages                                | `pnpm build`                                                    | 2026-10-10 | PASS   |

@@ -1,22 +1,46 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
-export function useDismissable(
-  ref: RefObject<HTMLElement | null>,
-  onClose: () => void,
-  isOpen: boolean = true,
-): void {
+export interface UseDismissableOptions {
+  panelRef: RefObject<HTMLElement | null>;
+  triggerRef?: RefObject<HTMLElement | null>;
+  isOpen?: boolean;
+  onClose: () => void;
+}
+
+export function useDismissable({
+  panelRef,
+  triggerRef,
+  isOpen = true,
+  onClose,
+}: UseDismissableOptions): void {
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
 
     function handleClickOutside(event: MouseEvent | TouchEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        onClose();
+      const target = event.target as Node | null;
+      if (!target) return;
+
+      // Ignore clicks on trigger so trigger's onClick can toggle state
+      if (triggerRef?.current && triggerRef.current.contains(target)) {
+        return;
+      }
+
+      // Close if clicked outside the panel without stealing target's focus
+      if (panelRef.current && !panelRef.current.contains(target)) {
+        onCloseRef.current();
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        onClose();
+        event.stopPropagation();
+        onCloseRef.current();
+        triggerRef?.current?.focus();
       }
     }
 
@@ -29,5 +53,5 @@ export function useDismissable(
       document.removeEventListener("touchstart", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [ref, onClose, isOpen]);
+  }, [isOpen, panelRef, triggerRef]);
 }

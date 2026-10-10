@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { FOUNDATION_VERSION } from "@nexora/shared";
 import { useDismissable } from "../../lib/hooks/use-dismissable.ts";
@@ -8,17 +8,25 @@ import styles from "./Header.module.css";
 
 export function UserMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const panelId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  useDismissable(menuRef, () => setIsOpen(false), isOpen);
+  useDismissable({
+    panelRef,
+    triggerRef,
+    isOpen,
+    onClose: () => setIsOpen(false),
+  });
 
   return (
-    <div className={styles.menuTrigger} ref={menuRef}>
+    <div className={styles.menuTrigger}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
-        aria-haspopup="dialog"
+        aria-controls={isOpen ? panelId : undefined}
         aria-label="Thông tin không gian làm việc"
         className={styles.userButton}
       >
@@ -36,8 +44,9 @@ export function UserMenu() {
 
       {isOpen && (
         <div
+          id={panelId}
+          ref={panelRef}
           className={styles.dropdownMenu}
-          role="dialog"
           aria-label="Chi tiết môi trường"
         >
           <div className={styles.dropdownHeader}>

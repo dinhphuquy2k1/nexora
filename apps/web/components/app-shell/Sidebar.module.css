@@ -240,14 +240,19 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  visibility: hidden;
+  transition:
+    opacity 0.15s ease,
+    visibility 0.15s ease;
   white-space: nowrap;
   z-index: 50;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.navItemContainer:hover .collapsedTooltip {
+.navItemContainer:hover .collapsedTooltip,
+.navItemContainer:focus-within .collapsedTooltip {
   opacity: 1;
+  visibility: visible;
 }
 
 .footerNote {

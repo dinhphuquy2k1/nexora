@@ -25,6 +25,7 @@ export function NavigationItem({
             isCollapsed ? styles.itemCentered : ""
           }`}
           aria-current={isActive ? "page" : undefined}
+          aria-label={isCollapsed ? item.label : undefined}
           title={isCollapsed ? item.label : undefined}
         >
           {isActive && (
@@ -41,7 +42,11 @@ export function NavigationItem({
           )}
         </Link>
         {isCollapsed && (
-          <div className={styles.collapsedTooltip} role="tooltip">
+          <div
+            className={styles.collapsedTooltip}
+            role="tooltip"
+            aria-hidden="true"
+          >
             {item.label}
           </div>
         )}
@@ -56,6 +61,7 @@ export function NavigationItem({
         type="button"
         disabled
         aria-disabled="true"
+        aria-label={isCollapsed ? `${item.label} (Chưa triển khai)` : undefined}
         className={`${styles.navItemDisabled} ${
           isCollapsed ? styles.itemCentered : ""
         }`}
@@ -72,7 +78,11 @@ export function NavigationItem({
         )}
       </button>
       {isCollapsed && (
-        <div className={styles.collapsedTooltip} role="tooltip">
+        <div
+          className={styles.collapsedTooltip}
+          role="tooltip"
+          aria-hidden="true"
+        >
           {item.label} (Chưa triển khai)
         </div>
       )}

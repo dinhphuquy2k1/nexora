@@ -12,40 +12,165 @@ import {
   resolveBreadcrumbs,
 } from "../lib/navigation/resolve-active.ts";
 
-test("Navigation metadata consistency", () => {
-  const ids = new Set();
-  assert.equal(
-    NAVIGATION_ITEMS.length,
-    5,
-    "Must contain exactly 5 navigation items",
-  );
+/**
+ * Approved navigation contract representing the authoritative product scope
+ * defined in ADR-002 and task requirements.
+ */
+export const APPROVED_NAVIGATION_CONTRACT = [
+  {
+    id: "overview",
+    href: "/",
+    status: "available",
+    group: "Workspace",
+  },
+  {
+    id: "shipment",
+    href: null,
+    status: "planned",
+    group: "Workspace",
+  },
+  {
+    id: "customers",
+    href: null,
+    status: "planned",
+    group: "Workspace",
+  },
+  {
+    id: "system",
+    href: "/system",
+    status: "available",
+    group: "System",
+  },
+  {
+    id: "settings",
+    href: "/settings",
+    status: "available",
+    group: "System",
+  },
+];
 
+/**
+ * Validates actual navigation items against an approved contract.
+ * Detects unexpected items, missing items, duplicate IDs, incorrect routes,
+ * invalid statuses, or planned items with navigable URLs.
+ */
+export function validateNavigationContract(actualItems, approvedContract) {
+  const actualMap = new Map();
+  for (const item of actualItems) {
+    if (actualMap.has(item.id)) {
+      throw new Error(`Duplicate navigation ID detected: '${item.id}'`);
+    }
+    actualMap.set(item.id, item);
+  }
+
+  const approvedMap = new Map(approvedContract.map((c) => [c.id, c]));
+
+  // Check for unauthorized/unexpected items
+  for (const id of actualMap.keys()) {
+    if (!approvedMap.has(id)) {
+      throw new Error(`Unauthorized navigation item detected: '${id}'`);
+    }
+  }
+
+  // Check for missing items and exact properties
+  for (const [id, expected] of approvedMap.entries()) {
+    const actual = actualMap.get(id);
+    if (!actual) {
+      throw new Error(`Missing approved navigation item: '${id}'`);
+    }
+    if (actual.status !== expected.status) {
+      throw new Error(
+        `Navigation item '${id}' status mismatch: expected '${expected.status}', got '${actual.status}'`,
+      );
+    }
+    if (actual.href !== expected.href) {
+      throw new Error(
+        `Navigation item '${id}' href mismatch: expected '${expected.href}', got '${actual.href}'`,
+      );
+    }
+    if (actual.group !== expected.group) {
+      throw new Error(
+        `Navigation item '${id}' group mismatch: expected '${expected.group}', got '${actual.group}'`,
+      );
+    }
+    if (actual.status === "planned" && actual.href !== null) {
+      throw new Error(
+        `Planned item '${id}' must have null href, found: '${actual.href}'`,
+      );
+    }
+  }
+}
+
+test("Approved navigation contract validation", () => {
+  // Validate production configuration against approved contract
+  assert.doesNotThrow(() => {
+    validateNavigationContract(NAVIGATION_ITEMS, APPROVED_NAVIGATION_CONTRACT);
+  });
+
+  // Verify each item has non-empty label and valid group in GROUP_LABELS
   for (const item of NAVIGATION_ITEMS) {
-    assert.ok(item.id, "Item must have id");
-    assert.ok(!ids.has(item.id), `Item id '${item.id}' must be unique`);
-    ids.add(item.id);
-
     assert.ok(item.label, `Item '${item.id}' must have label`);
     assert.ok(
       item.group in GROUP_LABELS,
       `Item '${item.id}' must belong to valid group`,
     );
-
-    if (item.status === "available") {
-      assert.ok(
-        typeof item.href === "string" && item.href.startsWith("/"),
-        `Available item '${item.id}' must have absolute href`,
-      );
-    } else if (item.status === "planned") {
-      assert.equal(
-        item.href,
-        null,
-        `Planned item '${item.id}' must have null href (never navigate to fake routes)`,
-      );
-    } else {
-      assert.fail(`Invalid status '${item.status}' for item '${item.id}'`);
-    }
   }
+});
+
+test("Navigation contract negative assertions", () => {
+  // Negative 1: Unauthorized sourcing/wallet item must fail
+  assert.throws(() => {
+    validateNavigationContract(
+      [
+        ...APPROVED_NAVIGATION_CONTRACT.map((item) => ({ ...item })),
+        {
+          id: "sourcing-search",
+          href: "/sourcing/search",
+          status: "available",
+          group: "Workspace",
+        },
+      ],
+      APPROVED_NAVIGATION_CONTRACT,
+    );
+  }, /Unauthorized navigation item detected: 'sourcing-search'/);
+
+  // Negative 2: Missing approved item must fail
+  assert.throws(() => {
+    validateNavigationContract(
+      APPROVED_NAVIGATION_CONTRACT.filter((item) => item.id !== "settings"),
+      APPROVED_NAVIGATION_CONTRACT,
+    );
+  }, /Missing approved navigation item: 'settings'/);
+
+  // Negative 3: Planned item turned into available without updating contract must fail
+  assert.throws(() => {
+    validateNavigationContract(
+      APPROVED_NAVIGATION_CONTRACT.map((item) =>
+        item.id === "shipment"
+          ? { ...item, status: "available", href: "/shipments" }
+          : item,
+      ),
+      APPROVED_NAVIGATION_CONTRACT,
+    );
+  }, /status mismatch/);
+
+  // Negative 4: Planned item with navigable URL must fail
+  assert.throws(() => {
+    validateNavigationContract(
+      APPROVED_NAVIGATION_CONTRACT.map((item) =>
+        item.id === "customers" ? { ...item, href: "/fake-route" } : item,
+      ),
+      APPROVED_NAVIGATION_CONTRACT,
+    );
+  }, /href mismatch/);
+
+  // Negative 5: Duplicate ID must fail
+  assert.throws(() => {
+    validateNavigationContract(
+      [...APPROVED_NAVIGATION_CONTRACT, APPROVED_NAVIGATION_CONTRACT[0]],
+      APPROVED_NAVIGATION_CONTRACT,
+    );
+  }, /Duplicate navigation ID detected/);
 });
 
 test("normalizePathname edge cases", () => {
