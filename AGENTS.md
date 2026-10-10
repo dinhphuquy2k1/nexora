@@ -1,7 +1,12 @@
 # Nexora contributor instructions
 
-Read `docs/ai/README.md` before making changes. Use the existing isolated checkout; do not create a worktree unless requested.
-Preserve unrelated work. Docker is canonical; host tooling is optional. Pin exact versions and use frozen installs after lockfile generation.
-Apps cannot import apps. Web cannot access database code. Only API infrastructure imports `@nexora/database`; controllers delegate to application services.
-Nexora owns the shipment domain. Logistics provider integration requires official API authorization review; never invent shipment data or implement provider integrations prematurely.
-Keep canonical docs synchronized with code. Record executed commands and PASS/FAIL/NOT RUN; distinguish implementation from verification. Never reset user volumes for tests.
+Before working in this repository, read the mandatory AI entry point at [`docs/ai/README.md`](docs/ai/README.md) and follow its routed reading order.
+
+- Inspect the repository before proposing or making changes. Preserve unrelated work.
+- Use Docker as the canonical runtime and services environment; host Node.js tooling is supported for fast local workflows.
+- Pin exact dependency versions; use frozen installs (`pnpm install --frozen-lockfile`).
+- Do not claim completion without executed command or runtime evidence.
+- Every task must assess Documentation Impact (`REQUIRED` or `NONE`) following [Project rules](docs/ai/PROJECT_RULES.md#4-documentation-synchronization).
+- Apps cannot import apps. Web cannot access database code. Only API infrastructure imports `@nexora/database`; controllers delegate to application services.
+- Nexora owns the Shipment domain. Logistics provider integration requires official API authorization review; never invent shipment data or implement provider integrations prematurely.
+- Follow the 4-stage task lifecycle (`PLANNED → IN PROGRESS → VERIFICATION PENDING → COMPLETED`) defined in [Task workflow](docs/ai/TASK_WORKFLOW.md). Never reset user volumes for tests.

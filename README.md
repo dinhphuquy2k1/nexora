@@ -30,7 +30,7 @@ sh scripts/data-smoke.sh
 sh scripts/dev-smoke.sh
 ```
 
-Smoke scripts dùng project/volumes riêng biệt; dừng stack đang chiếm cổng 3001 trước khi chạy. Quality script dùng stack hiện tại và không reset DB. Xem [testing](docs/operations/testing.md), [task evidence](docs/tasks/NEXORA-001-foundation.md) và [setup/platform matrix](docs/operations/setup.md).
+Smoke scripts dùng project/volumes riêng biệt; dừng stack đang chiếm cổng 3001 trước khi chạy. Quality script dùng stack hiện tại và không reset DB. Xem [testing](docs/operations/testing.md), [task evidence](docs/tasks/completed/NEXORA-001-foundation.md) và [setup/platform matrix](docs/operations/setup.md).
 
 ```sh
 sh scripts/backup.sh backups/2026-10-09
@@ -41,6 +41,6 @@ Backup/restore POSIX cần Docker, shell và công cụ POSIX cơ bản; Windows
 
 ## Tài liệu
 
-[Architecture](docs/architecture/overview.md) · [Configuration](docs/operations/configuration.md) · [Deployment limits](docs/operations/deployment.md) · [Domain notes](docs/domains/shipments.md) · [ADR-001 Baseline](docs/decisions/technology-baseline.md) · [ADR-002 Product Scope](docs/decisions/product-scope.md).
+[Mục lục tài liệu](docs/README.md) · [Architecture](docs/architecture/overview.md) · [Configuration](docs/operations/configuration.md) · [Deployment limits](docs/operations/deployment.md) · [Domain notes](docs/domains/shipments.md) · [ADR-001 Baseline](docs/decisions/technology-baseline.md) · [ADR-002 Product Scope](docs/decisions/product-scope.md) · [ADR-003 Reference Policy](docs/decisions/reference-architecture-policy.md).
 
 Milestone tiếp theo: Nghiên cứu khả thi API nhà cung cấp / mô hình thực thể Vận đơn & Khách hàng, import Excel danh sách kiện hàng.
