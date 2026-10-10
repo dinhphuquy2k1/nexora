@@ -109,4 +109,4 @@ Documentation Impact: REQUIRED
 | Documentation governance check passes                                      | `pnpm docs:check`                                                               | 2026-10-10 | PASS   |
 | Context-aware focus and accent contrast tokens verified                    | Verified contrast ratios: 5.18:1 text on white, 4.83:1 on light, 5.74:1 on dark | 2026-10-10 | PASS   |
 | Collapsed sidebar tooltip overflow clipping fix verified                   | CSS rule `.collapsed .nav { overflow: visible; }` in `Sidebar.module.css`       | 2026-10-10 | PASS   |
-| Browser interactive verification of shell, collapse, routes, and viewports | `browser_subagent` recording `management_ui_shell_verification`                  | 2026-10-10 | PASS   |
+| Browser interactive verification of shell, collapse, routes, and viewports | `browser_subagent` recording `management_ui_shell_verification`                 | 2026-10-10 | PASS   |
