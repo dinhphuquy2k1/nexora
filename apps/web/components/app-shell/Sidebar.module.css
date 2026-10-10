@@ -43,7 +43,7 @@
 }
 
 .brandLink:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--focus-ring-on-dark);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -108,6 +108,10 @@
   overscroll-behavior: contain;
 }
 
+.collapsed .nav {
+  overflow: visible;
+}
+
 .navGroup {
   margin-bottom: 20px;
 }
@@ -148,7 +152,7 @@
 }
 
 .navItemLink:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--focus-ring-on-dark);
   outline-offset: 2px;
 }
 

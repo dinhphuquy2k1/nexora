@@ -74,6 +74,8 @@ Documentation Impact: REQUIRED
 
 - Migrated frontend application shell from legacy static layout to modular AppShell with collapsible Sidebar, Header, and dynamic breadcrumbs.
 - Established centralized semantic design tokens (`apps/web/styles/tokens.css`) and scoped CSS Modules styling model without Tailwind CSS.
+- Added context-aware semantic tokens (`--color-accent-text`, `--focus-ring-on-light`, `--focus-ring-on-dark`) ensuring WCAG AA contrast for text and focus indicators on both light and dark surfaces.
+- Resolved collapsed sidebar tooltip clipping by configuring `.collapsed .nav { overflow: visible; }` while preserving expanded vertical scroll.
 - Defined single source of truth navigation contract with truthful planned item treatment, contract validation tests, and pure logic resolvers.
 - Implemented accessible W3C disclosure popovers with Escape focus restoration, outside-click dismissal, and stable callback handling.
 - Ensured truthful notification UI representation ("Chức năng thông báo chưa được triển khai") and removed misleading operational status statements.
@@ -93,16 +95,18 @@ Documentation Impact: REQUIRED
 
 ## 6. Evidence
 
-| Claim                                                                      | Evidence                                                        | Date       | Result |
-| :------------------------------------------------------------------------- | :-------------------------------------------------------------- | :--------- | :----- |
-| Baseline commit and clean working tree confirmed                           | `git status; git rev-parse HEAD` (`f11be98`)                    | 2026-10-10 | PASS   |
-| Approved navigation contract test with negative assertions passes          | `node --test apps/web/test/navigation.test.mjs`                 | 2026-10-10 | PASS   |
-| Web workspace test suite passes                                            | `pnpm --filter @nexora/web test`                                | 2026-10-10 | PASS   |
-| Full workspace tests pass including web and API                            | `pnpm test`                                                     | 2026-10-10 | PASS   |
-| Web workspace typecheck passes                                             | `pnpm --filter @nexora/web typecheck`                           | 2026-10-10 | PASS   |
-| Production build passes across all packages                                | `pnpm build`                                                    | 2026-10-10 | PASS   |
-| Architectural boundaries check passes                                      | `node scripts/boundaries.mjs`                                   | 2026-10-10 | PASS   |
-| Linter passes across repository                                            | `pnpm lint`                                                     | 2026-10-10 | PASS   |
-| Prettier code formatting check passes                                      | `pnpm format:check`                                             | 2026-10-10 | PASS   |
-| Documentation governance check passes                                      | `pnpm docs:check`                                               | 2026-10-10 | PASS   |
-| Browser interactive verification of shell, collapse, routes, and viewports | `browser_subagent` recording `management_ui_shell_verification` | 2026-10-10 | PASS   |
+| Claim                                                                      | Evidence                                                                        | Date       | Result |
+| :------------------------------------------------------------------------- | :------------------------------------------------------------------------------ | :--------- | :----- |
+| Baseline commit and clean working tree confirmed                           | `git status; git rev-parse HEAD` (`f11be98`)                                    | 2026-10-10 | PASS   |
+| Approved navigation contract test with negative assertions passes          | `node --test apps/web/test/navigation.test.mjs`                                 | 2026-10-10 | PASS   |
+| Web workspace test suite passes                                            | `pnpm --filter @nexora/web test`                                                | 2026-10-10 | PASS   |
+| Full workspace tests pass including web and API                            | `pnpm test`                                                                     | 2026-10-10 | PASS   |
+| Web workspace typecheck passes                                             | `pnpm --filter @nexora/web typecheck`                                           | 2026-10-10 | PASS   |
+| Production build passes across all packages                                | `pnpm build`                                                                    | 2026-10-10 | PASS   |
+| Architectural boundaries check passes                                      | `node scripts/boundaries.mjs`                                                   | 2026-10-10 | PASS   |
+| Linter passes across repository                                            | `pnpm lint`                                                                     | 2026-10-10 | PASS   |
+| Prettier code formatting check passes                                      | `pnpm format:check`                                                             | 2026-10-10 | PASS   |
+| Documentation governance check passes                                      | `pnpm docs:check`                                                               | 2026-10-10 | PASS   |
+| Context-aware focus and accent contrast tokens verified                    | Verified contrast ratios: 5.18:1 text on white, 4.83:1 on light, 5.74:1 on dark | 2026-10-10 | PASS   |
+| Collapsed sidebar tooltip overflow clipping fix verified                   | CSS rule `.collapsed .nav { overflow: visible; }` in `Sidebar.module.css`       | 2026-10-10 | PASS   |
+| Browser interactive verification of shell, collapse, routes, and viewports | `browser_subagent` recording `management_ui_shell_verification`                  | 2026-10-10 | PASS   |

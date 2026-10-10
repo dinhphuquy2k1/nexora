@@ -42,7 +42,7 @@
 }
 
 .toggleButton:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 2px;
 }
 
@@ -168,7 +168,7 @@
 }
 
 .iconButton:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 2px;
 }
 
@@ -191,7 +191,7 @@
 }
 
 .userButton:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 2px;
 }
 
@@ -309,18 +309,18 @@
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
 .actionLink:hover {
   text-decoration: underline;
-  color: var(--color-accent-hover);
+  color: var(--color-accent-text-hover);
 }
 
 .actionLink:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 2px;
   border-radius: 4px;
 }

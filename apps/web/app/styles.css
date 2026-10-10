@@ -42,7 +42,7 @@ a {
 .eyebrow {
   letter-spacing: 1.5px;
   font-size: 11px;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   font-weight: 700;
   text-transform: uppercase;
   margin: 0 0 8px;
@@ -207,7 +207,7 @@ dt {
 /* Accessibility Focus States */
 a:focus-visible,
 button:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 2px;
 }
 

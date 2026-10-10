@@ -12,6 +12,12 @@
   --color-text-muted: #64748b;
   --color-border: #e2e8f0;
 
+  /* Context-aware semantic tokens for WCAG AA compliance */
+  --color-accent-text: #c2410c;
+  --color-accent-text-hover: #9a3412;
+  --focus-ring-on-light: #c2410c;
+  --focus-ring-on-dark: #f58a24;
+
   /* Status semantic colors */
   --color-status-success-bg: #e2f2e6;
   --color-status-success-text: #24663b;
