@@ -85,6 +85,31 @@ export function runNegativeTests() {
       checkFileImports("packages/sdk/src/index.ts", "import '@nexora/api';"),
     /SDK boundary/,
   );
+  assert.throws(
+    () => checkDockerManifestDeclarationsContent("FROM tools\n", ["apps/api"]),
+    /Missing Dockerfile manifest declaration/,
+  );
+  assert.throws(
+    () =>
+      checkDockerManifestDeclarationsContent(
+        "COPY apps/api/package.json apps/api/package.json\nCOPY apps/stale/package.json apps/stale/package.json",
+        ["apps/api"],
+      ),
+    /Stale Dockerfile manifest declaration/,
+  );
+  assert.throws(
+    () =>
+      checkDockerManifestDeclarationsContent(
+        "# COPY apps/api/package.json apps/api/package.json\n",
+        ["apps/api"],
+      ),
+    /Missing Dockerfile manifest declaration/,
+  );
+  // Positive test: valid declarations pass without error
+  checkDockerManifestDeclarationsContent(
+    "COPY apps/api/package.json apps/api/package.json\nCOPY apps/web/package.json apps/web/package.json",
+    ["apps/api", "apps/web"],
+  );
 }
 
 async function walk(dir) {
@@ -101,7 +126,103 @@ async function walk(dir) {
   }
 }
 
+export function parseDeclaredManifestCopies(dockerfileText) {
+  const declared = new Set();
+  const lines = dockerfileText.split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const match = line.match(/^COPY\s+([^\s]+)\s+([^\s]+)$/);
+    if (match) {
+      const [, src, dest] = match;
+      if (
+        src.endsWith("/package.json") &&
+        (src.startsWith("apps/") || src.startsWith("packages/"))
+      ) {
+        if (src !== dest) {
+          throw new Error(
+            `Asymmetric manifest COPY declaration: '${src}' vs '${dest}'`,
+          );
+        }
+        const pkgDir = src.slice(0, -"/package.json".length);
+        declared.add(pkgDir);
+      }
+    }
+  }
+  return declared;
+}
+
+export function checkDockerManifestDeclarationsContent(
+  toolsDockerfile,
+  actualPackages = [
+    "apps/api",
+    "apps/web",
+    "packages/database",
+    "packages/sdk",
+    "packages/shared",
+    "packages/ui",
+  ],
+) {
+  const actualSet = new Set(actualPackages);
+  const declaredSet = parseDeclaredManifestCopies(toolsDockerfile);
+
+  // Direction 1: Every actual workspace package must have a COPY declaration
+  for (const pkg of actualSet) {
+    if (!declaredSet.has(pkg)) {
+      throw new Error(
+        `Missing Dockerfile manifest declaration: expected 'COPY ${pkg}/package.json ${pkg}/package.json' in docker/Dockerfile.tools`,
+      );
+    }
+  }
+
+  // Direction 2: Every declared manifest COPY must correspond to an actual workspace package
+  for (const declared of declaredSet) {
+    if (!actualSet.has(declared)) {
+      throw new Error(
+        `Stale Dockerfile manifest declaration: package '${declared}' declared in docker/Dockerfile.tools does not exist in workspace`,
+      );
+    }
+  }
+}
+
+export async function discoverWorkspacePackages() {
+  const workspaceFile = await readFile("pnpm-workspace.yaml", "utf8");
+  const packages = [];
+  const lines = workspaceFile.split(/\r?\n/);
+  for (const line of lines) {
+    const match = line.trim().match(/^-\s*['"]?([^/'"]+)\/\*['"]?$/);
+    if (match) {
+      const group = match[1];
+      try {
+        const entries = await readdir(group, { withFileTypes: true });
+        for (const ent of entries) {
+          if (ent.isDirectory()) {
+            const pkgPath = `${group}/${ent.name}`;
+            try {
+              // Ensure package.json actually exists inside this directory
+              await readFile(`${pkgPath}/package.json`, "utf8");
+              packages.push(pkgPath);
+            } catch {
+              // Non-package directory (e.g. without package.json) is ignored
+            }
+          }
+        }
+      } catch {
+        // Directory group does not exist
+      }
+    }
+  }
+  return packages.sort();
+}
+
+export async function checkDockerManifestDeclarations() {
+  const toolsDockerfile = await readFile("docker/Dockerfile.tools", "utf8");
+  const actualPackages = await discoverWorkspacePackages();
+  checkDockerManifestDeclarationsContent(toolsDockerfile, actualPackages);
+}
+
 runNegativeTests();
+await checkDockerManifestDeclarations();
 await walk("apps");
 await walk("packages");
 console.log("Workspace boundaries PASS");

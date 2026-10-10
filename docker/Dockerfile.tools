@@ -1,0 +1,31 @@
+FROM node:24.19.0-bookworm-slim AS tools
+WORKDIR /workspace
+ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH NEXT_TELEMETRY_DISABLED=1
+RUN --mount=type=secret,id=build_ca \
+    if [ -f /run/secrets/build_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/build_ca; fi; \
+    npm install --global pnpm@10.34.6 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends openssl ca-certificates gosu && \
+    rm -rf /var/lib/apt/lists/*
+COPY --chmod=755 scripts/init-local.sh scripts/api-entrypoint.sh scripts/backup-manifest.mjs /scripts/
+
+FROM scratch AS dependency-cache
+
+FROM tools AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/database/package.json packages/database/package.json
+COPY packages/sdk/package.json packages/sdk/package.json
+COPY packages/shared/package.json packages/shared/package.json
+COPY packages/ui/package.json packages/ui/package.json
+RUN --mount=type=secret,id=build_ca \
+    --mount=type=bind,from=dependency-cache,target=/dependency-cache \
+    if [ -f /run/secrets/build_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/build_ca; fi; \
+    mkdir -p /pnpm/store; \
+    if [ -f /dependency-cache/pnpm-cache.tar ]; then tar -xf /dependency-cache/pnpm-cache.tar -C /pnpm/store; fi; \
+    pnpm install --frozen-lockfile --store-dir /pnpm/store
+
+FROM deps AS dev
+COPY . .
+ENTRYPOINT ["sh", "/workspace/scripts/dev-entrypoint.sh"]

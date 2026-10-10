@@ -18,7 +18,10 @@ services:
   dependencies:
     depends_on:
       init: { condition: service_completed_successfully }
-    build: { context: ., target: dev }
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tools
+      target: dev
     image: nexora-dev:0.1.0
     entrypoint: [sh, /workspace/scripts/dev-entrypoint.sh]
     command: [dependencies]
@@ -43,7 +46,7 @@ services:
     depends_on:
       dependencies: { condition: service_completed_successfully }
   api:
-    build: { context: ., target: dev }
+    build: !reset null
     image: nexora-dev:0.1.0
     user: "0:0"
     entrypoint: [sh, /workspace/scripts/dev-entrypoint.sh]
@@ -70,7 +73,7 @@ services:
     depends_on:
       dependencies: { condition: service_completed_successfully }
   web:
-    build: { context: ., target: dev }
+    build: !reset null
     image: nexora-dev:0.1.0
     user: "0:0"
     entrypoint: [sh, /workspace/scripts/dev-entrypoint.sh]
