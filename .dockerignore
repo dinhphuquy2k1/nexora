@@ -1,0 +1,12 @@
+.git
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+backups
+.data
+.env*
+attachments
+**/.contracts/
+**/*.tsbuildinfo
+**/next-env.d.ts

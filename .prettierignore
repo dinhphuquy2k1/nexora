@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+apps/api/openapi/
+packages/sdk/src/generated/
+.next
+dist
+node_modules
+.turbo
+**/.contracts/
+**/*.tsbuildinfo

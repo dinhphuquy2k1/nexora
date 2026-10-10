@@ -1,0 +1,33 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["build"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "@nexora/database#build": {
+      "cache": false,
+      "outputs": ["dist/**"]
+    }
+  },
+  "globalEnv": [
+    "DATABASE_URL",
+    "STORAGE_ROOT",
+    "API_DOCS_ENABLED",
+    "PORT",
+    "NODE_ENV",
+    "API_INTERNAL_URL",
+    "NEXT_TELEMETRY_DISABLED"
+  ]
+}

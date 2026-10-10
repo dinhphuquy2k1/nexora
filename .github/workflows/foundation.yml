@@ -1,0 +1,33 @@
+name: Nexora foundation
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  docker-foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      COMPOSE_PROJECT_NAME: nexora-ci
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Docker quality and migrated integration
+        run: sh scripts/quality-docker.sh
+      - name: Stop development before runtime smoke
+        run: docker compose -f compose.yml -f compose.dev.yml down
+      - name: Local release runtime smoke
+        run: sh scripts/runtime-smoke.sh
+      - name: DB and source backup restore smoke
+        run: sh scripts/data-smoke.sh
+      - name: Development HMR and dependency drift smoke
+        run: sh scripts/dev-smoke.sh
+      - name: Diagnostics
+        if: failure()
+        run: |
+          docker compose -f compose.yml -f compose.dev.yml ps -a
+          docker compose -f compose.yml -f compose.dev.yml logs --no-color
+      - name: Remove only CI-owned volumes
+        if: always()
+        run: docker compose -f compose.yml -f compose.dev.yml down -v --remove-orphans

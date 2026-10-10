@@ -1,0 +1,6 @@
+# ADR-002 · Docker modes
+
+Accepted: default Compose builds production local runtime from clean source. Dev override owns source binds, isolated dependency/cache volumes and frozen initializer. Distribution template uses versioned prebuilt tags with no build, explicitly unavailable until publication. This avoids making a source-start script depend on nonexistent published images.
+Choose next start with pruned workspace production dependencies rather than standalone to keep packaging explicit. Non-root API/web runtime; tools/init may root only for dedicated volume permissions. Init retains generated local PostgreSQL credential rather than hardcoding a release password. No unused encryption/auth key is generated.
+
+Release artifact copier follows the already-installed frozen dependency graph with real package resolution, retaining required dependencies and excluding optional peers (including Prisma CLI from API runtime). Migration tooling explicitly includes database devDependencies. It preserves generated Prisma client output and never resolves versions or contacts a registry. Legacy pnpm deploy was rejected because it hardcodes unfrozen re-resolution; injected workspace mode was rejected because it separates dev watchers from bound source. Normal workspace symlinks remain for HMR.

@@ -1,0 +1,109 @@
+services:
+  dependencies:
+    depends_on:
+      init: { condition: service_completed_successfully }
+    build: { context: ., target: dev }
+    image: nexora-dev:0.1.0
+    entrypoint: [sh, /workspace/scripts/dev-entrypoint.sh]
+    command: [dependencies]
+    environment: { CI: "true" }
+    volumes:
+      - .:/workspace
+      - root_deps:/workspace/node_modules
+      - pnpm_store:/pnpm/store
+      - web_cache:/workspace/apps/web/.next
+      - apps_api_deps:/workspace/apps/api/node_modules
+      - apps_web_deps:/workspace/apps/web/node_modules
+      - packages_database_deps:/workspace/packages/database/node_modules
+      - packages_sdk_deps:/workspace/packages/sdk/node_modules
+      - packages_shared_deps:/workspace/packages/shared/node_modules
+      - packages_ui_deps:/workspace/packages/ui/node_modules
+      - api_dist:/workspace/apps/api/dist
+      - database_dist:/workspace/packages/database/dist
+      - shared_dist:/workspace/packages/shared/dist
+      - turbo_cache:/workspace/.turbo
+      - uploads:/data/uploads
+  migrate:
+    depends_on:
+      dependencies: { condition: service_completed_successfully }
+  api:
+    build: { context: ., target: dev }
+    image: nexora-dev:0.1.0
+    user: "0:0"
+    entrypoint: [sh, /workspace/scripts/dev-entrypoint.sh]
+    command:
+      [
+        sh,
+        /workspace/scripts/api-entrypoint.sh,
+        pnpm,
+        exec,
+        turbo,
+        run,
+        dev,
+        --filter=@nexora/api,
+        --filter=@nexora/shared,
+        --filter=@nexora/database,
+      ]
+    environment:
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      TSC_WATCHFILE: "PriorityPollingInterval"
+      TSC_WATCHDIRECTORY: "FixedPollingInterval"
+    volumes:
+      - .:/workspace
+      - root_deps:/workspace/node_modules
+      - pnpm_store:/pnpm/store
+      - web_cache:/workspace/apps/web/.next
+      - apps_api_deps:/workspace/apps/api/node_modules
+      - apps_web_deps:/workspace/apps/web/node_modules
+      - packages_database_deps:/workspace/packages/database/node_modules
+      - packages_sdk_deps:/workspace/packages/sdk/node_modules
+      - packages_shared_deps:/workspace/packages/shared/node_modules
+      - packages_ui_deps:/workspace/packages/ui/node_modules
+      - api_dist:/workspace/apps/api/dist
+      - database_dist:/workspace/packages/database/dist
+      - shared_dist:/workspace/packages/shared/dist
+      - turbo_cache:/workspace/.turbo
+    depends_on:
+      dependencies: { condition: service_completed_successfully }
+  web:
+    build: { context: ., target: dev }
+    image: nexora-dev:0.1.0
+    user: "0:0"
+    entrypoint: [sh, /workspace/scripts/dev-entrypoint.sh]
+    command: [pnpm, --filter, "@nexora/web", dev]
+    environment:
+      NODE_ENV: development
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - .:/workspace
+      - root_deps:/workspace/node_modules
+      - pnpm_store:/pnpm/store
+      - web_cache:/workspace/apps/web/.next
+      - apps_api_deps:/workspace/apps/api/node_modules
+      - apps_web_deps:/workspace/apps/web/node_modules
+      - packages_database_deps:/workspace/packages/database/node_modules
+      - packages_sdk_deps:/workspace/packages/sdk/node_modules
+      - packages_shared_deps:/workspace/packages/shared/node_modules
+      - packages_ui_deps:/workspace/packages/ui/node_modules
+      - api_dist:/workspace/apps/api/dist
+      - database_dist:/workspace/packages/database/dist
+      - shared_dist:/workspace/packages/shared/dist
+      - turbo_cache:/workspace/.turbo
+    depends_on:
+      dependencies: { condition: service_completed_successfully }
+volumes:
+  root_deps:
+  pnpm_store:
+  web_cache:
+  apps_api_deps:
+  apps_web_deps:
+  packages_database_deps:
+  packages_sdk_deps:
+  packages_shared_deps:
+  packages_ui_deps:
+  api_dist:
+  database_dist:
+  shared_dist:
+  turbo_cache:

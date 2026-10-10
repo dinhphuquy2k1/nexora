@@ -1,0 +1,26 @@
+{
+  "name": "@nexora/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "concurrently -k \"tsc -p tsconfig.json --watch\" \"node --watch dist/main.js\"",
+    "test": "node --test test/unit.test.cjs",
+    "test:integration": "node --test test/integration.test.cjs"
+  },
+  "dependencies": {
+    "@nexora/database": "workspace:*",
+    "@nexora/shared": "workspace:*",
+    "@nestjs/common": "11.2.7",
+    "@nestjs/core": "11.2.7",
+    "@nestjs/platform-express": "11.2.7",
+    "@nestjs/swagger": "11.4.7",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.3"
+  }
+}

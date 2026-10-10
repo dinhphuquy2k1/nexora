@@ -1,0 +1,5 @@
+# Backend
+
+`HealthController` maps HTTP to `HealthService`; the application service consumes database/storage health ports. DatabaseAdapter is infrastructure and lazily constructs Prisma so liveness remains available when database operations fail. DB URLs use a 3-second connect timeout in Compose. No AI dependency is required for readiness.
+`FilesService` writes the original blob then registers hash/size in the catalog; catalog failure removes the new blob. This is an internal service, with no public upload endpoint. Process crashes between filesystem and catalog writes may leave an orphan; recovery/retention belongs to the ingest milestone. Successful stored files are immutable through the current service.
+Config validates required DB URL, canonical absolute storage root, port, node environment and explicit Swagger toggle. Errors expose safe code/message/requestId. JSON HTTP logs contain requestId, status and duration only; headers, query strings, request bodies, cookies, credentials, file contents and notes are excluded by construction. Forwarded IPs are not trusted; CORS is not enabled.

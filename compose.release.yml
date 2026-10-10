@@ -1,0 +1,89 @@
+# Publication template only: these application images have NOT been published.
+name: nexora
+services:
+  init:
+    image: ghcr.io/dinhphuquy2k1/nexora-tools:0.1.0
+    user: "0:0"
+    entrypoint: [sh, /scripts/init-local.sh]
+    volumes:
+      - credentials:/config
+      - uploads:/uploads
+  postgres:
+    image: postgres:17.11-bookworm
+    environment:
+      POSTGRES_USER: nexora
+      POSTGRES_DB: nexora
+      POSTGRES_PASSWORD_FILE: /config/postgres_password
+    volumes:
+      - credentials:/config:ro
+      - postgres:/var/lib/postgresql/data
+    depends_on:
+      init: { condition: service_completed_successfully }
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U nexora -d nexora"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  migrate:
+    image: ghcr.io/dinhphuquy2k1/nexora-migrate:0.1.0
+    entrypoint: [sh, /scripts/api-entrypoint.sh]
+    command:
+      [
+        node,
+        node_modules/prisma/build/cli.js,
+        migrate,
+        deploy,
+        --schema,
+        prisma/schema.prisma,
+      ]
+    volumes:
+      - credentials:/config:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+  api:
+    image: ghcr.io/dinhphuquy2k1/nexora-api:0.1.0
+    entrypoint: [sh, /scripts/api-entrypoint.sh]
+    command: [node, dist/main.js]
+    environment:
+      NODE_ENV: production
+      STORAGE_ROOT: /data/uploads
+      API_DOCS_ENABLED: "false"
+    volumes:
+      - credentials:/config:ro
+      - uploads:/data/uploads
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:4000/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 8s
+      retries: 20
+  web:
+    image: ghcr.io/dinhphuquy2k1/nexora-web:0.1.0
+    environment:
+      API_INTERNAL_URL: http://api:4000
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports: ["${WEB_PORT:-127.0.0.1:3001}:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 8s
+      retries: 20
+volumes:
+  credentials:
+  postgres:
+  uploads:

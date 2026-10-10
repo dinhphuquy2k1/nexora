@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.next/
+.turbo/
+.env*
+!.env.example
+backups/
+*.log
+.data/
+**/.contracts/
+**/*.tsbuildinfo
+apps/web/next-env.d.ts

@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")/.."
+compose(){
+ if [ -n "${NEXORA_COMPOSE_OVERRIDE:-}" ]; then
+  docker compose -f compose.yml -f compose.dev.yml -f "$NEXORA_COMPOSE_OVERRIDE" "$@"
+ else
+  docker compose -f compose.yml -f compose.dev.yml "$@"
+ fi
+}
+if [ "${NEXORA_QUALITY_NO_BUILD:-0}" = 1 ]; then
+ compose up --no-build -d --wait --wait-timeout 180
+else
+ compose up --build -d --wait --wait-timeout 180
+fi
+# Stop watchers before writing their shared dist/.next output volumes.
+restart(){ compose start api web >/dev/null; }
+trap restart EXIT HUP INT TERM
+compose stop api web
+# run invokes mapped-user entrypoint; exec bypasses that mapping.
+compose run --rm --no-deps -T api sh /workspace/scripts/api-entrypoint.sh sh -c 'NODE_ENV=production pnpm quality && NODE_ENV=test pnpm test:integration'
