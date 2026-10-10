@@ -1,7 +1,20 @@
 name: nexora
 services:
+  builder:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tools
+      target: deps
+    image: nexora-builder:0.1.0
+    restart: "no"
+    entrypoint: ["true"]
   init:
-    build: { context: ., target: tools }
+    depends_on:
+      builder: { condition: service_completed_successfully }
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tools
+      target: tools
     image: nexora-tools:0.1.0
     user: "0:0"
     entrypoint: [sh, /scripts/init-local.sh]
@@ -25,7 +38,13 @@ services:
       timeout: 3s
       retries: 30
   migrate:
-    build: { context: ., target: migrate }
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migrate
+      additional_contexts:
+        base: service:builder
+        tools: service:init
     image: nexora-migrate:0.1.0
     entrypoint: [sh, /scripts/api-entrypoint.sh]
     command:
@@ -42,7 +61,13 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
   api:
-    build: { context: ., target: api-runtime }
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: api-runtime
+      additional_contexts:
+        base: service:builder
+        tools: service:init
     image: nexora-api:0.1.0
     entrypoint: [sh, /scripts/api-entrypoint.sh]
     command: [node, dist/main.js]
@@ -67,7 +92,12 @@ services:
       timeout: 8s
       retries: 20
   web:
-    build: { context: ., target: web-runtime }
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: web-runtime
+      additional_contexts:
+        base: service:builder
     image: nexora-web:0.1.0
     environment:
       API_INTERNAL_URL: http://api:4000

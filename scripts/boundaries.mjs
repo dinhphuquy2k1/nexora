@@ -85,6 +85,10 @@ export function runNegativeTests() {
       checkFileImports("packages/sdk/src/index.ts", "import '@nexora/api';"),
     /SDK boundary/,
   );
+  assert.throws(
+    () => checkDockerManifestDeclarationsContent("FROM tools\n"),
+    /Missing Dockerfile manifest declaration/,
+  );
 }
 
 async function walk(dir) {
@@ -101,7 +105,44 @@ async function walk(dir) {
   }
 }
 
+export function checkDockerManifestDeclarationsContent(
+  toolsDockerfile,
+  entriesMap = {
+    apps: ["api", "web"],
+    packages: ["database", "sdk", "shared", "ui"],
+  },
+) {
+  for (const [group, names] of Object.entries(entriesMap)) {
+    for (const name of names) {
+      const expected = `COPY ${group}/${name}/package.json ${group}/${name}/package.json`;
+      if (!toolsDockerfile.includes(expected)) {
+        throw new Error(
+          `Missing Dockerfile manifest declaration: expected '${expected}' in docker/Dockerfile.tools`,
+        );
+      }
+    }
+  }
+}
+
+export async function checkDockerManifestDeclarations() {
+  const toolsDockerfile = await readFile("docker/Dockerfile.tools", "utf8");
+  for (const group of ["apps", "packages"]) {
+    const entries = await readdir(group, { withFileTypes: true });
+    for (const ent of entries) {
+      if (ent.isDirectory()) {
+        const expected = `COPY ${group}/${ent.name}/package.json ${group}/${ent.name}/package.json`;
+        if (!toolsDockerfile.includes(expected)) {
+          throw new Error(
+            `Missing Dockerfile manifest declaration: expected '${expected}' in docker/Dockerfile.tools`,
+          );
+        }
+      }
+    }
+  }
+}
+
 runNegativeTests();
+await checkDockerManifestDeclarations();
 await walk("apps");
 await walk("packages");
 console.log("Workspace boundaries PASS");
