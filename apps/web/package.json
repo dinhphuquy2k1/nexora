@@ -2,16 +2,19 @@
   "name": "@nexora/web",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "next build --webpack",
     "dev": "next dev --webpack --hostname 0.0.0.0",
     "start": "next start --hostname 0.0.0.0",
+    "test": "node --test test/navigation.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@nexora/sdk": "workspace:*",
-    "@nexora/ui": "workspace:*",
     "@nexora/shared": "workspace:*",
+    "@nexora/ui": "workspace:*",
+    "lucide-react": "0.546.0",
     "next": "16.3.8",
     "react": "19.3.0",
     "react-dom": "19.3.0"

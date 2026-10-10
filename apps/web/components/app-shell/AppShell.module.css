@@ -1,0 +1,28 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--color-background);
+}
+
+.mainWrapper {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background-color: var(--color-background);
+}
+
+.contentArea {
+  flex: 1 1 auto;
+  padding: 24px 32px 48px;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .contentArea {
+    padding: 16px 16px 32px;
+  }
+}
