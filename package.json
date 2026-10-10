@@ -18,7 +18,9 @@
     "test:integration": "pnpm --filter @nexora/api test:integration",
     "contracts:generate": "pnpm --filter @nexora/api exec tsc -p tsconfig.contract.json && node apps/api/.contracts/openapi.js && pnpm --filter @nexora/sdk generate",
     "contracts:check": "node scripts/contracts-check.mjs",
-    "quality": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm contracts:check && pnpm build"
+    "docs:check": "node scripts/docs-check.mjs",
+    "test:docs": "node --test scripts/docs-check.test.mjs",
+    "quality": "pnpm format:check && pnpm lint && pnpm docs:check && pnpm typecheck && pnpm test && pnpm test:docs && pnpm contracts:check && pnpm build"
   },
   "devDependencies": {
     "typescript": "5.9.3",
