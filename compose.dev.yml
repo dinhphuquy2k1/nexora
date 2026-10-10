@@ -1,3 +1,19 @@
+x-development-volumes: &development-volumes
+  - .:/workspace
+  - root_deps:/workspace/node_modules
+  - pnpm_store:/pnpm/store
+  - web_cache:/workspace/apps/web/.next
+  - apps_api_deps:/workspace/apps/api/node_modules
+  - apps_web_deps:/workspace/apps/web/node_modules
+  - packages_database_deps:/workspace/packages/database/node_modules
+  - packages_sdk_deps:/workspace/packages/sdk/node_modules
+  - packages_shared_deps:/workspace/packages/shared/node_modules
+  - packages_ui_deps:/workspace/packages/ui/node_modules
+  - api_dist:/workspace/apps/api/dist
+  - database_dist:/workspace/packages/database/dist
+  - shared_dist:/workspace/packages/shared/dist
+  - turbo_cache:/workspace/.turbo
+
 services:
   dependencies:
     depends_on:
@@ -50,21 +66,7 @@ services:
       WATCHPACK_POLLING: "true"
       TSC_WATCHFILE: "PriorityPollingInterval"
       TSC_WATCHDIRECTORY: "FixedPollingInterval"
-    volumes:
-      - .:/workspace
-      - root_deps:/workspace/node_modules
-      - pnpm_store:/pnpm/store
-      - web_cache:/workspace/apps/web/.next
-      - apps_api_deps:/workspace/apps/api/node_modules
-      - apps_web_deps:/workspace/apps/web/node_modules
-      - packages_database_deps:/workspace/packages/database/node_modules
-      - packages_sdk_deps:/workspace/packages/sdk/node_modules
-      - packages_shared_deps:/workspace/packages/shared/node_modules
-      - packages_ui_deps:/workspace/packages/ui/node_modules
-      - api_dist:/workspace/apps/api/dist
-      - database_dist:/workspace/packages/database/dist
-      - shared_dist:/workspace/packages/shared/dist
-      - turbo_cache:/workspace/.turbo
+    volumes: *development-volumes
     depends_on:
       dependencies: { condition: service_completed_successfully }
   web:
@@ -76,21 +78,7 @@ services:
     environment:
       NODE_ENV: development
       WATCHPACK_POLLING: "true"
-    volumes:
-      - .:/workspace
-      - root_deps:/workspace/node_modules
-      - pnpm_store:/pnpm/store
-      - web_cache:/workspace/apps/web/.next
-      - apps_api_deps:/workspace/apps/api/node_modules
-      - apps_web_deps:/workspace/apps/web/node_modules
-      - packages_database_deps:/workspace/packages/database/node_modules
-      - packages_sdk_deps:/workspace/packages/sdk/node_modules
-      - packages_shared_deps:/workspace/packages/shared/node_modules
-      - packages_ui_deps:/workspace/packages/ui/node_modules
-      - api_dist:/workspace/apps/api/dist
-      - database_dist:/workspace/packages/database/dist
-      - shared_dist:/workspace/packages/shared/dist
-      - turbo_cache:/workspace/.turbo
+    volumes: *development-volumes
     depends_on:
       dependencies: { condition: service_completed_successfully }
 volumes:
