@@ -19,7 +19,7 @@ docker compose exec -T api node -e "if(process.getuid()===0)process.exit(1)"
 docker compose exec -T web node -e "if(process.getuid()===0)process.exit(1)"
 
 # Authentication & Security smoke tests (I1, I3, m1, M2, R3)
-docker compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/health/live',{headers:{host:'evil.example'}}).then(r=>{if(r.status!==400)process.exit(1);console.log('Untrusted Host rejection PASS')})"
+docker compose exec -T web node -e "const http=require('http');const req=http.request({host:'127.0.0.1',port:3000,path:'/api/health/live',headers:{host:'evil.example'}},res=>{if(res.statusCode!==400)process.exit(1);console.log('Untrusted Host rejection PASS')});req.on('error',()=>process.exit(1));req.end()"
 docker compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/auth/session').then(r=>{if(r.status!==401)process.exit(1);console.log('Unauthenticated session rejection PASS')})"
 docker compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/auth/session',{headers:{cookie:'nexora_session=%E0%A4%A'}}).then(r=>{if(r.status!==401)process.exit(1);console.log('Malformed cookie rejection PASS')})"
 docker compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'smoke_user',password:'SmokeTestPass123!'})}).then(r=>{if(r.status!==403)process.exit(1);console.log('Missing Origin rejection PASS')})"
