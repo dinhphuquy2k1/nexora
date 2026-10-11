@@ -2,62 +2,106 @@
 
 Next.js App Router provides the user interface and transport-only `/api/:path*` rewrite proxy. Server configuration selects `http://api:4000`, while client code in the browser consumes the generated SDK using relative same-origin paths. No database access, secrets, or internal server URLs are imported by client components. The build consumes committed SDK definitions and does not generate contracts on the fly.
 
-## 1. Application Shell & Component Ownership
+## 1. Component Ownership & Tier Model
 
-The management UI shell (`apps/web/components/app-shell/`) provides a unified, reusable layout frame across all routes:
+Nexora enforces three distinct component ownership tiers to prevent component duplication and premature global abstractions:
 
-- **`AppShell` (`AppShell.tsx`)**: Authoritative Server Component layout container consumed in `apps/web/app/layout.tsx`. Wraps page content within the client shell boundary.
-- **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`). Renders `Sidebar`, `Header`, and the main content viewport.
-- **`Sidebar` (`Sidebar.tsx`, `Sidebar.module.css`)**: Collapsible logistics navigation bar featuring the geometric monogram logo (`N` with accent dot), grouped navigation items, active route indicators (accent vertical bar), and truthful planned item badges ("Chưa triển khai"). Technical runtime notes and version labels are excluded from the sidebar and consolidated under `/settings`.
-- **`Header` (`Header.tsx`, `Header.module.css`)**: Compact top bar containing the sidebar toggle, dynamic breadcrumb trail derived from the active URL, and the neutral user account disclosure (`AccountMenu`). Redundant Settings navigation links and unbacked notification triggers are excluded from the Header.
-- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible user account disclosure component reserving future identity and authentication UI space. Displays a neutral circular avatar (`User` icon) and a truthful unavailable status ("Chức năng tài khoản và đăng nhập sẽ được triển khai trong phiên bản sau.") without fabricating mock profiles, sessions, or backend identity endpoints.
-- **`Breadcrumb` (`Breadcrumb.tsx`)**: Pathname-driven breadcrumb navigation consuming the shared navigation metadata.
-- **`NavigationItem` (`NavigationItem.tsx`)**: Distinguishes available routes (Next.js `Link`) from planned features (disabled action button with explicit "Chưa triển khai" indicator).
-- **`NotificationMenu` (`NotificationMenu.tsx`)**: Notification indicator component. Hidden from the primary Header layout until supported by an approved backend notification domain service.
-- **Popover Semantics & Dismissal (`use-dismissable.ts`)**: Reusable disclosure hook managing outside pointer dismissal and Escape key closing. On Escape, keyboard focus cleanly returns to the trigger button (`triggerRef`), while outside clicks close the menu without stealing the pointer target's focus.
+### Tier A: Shared UI Primitives (`packages/ui/`)
 
-## 2. Styling Strategy & Token Layer
+Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel`, `StatusBadge`, future `Button`, `Input`):
 
-The frontend enforces a CSS Modules architecture with centralized semantic design tokens:
+- **Domain Agnostic**: Must never import Shipment, Customer, or Identity domain models.
+- **Transport Agnostic**: Must never call Nexora API endpoints or SDK client factories.
+- **Self-Contained Styling**: Owns its CSS Modules (`*.module.css`) and consumes semantic design tokens with sensible fallbacks (`var(--token, fallback)`).
+- **Extraction Criterion**: Extract into `packages/ui` only when a primitive has no domain coupling and is actively reused across multiple distinct features or applications.
 
-- **Tokens (`apps/web/styles/tokens.css`)**: Defines canonical variables including `--color-primary` (`#172b4d`), `--color-primary-strong` (`#0f1d36`), `--color-primary-hover` (`#1e3a5f`), `--color-accent` (`#f58a24`), `--color-background` (`#f5f7fa`), `--color-surface` (`#ffffff`), `--color-border` (`#e2e8f0`), layout dimensions (`--sidebar-width`, `--sidebar-collapsed-width`, `--header-height`), and status colors.
-- **Surface-Dependent Focus & Accent Contrast**: Implements context-aware semantic tokens:
-  - On light surfaces (`#ffffff`, `#f5f7fa`): Uses `--color-accent-text` (`#c2410c`, contrast 5.18:1 vs white, 4.83:1 vs light background) for small text (`.eyebrow`, notification action link) meeting WCAG AA 4.5:1, and `--focus-ring-on-light` (`#c2410c`) for keyboard focus outlines (`:focus-visible`) meeting WCAG 3:1 non-text contrast.
-  - On dark surfaces (`#172b4d`): Preserves brand orange `--color-accent` (`#f58a24`, contrast 5.74:1) for active indicator bars and icons, and uses `--focus-ring-on-dark` (`#f58a24`) for sidebar keyboard focus outlines.
-- **CSS Modules**: All shell components use scoped `.module.css` files, preventing global stylesheet pollution. Tailwind CSS is not introduced into the repository.
-- **Global Reset & Legacy Migration (`apps/web/app/styles.css`)**: Removed unscoped layout element selectors (`aside`, `header`, `nav`, `main`) to eliminate layout collisions with the new shell. Preserves global typography, CSS reset, and `@nexora/ui` panel, grid, button, and badge styles.
-- **Collapsed Sidebar Tooltips & Overflow Handling**: Tooltips use `visibility: hidden` and `opacity: 0` in resting state, revealed on both mouse hover (`:hover`) and keyboard navigation (`:focus-within`). To prevent tooltip clipping by the scroll container while preserving scrolling for expanded navigation, `.collapsed .nav { overflow: visible; }` is applied. Previous horizontal scrollbar regression at viewports <= 1024px was caused by fixed-width header elements (`collapsedBrand` + bulky local/user controls); removing redundant header branding and pseudo-user controls eliminated header blowout and ensured `scrollWidth <= clientWidth` across all standard desktop viewports (1440×900, 1280×800, 1024×768) without introducing destructive `overflow-x: hidden` hacks on `body`. Purely visual tooltips use `aria-hidden="true"` to prevent duplicate screen reader announcements, while parent links and disabled buttons provide independent `aria-label` definitions in collapsed mode.
+### Tier B: Application-Level Components (`apps/web/components/`)
 
-## 3. Navigation Contract & Single Source of Truth
+Components dedicated to Nexora's application shell, layout frame, and cross-route coordination:
+
+- **`AppShell` (`AppShell.tsx`)**: Authoritative Server Component layout frame consumed in `apps/web/app/layout.tsx`.
+- **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`).
+- **`Sidebar` (`Sidebar.tsx`, `Sidebar.module.css`)**: Logistics navigation bar with geometric monogram logo, grouped navigation items, active route indicators, and planned item tags.
+- **`Header` (`Header.tsx`, `Header.module.css`)**: Top bar containing sidebar toggle, pathname-driven breadcrumbs, and neutral user account disclosure (`AccountMenu`).
+- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible user account disclosure reserving future identity and authentication UI space without mock profiles or fake sessions.
+- **`Breadcrumb` (`Breadcrumb.tsx`)**: Pathname-driven breadcrumbs consuming shared navigation metadata.
+- **`NavigationItem` (`NavigationItem.tsx`)**: Distinguishes available routes (Next.js `Link`) from planned features (disabled action button with "Chưa triển khai" label).
+- **Popover Semantics (`use-dismissable.ts`)**: Reusable disclosure hook managing outside pointer dismissal and Escape key closing with focus restoration.
+
+### Tier C: Feature-Level Components (`apps/web/features/<feature>/`)
+
+Future feature-specific modules (e.g., `ShipmentTable`, `TrackingTimeline`, `CustomerForm`):
+
+- Kept strictly local to the feature directory.
+- Reuses Tier A shared UI primitives and Tier B layout slots.
+- May own feature-specific validation schemas, presentation types, and SDK caller hooks.
+
+## 2. Design Tokens & Styling Strategy
+
+The frontend enforces a CSS Modules architecture governed by centralized design tokens in `apps/web/styles/tokens.css`:
+
+### 2-Tier Token Architecture
+
+1. **Foundation Palette**: Raw brand and color constants (`--brand-navy`, `--brand-navy-dark`, `--brand-navy-light`, `--brand-orange`, `--brand-orange-light`, `--brand-orange-text`, `--gray-50` to `--gray-900`).
+2. **Semantic Application Tokens**: Purpose-driven tokens mapped to the foundation constants (`--color-primary`, `--color-accent`, `--color-surface`, `--color-border`, `--color-status-*`, `--focus-ring-*`).
+3. **Standardized Scales**:
+   - **Spacing**: `--space-1` (4px), `--space-2` (8px), `--space-3` (12px), `--space-4` (16px), `--space-5` (20px), `--space-6` (24px), `--space-8` (32px).
+   - **Radius**: `--radius-xs` (4px), `--radius-sm` (6px), `--radius-md` (8px), `--radius-lg` (12px), `--radius-full` (9999px).
+   - **Shadows**: `--shadow-sm`, `--shadow-md`, `--shadow-lg`.
+
+### Token Ownership & Consumption Contract (Option A)
+
+- **Host Application Ownership**: Tokens are declared on `:root` in `apps/web/styles/tokens.css` and loaded globally in `apps/web/app/styles.css`.
+- **Package Consumption**: Shared primitives in `packages/ui` consume these CSS custom properties via `var(--token-name, fallback)` without directly importing application stylesheets.
+- **Central Theming & Overrides**: Overriding CSS variables on `:root` or scoped selectors cleanly propagates across all shell components and `@nexora/ui` primitives simultaneously without residual hardcoded styles.
+
+### Minimal Global Styles (`apps/web/app/styles.css`)
+
+Global CSS is restricted to root token imports, basic CSS reset, base typography, and macro page layout grids (`.grid`, `.status-grid`). All internal component presentation for `Panel` and `StatusBadge` is decoupled into `@nexora/ui` CSS Modules.
+
+## 3. Server vs. Client Component Conventions
+
+Nexora adheres strictly to Next.js App Router boundary best practices:
+
+- **Server Components by Default**: All page routes (`/`, `/settings`, `/system`) and static wrappers (`AppShell`) are Server Components unless client state is required.
+- **Narrow Client Boundaries**: Client boundaries (`"use client"`) are pushed to the smallest possible leaf nodes (e.g., `ShellClient` for collapse state, `AccountMenu` for disclosure, `/system` for live polling).
+- **Serialization Invariant**: Server-to-Client boundaries only pass serializable data (primitives, plain objects, strings). React component constructors and icon factories are never passed across boundaries; components resolve string identifiers (`iconKey`) via local lookup registries.
+
+## 4. Feature Data-Fetching & UI State Conventions
+
+- **Data Ownership**: Page and feature boundaries own API data fetching; shared UI primitives remain completely transport-agnostic.
+- **Typed SDK Usage**: All client data calls consume the generated OpenAPI SDK (`createNexoraClient()`). Direct database access or direct imports from `apps/api` are strictly disallowed.
+- **Truthful UI State Modeling**:
+  - Always distinguish empty data from unsupported or planned features.
+  - Planned features must render explicit "Chưa triển khai" indicators and must never show mock records or fake success toasts.
+  - Interactive requests must handle loading, error, and cancellation cleanly without external global state stores (Redux, Zustand) until multi-feature operational complexity proves a concrete requirement.
+
+## 5. Navigation Contract & Single Source of Truth
 
 Navigation metadata is centralized in `apps/web/lib/navigation/nav-config.ts`:
 
 - **Typed Configuration (`NAVIGATION_ITEMS`)**: Single source of truth defining `id`, `label`, `href`, `status` (`available` | `planned`), `group` (`Workspace` | `System`), and `iconKey`.
-- **Approved Navigation Contract (`navigation.test.mjs`)**: Verified against an independent `APPROVED_NAVIGATION_CONTRACT` table in Node.js test runner. Detects unauthorized route additions (e.g. sourcing, wallet), missing items, status alterations, group changes, or planned items with navigable URLs.
+- **Approved Navigation Contract (`navigation.test.mjs`)**: Verified against an independent `APPROVED_NAVIGATION_CONTRACT` table in Node.js test runner. Detects unauthorized route additions, missing items, status alterations, or planned items with navigable URLs.
 - **Pure Resolvers (`apps/web/lib/navigation/resolve-active.ts`)**: Pure functions for URL normalization (`normalizePathname`), active route matching (`isItemActive`, `resolveActiveItem`), and breadcrumb trail derivation (`resolveBreadcrumbs`).
-- **Truthful Planned Items**: Planned capabilities (`shipment`, `customers`) have `href: null` and render with explicit "Chưa triển khai" indicators. They do not navigate to fake routes, simulate CRUD actions, or silently alter active state.
-- **Icons (`apps/web/lib/icons.ts`)**: Pinned exact dependency `lucide-react@0.546.0`. Configuration stores string `iconKey` identifiers, resolving Lucide icon components within rendering components to avoid serializing React component constructors across Server/Client boundaries.
-- **TypeScript Extension Convention**: Node 24 native ESM type-stripping executes `.mjs` test suites (`navigation.test.mjs`) against TypeScript modules without a compilation step. Node's ESM loader requires explicit `.ts` extensions on relative module specifiers. To support this while preserving type safety, `apps/web/tsconfig.json` specifies `"allowImportingTsExtensions": true` alongside `"noEmit": true`.
+- **Collapsed Sidebar Overflow Handling**: Tooltips use `visibility: hidden` and `opacity: 0` in resting state, revealed on `:hover` and `:focus-within`. `.collapsed .nav { overflow: visible; }` ensures tooltip visibility without clipping, while compact header layout guarantees `scrollWidth <= clientWidth` across all approved viewports.
 
-## 4. Product Scope Boundaries & Exclusions (ADR-002)
+## 6. Product Scope Boundaries & Exclusions (ADR-002)
 
 Nexora is a local-first shipment management platform. In foundation v0.1.0, the UI scope includes Overview (`/`), System Health (`/system`), and Settings (`/settings`). The reference prototype contained sourcing and customer portal features that are strictly excluded from Nexora production code:
 
 - **Excluded Sourcing Features**: China sourcing search (Taobao, 1688, Tmall), image recognition modal, product category grid, search result feedback mockups, and supplier directory listings.
 - **Excluded Financial Features**: Customer wallet balance, VIP tiers, currency exchange rate ticker, payment assistance, and simulated transaction logs.
 - **Preserved Existing Pages**:
-  - `/` (Overview): Concise, professional page hierarchy featuring page title (`Tổng quan`), subtitle (`Quản lý vận đơn và trạng thái nền tảng.`), a compact foundation notice, and 3 structured capability cards (`01. Khách hàng & Vận đơn`, `02. Theo dõi & Lịch sử trạng thái`, `03. Đồng bộ đối tác vận chuyển`) with truthful "Chưa triển khai" indicators, alongside a direct connection link to System Health. No fake metrics, operational charts, or simulated data are introduced.
-  - `/system` (System Health): Preserves real SDK client calls to `/api/health/live` and `/api/health/ready`, database/storage health checks, refresh action, and request ID tracking.
-  - `/settings` (Settings): Preserves foundation version, single-machine local runtime mode, Vietnamese language, and explicit notes on unconfigured network authentication.
+  - `/` (Overview): Concise, professional page hierarchy featuring page title (`Tổng quan`), subtitle (`Quản lý vận đơn, trạng thái nền tảng và kiện hàng.`), compact foundation notice, and 3 capability cards with truthful "Chưa triển khai" indicators.
+  - `/system` (System Health): Real SDK client calls to `/api/health/live` and `/api/health/ready`, database/storage health checks, refresh action, and request ID tracking.
+  - `/settings` (Settings): Foundation version, single-machine local runtime mode, Vietnamese language, and explicit notes on unconfigured network authentication.
 
-## 5. Verification & Runtime Evidence
+## 7. Automated Verification & Runtime Evidence
 
-- **Logic Tests**: Pure navigation resolvers and contract compliance verified using Node.js test runner (`node --test apps/web/test/navigation.test.mjs`), covering contract validation, negative assertions, exact/prefix active matching, breadcrumbs, and invalid route rejection.
-- **Workspace Build**: Turbo and Next.js webpack production build (`pnpm build`) prerender all static pages (`/`, `/_not-found`, `/settings`, `/system`) with zero errors.
-- **Typecheck & Lint**: Zero errors in `pnpm --filter @nexora/web typecheck`, `pnpm lint`, `node scripts/boundaries.mjs`, and `pnpm format:check`.
-- **Interactive Browser Verification**: Validated across 1440×900, 1280×800, and 1024×768 viewports:
-  - Sidebar collapse to 72px and expansion to 240px.
-  - Pathname-driven navigation between Overview, System Health, and Settings.
-  - Disabled planned links with no unwanted navigation.
-  - Dismissable popovers on outside click and Escape key with focus restoration to trigger.
-  - Execution of real SDK health checks on `/system`.
+- **Pure Navigation Tests**: `node --test apps/web/test/navigation.test.mjs` verifies contract compliance, route normalization, active matching, and breadcrumb derivation.
+- **Shared UI & Token Tests**: `node --test apps/web/test/shared-ui.test.mjs` verifies 2-tier design token architecture, absence of global component class coupling in `styles.css`, self-contained CSS modules in `@nexora/ui`, `StatusBadge` semantic mapping logic, and presence of scoped component styles in `.next/static/css` build artifacts.
+- **Workspace Build**: Turbo and Next.js webpack production build (`pnpm build`) transpile `@nexora/ui` and prerender all static pages (`/`, `/_not-found`, `/settings`, `/system`) with zero errors.
+- **Typecheck & Lint**: Zero errors in `pnpm --filter @nexora/ui typecheck`, `pnpm --filter @nexora/web typecheck`, `pnpm lint`, `node scripts/boundaries.mjs`, and `pnpm format:check`.
+- **Interactive Browser & Theme Override Verification**:
+  - Validated across 1440×900, 1280×800, and 1024×768 viewports in expanded and collapsed sidebar modes with `scrollWidth <= clientWidth`.
+  - Tested dynamic theme override of `--color-primary` and `--color-accent` in browser runtime, confirming coherent, system-wide updates without hardcoded color leaks.

@@ -1,0 +1,24 @@
+.badge {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: var(--radius-full, 9999px);
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.4;
+}
+
+.good {
+  background-color: var(--color-status-success-bg, #e2f2e6);
+  color: var(--color-status-success-text, #24663b);
+}
+
+.bad {
+  background-color: var(--color-status-error-bg, #fbe8e3);
+  color: var(--color-status-error-text, #973d2b);
+}
+
+.pending {
+  background-color: var(--color-status-pending-bg, #edf0ec);
+  color: var(--color-status-pending-text, #64748b);
+}

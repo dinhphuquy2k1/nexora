@@ -1,22 +1,52 @@
 :root {
-  /* Core brand and surface colors */
-  --color-primary: #172b4d;
-  --color-primary-strong: #0f1d36;
-  --color-primary-hover: #1e3a5f;
-  --color-accent: #f58a24;
-  --color-accent-hover: #e07716;
-  --color-accent-light: #fff7ed;
+  /* ==========================================================================
+     1. Foundation Palette (Raw constants)
+     ========================================================================== */
+  --brand-navy: #172b4d;
+  --brand-navy-dark: #0f1d36;
+  --brand-navy-light: #1e3a5f;
+  --brand-orange: #f58a24;
+  --brand-orange-dark: #e07716;
+  --brand-orange-light: #fff7ed;
+  --brand-orange-text: #c2410c;
+  --brand-orange-text-hover: #9a3412;
+
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-700: #334155;
+  --gray-800: #1f2937;
+  --gray-900: #0f172a;
+
+  /* ==========================================================================
+     2. Semantic Application Tokens (Mapped to Foundation Palette)
+     ========================================================================== */
+  --color-primary: var(--brand-navy);
+  --color-primary-strong: var(--brand-navy-dark);
+  --color-primary-hover: var(--brand-navy-light);
+
+  --color-accent: var(--brand-orange);
+  --color-accent-hover: var(--brand-orange-dark);
+  --color-accent-light: var(--brand-orange-light);
+
   --color-background: #f5f7fa;
   --color-surface: #ffffff;
-  --color-text: #1f2937;
-  --color-text-muted: #64748b;
-  --color-border: #e2e8f0;
+  --color-surface-subtle: var(--gray-100);
+  --color-surface-muted: var(--gray-50);
+
+  --color-text: var(--gray-800);
+  --color-text-muted: var(--gray-500);
+  --color-border: var(--gray-200);
+  --color-border-subtle: var(--gray-300);
 
   /* Context-aware semantic tokens for WCAG AA compliance */
-  --color-accent-text: #c2410c;
-  --color-accent-text-hover: #9a3412;
-  --focus-ring-on-light: #c2410c;
-  --focus-ring-on-dark: #f58a24;
+  --color-accent-text: var(--brand-orange-text);
+  --color-accent-text-hover: var(--brand-orange-text-hover);
+  --focus-ring-on-light: var(--brand-orange-text);
+  --focus-ring-on-dark: var(--brand-orange);
 
   /* Status semantic colors */
   --color-status-success-bg: #e2f2e6;
@@ -24,14 +54,44 @@
   --color-status-error-bg: #fbe8e3;
   --color-status-error-text: #973d2b;
   --color-status-pending-bg: #edf0ec;
-  --color-status-pending-text: #64748b;
+  --color-status-pending-text: var(--gray-500);
 
-  /* Layout dimensions */
+  /* ==========================================================================
+     3. Spacing Scale
+     ========================================================================== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ==========================================================================
+     4. Radius Scale
+     ========================================================================== */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* ==========================================================================
+     5. Elevation Shadow Scale
+     ========================================================================== */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.03);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+
+  /* ==========================================================================
+     6. Layout Dimensions & Typography
+     ========================================================================== */
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 72px;
   --header-height: 64px;
 
-  /* Typography */
   --font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, sans-serif;
