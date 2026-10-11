@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PRODUCT_NAME, FOUNDATION_VERSION } from "@nexora/shared";
+import { PRODUCT_NAME } from "@nexora/shared";
 import {
   NAVIGATION_ITEMS,
   GROUP_LABELS,
@@ -70,19 +70,6 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
           );
         })}
       </nav>
-
-      {/* Footer Info */}
-      {!isCollapsed && (
-        <div className={styles.footerNote}>
-          <div>
-            Phiên bản nền tảng{" "}
-            <span className={styles.footerNoteVersion}>
-              {FOUNDATION_VERSION}
-            </span>
-          </div>
-          <div>Chạy cục bộ trên máy của bạn</div>
-        </div>
-      )}
     </aside>
   );
 }

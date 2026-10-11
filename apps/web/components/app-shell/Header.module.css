@@ -46,46 +46,6 @@
   outline-offset: 2px;
 }
 
-.collapsedBrand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-right: 12px;
-  border-right: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.collapsedLogo {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  background-color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 15px;
-  position: relative;
-}
-
-.collapsedLogoDot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background-color: var(--color-accent);
-  position: absolute;
-  right: 5px;
-  bottom: 5px;
-}
-
-.collapsedBrandName {
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--color-primary);
-  letter-spacing: -0.3px;
-}
-
 .breadcrumb {
   display: flex;
   align-items: center;
@@ -122,26 +82,6 @@
   flex-shrink: 0;
 }
 
-.localBadge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 9999px;
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  font-size: 12px;
-  font-weight: 500;
-  color: #166534;
-}
-
-.statusDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background-color: #22c55e;
-}
-
 .menuTrigger {
   position: relative;
 }
@@ -159,6 +99,7 @@
   cursor: pointer;
   transition: all 0.15s ease;
   padding: 0;
+  text-decoration: none;
 }
 
 .iconButton:hover {
@@ -170,62 +111,6 @@
 .iconButton:focus-visible {
   outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 2px;
-}
-
-.userButton {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 10px 4px 6px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  background-color: transparent;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  color: var(--color-primary);
-}
-
-.userButton:hover {
-  background-color: var(--color-background);
-  border-color: var(--color-border);
-}
-
-.userButton:focus-visible {
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 2px;
-}
-
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #1e3a5f 0%, #172b4d 100%);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 12px;
-  border: 1px solid #cbd5e1;
-}
-
-.userMeta {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-}
-
-.userName {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-primary);
-  line-height: 1.2;
-}
-
-.userSubtitle {
-  font-size: 10px;
-  color: var(--color-text-muted);
-  line-height: 1.2;
 }
 
 .dropdownMenu {
@@ -269,26 +154,6 @@
   line-height: 1.6;
 }
 
-.metaRow {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-  border-bottom: 1px dashed #f1f5f9;
-}
-
-.metaRow:last-child {
-  border-bottom: none;
-}
-
-.metaLabel {
-  color: var(--color-text-muted);
-}
-
-.metaValue {
-  font-weight: 500;
-  color: var(--color-primary);
-}
-
 .emptyNoticeText {
   color: var(--color-text-muted);
   margin: 0;
@@ -328,11 +193,5 @@
 @media (max-width: 768px) {
   .header {
     padding: 0 16px;
-  }
-  .localBadge {
-    display: none;
-  }
-  .userMeta {
-    display: none;
   }
 }

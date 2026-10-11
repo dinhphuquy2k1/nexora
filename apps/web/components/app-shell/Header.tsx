@@ -1,11 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Menu } from "lucide-react";
-import { PRODUCT_NAME } from "@nexora/shared";
 import { Breadcrumb } from "./Breadcrumb.tsx";
-import { NotificationMenu } from "./NotificationMenu.tsx";
-import { UserMenu } from "./UserMenu.tsx";
+import { AccountMenu } from "./AccountMenu.tsx";
 import styles from "./Header.module.css";
 
 interface HeaderProps {
@@ -16,7 +13,7 @@ interface HeaderProps {
 export function Header({ isSidebarCollapsed, onToggleSidebar }: HeaderProps) {
   return (
     <header className={styles.header} aria-label="Thanh công cụ đầu trang">
-      {/* Left zone: Sidebar Toggle & Collapsed Brand & Breadcrumbs */}
+      {/* Left section: Sidebar Toggle & Breadcrumbs */}
       <div className={styles.leftSection}>
         <button
           type="button"
@@ -36,32 +33,12 @@ export function Header({ isSidebarCollapsed, onToggleSidebar }: HeaderProps) {
           <Menu size={18} aria-hidden="true" />
         </button>
 
-        {isSidebarCollapsed && (
-          <Link
-            href="/"
-            className={styles.collapsedBrand}
-            title="Về trang tổng quan"
-          >
-            <div className={styles.collapsedLogo} aria-hidden="true">
-              <span>N</span>
-              <span className={styles.collapsedLogoDot} />
-            </div>
-            <span className={styles.collapsedBrandName}>{PRODUCT_NAME}</span>
-          </Link>
-        )}
-
         <Breadcrumb />
       </div>
 
-      {/* Right zone: Local Indicator, Notifications & User Workspace */}
+      {/* Right section: User Account */}
       <div className={styles.rightSection}>
-        <div className={styles.localBadge}>
-          <span className={styles.statusDot} aria-hidden="true" />
-          <span>Không gian cục bộ</span>
-        </div>
-
-        <NotificationMenu />
-        <UserMenu />
+        <AccountMenu />
       </div>
     </header>
   );
