@@ -7,7 +7,9 @@ export default function Home() {
       <div style={{ marginBottom: "20px" }}>
         <p className="eyebrow">KHÔNG GIAN LÀM VIỆC</p>
         <h1>Tổng quan</h1>
-        <p className="intro">Quản lý vận đơn và trạng thái nền tảng.</p>
+        <p className="intro">
+          Quản lý vận đơn, trạng thái nền tảng và kiện hàng.
+        </p>
       </div>
 
       <div className="notice">
