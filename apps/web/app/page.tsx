@@ -1,20 +1,20 @@
 import Link from "next/link";
 import { Panel } from "@nexora/ui";
+
 export default function Home() {
   return (
     <>
-      <p className="eyebrow">KHÔNG GIAN LÀM VIỆC</p>
-      <h1>
-        Quản lý vận đơn,
-        <br />
-        từ dữ liệu gốc.
-      </h1>
-      <p className="intro">
-        Nền tảng quản lý kiện hàng, mã vận đơn và trạng thái vận chuyển độc lập.
-      </p>
-      <div className="notice">
-        Bản nền tảng · Chức năng nghiệp vụ vận đơn chưa triển khai.
+      <div style={{ marginBottom: "20px" }}>
+        <p className="eyebrow">KHÔNG GIAN LÀM VIỆC</p>
+        <h1>Tổng quan</h1>
+        <p className="intro">Quản lý vận đơn và trạng thái nền tảng.</p>
       </div>
+
+      <div className="notice">
+        Bản nền tảng v0.1.0 · Chức năng nghiệp vụ vận đơn đang được hoạch định
+        (ADR-002).
+      </div>
+
       <div className="grid">
         <Panel title="01 · Khách hàng & Vận đơn">
           <p>
@@ -29,14 +29,18 @@ export default function Home() {
           <span className="muted">Chưa triển khai</span>
         </Panel>
         <Panel title="03 · Đồng bộ nhà vận chuyển">
-          <p>Đồng bộ có điều kiện với hệ thống đối tác khi có ủy quyền API.</p>
+          <p>
+            Đồng bộ có điều kiện với hệ thống đối tác khi có ủy quyền API chính
+            thức.
+          </p>
           <span className="muted">Chưa triển khai</span>
         </Panel>
       </div>
-      <Panel title="Kiểm tra kết nối">
+
+      <Panel title="Kiểm tra kết nối và trạng thái vận hành">
         <p>
-          Xem trạng thái dịch vụ, cơ sở dữ liệu và nơi lưu file trước khi bắt
-          đầu.
+          Xem trạng thái các dịch vụ API, cơ sở dữ liệu và nơi lưu trữ tệp cục
+          bộ trước khi bắt đầu.
         </p>
         <Link className="button" href="/system">
           Xem trạng thái hệ thống →
