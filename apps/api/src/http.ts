@@ -53,9 +53,12 @@ class ErrorFilter implements ExceptionFilter {
     const code =
       typeof responseObj?.code === "string" ? responseObj.code : defaultCode;
     const message =
-      typeof responseObj?.message === "string"
-        ? responseObj.message
-        : defaultMessage;
+      status === 404
+        ? defaultMessage
+        : typeof responseObj?.code === "string" &&
+            typeof responseObj?.message === "string"
+          ? responseObj.message
+          : defaultMessage;
 
     res.status(status).json({
       code,
