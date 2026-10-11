@@ -1,7 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { randomUUID } from "node:crypto";
-import { createDatabase, hashPassword } from "@nexora/database";
+import { createDatabase, hashPassword } from "../packages/database/dist/index.js";
 
 function readHiddenPassword(promptText) {
   return new Promise((resolve) => {
