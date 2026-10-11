@@ -20,11 +20,7 @@ export default async function LoginPage({
   const sessionCookie = cookieStore.get("nexora_session");
 
   if (sessionCookie?.value) {
-    const apiUrl =
-      process.env.API_INTERNAL_URL ??
-      (process.env.NODE_ENV === "production"
-        ? "http://api:4000"
-        : "http://127.0.0.1:4000");
+    const apiUrl = process.env.API_INTERNAL_URL ?? "http://api:4000";
     try {
       const res = await fetch(`${apiUrl}/api/auth/session`, {
         headers: {
