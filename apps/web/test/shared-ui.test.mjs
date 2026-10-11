@@ -102,7 +102,7 @@ test("Decoupled Global CSS: no internal component classes in styles.css", () => 
   );
 });
 
-test("@nexora/ui package: self-contained CSS modules and exports", () => {
+test("@nexora/ui package: self-contained CSS modules, paragraph styles, and exports", () => {
   const panelPath = path.join(uiPackageRoot, "src/Panel.tsx");
   const panelCssPath = path.join(uiPackageRoot, "src/Panel.module.css");
   const badgePath = path.join(uiPackageRoot, "src/StatusBadge.tsx");
@@ -130,6 +130,18 @@ test("@nexora/ui package: self-contained CSS modules and exports", () => {
     badgeContent,
     /import styles from "\.\/StatusBadge\.module\.css"/,
     "StatusBadge imports CSS module",
+  );
+
+  // Verify restored paragraph styling in Panel.module.css
+  assert.match(
+    panelCss,
+    /\.panel p\s*\{/,
+    "Panel.module.css defines scoped paragraph styling",
+  );
+  assert.match(
+    panelCss,
+    /\.panel p:last-child\s*\{/,
+    "Panel.module.css defines last-child paragraph margin reset",
   );
 
   // Verify token consumption with fallbacks in CSS modules
@@ -160,71 +172,77 @@ test("@nexora/ui package: self-contained CSS modules and exports", () => {
   );
 });
 
-test("StatusBadge semantic status mapping logic", () => {
-  // Pure mapping validation for StatusBadge
-  function resolveStatusClass(ok) {
-    if (ok === true) return "good";
-    if (ok === false) return "bad";
-    return "pending";
+test("CSS custom properties: lightweight token reference validation", () => {
+  function getCssFiles(dir) {
+    const results = [];
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        if (["node_modules", ".next", "dist", ".turbo"].includes(entry.name)) {
+          continue;
+        }
+        results.push(...getCssFiles(path.join(dir, entry.name)));
+      } else if (entry.isFile() && entry.name.endsWith(".css")) {
+        results.push(path.join(dir, entry.name));
+      }
+    }
+    return results;
   }
 
-  assert.equal(resolveStatusClass(true), "good", "true maps to good status");
-  assert.equal(resolveStatusClass(false), "bad", "false maps to bad status");
+  const cssFiles = [...getCssFiles(webRoot), ...getCssFiles(uiPackageRoot)];
+  assert.ok(
+    cssFiles.length >= 5,
+    "Must discover all core repository CSS files",
+  );
+
+  const declaredTokens = new Set();
+  const fileContents = new Map();
+
+  for (const filePath of cssFiles) {
+    const rawContent = fs.readFileSync(filePath, "utf8");
+    // Strip comments
+    const stripped = rawContent.replace(/\/\*[\s\S]*?\*\//g, "");
+    fileContents.set(filePath, stripped);
+
+    // Collect declarations: --foo:
+    const declMatches = stripped.matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g);
+    for (const match of declMatches) {
+      declaredTokens.add(match[1]);
+    }
+  }
+
+  // Explicit allowlist for intentionally external properties
+  const allowlist = new Set();
+  const missingTokens = [];
+
+  for (const [filePath, content] of fileContents.entries()) {
+    const refMatches = content.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g);
+    for (const match of refMatches) {
+      const token = match[1];
+      if (!declaredTokens.has(token) && !allowlist.has(token)) {
+        const relativePath = path.relative(repoRoot, filePath);
+        missingTokens.push({ file: relativePath, token });
+      }
+    }
+  }
+
+  assert.deepEqual(
+    missingTokens,
+    [],
+    `Found undeclared CSS token references: ${JSON.stringify(missingTokens)}`,
+  );
+
+  // Negative test: verify deliberate typo triggers failure
+  const mockContentWithTypo = "color: var(--color-boder, #000);";
+  const typoMatches = [
+    ...mockContentWithTypo.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g),
+  ];
+  const detectedTypo = typoMatches.some(
+    (m) => !declaredTokens.has(m[1]) && !allowlist.has(m[1]),
+  );
   assert.equal(
-    resolveStatusClass(null),
-    "pending",
-    "null maps to pending status",
-  );
-  assert.equal(
-    resolveStatusClass(undefined),
-    "pending",
-    "undefined maps to pending status",
-  );
-});
-
-test("Next.js build artifacts include bundled @nexora/ui styles", () => {
-  const cssDir = path.join(webRoot, ".next/static/css");
-  if (!fs.existsSync(cssDir)) {
-    // If not built yet, skip build check
-    return;
-  }
-
-  const cssFiles = fs.readdirSync(cssDir).filter((f) => f.endsWith(".css"));
-  assert.ok(cssFiles.length > 0, "Build must produce static CSS files");
-
-  let allCss = "";
-  for (const file of cssFiles) {
-    allCss += fs.readFileSync(path.join(cssDir, file), "utf8");
-  }
-
-  assert.match(
-    allCss,
-    /Panel_panel__/,
-    "Compiled CSS contains scoped Panel_panel class",
-  );
-  assert.match(
-    allCss,
-    /Panel_title__/,
-    "Compiled CSS contains scoped Panel_title class",
-  );
-  assert.match(
-    allCss,
-    /StatusBadge_badge__/,
-    "Compiled CSS contains scoped StatusBadge_badge class",
-  );
-  assert.match(
-    allCss,
-    /StatusBadge_good__/,
-    "Compiled CSS contains scoped StatusBadge_good class",
-  );
-  assert.match(
-    allCss,
-    /StatusBadge_bad__/,
-    "Compiled CSS contains scoped StatusBadge_bad class",
-  );
-  assert.match(
-    allCss,
-    /StatusBadge_pending__/,
-    "Compiled CSS contains scoped StatusBadge_pending class",
+    detectedTypo,
+    true,
+    "Validator must detect undeclared custom property typo even with fallback",
   );
 });

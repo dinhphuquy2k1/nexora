@@ -8,7 +8,7 @@
   gap: 6px;
   height: 36px;
   padding: 2px 6px 2px 2px;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--color-border);
   background-color: transparent;
   cursor: pointer;
@@ -17,7 +17,7 @@
 
 .accountButton:hover {
   background-color: var(--color-background);
-  border-color: #cbd5e1;
+  border-color: var(--color-border-subtle);
 }
 
 .accountButton:focus-visible {
@@ -28,9 +28,9 @@
 .avatar {
   width: 30px;
   height: 30px;
-  border-radius: 50%;
-  background-color: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -39,7 +39,7 @@
 }
 
 .chevron {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   transition: transform 0.15s ease;
@@ -52,20 +52,18 @@
 .dropdownPanel {
   position: absolute;
   right: 0;
-  top: calc(100% + 8px);
+  top: calc(100% + var(--space-2));
   width: 290px;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.1),
-    0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   z-index: 50;
   overflow: hidden;
 }
 
 .panelHeader {
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
   background-color: var(--color-background);
   border-bottom: 1px solid var(--color-border);
 }
@@ -74,7 +72,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .panelTitle {
@@ -87,31 +85,31 @@
 .plannedBadge {
   font-size: 10px;
   font-weight: 500;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background-color: #e2e8f0;
-  color: #475569;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-xs);
+  background-color: var(--color-border);
+  color: var(--color-text-muted);
 }
 
 .panelDescription {
   font-size: 11px;
   color: var(--color-text-muted);
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
 }
 
 .panelBody {
-  padding: 14px 16px;
+  padding: 14px var(--space-4);
   font-size: 12px;
   color: var(--color-text);
   line-height: 1.5;
 }
 
 .statusNotice {
-  background-color: #f8fafc;
+  background-color: var(--color-surface-muted);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  border-radius: var(--radius-sm);
+  padding: 10px var(--space-3);
+  margin-bottom: var(--space-2);
   color: var(--color-primary);
   font-size: 12px;
   font-weight: 500;

@@ -61,3 +61,10 @@ Documentation Impact: REQUIRED
 | Prettier code and document formatting passes                    | `pnpm format:check`                                                                                | 2026-10-11 | PASS   |
 | Documentation governance, links, and task schema pass           | `pnpm docs:check`                                                                                  | 2026-10-11 | PASS   |
 | Interactive browser verification (1440×900, 1280×800, 1024×768) | Chrome subagent: `scrollWidth <= clientWidth`, 0 overflow, disclosure & focus restoration verified | 2026-10-11 | PASS   |
+
+---
+
+## 5. Verification Gaps & Pre-Merge State
+
+- **Hosted CI on Merge Commit**: Hosted GitHub Actions CI run (`docker-foundation`) on the eventual `main` merge commit cannot be executed or collected until PR #5 is merged.
+- **Task Lifecycle Decision**: The task remains `VERIFICATION PENDING` in `docs/tasks/active/` during PR #5. Transition to `docs/tasks/completed/` is explicitly deferred to a dedicated post-merge documentation follow-up once the merge commit SHA and its CI run are inspected.

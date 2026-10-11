@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FOUNDATION_VERSION } from "@nexora/shared";
 import { Panel } from "@nexora/ui";
 
 export default function Home() {
@@ -13,8 +14,8 @@ export default function Home() {
       </div>
 
       <div className="notice">
-        Bản nền tảng v0.1.0 · Chức năng nghiệp vụ vận đơn đang được hoạch định
-        (ADR-002).
+        Bản nền tảng v{FOUNDATION_VERSION} · Chức năng nghiệp vụ vận đơn đang
+        được hoạch định (ADR-002).
       </div>
 
       <div className="grid">

@@ -60,9 +60,17 @@ Documentation Impact: REQUIRED
 | Starting baseline confirmed on branch `refactor/frontend-design-system-foundation` | `git rev-parse HEAD` (`28c77d7`)                                                                                                              | 2026-10-11 | PASS   |
 | `@nexora/ui` package typecheck passes                                              | `pnpm --filter @nexora/ui typecheck` (`tsc --noEmit`)                                                                                         | 2026-10-11 | PASS   |
 | `@nexora/web` application typecheck passes                                         | `pnpm --filter @nexora/web typecheck` (`tsc --noEmit`)                                                                                        | 2026-10-11 | PASS   |
-| Shared UI, design tokens, and navigation test suite passes                         | `pnpm --filter @nexora/web test` (11 tests passing)                                                                                           | 2026-10-11 | PASS   |
+| `@nexora/ui` unit test suite passes                                                | `pnpm --filter @nexora/ui test` (`status-tone.test.mjs`, 1 test passing)                                                                      | 2026-10-11 | PASS   |
+| `@nexora/web` test suite passes (tokens, navigation, modules)                      | `pnpm --filter @nexora/web test` (10 tests passing)                                                                                           | 2026-10-11 | PASS   |
 | Next.js production build succeeds with bundled `@nexora/ui` CSS modules            | `pnpm --filter @nexora/web build` (prerenders all routes, 0 errors)                                                                           | 2026-10-11 | PASS   |
 | Architecture boundaries and lint checks pass                                       | `pnpm lint` (`boundaries.mjs` + `eslint .`)                                                                                                   | 2026-10-11 | PASS   |
 | Prettier code and document formatting passes                                       | `pnpm format:check`                                                                                                                           | 2026-10-11 | PASS   |
 | Documentation governance, links, and task schema pass                              | `pnpm docs:check`                                                                                                                             | 2026-10-11 | PASS   |
 | Interactive browser verification & theme token override proof                      | Chrome subagent: `scrollWidth <= clientWidth`, Panel/Badge CSS modules verified, `--color-primary`/`--color-accent` dynamic override verified | 2026-10-11 | PASS   |
+
+---
+
+## 5. Verification Gaps & Pre-Merge State
+
+- **Hosted CI on Merge Commit**: Hosted GitHub Actions CI run (`docker-foundation`) on the eventual `main` merge commit cannot be executed or collected until PR #5 is merged.
+- **Task Lifecycle Decision**: The task remains `VERIFICATION PENDING` in `docs/tasks/active/` during PR #5. Transition to `docs/tasks/completed/` is explicitly deferred to a dedicated post-merge documentation follow-up once the merge commit SHA and its CI run are inspected.

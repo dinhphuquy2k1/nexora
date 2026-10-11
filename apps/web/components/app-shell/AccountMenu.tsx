@@ -64,9 +64,7 @@ export function AccountMenu() {
               bản sau.
             </div>
             <p className={styles.infoFootnote}>
-              Hệ thống hiện vận hành ở chế độ cục bộ (Single-node). Thiết lập
-              cấu hình ứng dụng được quản lý độc lập tại mục Cài đặt trong thanh
-              điều hướng.
+              Không gian làm việc chưa thiết lập xác thực người dùng.
             </p>
           </div>
         </div>

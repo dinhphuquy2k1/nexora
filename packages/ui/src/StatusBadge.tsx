@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { resolveStatusTone } from "./status-tone";
 import styles from "./StatusBadge.module.css";
 
 export interface StatusBadgeProps {
@@ -8,8 +9,8 @@ export interface StatusBadgeProps {
 }
 
 export function StatusBadge({ ok, children, className }: StatusBadgeProps) {
-  const statusClass =
-    ok === true ? styles.good : ok === false ? styles.bad : styles.pending;
+  const tone = resolveStatusTone(ok);
+  const statusClass = styles[tone];
 
   const badgeClassName = className
     ? `${styles.badge} ${statusClass} ${className}`
