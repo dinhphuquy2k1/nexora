@@ -1,14 +1,46 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { PRODUCT_NAME } from "@nexora/shared";
 import { LoginForm } from "./LoginForm.tsx";
 import styles from "./login.module.css";
+import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 
 export const metadata = {
   title: `Đăng nhập · ${PRODUCT_NAME}`,
   description: "Đăng nhập không gian quản lý vận đơn Nexora",
 };
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ from?: string }>;
+}) {
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get("nexora_session");
+
+  if (sessionCookie?.value) {
+    const apiUrl =
+      process.env.API_INTERNAL_URL ??
+      (process.env.NODE_ENV === "production"
+        ? "http://api:4000"
+        : "http://127.0.0.1:4000");
+    try {
+      const res = await fetch(`${apiUrl}/api/auth/session`, {
+        headers: {
+          cookie: `nexora_session=${sessionCookie.value}`,
+        },
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const resolvedParams = searchParams ? await searchParams : undefined;
+        const returnUrl = sanitizeReturnUrl(resolvedParams?.from);
+        redirect(returnUrl);
+      }
+    } catch {
+      // Stale or invalid session -> do not redirect, render login page
+    }
+  }
   return (
     <main className={styles.container}>
       <section className={styles.card} aria-labelledby="login-heading">

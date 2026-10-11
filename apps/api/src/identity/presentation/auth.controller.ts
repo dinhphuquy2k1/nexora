@@ -3,11 +3,11 @@ import {
   Controller,
   Get,
   HttpCode,
-  HttpException,
   HttpStatus,
   Post,
   Req,
   Res,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { Request, Response } from "express";
@@ -19,6 +19,9 @@ import {
   SessionResponseDto,
 } from "./auth.dto";
 import { extractSessionToken } from "./session.guard";
+import { Public } from "./public.decorator";
+import { OriginGuard } from "./origin.guard";
+import type { UserSummary } from "../domain/identity.types";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -27,6 +30,8 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
+  @UseGuards(OriginGuard)
   @Post("login")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Xác thực danh tính và thiết lập phiên làm việc" })
@@ -42,6 +47,10 @@ export class AuthController {
   @ApiResponse({
     status: 401,
     description: "Thông tin xác thực không chính xác",
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Origin không hợp lệ hoặc không được phép",
   })
   @ApiResponse({
     status: 429,
@@ -84,34 +93,15 @@ export class AuthController {
     description: "Chưa đăng nhập hoặc phiên đã hết hạn",
   })
   async getSession(@Req() req: Request): Promise<SessionResponseDto> {
-    const token = extractSessionToken(req.headers.cookie);
-    if (!token) {
-      throw new HttpException(
-        {
-          code: "UNAUTHORIZED",
-          message: "Chưa đăng nhập hoặc phiên làm việc đã hết hạn",
-        },
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-
-    const user = await this.authService.validateSession(token);
-    if (!user) {
-      throw new HttpException(
-        {
-          code: "UNAUTHORIZED",
-          message: "Phiên làm việc không hợp lệ hoặc đã hết hạn",
-        },
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
-
+    const user = (req as Request & { user: UserSummary }).user;
     return {
       authenticated: true,
       user,
     };
   }
 
+  @Public()
+  @UseGuards(OriginGuard)
   @Post("logout")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Hủy bỏ phiên làm việc và xóa cookie" })
@@ -119,6 +109,10 @@ export class AuthController {
     status: 200,
     description: "Đăng xuất thành công",
     type: LogoutResponseDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: "Origin không hợp lệ hoặc không được phép",
   })
   async logout(
     @Req() req: Request,

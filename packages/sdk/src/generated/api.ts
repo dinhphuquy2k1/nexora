@@ -240,6 +240,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Origin không hợp lệ hoặc không được phép */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Quá nhiều lần đăng nhập thất bại */
             429: {
                 headers: {
@@ -293,6 +300,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LogoutResponseDto"];
                 };
+            };
+            /** @description Origin không hợp lệ hoặc không được phép */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

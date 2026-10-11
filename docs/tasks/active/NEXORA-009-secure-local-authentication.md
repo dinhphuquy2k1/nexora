@@ -60,18 +60,19 @@ Documentation Impact: REQUIRED
 
 ## 4. Evidence
 
-| Claim                                                          | Evidence                                                    | Date       | Result |
-| :------------------------------------------------------------- | :---------------------------------------------------------- | :--------- | :----- |
-| Starting baseline confirmed on main with PR #5 merged          | `git rev-parse HEAD` (`7cfb01a`)                            | 2026-10-11 | PASS   |
-| Password hashing with Scrypt and unique salts passes           | `pnpm --filter @nexora/database test` (2 tests passing)     | 2026-10-11 | PASS   |
-| Backend identity module, throttling, and session guard pass    | `pnpm --filter @nexora/api test` (8 tests passing)          | 2026-10-11 | PASS   |
-| Web auth sanitization, token reference validator, and nav pass | `pnpm --filter @nexora/web test` (12 tests passing)         | 2026-10-11 | PASS   |
-| Workspace TypeScript compilation passes across all packages    | `pnpm typecheck` (10 tasks successful)                      | 2026-10-11 | PASS   |
-| Architectural boundary rules and ESLint pass                   | `pnpm lint` (`boundaries.mjs` + `eslint .`)                 | 2026-10-11 | PASS   |
-| Prettier formatting check passes across entire repository      | `pnpm format:check`                                         | 2026-10-11 | PASS   |
-| Documentation links and governance pass                        | `pnpm docs:check`                                           | 2026-10-11 | PASS   |
-| Next.js production build prerenders `/login` and all routes    | `pnpm --filter @nexora/web build` (prerenders all 6 routes) | 2026-10-11 | PASS   |
-| Monorepo turbo build and test suite pass                       | `pnpm test` (all 8 tasks pass)                              | 2026-10-11 | PASS   |
+| Claim                                                        | Evidence                                                    | Date       | Result |
+| :----------------------------------------------------------- | :---------------------------------------------------------- | :--------- | :----- |
+| Starting baseline confirmed on main with PR #5 merged        | `git rev-parse HEAD` (`7cfb01a`)                            | 2026-10-11 | PASS   |
+| Password hashing with Scrypt and unique salts passes         | `pnpm --filter @nexora/database test` (2 tests passing)     | 2026-10-11 | PASS   |
+| Backend identity module, global guard, and OriginGuard pass  | `pnpm --filter @nexora/api test` (11 tests passing)         | 2026-10-12 | PASS   |
+| Web auth sanitization, host allowlist, and navigation pass   | `pnpm --filter @nexora/web test` (13 tests passing)         | 2026-10-12 | PASS   |
+| Workspace TypeScript compilation passes across all packages  | `pnpm typecheck` (10 tasks successful)                      | 2026-10-12 | PASS   |
+| Architectural boundary rules and ESLint pass                 | `pnpm lint` (`boundaries.mjs` + `eslint .`)                 | 2026-10-12 | PASS   |
+| Prettier formatting check passes across entire repository    | `pnpm format:check`                                         | 2026-10-12 | PASS   |
+| Documentation links and governance pass                      | `pnpm docs:check`                                           | 2026-10-12 | PASS   |
+| Next.js production build prerenders `/login` and all routes  | `pnpm --filter @nexora/web build` (prerenders all 6 routes) | 2026-10-11 | PASS   |
+| Monorepo turbo build and test suite pass                     | `pnpm test` (all 8 tasks pass)                              | 2026-10-11 | PASS   |
+| Hosted Docker CI quality and integration passes on PR branch | GitHub Actions run `38159401874` (`docker-foundation`)      | 2026-10-12 | PASS   |
 
 ---
 

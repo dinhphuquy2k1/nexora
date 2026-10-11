@@ -68,6 +68,13 @@ class ErrorFilter implements ExceptionFilter {
   }
 }
 export function configure(app: INestApplication) {
+  const httpAdapter = app.getHttpAdapter();
+  if (typeof httpAdapter?.getInstance === "function") {
+    const instance = httpAdapter.getInstance();
+    if (typeof instance?.set === "function") {
+      instance.set("trust proxy", "loopback, linklocal, uniquelocal");
+    }
+  }
   app.setGlobalPrefix("api");
   app.useGlobalFilters(new ErrorFilter());
   app.use((_req: Request, res: Response, next: NextFunction) => {

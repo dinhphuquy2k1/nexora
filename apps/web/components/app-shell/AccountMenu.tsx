@@ -14,6 +14,7 @@ export function AccountMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const panelId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -45,14 +46,18 @@ export function AccountMenu() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    setLogoutError(null);
     try {
-      await fetch("/api/auth/logout", {
+      const res = await fetch("/api/auth/logout", {
         method: "POST",
       });
-    } catch {
-      // Proceed with redirect regardless of network state
-    } finally {
+      if (!res.ok) {
+        throw new Error("Không thể hủy phiên làm việc trên máy chủ.");
+      }
       window.location.href = "/login";
+    } catch {
+      setLogoutError("Đăng xuất không thành công. Vui lòng thử lại.");
+      setIsLoggingOut(false);
     }
   };
 
@@ -115,16 +120,23 @@ export function AccountMenu() {
             </p>
 
             {user && (
-              <button
-                type="button"
-                className={styles.logoutButton}
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                aria-label="Đăng xuất khỏi hệ thống"
-              >
-                <LogOut size={16} aria-hidden="true" />
-                {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={styles.logoutButton}
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  aria-label="Đăng xuất khỏi hệ thống"
+                >
+                  <LogOut size={16} aria-hidden="true" />
+                  {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
+                </button>
+                {logoutError && (
+                  <p className={styles.logoutError} role="alert">
+                    {logoutError}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

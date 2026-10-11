@@ -1,13 +1,16 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { randomUUID } from "node:crypto";
-import {
-  createDatabase,
-  hashPassword,
-} from "../packages/database/dist/index.js";
+let dbModule;
+try {
+  dbModule = await import("../packages/database/dist/index.js");
+} catch {
+  dbModule = await import("@nexora/database");
+}
+const { createDatabase, hashPassword } = dbModule;
 
 function readHiddenPassword(promptText) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     output.write(promptText);
     const rl = createInterface({ input, output, terminal: true });
 
@@ -26,7 +29,9 @@ function readHiddenPassword(promptText) {
         } else if (c === "\u0003") {
           // Ctrl+C
           input.setRawMode(false);
-          process.exit(1);
+          output.write("\n");
+          rl.close();
+          reject(new Error("Hủy bỏ thao tác bởi người dùng."));
         } else if (c === "\b" || c === "\x7f") {
           // Backspace
           if (password.length > 0) {
@@ -38,20 +43,34 @@ function readHiddenPassword(promptText) {
       };
       input.on("data", onData);
     } else {
-      // Non-TTY / piped input
-      rl.question("").then((answer) => {
-        rl.close();
-        resolve(answer.trim());
-      });
+      reject(
+        new Error(
+          "Mật khẩu tương tác yêu cầu TTY. Hãy dùng cờ --password-stdin trong môi trường non-interactive.",
+        ),
+      );
     }
   });
 }
 
+async function readPasswordStdin() {
+  return new Promise((resolve) => {
+    let content = "";
+    input.on("data", (chunk) => {
+      content += chunk.toString("utf8");
+    });
+    input.on("end", () => {
+      resolve(content.replace(/[\r\n]+$/, ""));
+    });
+  });
+}
+
 export async function provisionUser(options = {}) {
-  const databaseUrl =
-    options.databaseUrl ||
-    process.env.DATABASE_URL ||
-    "postgresql://postgres:postgres@localhost:5432/nexora";
+  const databaseUrl = options.databaseUrl || process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error(
+      "DATABASE_URL chưa được thiết lập. Hãy truyền qua biến môi trường hoặc options.",
+    );
+  }
 
   const db = createDatabase(databaseUrl);
 
@@ -83,12 +102,18 @@ export async function provisionUser(options = {}) {
 
     let password = options.password;
     if (!password) {
-      password = await readHiddenPassword("Mật khẩu: ");
-      if (input.isTTY) {
+      if (options.passwordStdin) {
+        password = await readPasswordStdin();
+      } else if (input.isTTY) {
+        password = await readHiddenPassword("Mật khẩu: ");
         const confirm = await readHiddenPassword("Xác nhận mật khẩu: ");
         if (password !== confirm) {
           throw new Error("Mật khẩu xác nhận không khớp.");
         }
+      } else {
+        throw new Error(
+          "Môi trường non-interactive yêu cầu cung cấp mật khẩu qua options hoặc cờ --password-stdin.",
+        );
       }
     }
 
@@ -119,7 +144,15 @@ export async function provisionUser(options = {}) {
 
 // Direct CLI invocation
 if (process.argv[1]?.endsWith("user-create.mjs")) {
-  provisionUser()
+  const isPasswordStdin = process.argv.includes("--password-stdin");
+  const usernameArg = process.argv.find(
+    (arg, i) => i >= 2 && !arg.startsWith("-"),
+  );
+
+  provisionUser({
+    username: usernameArg,
+    passwordStdin: isPasswordStdin,
+  })
     .then(() => process.exit(0))
     .catch((err) => {
       console.error(`[ERROR] ${err.message}`);

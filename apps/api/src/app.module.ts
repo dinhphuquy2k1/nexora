@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
 import { loadConfig } from "./config";
 import { HealthController } from "./health/presentation/health.controller";
 import { HealthService } from "./health/application/health.service";
@@ -10,6 +11,7 @@ import { AuthService } from "./identity/application/auth.service";
 import { IdentityPort } from "./identity/application/identity.port";
 import { IdentityDatabaseAdapter } from "./identity/infrastructure/identity.adapter";
 import { SessionGuard } from "./identity/presentation/session.guard";
+import { OriginGuard } from "./identity/presentation/origin.guard";
 
 export const CONFIG = "CONFIG";
 
@@ -52,8 +54,13 @@ export const CONFIG = "CONFIG";
       inject: [IdentityPort],
       useFactory: (port: IdentityPort) => new AuthService(port),
     },
+    OriginGuard,
     SessionGuard,
+    {
+      provide: APP_GUARD,
+      useClass: SessionGuard,
+    },
   ],
-  exports: [AuthService, SessionGuard],
+  exports: [AuthService, SessionGuard, OriginGuard],
 })
 export class AppModule {}

@@ -84,6 +84,9 @@
           "401": {
             "description": "Thông tin xác thực không chính xác"
           },
+          "403": {
+            "description": "Origin không hợp lệ hoặc không được phép"
+          },
           "429": {
             "description": "Quá nhiều lần đăng nhập thất bại"
           }
@@ -133,6 +136,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Origin không hợp lệ hoặc không được phép"
           }
         },
         "summary": "Hủy bỏ phiên làm việc và xóa cookie",

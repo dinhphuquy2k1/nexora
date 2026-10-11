@@ -17,6 +17,103 @@ schema=$(docker compose exec -T postgres psql -U nexora -d nexora -Atc "SELECT c
 [ "$schema" = "$(printf '2\n0')" ] || { echo 'Migrated schema assertion failed' >&2; exit 1; }
 docker compose exec -T api node -e "if(process.getuid()===0)process.exit(1)"
 docker compose exec -T web node -e "if(process.getuid()===0)process.exit(1)"
+
+# Authentication & Security smoke tests (I1, I3, m1, M2, R3)
+docker compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/health/live',{headers:{host:'evil.example'}}).then(r=>{if(r.status!==400)process.exit(1);console.log('Untrusted Host rejection PASS')})"
+docker compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/auth/session').then(r=>{if(r.status!==401)process.exit(1);console.log('Unauthenticated session rejection PASS')})"
+docker compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/auth/session',{headers:{cookie:'nexora_session=%E0%A4%A'}}).then(r=>{if(r.status!==401)process.exit(1);console.log('Malformed cookie rejection PASS')})"
+docker compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:'smoke_user',password:'SmokeTestPass123!'})}).then(r=>{if(r.status!==403)process.exit(1);console.log('Missing Origin rejection PASS')})"
+docker compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/auth/login',{method:'POST',headers:{'content-type':'application/json',origin:'http://attacker.example'},body:JSON.stringify({username:'smoke_user',password:'SmokeTestPass123!'})}).then(r=>{if(r.status!==403)process.exit(1);console.log('Untrusted Origin rejection PASS')})"
+
+docker compose exec -T api sh /scripts/api-entrypoint.sh node <<'JS'
+const { createDatabase, hashPassword } = require('@nexora/database');
+const { randomUUID } = require('node:crypto');
+(async () => {
+  const db = createDatabase(process.env.DATABASE_URL);
+  try {
+    const passwordHash = await hashPassword('SmokeTestPass123!');
+    await db.localUser.create({
+      data: {
+        id: randomUUID(),
+        username: 'smoke_user',
+        passwordHash,
+        isActive: true,
+      },
+    });
+    console.log('Smoke operator provisioned');
+  } finally {
+    await db.$disconnect();
+  }
+})().catch(e => { console.error(e); process.exit(1); });
+JS
+
+docker compose exec -T web node <<'JS'
+(async () => {
+  // 1. Wrong credentials -> 401
+  const badRes = await fetch('http://127.0.0.1:3000/api/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'http://127.0.0.1:3001' },
+    body: JSON.stringify({ username: 'smoke_user', password: 'wrongpassword' }),
+  });
+  if (badRes.status !== 401) {
+    console.error('Expected 401 on wrong password, got', badRes.status);
+    process.exit(1);
+  }
+
+  // 2. Successful login -> 200 + Set-Cookie
+  const loginRes = await fetch('http://127.0.0.1:3000/api/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: 'http://127.0.0.1:3001' },
+    body: JSON.stringify({ username: 'smoke_user', password: 'SmokeTestPass123!' }),
+  });
+  if (loginRes.status !== 200) {
+    console.error('Expected 200 on login, got', loginRes.status);
+    process.exit(1);
+  }
+  const setCookie = loginRes.headers.get('set-cookie');
+  if (!setCookie || !setCookie.includes('nexora_session=')) {
+    console.error('Expected nexora_session cookie, got', setCookie);
+    process.exit(1);
+  }
+  const token = setCookie.match(/nexora_session=([^;]+)/)[1];
+
+  // 3. Valid session check -> 200
+  const sessionRes = await fetch('http://127.0.0.1:3000/api/auth/session', {
+    headers: { cookie: `nexora_session=${token}` },
+  });
+  if (sessionRes.status !== 200) {
+    console.error('Expected 200 on valid session, got', sessionRes.status);
+    process.exit(1);
+  }
+  const sessionData = await sessionRes.json();
+  if (!sessionData.authenticated || sessionData.user.username !== 'smoke_user') {
+    console.error('Unexpected session data', sessionData);
+    process.exit(1);
+  }
+
+  // 4. Logout -> 200
+  const logoutRes = await fetch('http://127.0.0.1:3000/api/auth/logout', {
+    method: 'POST',
+    headers: { cookie: `nexora_session=${token}`, origin: 'http://127.0.0.1:3001' },
+  });
+  if (logoutRes.status !== 200) {
+    console.error('Expected 200 on logout, got', logoutRes.status);
+    process.exit(1);
+  }
+
+  // 5. Subsequent session check -> 401
+  const afterLogout = await fetch('http://127.0.0.1:3000/api/auth/session', {
+    headers: { cookie: `nexora_session=${token}` },
+  });
+  if (afterLogout.status !== 401) {
+    console.error('Expected 401 after logout revocation, got', afterLogout.status);
+    process.exit(1);
+  }
+
+  console.log('Authentication smoke end-to-end PASS');
+})().catch(e => { console.error(e); process.exit(1); });
+JS
+
 docker compose stop postgres
 docker compose exec -T web node -e "Promise.all(['/live','/ready'].map(p=>fetch('http://127.0.0.1:3000/api/health'+p))).then(async ([l,r])=>{if(l.status!==200||r.status!==503||(await r.json()).checks.database!==false)process.exit(1);console.log('DB outage/live separation PASS')})"
 docker compose start postgres

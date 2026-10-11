@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isAllowedHost } from "./lib/auth/host.ts";
 
 export function middleware(request: NextRequest) {
+  const host = request.headers.get("host");
+  if (!isAllowedHost(host)) {
+    return new NextResponse("Invalid Host header", { status: 400 });
+  }
+
   const { pathname } = request.nextUrl;
   const sessionToken = request.cookies.get("nexora_session")?.value;
 
@@ -15,25 +21,17 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // If already has session cookie and visiting /login, redirect to /
-  if (pathname === "/login") {
-    if (sessionToken) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-  }
-
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for:
-     * - api routes (/api/*)
+     * Match all request paths including /api/* except for static assets:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };

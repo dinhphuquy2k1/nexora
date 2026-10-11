@@ -9,7 +9,7 @@ sh scripts/data-smoke.sh
 sh scripts/dev-smoke.sh
 ```
 
-Runtime smoke creates its own disposable project and checks real proxy health/errors, non-root runtime, DB outage and repeated migration. Data smoke stores a real catalog row + file, verifies down/up and backup/restore in distinct disposable volumes, then removes ONLY those volumes. Dev smoke verifies HMR/shared propagation and frozen dependency failure without resetting DB. Stop unrelated web occupying port 3001 first.
+Runtime smoke creates its own disposable project and checks real proxy health/errors, non-root runtime, DB outage, repeated migration, and the complete authentication lifecycle (Host header filtering, untrusted Origin rejection, unauthenticated route rejection, safe malformed cookie parsing, login credential verification, session cookie issuance, session validation, and post-logout revocation). Data smoke stores a real catalog row + file, verifies down/up and backup/restore in distinct disposable volumes, then removes ONLY those volumes. Dev smoke verifies HMR/shared propagation and frozen dependency failure without resetting DB. Stop unrelated web occupying port 3001 first.
 Host `pnpm quality` is optional and needs working engine downloads; it is not a substitute for Docker runtime verification. Contracts can generate without DB or engine; built web consumes existing generated output.
 CI `.github/workflows/foundation.yml` runs Docker quality/runtime/data/dev smoke on Linux. A created workflow is NOT VERIFIED until a hosted run exists. See the task ledger for actual commands, counts and limitations.
 

@@ -12,13 +12,30 @@ const MAX_FAILURES = 5;
 const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+// Precomputed valid dummy scrypt hash to equalize execution timing on unknown or disabled usernames
+const DUMMY_SCRYPT_HASH =
+  "scrypt$16384$8$1$6b653435323932313164343864613233$0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
 @Injectable()
 export class AuthService {
   private readonly rateLimits = new Map<string, RateLimitEntry>();
 
   constructor(private readonly port: IdentityPort) {}
 
+  private pruneStaleEntries(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.rateLimits.entries()) {
+      if (now > entry.resetAt) {
+        this.rateLimits.delete(key);
+      }
+    }
+  }
+
   private checkRateLimit(key: string): void {
+    if (this.rateLimits.size > 1000) {
+      this.pruneStaleEntries();
+    }
+
     const now = Date.now();
     const entry = this.rateLimits.get(key);
     if (!entry) return;
@@ -74,6 +91,10 @@ export class AuthService {
 
     const userRecord = await this.port.findUserByUsername(username);
     if (!userRecord || !userRecord.isActive) {
+      // Execute dummy password verification to equalize timing against timing-based user enumeration attacks
+      await this.port
+        .verifyPassword(password, DUMMY_SCRYPT_HASH)
+        .catch(() => false);
       this.recordFailure(rateLimitKey);
       throw new HttpException(
         {
@@ -130,8 +151,10 @@ export class AuthService {
     if (!result) return null;
 
     if (result.session.expiresAt.getTime() < Date.now()) {
-      // Invalidate expired session in background
-      void this.port.deleteSessionByTokenHash(tokenHash);
+      // Best-effort expired session invalidation with safe error handling to prevent unhandled rejections
+      void this.port.deleteSessionByTokenHash(tokenHash).catch(() => {
+        // Silently swallow cleanup error; expired session is already treated as null
+      });
       return null;
     }
 

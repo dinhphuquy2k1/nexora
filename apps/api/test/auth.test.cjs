@@ -5,6 +5,13 @@ const {
   SessionGuard,
   extractSessionToken,
 } = require("../dist/identity/presentation/session.guard");
+const {
+  OriginGuard,
+  isAllowedOrigin,
+} = require("../dist/identity/presentation/origin.guard");
+const {
+  IS_PUBLIC_KEY,
+} = require("../dist/identity/presentation/public.decorator");
 
 function createMockIdentityPort() {
   const users = new Map();
@@ -28,6 +35,7 @@ function createMockIdentityPort() {
       const session = {
         id: "sess-" + Math.random().toString(36).slice(2),
         userId,
+        tokenHash,
         expiresAt,
         createdAt: new Date(),
       };
@@ -62,8 +70,18 @@ function createMockIdentityPort() {
       return count;
     },
     async verifyPassword(password, passwordHash) {
-      // Simple mock comparator for test
       return password === passwordHash.replace("mock-hash-", "");
+    },
+  };
+}
+
+function createMockReflector(isPublic = false) {
+  return {
+    getAllAndOverride(key) {
+      if (key === IS_PUBLIC_KEY) {
+        return isPublic;
+      }
+      return false;
     },
   };
 }
@@ -104,7 +122,7 @@ test("AuthService handles validation and generic authentication errors", async (
   );
 });
 
-test("AuthService rate limits consecutive failed login attempts", async () => {
+test("AuthService rate limits consecutive failed login attempts and clears on success", async () => {
   const port = createMockIdentityPort();
   const auth = new AuthService(port);
   const ip = "10.0.0.99";
@@ -123,6 +141,16 @@ test("AuthService rate limits consecutive failed login attempts", async () => {
     (err) =>
       err.getStatus() === 429 && err.getResponse().code === "TOO_MANY_REQUESTS",
   );
+
+  // Successful login on different user clears their own counter
+  port.users.set("validuser", {
+    id: "u-valid",
+    username: "validuser",
+    passwordHash: "mock-hash-goodpass",
+    isActive: true,
+  });
+  const res = await auth.login("validuser", "goodpass", ip);
+  assert.equal(res.user.username, "validuser");
 });
 
 test("AuthService authenticates valid user, creates session, and validates lifecycle", async () => {
@@ -163,44 +191,144 @@ test("AuthService authenticates valid user, creates session, and validates lifec
   assert.equal(await auth.validateSession(""), null);
 });
 
-test("SessionGuard parses cookies and blocks unauthorized requests", async () => {
+test("AuthService handles expired session deletion failure without unhandled rejection (I2)", async () => {
+  const port = createMockIdentityPort();
+  // Override deleteSessionByTokenHash to reject
+  port.deleteSessionByTokenHash = async () => {
+    throw new Error("Simulated DB connection failure during session cleanup");
+  };
+
+  const auth = new AuthService(port);
+
+  port.users.set("user_exp", {
+    id: "u-exp",
+    username: "user_exp",
+    passwordHash: "mock-hash-p",
+    isActive: true,
+  });
+
+  // Create an expired session directly
+  const crypto = require("node:crypto");
+  const rawToken = "a".repeat(64);
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+  port.sessions.set(tokenHash, {
+    id: "sess-expired",
+    userId: "u-exp",
+    tokenHash,
+    expiresAt: new Date(Date.now() - 60000), // expired 1 minute ago
+  });
+
+  // Validating expired session should return null and NOT throw unhandled rejection
+  const result = await auth.validateSession(rawToken);
+  assert.equal(result, null);
+});
+
+test("extractSessionToken safely handles malformed cookies without throwing (m1)", () => {
   assert.equal(extractSessionToken(undefined), null);
   assert.equal(extractSessionToken("foo=bar; other=1"), null);
   assert.equal(
     extractSessionToken("foo=bar; nexora_session=abc123token; other=1"),
     "abc123token",
   );
+  // Malformed percent-encoded cookie
+  assert.equal(extractSessionToken("nexora_session=%E0%A4%A"), null);
+  assert.equal(extractSessionToken("nexora_session=%"), null);
+});
 
+test("SessionGuard enforces authentication policy and honors @Public decorator (I1)", async () => {
   const port = createMockIdentityPort();
   const auth = new AuthService(port);
-  const guard = new SessionGuard(auth);
 
-  // Missing cookie
+  // Guard for protected route (isPublic = false)
+  const protectedGuard = new SessionGuard(auth, createMockReflector(false));
+
+  // Missing cookie on protected route -> 401
   const reqNoCookie = { headers: {} };
   await assert.rejects(
-    guard.canActivate({
+    protectedGuard.canActivate({
+      getHandler: () => {},
+      getClass: () => {},
       switchToHttp: () => ({ getRequest: () => reqNoCookie }),
     }),
     (err) => err.getStatus() === 401,
   );
 
-  // Valid cookie
+  // Guard for public route (isPublic = true) -> passes without cookie
+  const publicGuard = new SessionGuard(auth, createMockReflector(true));
+  const publicResult = await publicGuard.canActivate({
+    getHandler: () => {},
+    getClass: () => {},
+    switchToHttp: () => ({ getRequest: () => reqNoCookie }),
+  });
+  assert.equal(publicResult, true);
+
+  // Protected route with valid session cookie -> attaches user and passes
   port.users.set("validuser", {
     id: "u-valid",
     username: "validuser",
     passwordHash: "mock-hash-p",
     isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
   });
   const loginRes = await auth.login("validuser", "p", "127.0.0.1");
 
   const reqWithCookie = {
     headers: { cookie: `nexora_session=${loginRes.token}` },
   };
-  const canActivate = await guard.canActivate({
+  const canActivate = await protectedGuard.canActivate({
+    getHandler: () => {},
+    getClass: () => {},
     switchToHttp: () => ({ getRequest: () => reqWithCookie }),
   });
   assert.equal(canActivate, true);
   assert.equal(reqWithCookie.user.username, "validuser");
+});
+
+test("OriginGuard enforces browser origin validation for mutations (I3)", () => {
+  const guard = new OriginGuard();
+
+  // Permitted origins
+  assert.equal(isAllowedOrigin("http://localhost:3000"), true);
+  assert.equal(isAllowedOrigin("http://127.0.0.1:3001"), true);
+  assert.equal(isAllowedOrigin("http://localhost:4000"), true);
+
+  // Disallowed origins
+  assert.equal(isAllowedOrigin("http://evil.example"), false);
+  assert.equal(isAllowedOrigin("https://malicious.com"), false);
+  assert.equal(isAllowedOrigin(""), false);
+  assert.equal(isAllowedOrigin(undefined), false);
+  assert.equal(isAllowedOrigin("not-a-url"), false);
+
+  // Missing origin -> 403
+  assert.throws(
+    () =>
+      guard.canActivate({
+        switchToHttp: () => ({
+          getRequest: () => ({ headers: {} }),
+        }),
+      }),
+    (err) => err.getStatus() === 403,
+  );
+
+  // Untrusted origin -> 403
+  assert.throws(
+    () =>
+      guard.canActivate({
+        switchToHttp: () => ({
+          getRequest: () => ({
+            headers: { origin: "http://attacker.example" },
+          }),
+        }),
+      }),
+    (err) => err.getStatus() === 403,
+  );
+
+  // Allowed origin -> passes
+  const allowed = guard.canActivate({
+    switchToHttp: () => ({
+      getRequest: () => ({
+        headers: { origin: "http://127.0.0.1:3001" },
+      }),
+    }),
+  });
+  assert.equal(allowed, true);
 });
