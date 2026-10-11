@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { Menu, Settings } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Breadcrumb } from "./Breadcrumb.tsx";
-import { NotificationMenu } from "./NotificationMenu.tsx";
+import { AccountMenu } from "./AccountMenu.tsx";
 import styles from "./Header.module.css";
 
 interface HeaderProps {
@@ -37,17 +36,9 @@ export function Header({ isSidebarCollapsed, onToggleSidebar }: HeaderProps) {
         <Breadcrumb />
       </div>
 
-      {/* Right section: Notifications & Settings */}
+      {/* Right section: User Account */}
       <div className={styles.rightSection}>
-        <NotificationMenu />
-        <Link
-          href="/settings"
-          className={styles.iconButton}
-          aria-label="Cài đặt hệ thống"
-          title="Cài đặt hệ thống"
-        >
-          <Settings size={18} aria-hidden="true" />
-        </Link>
+        <AccountMenu />
       </div>
     </header>
   );
