@@ -1,13 +1,41 @@
 generator client {
- provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
+
 datasource db {
- provider = "postgresql"
+  provider = "postgresql"
 }
+
 model StoredFile {
- id String @id @db.Uuid
- sha256 String @db.VarChar(64)
- sizeBytes Int
- createdAt DateTime @default(now()) @db.Timestamptz(3)
- @@map("stored_files")
+  id        String   @id @db.Uuid
+  sha256    String   @db.VarChar(64)
+  sizeBytes Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@map("stored_files")
+}
+
+model LocalUser {
+  id           String    @id @default(uuid()) @db.Uuid
+  username     String    @unique @db.VarChar(50)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions     Session[]
+
+  @@map("local_users")
+}
+
+model Session {
+  id        String    @id @default(uuid()) @db.Uuid
+  tokenHash String    @unique @map("token_hash") @db.VarChar(64)
+  userId    String    @map("user_id") @db.Uuid
+  user      LocalUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
 }

@@ -16,6 +16,7 @@
     "format:check": "prettier --check .",
     "test": "turbo run test",
     "test:integration": "pnpm --filter @nexora/api test:integration",
+    "user:create": "node scripts/user-create.mjs",
     "contracts:generate": "pnpm --filter @nexora/api exec tsc -p tsconfig.contract.json && node apps/api/.contracts/openapi.js && pnpm --filter @nexora/sdk generate",
     "contracts:check": "node scripts/contracts-check.mjs",
     "docs:check": "node scripts/docs-check.mjs",

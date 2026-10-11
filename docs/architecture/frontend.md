@@ -20,10 +20,10 @@ Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel
 Components dedicated to Nexora's application shell, layout frame, and cross-route coordination:
 
 - **`AppShell` (`AppShell.tsx`)**: Authoritative Server Component layout frame consumed in `apps/web/app/layout.tsx`.
-- **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`).
+- **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`) and bypassing shell chrome on public authentication routes (`/login`).
 - **`Sidebar` (`Sidebar.tsx`, `Sidebar.module.css`)**: Logistics navigation bar with geometric monogram logo, grouped navigation items, active route indicators, and planned item tags.
-- **`Header` (`Header.tsx`, `Header.module.css`)**: Top bar containing sidebar toggle, pathname-driven breadcrumbs, and neutral user account disclosure (`AccountMenu`).
-- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible user account disclosure reserving future identity and authentication UI space without mock profiles or fake sessions.
+- **`Header` (`Header.tsx`, `Header.module.css`)**: Top bar containing sidebar toggle, pathname-driven breadcrumbs, and authenticated user account disclosure (`AccountMenu`).
+- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible user account disclosure displaying authenticated username and active session status, with server-side logout action.
 - **`Breadcrumb` (`Breadcrumb.tsx`)**: Pathname-driven breadcrumbs consuming shared navigation metadata.
 - **`NavigationItem` (`NavigationItem.tsx`)**: Distinguishes available routes (Next.js `Link`) from planned features (disabled action button with "Chưa triển khai" label).
 - **Popover Semantics (`use-dismissable.ts`)**: Reusable disclosure hook managing outside pointer dismissal and Escape key closing with focus restoration.
@@ -107,3 +107,9 @@ Nexora is a local-first shipment management platform. In foundation v0.1.0, the 
   - Validated across 1440×900, 1280×800, and 1024×768 viewports in expanded and collapsed sidebar modes with `scrollWidth <= clientWidth`.
   - Tested dynamic theme override of `--color-primary` and `--color-accent` in browser runtime, confirming coherent, system-wide updates without hardcoded color leaks.
   - Verified Panel paragraph typography and StatusBadge tone mapping visually in the rendered DOM across `/`, `/system`, and `/settings`.
+
+## 8. Authentication & Route Protection
+
+- **Public Login Page (`/login`)**: Standalone centered layout presenting brand monogram, username/password fields, keyboard-accessible password show/hide toggle, accessible error banners, and safe local redirect handling (`sanitizeReturnUrl`).
+- **Route Guarding (`middleware.ts`)**: Inspects `nexora_session` cookie; unauthenticated requests accessing workspace pages (`/`, `/system`, `/settings`) redirect to `/login?from=...`, while authenticated requests visiting `/login` redirect to `/`.
+- **Authenticated Account State (`AccountMenu`)**: Discloses active operator username, displays local runtime badge, and provides verified server-side logout destroying the session in PostgreSQL and clearing client cookies.

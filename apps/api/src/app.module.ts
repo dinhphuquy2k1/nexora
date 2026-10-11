@@ -5,9 +5,16 @@ import { HealthService } from "./health/application/health.service";
 import { DatabaseAdapter } from "./health/infrastructure/database.adapter";
 import { LocalStorage } from "./storage/infrastructure/local-storage";
 import { FilesService } from "./storage/application/file-storage.port";
+import { AuthController } from "./identity/presentation/auth.controller";
+import { AuthService } from "./identity/application/auth.service";
+import { IdentityPort } from "./identity/application/identity.port";
+import { IdentityDatabaseAdapter } from "./identity/infrastructure/identity.adapter";
+import { SessionGuard } from "./identity/presentation/session.guard";
+
 export const CONFIG = "CONFIG";
+
 @Module({
-  controllers: [HealthController],
+  controllers: [HealthController, AuthController],
   providers: [
     { provide: CONFIG, useFactory: () => loadConfig(process.env) },
     {
@@ -34,6 +41,19 @@ export const CONFIG = "CONFIG";
       useFactory: (s: LocalStorage, db: DatabaseAdapter) =>
         new FilesService(s, db),
     },
+    {
+      provide: IdentityPort,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) =>
+        new IdentityDatabaseAdapter(c.DATABASE_URL),
+    },
+    {
+      provide: AuthService,
+      inject: [IdentityPort],
+      useFactory: (port: IdentityPort) => new AuthService(port),
+    },
+    SessionGuard,
   ],
+  exports: [AuthService, SessionGuard],
 })
 export class AppModule {}

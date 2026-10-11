@@ -17,20 +17,49 @@ class ErrorFilter implements ExceptionFilter {
   catch(error: unknown, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse<Response>();
     const status = error instanceof HttpException ? error.getStatus() : 500;
-    const code =
+    const responseObj =
+      error instanceof HttpException &&
+      typeof error.getResponse() === "object" &&
+      error.getResponse() !== null
+        ? (error.getResponse() as Record<string, unknown>)
+        : null;
+
+    const defaultCode =
       status === 404
         ? "NOT_FOUND"
         : status === 400
           ? "VALIDATION_ERROR"
-          : "INTERNAL_ERROR";
+          : status === 401
+            ? "UNAUTHORIZED"
+            : status === 403
+              ? "FORBIDDEN"
+              : status === 429
+                ? "TOO_MANY_REQUESTS"
+                : "INTERNAL_ERROR";
+
+    const defaultMessage =
+      status === 404
+        ? "Không tìm thấy endpoint"
+        : status === 400
+          ? "Yêu cầu không hợp lệ"
+          : status === 401
+            ? "Chưa đăng nhập hoặc phiên đã hết hạn"
+            : status === 403
+              ? "Không có quyền truy cập"
+              : status === 429
+                ? "Quá nhiều yêu cầu. Vui lòng thử lại sau."
+                : "Lỗi hệ thống";
+
+    const code =
+      typeof responseObj?.code === "string" ? responseObj.code : defaultCode;
+    const message =
+      typeof responseObj?.message === "string"
+        ? responseObj.message
+        : defaultMessage;
+
     res.status(status).json({
       code,
-      message:
-        status === 404
-          ? "Không tìm thấy endpoint"
-          : status === 400
-            ? "Yêu cầu không hợp lệ"
-            : "Lỗi hệ thống",
+      message,
       requestId: res.locals.requestId,
     });
   }
