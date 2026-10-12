@@ -196,15 +196,12 @@ try {
   checks.status(unauthSettings.status, 307);
   assert.equal(
     unauthSettings.headers.get("location"),
-    "http://127.0.0.1:" + port + "/login?from=%2Fsettings",
+    "/login?from=%2Fsettings",
   );
 
   const unauthRoot = await request("/", { redirect: "manual" });
   checks.status(unauthRoot.status, 307);
-  assert.equal(
-    unauthRoot.headers.get("location"),
-    "http://127.0.0.1:" + port + "/login",
-  );
+  assert.equal(unauthRoot.headers.get("location"), "/login");
 
   checks.step("WORKSPACE_STALE_COOKIE_REDIRECT");
   const staleRes = await request("/settings", {
