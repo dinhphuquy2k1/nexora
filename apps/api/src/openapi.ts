@@ -5,10 +5,15 @@ import { resolve } from "node:path";
 import { Module } from "@nestjs/common";
 import { HealthController } from "./health/presentation/health.controller";
 import { HealthService } from "./health/application/health.service";
+import { AuthController } from "./identity/presentation/auth.controller";
+import { AuthService } from "./identity/application/auth.service";
 // Documentation-only module: no listener, database, storage or operational endpoint.
 @Module({
-  controllers: [HealthController],
-  providers: [{ provide: HealthService, useValue: {} }],
+  controllers: [HealthController, AuthController],
+  providers: [
+    { provide: HealthService, useValue: {} },
+    { provide: AuthService, useValue: {} },
+  ],
 })
 class ContractModule {}
 import { configure, document } from "./http";

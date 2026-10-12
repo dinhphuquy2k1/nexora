@@ -6,6 +6,7 @@ import {
 } from "@nestjs/swagger";
 import type { Response } from "express";
 import { HealthService } from "../application/health.service";
+import { Public } from "../../identity/presentation/public.decorator";
 class LiveDto {
   @ApiProperty({ enum: ["ok"] }) status!: string;
 }
@@ -25,9 +26,13 @@ class ReadyErrorDto extends ReadyDto {
 @Controller("health")
 export class HealthController {
   constructor(@Inject(HealthService) private readonly health: HealthService) {}
-  @Get("live") @ApiOkResponse({ type: LiveDto }) live() {
+  @Public()
+  @Get("live")
+  @ApiOkResponse({ type: LiveDto })
+  live() {
     return this.health.live();
   }
+  @Public()
   @Get("ready")
   @ApiOkResponse({ type: ReadyDto })
   @ApiServiceUnavailableResponse({ type: ReadyErrorDto })

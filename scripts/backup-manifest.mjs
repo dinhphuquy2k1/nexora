@@ -24,6 +24,7 @@ if (process.argv[2] === "create") {
       null,
       2,
     ) + "\n",
+    { mode: 0o600 },
   );
 } else {
   const m = JSON.parse(await readFile("/backup/manifest.json", "utf8"));

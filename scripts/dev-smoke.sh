@@ -16,7 +16,7 @@ compose up -d --no-build --wait --wait-timeout 180
 compose run --rm --no-deps -T dependencies dependencies
 compose run --rm --no-deps -T api node -e "const f=require('fs');const p='packages/shared/src/index.ts';f.writeFileSync(p,f.readFileSync(p,'utf8').replace('Nexora','Nexora workspace propagation'));const q='apps/web/app/page.tsx';f.writeFileSync(q,f.readFileSync(q,'utf8').replace('Quản lý vận đơn,','HMR source verified,'));"
 compose exec -T web node <<'JS'
-(async()=>{for(let i=0;i<60;i++){try{const r=await fetch('http://127.0.0.1:3000');const s=await r.text();if(r.ok&&s.includes('Nexora workspace propagation')&&s.includes('HMR source verified')){console.log('Web HMR + shared workspace propagation PASS');return;}}catch{}await new Promise(r=>setTimeout(r,1000));}process.exitCode=1;})();
+(async()=>{for(let i=0;i<60;i++){try{const r=await fetch('http://127.0.0.1:3000',{headers:{cookie:'nexora_session=dev-smoke-token'}});const s=await r.text();if(r.ok&&s.includes('Nexora workspace propagation')&&s.includes('HMR source verified')){console.log('Web HMR + shared workspace propagation PASS');return;}}catch{}await new Promise(r=>setTimeout(r,1000));}process.exitCode=1;})();
 JS
 compose exec -T postgres psql -U nexora -d nexora -v ON_ERROR_STOP=1 <<'SQL'
 INSERT INTO stored_files (id,sha256,"sizeBytes") VALUES ('11111111-1111-4111-8111-111111111111',repeat('a',64),1);

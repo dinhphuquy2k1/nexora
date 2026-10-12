@@ -49,6 +49,7 @@ async function copyContents(src, out, isRoot) {
     "prisma",
     "prisma.config.ts",
     "src",
+    "lib",
     "next.config.ts",
     ".next",
     "public",

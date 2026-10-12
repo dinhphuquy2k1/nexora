@@ -52,6 +52,152 @@
           "Health"
         ]
       }
+    },
+    "/api/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đăng nhập thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Yêu cầu không hợp lệ hoặc thiếu thông tin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Thông tin xác thực không chính xác",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin không hợp lệ hoặc không được phép",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá nhiều lần đăng nhập thất bại",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Xác thực danh tính và thiết lập phiên làm việc",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/session": {
+      "get": {
+        "operationId": "AuthController_getSession",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Phiên làm việc hợp lệ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chưa đăng nhập hoặc phiên đã hết hạn",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Kiểm tra phiên làm việc hiện tại",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Đăng xuất thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin không hợp lệ hoặc không được phép",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Không thể thu hồi phiên do lỗi hệ thống",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Hủy bỏ phiên làm việc và xóa cookie",
+        "tags": [
+          "Authentication"
+        ]
+      }
     }
   },
   "info": {
@@ -143,6 +289,53 @@
           "requestId"
         ]
       },
+      "LoginRequestDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Tên đăng nhập",
+            "example": "admin"
+          },
+          "password": {
+            "type": "string",
+            "description": "Mật khẩu",
+            "example": "secret123"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "UserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Mã định danh người dùng"
+          },
+          "username": {
+            "type": "string",
+            "description": "Tên đăng nhập"
+          }
+        },
+        "required": [
+          "id",
+          "username"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      },
       "ApiErrorDto": {
         "type": "object",
         "properties": {
@@ -160,6 +353,36 @@
           "code",
           "message",
           "requestId"
+        ]
+      },
+      "SessionResponseDto": {
+        "type": "object",
+        "properties": {
+          "authenticated": {
+            "type": "boolean",
+            "description": "Trạng thái xác thực",
+            "example": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          }
+        },
+        "required": [
+          "authenticated",
+          "user"
+        ]
+      },
+      "LogoutResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Kết quả đăng xuất",
+            "example": true
+          }
+        },
+        "required": [
+          "success"
         ]
       }
     }

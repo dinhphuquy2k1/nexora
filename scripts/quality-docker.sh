@@ -18,4 +18,4 @@ restart(){ compose start api web >/dev/null; }
 trap restart EXIT HUP INT TERM
 compose stop api web
 # run invokes mapped-user entrypoint; exec bypasses that mapping.
-compose run --rm --no-deps -T api sh /workspace/scripts/api-entrypoint.sh sh -c 'NODE_ENV=production pnpm quality && NODE_ENV=test pnpm test:integration'
+compose run --rm --no-deps -T api sh /workspace/scripts/api-entrypoint.sh sh -c 'NODE_ENV=production API_INTERNAL_URL=http://api:4000 pnpm quality && NODE_ENV=test pnpm test:integration'

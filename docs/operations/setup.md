@@ -1,10 +1,78 @@
 # Setup
 
-Default: `docker compose up --build -d`; `./start.sh` / `Start.cmd` wrap this and wait for health for 180 seconds after build. Stop with `docker compose down`, `./stop.sh` / `Stop.cmd`, preserving volumes. Docker Engine 24+ with Compose v2.22.0+ (BuildKit enabled) and Linux containers is required for BuildKit named contexts (`service:<name>`); first install requires Internet. No host Node/pnpm/DB or manual .env is required. Default web port is published on `127.0.0.1:3001` (configurable via `WEB_PORT`).
-Development: `docker compose -f compose.yml -f compose.dev.yml up --build`. Keep this file pair for stop and quality commands. Do not mix running dev/release projects on the same published port.
-Estimated minimum: 4 CPU, 8 GB RAM, 20 GB free disk for build + images/caches. Prune only owned build caches when needed.
-Optional host tooling: Node .nvmrc (24.19.0), pnpm 10.34.6; `pnpm install --frozen-lockfile`, `pnpm --filter @nexora/database generate`, `pnpm build`. Inject DATABASE_URL/STORAGE_ROOT securely and provision a writable canonical root before API start. No credentials should be pasted into shell history.
-Cloud proxy installations may require the platform CA as optional BuildKit `build_ca` secret and proxy build args. This retains TLS/checksum validation; never set strict-ssl=false or PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING. Proxy addresses/CA are environment configuration, never committed into images or source.
+## Supported Runtime Modes
+
+Nexora operates under three distinct runtime topologies:
+
+### Mode A: Docker Local Release (Canonical & Recommended)
+
+- **Start**: `docker compose up --build -d` or `./start.sh` / `Start.cmd` (wraps Compose and waits up to 180 seconds for health).
+- **Access**: Open `http://127.0.0.1:3001` in the browser (configurable via `WEB_PORT`).
+- **Network Topology**: Browser connects to Web on loopback `127.0.0.1:3001`. Next.js proxies `/api/*` requests internally to `http://api:4000`. API and PostgreSQL services are private to Docker bridge networking and intentionally NOT published to the host.
+- **Stop**: `docker compose down` or `./stop.sh` / `Stop.cmd`. All volumes (database, credentials, uploads) persist.
+
+### Mode B: Docker Development
+
+- **Start**: `docker compose -f compose.yml -f compose.dev.yml up --build`.
+- **Characteristics**: Reuses Docker service networking (`http://api:4000`), mounts local source into containers, and runs watchers inside Docker. Does not require running Web manually on host port 3000. Keep this file pair for stop and quality commands.
+
+### Mode C: Host-run Development (Optional / Constrained)
+
+- **Requirements**: Node .nvmrc (24.19.0), pnpm 10.34.6; `pnpm install --frozen-lockfile`, `pnpm --filter @nexora/database generate`, `pnpm build`.
+- **Constraint**: `pnpm --filter @nexora/web dev` runs Next.js on host port 3000. Next.js does not provide an implicit fallback for `API_INTERNAL_URL`. If unconfigured, build and startup fail explicitly with an actionable error. Because Docker does not publish the internal API port to the host, pointing host Next.js to `http://api:4000` fails with `getaddrinfo ENOTFOUND api`. Host-run Web requires an independently reachable host API listener and explicit configuration: `API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @nexora/web dev`. For standard local work, Docker Mode A or B is recommended.
+
+## Initial Operator Account Provisioning
+
+Fresh installations contain no default credentials or demo accounts. The authoritative implementation is compiled with API; host tooling remains `pnpm user:create` after building API and securely supplying `DATABASE_URL`.
+
+The compiled runtime invocation below passed fresh-install provisioning and pseudo-TTY checks in hosted run `38202165584` at commit `de73dca550b7a07e0e99697c00bae570634e5df9` (see NEXORA-009). The previous repository-script path is unavailable in that image and must not be used:
+
+```sh
+docker compose exec api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js
+```
+
+It uses the image's non-root user and the approved entrypoint for database configuration. Interactive username/password/confirmation use a single raw terminal reader, with no password rendering; backspace, Ctrl+C and EOF restore terminal mode. Provisioning enforces case-sensitive, trimmed usernames of 3–50 characters and passwords of 8–1024 characters. Duplicate usernames and failures exit nonzero with sanitized diagnostics.
+
+Automation must explicitly select password stdin; never put a password in command-line arguments or implicitly pipe it:
+
+```sh
+printf '%s' "$ADMIN_PASS" | docker compose exec -T api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js --username admin --password-stdin
+```
+
+A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private. Host-run Web on port 3000 requires an explicit trusted Origin on its separately reachable API.
+
+## Windows Developer Experience & Troubleshooting
+
+When developing on Windows, confusing port collisions or DNS resolution errors can occur:
+
+### Investigating Listening Ports
+
+Use safe PowerShell commands to identify which processes own port 3000 (host dev) or 3001 (Docker Web):
+
+```powershell
+Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object LocalAddress, LocalPort, OwningProcess
+Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue | Select-Object LocalAddress, LocalPort, OwningProcess
+```
+
+Inspect the process before stopping it; do not force-kill based on port alone:
+
+```powershell
+Get-Process -Id <OwningProcess>
+```
+
+### Refreshing Stale Docker Containers
+
+If Docker containers run an older revision or migrations were not yet applied, rebuild and restart without destroying data volumes:
+
+```powershell
+docker compose up --build -d
+```
+
+Never run `docker compose down -v`, `docker volume rm`, or reset database volumes to resolve runtime errors.
+
+### Cloud Proxy & Build Requirements
+
+Docker Engine 24+ with Compose v2.22.0+ (BuildKit enabled) and Linux containers is required for BuildKit named contexts (`service:<name>`). First install requires Internet. Estimated minimum: 4 CPU, 8 GB RAM, 20 GB free disk. Cloud proxy installations may supply platform CA as BuildKit secret `build_ca`.
 
 | Platform                         | Status                     |
 | -------------------------------- | -------------------------- |
@@ -12,4 +80,4 @@ Cloud proxy installations may require the platform CA as optional BuildKit `buil
 | Linux Docker Engine/start.sh     | Supported POSIX scripts    |
 | macOS Docker Desktop             | Supported POSIX scripts    |
 
-For offline Docker dependency preparation, an optional named build context `dependency-cache` may contain `pnpm-cache.tar` created from a pnpm store that passed `pnpm store status`. Default scratch context is empty and performs a normal frozen online install. Cached artifacts retain pnpm integrity checks.
+For offline Docker dependency preparation, an optional named build context `dependency-cache` may contain `pnpm-cache.tar` created from a pnpm store that passed `pnpm store status`. Default scratch context is empty and performs a normal frozen online install.

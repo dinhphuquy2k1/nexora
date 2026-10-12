@@ -2,7 +2,7 @@
 
 ## Local release (default)
 
-Compose `init` generates and retains a random local DB password, repairs only dedicated credential/upload volume permissions; PostgreSQL 17.11 has no published ports. One-shot `migrate` runs after DB healthy; compiled non-root API starts after migrate success and owns uploads as UID 1000. Non-root web waits for API healthy and publishes host port `127.0.0.1:3001:3000` (configurable via `WEB_PORT`).
+Compose `init` generates and retains a random local DB password, repairs only dedicated credential/upload volume permissions; PostgreSQL 17.11 has no published ports. One-shot `migrate` runs after DB healthy; compiled non-root API starts after migrate success and owns uploads as UID 1000. Non-root web waits for API healthy and publishes host port `127.0.0.1:3001:3000` (configurable via `WEB_PORT`). Next.js rewrites `/api/*` internally to `http://api:4000` on the Docker bridge network; neither PostgreSQL nor API publishes host ports.
 Named volumes: postgres, uploads and credentials survive down/restart. No auth/encryption key is generated without a consumer. Init is idempotent and does not rotate existing DB credentials. Host source is not mounted into release containers.
 
 ### Docker architecture layout
@@ -11,7 +11,7 @@ Nexora uses an application-oriented Dockerfile architecture inspired by Seiza:
 
 - `docker/Dockerfile.tools`: Owns foundational tooling (`tools` -> `nexora-tools:0.1.0`), the dependency cache context (`dependency-cache`), the single authoritative dependency foundation (`deps` -> `nexora-builder:0.1.0`), and the workspace development image (`dev` -> `nexora-dev:0.1.0`).
 - `apps/api/Dockerfile`: Owns API compilation, runtime artifact assembly, NestJS non-root production runtime (`nexora-api:0.1.0`), Prisma client generation, and the dedicated Prisma migration runner (`nexora-migrate:0.1.0`).
-- `apps/web/Dockerfile`: Owns Web compilation, Next.js runtime artifact assembly, and non-root production runtime (`nexora-web:0.1.0`), preserving build-time `API_INTERNAL_URL` rewrite configuration.
+- `apps/web/Dockerfile`: Owns Web compilation, Next.js runtime artifact assembly, and non-root production runtime (`nexora-web:0.1.0`), requiring explicit build-time `API_INTERNAL_URL` build argument and container runtime environment.
 
 ### Shared builder dependency strategy
 
@@ -56,7 +56,7 @@ Manifest `COPY` declarations are centralized exclusively in `docker/Dockerfile.t
 
 Runtime artifacts continue to be packaged by `scripts/runtime-artifacts.mjs`. Compared against the baseline monolithic build:
 
-- Tools (`/scripts`), Migrate (`/app`), and API (`/app`) runtime filesystem manifests are byte-for-byte identical.
+- Tools (`/scripts`), Migrate (`/app`), and API (`/app`) runtime filesystem manifests are preserve the existing packaging layout; the API additionally includes its compiled provisioning CLI.
 - Web (`/app`) contains identical runtime dependencies and files, with differences strictly confined to non-deterministic Next.js build IDs (`.next/BUILD_ID`) and compiler output chunk hashes.
 
 ## Development
@@ -69,3 +69,11 @@ Development entrypoint maps to the bind root numeric UID/GID via gosu. It change
 `compose.release.yml` is a versioned image template, NOT VERIFIED for end users while application images remain unpublished. Local release is a one-machine workflow, not selected public production hosting.
 
 Release artifact preparation copies the installed frozen graph; package IDs retain each actual dependency resolution and generated Prisma output. It omits optional peer tooling from API, application source/tests, and compiled OpenAPI generator. Migration explicitly includes Prisma CLI. No deploy/install step re-resolves versions during packaging.
+
+## Local account provisioning runtime
+
+API compilation owns `/app/dist/cli/user-create.js` and its infrastructure provisioner; the existing `dist` artifact packaging includes both without repository-level scripts or a new service. Execute through `/scripts/api-entrypoint.sh` to read the existing credential volume and inject DATABASE_URL, as the image's non-root user. Source inspection establishes expected packaging, while executed fresh-install and pseudo-TTY smoke provide runtime evidence; see NEXORA-009 for the current verification state. No API/database host ports or production bootstrap endpoint are added. API receives WEB_PORT/ALLOWED_ORIGINS solely for the exact browser Origin policy documented in [Configuration](../operations/configuration.md).
+
+## Restore maintenance boundary
+
+Restore starts only new-project PostgreSQL. The existing one-shot migration service runs after dump restoration; target sessions are invalidated before API/Web startup. A one-shot non-root API command checks original-file/catalog integrity without listening on HTTP. Failures leave a partial isolated target and report failure, without launching it or altering source resources. Operator procedure is owned by [Backup and restore](../operations/backup-restore.md).

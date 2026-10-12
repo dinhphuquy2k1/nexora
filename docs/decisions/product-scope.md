@@ -39,7 +39,7 @@ Before building any external logistics provider adapter, an authorized review mu
 
 1. **Nexora local authentication session**: Governs user access to the local Nexora application, UI, and internal APIs.
 2. **External provider session / integration**: Governs programmatic machine-to-machine integration with external logistics providers.
-   These two identity concepts are logically and architecturally distinct. External provider tokens must never serve as application session tokens, and local users do not authenticate directly against external logistics providers. Foundation v0.1.0 defers both identity systems (local-only, single-user runtime).
+   These two identity concepts are logically and architecturally distinct. External provider tokens must never serve as application session tokens, and local users do not authenticate directly against external logistics providers. Local application identity is implemented under [ADR-005](authentication.md); external provider integration identity remains deferred.
 
 ## 4. Synchronization architecture
 

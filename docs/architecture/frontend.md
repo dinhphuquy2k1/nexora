@@ -20,10 +20,10 @@ Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel
 Components dedicated to Nexora's application shell, layout frame, and cross-route coordination:
 
 - **`AppShell` (`AppShell.tsx`)**: Authoritative Server Component layout frame consumed in `apps/web/app/layout.tsx`.
-- **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`).
+- **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`) and bypassing shell chrome on public authentication routes (`/login`).
 - **`Sidebar` (`Sidebar.tsx`, `Sidebar.module.css`)**: Logistics navigation bar with geometric monogram logo, grouped navigation items, active route indicators, and planned item tags.
-- **`Header` (`Header.tsx`, `Header.module.css`)**: Top bar containing sidebar toggle, pathname-driven breadcrumbs, and neutral user account disclosure (`AccountMenu`).
-- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible user account disclosure reserving future identity and authentication UI space without mock profiles or fake sessions.
+- **`Header` (`Header.tsx`, `Header.module.css`)**: Top bar containing sidebar toggle, pathname-driven breadcrumbs, and authenticated user account disclosure (`AccountMenu`).
+- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible user account disclosure displaying authenticated username and active session status, with browser POST logout and status-aware retry.
 - **`Breadcrumb` (`Breadcrumb.tsx`)**: Pathname-driven breadcrumbs consuming shared navigation metadata.
 - **`NavigationItem` (`NavigationItem.tsx`)**: Distinguishes available routes (Next.js `Link`) from planned features (disabled action button with "Chưa triển khai" label).
 - **Popover Semantics (`use-dismissable.ts`)**: Reusable disclosure hook managing outside pointer dismissal and Escape key closing with focus restoration.
@@ -107,3 +107,16 @@ Nexora is a local-first shipment management platform. In foundation v0.1.0, the 
   - Validated across 1440×900, 1280×800, and 1024×768 viewports in expanded and collapsed sidebar modes with `scrollWidth <= clientWidth`.
   - Tested dynamic theme override of `--color-primary` and `--color-accent` in browser runtime, confirming coherent, system-wide updates without hardcoded color leaks.
   - Verified Panel paragraph typography and StatusBadge tone mapping visually in the rendered DOM across `/`, `/system`, and `/settings`.
+
+## 8. Authentication & Route Protection
+
+- **Public Login Page (`/login`)**: Standalone centered layout presenting brand monogram, username/password fields, keyboard-accessible password show/hide toggle, accessible error banners, and safe local redirect handling (`sanitizeReturnUrl`). Server Component performs authoritative session verification before redirecting genuinely authenticated users to avoid redirect loops on invalid or stale cookies.
+- **Route Guarding (`middleware.ts`)**: Enforces Host allowlist validation at ingress across all matched paths including `/api/*`. Inspects `nexora_session` cookie; unauthenticated requests accessing workspace pages (`/`, `/system`, `/settings`) redirect to `/login?from=...`.
+- **Authenticated Account State (`AccountMenu`)**: Discloses active operator username, displays local runtime badge, and provides verified server-side logout destroying the session in PostgreSQL and clearing client cookies. Checks response status before redirecting and renders accessible error notifications on failure with retry capability.
+- **Upstream API Proxy (`next.config.ts`) & Server API Configuration (`lib/api/config.ts`)**: Authoritative configuration owner validates `API_INTERNAL_URL` as a required HTTP/HTTPS origin without path, credentials, query, or fragment. No implicit application fallback is permitted; Compose supplies `http://api:4000` for container runtime. Server Component session verification (`lib/api/session.ts`) queries `/api/auth/session` using this configuration, distinguishing authenticated (200), unauthenticated (401), and upstream unavailable (5xx/network) states while performing redirects strictly outside catch blocks.
+
+## 9. Authentication transport and session payload validation
+
+LoginForm and AccountMenu make browser-originated, same-origin relative POST calls through the Web `/api/*` rewrite; these are not Server Actions. The reusable server session helper only performs GET, forwarding the session cookie to the explicit internal API URL. No server-originated authentication mutation or internal Origin bypass exists. Web Host validation remains ahead of proxying, including `/api/*`.
+
+A server HTTP 200 session response authenticates only when `authenticated === true` and user ID/username are nonempty strings. Invalid JSON or malformed 200 payloads return unavailable service; 401 or missing cookie returns unauthenticated; upstream/network failures remain unavailable. LoginPage redirects only from the authenticated result, preventing malformed payloads from entering Workspace. AccountMenu navigates only after successful logout and retains retry behavior on revocation failure. Login displays a generic retry message for 429, covering both account lockout and the faster global admission budget without incorrectly promising a fixed five-minute wait.

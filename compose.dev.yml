@@ -81,6 +81,7 @@ services:
     environment:
       NODE_ENV: development
       WATCHPACK_POLLING: "true"
+      API_INTERNAL_URL: http://api:4000
     volumes: *development-volumes
     depends_on:
       dependencies: { condition: service_completed_successfully }
