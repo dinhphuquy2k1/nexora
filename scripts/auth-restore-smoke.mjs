@@ -332,7 +332,7 @@ try {
     "-Atc",
     "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL;",
   ]);
-  assert.equal(migrations.trim(), "3");
+  assert.equal(migrations.trim(), "4");
   checks.step("LEGACY_ORIGINAL_FILE_INTEGRITY");
   await docker(
     legacyRestored,
