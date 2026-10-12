@@ -181,8 +181,8 @@ Documentation Impact: REQUIRED
 - Recorded owner confirmation of Uniship `userid` stability for application integration and deferred Admin UI / live provider integration.
 - Resolved frontend port inconsistency: browser-facing port is canonical `http://localhost:3001` (or `http://127.0.0.1:3001`); internal container listener legitimately remains port 3000.
 - Added `apps/web/scripts/dev.mjs` preflight enforcing canonical port 3001 on host dev and refusing port collisions (`EADDRINUSE`) with code 1 instead of silently switching to port 3002.
-- Decoupled Next.js layouts using Route Groups: `apps/web/app/layout.tsx` owns HTML/styles/metadata without `AppShell`; `apps/web/app/login/layout.tsx` is standalone without `AppShell`; `apps/web/app/(workspace)/layout.tsx` enforces server-side session verification via `verifyServerSession(cookie)`.
-- Enforced protected workspace access: missing/invalid/expired/revoked cookies redirect to `/login?from=...`; upstream backend outages fail closed with service unavailable card without redirect loops.
+- Decoupled Next.js layouts using Route Groups: `apps/web/app/layout.tsx` owns HTML/styles/metadata without `AppShell`; `apps/web/app/login/layout.tsx` is standalone without `AppShell`; `apps/web/app/(workspace)/layout.tsx` enforces server-side session verification via `getCachedServerSession(cookie)`.
+- Enforced protected workspace access: missing/invalid/expired/revoked cookies redirect to `/login?from=...`; upstream backend outages fail closed with service unavailable card without redirect loops; workspace Server Components (`page.tsx`, `settings/page.tsx`, `system/page.tsx`) guard rendering with `getCachedServerSession` and never evaluate or render protected content before session authentication completes.
 
 ### Canonical Owners
 

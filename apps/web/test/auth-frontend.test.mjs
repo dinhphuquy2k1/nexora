@@ -280,7 +280,8 @@ test("RootLayout and LoginLayout are decoupled from AppShell", async () => {
     "Workspace layout must import AppShell for authenticated users",
   );
   assert.equal(
-    workspaceLayoutContent.includes("verifyServerSession"),
+    workspaceLayoutContent.includes("getCachedServerSession") ||
+      workspaceLayoutContent.includes("verifyServerSession"),
     true,
     "Workspace layout must enforce server session verification",
   );

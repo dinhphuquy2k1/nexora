@@ -2,9 +2,11 @@ import type { ReactNode } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "../../components/app-shell/AppShell.tsx";
-import { verifyServerSession } from "../../lib/api/session.ts";
+import { getCachedServerSession } from "../../lib/api/session.ts";
 import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 import styles from "./workspace-layout.module.css";
+
+export const dynamic = "force-dynamic";
 
 interface WorkspaceLayoutProps {
   children: ReactNode;
@@ -16,7 +18,7 @@ export default async function WorkspaceLayout({
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get("nexora_session")?.value;
 
-  const result = await verifyServerSession(sessionToken);
+  const result = await getCachedServerSession(sessionToken);
 
   if (result.status === "unauthenticated") {
     const headerList = await headers();

@@ -1,6 +1,19 @@
+import { cookies } from "next/headers";
 import { Panel } from "@nexora/ui";
 import { FOUNDATION_VERSION } from "@nexora/shared";
-export default function Settings() {
+import { getCachedServerSession } from "../../../lib/api/session.ts";
+
+export const dynamic = "force-dynamic";
+
+export default async function Settings() {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get("nexora_session")?.value;
+  const result = await getCachedServerSession(sessionToken);
+
+  if (result.status !== "authenticated") {
+    return null;
+  }
+
   return (
     <>
       <p className="eyebrow">THIẾT LẬP</p>

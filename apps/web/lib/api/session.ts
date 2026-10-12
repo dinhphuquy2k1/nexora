@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getApiInternalUrl } from "./config.ts";
 
 export interface SessionUser {
@@ -86,3 +87,13 @@ export async function verifyServerSession(
     };
   }
 }
+
+/**
+ * Request-memoized session verification for Server Components and Layouts.
+ * Prevents duplicate network round-trips when both layout and page verify the session.
+ */
+export const getCachedServerSession = cache(
+  async (cookieValue: string | undefined): Promise<ServerSessionResult> => {
+    return verifyServerSession(cookieValue);
+  },
+);
