@@ -110,7 +110,8 @@ test("successful Login clears only its account failures and releases reservation
   h.port.findUserByUsername = async (username) => ({
     id: username,
     username,
-    isActive: true,
+    role: "ADMIN",
+    status: "ACTIVE",
     passwordHash: "fixture",
   });
   h.port.verifyPassword = async (password) => password === "correct";

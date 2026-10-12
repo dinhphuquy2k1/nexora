@@ -1,5 +1,5 @@
 import type {
-  LocalUserRecord,
+  LocalLoginRecord,
   SessionSummary,
   UserSummary,
 } from "../domain/identity.types";
@@ -7,7 +7,7 @@ import type {
 export abstract class IdentityPort {
   abstract findUserByUsername(
     username: string,
-  ): Promise<LocalUserRecord | null>;
+  ): Promise<LocalLoginRecord | null>;
   abstract findUserById(id: string): Promise<UserSummary | null>;
   abstract createSession(
     userId: string,

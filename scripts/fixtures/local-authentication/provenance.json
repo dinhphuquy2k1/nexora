@@ -1,0 +1,9 @@
+{
+  "commit": "25317672df5572ce63e13e0a5ce991c6689f2d04",
+  "files": {
+    "prisma/schema.prisma": "c2b5eb4bc98d19b7abbe33f56df4feb5a64f3f6a6cdd13b1329ca6d2fe0e54da",
+    "prisma/migrations/migration_lock.toml": "1db17a8d051aa136110736752c5e1f8b7ed92b6ea8e803112fbbe2497047c210",
+    "prisma/migrations/20261006000000_storage_catalog/migration.sql": "f32e9bac721e731db308f5776d0d01523a60bba89fe271221c8fb48cd9636aac",
+    "prisma/migrations/20261012000000_local_authentication/migration.sql": "b4f75004054ea82bd52cc8798093fdabe73e8c2f9bf508fed598b8db5a909912"
+  }
+}

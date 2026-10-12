@@ -25,7 +25,7 @@ function createMockIdentityPort() {
     },
     async findUserById(id) {
       for (const u of users.values()) {
-        if (u.id === id && u.isActive) {
+        if (u.id === id && u.status === "ACTIVE") {
           return { id: u.id, username: u.username };
         }
       }
@@ -47,7 +47,7 @@ function createMockIdentityPort() {
       if (!session) return null;
       let user = null;
       for (const u of users.values()) {
-        if (u.id === session.userId && u.isActive) {
+        if (u.id === session.userId && u.status === "ACTIVE") {
           user = { id: u.id, username: u.username };
           break;
         }
@@ -112,7 +112,8 @@ test("AuthService handles validation and generic authentication errors", async (
     id: "u-disabled",
     username: "disabled_user",
     passwordHash: "mock-hash-secret123",
-    isActive: false,
+    role: "ADMIN",
+    status: "DISABLED",
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -147,7 +148,8 @@ test("AuthService rate limits consecutive failed login attempts and clears on su
     id: "u-valid",
     username: "validuser",
     passwordHash: "mock-hash-goodpass",
-    isActive: true,
+    role: "ADMIN",
+    status: "ACTIVE",
   });
   const res = await auth.login("validuser", "goodpass", ip);
   assert.equal(res.user.username, "validuser");
@@ -161,7 +163,8 @@ test("AuthService authenticates valid user, creates session, and validates lifec
     id: "u-123",
     username: "operator",
     passwordHash: "mock-hash-securepass",
-    isActive: true,
+    role: "ADMIN",
+    status: "ACTIVE",
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -204,7 +207,8 @@ test("AuthService handles expired session deletion failure without unhandled rej
     id: "u-exp",
     username: "user_exp",
     passwordHash: "mock-hash-p",
-    isActive: true,
+    role: "ADMIN",
+    status: "ACTIVE",
   });
 
   // Create an expired session directly
@@ -267,7 +271,8 @@ test("SessionGuard enforces authentication policy and honors @Public decorator (
     id: "u-valid",
     username: "validuser",
     passwordHash: "mock-hash-p",
-    isActive: true,
+    role: "ADMIN",
+    status: "ACTIVE",
   });
   const loginRes = await auth.login("validuser", "p", "127.0.0.1");
 
@@ -419,7 +424,8 @@ test("Login keeps case-sensitive identity and independent failure counters", asy
     port.users.set(username, {
       id: username,
       username,
-      isActive: true,
+      role: "ADMIN",
+      status: "ACTIVE",
       passwordHash: "mock-hash-correct",
     });
   const auth = new AuthService(port);
@@ -496,4 +502,40 @@ test("Canonical HTTP session cookie ignores forged forwarding security", async (
   }
   assert.equal(cookies[0].options.maxAge, 7 * 24 * 60 * 60 * 1000);
   assert.equal(cookies[1].options.maxAge, 0);
+});
+
+test("local password Login requires ACTIVE ADMIN credential, independently of generic sessions", async () => {
+  for (const record of [
+    { role: "ADMIN", status: "ACTIVE", passwordHash: "valid", accepted: true },
+    { role: "ADMIN", status: "ACTIVE", passwordHash: null },
+    { role: "OPERATOR", status: "ACTIVE", passwordHash: "valid" },
+    { role: "OPERATOR", status: "ACTIVE", passwordHash: null },
+    { role: "ADMIN", status: "DISABLED", passwordHash: "valid" },
+  ]) {
+    let issued = 0;
+    let verified;
+    const service = new AuthService({
+      findUserByUsername: async () => ({
+        id: "fixture",
+        username: "fixture",
+        ...record,
+      }),
+      verifyPassword: async (_password, hash) => {
+        verified = hash;
+        return true;
+      },
+      createSession: async () => {
+        issued++;
+      },
+    });
+    if (record.accepted) await service.login("fixture", "password");
+    else
+      await assert.rejects(
+        service.login("fixture", "password"),
+        (e) => e.getStatus() === 401,
+      );
+    assert.equal(issued, record.accepted ? 1 : 0);
+    assert.ok(verified);
+    if (!record.accepted) assert.match(verified, /^\$scrypt\$/);
+  }
 });

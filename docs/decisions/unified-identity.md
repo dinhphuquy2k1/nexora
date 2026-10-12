@@ -1,10 +1,10 @@
 # Unified identity foundation decision
 
-Accepted direction: 2026-10-12. Implementation: PLANNED. This decision defines Phase 0 and the gated Phase 1 target; it does not describe shipped schema or authorize live provider integration. Existing runtime decisions remain authoritative until their implementation milestones pass. ADR-005 remains authoritative for implemented Scrypt local credentials, opaque PostgreSQL sessions, operational Login/Logout/Session APIs and loopback HTTP. This decision extends future direction without superseding that runtime. PR #7 is merged at ad01e74; unified schema and Uniship remain PLANNED. See [NEXORA-010](../tasks/completed/NEXORA-010-unified-identity-foundation.md) for Phase 0 and [NEXORA-011](../tasks/active/NEXORA-011-unified-identity-migration.md) for the single detailed migration/test plan.
+Accepted direction: 2026-10-12. Phase 1 storage/local-authentication implementation: IMPLEMENTED; verification tracked in NEXORA-011. Future phases: PLANNED. This decision defines Phase 0 and the gated Phase 1 target; it describes the implemented Phase 1 storage boundary and does not authorize live provider integration. Existing runtime decisions remain authoritative until their implementation milestones pass. ADR-005 remains authoritative for implemented Scrypt local credentials, opaque PostgreSQL sessions, operational Login/Logout/Session APIs and loopback HTTP. This decision extends future direction without superseding that runtime. PR #7 is merged at ad01e74; unified users/user_credentials storage is implemented; Uniship remains PLANNED. See [NEXORA-010](../tasks/completed/NEXORA-010-unified-identity-foundation.md) for Phase 0 and [NEXORA-011](../tasks/active/NEXORA-011-unified-identity-migration.md) for the single detailed migration/test plan.
 
 ## Identity and access
 
-The target is one `users` table with feature-local `as const` vocabulary: role ADMIN/OPERATOR and status ACTIVE/DISABLED, stored as VARCHAR with SQL CHECK constraints, never Prisma/PostgreSQL/TypeScript enums. Role has no final database default; all creation paths specify it explicitly. Local passwords belong in `local_credentials`, not the unified user row. Phase 1 creates only these concrete local-authentication consumers; external identities, provider credentials and device/audit/approval tables are deferred.
+The target is one `users` table with feature-local `as const` vocabulary: role ADMIN/OPERATOR and status ACTIVE/DISABLED, stored as VARCHAR with SQL CHECK constraints, never Prisma/PostgreSQL/TypeScript enums. Role has no final database default; all creation paths specify it explicitly. Local passwords belong in `user_credentials`, not the unified user row. Phase 1 implements only these concrete local-authentication consumers; external identities, provider credentials and device/audit/approval tables are deferred.
 
 Trusted local provisioning creates ADMIN explicitly, never exposes role selection through HTTP and never creates local-password Operators. Legacy trusted accounts may become ADMIN only after the merged production creation paths and history establish provenance. A provenance gap stops migration; active and disabled state must survive.
 
@@ -60,3 +60,19 @@ Successful provider authentication may require an additional profile request, le
 | 5     | All dependency/security gates verified                                                 | Employee Login activation, independent local Admin and multi-device/end-to-end readiness                                               |
 
 Phases 2–5 require separate prompts and PRs. No JWT, Redis, generic RBAC framework, shipment integration or automatic deployment/merge follows from this decision.
+
+## Approved Phase 1 amendment — 2026-10-12
+
+The owner selects `users` plus `user_credentials` plus existing `sessions`. The earlier future-design name local_credentials is superseded for new work only; historical completed Phase 0 evidence is preserved. This approved architecture is implemented by the Phase 1 migration; required executable verification is recorded separately, never inferred from source.
+
+| Component            | Ownership                                                                                                             |
+| :------------------- | :-------------------------------------------------------------------------------------------------------------------- |
+| users                | Application identity, role, status and metadata                                                                       |
+| user_credentials     | Nexora-managed local Scrypt hashes; optional one-to-one UserCredential, user_id primary key/FK with ON DELETE CASCADE |
+| sessions             | Existing opaque session-token hashes, user association and expiry; multiple independent sessions                      |
+| external_identities  | Future confirmed Uniship userid mapping in Phase 2                                                                    |
+| provider_credentials | Future permitted encrypted provider tokens in a later phase                                                           |
+
+Never place provider passwords or bearer tokens in user_credentials. Session validation is authentication-method agnostic: structurally valid token, matching unrevoked/unexpired session and existing ACTIVE user only. It must not require ADMIN, a credential/hash, a provider identity or IP/User-Agent equality. Local password Login separately requires ADMIN, ACTIVE and a matching credential; missing credentials, disallowed roles and disabled accounts use valid dummy Scrypt after existing admission, with unchanged public failures. Role authorization belongs to real Phase 2 route consumers, not generic SessionGuard.
+
+Trusted provisioning must atomically create an explicitly ADMIN/ACTIVE user and one credential. Future disposable tests must prove ACTIVE OPERATOR sessions work without credentials, local Operator Login fails, DISABLED Operator sessions fail, credentialless Admin Login fails, and expiry/revocation work regardless of role. No Operator onboarding endpoint is authorized.

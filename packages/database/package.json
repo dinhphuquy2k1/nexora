@@ -10,7 +10,8 @@
     "dev": "tsc -p tsconfig.json --watch",
     "test": "node --test test/password.test.mjs",
     "generate": "prisma generate",
-    "migrate:deploy": "prisma migrate deploy"
+    "migrate:deploy": "prisma migrate deploy",
+    "test:migrations": "node test/migration.mjs"
   },
   "dependencies": {
     "@prisma/client": "7.10.0",

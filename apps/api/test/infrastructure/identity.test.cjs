@@ -55,7 +55,10 @@ test("unknown and inactive users execute valid real Scrypt dummy verification", 
   const original = crypto.scrypt;
   const spy = mock.method(crypto, "scrypt", (...args) => original(...args));
   try {
-    for (const record of [null, { isActive: false, passwordHash: "unused" }]) {
+    for (const record of [
+      null,
+      { role: "ADMIN", status: "DISABLED", passwordHash: "unused" },
+    ]) {
       let observedHash;
       const adapter = new IdentityDatabaseAdapter("unused");
       const auth = new AuthService({
@@ -89,7 +92,7 @@ test("provisioning uses normalized case-sensitive username and real hashing, rej
   let created;
   let disconnected = 0;
   databaseFactory = () => ({
-    localUser: {
+    user: {
       findUnique: async (args) => {
         query = args;
         return null;
@@ -106,16 +109,19 @@ test("provisioning uses normalized case-sensitive username and real hashing, rej
   await provisionUser("fixture-unused", "  Admin  ", "FixturePassword123!");
   assert.deepEqual(query, { where: { username: "Admin" } });
   assert.equal(created.data.username, "Admin");
+  assert.equal(created.data.role, "ADMIN");
+  assert.equal(created.data.status, "ACTIVE");
+  assert.ok(created.data.credential.create.passwordHash);
   assert.equal(
     await passwords.verifyPassword(
       "FixturePassword123!",
-      created.data.passwordHash,
+      created.data.credential.create.passwordHash,
     ),
     true,
   );
   assert.equal(disconnected, 1);
   databaseFactory = () => ({
-    localUser: { findUnique: async () => ({ id: "existing" }) },
+    user: { findUnique: async () => ({ id: "existing" }) },
     $disconnect: async () => {
       disconnected++;
     },
@@ -129,4 +135,39 @@ test("provisioning uses normalized case-sensitive username and real hashing, rej
     provisionUser("fixture-unused", 123, "FixturePassword123!"),
   );
   await assert.rejects(provisionUser("fixture-unused", "Admin", "short"));
+});
+
+test("generic session adapter accepts ACTIVE Operator without requesting credentials", async () => {
+  const adapter = new IdentityDatabaseAdapter("unused");
+  let query;
+  const record = {
+    id: "session",
+    userId: "operator",
+    expiresAt: new Date(Date.now() + 60000),
+    createdAt: new Date(),
+    user: {
+      id: "operator",
+      username: "operator",
+      role: "OPERATOR",
+      status: "ACTIVE",
+    },
+  };
+  adapter.instance = {
+    session: {
+      findUnique: async (args) => {
+        query = args;
+        return record;
+      },
+    },
+  };
+  assert.deepEqual((await adapter.findSessionByTokenHash("hash")).user, {
+    id: "operator",
+    username: "operator",
+  });
+  assert.deepEqual(query, {
+    where: { tokenHash: "hash" },
+    include: { user: true },
+  });
+  record.user.status = "DISABLED";
+  assert.equal(await adapter.findSessionByTokenHash("hash"), null);
 });

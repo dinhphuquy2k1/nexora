@@ -1,4 +1,5 @@
 import { createDatabase, hashPassword } from "@nexora/database";
+import { UserRole, UserStatus } from "../domain/user-policy";
 import { normalizeUsername, isLoginPassword } from "../domain/credentials";
 
 /** Trusted local CLI infrastructure, never exposed through HTTP. */
@@ -17,13 +18,14 @@ export async function provisionUser(
     );
   const db = createDatabase(databaseUrl);
   try {
-    if (await db.localUser.findUnique({ where: { username } }))
+    if (await db.user.findUnique({ where: { username } }))
       throw new Error("Username already exists.");
-    await db.localUser.create({
+    await db.user.create({
       data: {
         username,
-        passwordHash: await hashPassword(password),
-        isActive: true,
+        role: UserRole.ADMIN,
+        status: UserStatus.ACTIVE,
+        credential: { create: { passwordHash: await hashPassword(password) } },
       },
     });
   } finally {
