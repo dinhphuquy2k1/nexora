@@ -245,5 +245,14 @@ try {
   socket?.close();
   child.kill();
   await exited;
-  await rm(profile, { recursive: true, force: true });
+  try {
+    await rm(profile, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 100,
+    });
+  } catch {
+    // Best-effort cleanup of temporary browser profile in tmpdir
+  }
 }
