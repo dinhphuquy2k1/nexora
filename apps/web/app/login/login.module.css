@@ -207,3 +207,27 @@
   opacity: 0.65;
   cursor: not-allowed;
 }
+
+.modeFooter {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.modeToggleLink {
+  font-size: 13px;
+  color: var(--color-accent, #ea580c);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.modeToggleLink:hover {
+  color: var(--color-accent-hover, #c2410c);
+  text-decoration: underline;
+}
+
+.modeToggleLink:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light, #c2410c);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

@@ -10,6 +10,8 @@ import { AuthController } from "./identity/presentation/auth.controller";
 import { AuthService } from "./identity/application/auth.service";
 import { IdentityPort } from "./identity/application/identity.port";
 import { IdentityDatabaseAdapter } from "./identity/infrastructure/identity.adapter";
+import { ProviderAuthenticationPort } from "./identity/application/provider-auth.port";
+import { UnishipAuthAdapter } from "./identity/infrastructure/uniship-auth.adapter";
 import { SessionGuard } from "./identity/presentation/session.guard";
 import { OriginGuard } from "./identity/presentation/origin.guard";
 
@@ -50,9 +52,22 @@ export const CONFIG = "CONFIG";
         new IdentityDatabaseAdapter(c.DATABASE_URL),
     },
     {
+      provide: ProviderAuthenticationPort,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) =>
+        new UnishipAuthAdapter({
+          apiUrl: c.UNISHIP_API_URL,
+          liveAuthorized: c.UNISHIP_LIVE_AUTHORIZED === "true",
+          isProduction: c.NODE_ENV === "production",
+        }),
+    },
+    {
       provide: AuthService,
-      inject: [IdentityPort],
-      useFactory: (port: IdentityPort) => new AuthService(port),
+      inject: [IdentityPort, ProviderAuthenticationPort],
+      useFactory: (
+        port: IdentityPort,
+        providerPort: ProviderAuthenticationPort,
+      ) => new AuthService(port, providerPort),
     },
     {
       provide: OriginGuard,
@@ -65,6 +80,6 @@ export const CONFIG = "CONFIG";
       useClass: SessionGuard,
     },
   ],
-  exports: [AuthService, SessionGuard, OriginGuard],
+  exports: [AuthService, ProviderAuthenticationPort, SessionGuard, OriginGuard],
 })
 export class AppModule {}

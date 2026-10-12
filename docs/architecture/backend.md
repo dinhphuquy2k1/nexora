@@ -17,13 +17,34 @@ Generic session lookup includes its user and checks ACTIVE status only, independ
 
 ## Verified provider authentication port
 
-IMPLEMENTED in PR #10, verification tracked in NEXORA-012: `IdentityPort` specifies `findExternalIdentity(provider: string, providerSubject: string): Promise<ExternalIdentityRecord | null>`, implemented by `IdentityDatabaseAdapter`.
+IMPLEMENTED in PR #10, verification tracked in NEXORA-012:
 
-`AuthService.authenticateExternalIdentity(verified: VerifiedProviderIdentity)` defines the server-side authentication boundary:
+1. **Port Interfaces**:
+   - `IdentityPort` specifies `findExternalIdentity(provider: string, providerSubject: string): Promise<ExternalIdentityRecord | null>`, implemented by `IdentityDatabaseAdapter`.
+   - `ProviderAuthenticationPort` specifies `authenticate(input: { username: string; password: string }): Promise<VerifiedProviderIdentity>` in the application layer.
 
-- Requires verified provider identity object with `provider === 'uniship'`, non-empty trimmed `providerSubject` up to 128 characters.
-- Resolves the external identity and linked user via the database port.
-- Verifies linked user has `role === 'OPERATOR'` and `status === 'ACTIVE'`.
-- Enforces uniform failure policy on unknown subject, disabled account, non-operator role or malformed input: HTTP 401 `AUTHENTICATION_FAILED`, message `"Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập."` without disclosing account registration state.
-- Upon successful verification, generates a 32-byte opaque session token, SHA-256 hashes it, persists the session with 7-day TTL via `createSession`, and returns `{ user: UserSummary, token: string, expiresAt: Date }`.
-- Boundary rule: this is strictly an internal application service method called by trusted server-side authentication adapters. No public HTTP endpoint accepts client-supplied `userid` to bypass authentication.
+2. **Provider Infrastructure Adapter (`UnishipAuthAdapter`)**:
+   - Implements `ProviderAuthenticationPort`.
+   - Sends credentials only to configured `UNISHIP_API_URL` (`POST /client/api-token-auth/`).
+   - Request safety: enforces HTTPS in production, 5-second timeout via `AbortSignal.timeout`, bounded payload, and redirect rejection (`redirect: "error"`).
+   - Gating safety: unless running against loopback in development/test, external provider requests are blocked unless `UNISHIP_LIVE_AUTHORIZED=true` is explicitly set, failing closed with 503 `SERVICE_UNAVAILABLE`.
+   - Response safety: treats responses as untrusted until validated against schema; extracts canonical `providerSubject` from non-empty `userid`; never logs credentials or raw provider bodies; maps 400/401 to 401 `AUTHENTICATION_FAILED` and provider errors/timeouts to 503 `SERVICE_UNAVAILABLE`.
+
+3. **Application Orchestration (`AuthService.loginWithProvider`)**:
+   - Validates input format (username 3–50 chars, password non-empty).
+   - Bounded admission limiter keyed by `provider:${username}`: failure limits are isolated per provider account and do NOT lock out local ADMIN accounts with matching usernames.
+   - Provider outages (503) do not increment failure counters; only actual authentication failures increment the counter.
+   - Calls `ProviderAuthenticationPort.authenticate()` followed by `AuthService.authenticateExternalIdentity()`.
+
+4. **External Identity Session Issuance (`AuthService.authenticateExternalIdentity`)**:
+   - Requires verified provider identity object with `provider === 'uniship'`, non-empty trimmed `providerSubject` up to 128 characters.
+   - Resolves the external identity and linked user via the database port.
+   - Verifies linked user has `role === 'OPERATOR'` and `status === 'ACTIVE'`.
+   - Enforces uniform failure policy on unknown subject, disabled account, non-operator role or malformed input: HTTP 401 `AUTHENTICATION_FAILED`, message `"Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập."` without disclosing account registration state.
+   - Upon successful verification, generates a 32-byte opaque session token, SHA-256 hashes it, persists the session with 7-day TTL via `createSession`, and returns `{ user: UserSummary, token: string, expiresAt: Date }`.
+
+5. **HTTP Presentation (`AuthController.loginProvider`)**:
+   - Exposes `POST /api/auth/provider/login` with `@Public()` and `OriginGuard`.
+   - Accepts `ProviderLoginRequestDto` (`username`, `password`).
+   - On success, sets `nexora_session` cookie (`HttpOnly: true, SameSite: Lax, Path: /, Secure: false`) and returns `{ user }`.
+   - Cookie is never set on failure; no provider tokens or raw identifiers are returned to the client.

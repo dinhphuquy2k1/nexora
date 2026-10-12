@@ -49,6 +49,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/provider/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Xác thực tài khoản nhà cung cấp và thiết lập phiên làm việc */
+        post: operations["AuthController_loginProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/session": {
         parameters: {
             query?: never;
@@ -133,6 +150,18 @@ export interface components {
             code: string;
             message: string;
             requestId: string;
+        };
+        ProviderLoginRequestDto: {
+            /**
+             * @description Tên đăng nhập tài khoản nhà cung cấp
+             * @example operator_nam
+             */
+            username: string;
+            /**
+             * @description Mật khẩu tài khoản nhà cung cấp
+             * @example secret123
+             */
+            password: string;
         };
         SessionResponseDto: {
             /**
@@ -255,6 +284,75 @@ export interface operations {
             };
             /** @description Quá nhiều lần đăng nhập thất bại */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    AuthController_loginProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderLoginRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Đăng nhập thành công */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponseDto"];
+                };
+            };
+            /** @description Yêu cầu không hợp lệ hoặc thiếu thông tin */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description Origin không hợp lệ hoặc không được phép */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description Quá nhiều lần đăng nhập thất bại */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description Dịch vụ xác thực nhà cung cấp tạm thời không khả dụng */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

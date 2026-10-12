@@ -32,23 +32,24 @@ Following initial investigation into Uniship identity semantics, the repository 
 2. **Committed Migration**: `20261012020000_external_identities` adding foreign key cascade to `users(id)`, compound unique constraints, provider check constraint (`uniship`), and subject format check constraint.
 3. **Manual SQL Operator Registration**: `scripts/sql/register-uniship-operator.sql` executing an atomic transaction with input validation, `gen_random_uuid()` generation, and creation of `users` (`role = 'OPERATOR'`, `status = 'ACTIVE'`) plus `external_identities` with zero rows in `user_credentials`.
 4. **Unique Provider Binding**: PostgreSQL compound unique constraint `(provider, provider_subject)` preventing duplicate bindings across users, and `(user_id, provider)` preventing multiple provider identities per user.
-5. **Authentication Application Interfaces**:
-   - `IdentityPort.findExternalIdentity(provider, providerSubject)`
-   - `IdentityDatabaseAdapter.findExternalIdentity` querying `external_identities` with linked user.
-   - `AuthService.authenticateExternalIdentity(verified: VerifiedProviderIdentity)` receiving a verified provider identity from a trusted server-side adapter, enforcing `OPERATOR` and `ACTIVE` user status, and issuing an opaque Nexora session.
-6. **Fake-Provider Integration Tests**: Automated tests against disposable PostgreSQL verifying session issuance for active operators, uniform 401 `AUTHENTICATION_FAILED` for invalid/unregistered/disabled/admin identities, SessionGuard compatibility, and logout revocation.
-7. **Regression Safety**: Preserves local ADMIN password Login, Scrypt credentials, and generic SessionGuard behavior without regression.
-8. **Backup and Restore Extension**: `scripts/auth-restore-smoke.mjs` and `scripts/pr7-restore-smoke.mjs` updated to include `external_identities`.
+5. **Provider Authentication Port**: `ProviderAuthenticationPort` in `apps/api/src/identity/application/provider-auth.port.ts` specifying server-side provider identity verification.
+6. **Provider Infrastructure Adapter**: `UnishipAuthAdapter` in `apps/api/src/identity/infrastructure/uniship-auth.adapter.ts` sending credentials only to configured `UNISHIP_API_URL`, with explicit 5-second timeout, redirect rejection (`redirect: "error"`), production HTTPS enforcement, error sanitization, and operational gating (`UNISHIP_LIVE_AUTHORIZED`).
+7. **Employee Login Application Service**: `AuthService.loginWithProvider(username, password)` applying admission rate limiting (keyed by `provider:${username}` to isolate from local admin lockouts), calling provider authentication, and delegating to `AuthService.authenticateExternalIdentity()`.
+8. **Employee Login HTTP Endpoint**: `POST /api/auth/provider/login` in `AuthController` with `OriginGuard`, `ProviderLoginRequestDto`, uniform 401 `AUTHENTICATION_FAILED` on invalid/unregistered/disabled/non-operator identities, and safe `nexora_session` cookie issuance.
+9. **Frontend Login Mode Split**:
+   - `/login`: Default employee login mode calling `/api/auth/provider/login`.
+   - `/login?mode=admin`: Local admin login mode calling `/api/auth/login`.
+   - Accessible toggle link between modes with return URL preservation (`sanitizeReturnUrl`).
+10. **OpenAPI & SDK Synchronization**: Regenerated OpenAPI specification and `@nexora/sdk` TypeScript client via `pnpm contracts:generate`.
+11. **Local HTTP Mock-Provider Integration Tests**: Automated tests against isolated local mock provider and real disposable PostgreSQL verifying valid operator login, session cookie attributes, protected session access, logout revocation, invalid credentials, unregistered userid, disabled operator, redirect rejection, timeouts, and admin password isolation.
+12. **Browser End-to-End Smoke Tests**: `scripts/browser-login-smoke.mjs` extended to verify employee mode rendering, provider route target, safe failure display, mode switch, and independent admin login.
 
-### Explicitly Deferred Scope (Not Implemented in this Milestone)
+### Explicitly Deferred & Gated Scope
 
-- Admin account-management interface (`/admin/users`).
-- Browser form for adding staff.
-- Staff listing, disable, and reactivate HTTP APIs.
-- Live Uniship API calls (`https://kh.uniship.vn`).
-- Real provider token persistence.
-- Internet hosting / HTTPS deployment.
-- Employee-facing UI changes (`/login` redesign or `/login?mode=admin` routing).
+- **Live Uniship Network Requests** (`https://kh.uniship.vn`): BLOCKED / GATED pending official API contract review and authorization. Production runtime fails closed (`UNISHIP_LIVE_AUTHORIZED=false`).
+- **Admin Staff Management UI** (`/admin/users`) & Staff CRUD APIs: DEFERRED per owner instructions.
+- **Real Provider Token Persistence**: DEFERRED.
+- **Internet Ingress / HTTPS Production Hosting**: DEFERRED to Phase 3.
 
 ---
 

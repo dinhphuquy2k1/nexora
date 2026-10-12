@@ -182,6 +182,26 @@ try {
   checks.status(redirect.status, 307);
   assert.equal(redirect.headers.get("location"), "/settings");
 
+  checks.step("LOGIN_ADMIN_MODE_VALID_SESSION_REDIRECT");
+  const adminRedirect = await request("/login?mode=admin&from=%2Fsettings", {
+    headers: { cookie },
+    redirect: "manual",
+  });
+  checks.status(adminRedirect.status, 307);
+  assert.equal(adminRedirect.headers.get("location"), "/settings");
+
+  checks.step("PROVIDER_LOGIN_UNCONFIGURED_FAIL_CLOSED");
+  const providerLogin = await request("/api/auth/provider/login", {
+    method: "POST",
+    headers: { "content-type": "application/json", origin },
+    body: JSON.stringify({
+      username: "operator_test",
+      password: "Password123!",
+    }),
+  });
+  checks.status(providerLogin.status, 503);
+  assert.equal((await providerLogin.json()).code, "SERVICE_UNAVAILABLE");
+
   checks.step("WORKSPACE_VALID_SESSION");
   const wsRes = await request("/settings", { headers: { cookie } });
   checks.status(wsRes.status, 200);
@@ -223,6 +243,15 @@ try {
     loginText.includes("Thanh công cụ đầu trang"),
     false,
     "Login page must not render AppShell",
+  );
+
+  checks.step("LOGIN_ADMIN_PUBLIC_RENDER");
+  const adminLoginRes = await request("/login?mode=admin");
+  checks.status(adminLoginRes.status, 200);
+  const adminLoginText = await adminLoginRes.text();
+  assert.ok(
+    adminLoginText.includes("Cổng đăng nhập Quản trị viên"),
+    "Admin login page must render admin mode subtitle",
   );
 
   checks.step("API_RESTART_READINESS");

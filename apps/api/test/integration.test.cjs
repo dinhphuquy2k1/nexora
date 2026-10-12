@@ -474,3 +474,250 @@ test("external identities enforce unique bindings, prevent duplicate subjects, a
     await adapter.onApplicationShutdown();
   }
 });
+
+test("end-to-end provider login: HTTP client -> NestJS endpoint -> Uniship adapter -> local mock provider -> DB external identity -> session -> protected API", async () => {
+  const http = require("node:http");
+  const {
+    IdentityDatabaseAdapter,
+  } = require("../dist/identity/infrastructure/identity.adapter");
+  const {
+    UnishipAuthAdapter,
+  } = require("../dist/identity/infrastructure/uniship-auth.adapter");
+  const { AuthService } = require("../dist/identity/application/auth.service");
+  const {
+    AuthController,
+  } = require("../dist/identity/presentation/auth.controller");
+  const {
+    SessionGuard,
+  } = require("../dist/identity/presentation/session.guard");
+  const { OriginGuard } = require("../dist/identity/presentation/origin.guard");
+  const { configure } = require("../dist/http");
+  const { Module } = require("@nestjs/common");
+  const { NestFactory, APP_GUARD } = require("@nestjs/core");
+  const { randomUUID } = require("node:crypto");
+
+  assert.ok(process.env.DATABASE_URL, "DATABASE_URL required");
+  const dbAdapter = new IdentityDatabaseAdapter(process.env.DATABASE_URL);
+
+  let mockMode = "success";
+  let activeSubject = "";
+  let disabledSubject = "";
+
+  const mockServer = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => {
+      const json = JSON.parse(body);
+      if (mockMode === "invalid-creds" || json.password === "wrong") {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            non_field_errors: ["Unable to log in with provided credentials."],
+          }),
+        );
+      } else if (mockMode === "unregistered") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ token: "tok_unreg", userid: 999999 }));
+      } else if (mockMode === "disabled") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ token: "tok_dis", userid: disabledSubject }));
+      } else {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ token: "tok_ok", userid: activeSubject }));
+      }
+    });
+  });
+
+  const mockPort = await new Promise((resolve) => {
+    mockServer.listen(0, "127.0.0.1", () => {
+      resolve(mockServer.address().port);
+    });
+  });
+  const mockProviderUrl = `http://127.0.0.1:${mockPort}`;
+
+  const prefix = `pve2e-${randomUUID().slice(0, 8)}`;
+  activeSubject = `${prefix}-subj-active`;
+  disabledSubject = `${prefix}-subj-disabled`;
+  const userIds = [];
+
+  let app;
+  try {
+    // 1. Seed active and disabled operators in database
+    const activeOp = await dbAdapter.client.user.create({
+      data: {
+        username: `${prefix}-op`,
+        role: "OPERATOR",
+        status: "ACTIVE",
+        externalIdentities: {
+          create: {
+            provider: "uniship",
+            providerSubject: activeSubject,
+          },
+        },
+      },
+    });
+    userIds.push(activeOp.id);
+
+    const disabledOp = await dbAdapter.client.user.create({
+      data: {
+        username: `${prefix}-op-disabled`,
+        role: "OPERATOR",
+        status: "DISABLED",
+        externalIdentities: {
+          create: {
+            provider: "uniship",
+            providerSubject: disabledSubject,
+          },
+        },
+      },
+    });
+    userIds.push(disabledOp.id);
+
+    // 2. Set up real Nest HTTP server with UnishipAuthAdapter pointing to mockProviderUrl
+    const providerAdapter = new UnishipAuthAdapter({
+      apiUrl: mockProviderUrl,
+    });
+    const authService = new AuthService(dbAdapter, providerAdapter);
+
+    class IntegrationModule {}
+    Module({
+      controllers: [AuthController],
+      providers: [
+        { provide: AuthService, useValue: authService },
+        {
+          provide: "CONFIG",
+          useValue: { trustedOrigins: ["http://localhost:3001"] },
+        },
+        OriginGuard,
+        { provide: APP_GUARD, useClass: SessionGuard },
+      ],
+    })(IntegrationModule);
+
+    app = await NestFactory.create(IntegrationModule, {
+      logger: false,
+      abortOnError: false,
+    });
+    configure(app);
+    await app.listen(0, "127.0.0.1");
+    const appUrl = await app.getUrl();
+
+    // 3. Reject invalid Origin
+    const badOriginRes = await fetch(`${appUrl}/api/auth/provider/login`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://evil.com",
+      },
+      body: JSON.stringify({ username: "someuser", password: "somepassword" }),
+    });
+    assert.equal(badOriginRes.status, 403);
+
+    // 4. Reject invalid credentials from provider
+    mockMode = "invalid-creds";
+    const invalidCredsRes = await fetch(`${appUrl}/api/auth/provider/login`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3001",
+      },
+      body: JSON.stringify({ username: "someuser", password: "wrong" }),
+    });
+    assert.equal(invalidCredsRes.status, 401);
+    assert.equal((await invalidCredsRes.json()).code, "AUTHENTICATION_FAILED");
+    assert.equal(invalidCredsRes.headers.get("set-cookie"), null);
+
+    // 5. Reject unregistered provider identity
+    mockMode = "unregistered";
+    const unregRes = await fetch(`${appUrl}/api/auth/provider/login`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3001",
+      },
+      body: JSON.stringify({ username: "someuser", password: "goodpassword" }),
+    });
+    assert.equal(unregRes.status, 401);
+    assert.equal((await unregRes.json()).code, "AUTHENTICATION_FAILED");
+    assert.equal(unregRes.headers.get("set-cookie"), null);
+
+    // 6. Reject disabled operator
+    mockMode = "disabled";
+    const disRes = await fetch(`${appUrl}/api/auth/provider/login`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3001",
+      },
+      body: JSON.stringify({ username: "someuser", password: "goodpassword" }),
+    });
+    assert.equal(disRes.status, 401);
+    assert.equal((await disRes.json()).code, "AUTHENTICATION_FAILED");
+    assert.equal(disRes.headers.get("set-cookie"), null);
+
+    // 7. Successful login for active operator
+    mockMode = "success";
+    const successRes = await fetch(`${appUrl}/api/auth/provider/login`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3001",
+      },
+      body: JSON.stringify({ username: "someuser", password: "goodpassword" }),
+    });
+    assert.equal(successRes.status, 200);
+    const successBody = await successRes.json();
+    assert.equal(successBody.user.id, activeOp.id);
+    assert.equal(successBody.user.username, activeOp.username);
+
+    // Verify session cookie attributes
+    const setCookie = successRes.headers.get("set-cookie");
+    assert.ok(setCookie, "set-cookie header must be present");
+    assert.ok(setCookie.includes("nexora_session="));
+    assert.ok(setCookie.includes("HttpOnly"));
+    assert.ok(setCookie.includes("SameSite=Lax"));
+    assert.ok(setCookie.includes("Path=/"));
+    assert.ok(!setCookie.includes("Secure")); // loopback deployment
+
+    const cookieMatch = /nexora_session=([^;]+)/.exec(setCookie);
+    const sessionToken = cookieMatch[1];
+    assert.equal(sessionToken.length, 64);
+
+    // 8. Access protected session endpoint with cookie
+    const sessionRes = await fetch(`${appUrl}/api/auth/session`, {
+      headers: {
+        cookie: `nexora_session=${sessionToken}`,
+      },
+    });
+    assert.equal(sessionRes.status, 200);
+    const sessionData = await sessionRes.json();
+    assert.equal(sessionData.authenticated, true);
+    assert.equal(sessionData.user.id, activeOp.id);
+
+    // 9. Logout
+    const logoutRes = await fetch(`${appUrl}/api/auth/logout`, {
+      method: "POST",
+      headers: {
+        origin: "http://localhost:3001",
+        cookie: `nexora_session=${sessionToken}`,
+      },
+    });
+    assert.equal(logoutRes.status, 200);
+
+    // 10. Subsequent session verification is rejected
+    const afterLogout = await fetch(`${appUrl}/api/auth/session`, {
+      headers: {
+        cookie: `nexora_session=${sessionToken}`,
+      },
+    });
+    assert.equal(afterLogout.status, 401);
+  } finally {
+    if (app) await app.close();
+    await new Promise((resolve) => mockServer.close(resolve));
+    if (userIds.length > 0) {
+      await dbAdapter.client.user.deleteMany({
+        where: { id: { in: userIds } },
+      });
+    }
+    await dbAdapter.onApplicationShutdown();
+  }
+});
