@@ -48,3 +48,21 @@ The committed legacy smoke fixture copies the exact schema/migration/lock from p
 `sh scripts/data-smoke.sh` retains catalog/source persistence across restart/down-up, SHA-256/corruption rejection and no-overwrite protection. It adds current-backup session resurrection prevention, account recovery, source-session isolation, and genuine pre-authentication schema backup/upgrade/first-account CLI recovery. Tests use independently named disposable projects and clean only those projects.
 
 Current executed evidence and gaps are recorded in NEXORA-009. Unit orchestration checks do not substitute for real PostgreSQL restore/API evidence, and a successful historical CI SHA is not evidence for later changes.
+
+## Planned unified identity upgrade safeguards
+
+The unified migration is PLANNED and awaits Phase 0 merge and NEXORA-011 migration prerequisites; PR #7 is already merged. These requirements describe the future upgrade procedure; they are not evidence of tested rollback or a shipped upgrade command.
+
+**Take and verify a backup before upgrading an existing Nexora installation to a version containing the unified identity migration.** Reserve a maintenance/downtime window for backup, migration and acceptance probes. Stop external CLI writers; notify operators and retain source data/volumes. From the existing release checkout and the correct source Compose project, create a new protected destination:
+
+```sh
+COMPOSE_PROJECT_NAME=nexora sh scripts/backup.sh backups/pre-unified-identity
+```
+
+Retain the manifest, database dump and uploads archive securely outside Git. Verify format/version, both SHA-256 checksums and archive safety with that release's canonical manifest verifier; inspect the actual merged script interface before running it. Backup verification must also include a successful restore rehearsal into a separate disposable project using the intended new release: IDs/hashes/Login, catalog/original bytes, migration history and target-session invalidation. A checksum-valid backup alone is not a tested rollback plan.
+
+After backup completes, its writer restart trap may have resumed API/Web. Stop them again for the upgrade maintenance window; keep PostgreSQL/data volumes. Select the reviewed release, run its existing migrate service with committed migrations while application writers stay stopped, and start API/Web only after migration success and release readiness probes. Exact commands must be finalized against the merged runtime topology in Phase 1; do not execute an unimplemented migration or reuse a moving PR image.
+
+On migration failure, keep application writers stopped, preserve source data and capture sanitized diagnostics. Explicit SQL transaction rollback is separate from Prisma failed-attempt metadata; diagnose both before any supported recovery. Never alter checksums, fabricate migration history, reset source volumes or start incompatible binaries against uncertain schema. Restore the verified pre-upgrade backup only to a fresh separately named project/volumes and port, using a compatible reviewed release; verify data and authentication before choosing recovery/cutover. Keep source intact. Restore invalidates target sessions and requires fresh Login; normal identity migration preserves compatible existing sessions. Recovery/cutover and any rollback require their own verified procedure.
+
+Phase 1 must independently test actual merged PR #7-schema backup upgrade, current unified backup and historical pre-authentication backup. The complete test/transaction plan is in [NEXORA-011](../tasks/active/NEXORA-011-unified-identity-migration.md).

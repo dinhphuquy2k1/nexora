@@ -52,3 +52,5 @@ The initial v0.1.0 foundation deferred authentication while establishing runtime
    - A restored instance preserves recoverable data and operator identities/password hashes, but never retains an authentication session issued before restoration.
    - Target dump restoration precedes committed migration deployment; only then are all target sessions deleted, before application availability. Source sessions are not touched.
    - Historical foundation backups have no account assumptions; migration plus explicit CLI provisioning provides recovery. See [Backup and restore](../operations/backup-restore.md) for isolation, ordering and failure behavior.
+
+ADR-005 continues to define the implemented local authentication and session runtime. The [Unified identity decision](unified-identity.md) extends its future architecture without changing current production behavior. PR #7 is merged; unified schema, role-based local Admin credentials and provider authentication remain PLANNED and require their own verified milestones.

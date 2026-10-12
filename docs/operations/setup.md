@@ -81,3 +81,7 @@ Docker Engine 24+ with Compose v2.22.0+ (BuildKit enabled) and Linux containers 
 | macOS Docker Desktop             | Supported POSIX scripts    |
 
 For offline Docker dependency preparation, an optional named build context `dependency-cache` may contain `pnpm-cache.tar` created from a pnpm store that passed `pnpm store status`. Default scratch context is empty and performs a normal frozen online install.
+
+## Planned unified identity upgrade
+
+The unified identity release is not implemented. Before any future upgrade containing that migration, follow the mandatory maintenance, verified-backup and isolated recovery safeguards in [Backup and restore](backup-restore.md#planned-unified-identity-upgrade-safeguards). The verified PR #7 merge baseline and future migration prerequisites are tracked in [NEXORA-010](../tasks/completed/NEXORA-010-unified-identity-foundation.md).

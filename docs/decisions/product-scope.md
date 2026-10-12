@@ -57,3 +57,7 @@ Future data synchronization must follow a one-way pipeline:
 - **Lyra**: Authoritative owner of carrier invoice freight statement reconciliation and dispute auditing.
 - **Independence**: Nexora and Lyra have completely isolated source trees, Docker projects, database clusters, volumes, and ports. Neither project imports or executes the other at runtime.
 - **Future interoperability**: If Nexora and Lyra exchange data in the future, integration will occur via versioned, immutable Shipment snapshot exports over an explicit external contract (e.g. signed JSON/XLSX export/import), never via shared databases, shared network namespaces, or direct internal API coupling.
+
+## Planned unified identity amendment
+
+[Unified identity](unified-identity.md) authorizes future local ADMIN and preregistered OPERATOR access through independent Nexora sessions. Authorized provider authentication may eventually verify employee identity; provider tokens remain separate from application sessions. This future direction qualifies the earlier local-only identity description, without enabling any provider adapter or changing this revision's runtime. Provider authorization, userid semantics and retention rights remain open prerequisites.
