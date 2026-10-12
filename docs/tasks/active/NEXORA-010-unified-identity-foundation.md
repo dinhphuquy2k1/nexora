@@ -64,11 +64,10 @@ Documentation Impact: REQUIRED
 | Architecture boundaries                             | `node scripts/boundaries.mjs` with temporary TypeScript tooling link, removed after check                                                                     | 2026-10-12 | PASS   |
 | Diff scope and whitespace                           | `git diff --check`; only canonical docs and Phase 0 task, no schema/runtime artifacts                                                                         | 2026-10-12 | PASS   |
 | Initial worktree tooling checks unavailable         | `node scripts/boundaries.mjs` missing TypeScript; `pnpm format:check` missing Prettier; corrected with explicit existing pinned tools, no dependency changes  | 2026-10-12 | FAIL   |
-
-| PR #7 merge baseline confirmed | GitHub #7 merged=true at ad01e74ae681ebf57787dc77188cf93b1e1c7f8e; explicit origin/main fetch and merged schema inspection | 2026-10-12 | PASS |
-| Reconciled documentation checks | `pnpm docs:check`, `pnpm format:check`, `node scripts/boundaries.mjs`, pinned shared tooling on PR #8 merged working tree | 2026-10-12 | PASS |
-| Canonical baseline and evidence structure | Python asserts four conflicting owner bodies retain origin/main text verbatim; one uninterrupted Evidence table; final net diff documentation only | 2026-10-12 | PASS |
-| Intermediate Phase 1 task record validator failure | Initial planned task omitted required canonical Evidence table; corrected with executed baseline-inspection evidence, not implementation verification | 2026-10-12 | FAIL |
+| PR #7 merge baseline confirmed                      | GitHub #7 merged=true at ad01e74ae681ebf57787dc77188cf93b1e1c7f8e; explicit origin/main fetch and merged schema inspection                                    | 2026-10-12 | PASS   |
+| Reconciled documentation checks                     | `pnpm docs:check`, `pnpm format:check`, `node scripts/boundaries.mjs`, pinned shared tooling on PR #8 merged working tree                                     | 2026-10-12 | PASS   |
+| Canonical baseline and evidence structure           | Python asserts four conflicting owner bodies retain origin/main text verbatim; one uninterrupted Evidence table; final net diff documentation only            | 2026-10-12 | PASS   |
+| Intermediate Phase 1 task record validator failure  | Initial planned task omitted required canonical Evidence table; corrected with executed baseline-inspection evidence, not implementation verification         | 2026-10-12 | FAIL   |
 
 ## Phase 0 acceptance and remaining gate
 
