@@ -64,3 +64,4 @@ verify "$project"
 if sh scripts/restore.sh "$work/backup" --to-new-project "$restored" > "$work/overwrite.log" 2>&1; then echo 'Overwrite guard failed' >&2; exit 1; fi
 grep -q 'Refusing to overwrite' "$work/overwrite.log"
 echo 'Restart/down-up/backup/restore/corruption/overwrite checks PASS'
+node scripts/pr7-restore-smoke.mjs

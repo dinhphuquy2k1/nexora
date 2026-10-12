@@ -2,6 +2,7 @@ import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { randomBytes, createHash } from "node:crypto";
 import { IdentityPort } from "./identity.port";
 import { normalizeUsername, isLoginPassword } from "../domain/credentials";
+import { UserRole, UserStatus } from "../domain/user-policy";
 import type { UserSummary } from "../domain/identity.types";
 
 interface RateLimitEntry {
@@ -97,12 +98,15 @@ export class AuthService {
     const entry = this.admit(username);
     try {
       const userRecord = await this.port.findUserByUsername(username);
-      const active = !!userRecord?.isActive;
+      const eligible =
+        userRecord?.role === UserRole.ADMIN &&
+        userRecord.status === UserStatus.ACTIVE &&
+        !!userRecord.passwordHash;
       const matches = await this.port.verifyPassword(
         password,
-        active ? userRecord.passwordHash : DUMMY_SCRYPT_HASH,
+        eligible ? userRecord.passwordHash! : DUMMY_SCRYPT_HASH,
       );
-      if (!active || !matches) {
+      if (!eligible || !matches) {
         if (this.now() >= entry.resetAt) {
           entry.count = 0;
           entry.resetAt = this.now() + WINDOW_MS;

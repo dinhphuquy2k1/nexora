@@ -147,6 +147,23 @@ const restore = (from, project) =>
     ],
     project,
   );
+const identitySnapshot = async (project) =>
+  JSON.parse(
+    await docker(
+      project,
+      [
+        "run",
+        "--rm",
+        "--no-deps",
+        "-T",
+        "api",
+        "sh",
+        "/scripts/api-entrypoint.sh",
+        "node",
+      ],
+      `const {createDatabase}=require('@nexora/database');(async()=>{const db=createDatabase(process.env.DATABASE_URL);try{console.log(JSON.stringify(await db.user.findMany({include:{credential:true},orderBy:{id:'asc'}})));}finally{await db.$disconnect();}})().catch(()=>process.exit(1));`,
+    ),
+  );
 const counts = async (project) =>
   JSON.parse(
     await docker(
@@ -161,7 +178,7 @@ const counts = async (project) =>
         "/scripts/api-entrypoint.sh",
         "node",
       ],
-      `const {createDatabase}=require('@nexora/database');(async()=>{const db=createDatabase(process.env.DATABASE_URL);try{console.log(JSON.stringify({users:await db.localUser.count(),sessions:await db.session.count(),files:await db.storedFile.count()}));}finally{await db.$disconnect();}})().catch(()=>process.exit(1));`,
+      `const {createDatabase}=require('@nexora/database');(async()=>{const db=createDatabase(process.env.DATABASE_URL);try{console.log(JSON.stringify({users:await db.user.count(),sessions:await db.session.count(),files:await db.storedFile.count()}));}finally{await db.$disconnect();}})().catch(()=>process.exit(1));`,
     ),
   );
 
@@ -190,6 +207,7 @@ try {
     "RestoreFixturePass123!",
   );
   const beforeSource = await counts(source);
+  const beforeIdentities = await identitySnapshot(source);
   checks.step("CURRENT_RESTORE_ISOLATED");
   await allocateBinding(restored);
   await restore(source, restored);
@@ -197,6 +215,7 @@ try {
   assert.equal(restoredCounts.sessions, 0);
   assert.equal(restoredCounts.users, beforeSource.users);
   assert.equal(restoredCounts.files, beforeSource.files);
+  assert.deepEqual(await identitySnapshot(restored), beforeIdentities);
   await up(restored);
   checks.step("CURRENT_RESTORED_OLD_SESSION_REJECTED");
   await session(restored, old.cookie, 401);
@@ -216,6 +235,7 @@ try {
   await session(source, alsoBackedUp.cookie, 200);
   await session(source, old.cookie, 401);
   assert.deepEqual(await counts(source), beforeSource);
+  assert.deepEqual(await identitySnapshot(source), beforeIdentities);
 
   checks.step("LEGACY_FIXTURE_PROVENANCE");
   const fixture = resolve("scripts/fixtures/pre-authentication");
@@ -312,7 +332,7 @@ try {
     "-Atc",
     "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL;",
   ]);
-  assert.equal(migrations.trim(), "2");
+  assert.equal(migrations.trim(), "3");
   checks.step("LEGACY_ORIGINAL_FILE_INTEGRITY");
   await docker(
     legacyRestored,
@@ -342,6 +362,7 @@ try {
   checks.step("SOURCE_STILL_UNCHANGED_AFTER_LEGACY_RECOVERY");
   await session(source, liveSource.cookie, 200);
   assert.deepEqual(await counts(source), beforeSource);
+  assert.deepEqual(await identitySnapshot(source), beforeIdentities);
   await logout(source, liveSource.cookie);
   await logout(source, alsoBackedUp.cookie);
   console.log(

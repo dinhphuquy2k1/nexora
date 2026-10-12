@@ -1,7 +1,8 @@
 import { PrismaClient, createDatabase, verifyPassword } from "@nexora/database";
+import { UserStatus, type UserRole } from "../domain/user-policy";
 import { IdentityPort } from "../application/identity.port";
 import type {
-  LocalUserRecord,
+  LocalLoginRecord,
   SessionSummary,
   UserSummary,
 } from "../domain/identity.types";
@@ -15,26 +16,28 @@ export class IdentityDatabaseAdapter implements IdentityPort {
     return (this.instance ??= createDatabase(this.url));
   }
 
-  async findUserByUsername(username: string): Promise<LocalUserRecord | null> {
-    const user = await this.client.localUser.findUnique({
+  async findUserByUsername(username: string): Promise<LocalLoginRecord | null> {
+    const user = await this.client.user.findUnique({
       where: { username },
+      include: { credential: true },
     });
     if (!user) return null;
     return {
       id: user.id,
       username: user.username,
-      passwordHash: user.passwordHash,
-      isActive: user.isActive,
+      passwordHash: user.credential?.passwordHash ?? null,
+      role: user.role as UserRole,
+      status: user.status as UserStatus,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
   }
 
   async findUserById(id: string): Promise<UserSummary | null> {
-    const user = await this.client.localUser.findUnique({
+    const user = await this.client.user.findUnique({
       where: { id },
     });
-    if (!user || !user.isActive) return null;
+    if (!user || user.status !== UserStatus.ACTIVE) return null;
     return {
       id: user.id,
       username: user.username,
@@ -69,7 +72,7 @@ export class IdentityDatabaseAdapter implements IdentityPort {
       include: { user: true },
     });
 
-    if (!record || !record.user.isActive) return null;
+    if (!record || record.user.status !== UserStatus.ACTIVE) return null;
 
     return {
       session: {

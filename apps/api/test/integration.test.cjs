@@ -80,11 +80,12 @@ test("database session revocation is idempotent and outage errors propagate", as
   const id = randomUUID();
   const tokenHash = randomBytes(32).toString("hex");
   try {
-    await adapter.client.localUser.create({
+    await adapter.client.user.create({
       data: {
         id,
         username: `revoke-${id.slice(0, 8)}`,
-        passwordHash: "not-used-by-revocation-test",
+        role: "ADMIN",
+        status: "ACTIVE",
       },
     });
     await adapter.createSession(id, tokenHash, new Date(Date.now() + 60000));
@@ -101,7 +102,135 @@ test("database session revocation is idempotent and outage errors propagate", as
       await offline.onApplicationShutdown();
     }
   } finally {
-    await adapter.client.localUser.deleteMany({ where: { id } });
+    await adapter.client.user.deleteMany({ where: { id } });
+    await adapter.onApplicationShutdown();
+  }
+});
+
+test("real unified identities keep local Login eligibility separate from generic Operator sessions", async () => {
+  const {
+    IdentityDatabaseAdapter,
+  } = require("../dist/identity/infrastructure/identity.adapter");
+  const { AuthService } = require("../dist/identity/application/auth.service");
+  const {
+    SessionGuard,
+  } = require("../dist/identity/presentation/session.guard");
+  const {
+    provisionUser,
+  } = require("../dist/identity/infrastructure/user-provisioner");
+  const { randomUUID, randomBytes, createHash } = require("node:crypto");
+  const adapter = new IdentityDatabaseAdapter(process.env.DATABASE_URL);
+  const prefix = `identity-${randomUUID().slice(0, 8)}`;
+  const ids = [];
+  const service = new AuthService(adapter);
+  const tokens = [];
+  const createToken = async (id, expired = false) => {
+    const token = randomBytes(32).toString("hex");
+    await adapter.createSession(
+      id,
+      createHash("sha256").update(token).digest("hex"),
+      new Date(expired ? 0 : Date.now() + 60000),
+    );
+    tokens.push(token);
+    return token;
+  };
+  const guard = new SessionGuard(service, { getAllAndOverride: () => false });
+  const guarded = (token) =>
+    guard.canActivate({
+      getHandler: () => null,
+      getClass: () => null,
+      switchToHttp: () => ({
+        getRequest: () => ({ headers: { cookie: `nexora_session=${token}` } }),
+      }),
+    });
+  try {
+    await provisionUser(
+      process.env.DATABASE_URL,
+      prefix + "-admin",
+      "IntegrationPass123!",
+    );
+    const admin = await adapter.client.user.findUniqueOrThrow({
+      where: { username: prefix + "-admin" },
+      include: { credential: true },
+    });
+    ids.push(admin.id);
+    assert.equal(admin.role, "ADMIN");
+    assert.equal(admin.status, "ACTIVE");
+    assert.ok(admin.credential);
+    await assert.rejects(
+      adapter.client.user.create({
+        data: {
+          username: prefix + "-atomic-failure",
+          role: "ADMIN",
+          status: "ACTIVE",
+          credential: { create: { passwordHash: "x".repeat(256) } },
+        },
+      }),
+    );
+    assert.equal(
+      await adapter.client.user.findUnique({
+        where: { username: prefix + "-atomic-failure" },
+      }),
+      null,
+    );
+    await assert.rejects(
+      provisionUser(
+        process.env.DATABASE_URL,
+        admin.username,
+        "IntegrationPass123!",
+      ),
+    );
+    const logged = await service.login(admin.username, "IntegrationPass123!");
+    assert.equal(logged.user.id, admin.id);
+    await assert.rejects(
+      service.login(admin.username, "wrong"),
+      (e) => e.getStatus() === 401,
+    );
+    for (const [suffix, role, status] of [
+      ["no-credential", "ADMIN", "ACTIVE"],
+      ["operator", "OPERATOR", "ACTIVE"],
+      ["disabled", "OPERATOR", "DISABLED"],
+    ]) {
+      const user = await adapter.client.user.create({
+        data: { username: prefix + "-" + suffix, role, status },
+      });
+      ids.push(user.id);
+      assert.equal(
+        await adapter.client.userCredential.findUnique({
+          where: { userId: user.id },
+        }),
+        null,
+      );
+      await assert.rejects(
+        service.login(user.username, "IntegrationPass123!"),
+        (e) => e.getStatus() === 401,
+      );
+      const token = await createToken(user.id);
+      if (status === "ACTIVE") assert.equal(await guarded(token), true);
+      else await assert.rejects(guarded(token), (e) => e.getStatus() === 401);
+      const expired = await createToken(user.id, true);
+      await assert.rejects(guarded(expired), (e) => e.getStatus() === 401);
+    }
+    const operator = ids[2];
+    const first = await createToken(operator),
+      second = await createToken(operator);
+    assert.equal(await guarded(first), true);
+    assert.equal(await guarded(second), true);
+    await service.logout(first);
+    await assert.rejects(guarded(first), (e) => e.getStatus() === 401);
+    assert.equal(await guarded(second), true);
+    await service.logout(first);
+    await adapter.client.user.update({
+      where: { id: admin.id },
+      data: { status: "DISABLED" },
+    });
+    await assert.rejects(guarded(logged.token), (e) => e.getStatus() === 401);
+    await assert.rejects(
+      service.login(admin.username, "IntegrationPass123!"),
+      (e) => e.getStatus() === 401,
+    );
+  } finally {
+    await adapter.client.user.deleteMany({ where: { id: { in: ids } } });
     await adapter.onApplicationShutdown();
   }
 });

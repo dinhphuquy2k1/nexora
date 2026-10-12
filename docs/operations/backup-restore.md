@@ -11,7 +11,7 @@ WEB_PORT=127.0.0.1:3101 sh scripts/restore.sh backups/2026-10-12 --to-new-projec
 
 Backup records currently running API/Web writers, stops them, pg_dumps PostgreSQL in custom format, archives original source files and writes a format-1/foundation-0.1.0 SHA-256 manifest. A trap restarts only previously running writers. A new destination directory is required; a partial backup without a valid manifest is unusable. Dependency cache and credential volumes are excluded. Do not run external CLI writers during backup; single-instance maintenance is assumed.
 
-Current backups preserve `local_users`, including their password hashes, and may contain `sessions`. A backup must be protected even though raw session tokens are not stored. Restoring an older dump must never resurrect a session revoked after that backup.
+Current backups preserve `users` and `user_credentials`, including local password hashes, and may contain `sessions`. A backup must be protected even though raw session tokens are not stored. Restoring an older dump must never resurrect a session revoked after that backup.
 
 ## Isolated restore order and failure behavior
 
@@ -49,9 +49,9 @@ The committed legacy smoke fixture copies the exact schema/migration/lock from p
 
 Current executed evidence and gaps are recorded in NEXORA-009. Unit orchestration checks do not substitute for real PostgreSQL restore/API evidence, and a successful historical CI SHA is not evidence for later changes.
 
-## Planned unified identity upgrade safeguards
+## Unified identity upgrade safeguards
 
-The unified migration is PLANNED and awaits Phase 0 merge and NEXORA-011 migration prerequisites; PR #7 is already merged. These requirements describe the future upgrade procedure; they are not evidence of tested rollback or a shipped upgrade command.
+The unified migration is implemented; its executed verification and gaps belong to NEXORA-011. Procedures require a reviewed matching release and tested backup rehearsal before real installation upgrade.
 
 **Take and verify a backup before upgrading an existing Nexora installation to a version containing the unified identity migration.** Reserve a maintenance/downtime window for backup, migration and acceptance probes. Stop external CLI writers; notify operators and retain source data/volumes. From the existing release checkout and the correct source Compose project, create a new protected destination:
 
@@ -66,3 +66,7 @@ After backup completes, its writer restart trap may have resumed API/Web. Stop t
 On migration failure, keep application writers stopped, preserve source data and capture sanitized diagnostics. Explicit SQL transaction rollback is separate from Prisma failed-attempt metadata; diagnose both before any supported recovery. Never alter checksums, fabricate migration history, reset source volumes or start incompatible binaries against uncertain schema. Restore the verified pre-upgrade backup only to a fresh separately named project/volumes and port, using a compatible reviewed release; verify data and authentication before choosing recovery/cutover. Keep source intact. Restore invalidates target sessions and requires fresh Login; normal identity migration preserves compatible existing sessions. Recovery/cutover and any rollback require their own verified procedure.
 
 Phase 1 must independently test actual merged PR #7-schema backup upgrade, current unified backup and historical pre-authentication backup. The complete test/transaction plan is in [NEXORA-011](../tasks/active/NEXORA-011-unified-identity-migration.md).
+
+A successful Phase 1 migration is not backward-compatible with the previous application image, which expects local_users/password_hash/is_active. Never start that image against migrated data; code rollback alone is unsafe. Post-upgrade rollback means restoring a verified pre-upgrade backup to a new isolated project with a compatible previous release, preserving original volumes until replacement validation. There is no in-place downgrade migration. Application SQL rollback and Prisma failed-attempt bookkeeping are distinct; no checksums/history may be rewritten.
+
+Data smoke separately covers unified current backup, actual PR #7-schema/runtime backup upgraded by the new release, and genuine pre-authentication backup. All restore targets invalidate sessions before application availability. Account IDs/timestamps/password hashes and original catalog/file bytes are compared privately; source data/sessions remain unchanged.
