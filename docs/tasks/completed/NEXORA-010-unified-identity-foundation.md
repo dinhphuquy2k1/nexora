@@ -28,7 +28,7 @@ Only infrastructure may consume database code. Existing application service/guar
 
 ## Phase ownership
 
-NEXORA-010 owns only the documentation, architecture/access decisions, provider questions, upgrade planning and reconciliation delivered by PR #8. Implementation IMPLEMENTED means the documentation changes exist; the unified identity runtime remains PLANNED. [NEXORA-011](../active/NEXORA-011-unified-identity-migration.md) exclusively owns the detailed Phase 1 migration/test plan and future acceptance criteria.
+NEXORA-010 owns only the documentation, architecture/access decisions, provider questions, upgrade planning and reconciliation delivered by PR #8. Implementation IMPLEMENTED means the documentation changes exist; the unified identity runtime remains PLANNED. [NEXORA-011](NEXORA-011-unified-identity-migration.md) exclusively owns the detailed Phase 1 migration/test plan and future acceptance criteria.
 
 ## Documentation Impact
 

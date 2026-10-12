@@ -1,9 +1,9 @@
 # Task: NEXORA-011 — Phase 1 Unified Identity Migration
 
 - **Task ID**: `NEXORA-011`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `PARTIALLY VERIFIED`
+- **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
 
 ## Revised implementation pre-flight
@@ -107,6 +107,8 @@ Documentation Impact: REQUIRED
 | Historical/current artifact equivalence on starting HEAD 0469d2c | git-show SHA-256 comparisons for backup/manifest/init/entrypoint/tools Dockerfile against ad01e74: byte-identical                                                                                                             | 2026-10-12 | PASS   |
 | Focused local provenance harness checks                          | `node --check scripts/pr7-restore-smoke.mjs`, `pnpm lint`, `pnpm docs:check`, `pnpm format:check`, `pnpm contracts:check`, `git diff --check`                                                                                 | 2026-10-12 | PASS   |
 | Local genuine historical test attempted                          | `NEXORA_COMPOSE_OVERRIDE=/workspace/work/nexora-hardening-runtime.yml node scripts/pr7-restore-smoke.mjs`: artifact checks PASS, stopped BUILD_ACTUAL_PR7_RUNTIME/DOCKER_FAILURE; environment still denies native engine host | 2026-10-12 | FAIL   |
+| Hosted PR #9 final head verification                             | GitHub Actions run 38232652011 on head 1e434d63093bfee366570c3c6e342062e2f22179 (docker-foundation: quality, migration, integration, runtime, backup/restore, dev smoke)                                                      | 2026-10-12 | PASS   |
+| Merged main baseline verification                                | GitHub Actions run 38242823228 on merge commit f0f54f58c7578dd9dd86fecbd6534e26a4c044cb (docker-foundation: quality, migration, integration, runtime, backup/restore, dev smoke)                                              | 2026-10-12 | PASS   |
 
 Local native Prisma remains blocked; hosted execution must establish actual Prisma deploy/recovery/drift and all three backup upgrades. Direct isolated PostgreSQL SQL verification and unit tests are evidence only for their explicitly exercised boundaries. No historical PR #7/#8 success proves Phase 1.
 
@@ -135,3 +137,7 @@ Original helper inherited the current checkout cwd and invoked its backup.sh/Com
 Plan/result in source: optional subprocess cwd; archived source backup path/root with explicit historical image override; archived Compose for every source operation; historical migrate/API/Web/tools/builder images with unique guarded tags; fixture hashes compared to actual pinned checkout; shared hardcoded manifest tool content/Node equivalence checked rather than overwritten. Assertions cover authentic legacy tables/two migrations, new protected artifact files and manifest verification, preserved source session/data/bytes, target migration/history/role-status CHECK/no-role-default, empty sessions and no target API/Web before startup, old-cookie 401/new Login and file hashes. Existing Prisma/auth/current/pre-auth tests remain unchanged.
 
 Final native local execution is still restricted by engine-host policy. Use canonical hosted data smoke for actual historical backup/restore evidence, and inspect final-head CI before READY TO MERGE. Keep task VERIFICATION PENDING; record final CI externally without evidence-only commits.
+
+## Task completion and merge verification
+
+2026-10-12 (Asia/Saigon). PR #9 final head `1e434d63093bfee366570c3c6e342062e2f22179` passed hosted workflow run `38232652011` (12m25s) covering quality, migration, integration, runtime smoke, PR #7/current/pre-auth backup/restore smoke and dev smoke. PR #9 merged into main at `f0f54f58c7578dd9dd86fecbd6534e26a4c044cb`. Post-merge push workflow run `38242823228` passed on main (16m38s). All Phase 1 completion criteria are satisfied and NEXORA-011 is moved to completed.
