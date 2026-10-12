@@ -131,6 +131,32 @@ try {
     await delay(100);
   }
   assert.ok(ready, "Login form did not render");
+  checks.step("LOGIN_STANDALONE_LAYOUT");
+  const hasShell = await evaluate(
+    '!!document.querySelector("header[aria-label=\'Thanh công cụ đầu trang\']") || !!document.querySelector("aside")',
+  );
+  assert.equal(
+    hasShell,
+    false,
+    "Login page must not render authenticated AppShell",
+  );
+
+  checks.step("UNAUTHENTICATED_WORKSPACE_REDIRECT");
+  await send("Page.navigate", { url: `${baseUrl}/settings` });
+  let unauthRedirected = false;
+  for (let i = 0; i < 100; i++) {
+    const curPath = await evaluate("window.location.pathname");
+    if (curPath === "/login") {
+      unauthRedirected = true;
+      break;
+    }
+    await delay(100);
+  }
+  assert.ok(
+    unauthRedirected,
+    "Unauthenticated navigation to /settings must redirect to /login",
+  );
+
   checks.step("FORM_INTERACTION");
   // Allow hydration, then type via browser input events and click the actual submit button.
   await delay(500);
@@ -159,6 +185,13 @@ try {
     "/settings",
     "Browser did not reach protected return page",
   );
+  const shellPresent = await evaluate(
+    '!!document.querySelector("header[aria-label=\'Thanh công cụ đầu trang\']") && !!document.querySelector("aside")',
+  );
+  assert.ok(
+    shellPresent,
+    "Protected workspace must render AppShell for authenticated session",
+  );
   checks.step("SESSION_COOKIE");
   const cookies = (await send("Network.getCookies", { urls: [baseUrl] }))
     .cookies;
@@ -186,6 +219,21 @@ try {
   checks.status(
     await evaluate('fetch("/api/auth/session").then(res => res.status)'),
     401,
+  );
+  checks.step("REVOKED_SESSION_PROTECTED_REDIRECT");
+  await send("Page.navigate", { url: `${baseUrl}/settings` });
+  let revokedRedirected = false;
+  for (let i = 0; i < 100; i++) {
+    const p = await evaluate("window.location.pathname");
+    if (p === "/login") {
+      revokedRedirected = true;
+      break;
+    }
+    await delay(100);
+  }
+  assert.ok(
+    revokedRedirected,
+    "Revoked session must redirect to /login when visiting protected workspace",
   );
   console.log(
     "Actual browser Login form, cookie, protected navigation and Logout PASS",

@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "next build --webpack",
-    "dev": "next dev --webpack --hostname 0.0.0.0",
-    "start": "next start --hostname 0.0.0.0",
+    "dev": "node scripts/dev.mjs",
+    "start": "node scripts/start.mjs",
     "test": "node --test test/navigation.test.mjs test/shared-ui.test.mjs test/auth-frontend.test.mjs",
     "typecheck": "tsc --noEmit"
   },

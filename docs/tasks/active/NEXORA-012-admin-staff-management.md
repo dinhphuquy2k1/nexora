@@ -179,6 +179,10 @@ Documentation Impact: REQUIRED
 - Provided manual SQL operator registration script `scripts/sql/register-uniship-operator.sql`.
 - Specified `AuthService.authenticateExternalIdentity` port and service.
 - Recorded owner confirmation of Uniship `userid` stability for application integration and deferred Admin UI / live provider integration.
+- Resolved frontend port inconsistency: browser-facing port is canonical `http://localhost:3001` (or `http://127.0.0.1:3001`); internal container listener legitimately remains port 3000.
+- Added `apps/web/scripts/dev.mjs` preflight enforcing canonical port 3001 on host dev and refusing port collisions (`EADDRINUSE`) with code 1 instead of silently switching to port 3002.
+- Decoupled Next.js layouts using Route Groups: `apps/web/app/layout.tsx` owns HTML/styles/metadata without `AppShell`; `apps/web/app/login/layout.tsx` is standalone without `AppShell`; `apps/web/app/(workspace)/layout.tsx` enforces server-side session verification via `verifyServerSession(cookie)`.
+- Enforced protected workspace access: missing/invalid/expired/revoked cookies redirect to `/login?from=...`; upstream backend outages fail closed with service unavailable card without redirect loops.
 
 ### Canonical Owners
 
@@ -186,6 +190,9 @@ Documentation Impact: REQUIRED
 - `docs/decisions/unified-identity.md`
 - `docs/architecture/database.md`
 - `docs/architecture/backend.md`
+- `docs/architecture/frontend.md`
+- `docs/operations/setup.md`
+- `docs/operations/configuration.md`
 - `docs/operations/testing.md`
 - `docs/operations/backup-restore.md`
 
@@ -203,6 +210,7 @@ Documentation Impact: REQUIRED
 | OpenAPI contract drift and SDK generation                            | `node scripts/contracts-check.mjs`                                                                                                                                                   | 2026-10-12 | PASS   |
 | Documentation governance, links and task state                       | `node scripts/docs-check.mjs`                                                                                                                                                        | 2026-10-12 | PASS   |
 | Unit tests pass (AuthService, SessionGuard, IdentityDatabaseAdapter) | `pnpm --filter @nexora/api test` (53 tests)                                                                                                                                          | 2026-10-12 | PASS   |
+| Web unit tests pass (contracts, tokens, session, dev preflight)      | `pnpm --filter @nexora/web test` (19 tests)                                                                                                                                          | 2026-10-12 | PASS   |
 | Migration tests verify external_identities, constraints & drift      | `node packages/database/test/migration.mjs`                                                                                                                                          | 2026-10-12 | PASS   |
 | Integration tests verify fake-provider authentication & constraints  | `apps/api/test/integration.test.cjs`                                                                                                                                                 | 2026-10-12 | PASS   |
-| Hosted PR #10 CI workflow run on final HEAD 6802204                  | GitHub Actions run 38251273233 on head 680220450e48c514ad9850e45dd71f136d526dae (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke) | 2026-10-12 | PASS   |
+| Hosted PR #10 CI workflow run on predecessor HEAD c47c09b            | GitHub Actions run 38252985140 on head c47c09b85c1840243405d54a26388426f8d0a294 (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke) | 2026-10-12 | PASS   |

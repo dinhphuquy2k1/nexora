@@ -14,12 +14,13 @@ Nexora operates under three distinct runtime topologies:
 ### Mode B: Docker Development
 
 - **Start**: `docker compose -f compose.yml -f compose.dev.yml up --build`.
-- **Characteristics**: Reuses Docker service networking (`http://api:4000`), mounts local source into containers, and runs watchers inside Docker. Does not require running Web manually on host port 3000. Keep this file pair for stop and quality commands.
+- **Characteristics**: Reuses Docker service networking (`http://api:4000`), mounts local source into containers, and runs watchers inside Docker. Containerized Next.js listens internally on port 3000 and publishes user-facing port `http://127.0.0.1:3001`. Keep this file pair for stop and quality commands.
 
 ### Mode C: Host-run Development (Optional / Constrained)
 
 - **Requirements**: Node .nvmrc (24.19.0), pnpm 10.34.6; `pnpm install --frozen-lockfile`, `pnpm --filter @nexora/database generate`, `pnpm build`.
-- **Constraint**: `pnpm --filter @nexora/web dev` runs Next.js on host port 3000. Next.js does not provide an implicit fallback for `API_INTERNAL_URL`. If unconfigured, build and startup fail explicitly with an actionable error. Because Docker does not publish the internal API port to the host, pointing host Next.js to `http://api:4000` fails with `getaddrinfo ENOTFOUND api`. Host-run Web requires an independently reachable host API listener and explicit configuration: `API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @nexora/web dev`. For standard local work, Docker Mode A or B is recommended.
+- **Port Policy & Collision Prevention**: `pnpm --filter @nexora/web dev` runs `scripts/dev.mjs`, which defaults to the canonical browser-facing port 3001 (or `PORT` env var). If port 3001 is already bound (e.g. Docker Web is active), the preflight refuses startup with an explicit `EADDRINUSE` error instead of silently switching to port 3002. Never run host Web and Docker Web simultaneously on port 3001.
+- **API Configuration**: Next.js does not provide an implicit fallback for `API_INTERNAL_URL`. If unconfigured, build and startup fail explicitly with an actionable error. Because Docker does not publish the internal API port to the host, pointing host Next.js to `http://api:4000` fails with `getaddrinfo ENOTFOUND api`. Host-run Web requires an independently reachable host API listener and explicit configuration: `API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @nexora/web dev`. For standard local work, Docker Mode A or B is recommended.
 
 ## Initial Operator Account Provisioning
 
@@ -39,7 +40,7 @@ Automation must explicitly select password stdin; never put a password in comman
 printf '%s' "$ADMIN_PASS" | docker compose exec -T api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js --username admin --password-stdin
 ```
 
-A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private. Host-run Web on port 3000 requires an explicit trusted Origin on its separately reachable API.
+A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private; browser-facing port 3001 connects to the Web container listener (internal container port 3000).
 
 ## Windows Developer Experience & Troubleshooting
 
@@ -47,11 +48,11 @@ When developing on Windows, confusing port collisions or DNS resolution errors c
 
 ### Investigating Listening Ports
 
-Use safe PowerShell commands to identify which processes own port 3000 (host dev) or 3001 (Docker Web):
+Use safe PowerShell commands to identify which processes own port 3001 (canonical browser endpoint / Docker Web) or internal container ports:
 
 ```powershell
-Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object LocalAddress, LocalPort, OwningProcess
 Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue | Select-Object LocalAddress, LocalPort, OwningProcess
+Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object LocalAddress, LocalPort, OwningProcess
 ```
 
 Inspect the process before stopping it; do not force-kill based on port alone:

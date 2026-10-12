@@ -10,9 +10,13 @@ interface UserInfo {
   username: string;
 }
 
-export function AccountMenu() {
+interface AccountMenuProps {
+  initialUser?: UserInfo | null;
+}
+
+export function AccountMenu({ initialUser }: AccountMenuProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const [user, setUser] = useState<UserInfo | null>(initialUser ?? null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const panelId = useId();

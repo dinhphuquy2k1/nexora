@@ -8,9 +8,14 @@ import styles from "./Header.module.css";
 interface HeaderProps {
   isSidebarCollapsed: boolean;
   onToggleSidebar: () => void;
+  user?: { id: string; username: string };
 }
 
-export function Header({ isSidebarCollapsed, onToggleSidebar }: HeaderProps) {
+export function Header({
+  isSidebarCollapsed,
+  onToggleSidebar,
+  user,
+}: HeaderProps) {
   return (
     <header className={styles.header} aria-label="Thanh công cụ đầu trang">
       {/* Left section: Sidebar Toggle & Breadcrumbs */}
@@ -38,7 +43,7 @@ export function Header({ isSidebarCollapsed, onToggleSidebar }: HeaderProps) {
 
       {/* Right section: User Account */}
       <div className={styles.rightSection}>
-        <AccountMenu />
+        <AccountMenu initialUser={user} />
       </div>
     </header>
   );

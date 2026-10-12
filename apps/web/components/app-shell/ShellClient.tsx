@@ -1,26 +1,21 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar.tsx";
 import { Header } from "./Header.tsx";
 import styles from "./AppShell.module.css";
 
 interface ShellClientProps {
   children: ReactNode;
+  user?: { id: string; username: string };
 }
 
-export function ShellClient({ children }: ShellClientProps) {
+export function ShellClient({ children, user }: ShellClientProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const pathname = usePathname();
 
   const handleToggleSidebar = () => {
     setIsSidebarCollapsed((prev) => !prev);
   };
-
-  if (pathname === "/login") {
-    return <>{children}</>;
-  }
 
   return (
     <div className={styles.container}>
@@ -32,6 +27,7 @@ export function ShellClient({ children }: ShellClientProps) {
         <Header
           isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebar={handleToggleSidebar}
+          user={user}
         />
 
         <main className={styles.contentArea}>{children}</main>

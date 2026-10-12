@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server.js";
 import { isAllowedHost } from "./lib/auth/host.ts";
 
 export function middleware(request: NextRequest) {
@@ -21,7 +21,15 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  // Forward request with x-pathname header so Server Components/Layouts know the route
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 }
 
 export const config = {
