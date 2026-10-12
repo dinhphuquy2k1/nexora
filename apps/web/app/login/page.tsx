@@ -5,6 +5,7 @@ import { PRODUCT_NAME } from "@nexora/shared";
 import { LoginForm } from "./LoginForm.tsx";
 import styles from "./login.module.css";
 import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
+import { verifyServerSession } from "../../lib/api/session.ts";
 
 export const metadata = {
   title: `Đăng nhập · ${PRODUCT_NAME}`,
@@ -19,23 +20,24 @@ export default async function LoginPage({
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("nexora_session");
 
+  let shouldRedirect = false;
+  let returnUrl = "/";
+  let serviceUnavailable = false;
+
   if (sessionCookie?.value) {
-    const apiUrl = process.env.API_INTERNAL_URL ?? "http://api:4000";
-    try {
-      const res = await fetch(`${apiUrl}/api/auth/session`, {
-        headers: {
-          cookie: `nexora_session=${sessionCookie.value}`,
-        },
-        cache: "no-store",
-      });
-      if (res.ok) {
-        const resolvedParams = searchParams ? await searchParams : undefined;
-        const returnUrl = sanitizeReturnUrl(resolvedParams?.from);
-        redirect(returnUrl);
-      }
-    } catch {
-      // Stale or invalid session -> do not redirect, render login page
+    const sessionResult = await verifyServerSession(sessionCookie.value);
+    if (sessionResult.status === "authenticated") {
+      const resolvedParams = searchParams ? await searchParams : undefined;
+      returnUrl = sanitizeReturnUrl(resolvedParams?.from);
+      shouldRedirect = true;
+    } else if (sessionResult.status === "unavailable") {
+      serviceUnavailable = true;
     }
+  }
+
+  // Next.js redirect must be called outside try/catch to avoid intercepting NEXT_REDIRECT signals.
+  if (shouldRedirect) {
+    redirect(returnUrl);
   }
   return (
     <main className={styles.container}>
@@ -51,6 +53,13 @@ export default async function LoginPage({
           Đăng nhập {PRODUCT_NAME}
         </h1>
         <p className={styles.subtitle}>Truy cập không gian quản lý vận đơn</p>
+
+        {serviceUnavailable && (
+          <div role="alert" className={styles.errorBanner}>
+            Không thể kiểm tra phiên đăng nhập do dịch vụ backend tạm thời không
+            khả dụng. Vui lòng thử lại sau.
+          </div>
+        )}
 
         {/* Suspense Boundary for useSearchParams */}
         <Suspense

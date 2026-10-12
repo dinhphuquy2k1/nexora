@@ -65,7 +65,7 @@ Documentation Impact: REQUIRED
 | Starting baseline confirmed on main with PR #5 merged            | `git rev-parse HEAD` (`7cfb01a`)                            | 2026-10-11 | PASS   |
 | Password hashing with Scrypt and unique salts passes             | `pnpm --filter @nexora/database test` (2 tests passing)     | 2026-10-11 | PASS   |
 | Backend identity module, global guard, and OriginGuard pass      | `pnpm --filter @nexora/api test` (11 tests passing)         | 2026-10-12 | PASS   |
-| Web auth sanitization, host allowlist, and navigation pass       | `pnpm --filter @nexora/web test` (13 tests passing)         | 2026-10-12 | PASS   |
+| Web auth sanitization, host allowlist, and navigation pass       | `pnpm --filter @nexora/web test` (15 tests passing)         | 2026-10-12 | PASS   |
 | Workspace TypeScript compilation passes across all packages      | `pnpm typecheck` (10 tasks successful)                      | 2026-10-12 | PASS   |
 | Architectural boundary rules and ESLint pass                     | `pnpm lint` (`boundaries.mjs` + `eslint .`)                 | 2026-10-12 | PASS   |
 | Prettier formatting check passes across entire repository        | `pnpm format:check`                                         | 2026-10-12 | PASS   |

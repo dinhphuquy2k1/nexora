@@ -19,7 +19,7 @@ Nexora operates under three distinct runtime topologies:
 ### Mode C: Host-run Development (Optional / Constrained)
 
 - **Requirements**: Node .nvmrc (24.19.0), pnpm 10.34.6; `pnpm install --frozen-lockfile`, `pnpm --filter @nexora/database generate`, `pnpm build`.
-- **Constraint**: `pnpm --filter @nexora/web dev` runs Next.js on host port 3000. Because Docker does not publish the internal API port to the host, the default Docker upstream (`http://api:4000`) fails on the host with `getaddrinfo ENOTFOUND api`. Host-run Web requires an independently reachable host API listener and explicit configuration: `API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @nexora/web dev`. For standard local work, Docker Mode A or B is recommended.
+- **Constraint**: `pnpm --filter @nexora/web dev` runs Next.js on host port 3000. Next.js does not provide an implicit fallback for `API_INTERNAL_URL`. If unconfigured, build and startup fail explicitly with an actionable error. Because Docker does not publish the internal API port to the host, pointing host Next.js to `http://api:4000` fails with `getaddrinfo ENOTFOUND api`. Host-run Web requires an independently reachable host API listener and explicit configuration: `API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @nexora/web dev`. For standard local work, Docker Mode A or B is recommended.
 
 ## Initial Operator Account Provisioning
 

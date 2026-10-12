@@ -91,6 +91,17 @@ docker compose exec -T web node <<'JS'
     process.exit(1);
   }
 
+  // 3b. Valid session access to /login -> 307 redirect to sanitized returnUrl (F4)
+  const redirectRes = await fetch('http://127.0.0.1:3000/login?from=%2Fsettings', {
+    headers: { cookie: `nexora_session=${token}` },
+    redirect: 'manual',
+  });
+  if (redirectRes.status !== 307 || redirectRes.headers.get('location') !== '/settings') {
+    console.error('Expected 307 redirect to /settings on login with valid session, got', redirectRes.status, redirectRes.headers.get('location'));
+    process.exit(1);
+  }
+  console.log('Login valid-session redirect PASS');
+
   // 4. Logout -> 200
   const logoutRes = await fetch('http://127.0.0.1:3000/api/auth/logout', {
     method: 'POST',

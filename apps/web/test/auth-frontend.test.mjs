@@ -67,3 +67,144 @@ test("middleware routing logic accurately identifies protected and auth routes",
     false,
   );
 });
+
+test("resolveApiInternalUrl validates configuration matrix and rejects invalid inputs (F2)", async () => {
+  const { resolveApiInternalUrl } = await import("../lib/api/config.ts");
+
+  // Missing, empty, or whitespace-only values
+  assert.throws(
+    () => resolveApiInternalUrl(undefined),
+    /API_INTERNAL_URL is required/,
+  );
+  assert.throws(
+    () => resolveApiInternalUrl(""),
+    /API_INTERNAL_URL is required/,
+  );
+  assert.throws(
+    () => resolveApiInternalUrl("   \t\n"),
+    /API_INTERNAL_URL is required/,
+  );
+
+  // Malformed URL
+  assert.throws(
+    () => resolveApiInternalUrl("not-a-valid-url"),
+    /API_INTERNAL_URL is malformed/,
+  );
+
+  // Unsupported protocols
+  assert.throws(
+    () => resolveApiInternalUrl("ftp://api:4000"),
+    /must use HTTP or HTTPS/,
+  );
+  assert.throws(
+    () => resolveApiInternalUrl("ws://api:4000"),
+    /must use HTTP or HTTPS/,
+  );
+  assert.throws(
+    () => resolveApiInternalUrl("javascript:alert(1)"),
+    /must use HTTP or HTTPS/,
+  );
+
+  // Disallowed credentials, paths, query params, fragments
+  assert.throws(
+    () => resolveApiInternalUrl("http://user:pass@api:4000"),
+    /must be an origin without credentials, path, query, or fragment/,
+  );
+  assert.throws(
+    () => resolveApiInternalUrl("http://api:4000/api/v1"),
+    /must be an origin without credentials, path, query, or fragment/,
+  );
+  assert.throws(
+    () => resolveApiInternalUrl("http://api:4000?query=1"),
+    /must be an origin without credentials, path, query, or fragment/,
+  );
+  assert.throws(
+    () => resolveApiInternalUrl("http://api:4000#fragment"),
+    /must be an origin without credentials, path, query, or fragment/,
+  );
+
+  // Valid inputs
+  assert.equal(resolveApiInternalUrl("http://api:4000"), "http://api:4000");
+  assert.equal(resolveApiInternalUrl("http://api:4000/"), "http://api:4000");
+  assert.equal(
+    resolveApiInternalUrl("http://127.0.0.1:4000"),
+    "http://127.0.0.1:4000",
+  );
+  assert.equal(
+    resolveApiInternalUrl("https://nexora.internal:8443"),
+    "https://nexora.internal:8443",
+  );
+  assert.equal(
+    resolveApiInternalUrl("   http://api:4000   "),
+    "http://api:4000",
+  );
+});
+
+test("verifyServerSession distinguishes authenticated, unauthenticated, and unavailable states (F4)", async () => {
+  const { verifyServerSession } = await import("../lib/api/session.ts");
+
+  // 1. Missing cookie -> unauthenticated
+  const noCookieResult = await verifyServerSession(undefined);
+  assert.equal(noCookieResult.status, "unauthenticated");
+
+  const emptyCookieResult = await verifyServerSession("");
+  assert.equal(emptyCookieResult.status, "unauthenticated");
+
+  // Save original env & global fetch
+  const originalEnv = process.env.API_INTERNAL_URL;
+  const originalFetch = globalThis.fetch;
+
+  try {
+    process.env.API_INTERNAL_URL = "http://api:4000";
+
+    // 2. HTTP 200 -> authenticated
+    globalThis.fetch = async () => ({
+      status: 200,
+      headers: { get: () => "application/json" },
+      json: async () => ({ user: { id: "u-1", username: "admin" } }),
+    });
+    const authResult = await verifyServerSession("valid-session-token");
+    assert.equal(authResult.status, "authenticated");
+    if (authResult.status === "authenticated") {
+      assert.equal(authResult.user.username, "admin");
+    }
+
+    // 3. HTTP 401 -> unauthenticated (stale/invalid session)
+    globalThis.fetch = async () => ({
+      status: 401,
+      headers: { get: () => "application/json" },
+      json: async () => ({ error: "Unauthorized" }),
+    });
+    const unauthResult = await verifyServerSession("expired-session-token");
+    assert.equal(unauthResult.status, "unauthenticated");
+
+    // 4. HTTP 500 -> unavailable (upstream error, NOT unauthenticated)
+    globalThis.fetch = async () => ({
+      status: 500,
+      headers: { get: () => "application/json" },
+      json: async () => ({ error: "Internal Server Error" }),
+    });
+    const error500Result = await verifyServerSession("session-token");
+    assert.equal(error500Result.status, "unavailable");
+    if (error500Result.status === "unavailable") {
+      assert.match(error500Result.reason, /500/);
+    }
+
+    // 5. Network / DNS error (e.g. getaddrinfo ENOTFOUND) -> unavailable
+    globalThis.fetch = async () => {
+      const err = new TypeError("fetch failed");
+      err.cause = { code: "ENOTFOUND", hostname: "api" };
+      throw err;
+    };
+    const networkErrorResult = await verifyServerSession("session-token");
+    assert.equal(networkErrorResult.status, "unavailable");
+
+    // 6. Missing API_INTERNAL_URL -> unavailable (graceful config failure)
+    delete process.env.API_INTERNAL_URL;
+    const missingConfigResult = await verifyServerSession("session-token");
+    assert.equal(missingConfigResult.status, "unavailable");
+  } finally {
+    process.env.API_INTERNAL_URL = originalEnv;
+    globalThis.fetch = originalFetch;
+  }
+});

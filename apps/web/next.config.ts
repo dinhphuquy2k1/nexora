@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import { resolveApiInternalUrl } from "./lib/api/config.ts";
+
+const apiInternalUrl = resolveApiInternalUrl(process.env.API_INTERNAL_URL);
+
 const config: NextConfig = {
   transpilePackages: ["@nexora/sdk", "@nexora/ui", "@nexora/shared"],
   poweredByHeader: false,
@@ -7,7 +11,7 @@ const config: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: `${process.env.API_INTERNAL_URL ?? "http://api:4000"}/api/:path*`,
+        destination: `${apiInternalUrl}/api/:path*`,
       },
     ];
   },
