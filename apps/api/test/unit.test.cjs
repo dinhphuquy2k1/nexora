@@ -103,6 +103,84 @@ test("config fail fast without leaking values", () => {
   );
 });
 
+test("Uniship configuration parser normalizes empty URLs, validates protocols, and defaults authorization", () => {
+  const tmpRoot =
+    process.platform === "win32" ? path.resolve(os.tmpdir()) : "/tmp";
+  const base = {
+    DATABASE_URL: "postgresql://u:p@localhost/db",
+    STORAGE_ROOT: tmpRoot,
+  };
+
+  // 1. UNISHIP_API_URL absent -> valid, undefined
+  const c1 = loadConfig({ ...base });
+  assert.equal(c1.UNISHIP_API_URL, undefined);
+  assert.equal(c1.UNISHIP_LIVE_AUTHORIZED, "false");
+
+  // 2. UNISHIP_API_URL="" -> valid, undefined
+  const c2 = loadConfig({ ...base, UNISHIP_API_URL: "" });
+  assert.equal(c2.UNISHIP_API_URL, undefined);
+
+  // 3. Valid HTTPS URL -> accepted
+  const c3 = loadConfig({
+    ...base,
+    UNISHIP_API_URL: "https://auth.uniship.example.com",
+  });
+  assert.equal(c3.UNISHIP_API_URL, "https://auth.uniship.example.com");
+
+  // 4. Valid HTTP URL -> accepted
+  const c4 = loadConfig({
+    ...base,
+    UNISHIP_API_URL: "http://127.0.0.1:4000",
+  });
+  assert.equal(c4.UNISHIP_API_URL, "http://127.0.0.1:4000");
+
+  // 5. Malformed URL -> rejected
+  for (const malformed of ["not-a-url", "://missing-scheme", "https://"]) {
+    assert.throws(() =>
+      loadConfig({
+        ...base,
+        UNISHIP_API_URL: malformed,
+      }),
+    );
+  }
+
+  // 6. Unsupported protocol -> rejected
+  for (const badProtocol of [
+    "ftp://example.com",
+    "ws://example.com",
+    "file:///etc/passwd",
+  ]) {
+    assert.throws(() =>
+      loadConfig({
+        ...base,
+        UNISHIP_API_URL: badProtocol,
+      }),
+    );
+  }
+
+  // 7. Authorization flag absent -> defaults false
+  const c7 = loadConfig({ ...base });
+  assert.equal(c7.UNISHIP_LIVE_AUTHORIZED, "false");
+
+  // 8. Authorization flag false -> accepted
+  const c8 = loadConfig({ ...base, UNISHIP_LIVE_AUTHORIZED: "false" });
+  assert.equal(c8.UNISHIP_LIVE_AUTHORIZED, "false");
+
+  // 9. Authorization flag true -> accepted
+  const c9 = loadConfig({ ...base, UNISHIP_LIVE_AUTHORIZED: "true" });
+  assert.equal(c9.UNISHIP_LIVE_AUTHORIZED, "true");
+
+  // 10. Authorization flag invalid -> rejected
+  for (const invalidFlag of ["yes", "1", "TRUE", "false-ish", "null"]) {
+    assert.throws(() =>
+      loadConfig({
+        ...base,
+        UNISHIP_LIVE_AUTHORIZED: invalidFlag,
+      }),
+    );
+  }
+});
+
 test("Origin configuration validates serialization, effective ports and supported bindings", () => {
   const {
     resolveAllowedOrigins,

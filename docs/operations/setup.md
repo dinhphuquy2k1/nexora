@@ -40,7 +40,7 @@ Automation must explicitly select password stdin; never put a password in comman
 printf '%s' "$ADMIN_PASS" | docker compose exec -T api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js --username admin --password-stdin
 ```
 
-A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private; browser-facing port 3001 connects to the Web container listener (internal container port 3000).
+A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private; browser-facing port 3001 connects to the Web container listener (internal container port 3000). Compose forwards `UNISHIP_API_URL` and `UNISHIP_LIVE_AUTHORIZED` to the API service; leaving them unconfigured leaves API startup unaffected while employee provider login safely returns 503 until an approved provider contract is configured.
 
 ## Windows Developer Experience & Troubleshooting
 

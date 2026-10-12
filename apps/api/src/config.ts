@@ -18,7 +18,21 @@ const schema = z.object({
     }),
   STORAGE_ROOT: z.string().refine((v) => isAbsolute(v) && resolve(v) === v),
   API_DOCS_ENABLED: z.enum(["true", "false"]).default("false"),
-  UNISHIP_API_URL: z.string().url().optional(),
+  UNISHIP_API_URL: z.preprocess(
+    (v) => (v === "" || v === undefined ? undefined : v),
+    z
+      .string()
+      .url()
+      .refine((v) => {
+        try {
+          const protocol = new URL(v).protocol;
+          return protocol === "http:" || protocol === "https:";
+        } catch {
+          return false;
+        }
+      }, "UNISHIP_API_URL must use http: or https: protocol")
+      .optional(),
+  ),
   UNISHIP_LIVE_AUTHORIZED: z.enum(["true", "false"]).default("false"),
 });
 export type Config = z.infer<typeof schema> & {
