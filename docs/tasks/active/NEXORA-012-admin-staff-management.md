@@ -3,7 +3,7 @@
 - **Task ID**: `NEXORA-012`
 - **Status**: `IN PROGRESS`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `PARTIALLY VERIFIED`
+- **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
 
 ## Predecessor baseline and verification preflight
@@ -197,11 +197,12 @@ Documentation Impact: REQUIRED
 
 ## Evidence
 
-| Claim                                                                | Evidence                                    | Date       | Result |
-| :------------------------------------------------------------------- | :------------------------------------------ | :--------- | :----- |
-| Workspace architectural boundaries respected                         | `node scripts/boundaries.mjs`               | 2026-10-12 | PASS   |
-| OpenAPI contract drift and SDK generation                            | `node scripts/contracts-check.mjs`          | 2026-10-12 | PASS   |
-| Documentation governance, links and task state                       | `node scripts/docs-check.mjs`               | 2026-10-12 | PASS   |
-| Unit tests pass (AuthService, SessionGuard, IdentityDatabaseAdapter) | `pnpm --filter @nexora/api test` (53 tests) | 2026-10-12 | PASS   |
-| Migration tests verify external_identities, constraints & drift      | `node packages/database/test/migration.mjs` | 2026-10-12 | PASS   |
-| Integration tests verify fake-provider authentication & constraints  | `apps/api/test/integration.test.cjs`        | 2026-10-12 | PASS   |
+| Claim                                                                | Evidence                                                                                                                                                                             | Date       | Result |
+| :------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Workspace architectural boundaries respected                         | `node scripts/boundaries.mjs`                                                                                                                                                        | 2026-10-12 | PASS   |
+| OpenAPI contract drift and SDK generation                            | `node scripts/contracts-check.mjs`                                                                                                                                                   | 2026-10-12 | PASS   |
+| Documentation governance, links and task state                       | `node scripts/docs-check.mjs`                                                                                                                                                        | 2026-10-12 | PASS   |
+| Unit tests pass (AuthService, SessionGuard, IdentityDatabaseAdapter) | `pnpm --filter @nexora/api test` (53 tests)                                                                                                                                          | 2026-10-12 | PASS   |
+| Migration tests verify external_identities, constraints & drift      | `node packages/database/test/migration.mjs`                                                                                                                                          | 2026-10-12 | PASS   |
+| Integration tests verify fake-provider authentication & constraints  | `apps/api/test/integration.test.cjs`                                                                                                                                                 | 2026-10-12 | PASS   |
+| Hosted PR #10 CI workflow run on final HEAD 6802204                  | GitHub Actions run 38251273233 on head 680220450e48c514ad9850e45dd71f136d526dae (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke) | 2026-10-12 | PASS   |
