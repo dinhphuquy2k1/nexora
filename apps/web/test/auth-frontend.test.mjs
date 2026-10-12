@@ -161,7 +161,10 @@ test("verifyServerSession distinguishes authenticated, unauthenticated, and unav
     globalThis.fetch = async () => ({
       status: 200,
       headers: { get: () => "application/json" },
-      json: async () => ({ user: { id: "u-1", username: "admin" } }),
+      json: async () => ({
+        authenticated: true,
+        user: { id: "u-1", username: "admin" },
+      }),
     });
     const authResult = await verifyServerSession("valid-session-token");
     assert.equal(authResult.status, "authenticated");
@@ -206,5 +209,41 @@ test("verifyServerSession distinguishes authenticated, unauthenticated, and unav
   } finally {
     process.env.API_INTERNAL_URL = originalEnv;
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("malformed HTTP 200 session payloads never authenticate", async () => {
+  const { verifyServerSession } = await import("../lib/api/session.ts");
+  const oldFetch = globalThis.fetch;
+  const oldUrl = process.env.API_INTERNAL_URL;
+  process.env.API_INTERNAL_URL = "http://api:4000";
+  try {
+    for (const payload of [
+      null,
+      {},
+      { authenticated: false, user: { id: "u", username: "operator" } },
+      { authenticated: true },
+      { authenticated: true, user: null },
+      { authenticated: true, user: { id: "", username: "operator" } },
+      { authenticated: true, user: { id: "u", username: " " } },
+      { authenticated: true, user: { id: 123, username: "operator" } },
+    ]) {
+      globalThis.fetch = async () => ({
+        status: 200,
+        json: async () => payload,
+      });
+      assert.equal((await verifyServerSession("cookie")).status, "unavailable");
+    }
+    globalThis.fetch = async () => ({
+      status: 200,
+      json: async () => {
+        throw new SyntaxError("invalid JSON");
+      },
+    });
+    assert.equal((await verifyServerSession("cookie")).status, "unavailable");
+  } finally {
+    globalThis.fetch = oldFetch;
+    if (oldUrl === undefined) delete process.env.API_INTERNAL_URL;
+    else process.env.API_INTERNAL_URL = oldUrl;
   }
 });

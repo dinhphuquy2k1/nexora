@@ -51,9 +51,7 @@ export function LoginForm() {
       if (response.status === 401) {
         setErrorMessage("Tên đăng nhập hoặc mật khẩu không chính xác.");
       } else if (response.status === 429) {
-        setErrorMessage(
-          "Quá nhiều lần đăng nhập không thành công. Vui lòng thử lại sau 5 phút.",
-        );
+        setErrorMessage("Quá nhiều yêu cầu đăng nhập. Vui lòng thử lại sau.");
       } else {
         setErrorMessage("Không thể kết nối đến dịch vụ. Vui lòng thử lại sau.");
       }

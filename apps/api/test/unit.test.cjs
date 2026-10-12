@@ -102,3 +102,33 @@ test("config fail fast without leaking values", () => {
     4000,
   );
 });
+
+test("Origin configuration validates serialization, effective ports and supported bindings", () => {
+  const {
+    resolveAllowedOrigins,
+    isAllowedOrigin,
+  } = require("../dist/identity/presentation/origin-policy");
+  assert.deepEqual(resolveAllowedOrigins({ WEB_PORT: "127.0.0.1:3101" }), [
+    "http://127.0.0.1:3101",
+    "http://localhost:3101",
+  ]);
+  assert.deepEqual(resolveAllowedOrigins({ WEB_PORT: "3101" }), [
+    "http://127.0.0.1:3101",
+    "http://localhost:3101",
+  ]);
+  const allowed = resolveAllowedOrigins({
+    ALLOWED_ORIGINS: "http://localhost:80",
+  });
+  assert.equal(isAllowedOrigin("http://localhost", allowed), true);
+  assert.equal(isAllowedOrigin("http://localhost:80", allowed), true);
+  for (const value of ["0", "65536", "0.0.0.0:3101", "127.0.0.1:invalid"])
+    assert.throws(() => resolveAllowedOrigins({ WEB_PORT: value }));
+  for (const value of [
+    "http://localhost:3001/",
+    "http://localhost:3001?x=1",
+    "http://user@localhost:3001",
+    "null",
+    "http://localhost:3001,",
+  ])
+    assert.throws(() => resolveAllowedOrigins({ ALLOWED_ORIGINS: value }));
+});

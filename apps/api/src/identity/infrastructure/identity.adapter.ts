@@ -86,13 +86,7 @@ export class IdentityDatabaseAdapter implements IdentityPort {
   }
 
   async deleteSessionByTokenHash(tokenHash: string): Promise<void> {
-    await this.client.session
-      .delete({
-        where: { tokenHash },
-      })
-      .catch(() => {
-        // Ignore if already deleted
-      });
+    await this.client.session.deleteMany({ where: { tokenHash } });
   }
 
   async deleteExpiredSessions(): Promise<number> {

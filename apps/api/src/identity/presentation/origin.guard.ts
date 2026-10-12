@@ -4,36 +4,32 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Inject,
+  Optional,
 } from "@nestjs/common";
 import type { Request } from "express";
 
-export function isAllowedOrigin(origin?: string): boolean {
-  if (!origin) return false;
-  try {
-    const parsed = new URL(origin);
-    const hostname = parsed.hostname;
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return true;
-    }
-    if (process.env.ALLOWED_ORIGINS) {
-      const allowed = process.env.ALLOWED_ORIGINS.split(",").map((s) =>
-        s.trim(),
-      );
-      if (allowed.includes(origin)) return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
+import { isAllowedOrigin, resolveAllowedOrigins } from "./origin-policy";
+export { isAllowedOrigin } from "./origin-policy";
 
 @Injectable()
 export class OriginGuard implements CanActivate {
+  private readonly allowedOrigins: readonly string[];
+  constructor(
+    @Optional()
+    @Inject("CONFIG")
+    config?: {
+      trustedOrigins: readonly string[];
+    },
+  ) {
+    this.allowedOrigins =
+      config?.trustedOrigins ?? resolveAllowedOrigins(process.env);
+  }
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest<Request>();
     const origin = req.headers.origin;
 
-    if (!origin || !isAllowedOrigin(origin)) {
+    if (!origin || !isAllowedOrigin(origin, this.allowedOrigins)) {
       throw new HttpException(
         {
           code: "FORBIDDEN",

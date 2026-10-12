@@ -23,12 +23,23 @@ Nexora operates under three distinct runtime topologies:
 
 ## Initial Operator Account Provisioning
 
-Fresh installations contain no default credentials or demo accounts. Provision the initial administrator:
+Fresh installations contain no default credentials or demo accounts. The authoritative implementation is compiled with API; host tooling remains `pnpm user:create` after building API and securely supplying `DATABASE_URL`.
 
-- **Canonical Docker**: `docker compose exec api node scripts/user-create.mjs`
-- **Host tooling**: `pnpm user:create` (requires `DATABASE_URL` injected securely)
-- The command securely prompts for username and password without echoing characters. For non-interactive script automation, use the `--password-stdin` flag:
-  `printf '%s' "$ADMIN_PASS" | docker compose exec -T api node scripts/user-create.mjs --username admin --password-stdin`
+The following corrected runtime invocation is **VERIFICATION PENDING** until NEXORA-009 records successful fresh-install execution in the compiled image. The previous repository-script path is unavailable in that image and must not be used:
+
+```sh
+docker compose exec api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js
+```
+
+It uses the image's non-root user and the approved entrypoint for database configuration. Interactive username/password/confirmation use a single raw terminal reader, with no password rendering; backspace, Ctrl+C and EOF restore terminal mode. Provisioning enforces case-sensitive, trimmed usernames of 3–50 characters and passwords of 8–1024 characters. Duplicate usernames and failures exit nonzero with sanitized diagnostics.
+
+Automation must explicitly select password stdin; never put a password in command-line arguments or implicitly pipe it:
+
+```sh
+printf '%s' "$ADMIN_PASS" | docker compose exec -T api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js --username admin --password-stdin
+```
+
+A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private. Host-run Web on port 3000 requires an explicit trusted Origin on its separately reachable API.
 
 ## Windows Developer Experience & Troubleshooting
 

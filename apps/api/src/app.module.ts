@@ -54,7 +54,11 @@ export const CONFIG = "CONFIG";
       inject: [IdentityPort],
       useFactory: (port: IdentityPort) => new AuthService(port),
     },
-    OriginGuard,
+    {
+      provide: OriginGuard,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) => new OriginGuard(c),
+    },
     SessionGuard,
     {
       provide: APP_GUARD,

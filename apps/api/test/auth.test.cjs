@@ -287,9 +287,9 @@ test("OriginGuard enforces browser origin validation for mutations (I3)", () => 
   const guard = new OriginGuard();
 
   // Permitted origins
-  assert.equal(isAllowedOrigin("http://localhost:3000"), true);
+  assert.equal(isAllowedOrigin("http://localhost:3000"), false);
   assert.equal(isAllowedOrigin("http://127.0.0.1:3001"), true);
-  assert.equal(isAllowedOrigin("http://localhost:4000"), true);
+  assert.equal(isAllowedOrigin("http://localhost:4000"), false);
 
   // Disallowed origins
   assert.equal(isAllowedOrigin("http://evil.example"), false);
@@ -331,4 +331,169 @@ test("OriginGuard enforces browser origin validation for mutations (I3)", () => 
     }),
   });
   assert.equal(allowed, true);
+});
+
+test("Origin rejects other localhost ports and non-serialized values", () => {
+  for (const origin of [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:9999",
+    "https://localhost:3001",
+    "http://localhost:3001/",
+    "http://localhost:3001/path",
+    "http://localhost:3001?x=1",
+    "http://localhost:3001#x",
+    "http://user@localhost:3001",
+    "http://localhost:3001 http://127.0.0.1:3001",
+    "null",
+    " http://localhost:3001",
+  ])
+    assert.equal(isAllowedOrigin(origin), false);
+});
+
+test("Origin follows a changed WEB_PORT binding and explicit replacements", () => {
+  const oldPort = process.env.WEB_PORT;
+  const oldOrigins = process.env.ALLOWED_ORIGINS;
+  try {
+    process.env.WEB_PORT = "127.0.0.1:3101";
+    delete process.env.ALLOWED_ORIGINS;
+    assert.equal(isAllowedOrigin("http://127.0.0.1:3101"), true);
+    assert.equal(isAllowedOrigin("http://localhost:3001"), false);
+    process.env.ALLOWED_ORIGINS = "https://localhost:3101";
+    assert.equal(isAllowedOrigin("https://localhost:3101"), true);
+    assert.equal(isAllowedOrigin("http://localhost:3101"), false);
+  } finally {
+    if (oldPort === undefined) delete process.env.WEB_PORT;
+    else process.env.WEB_PORT = oldPort;
+    if (oldOrigins === undefined) delete process.env.ALLOWED_ORIGINS;
+    else process.env.ALLOWED_ORIGINS = oldOrigins;
+  }
+});
+
+test("Login rejects invalid credential types and limits before querying", async () => {
+  const port = createMockIdentityPort();
+  let queries = 0;
+  port.findUserByUsername = async () => {
+    queries++;
+    return null;
+  };
+  const auth = new AuthService(port);
+  for (const value of [
+    undefined,
+    null,
+    123,
+    true,
+    {},
+    [],
+    "",
+    " ",
+    "ab",
+    "a".repeat(51),
+  ]) {
+    await assert.rejects(
+      auth.login(value, "password"),
+      (e) => e.getStatus?.() === 400,
+    );
+  }
+  for (const value of [
+    undefined,
+    null,
+    123,
+    true,
+    {},
+    [],
+    "",
+    "a".repeat(1025),
+  ]) {
+    await assert.rejects(
+      auth.login("operator", value),
+      (e) => e.getStatus?.() === 400,
+    );
+  }
+  assert.equal(queries, 0);
+});
+
+test("Login keeps case-sensitive identity and independent failure counters", async () => {
+  const port = createMockIdentityPort();
+  for (const username of ["Admin", "admin"])
+    port.users.set(username, {
+      id: username,
+      username,
+      isActive: true,
+      passwordHash: "mock-hash-correct",
+    });
+  const auth = new AuthService(port);
+  for (let i = 0; i < 5; i++)
+    await assert.rejects(
+      auth.login("Admin", "wrong"),
+      (e) => e.getStatus() === 401,
+    );
+  const result = await auth.login("admin", "correct");
+  assert.equal(result.user.username, "admin");
+  await assert.rejects(
+    auth.login("Admin", "correct"),
+    (e) => e.getStatus() === 429,
+  );
+});
+
+test("Controller propagates logout failure without clearing cookie", async () => {
+  const {
+    AuthController,
+  } = require("../dist/identity/presentation/auth.controller");
+  const controller = new AuthController({
+    logout: async () => {
+      throw new Error("database unavailable");
+    },
+  });
+  let cleared = false;
+  await assert.rejects(
+    controller.logout(
+      { headers: { cookie: "nexora_session=" + "a".repeat(64) } },
+      {
+        cookie() {
+          cleared = true;
+        },
+      },
+    ),
+  );
+  assert.equal(cleared, false);
+});
+
+test("Canonical HTTP session cookie ignores forged forwarding security", async () => {
+  const {
+    AuthController,
+  } = require("../dist/identity/presentation/auth.controller");
+  const controller = new AuthController({
+    login: async () => ({
+      user: { id: "u", username: "operator" },
+      token: "a".repeat(64),
+    }),
+    logout: async () => {},
+  });
+  const request = {
+    ip: "127.0.0.1",
+    socket: {},
+    secure: true,
+    headers: { "x-forwarded-proto": "https" },
+  };
+  const cookies = [];
+  const response = {
+    cookie(name, value, options) {
+      cookies.push({ name, value, options });
+    },
+  };
+  await controller.login(
+    { username: "operator", password: "password" },
+    response,
+  );
+  await controller.logout(request, response);
+  for (const cookie of cookies) {
+    assert.equal(cookie.name, "nexora_session");
+    assert.equal(cookie.options.secure, false);
+    assert.equal(cookie.options.httpOnly, true);
+    assert.equal(cookie.options.sameSite, "lax");
+    assert.equal(cookie.options.path, "/");
+  }
+  assert.equal(cookies[0].options.maxAge, 7 * 24 * 60 * 60 * 1000);
+  assert.equal(cookies[1].options.maxAge, 0);
 });

@@ -46,12 +46,27 @@ export async function verifyServerSession(
     });
 
     if (res.status === 200) {
-      const data = (await res.json().catch(() => null)) as {
-        user?: SessionUser;
-      } | null;
+      const data: unknown = await res.json().catch(() => null);
+      if (
+        !data ||
+        typeof data !== "object" ||
+        !("authenticated" in data) ||
+        data.authenticated !== true ||
+        !("user" in data) ||
+        !data.user ||
+        typeof data.user !== "object" ||
+        !("id" in data.user) ||
+        typeof data.user.id !== "string" ||
+        !data.user.id.trim() ||
+        !("username" in data.user) ||
+        typeof data.user.username !== "string" ||
+        !data.user.username.trim()
+      ) {
+        return { status: "unavailable", reason: "Invalid session response" };
+      }
       return {
         status: "authenticated",
-        user: data?.user ?? { id: "", username: "" },
+        user: { id: data.user.id, username: data.user.username },
       };
     }
 

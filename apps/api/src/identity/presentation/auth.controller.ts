@@ -58,23 +58,15 @@ export class AuthController {
   })
   async login(
     @Body() dto: LoginRequestDto,
-    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<LoginResponseDto> {
-    const clientIp = req.ip || req.socket.remoteAddress || "127.0.0.1";
-    const result = await this.authService.login(
-      dto.username,
-      dto.password,
-      clientIp,
-    );
-
-    const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
+    const result = await this.authService.login(dto?.username, dto?.password);
 
     res.cookie("nexora_session", result.token, {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      secure: isSecure,
+      secure: false, // Canonical loopback HTTP deployment; forwarded headers are not a policy input.
       maxAge: SEVEN_DAYS_MS,
     });
 
@@ -123,13 +115,11 @@ export class AuthController {
       await this.authService.logout(token);
     }
 
-    const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
-
     res.cookie("nexora_session", "", {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      secure: isSecure,
+      secure: false, // Canonical loopback HTTP deployment; forwarded headers are not a policy input.
       maxAge: 0,
     });
 

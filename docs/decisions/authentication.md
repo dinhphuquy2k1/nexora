@@ -24,13 +24,13 @@ The initial v0.1.0 foundation deferred authentication while establishing runtime
    - The server generates 32-byte cryptographically secure random session tokens (`crypto.randomBytes(32).toString("hex")`).
    - Only the SHA-256 hash (`crypto.createHash("sha256").update(token).digest("hex")`) is stored in PostgreSQL. Compromise of the database does not yield valid session tokens.
    - Sessions carry an explicit expiration timestamp (default: 7 days) and are revocable upon logout.
-   - Transported via `nexora_session` HTTP-only cookie (`HttpOnly: true`, `SameSite: Lax`, `Path: /`, `Secure: false` on local HTTP loopback, `true` when HTTPS).
+   - Transported via `nexora_session` HTTP-only cookie (`HttpOnly: true`, `SameSite: Lax`, `Path: /`, `Secure: false` under the supported local HTTP loopback deployment; forwarded headers do not alter the policy. HTTPS hosting is a separate deployment decision).
    - Expired-session cleanup is executed as an isolated best-effort operation preventing unhandled Promise rejections from interrupting backend service stability.
-   - State-changing authentication requests (`/api/auth/login`, `/api/auth/logout`) enforce same-origin verification (`OriginGuard`), rejecting missing, malformed, or untrusted browser origins with `403 FORBIDDEN`.
+   - State-changing authentication requests (`/api/auth/login`, `/api/auth/logout`) enforce exact trusted Origin verification (`OriginGuard`), using the policy owned by [Configuration](../operations/configuration.md), rejecting missing, malformed, or untrusted browser origins with `403 FORBIDDEN`.
    - Host header allowlist enforcement is executed at the Web ingress boundary (`apps/web/middleware.ts`) across all routes including `/api/*`.
 
 4. **First Account Provisioning**:
-   - Local installations provision the first operator account via trusted CLI tooling (`pnpm user:create` / `node scripts/user-create.mjs`) requiring database configuration and prompting for username and password without echoing secrets, or via explicit `--password-stdin` in non-interactive environments.
+   - Local installations provision the first operator account via trusted CLI tooling (compiled `dist/cli/user-create.js`; `pnpm user:create` remains a host wrapper) requiring database configuration and prompting for username and password without echoing secrets, or via explicit `--password-stdin` in non-interactive environments.
    - No hardcoded fallback database URLs, no default credentials, no automatic user creation at startup, and no unauthenticated HTTP bootstrap endpoints.
 
 5. **Access Control & Routing**:
@@ -40,4 +40,10 @@ The initial v0.1.0 foundation deferred authentication while establishing runtime
    - Protected web routes: Next.js workspace routes (`/`, `/system`, `/settings`) redirect unauthenticated requests to `/login?from=<returnUrl>`.
    - Genuine authentication verification is evaluated in the `/login` Server Component before redirecting to prevent redirect loops on invalid cookies.
    - AccountMenu verifies successful server-side revocation prior to client-side navigation.
-   - Login rate-limiting: in-memory sliding-window rate limiting (max 5 consecutive failures per 5 minutes per IP/user) returning `429 TOO_MANY_REQUESTS` with generic failure messages. Express `trust proxy` is restricted to trusted local network boundaries (`loopback, linklocal, uniquelocal`). Dummy Scrypt hash verification is evaluated on non-existent usernames to mitigate timing discrepancies.
+   - Login rate-limiting: bounded per-account failures (five per five minutes, 128 entries), combined with a process-wide burst of 10, one admission per second refill and four concurrent admissions, returning `429 TOO_MANY_REQUESTS`. See [Backend](../architecture/backend.md) for capacity and saturation policy. Express `trust proxy` is restricted to trusted local network boundaries (`loopback, linklocal, uniquelocal`). Dummy Scrypt hash verification is evaluated on non-existent usernames to mitigate timing discrepancies.
+
+6. **Failure semantics and provisioning boundary**:
+   - Runtime credential type/length validation precedes admission and database work. Usernames remain case-sensitive; no identity migration or account merging is introduced.
+   - Successful logout means database revocation completed; deletion failures propagate and do not clear cookies. Cleanup of already-expired sessions remains best effort.
+   - Server-side session verification accepts only `authenticated: true` with nonempty string user ID/username; malformed HTTP 200 payloads represent unavailable service, never an authenticated fallback identity.
+   - The compiled CLI uses one raw terminal reader with hidden password/confirmation, backspace and cancellation/EOF cleanup. Explicit `--password-stdin` is the only piped mode; password arguments are forbidden. Its runtime acceptance is demonstrated only by fresh-install and pseudo-TTY tests, never source inspection alone.
