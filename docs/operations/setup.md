@@ -13,3 +13,7 @@ Cloud proxy installations may require the platform CA as optional BuildKit `buil
 | macOS Docker Desktop             | Supported POSIX scripts    |
 
 For offline Docker dependency preparation, an optional named build context `dependency-cache` may contain `pnpm-cache.tar` created from a pnpm store that passed `pnpm store status`. Default scratch context is empty and performs a normal frozen online install. Cached artifacts retain pnpm integrity checks.
+
+## Planned unified identity upgrade
+
+The unified identity release is not implemented. Before any future upgrade containing that migration, follow the mandatory maintenance, verified-backup and isolated recovery safeguards in [Backup and restore](backup-restore.md#planned-unified-identity-upgrade-safeguards). PR #7 merge and migration-verification prerequisites are tracked in [NEXORA-010](../tasks/active/NEXORA-010-unified-identity-foundation.md).

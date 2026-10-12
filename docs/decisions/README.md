@@ -17,3 +17,7 @@ This directory contains Architecture Decision Records (ADRs) for Nexora. Durable
 - [API contract ownership & OpenAPI generation](contract-ownership.md)
 - [Docker runtime modes & execution topology](docker-modes.md)
 - [Local file storage & catalog persistence](storage.md)
+
+## Accepted future direction
+
+- [Unified identity foundation](unified-identity.md) — accepted 2026-10-12; implementation PLANNED and gated on merged, verified PR #7. Phase 0 documentation is separate from the blocked Phase 1 implementation.

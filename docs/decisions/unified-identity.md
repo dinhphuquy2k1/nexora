@@ -1,0 +1,62 @@
+# Unified identity foundation decision
+
+Accepted direction: 2026-10-12. Implementation: PLANNED. This decision defines Phase 0 and the gated Phase 1 target; it does not describe shipped schema or authorize live provider integration. Existing runtime decisions remain authoritative until their implementation milestones pass. See [NEXORA-010](../tasks/active/NEXORA-010-unified-identity-foundation.md) for dependency evidence and migration verification.
+
+## Identity and access
+
+The target is one `users` table with feature-local `as const` vocabulary: role ADMIN/OPERATOR and status ACTIVE/DISABLED, stored as VARCHAR with SQL CHECK constraints, never Prisma/PostgreSQL/TypeScript enums. Local passwords belong in `local_credentials`, not the unified user row. Phase 1 creates only these concrete local-authentication consumers; external identities, provider credentials and device/audit/approval tables are deferred.
+
+Trusted local provisioning creates ADMIN explicitly, never exposes role selection through HTTP and never creates local-password Operators. Legacy trusted accounts may become ADMIN only after the merged production creation paths and history establish provenance. A provenance gap stops migration; active and disabled state must survive.
+
+Future employee Login uses `/login`; independent local Admin Login uses `/login?mode=admin`. This is planned routing, with no Login UI or default behavior change in Phase 0–1. Both methods issue Nexora opaque PostgreSQL sessions; provider tokens never become application session tokens. Each Login creates an independent session; Logout revokes only the current session. No unique user_id session constraint or device management is introduced. Future disable revokes all account sessions and session validation rejects disabled users.
+
+Admin will preregister employees by confirmed Uniship userid. Unknown identities do not automatically create accounts, PENDING requests or public registrations. Only an explicitly registered ACTIVE OPERATOR may eventually access Nexora after authorized provider authentication. The external identity schema waits for a real preregistration consumer and confirmed userid semantics; username-first binding is not approved.
+
+Phase 2 must prevent disabling/removing the final ACTIVE ADMIN, including self-disable and concurrent administrative mutations. That invariant belongs to the first Admin mutation implementation and its concurrency tests, not a speculative Phase 1 trigger/service.
+
+## Future deployment boundary
+
+Employee Internet access requires a separate HTTPS deployment milestone covering TLS ingress, Secure cookies, trusted Host/Origin configuration, API exposure, administrative restrictions and remote multi-device security. Current supported loopback HTTP and internal-only API/PostgreSQL remain unchanged.
+
+Proposed policy: public employee ingress must not automatically expose local Admin Login. A separately trusted private channel must protect Admin authentication, APIs and already issued Admin sessions. Spoofable headers cannot prove local access. Preserve local recovery independently of Uniship. Exact ingress configuration awaits the deployment ADR and owner hosting/access decisions; this document implements no network restriction or exposure.
+
+## Observed provider examples, not authorized contracts
+
+Owner-supplied observations only:
+
+- Login: `POST https://kh.uniship.vn/client/api-token-auth/`, body containing employee username/password and `FirebaseToken: null`; response has a provider token and user fields userid, username, email and is_verified.
+- Profile: `GET https://kh.uniship.vn/client/api/customers/{userid}`, with `Authorization: Bearer <provider-token>`; response includes data.ID, data.Username and customer metadata.
+
+No real credential/token is included. These observations do not establish official API permission, stable identity, token lifetime or data rights. No HTTP request, adapter or durable token storage is implemented or tested here.
+
+Questions requiring owner/provider answers:
+
+1. Is third-party server-to-server integration permitted?
+2. Is userid stable and non-reassignable?
+3. How may Admin legitimately obtain employee userids?
+4. Are identities independent customer accounts or corporate subaccounts?
+5. What source-IP rate limits apply?
+6. Is server-IP allowlisting supported?
+7. Does a new Login invalidate previous tokens?
+8. Can multiple tokens coexist?
+9. What expiry, refresh and revocation rules apply?
+10. Is durable encrypted token storage permitted?
+11. What retrieval and retention rights apply?
+
+## Planned provider failure policy
+
+Invalid credentials, a valid unregistered identity and a disabled Operator must share HTTP 401, code `AUTHENTICATION_FAILED`, message `Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập.` Public errors must not disclose registration status. This future policy does not replace current local Login codes.
+
+Successful provider authentication may require an additional profile request, leaving observable timing differences despite identical failures. Future implementation must apply username admission, a global outbound budget and concurrency limits before provider calls, respect source-IP limits, avoid unnecessary timing padding and never log credentials/tokens. Authorization and confirmed contract remain prerequisites.
+
+## Separate future phases
+
+| Phase | Dependency                                                                           | Scope                                                                                                                                  |
+| :---- | :----------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | PR #7 merged, merged auth migration and relevant CI verified, provenance established | Unified users/local credentials and preserved local authentication                                                                     |
+| 2     | Phase 1 merged/verified; legitimate userid source clarified                          | Confirmed external identity schema, Admin preregistration/list/disable UI/API, concurrent last-Admin invariant, all-session revocation |
+| 3     | Hosting inputs and administrative access policy approved                             | HTTPS ingress, cookies, Host/Origin, public/private separation, remote sessions                                                        |
+| 4     | Explicit provider authorization, stable userid, token and rate-limit contract        | Provider adapter/Login/profile, registered Operator enforcement, approved token persistence, oracle controls                           |
+| 5     | All dependency/security gates verified                                               | Employee Login activation, independent local Admin and multi-device/end-to-end readiness                                               |
+
+Phases 2–5 require separate prompts and PRs. No JWT, Redis, generic RBAC framework, shipment integration or automatic deployment/merge follows from this decision.
