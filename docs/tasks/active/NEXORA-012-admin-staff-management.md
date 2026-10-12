@@ -1,9 +1,9 @@
-# Task: NEXORA-012 — Admin Staff Management & Uniship Identity Preregistration
+# Task: NEXORA-012 — SQL-Based Uniship Identity & Login Foundation
 
 - **Task ID**: `NEXORA-012`
-- **Status**: `PLANNED`
-- **Implementation**: `PLANNED`
-- **Verification**: `NOT VERIFIED`
+- **Status**: `IN PROGRESS`
+- **Implementation**: `IMPLEMENTED`
+- **Verification**: `PARTIALLY VERIFIED`
 - **Classification**: SIGNIFICANT
 
 ## Predecessor baseline and verification preflight
@@ -13,128 +13,158 @@ PR #9 final head commit `1e434d63093bfee366570c3c6e342062e2f22179` passed hosted
 Merge commit `f0f54f58c7578dd9dd86fecbd6534e26a4c044cb` push workflow run `38242823228` passed on main (16m38s).
 NEXORA-011 was formally closed as `COMPLETED` / `VERIFIED` and moved to `docs/tasks/completed/NEXORA-011-unified-identity-migration.md` in commit `3752aa8` on main.
 Worktree branch: `feat/admin-staff-management`.
+Target PR: [#10](https://github.com/dinhphuquy2k1/nexora/pull/10).
 
-## Section 5 Hard Gate: Confirmed Uniship Identity Contract Audit
+## Owner-Approved Implementation Sequence
 
-The Unified Identity ADR ([unified-identity.md](../../decisions/unified-identity.md)) and project rules mandate that employee preregistration must use a confirmed Uniship permanent subject identifier, and explicitly forbid speculative schema or username/email bindings.
+Following initial investigation into Uniship identity semantics, the repository owner adjusted the delivery sequence for NEXORA-012:
 
-An exhaustive preflight audit of repository documentation and specifications was conducted against the 8 mandatory gate questions:
+- **Uniship `userid`**: Treated as a permanent identity identifier for this application integration plan.
+- **Acquisition**: Admin will manually obtain and enter the `userid`.
+- **Registration**: Initially executed via SQL script, not a browser interface or HTTP endpoint.
+- **Reassignment**: Questions regarding future `userid` reassignment are not blockers for this initial milestone.
+- **Priority**: Fast, testable Login foundation is the immediate priority.
+- **Gate Distinction**: These decisions represent owner-approved application requirements, not proof of an official Uniship API contract. Live Uniship integration remains gated.
 
-1. **Is Uniship `userid` stable?**
-   - **Audit Evaluation**: UNCONFIRMED.
-   - **Evidence**: `docs/decisions/unified-identity.md` line 35 records open question 2: _"Is userid stable and non-reassignable?"_ `docs/decisions/product-scope.md` line 63 confirms _"Provider authorization, userid semantics and retention rights remain open prerequisites."_
-2. **Is it globally unique within the relevant provider identity namespace?**
-   - **Audit Evaluation**: UNCONFIRMED.
-   - **Evidence**: No official provider contract or namespace definition exists in repository records.
-3. **Can it be reassigned to another person?**
-   - **Audit Evaluation**: UNCONFIRMED.
-   - **Evidence**: Explicitly listed as an open question in ADR records.
-4. **Is the identifier case-sensitive, numeric or textual?**
-   - **Audit Evaluation**: UNCONFIRMED.
-   - **Evidence**: Sample observation notes `userid` in login JSON and `data.ID` in profile JSON, but ADR line 30 states: _"These observations do not establish official API permission, stable identity, token lifetime or data rights."_ Exact format, typing, length, and casing rules are undocumented.
-5. **What is the permitted canonical representation?**
-   - **Audit Evaluation**: UNCONFIRMED.
-   - **Evidence**: No canonical normalization or regex representation is defined by owner-approved contracts.
-6. **Can ADMIN legitimately obtain it for employee preregistration?**
-   - **Audit Evaluation**: UNCONFIRMED.
-   - **Evidence**: `docs/decisions/unified-identity.md` line 36 records open question 3: _"How may Admin legitimately obtain employee userids?"_ No admin acquisition channel or provider admin directory endpoint is documented.
-7. **Does the identifier refer to an employee, customer account or corporate subaccount?**
-   - **Audit Evaluation**: UNCONFIRMED.
-   - **Evidence**: Observed sample endpoint is `https://kh.uniship.vn/client/api/customers/{userid}` (customer portal path), while target users are Nexora logistics staff / employees. ADR line 37 records open question 4: _"Are identities independent customer accounts or corporate subaccounts?"_
-8. **Are the identifiers exposed in authentication and profile results guaranteed to represent the same identity?**
-   - **Audit Evaluation**: UNCONFIRMED.
-   - **Evidence**: Discrepancy between auth field `userid` and profile field `data.ID` remains unverified by provider contracts.
+### Immediate Scope (Implemented in this Milestone)
 
-### Hard Gate Decision & PLAN ISSUE
+1. **External Identity Schema**: `ExternalIdentity` model in `packages/database/prisma/schema.prisma` mapping to `external_identities` table.
+2. **Committed Migration**: `20261012020000_external_identities` adding foreign key cascade to `users(id)`, compound unique constraints, provider check constraint (`uniship`), and subject format check constraint.
+3. **Manual SQL Operator Registration**: `scripts/sql/register-uniship-operator.sql` executing an atomic transaction with input validation, `gen_random_uuid()` generation, and creation of `users` (`role = 'OPERATOR'`, `status = 'ACTIVE'`) plus `external_identities` with zero rows in `user_credentials`.
+4. **Unique Provider Binding**: PostgreSQL compound unique constraint `(provider, provider_subject)` preventing duplicate bindings across users, and `(user_id, provider)` preventing multiple provider identities per user.
+5. **Authentication Application Interfaces**:
+   - `IdentityPort.findExternalIdentity(provider, providerSubject)`
+   - `IdentityDatabaseAdapter.findExternalIdentity` querying `external_identities` with linked user.
+   - `AuthService.authenticateExternalIdentity(verified: VerifiedProviderIdentity)` receiving a verified provider identity from a trusted server-side adapter, enforcing `OPERATOR` and `ACTIVE` user status, and issuing an opaque Nexora session.
+6. **Fake-Provider Integration Tests**: Automated tests against disposable PostgreSQL verifying session issuance for active operators, uniform 401 `AUTHENTICATION_FAILED` for invalid/unregistered/disabled/admin identities, SessionGuard compatibility, and logout revocation.
+7. **Regression Safety**: Preserves local ADMIN password Login, Scrypt credentials, and generic SessionGuard behavior without regression.
+8. **Backup and Restore Extension**: `scripts/auth-restore-smoke.mjs` and `scripts/pr7-restore-smoke.mjs` updated to include `external_identities`.
 
-> [!WARNING]
-> **PLAN ISSUE: Uniship identity contract and legitimate acquisition source unconfirmed.**
-> In accordance with Section 5 of the Phase 2 specification and [Project Rules](../../ai/PROJECT_RULES.md#3-domain--business-invariants):
->
-> - External identity schema (`external_identities`) must NOT be created based on speculative assumptions.
-> - Employees must NOT be registered against temporary usernames or emails.
-> - No fake provider verification mechanism or fabricated user IDs may be introduced.
-> - The task remains `PLANNED` for external identity preregistration until owner decisions resolve the gate.
-> - Phase 2 cannot be claimed `IMPLEMENTED`.
+### Explicitly Deferred Scope (Not Implemented in this Milestone)
 
-### Required Owner / Provider Decisions to Unblock Full Phase 2
-
-1. **Provider Contract Specification**: Official documentation confirming whether Uniship `userid` (or `data.ID`) is permanent, immutable, and non-reassignable across user lifecycles.
-2. **Canonical Identifier Syntax**: Definition of data type (integer string vs alphanumeric UUID), maximum length, and canonical casing rules for the provider subject key.
-3. **Legitimate Acquisition Workflow**: Specification of how a Nexora ADMIN legitimately obtains the employee's Uniship subject ID (e.g. from an official Uniship corporate portal, CSV export, or verified employee profile).
+- Admin account-management interface (`/admin/users`).
+- Browser form for adding staff.
+- Staff listing, disable, and reactivate HTTP APIs.
+- Live Uniship API calls (`https://kh.uniship.vn`).
+- Real provider token persistence.
+- Internet hosting / HTTPS deployment.
+- Employee-facing UI changes (`/login` redesign or `/login?mode=admin` routing).
 
 ---
 
-## Target Architecture Specification (Phase 2)
+## Database Architecture & Migration
 
-Following resolution of the Uniship contract gate, Phase 2 implements the following safe architectural layers:
+### Schema Model
 
-### 1. Database Layer (`packages/database`)
+```prisma
+model ExternalIdentity {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  provider        String   @db.VarChar(32)
+  providerSubject String   @map("provider_subject") @db.VarChar(128)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-- Preserve existing tables: `users`, `user_credentials`, `sessions`.
-- Future `external_identities` table (only after gate passes):
-  - Primary key `id` UUID.
-  - Foreign key `user_id` referencing `users.id` ON DELETE CASCADE.
-  - `provider` VARCHAR(32) NOT NULL (e.g. `uniship`).
-  - `provider_subject` VARCHAR(128) NOT NULL (the confirmed Uniship permanent subject identifier).
-  - Explicit PostgreSQL unique constraint `(provider, provider_subject)` enforcing 1:1 binding at the database level.
-  - Unique constraint `(user_id, provider)` preventing multiple identities for the same user per provider.
-  - Timestamps `created_at`, `updated_at`.
-- Strict migration rules: Committed forward-only Prisma migration deployed via `prisma migrate deploy`, preserving existing rows, sessions, and credentials.
+  @@unique([provider, providerSubject])
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("external_identities")
+}
+```
 
-### 2. Backend Authorization (`apps/api`)
+### Migration: `20261012020000_external_identities`
 
-- Keep generic `SessionGuard` authentication-method agnostic (validates opaque session token in PostgreSQL and checks user status `ACTIVE`).
-- Implement dedicated `AdminGuard` (or `@Roles('ADMIN')` guard) applied specifically to `/api/admin/*` routes.
-- Access policy:
-  - Anonymous requests return HTTP 401 UNAUTHORIZED.
-  - Authenticated `OPERATOR` requests to `/api/admin/*` return HTTP 403 FORBIDDEN.
-  - Authenticated `ACTIVE` `ADMIN` requests succeed.
-  - `DISABLED` accounts return HTTP 401 (rejected by `SessionGuard`).
-  - No authorization decisions based on user-supplied headers, query parameters, or request body roles.
+- Forward-only committed SQL migration.
+- Preserves all existing `users`, `user_credentials`, and `sessions` data.
+- Includes SQL constraints:
+  - `chk_external_identities_provider`: `CHECK (provider IN ('uniship'))`
+  - `chk_external_identities_subject_format`: `CHECK (LENGTH(TRIM(provider_subject)) > 0 AND provider_subject = TRIM(provider_subject))`
+  - Foreign key `fk_external_identities_user_id` referencing `users(id)` ON DELETE CASCADE.
+  - Unique index `external_identities_provider_provider_subject_key`.
+  - Unique index `external_identities_user_id_provider_key`.
 
-### 3. Admin Staff Management API (`apps/api`)
+---
 
-- `GET /api/admin/users`:
-  - Returns paginated list of accounts (`items: Array<{ id, username, role, status, createdAt, externalIdentity: { provider, subject } | null }>`, `total`, `page`, `limit`).
-  - Strictly omits password hashes, session hashes, cookies, and tokens.
-- `POST /api/admin/users/preregister` (gated on provider contract):
-  - Accepts `{ username, providerSubject }`.
-  - Atomically creates `User` (role: `OPERATOR`, status: `ACTIVE`) and `ExternalIdentity`.
-  - Creates NO entry in `user_credentials`.
-  - Rejects duplicates with HTTP 409 CONFLICT.
-- `PATCH /api/admin/users/:id/disable`:
-  - Atomically sets target `status = DISABLED`.
-  - Revokes all active sessions belonging to the target user (`DELETE FROM sessions WHERE user_id = :id`).
-  - Enforces **Final ACTIVE ADMIN Invariant** transactionally: if target is role `ADMIN`, ensures `count(ACTIVE ADMIN) > 1` within a serializable transaction with appropriate row locking (`SELECT FOR UPDATE`), preventing concurrent mutual disablement.
-- `PATCH /api/admin/users/:id/reactivate`:
-  - Sets target `status = ACTIVE`.
-  - Does NOT restore previously revoked sessions.
-  - Generates no credentials or automatic sessions.
+## Manual SQL Operator Registration Instructions
 
-### 4. Frontend Admin Management UI (`apps/web`)
+Authorized database administrators execute manual operator registration using `scripts/sql/register-uniship-operator.sql`:
 
-- Admin route: `/admin/users` (or tab in `/settings`).
-- Server-side route authorization: Server Component or middleware verifies session and `role === ADMIN`; redirects non-admin users or unauthenticated callers.
-- UI sections:
-  - Account list with role badges (`ADMIN`, `OPERATOR`) and status badges (`ACTIVE`, `DISABLED`).
-  - Bounded pagination and filtering.
-  - "Preregister Operator" form (enabled only after gate passes).
-  - Disable / Reactivate actions with confirmation dialogs explaining session revocation.
-  - Clear loading, error, empty, and forbidden states.
+```sh
+# Example registration command via psql
+psql -v username="operator_nam" -v uniship_userid="10482" -f scripts/sql/register-uniship-operator.sql "$DATABASE_URL"
+```
+
+### Operational Behavior:
+
+1. **Transaction Atomicity**: Enclosed in a single transaction block (`BEGIN ... COMMIT`).
+2. **Preflight Validation**:
+   - Rejects empty, whitespace-only, or untrimmed usernames.
+   - Enforces username length between 3 and 50 characters.
+   - Rejects empty, whitespace-only, or untrimmed `uniship_userid`.
+   - Enforces `uniship_userid` length between 1 and 128 characters.
+   - Checks if `username` is already taken in `users`.
+   - Checks if `uniship_userid` is already bound to another user for provider `'uniship'`.
+3. **Execution**:
+   - Generates a UUID via PostgreSQL `gen_random_uuid()`.
+   - Inserts row into `users` (`role = 'OPERATOR'`, `status = 'ACTIVE'`).
+   - Inserts row into `external_identities` (`provider = 'uniship'`, `provider_subject = uniship_userid`).
+   - Inserts **zero** rows into `user_credentials`.
+4. **Concurrency Safety**: Database unique constraints (`users_username_key` and `external_identities_provider_provider_subject_key`) serve as the authoritative final defense against concurrent duplicate registrations.
+5. **Inspection & Verification**:
+   ```sql
+   SELECT u.id, u.username, u.role, u.status, e.provider, e.provider_subject
+   FROM users u
+   JOIN external_identities e ON e.user_id = u.id
+   WHERE u.username = 'operator_nam';
+   ```
+
+---
+
+## Server-Side Authentication Boundary
+
+The authentication architecture maintains strict separation between external provider identity claims and Nexora session issuance:
+
+```
+[Future Provider Adapter]
+       │
+       ▼ (Server-side verified identity payload)
+{ provider: 'uniship', providerSubject: '10482' }
+       │
+       ▼
+AuthService.authenticateExternalIdentity(verified)
+       │
+       ├─► Check provider === 'uniship' & valid trimmed providerSubject
+       ├─► Port: findExternalIdentity(provider, providerSubject)
+       ├─► Assert linked user exists
+       ├─► Assert user.role === 'OPERATOR' (ADMINs cannot authenticate via operator provider flow)
+       ├─► Assert user.status === 'ACTIVE'
+       ▼
+Issue Opaque Nexora Session (32 random bytes -> SHA-256 hash in PostgreSQL -> 7-day TTL)
+       ▼
+SessionGuard / validateSession validates opaque session
+```
+
+### Critical Security Boundaries
+
+- **No Unauthenticated Provider Endpoint**: No public endpoint accepts raw `userid` without an authentic server-side provider verification adapter.
+- **Uniform Failure Policy**: Missing identities, disabled users, admin accounts, or malformed payloads all return HTTP 401 `AUTHENTICATION_FAILED` with the exact Vietnamese message: `"Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập."`
+- **Zero Operator Credentials**: Operators never possess passwords or entries in `user_credentials`, preventing local password login.
+- **Admin Password Isolation**: Local password login requires `ADMIN` role, `ACTIVE` status, and valid Scrypt password hash. Operators attempting local password login fail with 401.
 
 ---
 
 ## Acceptance Criteria
 
-1. **Preflight Hard Gate**: Uniship identity semantics, casing, stability, and acquisition source are officially confirmed and documented prior to database schema creation.
-2. **Database Integrity**: `external_identities` enforces unique provider subject bindings; migrations apply cleanly without altering Phase 1 data or existing sessions.
-3. **ADMIN Route Authorization**: Only authenticated `ACTIVE` `ADMIN` users can access `/api/admin/*` routes; `OPERATOR` users receive 403; unauthenticated users receive 401.
-4. **Staff Management Operations**: ADMIN can list accounts, disable accounts, and reactivate accounts.
-5. **Session Revocation**: Disabling an account immediately revokes all of its active sessions across all devices.
-6. **Final ACTIVE ADMIN Invariant**: The system transactionally prevents disabling the last active ADMIN, including under concurrent execution.
-7. **Zero Credentials for Operators**: Preregistered OPERATOR accounts never have rows in `user_credentials`.
-8. **Regression Safety**: Existing local ADMIN password Login, session handling, CLI user creation, and operational smoke tests continue to pass.
+1. **Database Schema & Migration**: `external_identities` exists via a committed forward-only Prisma migration without altering Phase 1 tables or data.
+2. **Atomic SQL Registration**: Manual SQL script atomically creates an `ACTIVE` `OPERATOR` user and Uniship binding with 0 credentials.
+3. **Constraint Enforcement**: PostgreSQL uniqueness prevents duplicate `(provider, provider_subject)` and duplicate `(user_id, provider)`.
+4. **Server-Side Session Issuance**: Sessions are issued only to server-verified external identities linked to active operators.
+5. **Uniform Failure Policy**: Disallowed, unknown, disabled, or malformed provider authentication requests receive uniform 401 `AUTHENTICATION_FAILED`.
+6. **Local ADMIN Isolation**: Local password login remains restricted to `ACTIVE` `ADMIN` users with Scrypt credentials. Operators cannot use password login.
+7. **SessionGuard Interoperability**: Generic `SessionGuard` validates sessions issued to operators identically to admin sessions.
+8. **Backup / Restore Continuity**: External identities survive database restarts and backup/restore procedures.
+9. **No Unauthorized Scope**: No Admin UI, staff CRUD APIs, or live calls to `kh.uniship.vn` are introduced.
 
 ---
 
@@ -142,16 +172,22 @@ Following resolution of the Uniship contract gate, Phase 2 implements the follow
 
 Documentation Impact: REQUIRED
 
-### Changed facts
+### Changed Facts
 
-- Established task NEXORA-012 for Phase 2 Admin Staff Management & Uniship Identity Preregistration.
-- Executed Section 5 Hard Gate preflight audit: confirmed Uniship identity contract and acquisition source are unconfirmed; recorded PLAN ISSUE.
-- Documented safe target architecture for database, backend guards, management APIs, concurrency invariants, and frontend components.
+- Added `external_identities` model to database architecture and Prisma schema.
+- Added migration `20261012020000_external_identities`.
+- Provided manual SQL operator registration script `scripts/sql/register-uniship-operator.sql`.
+- Specified `AuthService.authenticateExternalIdentity` port and service.
+- Recorded owner confirmation of Uniship `userid` stability for application integration and deferred Admin UI / live provider integration.
 
-### Canonical owners
+### Canonical Owners
 
 - `docs/tasks/active/NEXORA-012-admin-staff-management.md`
 - `docs/decisions/unified-identity.md`
+- `docs/architecture/database.md`
+- `docs/architecture/backend.md`
+- `docs/operations/testing.md`
+- `docs/operations/backup-restore.md`
 
 ### Documentation verification
 
@@ -161,9 +197,11 @@ Documentation Impact: REQUIRED
 
 ## Evidence
 
-| Claim                                                    | Evidence                                                                                                                                               | Date       | Result |
-| :------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
-| Predecessor PR #9 merge and CI verified on main baseline | GitHub Actions run 38242823228 on merge commit f0f54f58c7578dd9dd86fecbd6534e26a4c044cb (docker-foundation: quality, migration, runtime, backup smoke) | 2026-10-12 | PASS   |
-| Predecessor task NEXORA-011 verified and closed          | Task moved to `docs/tasks/completed/NEXORA-011-unified-identity-migration.md` with status COMPLETED / VERIFIED in commit 3752aa8                       | 2026-10-12 | PASS   |
-| Hard Gate Audit detects unconfirmed Uniship contract     | Preflight audit against `docs/decisions/unified-identity.md` lines 23-45 & `docs/decisions/product-scope.md` line 63 identifies open prerequisites     | 2026-10-12 | PASS   |
-| Documentation governance and entry points valid          | `node scripts/docs-check.mjs`                                                                                                                          | 2026-10-12 | PASS   |
+| Claim                                                                | Evidence                                    | Date       | Result |
+| :------------------------------------------------------------------- | :------------------------------------------ | :--------- | :----- |
+| Workspace architectural boundaries respected                         | `node scripts/boundaries.mjs`               | 2026-10-12 | PASS   |
+| OpenAPI contract drift and SDK generation                            | `node scripts/contracts-check.mjs`          | 2026-10-12 | PASS   |
+| Documentation governance, links and task state                       | `node scripts/docs-check.mjs`               | 2026-10-12 | PASS   |
+| Unit tests pass (AuthService, SessionGuard, IdentityDatabaseAdapter) | `pnpm --filter @nexora/api test` (53 tests) | 2026-10-12 | PASS   |
+| Migration tests verify external_identities, constraints & drift      | `node packages/database/test/migration.mjs` | 2026-10-12 | PASS   |
+| Integration tests verify fake-provider authentication & constraints  | `apps/api/test/integration.test.cjs`        | 2026-10-12 | PASS   |

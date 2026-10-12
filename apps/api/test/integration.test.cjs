@@ -234,3 +234,243 @@ test("real unified identities keep local Login eligibility separate from generic
     await adapter.onApplicationShutdown();
   }
 });
+
+test("external identities enforce unique bindings, prevent duplicate subjects, and enable fake-provider OPERATOR sessions", async () => {
+  const {
+    IdentityDatabaseAdapter,
+  } = require("../dist/identity/infrastructure/identity.adapter");
+  const { AuthService } = require("../dist/identity/application/auth.service");
+  const {
+    SessionGuard,
+  } = require("../dist/identity/presentation/session.guard");
+  const { randomUUID } = require("node:crypto");
+
+  assert.ok(process.env.DATABASE_URL, "DATABASE_URL required");
+  const adapter = new IdentityDatabaseAdapter(process.env.DATABASE_URL);
+  const service = new AuthService(adapter);
+  const guard = new SessionGuard(service, { getAllAndOverride: () => false });
+  const guarded = (token) =>
+    guard.canActivate({
+      getHandler: () => null,
+      getClass: () => null,
+      switchToHttp: () => ({
+        getRequest: () => ({ headers: { cookie: `nexora_session=${token}` } }),
+      }),
+    });
+
+  const prefix = `extid-${randomUUID().slice(0, 8)}`;
+  const userIds = [];
+
+  try {
+    // 1. Create test users: ACTIVE OPERATOR, DISABLED OPERATOR, and ACTIVE ADMIN
+    const activeOp = await adapter.client.user.create({
+      data: {
+        username: `${prefix}-op-active`,
+        role: "OPERATOR",
+        status: "ACTIVE",
+        externalIdentities: {
+          create: {
+            provider: "uniship",
+            providerSubject: `${prefix}-subject-active`,
+          },
+        },
+      },
+      include: { externalIdentities: true },
+    });
+    userIds.push(activeOp.id);
+
+    const disabledOp = await adapter.client.user.create({
+      data: {
+        username: `${prefix}-op-disabled`,
+        role: "OPERATOR",
+        status: "DISABLED",
+        externalIdentities: {
+          create: {
+            provider: "uniship",
+            providerSubject: `${prefix}-subject-disabled`,
+          },
+        },
+      },
+      include: { externalIdentities: true },
+    });
+    userIds.push(disabledOp.id);
+
+    const activeAdmin = await adapter.client.user.create({
+      data: {
+        username: `${prefix}-admin-active`,
+        role: "ADMIN",
+        status: "ACTIVE",
+        externalIdentities: {
+          create: {
+            provider: "uniship",
+            providerSubject: `${prefix}-subject-admin`,
+          },
+        },
+      },
+      include: { externalIdentities: true },
+    });
+    userIds.push(activeAdmin.id);
+
+    // Verify neither operator has rows in user_credentials
+    const opCredentials = await adapter.client.userCredential.findMany({
+      where: { userId: { in: [activeOp.id, disabledOp.id] } },
+    });
+    assert.equal(opCredentials.length, 0);
+
+    // 2. Database constraints & duplicate prevention
+    // Duplicate (provider, providerSubject) must be rejected by PostgreSQL uniqueness
+    const duplicateUser = await adapter.client.user.create({
+      data: {
+        username: `${prefix}-duplicate-subject`,
+        role: "OPERATOR",
+        status: "ACTIVE",
+      },
+    });
+    userIds.push(duplicateUser.id);
+
+    await assert.rejects(
+      adapter.client.externalIdentity.create({
+        data: {
+          userId: duplicateUser.id,
+          provider: "uniship",
+          providerSubject: `${prefix}-subject-active`,
+        },
+      }),
+      (err) => err.code === "P2002",
+    );
+
+    // Duplicate (userId, provider) must be rejected
+    await assert.rejects(
+      adapter.client.externalIdentity.create({
+        data: {
+          userId: activeOp.id,
+          provider: "uniship",
+          providerSubject: `${prefix}-different-subject`,
+        },
+      }),
+      (err) => err.code === "P2002",
+    );
+
+    // Provider check constraint: only 'uniship' permitted
+    await assert.rejects(
+      adapter.client.$executeRaw`
+        INSERT INTO external_identities (id, user_id, provider, provider_subject, created_at, updated_at)
+        VALUES (gen_random_uuid(), ${duplicateUser.id}::uuid, 'unsupported', 'some-subj', NOW(), NOW())
+      `,
+    );
+
+    // Subject format check constraint: empty or untrimmed rejected
+    await assert.rejects(
+      adapter.client.$executeRaw`
+        INSERT INTO external_identities (id, user_id, provider, provider_subject, created_at, updated_at)
+        VALUES (gen_random_uuid(), ${duplicateUser.id}::uuid, 'uniship', '  spaces  ', NOW(), NOW())
+      `,
+    );
+
+    // 3. Fake-provider server-side authentication flow via AuthService.authenticateExternalIdentity
+    // Unknown provider subject -> 401 AUTHENTICATION_FAILED
+    await assert.rejects(
+      service.authenticateExternalIdentity({
+        provider: "uniship",
+        providerSubject: `${prefix}-unregistered`,
+      }),
+      (err) =>
+        err.getStatus() === 401 &&
+        err.getResponse().code === "AUTHENTICATION_FAILED",
+    );
+
+    // Disabled operator -> 401 AUTHENTICATION_FAILED
+    await assert.rejects(
+      service.authenticateExternalIdentity({
+        provider: "uniship",
+        providerSubject: `${prefix}-subject-disabled`,
+      }),
+      (err) =>
+        err.getStatus() === 401 &&
+        err.getResponse().code === "AUTHENTICATION_FAILED",
+    );
+
+    // Admin user linked to provider -> 401 AUTHENTICATION_FAILED (ADMIN cannot use operator provider flow)
+    await assert.rejects(
+      service.authenticateExternalIdentity({
+        provider: "uniship",
+        providerSubject: `${prefix}-subject-admin`,
+      }),
+      (err) =>
+        err.getStatus() === 401 &&
+        err.getResponse().code === "AUTHENTICATION_FAILED",
+    );
+
+    // Registered ACTIVE OPERATOR -> Success
+    const authResult = await service.authenticateExternalIdentity({
+      provider: "uniship",
+      providerSubject: `${prefix}-subject-active`,
+    });
+    assert.ok(authResult.token);
+    assert.equal(authResult.user.id, activeOp.id);
+    assert.equal(authResult.user.username, activeOp.username);
+
+    // 4. Session validity and SessionGuard activation
+    const validated = await service.validateSession(authResult.token);
+    assert.deepEqual(validated, {
+      id: activeOp.id,
+      username: activeOp.username,
+    });
+
+    const guardResult = await guarded(authResult.token);
+    assert.equal(guardResult, true);
+
+    // 5. Operator cannot use local password login
+    await assert.rejects(
+      service.login(activeOp.username, "AnyPassword123!"),
+      (err) => err.getStatus() === 401,
+    );
+
+    // 6. Logout and revocation
+    await service.logout(authResult.token);
+    assert.equal(await service.validateSession(authResult.token), null);
+    await assert.rejects(
+      guarded(authResult.token),
+      (err) => err.getStatus() === 401,
+    );
+
+    // 7. Cascade deletion: deleting user removes external identity row
+    const deleteTestUser = await adapter.client.user.create({
+      data: {
+        username: `${prefix}-cascade-test`,
+        role: "OPERATOR",
+        status: "ACTIVE",
+        externalIdentities: {
+          create: {
+            provider: "uniship",
+            providerSubject: `${prefix}-cascade-subject`,
+          },
+        },
+      },
+    });
+    const externalBefore = await adapter.client.externalIdentity.findUnique({
+      where: {
+        provider_providerSubject: {
+          provider: "uniship",
+          providerSubject: `${prefix}-cascade-subject`,
+        },
+      },
+    });
+    assert.ok(externalBefore);
+    await adapter.client.user.delete({ where: { id: deleteTestUser.id } });
+    const externalAfter = await adapter.client.externalIdentity.findUnique({
+      where: {
+        provider_providerSubject: {
+          provider: "uniship",
+          providerSubject: `${prefix}-cascade-subject`,
+        },
+      },
+    });
+    assert.equal(externalAfter, null);
+  } finally {
+    if (userIds.length > 0) {
+      await adapter.client.user.deleteMany({ where: { id: { in: userIds } } });
+    }
+    await adapter.onApplicationShutdown();
+  }
+});

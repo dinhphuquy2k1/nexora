@@ -161,7 +161,7 @@ const identitySnapshot = async (project) =>
         "/scripts/api-entrypoint.sh",
         "node",
       ],
-      `const {createDatabase}=require('@nexora/database');(async()=>{const db=createDatabase(process.env.DATABASE_URL);try{console.log(JSON.stringify(await db.user.findMany({include:{credential:true},orderBy:{id:'asc'}})));}finally{await db.$disconnect();}})().catch(()=>process.exit(1));`,
+      `const {createDatabase}=require('@nexora/database');(async()=>{const db=createDatabase(process.env.DATABASE_URL);try{console.log(JSON.stringify(await db.user.findMany({include:{credential:true,externalIdentities:true},orderBy:{id:'asc'}})));}finally{await db.$disconnect();}})().catch(()=>process.exit(1));`,
     ),
   );
 const counts = async (project) =>

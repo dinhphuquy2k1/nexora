@@ -2,6 +2,7 @@ import { PrismaClient, createDatabase, verifyPassword } from "@nexora/database";
 import { UserStatus, type UserRole } from "../domain/user-policy";
 import { IdentityPort } from "../application/identity.port";
 import type {
+  ExternalIdentityRecord,
   LocalLoginRecord,
   SessionSummary,
   UserSummary,
@@ -41,6 +42,34 @@ export class IdentityDatabaseAdapter implements IdentityPort {
     return {
       id: user.id,
       username: user.username,
+    };
+  }
+
+  async findExternalIdentity(
+    provider: string,
+    providerSubject: string,
+  ): Promise<ExternalIdentityRecord | null> {
+    const record = await this.client.externalIdentity.findUnique({
+      where: {
+        provider_providerSubject: {
+          provider,
+          providerSubject,
+        },
+      },
+      include: { user: true },
+    });
+    if (!record) return null;
+    return {
+      id: record.id,
+      userId: record.userId,
+      provider: record.provider,
+      providerSubject: record.providerSubject,
+      user: {
+        id: record.user.id,
+        username: record.user.username,
+        role: record.user.role as UserRole,
+        status: record.user.status as UserStatus,
+      },
     };
   }
 

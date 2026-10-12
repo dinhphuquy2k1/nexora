@@ -11,7 +11,7 @@ WEB_PORT=127.0.0.1:3101 sh scripts/restore.sh backups/2026-10-12 --to-new-projec
 
 Backup records currently running API/Web writers, stops them, pg_dumps PostgreSQL in custom format, archives original source files and writes a format-1/foundation-0.1.0 SHA-256 manifest. A trap restarts only previously running writers. A new destination directory is required; a partial backup without a valid manifest is unusable. Dependency cache and credential volumes are excluded. Do not run external CLI writers during backup; single-instance maintenance is assumed.
 
-Current backups preserve `users` and `user_credentials`, including local password hashes, and may contain `sessions`. A backup must be protected even though raw session tokens are not stored. Restoring an older dump must never resurrect a session revoked after that backup.
+Current backups preserve `users`, `user_credentials` (including local password hashes) and `external_identities` (provider bindings), and may contain `sessions`. A backup must be protected even though raw session tokens are not stored. Restoring an older dump must never resurrect a session revoked after that backup.
 
 ## Isolated restore order and failure behavior
 
@@ -37,7 +37,8 @@ A different supported loopback port permits source and restored projects to run 
 
 ## Current and historical backups
 
-- **Current authentication backup:** operator IDs and password hashes survive; all restored sessions are deleted before use. Existing credentials create fresh sessions. An old token must return exact `401 UNAUTHORIZED` at `/api/auth/session`, not an unrelated 403/404/500 or network error.
+- **Current authentication backup:** operator IDs, password hashes and external identity bindings survive; all restored sessions are deleted before use. Existing credentials create fresh sessions. An old token must return exact `401 UNAUTHORIZED` at `/api/auth/session`, not an unrelated 403/404/500 or network error.
+
 - **Pre-authentication foundation backup:** contains stored-file data and genuine storage-migration metadata, but no accounts/session tables. Restore first replays that dump, then deploys the committed authentication migration and clears the newly created empty session table. It never creates a default account. Provision the first operator using the existing compiled CLI through the approved API entrypoint; see [Setup](setup.md).
 - Missing or inconsistent historical migration metadata is not silently repaired with fake rows or checksums. A migration failure is a recovery blocker and must be diagnosed.
 

@@ -231,6 +231,107 @@ try {
     await db.userCredential.findUnique({ where: { userId: extra.id } }),
     null,
   );
+  step = "PHASE_2_EXTERNAL_IDENTITIES_MIGRATION";
+  const phase2Migration = "20261012020000_external_identities";
+  await cp(
+    resolve("prisma/migrations", phase2Migration),
+    join(work, "prisma/migrations", phase2Migration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+
+  const extConstraints = await db.$queryRawUnsafe(
+    "SELECT conname FROM pg_constraint WHERE connamespace='public'::regnamespace AND conrelid='external_identities'::regclass",
+  );
+  for (const expected of [
+    "external_identities_pkey",
+    "external_identities_user_id_fkey",
+    "external_identities_provider_check",
+    "external_identities_provider_subject_check",
+  ]) {
+    assert.ok(
+      extConstraints.some((c) => c.conname === expected),
+      `Missing constraint ${expected}`,
+    );
+  }
+
+  const extIndexes = await db.$queryRawUnsafe(
+    "SELECT indexname FROM pg_indexes WHERE schemaname='public' AND tablename='external_identities'",
+  );
+  for (const expected of [
+    "external_identities_provider_provider_subject_key",
+    "external_identities_user_id_provider_key",
+    "external_identities_user_id_idx",
+  ]) {
+    assert.ok(
+      extIndexes.some((i) => i.indexname === expected),
+      `Missing index ${expected}`,
+    );
+  }
+
+  const operatorUser = await db.user.create({
+    data: { username: "op-external-test", role: "OPERATOR", status: "ACTIVE" },
+  });
+  const extIdentity = await db.externalIdentity.create({
+    data: {
+      userId: operatorUser.id,
+      provider: "uniship",
+      providerSubject: "uniship-test-001",
+    },
+  });
+  assert.equal(extIdentity.provider, "uniship");
+  assert.equal(extIdentity.providerSubject, "uniship-test-001");
+
+  const operatorUser2 = await db.user.create({
+    data: {
+      username: "op-external-test-2",
+      role: "OPERATOR",
+      status: "ACTIVE",
+    },
+  });
+  await assert.rejects(
+    db.externalIdentity.create({
+      data: {
+        userId: operatorUser2.id,
+        provider: "uniship",
+        providerSubject: "uniship-test-001",
+      },
+    }),
+  );
+
+  await assert.rejects(
+    db.externalIdentity.create({
+      data: {
+        userId: operatorUser.id,
+        provider: "uniship",
+        providerSubject: "uniship-test-002",
+      },
+    }),
+  );
+
+  await assert.rejects(
+    db.$executeRawUnsafe(
+      "INSERT INTO external_identities(id, user_id, provider, provider_subject, updated_at) VALUES($1::uuid, $2::uuid, 'invalid_provider', 'subj', now())",
+      randomUUID(),
+      operatorUser2.id,
+    ),
+  );
+
+  await assert.rejects(
+    db.$executeRawUnsafe(
+      "INSERT INTO external_identities(id, user_id, provider, provider_subject, updated_at) VALUES($1::uuid, $2::uuid, 'uniship', '  padded  ', now())",
+      randomUUID(),
+      operatorUser2.id,
+    ),
+  );
+
+  await db.user.delete({ where: { id: operatorUser.id } });
+  assert.equal(
+    await db.externalIdentity.findUnique({ where: { id: extIdentity.id } }),
+    null,
+  );
+  await db.user.delete({ where: { id: operatorUser2.id } });
+
   step = "REPEAT_AND_DRIFT";
   const beforeRepeat = await db.user.findMany({
     include: { credential: true },
@@ -253,7 +354,7 @@ try {
     "--exit-code",
   ]);
   console.log(
-    "Real Prisma legacy preservation, injected transaction rollback, resolve/redeploy, constraints, repeat and drift PASS",
+    "Real Prisma legacy preservation, Phase 2 external identities migration, constraints, repeat and drift PASS",
   );
 } catch {
   console.error(`IDENTITY_MIGRATION_TEST_FAILED step=${step}`);

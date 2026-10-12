@@ -20,3 +20,21 @@ export interface LocalLoginRecord {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface ExternalIdentityRecord {
+  id: string;
+  userId: string;
+  provider: string;
+  providerSubject: string;
+  user: {
+    id: string;
+    username: string;
+    role: UserRole;
+    status: UserStatus;
+  };
+}
+
+export interface VerifiedProviderIdentity {
+  provider: "uniship";
+  providerSubject: string;
+}

@@ -171,3 +171,70 @@ test("generic session adapter accepts ACTIVE Operator without requesting credent
   record.user.status = "DISABLED";
   assert.equal(await adapter.findSessionByTokenHash("hash"), null);
 });
+
+test("findExternalIdentity queries external_identities by compound unique key and includes user", async () => {
+  const adapter = new IdentityDatabaseAdapter("unused");
+  let query;
+  const mockExternalRecord = {
+    id: "ext-uuid-1",
+    userId: "user-uuid-1",
+    provider: "uniship",
+    providerSubject: "uniship-userid-123",
+    user: {
+      id: "user-uuid-1",
+      username: "operator_one",
+      role: "OPERATOR",
+      status: "ACTIVE",
+    },
+  };
+
+  adapter.instance = {
+    externalIdentity: {
+      findUnique: async (args) => {
+        query = args;
+        if (
+          args.where?.provider_providerSubject?.provider === "uniship" &&
+          args.where?.provider_providerSubject?.providerSubject ===
+            "uniship-userid-123"
+        ) {
+          return mockExternalRecord;
+        }
+        return null;
+      },
+    },
+  };
+
+  // 1. Found external identity
+  const found = await adapter.findExternalIdentity(
+    "uniship",
+    "uniship-userid-123",
+  );
+  assert.deepEqual(found, mockExternalRecord);
+  assert.deepEqual(query, {
+    where: {
+      provider_providerSubject: {
+        provider: "uniship",
+        providerSubject: "uniship-userid-123",
+      },
+    },
+    include: {
+      user: true,
+    },
+  });
+
+  // 2. Not found returns null
+  const notFound = await adapter.findExternalIdentity(
+    "uniship",
+    "unknown-user",
+  );
+  assert.equal(notFound, null);
+
+  // 3. Database error propagates
+  adapter.instance.externalIdentity.findUnique = async () => {
+    throw new Error("database connection timeout");
+  };
+  await assert.rejects(
+    adapter.findExternalIdentity("uniship", "uniship-userid-123"),
+    /database connection timeout/,
+  );
+});
