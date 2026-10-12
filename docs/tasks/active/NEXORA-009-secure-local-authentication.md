@@ -72,7 +72,7 @@ Documentation Impact: REQUIRED
 | Documentation links and governance pass                          | `pnpm docs:check`                                           | 2026-10-12 | PASS   |
 | Next.js production build prerenders `/login` and all routes      | `pnpm --filter @nexora/web build` (prerenders all 6 routes) | 2026-10-11 | PASS   |
 | Monorepo turbo build and test suite pass                         | `pnpm test` (all 8 tasks pass)                              | 2026-10-11 | PASS   |
-| Hosted Docker CI quality and integration passes on final PR HEAD | GitHub Actions run `38186030061` (`docker-foundation`)      | 2026-10-12 | PASS   |
+| Hosted Docker CI quality and integration passes on final PR HEAD | GitHub Actions run `38188392464` (`docker-foundation`)      | 2026-10-12 | PASS   |
 
 ---
 
