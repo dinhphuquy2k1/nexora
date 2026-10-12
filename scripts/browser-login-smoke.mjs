@@ -2,6 +2,7 @@
 // Credentials arrive via stdin, never command-line arguments or diagnostic output.
 import { clearTimeout } from "node:timers";
 const WebSocket = globalThis.WebSocket;
+import { createSmokeChecks } from "./smoke-checks.mjs";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -9,18 +10,24 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
+const checks = createSmokeChecks(console.error, "BROWSER_LOGIN_SMOKE_FAILED");
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
 const { baseUrl, username, password } = JSON.parse(input);
+checks.step("BROWSER_BINARY");
 const executable =
   process.env.CHROME_BIN ||
   ["google-chrome", "chromium", "chromium-browser"].find(
     (name) => spawnSync(name, ["--version"], { stdio: "ignore" }).status === 0,
   );
-if (!executable)
-  throw new Error(
-    "Chromium/Chrome is required for actual Login form verification.",
+if (!executable) {
+  checks.failure(
+    new Error(
+      "Chromium/Chrome is required for actual Login form verification.",
+    ),
   );
+  process.exit(1);
+}
 const profile = await mkdtemp(join(tmpdir(), "nexora-browser-"));
 const child = spawn(
   executable,
@@ -41,6 +48,7 @@ const exited = new Promise((resolve) => {
 });
 let socket;
 try {
+  checks.step("BROWSER_LAUNCH");
   let port;
   for (let i = 0; i < 100; i++) {
     try {
@@ -53,6 +61,7 @@ try {
     }
   }
   assert.ok(port, "Browser did not start");
+  checks.step("CDP_CONNECTION");
   const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(
     (res) => res.json(),
   );
@@ -110,6 +119,7 @@ try {
         returnByValue: true,
       })
     ).result.value;
+  checks.step("LOGIN_PAGE_RENDER");
   await send("Network.enable");
   await send("Page.navigate", { url: `${baseUrl}/login?from=%2Fsettings` });
   let ready = false;
@@ -121,6 +131,7 @@ try {
     await delay(100);
   }
   assert.ok(ready, "Login form did not render");
+  checks.step("FORM_INTERACTION");
   // Allow hydration, then type via browser input events and click the actual submit button.
   await delay(500);
   await evaluate('document.querySelector("input[name=username]").focus()');
@@ -128,6 +139,7 @@ try {
   await evaluate('document.querySelector("input[name=password]").focus()');
   await send("Input.insertText", { text: password });
   await evaluate('document.querySelector("button[type=submit]").click()');
+  checks.step("LOGIN_RESPONSE_AND_NAVIGATION");
   let location;
   for (let i = 0; i < 150; i++) {
     try {
@@ -139,12 +151,15 @@ try {
     if (location === "/settings") break;
     await delay(100);
   }
-  assert.equal(loginStatus, 200, "Actual Login submission failed");
+  checks.step("LOGIN_RESPONSE");
+  checks.status(loginStatus, 200);
+  checks.step("PROTECTED_NAVIGATION");
   assert.equal(
     location,
     "/settings",
     "Browser did not reach protected return page",
   );
+  checks.step("SESSION_COOKIE");
   const cookies = (await send("Network.getCookies", { urls: [baseUrl] }))
     .cookies;
   assert.ok(
@@ -153,29 +168,31 @@ try {
     ),
     "Session cookie missing",
   );
+  checks.step("SESSION_VALID");
   const session = await evaluate(
     'fetch("/api/auth/session").then(async res => ({status: res.status, data: await res.json()}))',
   );
-  assert.equal(session.status, 200);
+  checks.status(session.status, 200);
   assert.equal(session.data.authenticated, true);
   assert.equal(session.data.user.username, username);
-  assert.equal(
+  checks.step("LOGOUT_SUCCESS");
+  checks.status(
     await evaluate(
       'fetch("/api/auth/logout", {method:"POST"}).then(res => res.status)',
     ),
     200,
   );
-  assert.equal(
+  checks.step("SESSION_REVOKED");
+  checks.status(
     await evaluate('fetch("/api/auth/session").then(res => res.status)'),
     401,
   );
   console.log(
     "Actual browser Login form, cookie, protected navigation and Logout PASS",
   );
-} catch {
-  throw new Error(
-    "Browser Login smoke failed; credentials and browser payloads withheld.",
-  );
+} catch (error) {
+  checks.failure(error);
+  process.exitCode = 1;
 } finally {
   socket?.close();
   child.kill();

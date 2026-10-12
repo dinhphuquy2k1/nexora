@@ -1,0 +1,9 @@
+{
+  "repository": "dinhphuquy2k1/nexora",
+  "commit": "7cfb01a5756c6787d00cbb940bd406a0157bf5b7",
+  "files": {
+    "prisma/schema.prisma": "391c3bef017487b11e7d972d651c38963d4fc43dea2a5c36896bdf0510209312",
+    "prisma/migrations/migration_lock.toml": "1db17a8d051aa136110736752c5e1f8b7ed92b6ea8e803112fbbe2497047c210",
+    "prisma/migrations/20261006000000_storage_catalog/migration.sql": "f32e9bac721e731db308f5776d0d01523a60bba89fe271221c8fb48cd9636aac"
+  }
+}

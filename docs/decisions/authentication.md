@@ -47,3 +47,8 @@ The initial v0.1.0 foundation deferred authentication while establishing runtime
    - Successful logout means database revocation completed; deletion failures propagate and do not clear cookies. Cleanup of already-expired sessions remains best effort.
    - Server-side session verification accepts only `authenticated: true` with nonempty string user ID/username; malformed HTTP 200 payloads represent unavailable service, never an authenticated fallback identity.
    - The compiled CLI uses one raw terminal reader with hidden password/confirmation, backspace and cancellation/EOF cleanup. Explicit `--password-stdin` is the only piped mode; password arguments are forbidden. Its runtime acceptance is demonstrated only by fresh-install and pseudo-TTY tests, never source inspection alone.
+
+7. **Recovery session boundary**:
+   - A restored instance preserves recoverable data and operator identities/password hashes, but never retains an authentication session issued before restoration.
+   - Target dump restoration precedes committed migration deployment; only then are all target sessions deleted, before application availability. Source sessions are not touched.
+   - Historical foundation backups have no account assumptions; migration plus explicit CLI provisioning provides recovery. See [Backup and restore](../operations/backup-restore.md) for isolation, ordering and failure behavior.

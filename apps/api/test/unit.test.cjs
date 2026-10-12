@@ -132,3 +132,16 @@ test("Origin configuration validates serialization, effective ports and supporte
   ])
     assert.throws(() => resolveAllowedOrigins({ ALLOWED_ORIGINS: value }));
 });
+
+test("Origin defaults treat absent/empty/whitespace configuration consistently", () => {
+  const {
+    resolveAllowedOrigins,
+  } = require("../dist/identity/presentation/origin-policy");
+  const expected = ["http://127.0.0.1:3101", "http://localhost:3101"];
+  for (const ALLOWED_ORIGINS of [undefined, "", "   "])
+    for (const WEB_PORT of ["3101", "127.0.0.1:3101", "localhost:3101"])
+      assert.deepEqual(
+        resolveAllowedOrigins({ ALLOWED_ORIGINS, WEB_PORT }),
+        expected,
+      );
+});

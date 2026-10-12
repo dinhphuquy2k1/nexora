@@ -5,3 +5,5 @@ Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure 
 Integration tests register/read/delete only their own UUID and do not truncate shared data. Persistence/backup smoke runs on disposable projects; see task evidence.
 
 Prisma 7.10.0 uses the PostgreSQL driver adapter; createDatabase stays within the database package. prisma.config.ts reads the server DATABASE_URL for migration, while client generation requires no connection or fabricated database credential.
+
+Recovery uses the dump's actual migration history: restore the database first, then deploy missing committed migrations through the existing migration runner, then invalidate all target sessions before API/Web use. Current backups preserve operator IDs/password hashes; pre-authentication backups gain the auth schema without default accounts. No migration/checksum or schema reset is introduced. The procedure and compatibility/failure contract are owned by [Backup and restore](../operations/backup-restore.md).

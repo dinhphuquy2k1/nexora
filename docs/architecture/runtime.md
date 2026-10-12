@@ -73,3 +73,7 @@ Release artifact preparation copies the installed frozen graph; package IDs reta
 ## Local account provisioning runtime
 
 API compilation owns `/app/dist/cli/user-create.js` and its infrastructure provisioner; the existing `dist` artifact packaging includes both without repository-level scripts or a new service. Execute through `/scripts/api-entrypoint.sh` to read the existing credential volume and inject DATABASE_URL, as the image's non-root user. Source inspection establishes expected packaging, while executed fresh-install and pseudo-TTY smoke provide runtime evidence; see NEXORA-009 for the current verification state. No API/database host ports or production bootstrap endpoint are added. API receives WEB_PORT/ALLOWED_ORIGINS solely for the exact browser Origin policy documented in [Configuration](../operations/configuration.md).
+
+## Restore maintenance boundary
+
+Restore starts only new-project PostgreSQL. The existing one-shot migration service runs after dump restoration; target sessions are invalidated before API/Web startup. A one-shot non-root API command checks original-file/catalog integrity without listening on HTTP. Failures leave a partial isolated target and report failure, without launching it or altering source resources. Operator procedure is owned by [Backup and restore](../operations/backup-restore.md).
