@@ -84,4 +84,4 @@ For offline Docker dependency preparation, an optional named build context `depe
 
 ## Planned unified identity upgrade
 
-The unified identity release is not implemented. Before any future upgrade containing that migration, follow the mandatory maintenance, verified-backup and isolated recovery safeguards in [Backup and restore](backup-restore.md#planned-unified-identity-upgrade-safeguards). The verified PR #7 merge baseline and future migration prerequisites are tracked in [NEXORA-010](../tasks/active/NEXORA-010-unified-identity-foundation.md).
+The unified identity release is not implemented. Before any future upgrade containing that migration, follow the mandatory maintenance, verified-backup and isolated recovery safeguards in [Backup and restore](backup-restore.md#planned-unified-identity-upgrade-safeguards). The verified PR #7 merge baseline and future migration prerequisites are tracked in [NEXORA-010](../tasks/completed/NEXORA-010-unified-identity-foundation.md).
