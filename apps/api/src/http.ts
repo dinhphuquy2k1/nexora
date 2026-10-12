@@ -1,4 +1,4 @@
-import { Catch, HttpException } from "@nestjs/common";
+import { Catch, HttpException, HttpStatus } from "@nestjs/common";
 import type {
   ArgumentsHost,
   ExceptionFilter,
@@ -12,30 +12,81 @@ export class ApiErrorDto {
   @ApiProperty() message!: string;
   @ApiProperty() requestId!: string;
 }
+interface HttpErrorDefinition {
+  readonly code: string;
+  readonly message: string;
+}
+
+const HTTP_ERROR_DEFAULTS: Readonly<
+  Partial<Record<number, HttpErrorDefinition>>
+> = {
+  [HttpStatus.BAD_REQUEST]: {
+    code: "VALIDATION_ERROR",
+    message: "Yêu cầu không hợp lệ",
+  },
+  [HttpStatus.UNAUTHORIZED]: {
+    code: "UNAUTHORIZED",
+    message: "Chưa đăng nhập hoặc phiên đã hết hạn",
+  },
+  [HttpStatus.FORBIDDEN]: {
+    code: "FORBIDDEN",
+    message: "Không có quyền truy cập",
+  },
+  [HttpStatus.NOT_FOUND]: {
+    code: "NOT_FOUND",
+    message: "Không tìm thấy endpoint",
+  },
+  [HttpStatus.TOO_MANY_REQUESTS]: {
+    code: "TOO_MANY_REQUESTS",
+    message: "Quá nhiều yêu cầu. Vui lòng thử lại sau.",
+  },
+};
+
+const INTERNAL_ERROR_DEFAULT: HttpErrorDefinition = {
+  code: "INTERNAL_ERROR",
+  message: "Lỗi hệ thống",
+};
+
 @Catch()
 class ErrorFilter implements ExceptionFilter {
   catch(error: unknown, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse<Response>();
-    const status = error instanceof HttpException ? error.getStatus() : 500;
-    const code =
-      status === 404
-        ? "NOT_FOUND"
-        : status === 400
-          ? "VALIDATION_ERROR"
-          : "INTERNAL_ERROR";
+    const status =
+      error instanceof HttpException
+        ? error.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const responseObj =
+      error instanceof HttpException &&
+      typeof error.getResponse() === "object" &&
+      error.getResponse() !== null
+        ? (error.getResponse() as Record<string, unknown>)
+        : null;
+
+    const defaults = HTTP_ERROR_DEFAULTS[status] ?? INTERNAL_ERROR_DEFAULT;
+    const hasCustomCode = typeof responseObj?.code === "string";
+    const code = hasCustomCode ? responseObj.code : defaults.code;
+    const message =
+      status !== HttpStatus.NOT_FOUND &&
+      hasCustomCode &&
+      typeof responseObj?.message === "string"
+        ? responseObj.message
+        : defaults.message;
+
     res.status(status).json({
       code,
-      message:
-        status === 404
-          ? "Không tìm thấy endpoint"
-          : status === 400
-            ? "Yêu cầu không hợp lệ"
-            : "Lỗi hệ thống",
+      message,
       requestId: res.locals.requestId,
     });
   }
 }
 export function configure(app: INestApplication) {
+  const httpAdapter = app.getHttpAdapter();
+  if (typeof httpAdapter?.getInstance === "function") {
+    const instance = httpAdapter.getInstance();
+    if (typeof instance?.set === "function") {
+      instance.set("trust proxy", "loopback, linklocal, uniquelocal");
+    }
+  }
   app.setGlobalPrefix("api");
   app.useGlobalFilters(new ErrorFilter());
   app.use((_req: Request, res: Response, next: NextFunction) => {

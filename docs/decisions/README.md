@@ -20,4 +20,4 @@ This directory contains Architecture Decision Records (ADRs) for Nexora. Durable
 
 ## Accepted future direction
 
-- [Unified identity foundation](unified-identity.md) — accepted 2026-10-12; implementation PLANNED and gated on merged, verified PR #7. Phase 0 documentation is separate from the blocked Phase 1 implementation.
+- [Unified identity foundation](unified-identity.md) — accepted 2026-10-12; implementation PLANNED and gated on Phase 0 merge and NEXORA-011 prerequisites; PR #7 is merged. Phase 0 documentation is separate from the blocked Phase 1 implementation.

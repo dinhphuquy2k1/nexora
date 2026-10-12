@@ -69,3 +69,39 @@ test("migrated PostgreSQL, original file catalog and HTTP errors", async () => {
     await fs.rm(root, { recursive: true, force: true });
   }
 });
+
+test("database session revocation is idempotent and outage errors propagate", async () => {
+  const {
+    IdentityDatabaseAdapter,
+  } = require("../dist/identity/infrastructure/identity.adapter");
+  const { randomUUID, randomBytes } = require("node:crypto");
+  assert.ok(process.env.DATABASE_URL);
+  const adapter = new IdentityDatabaseAdapter(process.env.DATABASE_URL);
+  const id = randomUUID();
+  const tokenHash = randomBytes(32).toString("hex");
+  try {
+    await adapter.client.localUser.create({
+      data: {
+        id,
+        username: `revoke-${id.slice(0, 8)}`,
+        passwordHash: "not-used-by-revocation-test",
+      },
+    });
+    await adapter.createSession(id, tokenHash, new Date(Date.now() + 60000));
+    assert.ok(await adapter.findSessionByTokenHash(tokenHash));
+    await adapter.deleteSessionByTokenHash(tokenHash);
+    assert.equal(await adapter.findSessionByTokenHash(tokenHash), null);
+    await adapter.deleteSessionByTokenHash(tokenHash);
+    const offline = new IdentityDatabaseAdapter(
+      "postgresql://u:p@127.0.0.1:1/db?connect_timeout=1",
+    );
+    try {
+      await assert.rejects(offline.deleteSessionByTokenHash(tokenHash));
+    } finally {
+      await offline.onApplicationShutdown();
+    }
+  } finally {
+    await adapter.client.localUser.deleteMany({ where: { id } });
+    await adapter.onApplicationShutdown();
+  }
+});

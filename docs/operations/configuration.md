@@ -2,14 +2,20 @@
 
 Compose supplies defaults and an idempotently generated local database credential, stored in a dedicated volume. Never print its contents or commit it. This credential is for isolated local PostgreSQL, not public deployment.
 
-| Variable         | Owner / contract                                                                                     |
-| ---------------- | ---------------------------------------------------------------------------------------------------- |
-| DATABASE_URL     | API/migration server only; required PostgreSQL URL; entrypoint reads credential file and injects URL |
-| STORAGE_ROOT     | API only; canonical absolute root, default /data/uploads in runtime, precreated writable volume      |
-| PORT             | API, 1..65535, default 4000                                                                          |
-| WEB_PORT         | Compose host web port, default 127.0.0.1:3001                                                        |
-| NODE_ENV         | development/test/production, runtime production                                                      |
-| API_DOCS_ENABLED | API, explicit true/false, defaults false                                                             |
-| API_INTERNAL_URL | Next server only, http://api:4000 in Compose; never NEXT_PUBLIC                                      |
+| Variable         | Owner / contract                                                                                                                                                                                               |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DATABASE_URL     | API/migration server only; required PostgreSQL URL; entrypoint reads credential file and injects URL                                                                                                           |
+| STORAGE_ROOT     | API only; canonical absolute root, default /data/uploads in runtime, precreated writable volume                                                                                                                |
+| PORT             | API, 1..65535, default 4000                                                                                                                                                                                    |
+| WEB_PORT         | Compose Web binding, default 127.0.0.1:3001; also passed to API for Origin resolution. Supported derived values: bare port or loopback host:port.                                                              |
+| NODE_ENV         | development/test/production, runtime production                                                                                                                                                                |
+| API_DOCS_ENABLED | API, explicit true/false, defaults false                                                                                                                                                                       |
+| API_INTERNAL_URL | Next.js server (`lib/api/config.ts`); required origin URL without path/query/fragment; supplied explicitly by Compose (`http://api:4000`) and `.env.example`; no application-level fallback; never NEXT_PUBLIC |
+| ALLOWED_HOSTS    | Web ingress middleware only; optional comma-separated host allowlist (defaults: localhost, 127.0.0.1, 0.0.0.0)                                                                                                 |
+| ALLOWED_ORIGINS  | API only; optional comma-separated exact HTTP(S) origins. Replaces defaults; invalid values fail startup. Without it, trusted HTTP localhost/127.0.0.1 origins derive from WEB_PORT.                           |
 
-Swagger is not exposed by default. Config errors fail startup with safe JSON diagnostics. No external carrier key is currently used. Future carrier provider keys remain server-side, encrypted when persisted; key management and public identity are separate milestones.
+Swagger is not exposed by default. Config errors fail startup with safe JSON diagnostics. Missing or invalid `API_INTERNAL_URL` fails explicitly at build and startup time with an actionable error. Reference `.env.example` documents environment variables for local inspection. No external carrier key is currently used. Future carrier provider keys remain server-side, encrypted when persisted; key management and public identity are separate milestones.
+
+Browser mutation origins compare scheme, normalized hostname and effective port. Missing/null/multiple origins, credentials, whitespace, paths (including a trailing slash), queries and fragments are rejected. Configuration entries may be comma-separated with surrounding whitespace, but each entry must be an origin. Changing `WEB_PORT=127.0.0.1:3101` automatically trusts only the two loopback HTTP origins on port 3101; port 3000 is never implicitly trusted. An explicit `ALLOWED_ORIGINS` replaces both defaults, so operators must include every intended browser-facing origin. API startup snapshots this policy; restart after configuration changes. Host-run Web on port 3000 needs the API explicitly configured for that Origin; Docker API remains private.
+
+The supported deployment is loopback HTTP. Session and clearing cookies use `Secure=false`, `HttpOnly`, `SameSite=Lax`, and `Path=/`; raw forwarded headers and `req.secure` cannot select transport policy. Adding HTTPS/LAN hosting requires a separate deployment decision.

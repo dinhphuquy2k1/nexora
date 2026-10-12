@@ -1,0 +1,209 @@
+.container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-background, #f5f7fa);
+  padding: var(--space-4, 16px);
+  box-sizing: border-box;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background-color: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  padding: 36px 32px 32px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logoMonogram {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e3a5f 0%, #0f1d36 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+  margin-bottom: var(--space-4, 16px);
+}
+
+.logoLetter {
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 1;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+}
+
+.logoDot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-accent, #ea580c);
+}
+
+.heading {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary, #172b4d);
+  margin: 0 0 var(--space-2, 8px);
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+  margin: 0 0 24px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.errorBanner {
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: var(--space-4, 16px);
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm, 6px);
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text, #1e293b);
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-muted, #64748b);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px 0 40px;
+  font-size: 14px;
+  color: var(--color-text, #1e293b);
+  background-color: #ffffff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.inputPassword {
+  padding-right: 42px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-accent, #ea580c);
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+}
+
+.togglePasswordBtn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-muted, #64748b);
+  border-radius: 4px;
+}
+
+.togglePasswordBtn:hover {
+  color: var(--color-text, #1e293b);
+}
+
+.togglePasswordBtn:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light, #c2410c);
+  outline-offset: 1px;
+}
+
+.submitBtn {
+  width: 100%;
+  height: 44px;
+  margin-top: 6px;
+  background-color: var(--color-accent, #ea580c);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    transform 0.05s ease;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background-color: var(--color-accent-hover, #c2410c);
+}
+
+.submitBtn:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light, #c2410c);
+  outline-offset: 2px;
+}
+
+.submitBtn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.submitBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

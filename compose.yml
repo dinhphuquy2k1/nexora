@@ -75,6 +75,8 @@ services:
       NODE_ENV: production
       STORAGE_ROOT: /data/uploads
       API_DOCS_ENABLED: "false"
+      WEB_PORT: "${WEB_PORT:-127.0.0.1:3001}"
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-}"
     volumes:
       - credentials:/config:ro
       - uploads:/data/uploads
@@ -96,6 +98,8 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       target: web-runtime
+      args:
+        API_INTERNAL_URL: http://api:4000
       additional_contexts:
         base: service:builder
     image: nexora-web:0.1.0

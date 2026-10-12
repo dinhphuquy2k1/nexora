@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isAbsolute, resolve } from "node:path";
+import { resolveAllowedOrigins } from "./identity/presentation/origin-policy";
 const schema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -18,7 +19,9 @@ const schema = z.object({
   STORAGE_ROOT: z.string().refine((v) => isAbsolute(v) && resolve(v) === v),
   API_DOCS_ENABLED: z.enum(["true", "false"]).default("false"),
 });
-export type Config = z.infer<typeof schema>;
+export type Config = z.infer<typeof schema> & {
+  trustedOrigins: readonly string[];
+};
 export function loadConfig(env: NodeJS.ProcessEnv): Config {
   const result = schema.safeParse(env);
   if (!result.success)
@@ -26,5 +29,5 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
       "Invalid configuration: " +
         result.error.issues.map((i) => i.path.join(".")).join(", "),
     );
-  return result.data;
+  return { ...result.data, trustedOrigins: resolveAllowedOrigins(env) };
 }
