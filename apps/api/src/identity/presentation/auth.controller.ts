@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { Request, Response } from "express";
+import { ApiErrorDto } from "../../http";
 import { AuthService } from "../application/auth.service";
 import {
   LoginRequestDto,
@@ -42,18 +43,22 @@ export class AuthController {
   })
   @ApiResponse({
     status: 400,
+    type: ApiErrorDto,
     description: "Yêu cầu không hợp lệ hoặc thiếu thông tin",
   })
   @ApiResponse({
     status: 401,
+    type: ApiErrorDto,
     description: "Thông tin xác thực không chính xác",
   })
   @ApiResponse({
     status: 403,
+    type: ApiErrorDto,
     description: "Origin không hợp lệ hoặc không được phép",
   })
   @ApiResponse({
     status: 429,
+    type: ApiErrorDto,
     description: "Quá nhiều lần đăng nhập thất bại",
   })
   async login(
@@ -82,6 +87,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 401,
+    type: ApiErrorDto,
     description: "Chưa đăng nhập hoặc phiên đã hết hạn",
   })
   async getSession(@Req() req: Request): Promise<SessionResponseDto> {
@@ -104,7 +110,13 @@ export class AuthController {
   })
   @ApiResponse({
     status: 403,
+    type: ApiErrorDto,
     description: "Origin không hợp lệ hoặc không được phép",
+  })
+  @ApiResponse({
+    status: 500,
+    description: "Không thể thu hồi phiên do lỗi hệ thống",
+    type: ApiErrorDto,
   })
   async logout(
     @Req() req: Request,

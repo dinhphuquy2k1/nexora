@@ -14,3 +14,5 @@ All responses carry server-generated `x-request-id`; HTTP errors contain code/me
 Breaking contract changes require consumer/tests/docs together. Monetary JSON fields in later endpoints are decimal strings.
 
 Login runtime input accepts a JSON object with string `username` and `password`. Username is trimmed, case-sensitive, 3–50 characters; password is nonempty and at most 1024 characters. Null, arrays, invalid types and length violations return `400 VALIDATION_ERROR` before lookup/Scrypt. Origin enforcement and cookie policy are owned by [Configuration](../operations/configuration.md). Successful logout clears the cookie only after revocation; unexpected database failure uses the existing safe `500 INTERNAL_ERROR` envelope. No DTO or generated schema changes are required by these boundary checks.
+
+Published authentication failures reference the existing `ApiErrorDto` JSON schema (`code`, `message`, `requestId`): Login 400/401/403/429, session 401, and Logout 403/500. Generated SDK consumers can inspect these response bodies without escaping generated types. This schema correction changes no runtime statuses, error codes, messages or request ID behavior.

@@ -79,16 +79,44 @@
             }
           },
           "400": {
-            "description": "Yêu cầu không hợp lệ hoặc thiếu thông tin"
+            "description": "Yêu cầu không hợp lệ hoặc thiếu thông tin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           },
           "401": {
-            "description": "Thông tin xác thực không chính xác"
+            "description": "Thông tin xác thực không chính xác",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Origin không hợp lệ hoặc không được phép"
+            "description": "Origin không hợp lệ hoặc không được phép",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           },
           "429": {
-            "description": "Quá nhiều lần đăng nhập thất bại"
+            "description": "Quá nhiều lần đăng nhập thất bại",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "summary": "Xác thực danh tính và thiết lập phiên làm việc",
@@ -113,7 +141,14 @@
             }
           },
           "401": {
-            "description": "Chưa đăng nhập hoặc phiên đã hết hạn"
+            "description": "Chưa đăng nhập hoặc phiên đã hết hạn",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "summary": "Kiểm tra phiên làm việc hiện tại",
@@ -138,7 +173,24 @@
             }
           },
           "403": {
-            "description": "Origin không hợp lệ hoặc không được phép"
+            "description": "Origin không hợp lệ hoặc không được phép",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Không thể thu hồi phiên do lỗi hệ thống",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "summary": "Hủy bỏ phiên làm việc và xóa cookie",
@@ -284,6 +336,25 @@
           "user"
         ]
       },
+      "ApiErrorDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "requestId"
+        ]
+      },
       "SessionResponseDto": {
         "type": "object",
         "properties": {
@@ -312,25 +383,6 @@
         },
         "required": [
           "success"
-        ]
-      },
-      "ApiErrorDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "requestId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "message",
-          "requestId"
         ]
       }
     }

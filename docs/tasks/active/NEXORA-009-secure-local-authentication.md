@@ -46,6 +46,7 @@ Documentation Impact: REQUIRED
 ### Canonical owners
 
 - `docs/decisions/authentication.md`
+- `docs/architecture/overview.md`
 - `docs/architecture/backend.md`
 - `docs/architecture/database.md`
 - `docs/architecture/frontend.md`
@@ -254,3 +255,60 @@ All pnpm commands select the pinned tool with `npm exec --yes --package=pnpm@10.
 - No mandatory workstream is deferred. Remaining merge blockers are real Docker recovery/runtime/dev and final hosted CI/review verification. External limitations are Prisma engine host policy/DNS/download and absent authenticated GitHub read access; no policy/TLS/test/security bypass is introduced.
 
 Final verdict: VERIFICATION PENDING. Do not merge automatically.
+
+## 11. Final Review and Contract Reconciliation
+
+This section supersedes earlier outstanding-gap statements for the exact historical SHA below; prior failed local attempts remain valid environment evidence. Classification: BOUNDED. Documentation Impact: REQUIRED because published error schemas and the verified provisioning guidance change; canonical owners are API contract and setup. No authentication, migration, restore or browser infrastructure is redesigned.
+
+### Confirmed hosted evidence
+
+GitHub connector inspected PR #7 on 2026-10-12: head `de73dca550b7a07e0e99697c00bae570634e5df9`, base `7cfb01a5756c6787d00cbb940bd406a0157bf5b7`, 91 changed files, open/non-draft/unmerged, mergeable true. Run `38202165584` and job `114657714564` completed successfully. This evidence applies exclusively to `de73dca`, before the contract cleanup. It closes the earlier Docker runtime/recovery/dev gaps for that SHA, not for later commits.
+
+| Claim                                                                                                 | Evidence                                                                                                                                                             | Date       | Result |
+| :---------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Docker quality and migrated database integration                                                      | [Run 38202165584](https://github.com/dinhphuquy2k1/nexora/actions/runs/38202165584), SHA `de73dca550b7a07e0e99697c00bae570634e5df9`, job 114657714564 step 3 SUCCESS | 2026-10-12 | PASS   |
+| Compiled provisioning, hidden TTY input, browser Login/Logout and authentication restart/outage smoke | Same run and SHA, step 6 SUCCESS; `scripts/runtime-smoke.sh` invokes CLI/TTY/auth/browser assertions                                                                 | 2026-10-12 | PASS   |
+| Current and historical recovery, restored-session invalidation and source isolation                   | Same run and SHA, step 7 SUCCESS; `scripts/data-smoke.sh` invokes `auth-restore-smoke.mjs` and original integrity/no-overwrite assertions                            | 2026-10-12 | PASS   |
+| Development HMR and dependency drift                                                                  | Same run and SHA, step 8 SUCCESS                                                                                                                                     | 2026-10-12 | PASS   |
+
+### Contract decision and concise review responses
+
+Option A: fix in PR. The existing `ApiErrorDto` is the canonical safe envelope; description-only responses made OpenAPI/SDK disagree with runtime and required typed-client ownership. Reuse it for Login 400/401/403/429, session 401 and Logout 403/500; regenerate only owned OpenAPI/SDK outputs. Runtime behavior stays unchanged. The earlier deferred error-schema item is superseded by this implementation; no error-schema follow-up remains. The real Nest HTTP regression checks generated response references and required string fields alongside runtime envelopes.
+
+All ten actual unresolved threads were retrieved from GitHub. Their comments belong to review of `71256667f4`; original paths/lines and thread IDs are preserved below. FIXED denotes the technical finding, not GitHub resolution. Responses below are prepared for review; no comments, resolutions or approvals are posted automatically.
+
+| Thread                                                          | Original concern             | Current status | Code evidence                                                                     | Verification                                                          | Action                                                                                                 |
+| :-------------------------------------------------------------- | :--------------------------- | :------------- | :-------------------------------------------------------------------------------- | :-------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| PRRT_kwDOVCLk786rPmRJ; setup.md original line 7                 | CLI packaging                | FIXED          | `apps/api/src/cli/user-create.ts`, runtime artifacts, setup compiled command      | Hosted de73dca runtime step 6                                         | Prepared response: compiled CLI ships at dist/cli/user-create.js; fresh-install provisioning passed    |
+| PRRT_kwDOVCLk786rPmRM; middleware.ts original lines 20–21       | Invalid-session redirect     | FIXED          | Login page/session helper verifies authoritative session before redirect          | Web auth tests; hosted runtime/browser step 6                         | Prepared response: stale cookie can reach Login; cookie presence no longer redirects Login             |
+| PRRT_kwDOVCLk786rPmRQ; auth.controller.ts original line 30      | Missing Origin checks        | FIXED          | Login/Logout OriginGuard and exact origin policy                                  | API auth HTTP/config tests; hosted runtime step 6                     | Prepared response: both mutations reject absent/foreign/malformed Origin with 403                      |
+| PRRT_kwDOVCLk786rPmRU; auth.service.ts original lines 46–49     | Unbounded throttle Map       | FIXED          | AuthService capacity 128, expiry/eviction, pending reservations/global budget     | admission/auth tests; hosted quality step 3                           | Prepared response: capacity bounded; active locks retained; saturation rejected before database/Scrypt |
+| PRRT_kwDOVCLk786rPmRZ; identity.adapter.ts original lines 93–95 | Suppressed Logout DB failure | FIXED          | deleteMany without catch; controller clears cookie after successful revocation    | infrastructure/integration/auth HTTP tests; hosted outage step 6      | Prepared response: absence is idempotent; outage returns safe 500 without clearing cookie              |
+| PRRT_kwDOVCLk786rPmRc; auth.service.ts original line 72         | Invalid JSON types           | FIXED          | credentials validation before normalization/admission/lookup                      | auth HTTP tests; hosted step 6                                        | Prepared response: invalid types return 400 VALIDATION_ERROR before lookup                             |
+| PRRT_kwDOVCLk786rPmRf; auth.controller.ts original lines 38–41  | Missing error bodies         | FIXED          | Existing ApiErrorDto on seven published failures; generated OpenAPI/SDK           | Local generation, API schema/runtime regression; new-head CI required | Prepared response: generated JSON error content now references canonical envelope; runtime unchanged   |
+| PRRT_kwDOVCLk786rPmRi; auth.service.ts original lines 75–76     | Unknown-user timing          | FIXED          | Precomputed valid dummy hash, real verifier                                       | admission/infrastructure real Scrypt tests; hosted quality step 3     | Prepared response: unknown/inactive paths perform valid dummy verification after admission             |
+| PRRT_kwDOVCLk786rPmRl; task original line 39                    | Stale architecture overview  | FIXED          | Overview lists local identities/sessions IMPLEMENTED and API/Web responsibilities | docs check; hosted quality step 3                                     | Prepared response: overview synchronized and included in canonical owners                              |
+| PRRT_kwDOVCLk786rPmRo; user-create.mjs original line 9          | Password terminal echo       | FIXED          | Compiled terminal-input.ts raw stream with no readline renderer                   | CLI tests and hosted pseudo-TTY step 6                                | Prepared response: password/confirmation hidden; terminal state restored on success/mismatch/interrupt |
+
+### Remaining gate
+
+Task remains VERIFICATION PENDING; implementation IMPLEMENTED, verification PARTIALLY VERIFIED. Repository completion requires every mandatory acceptance criterion and synchronized docs; merge itself is not required. Historical runtime criteria now have hosted evidence. Contract cleanup needs checks on its resulting HEAD. All ten threads still require administrative disposition; the only review retrieved is COMMENTED, not approval. Branch-protection requirements could not be read through the shell API (HTTP 403); mergeable true does not establish required approvals. No mandatory technical finding is deferred. Broader UI E2E, HTTPS/LAN and account-management remain previously recorded out-of-scope follow-ups.
+
+Do not create an evidence-only commit to copy the next run ID. Verify it externally and report final-head status without attributing this historical run to changed source. Do not merge automatically.
+
+### Cleanup verification (working tree based on de73dca)
+
+Commands use the pinned `pnpm@10.34.6` via npm exec on the managed Node 24.19.0 host. The resulting commit SHA is reported externally after commit, rather than guessed here.
+
+| Claim                                                            | Evidence                                                                                                                                 | Date       | Result |
+| :--------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Contract generation succeeds with seven typed error responses    | `pnpm contracts:generate`; inspected OpenAPI/SDK diff and real Nest schema assertions                                                    | 2026-10-12 | PASS   |
+| API runtime and contract regression                              | `pnpm --filter @nexora/api build` and `pnpm --filter @nexora/api test`, 49/49                                                            | 2026-10-12 | PASS   |
+| API TypeScript                                                   | `pnpm --filter @nexora/api typecheck`                                                                                                    | 2026-10-12 | PASS   |
+| Boundaries and ESLint                                            | `pnpm lint`                                                                                                                              | 2026-10-12 | PASS   |
+| Formatting                                                       | `pnpm format:check`                                                                                                                      | 2026-10-12 | PASS   |
+| Documentation governance and links                               | `pnpm docs:check`                                                                                                                        | 2026-10-12 | PASS   |
+| Full host typecheck blocked by dependency generation             | `API_INTERNAL_URL=http://api:4000 pnpm typecheck`: binaries.prisma.sh EAI_AGAIN in database build                                        | 2026-10-12 | FAIL   |
+| Contract checker correctly rejects uncommitted generated changes | `pnpm contracts:check`: regeneration identical, then uncommitted-contract guard rejects intentional changes; rerun after commit required | 2026-10-12 | FAIL   |
+
+No full Docker suite is repeated locally in this bounded cleanup: historical hosted coverage is confirmed, local Prisma download restriction persists, and the existing hosted workflow must verify the new HEAD. Final diff: seven task-owned files only; no dependencies, production/historical migrations, ports, guards, credentials or restore behavior changed. Prepared review responses remain unposted.

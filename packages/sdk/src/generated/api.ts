@@ -129,6 +129,11 @@ export interface components {
         LoginResponseDto: {
             user: components["schemas"]["UserDto"];
         };
+        ApiErrorDto: {
+            code: string;
+            message: string;
+            requestId: string;
+        };
         SessionResponseDto: {
             /**
              * @description Trạng thái xác thực
@@ -143,11 +148,6 @@ export interface components {
              * @example true
              */
             success: boolean;
-        };
-        ApiErrorDto: {
-            code: string;
-            message: string;
-            requestId: string;
         };
     };
     responses: never;
@@ -231,28 +231,36 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
             };
             /** @description Thông tin xác thực không chính xác */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
             };
             /** @description Origin không hợp lệ hoặc không được phép */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
             };
             /** @description Quá nhiều lần đăng nhập thất bại */
             429: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
             };
         };
     };
@@ -279,7 +287,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
             };
         };
     };
@@ -306,7 +316,18 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description Không thể thu hồi phiên do lỗi hệ thống */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
             };
         };
     };

@@ -25,7 +25,7 @@ Nexora operates under three distinct runtime topologies:
 
 Fresh installations contain no default credentials or demo accounts. The authoritative implementation is compiled with API; host tooling remains `pnpm user:create` after building API and securely supplying `DATABASE_URL`.
 
-The following corrected runtime invocation is **VERIFICATION PENDING** until NEXORA-009 records successful fresh-install execution in the compiled image. The previous repository-script path is unavailable in that image and must not be used:
+The compiled runtime invocation below passed fresh-install provisioning and pseudo-TTY checks in hosted run `38202165584` at commit `de73dca550b7a07e0e99697c00bae570634e5df9` (see NEXORA-009). The previous repository-script path is unavailable in that image and must not be used:
 
 ```sh
 docker compose exec api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js

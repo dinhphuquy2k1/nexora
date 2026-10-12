@@ -9,7 +9,7 @@ const {
 const { AuthService } = require("../dist/identity/application/auth.service");
 const { SessionGuard } = require("../dist/identity/presentation/session.guard");
 const { OriginGuard } = require("../dist/identity/presentation/origin.guard");
-const { configure } = require("../dist/http");
+const { configure, document } = require("../dist/http");
 
 test("real Nest HTTP rejects Origin/type/session failures and preserves safe error envelopes", async () => {
   const service = new AuthService({
@@ -40,6 +40,30 @@ test("real Nest HTTP rejects Origin/type/session failures and preserves safe err
   configure(app);
   try {
     await app.listen(0, "127.0.0.1");
+    const contract = document(app);
+    for (const [path, method, statuses] of [
+      ["/api/auth/login", "post", [400, 401, 403, 429]],
+      ["/api/auth/session", "get", [401]],
+      ["/api/auth/logout", "post", [403, 500]],
+    ]) {
+      for (const status of statuses) {
+        assert.deepEqual(
+          contract.paths[path][method].responses[status].content[
+            "application/json"
+          ].schema,
+          { $ref: "#/components/schemas/ApiErrorDto" },
+        );
+      }
+    }
+    const errorSchema = contract.components.schemas.ApiErrorDto;
+    assert.deepEqual([...errorSchema.required].sort(), [
+      "code",
+      "message",
+      "requestId",
+    ]);
+    for (const key of errorSchema.required) {
+      assert.equal(errorSchema.properties[key].type, "string");
+    }
     const url = await app.getUrl();
     for (const origin of [
       undefined,
