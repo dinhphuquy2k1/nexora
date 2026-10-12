@@ -1,4 +1,4 @@
-import { Catch, HttpException } from "@nestjs/common";
+import { Catch, HttpException, HttpStatus } from "@nestjs/common";
 import type {
   ArgumentsHost,
   ExceptionFilter,
@@ -12,11 +12,49 @@ export class ApiErrorDto {
   @ApiProperty() message!: string;
   @ApiProperty() requestId!: string;
 }
+interface HttpErrorDefinition {
+  readonly code: string;
+  readonly message: string;
+}
+
+const HTTP_ERROR_DEFAULTS: Readonly<
+  Partial<Record<number, HttpErrorDefinition>>
+> = {
+  [HttpStatus.BAD_REQUEST]: {
+    code: "VALIDATION_ERROR",
+    message: "Yêu cầu không hợp lệ",
+  },
+  [HttpStatus.UNAUTHORIZED]: {
+    code: "UNAUTHORIZED",
+    message: "Chưa đăng nhập hoặc phiên đã hết hạn",
+  },
+  [HttpStatus.FORBIDDEN]: {
+    code: "FORBIDDEN",
+    message: "Không có quyền truy cập",
+  },
+  [HttpStatus.NOT_FOUND]: {
+    code: "NOT_FOUND",
+    message: "Không tìm thấy endpoint",
+  },
+  [HttpStatus.TOO_MANY_REQUESTS]: {
+    code: "TOO_MANY_REQUESTS",
+    message: "Quá nhiều yêu cầu. Vui lòng thử lại sau.",
+  },
+};
+
+const INTERNAL_ERROR_DEFAULT: HttpErrorDefinition = {
+  code: "INTERNAL_ERROR",
+  message: "Lỗi hệ thống",
+};
+
 @Catch()
 class ErrorFilter implements ExceptionFilter {
   catch(error: unknown, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse<Response>();
-    const status = error instanceof HttpException ? error.getStatus() : 500;
+    const status =
+      error instanceof HttpException
+        ? error.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
     const responseObj =
       error instanceof HttpException &&
       typeof error.getResponse() === "object" &&
@@ -24,41 +62,15 @@ class ErrorFilter implements ExceptionFilter {
         ? (error.getResponse() as Record<string, unknown>)
         : null;
 
-    const defaultCode =
-      status === 404
-        ? "NOT_FOUND"
-        : status === 400
-          ? "VALIDATION_ERROR"
-          : status === 401
-            ? "UNAUTHORIZED"
-            : status === 403
-              ? "FORBIDDEN"
-              : status === 429
-                ? "TOO_MANY_REQUESTS"
-                : "INTERNAL_ERROR";
-
-    const defaultMessage =
-      status === 404
-        ? "Không tìm thấy endpoint"
-        : status === 400
-          ? "Yêu cầu không hợp lệ"
-          : status === 401
-            ? "Chưa đăng nhập hoặc phiên đã hết hạn"
-            : status === 403
-              ? "Không có quyền truy cập"
-              : status === 429
-                ? "Quá nhiều yêu cầu. Vui lòng thử lại sau."
-                : "Lỗi hệ thống";
-
-    const code =
-      typeof responseObj?.code === "string" ? responseObj.code : defaultCode;
+    const defaults = HTTP_ERROR_DEFAULTS[status] ?? INTERNAL_ERROR_DEFAULT;
+    const hasCustomCode = typeof responseObj?.code === "string";
+    const code = hasCustomCode ? responseObj.code : defaults.code;
     const message =
-      status === 404
-        ? defaultMessage
-        : typeof responseObj?.code === "string" &&
-            typeof responseObj?.message === "string"
-          ? responseObj.message
-          : defaultMessage;
+      status !== HttpStatus.NOT_FOUND &&
+      hasCustomCode &&
+      typeof responseObj?.message === "string"
+        ? responseObj.message
+        : defaults.message;
 
     res.status(status).json({
       code,
