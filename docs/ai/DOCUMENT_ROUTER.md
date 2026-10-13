@@ -11,7 +11,7 @@ The human-oriented documentation categories and canonical ownership map live in 
 | **Governance / Workflow**   | [Project rules](PROJECT_RULES.md), [Task workflow](TASK_WORKFLOW.md) | [Reference architecture ADR](../decisions/reference-architecture-policy.md)                               |
 | **Architecture / Monorepo** | [Architecture overview](../architecture/overview.md)                 | [Runtime architecture](../architecture/runtime.md), [Setup](../operations/setup.md)                       |
 | **Docker / CI**             | [Runtime architecture](../architecture/runtime.md)                   | [Setup](../operations/setup.md), [Testing](../operations/testing.md)                                      |
-| **Database & Migrations**   | [Database architecture](../architecture/database.md)                 | [Storage ADR](../decisions/storage.md), [Backup & restore](../operations/backup-restore.md)               |
+| **Database & Migrations**   | [Database architecture](../architecture/database.md)                 | [Storage ADR](../decisions/storage.md)                                                                    |
 | **API & Backend**           | [Backend architecture](../architecture/backend.md)                   | [API contract](../architecture/api-contract.md), [Contract ownership](../decisions/contract-ownership.md) |
 | **Frontend & UI**           | [Frontend architecture](../architecture/frontend.md)                 | [API contract](../architecture/api-contract.md), [Overview](../architecture/overview.md)                  |
 | **Shipments Domain**        | [Shipments domain](../domains/shipments.md)                          | [Product scope ADR](../decisions/product-scope.md)                                                        |

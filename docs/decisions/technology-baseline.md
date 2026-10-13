@@ -30,7 +30,7 @@ Accepted 2026-10-09. Nexora Foundation v0.1.0 bootstraps an independent shipment
   - Docker multi-stage build and compose topologies (`compose.yml`, `compose.dev.yml`, `compose.release.yml`)
   - Architecture boundary linting (`scripts/boundaries.mjs`)
   - OpenAPI/SDK contract drift verification (`scripts/contracts-check.mjs`)
-  - Backup and restore verification scripts (`scripts/backup.sh`, `scripts/restore.sh`, `scripts/backup-manifest.mjs`)
+  - Backup and restore verification scripts (`scripts/backup.sh`, `scripts/restore.sh`, `scripts/backup-manifest.mjs`; retired under [ADR-006](scope-reduction-backup-restore.md))
 - **Removed components**:
   - `packages/reconciliation` (freight reconciliation business package)
   - Unused dependency `decimal.js`

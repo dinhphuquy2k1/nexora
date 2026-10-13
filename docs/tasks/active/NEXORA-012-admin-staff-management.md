@@ -207,7 +207,7 @@ Documentation Impact: REQUIRED
 - `docs/operations/setup.md`
 - `docs/operations/configuration.md`
 - `docs/operations/testing.md`
-- `docs/operations/backup-restore.md`
+- `docs/decisions/scope-reduction-backup-restore.md`
 
 ### Documentation verification
 

@@ -49,9 +49,8 @@ The initial v0.1.0 foundation deferred authentication while establishing runtime
    - The compiled CLI uses one raw terminal reader with hidden password/confirmation, backspace and cancellation/EOF cleanup. Explicit `--password-stdin` is the only piped mode; password arguments are forbidden. Its runtime acceptance is demonstrated only by fresh-install and pseudo-TTY tests, never source inspection alone.
 
 7. **Recovery session boundary**:
-   - A restored instance preserves recoverable data and operator identities/password hashes, but never retains an authentication session issued before restoration.
-   - Target dump restoration precedes committed migration deployment; only then are all target sessions deleted, before application availability. Source sessions are not touched.
-   - Historical foundation backups have no account assumptions; migration plus explicit CLI provisioning provides recovery. See [Backup and restore](../operations/backup-restore.md) for isolation, ordering and failure behavior.
+   - Application data and operator identities/password hashes persist in PostgreSQL named volumes across container restarts. Custom Backup/Restore subsystem has been retired per ADR-006.
+   - Session validation evaluates active database sessions directly; historical restore session invalidation is retired alongside the custom restore subsystem.
 
 ADR-005 continues to define the implemented local authentication and session runtime. The [Unified identity decision](unified-identity.md) extends its future architecture without changing current production behavior. PR #7 is merged; unified storage and local ADMIN credentials are implemented under the unified foundation.
 

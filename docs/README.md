@@ -25,7 +25,6 @@ For AI-assisted development, start at the mandatory entry point [`docs/ai/README
 - [Testing & verification](operations/testing.md): Quality suite, Docker smoke checks, and regression commands.
 - [Configuration](operations/configuration.md): Environment variables, defaults, and secrets handling.
 - [Deployment](operations/deployment.md): Local single-instance deployment and release topology.
-- [Backup & restore](operations/backup-restore.md): Snapshot creation, SHA-256 manifests, and restore validation.
 
 ### Decisions
 
@@ -55,7 +54,7 @@ Task records own work scope, progress, acceptance criteria, and verification evi
 | `docs/README.md`       | Documentation navigation and canonical ownership map                                |
 | `docs/architecture/**` | System structure, technical boundaries, runtime topology, and component contracts   |
 | `docs/domains/**`      | Domain business invariants, entity relationships, and domain-specific rules         |
-| `docs/operations/**`   | Setup, testing, configuration variables, deployment, and backup procedures          |
+| `docs/operations/**`   | Setup, testing, configuration variables, and deployment procedures                  |
 | `docs/decisions/ADR-*` | Durable architectural decisions, technology selections, and rationale               |
 | `docs/tasks/**`        | Work scope, acceptance state, remaining work, and executed verification evidence    |
 | `docs/ai/**`           | AI contributor rules, task lifecycle, implementation workflow, and document routing |
