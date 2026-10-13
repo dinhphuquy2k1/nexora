@@ -27,6 +27,7 @@ services:
       POSTGRES_USER: nexora
       POSTGRES_DB: nexora
       POSTGRES_PASSWORD_FILE: /config/postgres_password
+    ports: ["${POSTGRES_PORT:-127.0.0.1:5432}:5432"]
     volumes:
       - credentials:/config:ro
       - postgres:/var/lib/postgresql/data
