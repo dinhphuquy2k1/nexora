@@ -30,6 +30,12 @@ export const APPROVED_NAVIGATION_CONTRACT = [
     group: "Workspace",
   },
   {
+    id: "parcels",
+    href: "/logistics/parcels",
+    status: "available",
+    group: "Logistics",
+  },
+  {
     id: "customers",
     href: null,
     status: "planned",
@@ -207,10 +213,12 @@ test("isItemActive matching logic", () => {
   assert.equal(isItemActive(system, "/"), false);
   assert.equal(isItemActive(system, "/settings"), false);
 
-  // Settings route matching
-  assert.equal(isItemActive(settings, "/settings"), true);
-  assert.equal(isItemActive(settings, "/settings/"), true);
-  assert.equal(isItemActive(settings, "/system"), false);
+  // Parcels route matching
+  const parcels = NAVIGATION_ITEMS.find((i) => i.id === "parcels");
+  assert.ok(parcels);
+  assert.equal(isItemActive(parcels, "/logistics/parcels"), true);
+  assert.equal(isItemActive(parcels, "/logistics/parcels/"), true);
+  assert.equal(isItemActive(parcels, "/settings"), false);
 });
 
 test("resolveActiveItem identifies available routes and rejects fake ones", () => {
@@ -223,8 +231,12 @@ test("resolveActiveItem identifies available routes and rejects fake ones", () =
   const settingsItem = resolveActiveItem("/settings");
   assert.equal(settingsItem?.id, "settings");
 
+  const parcelsItem = resolveActiveItem("/logistics/parcels");
+  assert.equal(parcelsItem?.id, "parcels");
+
   // Trailing slash
   assert.equal(resolveActiveItem("/system/")?.id, "system");
+  assert.equal(resolveActiveItem("/logistics/parcels/")?.id, "parcels");
 
   // Unknown or unapproved routes return null
   assert.equal(resolveActiveItem("/unknown"), null);
@@ -242,6 +254,15 @@ test("resolveBreadcrumbs builds accurate breadcrumb trails", () => {
   assert.equal(rootCrumbs[1].label, "Tổng quan");
   assert.equal(rootCrumbs[1].href, "/");
   assert.equal(rootCrumbs[1].isCurrent, true);
+
+  // Logistics parcels route
+  const parcelsCrumbs = resolveBreadcrumbs("/logistics/parcels");
+  assert.equal(parcelsCrumbs.length, 2);
+  assert.equal(parcelsCrumbs[0].label, "Logistics");
+  assert.equal(parcelsCrumbs[0].isCurrent, false);
+  assert.equal(parcelsCrumbs[1].label, "Kiện hàng lẻ");
+  assert.equal(parcelsCrumbs[1].href, "/logistics/parcels");
+  assert.equal(parcelsCrumbs[1].isCurrent, true);
 
   // System route
   const systemCrumbs = resolveBreadcrumbs("/system");

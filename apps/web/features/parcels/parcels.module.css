@@ -1,0 +1,1175 @@
+/* ==========================================================================
+   Parcels Feature CSS Module (Tier C Feature Styles)
+   Consumes centralized design tokens from apps/web/styles/tokens.css
+   ========================================================================== */
+
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  width: 100%;
+  min-width: 0;
+}
+
+/* ==========================================================================
+   1. Header & Primary Action
+   ========================================================================== */
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--color-accent-text);
+  margin: 0 0 var(--space-1, 4px);
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: -0.3px;
+  margin: 0 0 var(--space-1, 4px);
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 600px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+/* Subtle, accessible disabled action */
+.createButtonDisabled {
+  height: var(--control-height-default, 40px);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 0 14px;
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  opacity: 0.85;
+  cursor: not-allowed;
+  user-select: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.createButtonBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   2. Status Filter Tabs
+   ========================================================================== */
+
+.tabsNav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  border-bottom: 1px solid var(--color-border);
+  scrollbar-width: thin;
+  flex-shrink: 0;
+}
+
+.tabsNav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabsNav::-webkit-scrollbar-thumb {
+  background: var(--color-border-subtle);
+  border-radius: var(--radius-full, 9999px);
+}
+
+.tabButton {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 0 12px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background-color: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.tabButton:hover {
+  color: var(--color-text);
+  background-color: var(--color-surface-subtle);
+}
+
+.tabButton:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
+}
+
+.tabButtonActive {
+  color: var(--color-primary-strong);
+  font-weight: 600;
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.tabLabel {
+  display: inline-block;
+  line-height: 1.2;
+}
+
+.tabCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.tabCountActive {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   3. Search and Column Customization Toolbar
+   ========================================================================== */
+
+.controlsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 380px;
+  min-width: 240px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  height: var(--control-height-default, 40px);
+  padding: 0 36px 0 36px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-accent-light);
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.searchClearButton {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: var(--radius-full, 9999px);
+  border: none;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.searchClearButton:hover {
+  background-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+/* Column Toggle Trigger & Popover */
+.columnToggleContainer {
+  position: relative;
+  display: inline-flex;
+}
+
+.columnToggleButton {
+  height: var(--control-height-default, 40px);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 0 14px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.columnToggleButton:hover {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-primary);
+  border-color: var(--color-border-subtle);
+}
+
+.columnToggleButton:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
+}
+
+.columnToggleButtonActive {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.customizedDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-accent);
+}
+
+.columnTogglePopover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 290px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: popoverFadeIn 0.15s ease;
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.popoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background-color: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.popoverTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+}
+
+.popoverResetButton {
+  height: var(--control-height-compact, 32px);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.popoverResetButton:hover:not(:disabled) {
+  color: var(--color-accent-text);
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.popoverResetButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.popoverBody {
+  padding: 8px 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+}
+
+.columnCheckboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  user-select: none;
+}
+
+.columnCheckboxLabel:hover:not(.columnCheckboxDisabled) {
+  background-color: var(--color-surface-subtle);
+}
+
+.columnCheckboxDisabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.columnCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: inherit;
+  margin: 0;
+}
+
+.columnCheckboxText {
+  flex: 1 1 auto;
+}
+
+.requiredBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs, 4px);
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+/* ==========================================================================
+   4. Table View (Desktop & Internal Scroll Layout)
+   ========================================================================== */
+
+.panelRegion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  width: 100%;
+  min-width: 0;
+}
+
+.tableCard {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+}
+
+.tableScrollWrapper {
+  width: 100%;
+  min-width: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Desktop Viewport-Aware Internal Scroll Architecture */
+@media (min-width: 1024px) and (min-height: 680px) {
+  .pageContainer {
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+
+  .panelRegion {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tableCard {
+    flex: 0 1 auto;
+    max-height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tableScrollWrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+.parcelTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.parcelTable th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.parcelTable td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: middle;
+  background-color: var(--color-surface);
+  transition: background-color 0.1s ease;
+}
+
+.parcelRow:hover td {
+  background-color: var(--color-surface-subtle);
+}
+
+.parcelRow:last-child td {
+  border-bottom: none;
+}
+
+/* Alignments */
+.textLeft {
+  text-align: left;
+}
+
+.textCenter {
+  text-align: center;
+}
+
+.textRight {
+  text-align: right;
+}
+
+/* Predictable Column Widths by Data Type */
+.colTrackingNumber {
+  width: 175px;
+  min-width: 175px;
+}
+
+.colProductName {
+  min-width: 220px;
+}
+
+.colStatus {
+  width: 165px;
+  min-width: 165px;
+}
+
+.colWeight {
+  width: 120px;
+  min-width: 110px;
+}
+
+.colTotalAmount {
+  width: 140px;
+  min-width: 130px;
+}
+
+.colPackageCount {
+  width: 90px;
+  min-width: 80px;
+}
+
+.colItemCount {
+  width: 110px;
+  min-width: 100px;
+}
+
+.colUnitPrice {
+  width: 130px;
+  min-width: 120px;
+}
+
+.colShippingFee {
+  width: 130px;
+  min-width: 120px;
+}
+
+.colDeclaredValue {
+  width: 140px;
+  min-width: 130px;
+}
+
+.colDate {
+  width: 140px;
+  min-width: 130px;
+}
+
+.colService {
+  width: 90px;
+  min-width: 80px;
+}
+
+/* Sticky first column on horizontal table scroll */
+.stickyColumnTh {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 15;
+  background-color: var(--color-surface-muted) !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04);
+}
+
+.stickyColumnTd {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background-color: var(--color-surface);
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04);
+}
+
+.parcelRow:hover .stickyColumnTd {
+  background-color: var(--color-surface-subtle) !important;
+}
+
+/* Table Cells Formatting */
+.trackingCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  white-space: nowrap;
+}
+
+.trackingCode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: var(--color-surface-subtle);
+  padding: 3px 6px;
+  border-radius: var(--radius-xs, 4px);
+  border: 1px solid var(--color-border);
+}
+
+.copyButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs, 4px);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.copyButton:hover {
+  background-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.copySuccess {
+  color: var(--color-status-success-text);
+}
+
+.productCell {
+  display: block;
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.numberCell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.totalAmountCell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.dateCell {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Service boolean indicator tags */
+.serviceTagActive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.serviceTagInactive {
+  color: var(--color-text-muted);
+  opacity: 0.4;
+}
+
+/* Status Badges */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full, 9999px);
+  flex-shrink: 0;
+}
+
+/* Status tones */
+.toneIncomingDeparture {
+  background-color: var(--color-status-neutral-bg);
+  color: var(--color-status-neutral-text);
+}
+.toneIncomingDeparture .statusDot {
+  background-color: var(--color-status-neutral-text);
+}
+
+.toneReceivedDeparture {
+  background-color: var(--color-status-info-bg);
+  color: var(--color-status-info-text);
+}
+.toneReceivedDeparture .statusDot {
+  background-color: var(--color-status-info-text);
+}
+
+.toneInTransit {
+  background-color: var(--color-status-warning-bg);
+  color: var(--color-status-warning-text);
+}
+.toneInTransit .statusDot {
+  background-color: var(--color-status-warning-text);
+}
+
+.toneReceivedDestination {
+  background-color: #ede9fe;
+  color: #6d28d9;
+}
+.toneReceivedDestination .statusDot {
+  background-color: #6d28d9;
+}
+
+.toneDelivered {
+  background-color: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+}
+.toneDelivered .statusDot {
+  background-color: var(--color-status-success-text);
+}
+
+.toneClaim {
+  background-color: var(--color-status-error-bg);
+  color: var(--color-status-error-text);
+}
+.toneClaim .statusDot {
+  background-color: var(--color-status-error-text);
+}
+
+/* ==========================================================================
+   5. Mobile Card List (Hidden on desktop)
+   ========================================================================== */
+
+.mobileCardList {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .tableCard {
+    display: none;
+  }
+
+  .mobileCardList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3, 12px);
+  }
+}
+
+.mobileCard {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-4, 16px);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.mobileCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.mobileProductTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.mobileMetricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2, 8px);
+  background-color: var(--color-surface-subtle);
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 8px);
+}
+
+.mobileMetricItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobileMetricLabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mobileMetricValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.mobileTotalHighlight {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.mobileToggleDetailsButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 0;
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent-text);
+  cursor: pointer;
+}
+
+.mobileDetailsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  padding-top: var(--space-2, 8px);
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+}
+
+.mobileDetailRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+}
+
+.mobileDetailRow span:last-child {
+  color: var(--color-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mobileServicesRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.mobileServiceBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 6px);
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.mobileServiceBadgeActive {
+  background-color: var(--color-status-success-bg);
+  border-color: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   6. Pagination Bar
+   ========================================================================== */
+
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-2, 8px) 0 0;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.paginationRange {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.paginationActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  flex-wrap: wrap;
+}
+
+.pageSizeSelector {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.pageSizeLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.pageSizeSelectWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pageSizeSelect {
+  height: var(--control-height-compact, 32px);
+  padding: 0 28px 0 10px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  box-shadow: var(--shadow-sm);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.pageSizeSelect:hover {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-border-subtle);
+}
+
+.pageSizeSelect:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
+}
+
+.pageSizeSelectIcon {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  color: var(--color-text-muted);
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.paginationButton {
+  height: var(--control-height-compact, 32px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1, 4px);
+  padding: 0 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+
+.paginationButton:hover:not(:disabled) {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-border-subtle);
+  color: var(--color-primary);
+}
+
+.paginationButton:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
+}
+
+.paginationButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageIndicator {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 0 var(--space-2, 8px);
+}
+
+@media (max-width: 480px) {
+  .paginationBar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3, 12px);
+  }
+
+  .paginationActions {
+    width: 100%;
+    justify-content: space-between;
+    gap: var(--space-2, 8px);
+  }
+}
+
+/* ==========================================================================
+   7. Empty & No Results State
+   ========================================================================== */
+
+.emptyStateCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm);
+  gap: var(--space-3, 12px);
+}
+
+.emptyStateIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.emptyStateTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.emptyStateText {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  max-width: 440px;
+  margin: 0;
+}
+
+.resetFilterButton {
+  margin-top: var(--space-2, 8px);
+  height: var(--control-height-compact, 32px);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 0 14px;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.resetFilterButton:hover {
+  background-color: var(--color-primary-hover);
+}
+
+/* ==========================================================================
+   8. Loading Skeleton
+   ========================================================================== */
+
+.skeletonContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  width: 100%;
+}
+
+.skeletonBlock {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-subtle) 25%,
+    var(--color-surface) 37%,
+    var(--color-surface-subtle) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeletonPulse 1.4s ease infinite;
+  border-radius: var(--radius-md, 8px);
+}
+
+@keyframes skeletonPulse {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
