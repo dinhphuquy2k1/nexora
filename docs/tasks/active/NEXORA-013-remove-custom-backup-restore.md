@@ -79,16 +79,18 @@ Documentation Impact: REQUIRED
 
 ## 4. Evidence
 
-| Claim                                           | Evidence                                                                  | Date       | Result |
-| :---------------------------------------------- | :------------------------------------------------------------------------ | :--------- | :----- |
-| Backup/restore scripts and fixtures deleted     | `git status` confirms deletion of 6 scripts + fixture + doc               | 2026-10-13 | PASS   |
-| Documentation integrity and relative links pass | `pnpm docs:check` exit code 0                                             | 2026-10-13 | PASS   |
-| Architecture boundary rules pass                | `node scripts/boundaries.mjs`                                             | 2026-10-13 | PASS   |
-| Operations tests pass without restore tests     | `pnpm test:operations`                                                    | 2026-10-13 | PASS   |
-| SDK OpenAPI contracts check passes              | `pnpm contracts:check`                                                    | 2026-10-13 | PASS   |
-| Standard release compose port isolation         | `docker compose config` shows no published port for postgres              | 2026-10-13 | PASS   |
-| Dev compose default port loopback binding       | `docker compose -f compose.yml -f compose.dev.yml config` published: 5432 | 2026-10-13 | PASS   |
-| Dev compose custom numeric port binding         | `POSTGRES_PORT=5433` publishes 5433 on 127.0.0.1                          | 2026-10-13 | PASS   |
-| Dev compose rejects invalid 0.0.0.0 override    | `POSTGRES_PORT=0.0.0.0:5432` fails safely with `invalid IP address`       | 2026-10-13 | PASS   |
-| Consolidated PR #13 CI run (commit 330e398)     | Run `38403928744` (ID 115318429013) all stages passed in 9m 23s           | 2026-10-13 | PASS   |
-| Hardened PR #13 CI run (commit 1d30747)         | Run `38407659362` (ID 115334994119) all stages passed in 9m 26s           | 2026-10-13 | PASS   |
+| Claim                                           | Evidence                                                                                                                                                              | Date       | Result |
+| :---------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Backup/restore scripts and fixtures deleted     | `git status` confirms deletion of 6 scripts + fixture + doc                                                                                                           | 2026-10-13 | PASS   |
+| Documentation integrity and relative links pass | `pnpm docs:check` exit code 0                                                                                                                                         | 2026-10-13 | PASS   |
+| Architecture boundary rules pass                | `node scripts/boundaries.mjs`                                                                                                                                         | 2026-10-13 | PASS   |
+| Operations tests pass without restore tests     | `pnpm test:operations`                                                                                                                                                | 2026-10-13 | PASS   |
+| SDK OpenAPI contracts check passes              | `pnpm contracts:check`                                                                                                                                                | 2026-10-13 | PASS   |
+| Standard release compose port isolation         | `docker compose config` shows no published port for postgres                                                                                                          | 2026-10-13 | PASS   |
+| Dev compose default port loopback binding       | `docker compose -f compose.yml -f compose.dev.yml config` published: 5432                                                                                             | 2026-10-13 | PASS   |
+| Dev compose custom numeric port binding         | `POSTGRES_PORT=5433` publishes 5433 on 127.0.0.1                                                                                                                      | 2026-10-13 | PASS   |
+| Dev compose rejects invalid 0.0.0.0 override    | `POSTGRES_PORT=0.0.0.0:5432` fails safely with `invalid IP address`                                                                                                   | 2026-10-13 | PASS   |
+| Persistence across restart/down-up (data-smoke) | `scripts/data-smoke.sh` in CI run `38410261458` (job `115340397718`): confirmed DB record & uploaded file persistence across service restart and `down` / `up` cycles | 2026-10-13 | PASS   |
+| Consolidated PR #13 CI run (commit 330e398)     | Run `38403928744` (ID 115318429013) all stages passed in 9m 23s                                                                                                       | 2026-10-13 | PASS   |
+| Hardened PR #13 CI run (commit 1d30747)         | Run `38407659362` (ID 115334994119) all stages passed in 9m 26s                                                                                                       | 2026-10-13 | PASS   |
+| Final remediation CI run (commit 6996126)       | Run `38410261458` (ID 115340397718) all stages passed in 9m 16s                                                                                                       | 2026-10-13 | PASS   |

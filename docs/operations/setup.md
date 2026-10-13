@@ -100,7 +100,13 @@ For local development inspections, schema reviews, and manual SQL queries:
    Passwords are generated once per environment during container initialization and stored in the isolated credentials volume (`credentials:/config/postgres_password`).
 
    > [!WARNING]
-   > **Secret Exposure Warning**: Inspecting the credential reveals a secret to the local administrator. Never execute commands that print passwords in shared terminals, recorded sessions, video presentations, or CI logs.
+   > **Secret Exposure & Clipboard Security**: Retrieving credentials reveals a real database secret. Never execute commands that print passwords in shared terminals, recorded sessions, video presentations, or CI logs.
+   > The clipboard temporarily stores this plaintext secret. When using clipboard copy:
+   >
+   > - Avoid clipboard history features and cross-device clipboard synchronization if enabled.
+   > - Never paste the secret into chat messages, issue comments, screenshots, or code comments.
+   > - Clear your clipboard immediately after entering the password into your database client (e.g. Windows PowerShell: `Clear-Clipboard`, macOS: `pbcopy < /dev/null`, Linux: `xclip -selection clipboard /dev/null`).
+   > - Use your database client's native secure password storage (e.g. OS keychain) if persisting the connection locally.
 
    To avoid exposing the password in terminal history, copy it directly to your system clipboard:
    - **Windows (PowerShell)**:
