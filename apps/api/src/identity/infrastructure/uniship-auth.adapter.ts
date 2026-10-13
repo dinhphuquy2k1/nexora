@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { ProviderAuthenticationPort } from "../application/provider-auth.port";
 import type { VerifiedProviderIdentity } from "../domain/identity.types";
+import { IdentityProvider } from "../domain/provider-policy";
 
 export interface UnishipAuthAdapterOptions {
   apiUrl?: string;
@@ -135,7 +136,7 @@ function parseProviderIdentity(payload: unknown): VerifiedProviderIdentity {
   }
 
   return {
-    provider: "uniship",
+    provider: IdentityProvider.UNISHIP,
     providerSubject: normalizedSubject,
   };
 }

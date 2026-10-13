@@ -4,6 +4,7 @@ import { IdentityPort } from "./identity.port";
 import { ProviderAuthenticationPort } from "./provider-auth.port";
 import { normalizeUsername, isLoginPassword } from "../domain/credentials";
 import { UserRole, UserStatus } from "../domain/user-policy";
+import { IdentityProvider } from "../domain/provider-policy";
 import type {
   UserSummary,
   VerifiedProviderIdentity,
@@ -186,7 +187,7 @@ export class AuthService {
     if (
       !verified ||
       typeof verified !== "object" ||
-      verified.provider !== "uniship" ||
+      verified.provider !== IdentityProvider.UNISHIP ||
       typeof verified.providerSubject !== "string" ||
       verified.providerSubject.trim().length === 0 ||
       verified.providerSubject.length > 128 ||

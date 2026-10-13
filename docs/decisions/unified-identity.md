@@ -4,7 +4,7 @@ Accepted direction: 2026-10-12. Phase 1 storage/local-authentication implementat
 
 ## Identity and access
 
-The target is one `users` table with feature-local `as const` vocabulary: role ADMIN/OPERATOR and status ACTIVE/DISABLED, stored as VARCHAR with SQL CHECK constraints, never Prisma/PostgreSQL/TypeScript enums. Role has no final database default; all creation paths specify it explicitly. Local passwords belong in `user_credentials`, not the unified user row. External identities map into `external_identities` with a unique `(provider, provider_subject)` and `(user_id, provider)` constraint; provider credentials and device/audit/approval tables are deferred.
+The target is one `users` table with feature-local `as const` vocabulary: role ADMIN/OPERATOR, status ACTIVE/DISABLED and provider `IdentityProvider.UNISHIP` (`uniship`, owned by `identity/domain/provider-policy.ts`), stored as VARCHAR with SQL CHECK constraints, never Prisma/PostgreSQL/TypeScript enums. Role has no final database default; all creation paths specify it explicitly. Local passwords belong in `user_credentials`, not the unified user row. External identities map into `external_identities` with a unique `(provider, provider_subject)` and `(user_id, provider)` constraint; provider credentials and device/audit/approval tables are deferred.
 
 Trusted local provisioning creates ADMIN explicitly, never exposes role selection through HTTP and never creates local-password Operators. Legacy trusted accounts may become ADMIN only after the merged production creation paths and history establish provenance. A provenance gap stops migration; active and disabled state must survive.
 

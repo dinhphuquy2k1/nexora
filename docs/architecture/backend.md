@@ -48,3 +48,5 @@ IMPLEMENTED in PR #10, verification tracked in NEXORA-012:
    - Accepts `ProviderLoginRequestDto` (`username`, `password`).
    - On success, sets `nexora_session` cookie (`HttpOnly: true, SameSite: Lax, Path: /, Secure: false`) and returns `{ user }`.
    - Cookie is never set on failure; no provider tokens or raw identifiers are returned to the client.
+
+Identity provider vocabulary is owned by `identity/domain/provider-policy.ts`: `IdentityProvider = { UNISHIP: "uniship" } as const` with a derived union type. Trusted identity records and lookup ports use that type; application validation and the Uniship adapter use the constant. The infrastructure boundary maps the CHECK-constrained persisted string to the domain type. SQL fixtures/migrations retain the exact scalar `uniship`; this vocabulary extraction adds no registry, enum, shared-package dependency, schema or public contract change.

@@ -1,3 +1,4 @@
+import type { IdentityProvider } from "../domain/provider-policy";
 import type {
   ExternalIdentityRecord,
   LocalLoginRecord,
@@ -11,7 +12,7 @@ export abstract class IdentityPort {
   ): Promise<LocalLoginRecord | null>;
   abstract findUserById(id: string): Promise<UserSummary | null>;
   abstract findExternalIdentity(
-    provider: string,
+    provider: IdentityProvider,
     providerSubject: string,
   ): Promise<ExternalIdentityRecord | null>;
   abstract createSession(

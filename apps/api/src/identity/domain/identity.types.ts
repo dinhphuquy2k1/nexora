@@ -1,3 +1,4 @@
+import type { IdentityProvider } from "./provider-policy";
 import type { UserRole, UserStatus } from "./user-policy";
 export interface UserSummary {
   id: string;
@@ -24,7 +25,7 @@ export interface LocalLoginRecord {
 export interface ExternalIdentityRecord {
   id: string;
   userId: string;
-  provider: string;
+  provider: IdentityProvider;
   providerSubject: string;
   user: {
     id: string;
@@ -35,6 +36,6 @@ export interface ExternalIdentityRecord {
 }
 
 export interface VerifiedProviderIdentity {
-  provider: "uniship";
+  provider: IdentityProvider;
   providerSubject: string;
 }
