@@ -15,7 +15,7 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ from?: string }>;
+  searchParams?: Promise<{ from?: string; mode?: string }>;
 }) {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("nexora_session");
@@ -23,11 +23,12 @@ export default async function LoginPage({
   let shouldRedirect = false;
   let returnUrl = "/";
   let serviceUnavailable = false;
+  const resolvedParams = searchParams ? await searchParams : undefined;
+  const isAdminMode = resolvedParams?.mode === "admin";
 
   if (sessionCookie?.value) {
     const sessionResult = await verifyServerSession(sessionCookie.value);
     if (sessionResult.status === "authenticated") {
-      const resolvedParams = searchParams ? await searchParams : undefined;
       returnUrl = sanitizeReturnUrl(resolvedParams?.from);
       shouldRedirect = true;
     } else if (sessionResult.status === "unavailable") {
@@ -52,7 +53,11 @@ export default async function LoginPage({
         <h1 id="login-heading" className={styles.heading}>
           Đăng nhập {PRODUCT_NAME}
         </h1>
-        <p className={styles.subtitle}>Truy cập không gian quản lý vận đơn</p>
+        <p className={styles.subtitle}>
+          {isAdminMode
+            ? "Cổng đăng nhập Quản trị viên (ADMIN)"
+            : "Truy cập không gian quản lý vận đơn"}
+        </p>
 
         {serviceUnavailable && (
           <div role="alert" className={styles.errorBanner}>

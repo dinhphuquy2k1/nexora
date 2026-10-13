@@ -75,6 +75,7 @@ try {
   let id = 0;
   const pending = new Map();
   let loginStatus;
+  let loginUrl;
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
     if (message.id) {
@@ -88,9 +89,12 @@ try {
     }
     if (
       message.method === "Network.responseReceived" &&
-      message.params.response.url === `${baseUrl}/api/auth/login`
-    )
+      (message.params.response.url === `${baseUrl}/api/auth/login` ||
+        message.params.response.url === `${baseUrl}/api/auth/provider/login`)
+    ) {
       loginStatus = message.params.response.status;
+      loginUrl = message.params.response.url;
+    }
   });
   const send = (method, params = {}) =>
     new Promise((resolve, reject) => {
@@ -131,13 +135,95 @@ try {
     await delay(100);
   }
   assert.ok(ready, "Login form did not render");
-  checks.step("FORM_INTERACTION");
+  checks.step("LOGIN_STANDALONE_LAYOUT");
+  const hasShell = await evaluate(
+    '!!document.querySelector("header[aria-label=\'Thanh công cụ đầu trang\']") || !!document.querySelector("aside")',
+  );
+  assert.equal(
+    hasShell,
+    false,
+    "Login page must not render authenticated AppShell",
+  );
+
+  checks.step("EMPLOYEE_FORM_VERIFICATION");
+  const hasAdminSwitch = await evaluate(
+    "!!document.querySelector(\"a[href*='mode=admin']\")",
+  );
+  assert.ok(hasAdminSwitch, "Employee login must link to Admin mode");
+
+  // Verify employee form submits to provider endpoint and shows safe error when provider is unconfigured/fails
+  await delay(500);
+  await evaluate('document.querySelector("input[name=username]").focus()');
+  await send("Input.insertText", { text: "operator_test" });
+  await evaluate('document.querySelector("input[name=password]").focus()');
+  await send("Input.insertText", { text: "TestPassword123!" });
+  await evaluate('document.querySelector("button[type=submit]").click()');
+  let sawProviderResponse = false;
+  for (let i = 0; i < 100; i++) {
+    if (loginUrl === `${baseUrl}/api/auth/provider/login`) {
+      sawProviderResponse = true;
+      break;
+    }
+    await delay(100);
+  }
+  assert.ok(
+    sawProviderResponse,
+    "Employee form must call /api/auth/provider/login",
+  );
+  let hasErrorBanner = false;
+  for (let i = 0; i < 50; i++) {
+    hasErrorBanner = await evaluate('!!document.querySelector("[role=alert]")');
+    if (hasErrorBanner) break;
+    await delay(100);
+  }
+  assert.ok(
+    hasErrorBanner,
+    "Failed provider login must display safe error banner",
+  );
+
+  checks.step("UNAUTHENTICATED_WORKSPACE_REDIRECT");
+  await send("Page.navigate", { url: `${baseUrl}/settings` });
+  let unauthRedirected = false;
+  for (let i = 0; i < 100; i++) {
+    const curPath = await evaluate("window.location.pathname");
+    if (curPath === "/login") {
+      unauthRedirected = true;
+      break;
+    }
+    await delay(100);
+  }
+  assert.ok(
+    unauthRedirected,
+    "Unauthenticated navigation to /settings must redirect to /login",
+  );
+
+  checks.step("ADMIN_MODE_SWITCH_AND_FORM");
+  await send("Page.navigate", {
+    url: `${baseUrl}/login?mode=admin&from=%2Fsettings`,
+  });
+  let adminReady = false;
+  for (let i = 0; i < 100; i++) {
+    adminReady = await evaluate(
+      '!!document.querySelector("input[name=username]") && !!document.querySelector("input[name=password]")',
+    );
+    if (adminReady) break;
+    await delay(100);
+  }
+  assert.ok(adminReady, "Admin login form did not render");
+  const hasEmployeeSwitch = await evaluate(
+    "!!document.querySelector(\"a[href*='/login']\")",
+  );
+  assert.ok(hasEmployeeSwitch, "Admin login must link back to employee mode");
+
+  checks.step("ADMIN_FORM_INTERACTION");
   // Allow hydration, then type via browser input events and click the actual submit button.
   await delay(500);
   await evaluate('document.querySelector("input[name=username]").focus()');
   await send("Input.insertText", { text: username });
   await evaluate('document.querySelector("input[name=password]").focus()');
   await send("Input.insertText", { text: password });
+  loginStatus = undefined;
+  loginUrl = undefined;
   await evaluate('document.querySelector("button[type=submit]").click()');
   checks.step("LOGIN_RESPONSE_AND_NAVIGATION");
   let location;
@@ -152,12 +238,20 @@ try {
     await delay(100);
   }
   checks.step("LOGIN_RESPONSE");
+  assert.equal(loginUrl, `${baseUrl}/api/auth/login`);
   checks.status(loginStatus, 200);
   checks.step("PROTECTED_NAVIGATION");
   assert.equal(
     location,
     "/settings",
     "Browser did not reach protected return page",
+  );
+  const shellPresent = await evaluate(
+    '!!document.querySelector("header[aria-label=\'Thanh công cụ đầu trang\']") && !!document.querySelector("aside")',
+  );
+  assert.ok(
+    shellPresent,
+    "Protected workspace must render AppShell for authenticated session",
   );
   checks.step("SESSION_COOKIE");
   const cookies = (await send("Network.getCookies", { urls: [baseUrl] }))
@@ -187,6 +281,21 @@ try {
     await evaluate('fetch("/api/auth/session").then(res => res.status)'),
     401,
   );
+  checks.step("REVOKED_SESSION_PROTECTED_REDIRECT");
+  await send("Page.navigate", { url: `${baseUrl}/settings` });
+  let revokedRedirected = false;
+  for (let i = 0; i < 100; i++) {
+    const p = await evaluate("window.location.pathname");
+    if (p === "/login") {
+      revokedRedirected = true;
+      break;
+    }
+    await delay(100);
+  }
+  assert.ok(
+    revokedRedirected,
+    "Revoked session must redirect to /login when visiting protected workspace",
+  );
   console.log(
     "Actual browser Login form, cookie, protected navigation and Logout PASS",
   );
@@ -197,5 +306,14 @@ try {
   socket?.close();
   child.kill();
   await exited;
-  await rm(profile, { recursive: true, force: true });
+  try {
+    await rm(profile, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 100,
+    });
+  } catch {
+    // Best-effort cleanup of temporary browser profile in tmpdir
+  }
 }

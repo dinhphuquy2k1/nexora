@@ -14,12 +14,13 @@ Nexora operates under three distinct runtime topologies:
 ### Mode B: Docker Development
 
 - **Start**: `docker compose -f compose.yml -f compose.dev.yml up --build`.
-- **Characteristics**: Reuses Docker service networking (`http://api:4000`), mounts local source into containers, and runs watchers inside Docker. Does not require running Web manually on host port 3000. Keep this file pair for stop and quality commands.
+- **Characteristics**: Reuses Docker service networking (`http://api:4000`), mounts local source into containers, and runs watchers inside Docker. Containerized Next.js listens internally on port 3000 and publishes user-facing port `http://127.0.0.1:3001`. Keep this file pair for stop and quality commands.
 
 ### Mode C: Host-run Development (Optional / Constrained)
 
 - **Requirements**: Node .nvmrc (24.19.0), pnpm 10.34.6; `pnpm install --frozen-lockfile`, `pnpm --filter @nexora/database generate`, `pnpm build`.
-- **Constraint**: `pnpm --filter @nexora/web dev` runs Next.js on host port 3000. Next.js does not provide an implicit fallback for `API_INTERNAL_URL`. If unconfigured, build and startup fail explicitly with an actionable error. Because Docker does not publish the internal API port to the host, pointing host Next.js to `http://api:4000` fails with `getaddrinfo ENOTFOUND api`. Host-run Web requires an independently reachable host API listener and explicit configuration: `API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @nexora/web dev`. For standard local work, Docker Mode A or B is recommended.
+- **Port Policy & Collision Prevention**: `pnpm --filter @nexora/web dev` runs `scripts/dev.mjs`, which defaults to the canonical browser-facing port 3001 (or `PORT` env var). If port 3001 is already bound (e.g. Docker Web is active), the preflight refuses startup with an explicit `EADDRINUSE` error instead of silently switching to port 3002. Never run host Web and Docker Web simultaneously on port 3001.
+- **API Configuration**: Next.js does not provide an implicit fallback for `API_INTERNAL_URL`. If unconfigured, build and startup fail explicitly with an actionable error. Because Docker does not publish the internal API port to the host, pointing host Next.js to `http://api:4000` fails with `getaddrinfo ENOTFOUND api`. Host-run Web requires an independently reachable host API listener and explicit configuration: `API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @nexora/web dev`. For standard local work, Docker Mode A or B is recommended.
 
 ## Initial Operator Account Provisioning
 
@@ -39,7 +40,7 @@ Automation must explicitly select password stdin; never put a password in comman
 printf '%s' "$ADMIN_PASS" | docker compose exec -T api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js --username admin --password-stdin
 ```
 
-A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private. Host-run Web on port 3000 requires an explicit trusted Origin on its separately reachable API.
+A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private; browser-facing port 3001 connects to the Web container listener (internal container port 3000). Compose forwards `UNISHIP_API_URL` and `UNISHIP_LIVE_AUTHORIZED` to the API service; leaving them unconfigured leaves API startup unaffected while employee provider login safely returns 503 until the provider URL and operational switch are configured. Uniship API integration permission was confirmed by the owner on 2026-10-13; the administrator selects the correct `UNISHIP_API_URL` and may explicitly enable `UNISHIP_LIVE_AUTHORIZED=true` under the approved authorization and deployment procedure. Leave the switch false during ordinary tests/startup. Local mock-provider verification does not establish live Uniship authentication.
 
 ## Windows Developer Experience & Troubleshooting
 
@@ -47,11 +48,11 @@ When developing on Windows, confusing port collisions or DNS resolution errors c
 
 ### Investigating Listening Ports
 
-Use safe PowerShell commands to identify which processes own port 3000 (host dev) or 3001 (Docker Web):
+Use safe PowerShell commands to identify which processes own port 3001 (canonical browser endpoint / Docker Web) or internal container ports:
 
 ```powershell
-Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object LocalAddress, LocalPort, OwningProcess
 Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue | Select-Object LocalAddress, LocalPort, OwningProcess
+Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object LocalAddress, LocalPort, OwningProcess
 ```
 
 Inspect the process before stopping it; do not force-kill based on port alone:
@@ -87,3 +88,21 @@ For offline Docker dependency preparation, an optional named build context `depe
 Unified identity storage and local ADMIN provisioning are implemented; follow NEXORA-011 verification evidence before upgrading. Before any future upgrade containing that migration, follow the mandatory maintenance, verified-backup and isolated recovery safeguards in [Backup and restore](backup-restore.md#unified-identity-upgrade-safeguards). The verified baseline, migration prerequisites and execution evidence are tracked in [NEXORA-011](../tasks/completed/NEXORA-011-unified-identity-migration.md).
 
 For identity upgrades, stop API/Web and external provisioning writers after a verified protected backup, retain PostgreSQL/credential/upload volumes, and use the reviewed matching release's migrate service before bringing application writers back. Do not start old images against migrated schema. See the backup owner for isolated rollback/recovery; source SQL must never be tested against operator volumes.
+
+## Manual Uniship OPERATOR registration
+
+After the committed migrations are deployed, an authorized database administrator obtains the confirmed Uniship userid and runs from the checkout:
+
+```sh
+psql -X -v ON_ERROR_STOP=1 "$DATABASE_URL" \
+  -v username='operator_nam' -v uniship_userid='10482' \
+  -f scripts/sql/register-uniship-operator.sql
+```
+
+Use the correct installation/database connection through the existing administrative channel; Docker PostgreSQL remains private. Supply no password or provider token as registration parameters. The script creates one ACTIVE OPERATOR plus one Uniship binding atomically, without local credentials. Duplicate/invalid inputs or either insert failure exit nonzero and roll back. Username policy is trimmed 3–50 characters without a character allowlist; stored subject policy is nonempty, trimmed and at most 128 characters. Enter the actual provider-issued userid: the authentication adapter independently verifies positive decimal userid payloads. A manually stored mapping is authorization data, not proof of authentication. See [NEXORA-012](../tasks/active/NEXORA-012-admin-staff-management.md) for invariants and deferred Admin CRUD/UI. No broader provider data-retention rights are inferred from userid approval.
+
+## Uniship configuration example and Web launchers
+
+Copy `.env.example` to `.env` when using the provided configuration example. It contains an active Uniship API base URL `https://kh.uniship.vn` and keeps `UNISHIP_LIVE_AUTHORIZED=false`. The administrator is responsible for the correct base URL; supply no login endpoint path, provider password or token. Environment variables can override the example. API integration permission is owner-confirmed; explicitly enabling the deployment switch is separate from real-provider technical verification, which remains deferred. Removing or emptying the URL preserves provider-unavailable behavior and independent local ADMIN Login.
+
+The existing `pnpm --filter @nexora/web dev` / `start` commands delegate to one shared launcher. Dev retains `next dev --webpack`; start retains `next start`. Absent PORT defaults to host-facing 3001; an empty/malformed/out-of-range PORT exits nonzero before spawning Next.js. A collision exits nonzero with instructions and never stops the existing listener or selects another port. Preflight does not eliminate a later binding race: the actual child failure still propagates. SIGINT, SIGTERM and SIGHUP are forwarded to the child; the launcher waits for child closure and returns 128 plus the signal number for signal termination. Normal child exit codes are preserved and spawn errors fail safely. Docker development keeps its explicit internal listener on 3000; Docker release keeps its direct Next.js invocation and existing port mapping.

@@ -1,9 +1,14 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { randomBytes, createHash } from "node:crypto";
 import { IdentityPort } from "./identity.port";
+import { ProviderAuthenticationPort } from "./provider-auth.port";
 import { normalizeUsername, isLoginPassword } from "../domain/credentials";
 import { UserRole, UserStatus } from "../domain/user-policy";
-import type { UserSummary } from "../domain/identity.types";
+import { IdentityProvider } from "../domain/provider-policy";
+import type {
+  UserSummary,
+  VerifiedProviderIdentity,
+} from "../domain/identity.types";
 
 interface RateLimitEntry {
   count: number;
@@ -32,10 +37,21 @@ export class AuthService {
   private lastRefill: number;
   private pending = 0;
 
+  private readonly providerPort?: ProviderAuthenticationPort;
+  private readonly now: () => number;
+
   constructor(
     private readonly port: IdentityPort,
-    private readonly now: () => number = Date.now,
+    providerPortOrNow?: ProviderAuthenticationPort | (() => number),
+    now?: () => number,
   ) {
+    if (typeof providerPortOrNow === "function") {
+      this.providerPort = undefined;
+      this.now = providerPortOrNow;
+    } else {
+      this.providerPort = providerPortOrNow;
+      this.now = now ?? Date.now;
+    }
     this.lastRefill = this.now();
   }
 
@@ -163,5 +179,131 @@ export class AuthService {
     if (!token || typeof token !== "string") return;
     const tokenHash = createHash("sha256").update(token).digest("hex");
     await this.port.deleteSessionByTokenHash(tokenHash);
+  }
+
+  async authenticateExternalIdentity(
+    verified: VerifiedProviderIdentity,
+  ): Promise<{ user: UserSummary; token: string; expiresAt: Date }> {
+    if (
+      !verified ||
+      typeof verified !== "object" ||
+      verified.provider !== IdentityProvider.UNISHIP ||
+      typeof verified.providerSubject !== "string" ||
+      verified.providerSubject.trim().length === 0 ||
+      verified.providerSubject.length > 128 ||
+      verified.providerSubject !== verified.providerSubject.trim()
+    ) {
+      throw new HttpException(
+        {
+          code: "AUTHENTICATION_FAILED",
+          message:
+            "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập.",
+        },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    const identity = await this.port.findExternalIdentity(
+      verified.provider,
+      verified.providerSubject,
+    );
+
+    if (
+      !identity ||
+      identity.user.role !== UserRole.OPERATOR ||
+      identity.user.status !== UserStatus.ACTIVE
+    ) {
+      throw new HttpException(
+        {
+          code: "AUTHENTICATION_FAILED",
+          message:
+            "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập.",
+        },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    const token = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const expiresAt = new Date(this.now() + SESSION_TTL_MS);
+
+    await this.port.createSession(identity.user.id, tokenHash, expiresAt);
+
+    return {
+      user: { id: identity.user.id, username: identity.user.username },
+      token,
+      expiresAt,
+    };
+  }
+
+  async loginWithProvider(
+    usernameInput: unknown,
+    password: unknown,
+  ): Promise<{ user: UserSummary; token: string; expiresAt: Date }> {
+    const username = normalizeUsername(usernameInput);
+    if (!username || !isLoginPassword(password)) {
+      throw new HttpException(
+        {
+          code: "VALIDATION_ERROR",
+          message: "Tên đăng nhập hoặc mật khẩu không hợp lệ",
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    const rateLimitKey = `provider:${username}`;
+    const entry = this.admit(rateLimitKey);
+    try {
+      if (!this.providerPort) {
+        throw new HttpException(
+          {
+            code: "SERVICE_UNAVAILABLE",
+            message:
+              "Dịch vụ xác thực nhà cung cấp chưa được cấu hình hoặc tạm thời không khả dụng.",
+          },
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
+
+      let verified: VerifiedProviderIdentity;
+      try {
+        verified = await this.providerPort.authenticate({ username, password });
+      } catch (err) {
+        if (
+          err instanceof HttpException &&
+          err.getStatus() === HttpStatus.UNAUTHORIZED
+        ) {
+          if (this.now() >= entry.resetAt) {
+            entry.count = 0;
+            entry.resetAt = this.now() + WINDOW_MS;
+          }
+          entry.count += 1;
+        }
+        throw err;
+      }
+
+      try {
+        const result = await this.authenticateExternalIdentity(verified);
+        entry.count = 0;
+        return result;
+      } catch (err) {
+        if (
+          err instanceof HttpException &&
+          err.getStatus() === HttpStatus.UNAUTHORIZED
+        ) {
+          if (this.now() >= entry.resetAt) {
+            entry.count = 0;
+            entry.resetAt = this.now() + WINDOW_MS;
+          }
+          entry.count += 1;
+        }
+        throw err;
+      }
+    } finally {
+      this.pending -= 1;
+      entry.pending -= 1;
+      if (entry.pending === 0 && entry.count === 0) {
+        this.rateLimits.delete(rateLimitKey);
+      }
+    }
   }
 }

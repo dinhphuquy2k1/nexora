@@ -19,8 +19,8 @@ Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel
 
 Components dedicated to Nexora's application shell, layout frame, and cross-route coordination:
 
-- **`AppShell` (`AppShell.tsx`)**: Authoritative Server Component layout frame consumed in `apps/web/app/layout.tsx`.
-- **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`) and bypassing shell chrome on public authentication routes (`/login`).
+- **`AppShell` (`AppShell.tsx`)**: Authoritative Server Component layout frame consumed exclusively in the protected workspace layout `apps/web/app/(workspace)/layout.tsx`.
+- **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`) and rendering workspace navigation chrome. Fully decoupled from public login routes.
 - **`Sidebar` (`Sidebar.tsx`, `Sidebar.module.css`)**: Logistics navigation bar with geometric monogram logo, grouped navigation items, active route indicators, and planned item tags.
 - **`Header` (`Header.tsx`, `Header.module.css`)**: Top bar containing sidebar toggle, pathname-driven breadcrumbs, and authenticated user account disclosure (`AccountMenu`).
 - **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible user account disclosure displaying authenticated username and active session status, with browser POST logout and status-aware retry.
@@ -110,8 +110,13 @@ Nexora is a local-first shipment management platform. In foundation v0.1.0, the 
 
 ## 8. Authentication & Route Protection
 
-- **Public Login Page (`/login`)**: Standalone centered layout presenting brand monogram, username/password fields, keyboard-accessible password show/hide toggle, accessible error banners, and safe local redirect handling (`sanitizeReturnUrl`). Server Component performs authoritative session verification before redirecting genuinely authenticated users to avoid redirect loops on invalid or stale cookies.
-- **Route Guarding (`middleware.ts`)**: Enforces Host allowlist validation at ingress across all matched paths including `/api/*`. Inspects `nexora_session` cookie; unauthenticated requests accessing workspace pages (`/`, `/system`, `/settings`) redirect to `/login?from=...`.
+- **Layout Architecture & Route Groups**:
+  - **Root Layout (`apps/web/app/layout.tsx`)**: Owns `html`, `body`, global `styles.css`, and application metadata. Does not render `AppShell`.
+  - **Standalone Public Login Route (`apps/web/app/login/`)**: Uses a standalone `LoginLayout` (`apps/web/app/login/layout.tsx`) and `LoginPage` presenting brand monogram, mode-aware header/subtitle, accessible error banners, mode toggle link, and return URL sanitization (`sanitizeReturnUrl`). Does not render `AppShell`.
+    - **Employee Login (`/login`)**: Default mode submitting credentials to `POST /api/auth/provider/login`. Displays safe error `"Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập."` on 401. Includes a navigation link to switch to Admin mode (`/login?mode=admin`).
+    - **Admin Login (`/login?mode=admin`)**: Independent local administrator mode submitting credentials to `POST /api/auth/login`. Displays `"Tên đăng nhập hoặc mật khẩu không chính xác."` on 401. Includes a navigation link to switch to Employee mode (`/login`).
+  - **Protected Workspace Route Group (`apps/web/app/(workspace)/`)**: Routes (`/`, `/settings`, `/system`) reside in the `(workspace)` route group. Its Server Component layout (`apps/web/app/(workspace)/layout.tsx`) enforces server session verification via `verifyServerSession(cookie)`. Genuinely authenticated users receive `<AppShell user={result.user}>{children}</AppShell>`; unauthenticated requests redirect to `/login?from=...`; upstream backend outages fail closed with a service error banner without redirect loops.
+- **Route Guarding (`middleware.ts`)**: Enforces Host allowlist validation at ingress across all matched paths including `/api/*`. Provides fast loopback redirection for unauthenticated workspace requests lacking `nexora_session` cookies, and injects `x-pathname` header for downstream Server Components while avoiding network requests in middleware.
 - **Authenticated Account State (`AccountMenu`)**: Discloses active operator username, displays local runtime badge, and provides verified server-side logout destroying the session in PostgreSQL and clearing client cookies. Checks response status before redirecting and renders accessible error notifications on failure with retry capability.
 - **Upstream API Proxy (`next.config.ts`) & Server API Configuration (`lib/api/config.ts`)**: Authoritative configuration owner validates `API_INTERNAL_URL` as a required HTTP/HTTPS origin without path, credentials, query, or fragment. No implicit application fallback is permitted; Compose supplies `http://api:4000` for container runtime. Server Component session verification (`lib/api/session.ts`) queries `/api/auth/session` using this configuration, distinguishing authenticated (200), unauthenticated (401), and upstream unavailable (5xx/network) states while performing redirects strictly outside catch blocks.
 

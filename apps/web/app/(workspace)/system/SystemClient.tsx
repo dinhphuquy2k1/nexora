@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { createNexoraClient } from "@nexora/sdk";
 import { Panel, StatusBadge } from "@nexora/ui";
+
 type Result = {
   live: boolean;
   ready: boolean;
@@ -9,10 +10,12 @@ type Result = {
   storage: boolean;
   requestId: string | null;
 };
-export default function System() {
+
+export function SystemClient() {
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   async function refresh() {
     setLoading(true);
     setError("");
@@ -37,9 +40,11 @@ export default function System() {
       setLoading(false);
     }
   }
+
   useEffect(() => {
     void refresh();
   }, []);
+
   return (
     <>
       <p className="eyebrow">VẬN HÀNH</p>

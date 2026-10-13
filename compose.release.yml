@@ -50,6 +50,8 @@ services:
       API_DOCS_ENABLED: "false"
       WEB_PORT: "${WEB_PORT:-127.0.0.1:3001}"
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-}"
+      UNISHIP_API_URL: "${UNISHIP_API_URL:-}"
+      UNISHIP_LIVE_AUTHORIZED: "${UNISHIP_LIVE_AUTHORIZED:-false}"
     volumes:
       - credentials:/config:ro
       - uploads:/data/uploads

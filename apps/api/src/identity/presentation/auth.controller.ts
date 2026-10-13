@@ -17,6 +17,7 @@ import {
   LoginRequestDto,
   LoginResponseDto,
   LogoutResponseDto,
+  ProviderLoginRequestDto,
   SessionResponseDto,
 } from "./auth.dto";
 import { extractSessionToken } from "./session.guard";
@@ -30,6 +31,16 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  private setSessionCookie(res: Response, token: string): void {
+    res.cookie("nexora_session", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      secure: false, // Canonical loopback HTTP deployment; forwarded headers are not a policy input.
+      maxAge: SEVEN_DAYS_MS,
+    });
+  }
 
   @Public()
   @UseGuards(OriginGuard)
@@ -67,13 +78,59 @@ export class AuthController {
   ): Promise<LoginResponseDto> {
     const result = await this.authService.login(dto?.username, dto?.password);
 
-    res.cookie("nexora_session", result.token, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      secure: false, // Canonical loopback HTTP deployment; forwarded headers are not a policy input.
-      maxAge: SEVEN_DAYS_MS,
-    });
+    this.setSessionCookie(res, result.token);
+
+    return { user: result.user };
+  }
+
+  @Public()
+  @UseGuards(OriginGuard)
+  @Post("provider/login")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Xác thực tài khoản nhà cung cấp và thiết lập phiên làm việc",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Đăng nhập thành công",
+    type: LoginResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    type: ApiErrorDto,
+    description: "Yêu cầu không hợp lệ hoặc thiếu thông tin",
+  })
+  @ApiResponse({
+    status: 401,
+    type: ApiErrorDto,
+    description:
+      "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập",
+  })
+  @ApiResponse({
+    status: 403,
+    type: ApiErrorDto,
+    description: "Origin không hợp lệ hoặc không được phép",
+  })
+  @ApiResponse({
+    status: 429,
+    type: ApiErrorDto,
+    description: "Quá nhiều lần đăng nhập thất bại",
+  })
+  @ApiResponse({
+    status: 503,
+    type: ApiErrorDto,
+    description: "Dịch vụ xác thực nhà cung cấp tạm thời không khả dụng",
+  })
+  async loginProvider(
+    @Body() dto: ProviderLoginRequestDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<LoginResponseDto> {
+    const result = await this.authService.loginWithProvider(
+      dto?.username,
+      dto?.password,
+    );
+
+    this.setSessionCookie(res, result.token);
 
     return { user: result.user };
   }

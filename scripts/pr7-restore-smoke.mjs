@@ -402,6 +402,7 @@ try {
     "20261006000000_storage_catalog",
     "20261012000000_local_authentication",
     "20261012010000_unified_identity",
+    "20261012020000_external_identities",
   ]);
   const catalog = docker(target, [
     "exec",
@@ -413,9 +414,9 @@ try {
     "-d",
     "nexora",
     "-Atc",
-    "SELECT to_regclass('users') IS NOT NULL AND to_regclass('user_credentials') IS NOT NULL AND to_regclass('local_users') IS NULL; SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL;",
+    "SELECT to_regclass('users') IS NOT NULL AND to_regclass('user_credentials') IS NOT NULL AND to_regclass('external_identities') IS NOT NULL AND to_regclass('local_users') IS NULL; SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL;",
   ]);
-  assert.equal(catalog.trim(), "t\n3");
+  assert.equal(catalog.trim(), "t\n4");
   checks.step("SOURCE_UNCHANGED");
   assert.deepEqual(state(source), before);
   assert.equal(

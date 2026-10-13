@@ -161,7 +161,7 @@ const identitySnapshot = async (project) =>
         "/scripts/api-entrypoint.sh",
         "node",
       ],
-      `const {createDatabase}=require('@nexora/database');(async()=>{const db=createDatabase(process.env.DATABASE_URL);try{console.log(JSON.stringify(await db.user.findMany({include:{credential:true},orderBy:{id:'asc'}})));}finally{await db.$disconnect();}})().catch(()=>process.exit(1));`,
+      `const {createDatabase}=require('@nexora/database');(async()=>{const db=createDatabase(process.env.DATABASE_URL);try{console.log(JSON.stringify(await db.user.findMany({include:{credential:true,externalIdentities:true},orderBy:{id:'asc'}})));}finally{await db.$disconnect();}})().catch(()=>process.exit(1));`,
     ),
   );
 const counts = async (project) =>
@@ -332,7 +332,7 @@ try {
     "-Atc",
     "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL;",
   ]);
-  assert.equal(migrations.trim(), "3");
+  assert.equal(migrations.trim(), "4");
   checks.step("LEGACY_ORIGINAL_FILE_INTEGRITY");
   await docker(
     legacyRestored,

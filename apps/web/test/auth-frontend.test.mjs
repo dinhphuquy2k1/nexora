@@ -247,3 +247,132 @@ test("malformed HTTP 200 session payloads never authenticate", async () => {
     else process.env.API_INTERNAL_URL = oldUrl;
   }
 });
+
+test("RootLayout and LoginLayout are decoupled from AppShell", async () => {
+  const fs = await import("node:fs/promises");
+  const rootLayoutContent = await fs.readFile(
+    new URL("../app/layout.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.equal(
+    rootLayoutContent.includes("AppShell"),
+    false,
+    "Root layout must not import or render AppShell",
+  );
+
+  const loginLayoutContent = await fs.readFile(
+    new URL("../app/login/layout.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.equal(
+    loginLayoutContent.includes("AppShell"),
+    false,
+    "Login layout must not import or render AppShell",
+  );
+
+  const workspaceLayoutContent = await fs.readFile(
+    new URL("../app/(workspace)/layout.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.equal(
+    workspaceLayoutContent.includes("AppShell"),
+    true,
+    "Workspace layout must import AppShell for authenticated users",
+  );
+  assert.equal(
+    workspaceLayoutContent.includes("getCachedServerSession") ||
+      workspaceLayoutContent.includes("verifyServerSession"),
+    true,
+    "Workspace layout must enforce server session verification",
+  );
+});
+
+test("dev script enforces canonical port 3001 and collision refusal", async () => {
+  const net = await import("node:net");
+  const { spawn } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+
+  // Create dummy server listening on 3001 to simulate busy port (e.g. Docker container)
+  const server = net.createServer();
+  await new Promise((resolve) => server.listen(3001, "0.0.0.0", resolve));
+
+  try {
+    const webDir = fileURLToPath(new URL("..", import.meta.url));
+    const child = spawn(process.execPath, ["scripts/dev.mjs"], { cwd: webDir });
+
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    const exitCode = await new Promise((resolve) => {
+      child.on("exit", resolve);
+    });
+
+    assert.equal(
+      exitCode,
+      1,
+      "Dev script must exit with code 1 on port collision",
+    );
+    assert.match(
+      stderr,
+      /Port 3001 is already in use/,
+      "Dev script must report port collision explicitly",
+    );
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("middleware passes x-pathname header and enforces unauthenticated redirects", async () => {
+  const { middleware } = await import("../middleware.ts");
+  const { NextRequest } = await import("next/server.js");
+
+  // 1. Untrusted host header rejected
+  const reqUntrusted = new NextRequest("http://evil.com/settings", {
+    headers: { host: "evil.com" },
+  });
+  const resUntrusted = middleware(reqUntrusted);
+  assert.equal(resUntrusted.status, 400);
+
+  // 2. Unauthenticated request to / -> redirect to /login
+  const reqRoot = new NextRequest("http://localhost:3001/", {
+    headers: { host: "localhost:3001" },
+  });
+  const resRoot = middleware(reqRoot);
+  assert.equal(resRoot.status, 307);
+  assert.equal(resRoot.headers.get("location"), "http://localhost:3001/login");
+
+  // 3. Unauthenticated request to /settings -> redirect to /login?from=/settings
+  const reqSettings = new NextRequest("http://localhost:3001/settings", {
+    headers: { host: "localhost:3001" },
+  });
+  const resSettings = middleware(reqSettings);
+  assert.equal(resSettings.status, 307);
+  assert.equal(
+    resSettings.headers.get("location"),
+    "http://localhost:3001/login?from=%2Fsettings",
+  );
+
+  // 4. Request with cookie -> passes through and injects x-pathname
+  const reqWithCookie = new NextRequest("http://localhost:3001/settings", {
+    headers: {
+      host: "localhost:3001",
+      cookie: "nexora_session=valid-or-pending-token",
+    },
+  });
+  const resWithCookie = middleware(reqWithCookie);
+  assert.equal(resWithCookie.status, 200);
+  // Next.js middleware headers are passed to downstream via x-middleware-request-x-pathname or res headers
+  const forwardedPathname =
+    resWithCookie.headers.get("x-middleware-request-x-pathname") ||
+    resWithCookie.headers.get("x-pathname");
+  assert.equal(forwardedPathname, "/settings");
+
+  // 5. Unauthenticated request to public /login -> passes through
+  const reqLogin = new NextRequest("http://localhost:3001/login", {
+    headers: { host: "localhost:3001" },
+  });
+  const resLogin = middleware(reqLogin);
+  assert.equal(resLogin.status, 200);
+});

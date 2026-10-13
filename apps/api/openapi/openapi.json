@@ -125,6 +125,88 @@
         ]
       }
     },
+    "/api/auth/provider/login": {
+      "post": {
+        "operationId": "AuthController_loginProvider",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderLoginRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Đăng nhập thành công",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Yêu cầu không hợp lệ hoặc thiếu thông tin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin không hợp lệ hoặc không được phép",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Quá nhiều lần đăng nhập thất bại",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dịch vụ xác thực nhà cung cấp tạm thời không khả dụng",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Xác thực tài khoản nhà cung cấp và thiết lập phiên làm việc",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/auth/session": {
       "get": {
         "operationId": "AuthController_getSession",
@@ -353,6 +435,25 @@
           "code",
           "message",
           "requestId"
+        ]
+      },
+      "ProviderLoginRequestDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Tên đăng nhập tài khoản nhà cung cấp",
+            "example": "operator_nam"
+          },
+          "password": {
+            "type": "string",
+            "description": "Mật khẩu tài khoản nhà cung cấp",
+            "example": "secret123"
+          }
+        },
+        "required": [
+          "username",
+          "password"
         ]
       },
       "SessionResponseDto": {

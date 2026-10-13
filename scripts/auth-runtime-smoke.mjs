@@ -181,6 +181,79 @@ try {
   });
   checks.status(redirect.status, 307);
   assert.equal(redirect.headers.get("location"), "/settings");
+
+  checks.step("LOGIN_ADMIN_MODE_VALID_SESSION_REDIRECT");
+  const adminRedirect = await request("/login?mode=admin&from=%2Fsettings", {
+    headers: { cookie },
+    redirect: "manual",
+  });
+  checks.status(adminRedirect.status, 307);
+  assert.equal(adminRedirect.headers.get("location"), "/settings");
+
+  checks.step("PROVIDER_LOGIN_UNCONFIGURED_FAIL_CLOSED");
+  const providerLogin = await request("/api/auth/provider/login", {
+    method: "POST",
+    headers: { "content-type": "application/json", origin },
+    body: JSON.stringify({
+      username: "operator_test",
+      password: "Password123!",
+    }),
+  });
+  checks.status(providerLogin.status, 503);
+  assert.equal((await providerLogin.json()).code, "SERVICE_UNAVAILABLE");
+
+  checks.step("WORKSPACE_VALID_SESSION");
+  const wsRes = await request("/settings", { headers: { cookie } });
+  checks.status(wsRes.status, 200);
+  const wsText = await wsRes.text();
+  assert.ok(
+    wsText.includes("Cài đặt"),
+    "Protected workspace content must render for valid session",
+  );
+
+  checks.step("WORKSPACE_UNAUTHENTICATED_REDIRECT");
+  const unauthSettings = await request("/settings", { redirect: "manual" });
+  checks.status(unauthSettings.status, 307);
+  assert.equal(
+    unauthSettings.headers.get("location"),
+    "/login?from=%2Fsettings",
+  );
+
+  const unauthRoot = await request("/", { redirect: "manual" });
+  checks.status(unauthRoot.status, 307);
+  assert.equal(unauthRoot.headers.get("location"), "/login");
+
+  checks.step("WORKSPACE_STALE_COOKIE_REDIRECT");
+  const staleRes = await request("/settings", {
+    headers: { cookie: "nexora_session=invalid-or-revoked-token" },
+    redirect: "manual",
+  });
+  checks.status(staleRes.status, 307);
+  assert.equal(staleRes.headers.get("location"), "/login?from=%2Fsettings");
+
+  checks.step("LOGIN_PUBLIC_RENDER");
+  const loginRes = await request("/login");
+  checks.status(loginRes.status, 200);
+  const loginText = await loginRes.text();
+  assert.ok(
+    loginText.includes("Đăng nhập"),
+    "Login page must render login form",
+  );
+  assert.equal(
+    loginText.includes("Thanh công cụ đầu trang"),
+    false,
+    "Login page must not render AppShell",
+  );
+
+  checks.step("LOGIN_ADMIN_PUBLIC_RENDER");
+  const adminLoginRes = await request("/login?mode=admin");
+  checks.status(adminLoginRes.status, 200);
+  const adminLoginText = await adminLoginRes.text();
+  assert.ok(
+    adminLoginText.includes("Cổng đăng nhập Quản trị viên"),
+    "Admin login page must render admin mode subtitle",
+  );
+
   checks.step("API_RESTART_READINESS");
   await run(["restart", "api"]);
   await waitReady();
@@ -191,6 +264,19 @@ try {
   );
   checks.step("DATABASE_STOP");
   await run(["stop", "postgres"]);
+  checks.step("WORKSPACE_OUTAGE_FAIL_CLOSED");
+  const outageRes = await request("/settings", { headers: { cookie } });
+  checks.status(outageRes.status, 200);
+  const outageText = await outageRes.text();
+  assert.ok(
+    outageText.includes("Dịch vụ không khả dụng"),
+    "Workspace must fail closed on upstream outage",
+  );
+  assert.equal(
+    outageText.includes("Cài đặt"),
+    false,
+    "Outage must never expose protected content",
+  );
   checks.step("LOGOUT_DATABASE_OUTAGE");
   const failedLogout = await request("/api/auth/logout", {
     method: "POST",

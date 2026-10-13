@@ -43,6 +43,7 @@ test("real Nest HTTP rejects Origin/type/session failures and preserves safe err
     const contract = document(app);
     for (const [path, method, statuses] of [
       ["/api/auth/login", "post", [400, 401, 403, 429]],
+      ["/api/auth/provider/login", "post", [400, 401, 403, 429, 503]],
       ["/api/auth/session", "get", [401]],
       ["/api/auth/logout", "post", [403, 500]],
     ]) {
@@ -118,6 +119,37 @@ test("real Nest HTTP rejects Origin/type/session failures and preserves safe err
       body: JSON.stringify({ username: "operator", password: "password" }),
     });
     assert.equal(permitted.status, 401);
+    const providerBadOrigin = await fetch(url + "/api/auth/provider/login", {
+      method: "POST",
+      headers: {
+        origin: "http://attacker.example",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ username: "operator", password: "password" }),
+    });
+    assert.equal(providerBadOrigin.status, 403);
+    const providerBadBody = await fetch(url + "/api/auth/provider/login", {
+      method: "POST",
+      headers: {
+        origin: "http://localhost:3101",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ username: "ab" }),
+    });
+    assert.equal(providerBadBody.status, 400);
+    const providerUnconfigured = await fetch(url + "/api/auth/provider/login", {
+      method: "POST",
+      headers: {
+        origin: "http://localhost:3101",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ username: "operator", password: "password" }),
+    });
+    assert.equal(providerUnconfigured.status, 503);
+    assert.equal(
+      (await providerUnconfigured.json()).code,
+      "SERVICE_UNAVAILABLE",
+    );
     for (const cookie of [
       undefined,
       "nexora_session=" + "a".repeat(64),
