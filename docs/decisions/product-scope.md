@@ -39,7 +39,7 @@ Before building any external logistics provider adapter, an authorized review mu
 
 1. **Nexora local authentication session**: Governs user access to the local Nexora application, UI, and internal APIs.
 2. **External provider session / integration**: Governs programmatic machine-to-machine integration with external logistics providers.
-   These two identity concepts are logically and architecturally distinct. External provider tokens must never serve as application session tokens, and local users do not authenticate directly against external logistics providers. Local application identity is implemented under [ADR-005](authentication.md); external provider integration identity remains deferred.
+   These two identity concepts are logically and architecturally distinct. External provider tokens must never serve as application session tokens, and provider authentication must pass through the trusted server-side adapter before Nexora issues a session. Local ADMIN authentication is implemented under [ADR-005](authentication.md); preregistered OPERATOR authentication is implemented and mock-tested under NEXORA-012. Live-provider verification and shipment integration remain deferred.
 
 ## 4. Synchronization architecture
 
@@ -58,6 +58,6 @@ Future data synchronization must follow a one-way pipeline:
 - **Independence**: Nexora and Lyra have completely isolated source trees, Docker projects, database clusters, volumes, and ports. Neither project imports or executes the other at runtime.
 - **Future interoperability**: If Nexora and Lyra exchange data in the future, integration will occur via versioned, immutable Shipment snapshot exports over an explicit external contract (e.g. signed JSON/XLSX export/import), never via shared databases, shared network namespaces, or direct internal API coupling.
 
-## Planned unified identity amendment
+## Unified identity amendment
 
-[Unified identity](unified-identity.md) authorizes future local ADMIN and preregistered OPERATOR access through independent Nexora sessions. Authorized provider authentication may eventually verify employee identity; provider tokens remain separate from application sessions. This future direction qualifies the earlier local-only identity description, without enabling any provider adapter or changing this revision's runtime. Provider authorization, userid semantics and retention rights remain open prerequisites.
+[Unified identity](unified-identity.md) defines implemented local ADMIN and preregistered OPERATOR access through independent Nexora sessions. The provider authentication port/adapter and local mock-tested Login are implemented; provider tokens remain separate from application sessions and are not persisted. On 2026-10-13 the owner confirmed Uniship API integration permission and approved `userid` identity mapping. Missing permission and userid semantics are not unresolved blockers for this scope. Real Uniship authentication remains technically unverified; `UNISHIP_LIVE_AUTHORIZED` is an explicit deployment switch, default `false`. Broader rights to retain provider tokens, customer profiles or shipment data are not established by that confirmation and remain outside this milestone. General feasibility requirements still apply to future shipment synchronization and other providers.

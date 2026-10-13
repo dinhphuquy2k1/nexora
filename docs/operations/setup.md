@@ -40,7 +40,7 @@ Automation must explicitly select password stdin; never put a password in comman
 printf '%s' "$ADMIN_PASS" | docker compose exec -T api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js --username admin --password-stdin
 ```
 
-A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private; browser-facing port 3001 connects to the Web container listener (internal container port 3000). Compose forwards `UNISHIP_API_URL` and `UNISHIP_LIVE_AUTHORIZED` to the API service; leaving them unconfigured leaves API startup unaffected while employee provider login safely returns 503 until an approved provider contract is configured.
+A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private; browser-facing port 3001 connects to the Web container listener (internal container port 3000). Compose forwards `UNISHIP_API_URL` and `UNISHIP_LIVE_AUTHORIZED` to the API service; leaving them unconfigured leaves API startup unaffected while employee provider login safely returns 503 until the provider URL and operational switch are configured. Uniship API integration permission was confirmed by the owner on 2026-10-13; the administrator selects the correct `UNISHIP_API_URL` and may explicitly enable `UNISHIP_LIVE_AUTHORIZED=true` under the approved authorization and deployment procedure. Leave the switch false during ordinary tests/startup. Local mock-provider verification does not establish live Uniship authentication.
 
 ## Windows Developer Experience & Troubleshooting
 
@@ -88,3 +88,15 @@ For offline Docker dependency preparation, an optional named build context `depe
 Unified identity storage and local ADMIN provisioning are implemented; follow NEXORA-011 verification evidence before upgrading. Before any future upgrade containing that migration, follow the mandatory maintenance, verified-backup and isolated recovery safeguards in [Backup and restore](backup-restore.md#unified-identity-upgrade-safeguards). The verified baseline, migration prerequisites and execution evidence are tracked in [NEXORA-011](../tasks/completed/NEXORA-011-unified-identity-migration.md).
 
 For identity upgrades, stop API/Web and external provisioning writers after a verified protected backup, retain PostgreSQL/credential/upload volumes, and use the reviewed matching release's migrate service before bringing application writers back. Do not start old images against migrated schema. See the backup owner for isolated rollback/recovery; source SQL must never be tested against operator volumes.
+
+## Manual Uniship OPERATOR registration
+
+After the committed migrations are deployed, an authorized database administrator obtains the confirmed Uniship userid and runs from the checkout:
+
+```sh
+psql -X -v ON_ERROR_STOP=1 "$DATABASE_URL" \
+  -v username='operator_nam' -v uniship_userid='10482' \
+  -f scripts/sql/register-uniship-operator.sql
+```
+
+Use the correct installation/database connection through the existing administrative channel; Docker PostgreSQL remains private. Supply no password or provider token as registration parameters. The script creates one ACTIVE OPERATOR plus one Uniship binding atomically, without local credentials. Duplicate/invalid inputs or either insert failure exit nonzero and roll back. Username policy is trimmed 3–50 characters without a character allowlist; stored subject policy is nonempty, trimmed and at most 128 characters. Enter the actual provider-issued userid: the authentication adapter independently verifies positive decimal userid payloads. A manually stored mapping is authorization data, not proof of authentication. See [NEXORA-012](../tasks/active/NEXORA-012-admin-staff-management.md) for invariants and deferred Admin CRUD/UI. No broader provider data-retention rights are inferred from userid approval.

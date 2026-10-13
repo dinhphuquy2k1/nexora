@@ -19,3 +19,6 @@ trap restart EXIT HUP INT TERM
 compose stop api web
 # run invokes mapped-user entrypoint; exec bypasses that mapping.
 compose run --rm --no-deps -T api sh /workspace/scripts/api-entrypoint.sh sh -c 'NODE_ENV=production API_INTERNAL_URL=http://api:4000 pnpm quality && NODE_ENV=test pnpm test:integration && pnpm --filter @nexora/database test:migrations'
+
+# Actual operator-facing psql file, isolated from all existing project volumes.
+python3 scripts/sql-registration-smoke.py

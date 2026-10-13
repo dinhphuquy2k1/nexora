@@ -1,9 +1,9 @@
 # Task: NEXORA-012 — SQL-Based Uniship Identity & Login Foundation
 
 - **Task ID**: `NEXORA-012`
-- **Status**: `IN PROGRESS`
+- **Status**: `VERIFICATION PENDING`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `VERIFIED`
+- **Verification**: `PARTIALLY VERIFIED`
 - **Classification**: SIGNIFICANT
 
 ## Predecessor baseline and verification preflight
@@ -24,7 +24,9 @@ Following initial investigation into Uniship identity semantics, the repository 
 - **Registration**: Initially executed via SQL script, not a browser interface or HTTP endpoint.
 - **Reassignment**: Questions regarding future `userid` reassignment are not blockers for this initial milestone.
 - **Priority**: Fast, testable Login foundation is the immediate priority.
-- **Gate Distinction**: These decisions represent owner-approved application requirements, not proof of an official Uniship API contract. Live Uniship integration remains gated.
+- **Authorization (2026-10-13)**: The owner confirms Uniship API integration permission exists and approves `userid` identity binding. Missing permission is no longer a blocker. This does not establish unrecorded token/profile/shipment retention terms.
+- **Operational Enablement**: The administrator selects the correct `UNISHIP_API_URL` and may explicitly enable `UNISHIP_LIVE_AUTHORIZED` under the approved authorization and deployment procedure; default `false` remains. No destination allowlist or hardcoded production URL is required.
+- **Verification Distinction**: Local HTTP mock-provider evidence proves the tested foundation, not successful authentication against the real Uniship service.
 
 ### Immediate Scope (Implemented in this Milestone)
 
@@ -46,7 +48,7 @@ Following initial investigation into Uniship identity semantics, the repository 
 
 ### Explicitly Deferred & Gated Scope
 
-- **Live Uniship Network Requests** (`https://kh.uniship.vn`): BLOCKED / GATED pending official API contract review and authorization. Production runtime fails closed (`UNISHIP_LIVE_AUTHORIZED=false`).
+- **Live Uniship Technical Verification**: DEFERRED until executable real-provider evidence exists. API integration permission is confirmed; the operational switch defaults to `UNISHIP_LIVE_AUTHORIZED=false` and is not enabled by tests.
 - **Admin Staff Management UI** (`/admin/users`) & Staff CRUD APIs: DEFERRED per owner instructions.
 - **Real Provider Token Persistence**: DEFERRED.
 - **Internet Ingress / HTTPS Production Hosting**: DEFERRED to Phase 3.
@@ -93,7 +95,7 @@ Authorized database administrators execute manual operator registration using `s
 
 ```sh
 # Example registration command via psql
-psql -v username="operator_nam" -v uniship_userid="10482" -f scripts/sql/register-uniship-operator.sql "$DATABASE_URL"
+psql -X -v ON_ERROR_STOP=1 -v username="operator_nam" -v uniship_userid="10482" -f scripts/sql/register-uniship-operator.sql "$DATABASE_URL"
 ```
 
 ### Operational Behavior:
@@ -127,7 +129,7 @@ psql -v username="operator_nam" -v uniship_userid="10482" -f scripts/sql/registe
 The authentication architecture maintains strict separation between external provider identity claims and Nexora session issuance:
 
 ```
-[Future Provider Adapter]
+[Implemented Server-Side Provider Adapter]
        │
        ▼ (Server-side verified identity payload)
 { provider: 'uniship', providerSubject: '10482' }
@@ -179,7 +181,7 @@ Documentation Impact: REQUIRED
 - Added migration `20261012020000_external_identities`.
 - Provided manual SQL operator registration script `scripts/sql/register-uniship-operator.sql`.
 - Specified `AuthService.authenticateExternalIdentity` port and service.
-- Recorded owner confirmation of Uniship `userid` stability for application integration and deferred Admin UI / live provider integration.
+- Recorded owner confirmation of Uniship `userid` stability for application integration and deferred Admin UI / live provider technical verification; API integration authorization is now owner-confirmed.
 - Resolved frontend port inconsistency: browser-facing port is canonical `http://localhost:3001` (or `http://127.0.0.1:3001`); internal container listener legitimately remains port 3000.
 - Added `apps/web/scripts/dev.mjs` preflight enforcing canonical port 3001 on host dev and refusing port collisions (`EADDRINUSE`) with code 1 instead of silently switching to port 3002.
 - Decoupled Next.js layouts using Route Groups: `apps/web/app/layout.tsx` owns HTML/styles/metadata without `AppShell`; `apps/web/app/login/layout.tsx` is standalone without `AppShell`; `apps/web/app/(workspace)/layout.tsx` enforces server-side session verification via `getCachedServerSession(cookie)`.
@@ -190,7 +192,7 @@ Documentation Impact: REQUIRED
 - Added comprehensive unit tests in `apps/api/test/unit.test.cjs` validating configuration parser normalization, protocol restriction (HTTP/HTTPS only), and authorization flag handling.
 - Corrected Uniship provider response parsing in `UnishipAuthAdapter`: handles observed nested runtime response `{ token: string, user: { username: string, userid: number | string, is_verified: boolean } }`, extracting `user.userid` instead of obsolete root-level `userid`.
 - Enforced strict validation: requires non-empty string `token`, non-null/non-array `user` object with non-empty `username`, rejects `is_verified === false` with 401 `AUTHENTICATION_FAILED`, requires safe positive integer or positive decimal string `userid` (1-128 chars), and returns only `{ provider: 'uniship', providerSubject: normalizedUserid }` without persisting, logging, or exposing provider bearer tokens.
-- Restored operational security gate: `!isLoopback && !this.liveAuthorized` strictly blocks unapproved live network requests to `kh.uniship.vn` with 503 `SERVICE_UNAVAILABLE`.
+- Restored operational security gate: `!isLoopback && !this.liveAuthorized` strictly blocks operationally disabled live network requests to `kh.uniship.vn` with 503 `SERVICE_UNAVAILABLE`.
 - Removed all temporary sensitive debug logging statements (`console.log("response", ...)`, `console.log("uniship_response_structure", ...)`, and fetch error cause dumps) that could expose tokens or request payloads.
 - Expanded mock-provider unit test suite in `apps/api/test/provider-auth.test.cjs` covering nested numeric/string `userid`, rejection of root-level-only legacy format, missing/null/empty/float/array `userid`, missing/empty `token`, missing/empty `username`, `is_verified: false` rejection, malformed JSON, 400/401, 500, timeout, redirect rejection, and asserting no tokens or passwords appear in console output.
 - Updated end-to-end integration tests in `apps/api/test/integration.test.cjs` to use nested observed mock provider format, added checks for invalid provider payload (503), provider outage (503), asserted absence of provider token in database sessions or HTTP responses, and verified local ADMIN login isolation.
@@ -213,21 +215,33 @@ Documentation Impact: REQUIRED
 
 ---
 
+## Final SQL repair verification scope — 2026-10-13
+
+This follow-up is BOUNDED: executable SQL, regression harness/quality hook and canonical documentation only; the parent implementation retains its SIGNIFICANT classification. No migrations, schema, adapter URL policy, auth contracts or Login UI are changed.
+
+The approved acceptance scope is the external identity database foundation, manual SQL preregistration, provider port/adapter and Login orchestration, local HTTP mocks, employee/admin UI modes and OpenAPI/SDK synchronization. Live technical verification, Admin CRUD/UI, public HTTPS hosting and token persistence are explicitly excluded future work. Authorization to store the userid mapping does not establish broader data-retention rights.
+
+Task state remains `VERIFICATION PENDING` / `PARTIALLY VERIFIED` while exact-final-HEAD hosted quality/runtime/data/dev checks and final review are pending. Historical PASS rows below remain historical evidence, not proof of this repair. The final matching SHA/run and closure decision belong in the PR report after execution; no evidence-only commit is required to chase a moving HEAD. Live-provider verification is excluded from the approved acceptance criteria and cannot be inferred from mock PASS.
+
+The SQL harness executes the actual file through psql, transports quoted literals through a transaction-local temporary input row, and checks duplicate/validation/injection/concurrency/second-insert rollback against real PostgreSQL. Existing username policy has no character allowlist; the stored subject contract is nonempty/trimmed/max-128, while the HTTP adapter separately validates positive decimal provider userid. The test adds no stricter registration policy.
+
 ## Evidence
 
-| Claim                                                                                    | Evidence                                                                                                                                                                             | Date       | Result |
-| :--------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
-| Workspace architectural boundaries respected                                             | `node scripts/boundaries.mjs`                                                                                                                                                        | 2026-10-13 | PASS   |
-| OpenAPI contract drift and SDK generation                                                | `node scripts/contracts-check.mjs`                                                                                                                                                   | 2026-10-13 | PASS   |
-| Documentation governance, links and task state                                           | `node scripts/docs-check.mjs`                                                                                                                                                        | 2026-10-13 | PASS   |
-| Unit tests pass (AuthService, SessionGuard, IdentityDatabaseAdapter, UnishipAuthAdapter) | `pnpm --filter @nexora/api test` (57 tests)                                                                                                                                          | 2026-10-13 | PASS   |
-| Web unit tests pass (contracts, tokens, session, dev preflight)                          | `pnpm --filter @nexora/web test` (19 tests)                                                                                                                                          | 2026-10-13 | PASS   |
-| Migration tests verify external_identities, constraints & drift                          | `node packages/database/test/migration.mjs`                                                                                                                                          | 2026-10-13 | PASS   |
-| Integration tests verify fake-provider authentication & constraints                      | `apps/api/test/integration.test.cjs` (5 tests)                                                                                                                                       | 2026-10-13 | PASS   |
-| Docker Compose environment config resolution (dev & release)                             | `docker compose -f compose.yml -f compose.dev.yml config && docker compose -f compose.release.yml config`                                                                            | 2026-10-13 | PASS   |
-| Canonical Docker quality and test suite                                                  | `sh scripts/quality-docker.sh` (pnpm quality, integration tests, migration tests)                                                                                                    | 2026-10-13 | PASS   |
-| Hosted PR #10 CI workflow run on predecessor HEAD c47c09b                                | GitHub Actions run 38252985140 on head c47c09b85c1840243405d54a26388426f8d0a294 (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke) | 2026-10-12 | PASS   |
-| Hosted PR #10 CI workflow run on predecessor HEAD a397489                                | GitHub Actions run 38265744945 on head a397489b4f6e432c2f60249c57d7ddbb5b671a53 (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke) | 2026-10-12 | PASS   |
-| Hosted PR #10 CI workflow run on provider login HEAD 94a9a32                             | GitHub Actions run 38275081934 on head 94a9a32746f80a82e4cde899cca6c2c2d00b53ed (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke) | 2026-10-12 | PASS   |
-| Hosted PR #10 CI workflow run on config refinement HEAD b796e8b                          | GitHub Actions run 38278573540 on head b796e8be1dc610a761eb8bf17804ea88746538cb (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke) | 2026-10-12 | PASS   |
-| Hosted PR #10 CI workflow run on parser fix HEAD bf000a8                                 | GitHub Actions run 38326739863 on head bf000a80eec9a79fa4fbb8b2a3d0db9a69a23991 (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke) | 2026-10-13 | PASS   |
+| Claim                                                                                    | Evidence                                                                                                                                                                                                          | Date       | Result |
+| :--------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Workspace architectural boundaries respected                                             | `node scripts/boundaries.mjs`                                                                                                                                                                                     | 2026-10-13 | PASS   |
+| OpenAPI contract drift and SDK generation                                                | `node scripts/contracts-check.mjs`                                                                                                                                                                                | 2026-10-13 | PASS   |
+| Documentation governance, links and task state                                           | `node scripts/docs-check.mjs`                                                                                                                                                                                     | 2026-10-13 | PASS   |
+| Unit tests pass (AuthService, SessionGuard, IdentityDatabaseAdapter, UnishipAuthAdapter) | `pnpm --filter @nexora/api test` (57 tests)                                                                                                                                                                       | 2026-10-13 | PASS   |
+| Web unit tests pass (contracts, tokens, session, dev preflight)                          | `pnpm --filter @nexora/web test` (19 tests)                                                                                                                                                                       | 2026-10-13 | PASS   |
+| Migration tests verify external_identities, constraints & drift                          | `node packages/database/test/migration.mjs`                                                                                                                                                                       | 2026-10-13 | PASS   |
+| Integration tests verify fake-provider authentication & constraints                      | `apps/api/test/integration.test.cjs` (5 tests)                                                                                                                                                                    | 2026-10-13 | PASS   |
+| Docker Compose environment config resolution (dev & release)                             | `docker compose -f compose.yml -f compose.dev.yml config && docker compose -f compose.release.yml config`                                                                                                         | 2026-10-13 | PASS   |
+| Canonical Docker quality and test suite                                                  | `sh scripts/quality-docker.sh` (pnpm quality, integration tests, migration tests)                                                                                                                                 | 2026-10-13 | PASS   |
+| Hosted PR #10 CI workflow run on predecessor HEAD c47c09b                                | GitHub Actions run 38252985140 on head c47c09b85c1840243405d54a26388426f8d0a294 (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke)                              | 2026-10-12 | PASS   |
+| Hosted PR #10 CI workflow run on predecessor HEAD a397489                                | GitHub Actions run 38265744945 on head a397489b4f6e432c2f60249c57d7ddbb5b671a53 (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke)                              | 2026-10-12 | PASS   |
+| Hosted PR #10 CI workflow run on provider login HEAD 94a9a32                             | GitHub Actions run 38275081934 on head 94a9a32746f80a82e4cde899cca6c2c2d00b53ed (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke)                              | 2026-10-12 | PASS   |
+| Hosted PR #10 CI workflow run on config refinement HEAD b796e8b                          | GitHub Actions run 38278573540 on head b796e8be1dc610a761eb8bf17804ea88746538cb (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke)                              | 2026-10-12 | PASS   |
+| Hosted PR #10 CI workflow run on parser fix HEAD bf000a8                                 | GitHub Actions run 38326739863 on head bf000a80eec9a79fa4fbb8b2a3d0db9a69a23991 (docker-foundation: quality, migration, integration, runtime smoke, backup/restore smoke, dev smoke)                              | 2026-10-13 | PASS   |
+| Original operator-facing SQL execution before repair                                     | `python3 scripts/sql-registration-smoke.py` against original file at `47ca436e7758c262199eeb5096670de7b99823e7`; valid-registration scenario failed through actual psql                                           | 2026-10-13 | FAIL   |
+| Actual registration file on disposable PostgreSQL after repair                           | `python3 scripts/sql-registration-smoke.py`: success, duplicates, validation/boundaries, literal safety, forced second-insert rollback, synchronized concurrency, zero credentials and protected-row preservation | 2026-10-13 | PASS   |
