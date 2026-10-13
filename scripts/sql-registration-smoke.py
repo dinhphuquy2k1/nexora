@@ -94,7 +94,9 @@ try:
     require(result.returncode == 0)
     OWNED = True
     for attempt in range(100):
-        if command(['docker', 'exec', NAME, 'pg_isready', '-U', 'postgres']).returncode == 0:
+        # The image's init-only server accepts Unix sockets, then stops. TCP
+        # becomes available only on the final server used by the SQL matrix.
+        if command(['docker', 'exec', NAME, 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres']).returncode == 0:
             break
         time.sleep(0.1)
     else:
