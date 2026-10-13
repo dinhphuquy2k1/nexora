@@ -6,15 +6,16 @@ Nexora operates under three distinct runtime topologies:
 
 ### Mode A: Docker Local Release (Canonical & Recommended)
 
-- **Start**: `docker compose up --build -d` or `./start.sh` / `Start.cmd` (wraps Compose and waits up to 180 seconds for health).
+- **Start**: `docker compose up --build -d --wait` (builds images, starts containers in background, and waits for health checks to pass).
 - **Access**: Open `http://127.0.0.1:3001` in the browser (configurable via `WEB_PORT`).
-- **Network Topology**: Browser connects to Web on loopback `127.0.0.1:3001`. Next.js proxies `/api/*` requests internally to `http://api:4000`. API and PostgreSQL services are private to Docker bridge networking and intentionally NOT published to the host.
-- **Stop**: `docker compose down` or `./stop.sh` / `Stop.cmd`. All volumes (database, credentials, uploads) persist.
+- **Network Topology**: Browser connects to Web on loopback `127.0.0.1:3001`. Next.js proxies `/api/*` requests internally to `http://api:4000`. API and PostgreSQL services are private to Docker bridge networking and intentionally NOT published to the host in standard release mode.
+- **Stop**: `docker compose down`. All named volumes (database, credentials, uploads) persist; never use `-v` unless intentionally destroying data.
 
 ### Mode B: Docker Development
 
 - **Start**: `docker compose -f compose.yml -f compose.dev.yml up --build`.
-- **Characteristics**: Reuses Docker service networking (`http://api:4000`), mounts local source into containers, and runs watchers inside Docker. Containerized Next.js listens internally on port 3000 and publishes user-facing port `http://127.0.0.1:3001`. Keep this file pair for stop and quality commands.
+- **Characteristics**: Reuses Docker service networking (`http://api:4000`), mounts local source into containers, and runs watchers inside Docker. Containerized Next.js listens internally on port 3000 and publishes user-facing port `http://127.0.0.1:3001`. PostgreSQL automatically publishes loopback port `127.0.0.1:5432` to the host by default (configurable via `POSTGRES_PORT`), allowing direct connections from local database clients like DBeaver or pgAdmin.
+- **Stop**: `docker compose -f compose.yml -f compose.dev.yml down`. Always use the same file combination to stop development containers.
 
 ### Mode C: Host-run Development (Optional / Constrained)
 
@@ -75,13 +76,42 @@ Never run `docker compose down -v`, `docker volume rm`, or reset database volume
 
 Docker Engine 24+ with Compose v2.22.0+ (BuildKit enabled) and Linux containers is required for BuildKit named contexts (`service:<name>`). First install requires Internet. Estimated minimum: 4 CPU, 8 GB RAM, 20 GB free disk. Cloud proxy installations may supply platform CA as BuildKit secret `build_ca`.
 
-| Platform                         | Status                     |
-| -------------------------------- | -------------------------- |
-| Windows Docker Desktop/Start.cmd | See executed task evidence |
-| Linux Docker Engine/start.sh     | Supported POSIX scripts    |
-| macOS Docker Desktop             | Supported POSIX scripts    |
+| Platform               | Status                       |
+| ---------------------- | ---------------------------- |
+| Windows Docker Desktop | Supported via Docker Compose |
+| Linux Docker Engine    | Supported via Docker Compose |
+| macOS Docker Desktop   | Supported via Docker Compose |
 
 For offline Docker dependency preparation, an optional named build context `dependency-cache` may contain `pnpm-cache.tar` created from a pnpm store that passed `pnpm store status`. Default scratch context is empty and performs a normal frozen online install.
+
+## Connecting Local Database Clients (DBeaver / pgAdmin)
+
+For development inspections, schema reviews, and manual queries:
+
+1. **Start development mode**:
+
+   ```sh
+   docker compose -f compose.yml -f compose.dev.yml up --build -d
+   ```
+
+   In Mode B, PostgreSQL publishes port `127.0.0.1:5432` restricted strictly to the host loopback interface (configurable via `POSTGRES_PORT` in `.env`). It is never exposed to external networks.
+
+2. **Retrieve the generated database password**:
+   Passwords are generated once per environment and stored in the isolated credentials volume:
+
+   ```sh
+   docker compose exec postgres cat /config/postgres_password
+   ```
+
+3. **Configure the client**:
+   - **Host**: `127.0.0.1` (or `localhost`)
+   - **Port**: `5432` (or custom `POSTGRES_PORT`)
+   - **Database**: `nexora`
+   - **Username**: `nexora`
+   - **Password**: _(output from step 2)_
+
+4. **Persistence & Data Safety**:
+   PostgreSQL data is stored in the Docker named volume `postgres` (`nexora_postgres`). Running `docker compose down` retains all database state. Never use `-v` unless you intend to permanently delete local data. Custom backup/restore scripts have been retired under ADR-006 in favor of native volume persistence.
 
 ## Unified identity upgrade
 

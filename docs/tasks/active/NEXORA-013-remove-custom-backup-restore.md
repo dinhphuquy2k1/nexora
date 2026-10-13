@@ -18,24 +18,21 @@
 
 ## 2. Objective & Scope
 
-Reduce product scope by removing the custom Backup/Restore subsystem while preserving PostgreSQL persistence, Prisma migrations, and database schema regression testing:
+Consolidate PR #11 (`feat/expose-postgres-port`), PR #12 (`chore/remove-start-stop-scripts`), and PR #13 (`chore/remove-custom-backup-restore`) into one unified PR targeting `main`:
 
-1. **Remove Custom Backup/Restore Scripts**:
-   - `scripts/backup.sh`, `scripts/restore.sh`, `scripts/backup-manifest.mjs`
-2. **Remove Restore-Only Tests & Historical Fixtures**:
-   - `scripts/auth-restore-smoke.mjs`, `scripts/pr7-restore-smoke.mjs`, `scripts/restore.test.mjs`
-   - `scripts/fixtures/pre-authentication/`
-   - Retain `scripts/fixtures/local-authentication/` which is actively required by database migration regression tests (`packages/database/test/migration.mjs`).
-3. **Refactor Data Persistence Smoke**:
-   - Simplify `scripts/data-smoke.sh` into an independent database and stored file persistence smoke test verifying restart and down/up cycles without backup/restore dependencies.
-4. **Update Packaging, CI & Tooling**:
-   - Remove `scripts/backup-manifest.mjs` from `docker/Dockerfile.tools` COPY instruction.
-   - Update `package.json` `test:operations` to remove `restore.test.mjs`.
-   - Update `.github/workflows/foundation.yml` step description.
-5. **Canonical Documentation Synchronization**:
-   - Record architectural decision in `docs/decisions/scope-reduction-backup-restore.md` (ADR-006).
-   - Delete `docs/operations/backup-restore.md` and clean up all navigation and document links.
-   - Update `README.md`, `docs/README.md`, `docs/operations/setup.md`, `docs/operations/testing.md`, `docs/architecture/database.md`, `docs/architecture/runtime.md`, `docs/decisions/storage.md`, and `docs/decisions/authentication.md`.
+1. **Remove Custom Backup/Restore Subsystem (PR #13)**:
+   - Scripts removed: `scripts/backup.sh`, `scripts/restore.sh`, `scripts/backup-manifest.mjs`
+   - Tests & fixtures removed: `scripts/auth-restore-smoke.mjs`, `scripts/pr7-restore-smoke.mjs`, `scripts/restore.test.mjs`, `scripts/fixtures/pre-authentication/`
+   - Preserved `scripts/fixtures/local-authentication/` for migration rollback test `packages/database/test/migration.mjs`.
+   - Refactored `scripts/data-smoke.sh` into independent restart and down/up volume persistence test.
+   - Deleted `docs/operations/backup-restore.md`, recorded ADR-006 (`docs/decisions/scope-reduction-backup-restore.md`).
+2. **Remove Redundant Start/Stop Wrapper Scripts (PR #12)**:
+   - Removed `Start.cmd`, `Stop.cmd`, `start.sh`, `stop.sh`.
+   - Documented direct Docker Compose commands (`docker compose up --build -d --wait`, `docker compose down`) as canonical interface.
+3. **Opt-in PostgreSQL Development Loopback Access (PR #11)**:
+   - Added loopback port mapping `${POSTGRES_PORT:-127.0.0.1:5432}:5432` to `compose.dev.yml` for local database clients (DBeaver, pgAdmin) during development.
+   - Retained canonical release isolation in `compose.yml` (port 5432 is not published by default, preserving `runtime-smoke.sh` least-privilege boundary).
+   - Documented `POSTGRES_PORT` in `.env.example` and added client connection instructions to `docs/operations/setup.md`.
 
 ---
 
@@ -45,11 +42,10 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
-- Removed custom Backup/Restore subsystem scripts (`scripts/backup.sh`, `scripts/restore.sh`, `scripts/backup-manifest.mjs`).
-- Removed restore-only tests (`scripts/auth-restore-smoke.mjs`, `scripts/pr7-restore-smoke.mjs`, `scripts/restore.test.mjs`) and pre-authentication fixture (`scripts/fixtures/pre-authentication/`).
+- Removed custom Backup/Restore subsystem scripts, tests, and documentation under ADR-006.
+- Removed Start.cmd, Stop.cmd, start.sh, and stop.sh wrappers in favor of direct Docker Compose.
+- Added opt-in loopback PostgreSQL port publishing in `compose.dev.yml` for development clients.
 - Refactored `scripts/data-smoke.sh` to focus strictly on database and file persistence verification across Docker service restarts and `docker compose down` / `up` cycles.
-- Removed `docs/operations/backup-restore.md` and removed all navigation references across repository documentation.
-- Adopted ADR-006 (`docs/decisions/scope-reduction-backup-restore.md`) formalizing the product scope reduction.
 - Preserved PostgreSQL and upload named volume persistence, Prisma migrations, and database migration tests (`packages/database/test/migration.mjs`).
 
 ### Canonical owners
