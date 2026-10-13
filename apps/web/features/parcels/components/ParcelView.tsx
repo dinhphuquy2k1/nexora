@@ -4,9 +4,11 @@ import { useMemo, useCallback, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import type { ParcelStatus } from "../types.ts";
 import { FIXTURE_PARCELS } from "../fixtures/parcels.ts";
+import { useColumnPreferences } from "../hooks/useColumnPreferences.ts";
 import { ParcelListHeader } from "./ParcelListHeader.tsx";
 import { ParcelStatusTabs } from "./ParcelStatusTabs.tsx";
 import { ParcelSearch } from "./ParcelSearch.tsx";
+import { ParcelColumnToggle } from "./ParcelColumnToggle.tsx";
 import { ParcelTable } from "./ParcelTable.tsx";
 import { ParcelCardList } from "./ParcelCardList.tsx";
 import { ParcelPagination } from "./ParcelPagination.tsx";
@@ -20,6 +22,15 @@ export function ParcelView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
+
+  // Column preferences hook
+  const {
+    orderedVisibleColumns,
+    isColumnVisible,
+    toggleColumn,
+    resetColumns,
+    isCustomized,
+  } = useColumnPreferences();
 
   // URL state extraction
   const rawStatus = searchParams.get("status");
@@ -176,16 +187,27 @@ export function ParcelView() {
         onSelectTab={handleSelectTab}
       />
 
-      {/* 3. Search and Results Count Bar */}
+      {/* 3. Search and Column Customization Toolbar */}
       <ParcelSearch
         searchQuery={searchQuery}
-        totalResults={totalItems}
         onSearchChange={handleSearchChange}
         onClearSearch={handleClearSearch}
-      />
+      >
+        <ParcelColumnToggle
+          isColumnVisible={isColumnVisible}
+          onToggleColumn={toggleColumn}
+          onResetColumns={resetColumns}
+          isCustomized={isCustomized}
+        />
+      </ParcelSearch>
 
       {/* 4. Table / Card List / Empty State */}
-      <div id="parcel-list-panel" role="region" aria-live="polite">
+      <div
+        id="parcel-list-panel"
+        role="region"
+        aria-live="polite"
+        className={styles.panelRegion}
+      >
         {totalItems === 0 ? (
           <ParcelEmptyState
             hasFilters={hasFilters}
@@ -194,7 +216,10 @@ export function ParcelView() {
         ) : (
           <>
             {/* Desktop Table View */}
-            <ParcelTable parcels={paginatedParcels} />
+            <ParcelTable
+              parcels={paginatedParcels}
+              orderedVisibleColumns={orderedVisibleColumns}
+            />
 
             {/* Mobile / Tablet Responsive Card List */}
             <ParcelCardList parcels={paginatedParcels} />

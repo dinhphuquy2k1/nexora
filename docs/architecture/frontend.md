@@ -126,3 +126,30 @@ Nexora is a local-first shipment management platform. In foundation v0.1.0, the 
 LoginForm and AccountMenu make browser-originated, same-origin relative POST calls through the Web `/api/*` rewrite; these are not Server Actions. The reusable server session helper only performs GET, forwarding the session cookie to the explicit internal API URL. No server-originated authentication mutation or internal Origin bypass exists. Web Host validation remains ahead of proxying, including `/api/*`.
 
 A server HTTP 200 session response authenticates only when `authenticated === true` and user ID/username are nonempty strings. Invalid JSON or malformed 200 payloads return unavailable service; 401 or missing cookie returns unauthenticated; upstream/network failures remain unavailable. LoginPage redirects only from the authenticated result, preventing malformed payloads from entering Workspace. AccountMenu navigates only after successful logout and retains retry behavior on revocation failure. Login displays a generic retry message for 429, covering both account lockout and the faster global admission budget without incorrectly promising a fixed five-minute wait.
+
+## 10. Logistics UI & Component Design Standards
+
+### Control Sizing Rules
+
+Form controls and interactive buttons adhere to consistent height tiers:
+
+- **Default Control Height (`40px`, `--control-height-default`)**: Used for primary page-level search inputs (`ParcelSearch`), action buttons (`ParcelListHeader`, `ParcelColumnToggle`), and prominent dialog triggers. Standard horizontal padding is 12–14px with 16px icons.
+- **Compact Control Height (`32px`, `--control-height-compact`)**: Used strictly in dense secondary contexts such as pagination navigation buttons (`ParcelPagination`), table row inline actions, or nested toolbar utilities where 40px controls would disrupt vertical density.
+- **Visual & Focus Consistency**: Standard border radius is 8px (`--radius-md`), border colors utilize `--color-border-subtle`, and focus states utilize a visible focus ring (`--color-accent` or `--color-primary`) with subtle background shifts.
+
+### Viewport Layout & Internal Table Scrolling
+
+To eliminate unnecessary outer vertical scrolling on desktop:
+
+- **Flex Container Containment**: `.contentArea` in `AppShell.module.css` specifies `min-width: 0;` to prevent wide children from forcing horizontal expansion of the main layout and misaligning sticky headers or sidebars.
+- **Internal Table Scrolling**: On desktop screens with sufficient viewport height (`min-width: 1024px` and `min-height: 680px`), the parcels screen container uses flex column layout with `height: 100%` and `min-height: 0`. The table wrapper (`.tableScrollContainer`) manages internal vertical and horizontal overflow with a sticky header (`top: 0`, `z-index: 10`) and sticky tracking column (`left: 0`, `z-index: 12` / `15`). Pagination remains fixed outside the scroll container.
+- **Responsive Adaptability**: Short desktop screens (<680px height) and mobile viewports (<768px) smoothly fall back to normal outer scrolling and stacked responsive card layouts.
+
+### Configurable Table Columns (`nexora.parcels.columns.v1`)
+
+Table column visibility is user-configurable without backend storage:
+
+- **Typed Configuration Contract**: Centralized in `features/parcels/columns.ts`. Each column defines `id`, `label`, `align`, `defaultVisible`, and optional `required`.
+- **Pinned Columns & Constraints**: The tracking number (`trackingNumber`) is permanently visible (`required: true`) and cannot be unchecked. Configurations with zero visible columns are strictly disallowed.
+- **Local Persistence & Hydration Safety**: Preferences are saved in `localStorage` under `nexora.parcels.columns.v1`. To avoid Next.js hydration mismatches, default columns render initially on the server, while stored preferences hydrate safely inside `useEffect`.
+- **Resilient Parsing**: `parseStoredColumns` validates against active column schemas, strips unknown keys, rejects corrupted or obsolete JSON, and falls back gracefully to defaults. A "Khôi phục mặc định" action allows users to reset their selection at any time.

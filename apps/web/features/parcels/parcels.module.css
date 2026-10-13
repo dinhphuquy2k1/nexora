@@ -6,17 +6,22 @@
 .pageContainer {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5, 20px);
+  gap: var(--space-4, 16px);
   width: 100%;
+  min-width: 0;
 }
 
-/* Header & Actions */
+/* ==========================================================================
+   1. Header & Primary Action
+   ========================================================================== */
+
 .headerRow {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4, 16px);
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .titleGroup {
@@ -54,20 +59,23 @@
   gap: var(--space-3, 12px);
 }
 
+/* Subtle, accessible disabled action */
 .createButtonDisabled {
+  height: var(--control-height-default, 40px);
   display: inline-flex;
   align-items: center;
   gap: var(--space-2, 8px);
-  padding: 8px 16px;
-  background-color: var(--color-primary);
-  color: #ffffff;
+  padding: 0 14px;
+  background-color: var(--color-surface);
+  color: var(--color-text-muted);
   border-radius: var(--radius-md, 8px);
   font-size: 13px;
-  font-weight: 600;
-  border: 1px solid transparent;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
   opacity: 0.85;
   cursor: not-allowed;
-  position: relative;
+  user-select: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .createButtonBadge {
@@ -75,14 +83,17 @@
   font-weight: 600;
   padding: 2px 6px;
   border-radius: var(--radius-full, 9999px);
-  background-color: var(--color-accent-light);
-  color: var(--color-accent-text);
-  border: 1px solid var(--color-accent);
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* Status Filter Tabs */
+/* ==========================================================================
+   2. Status Filter Tabs
+   ========================================================================== */
+
 .tabsNav {
   display: flex;
   align-items: center;
@@ -91,6 +102,7 @@
   padding-bottom: 4px;
   border-bottom: 1px solid var(--color-border);
   scrollbar-width: thin;
+  flex-shrink: 0;
 }
 
 .tabsNav::-webkit-scrollbar {
@@ -103,10 +115,11 @@
 }
 
 .tabButton {
+  height: 36px;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2, 8px);
-  padding: 8px 14px;
+  padding: 0 14px;
   border-radius: var(--radius-md, 8px);
   font-size: 13px;
   font-weight: 500;
@@ -116,6 +129,7 @@
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s ease;
+  user-select: none;
 }
 
 .tabButton:hover {
@@ -150,13 +164,17 @@
   color: #ffffff;
 }
 
-/* Search and Controls Bar */
+/* ==========================================================================
+   3. Search and Column Customization Toolbar
+   ========================================================================== */
+
 .controlsBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4, 16px);
+  gap: var(--space-3, 12px);
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .searchWrapper {
@@ -164,7 +182,8 @@
   display: flex;
   align-items: center;
   flex: 1;
-  max-width: 420px;
+  max-width: 380px;
+  min-width: 240px;
 }
 
 .searchIcon {
@@ -176,13 +195,15 @@
 
 .searchInput {
   width: 100%;
-  padding: 9px 36px 9px 36px;
+  height: var(--control-height-default, 40px);
+  padding: 0 36px 0 36px;
   font-size: 13px;
   font-family: inherit;
   color: var(--color-text);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-sm);
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
@@ -220,30 +241,237 @@
   color: var(--color-text);
 }
 
-.resultsMeta {
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+/* Column Toggle Trigger & Popover */
+.columnToggleContainer {
+  position: relative;
+  display: inline-flex;
+}
+
+.columnToggleButton {
+  height: var(--control-height-default, 40px);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 0 14px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
   font-size: 13px;
-  color: var(--color-text-muted);
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
   white-space: nowrap;
 }
 
-.resultsCountHighlight {
-  font-weight: 600;
-  color: var(--color-text);
+.columnToggleButton:hover {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-primary);
+  border-color: var(--color-border-subtle);
 }
 
-/* Table Presentation (Desktop View) */
+.columnToggleButton:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
+}
+
+.columnToggleButtonActive {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.customizedDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-accent);
+}
+
+.columnTogglePopover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 290px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: popoverFadeIn 0.15s ease;
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.popoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background-color: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.popoverTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+}
+
+.popoverResetButton {
+  height: var(--control-height-compact, 32px);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.popoverResetButton:hover:not(:disabled) {
+  color: var(--color-accent-text);
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.popoverResetButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.popoverBody {
+  padding: 8px 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+}
+
+.columnCheckboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+  user-select: none;
+}
+
+.columnCheckboxLabel:hover:not(.columnCheckboxDisabled) {
+  background-color: var(--color-surface-subtle);
+}
+
+.columnCheckboxDisabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.columnCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: inherit;
+  margin: 0;
+}
+
+.columnCheckboxText {
+  flex: 1 1 auto;
+}
+
+.requiredBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs, 4px);
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+/* ==========================================================================
+   4. Table View (Desktop & Internal Scroll Layout)
+   ========================================================================== */
+
+.panelRegion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  width: 100%;
+  min-width: 0;
+}
+
 .tableCard {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg, 12px);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  width: 100%;
+  min-width: 0;
 }
 
 .tableScrollWrapper {
   width: 100%;
-  overflow-x: auto;
+  min-width: 0;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Desktop Viewport-Aware Internal Scroll Architecture */
+@media (min-width: 1024px) and (min-height: 680px) {
+  .pageContainer {
+    height: calc(100vh - var(--header-height, 64px) - 64px);
+    max-height: calc(100vh - var(--header-height, 64px) - 64px);
+  }
+
+  .panelRegion {
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+
+  .tableCard {
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tableScrollWrapper {
+    flex: 1 1 0%;
+    min-height: 0;
+  }
 }
 
 .parcelTable {
@@ -252,10 +480,12 @@
   border-spacing: 0;
   font-size: 13px;
   line-height: 1.4;
-  min-width: 1320px;
 }
 
 .parcelTable th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background-color: var(--color-surface-muted);
   color: var(--color-text-muted);
   font-weight: 600;
@@ -269,7 +499,7 @@
 }
 
 .parcelTable td {
-  padding: 14px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text);
   vertical-align: middle;
@@ -302,17 +532,18 @@
 .stickyColumnTh {
   position: sticky;
   left: 0;
-  z-index: 2;
+  top: 0;
+  z-index: 15;
   background-color: var(--color-surface-muted) !important;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.03);
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04);
 }
 
 .stickyColumnTd {
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: 5;
   background-color: var(--color-surface);
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.03);
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04);
 }
 
 .parcelRow:hover .stickyColumnTd {
@@ -324,6 +555,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
+  white-space: nowrap;
 }
 
 .trackingCode {
@@ -341,7 +573,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   background: transparent;
   border: none;
   border-radius: var(--radius-xs, 4px);
@@ -360,26 +594,24 @@
 }
 
 .productCell {
-  max-width: 240px;
+  max-width: 280px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
 }
 
-.productTooltip {
-  cursor: help;
-}
-
 .numberCell {
   font-variant-numeric: tabular-nums;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .totalAmountCell {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   color: var(--color-primary);
+  white-space: nowrap;
 }
 
 .dateCell {
@@ -389,21 +621,18 @@
   white-space: nowrap;
 }
 
-.emptyValue {
-  color: var(--color-text-muted);
-  opacity: 0.5;
-}
-
 /* Service boolean indicator tags */
 .serviceTagActive {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: var(--radius-full, 9999px);
   background-color: var(--color-status-success-bg);
   color: var(--color-status-success-text);
+  font-weight: 700;
+  font-size: 11px;
 }
 
 .serviceTagInactive {
@@ -480,7 +709,10 @@
   background-color: var(--color-status-error-text);
 }
 
-/* Mobile Card List (Hidden on desktop) */
+/* ==========================================================================
+   5. Mobile Card List (Hidden on desktop)
+   ========================================================================== */
+
 .mobileCardList {
   display: none;
 }
@@ -550,6 +782,7 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text);
+  white-space: nowrap;
 }
 
 .mobileTotalHighlight {
@@ -590,6 +823,7 @@
 .mobileDetailRow span:last-child {
   color: var(--color-text);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .mobileServicesRow {
@@ -617,18 +851,23 @@
   font-weight: 600;
 }
 
-/* Pagination Bar */
+/* ==========================================================================
+   6. Pagination Bar
+   ========================================================================== */
+
 .paginationBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3, 12px);
-  padding: var(--space-3, 12px) 0;
+  padding: var(--space-2, 8px) 0 0;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .paginationRange {
   font-size: 13px;
+  font-weight: 500;
   color: var(--color-text-muted);
 }
 
@@ -639,11 +878,12 @@
 }
 
 .paginationButton {
+  height: var(--control-height-compact, 32px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-1, 4px);
-  padding: 6px 12px;
+  padding: 0 12px;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md, 8px);
@@ -651,6 +891,7 @@
   font-weight: 500;
   color: var(--color-text);
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
   transition: all 0.15s ease;
 }
 
@@ -658,6 +899,11 @@
   background-color: var(--color-surface-subtle);
   border-color: var(--color-border-subtle);
   color: var(--color-primary);
+}
+
+.paginationButton:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
 }
 
 .paginationButton:disabled {
@@ -672,7 +918,10 @@
   padding: 0 var(--space-2, 8px);
 }
 
-/* Empty & No Results State */
+/* ==========================================================================
+   7. Empty & No Results State
+   ========================================================================== */
+
 .emptyStateCard {
   display: flex;
   flex-direction: column;
@@ -715,10 +964,11 @@
 
 .resetFilterButton {
   margin-top: var(--space-2, 8px);
+  height: var(--control-height-compact, 32px);
   display: inline-flex;
   align-items: center;
   gap: var(--space-2, 8px);
-  padding: 8px 16px;
+  padding: 0 14px;
   background-color: var(--color-primary);
   color: #ffffff;
   border-radius: var(--radius-md, 8px);
@@ -733,7 +983,10 @@
   background-color: var(--color-primary-hover);
 }
 
-/* Loading Skeleton */
+/* ==========================================================================
+   8. Loading Skeleton
+   ========================================================================== */
+
 .skeletonContainer {
   display: flex;
   flex-direction: column;

@@ -27,8 +27,7 @@ export function ParcelPagination({
       aria-label="Điều hướng phân trang danh sách kiện hàng"
     >
       <div className={styles.paginationRange}>
-        Hiển thị <strong>{startItem}</strong> - <strong>{endItem}</strong> trong{" "}
-        <strong>{totalItems}</strong> kiện hàng
+        {startItem}–{endItem} / {totalItems} kiện hàng
       </div>
 
       <div className={styles.paginationControls}>
@@ -38,6 +37,7 @@ export function ParcelPagination({
           disabled={currentPage <= 1}
           onClick={() => onPageChange(currentPage - 1)}
           aria-label="Trang trước"
+          title="Về trang trước"
         >
           <ChevronLeft size={16} aria-hidden="true" />
           <span>Trước</span>
@@ -53,6 +53,7 @@ export function ParcelPagination({
           disabled={currentPage >= totalPages}
           onClick={() => onPageChange(currentPage + 1)}
           aria-label="Trang sau"
+          title="Sang trang sau"
         >
           <span>Sau</span>
           <ChevronRight size={16} aria-hidden="true" />

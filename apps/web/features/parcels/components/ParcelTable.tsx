@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Copy, Check } from "lucide-react";
 import type { ParcelItem } from "../types.ts";
+import type { ParcelColumnKey, ParcelColumnDef } from "../columns.ts";
 import {
   formatVnd,
   formatWeight,
@@ -13,15 +14,182 @@ import styles from "../parcels.module.css";
 
 interface ParcelTableProps {
   parcels: readonly ParcelItem[];
+  orderedVisibleColumns: readonly ParcelColumnDef[];
 }
 
-export function ParcelTable({ parcels }: ParcelTableProps) {
+export function ParcelTable({
+  parcels,
+  orderedVisibleColumns,
+}: ParcelTableProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const handleCopy = (id: string, text: string) => {
     navigator.clipboard?.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const getHeaderAlignClass = (id: ParcelColumnKey): string => {
+    switch (id) {
+      case "weightKg":
+      case "totalAmount":
+      case "packageCount":
+      case "itemCount":
+      case "unitPrice":
+      case "domesticShippingFee":
+      case "declaredValue":
+        return styles.textRight;
+      case "status":
+      case "insurance":
+      case "inspection":
+      case "woodenCrate":
+      case "bubbleWrap":
+        return styles.textCenter;
+      default:
+        return styles.textLeft;
+    }
+  };
+
+  const renderCellContent = (
+    id: ParcelColumnKey,
+    parcel: ParcelItem,
+  ): ReactNode => {
+    switch (id) {
+      case "trackingNumber": {
+        const isCopied = copiedId === parcel.id;
+        return (
+          <div className={styles.trackingCell}>
+            <span className={styles.trackingCode}>{parcel.trackingNumber}</span>
+            <button
+              type="button"
+              className={`${styles.copyButton} ${
+                isCopied ? styles.copySuccess : ""
+              }`}
+              onClick={() => handleCopy(parcel.id, parcel.trackingNumber)}
+              title={
+                isCopied ? "Đã sao chép mã vận đơn!" : "Sao chép mã vận đơn"
+              }
+              aria-label={`Sao chép mã vận đơn ${parcel.trackingNumber}`}
+            >
+              {isCopied ? (
+                <Check size={14} aria-hidden="true" />
+              ) : (
+                <Copy size={14} aria-hidden="true" />
+              )}
+            </button>
+          </div>
+        );
+      }
+      case "productName":
+        return (
+          <span className={styles.productCell} title={parcel.productName}>
+            {parcel.productName}
+          </span>
+        );
+      case "status": {
+        const statusClass = styles[getStatusToneKey(parcel.status)];
+        return (
+          <span className={`${styles.statusBadge} ${statusClass}`}>
+            <span className={styles.statusDot} aria-hidden="true" />
+            <span>{parcel.statusLabel}</span>
+          </span>
+        );
+      }
+      case "weightKg":
+        return (
+          <span className={styles.numberCell}>
+            {formatWeight(parcel.weightKg)}
+          </span>
+        );
+      case "totalAmount":
+        return (
+          <span className={styles.totalAmountCell}>
+            {formatVnd(parcel.totalAmount)}
+          </span>
+        );
+      case "packageCount":
+        return <span className={styles.numberCell}>{parcel.packageCount}</span>;
+      case "itemCount":
+        return <span className={styles.numberCell}>{parcel.itemCount}</span>;
+      case "unitPrice":
+        return (
+          <span className={styles.numberCell}>
+            {formatVnd(parcel.unitPrice)}
+          </span>
+        );
+      case "domesticShippingFee":
+        return (
+          <span className={styles.numberCell}>
+            {parcel.domesticShippingFee > 0
+              ? formatVnd(parcel.domesticShippingFee)
+              : "0 ₫"}
+          </span>
+        );
+      case "declaredValue":
+        return (
+          <span className={styles.numberCell}>
+            {formatVnd(parcel.declaredValue)}
+          </span>
+        );
+      case "insurance":
+        return parcel.hasInsurance ? (
+          <span className={styles.serviceTagActive} title="Có bảo hiểm">
+            ✓
+          </span>
+        ) : (
+          <span className={styles.serviceTagInactive}>—</span>
+        );
+      case "inspection":
+        return parcel.hasInspection ? (
+          <span className={styles.serviceTagActive} title="Có kiểm đếm">
+            ✓
+          </span>
+        ) : (
+          <span className={styles.serviceTagInactive}>—</span>
+        );
+      case "woodenCrate":
+        return parcel.hasWoodenCrate ? (
+          <span className={styles.serviceTagActive} title="Có đóng gỗ">
+            ✓
+          </span>
+        ) : (
+          <span className={styles.serviceTagInactive}>—</span>
+        );
+      case "bubbleWrap":
+        return parcel.hasBubbleWrap ? (
+          <span className={styles.serviceTagActive} title="Có bọt khí">
+            ✓
+          </span>
+        ) : (
+          <span className={styles.serviceTagInactive}>—</span>
+        );
+      case "departureInboundDate":
+        return (
+          <span className={styles.dateCell}>
+            {formatDate(parcel.departureInboundDate)}
+          </span>
+        );
+      case "departureOutboundDate":
+        return (
+          <span className={styles.dateCell}>
+            {formatDate(parcel.departureOutboundDate)}
+          </span>
+        );
+      case "destinationInboundDate":
+        return (
+          <span className={styles.dateCell}>
+            {formatDate(parcel.destinationInboundDate)}
+          </span>
+        );
+      case "destinationOutboundDate":
+        return (
+          <span className={styles.dateCell}>
+            {formatDate(parcel.destinationOutboundDate)}
+          </span>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -33,225 +201,44 @@ export function ParcelTable({ parcels }: ParcelTableProps) {
         >
           <thead>
             <tr>
-              <th
-                scope="col"
-                className={`${styles.textLeft} ${styles.stickyColumnTh}`}
-              >
-                Mã vận đơn
-              </th>
-              <th scope="col" className={styles.textLeft}>
-                Tên sản phẩm
-              </th>
-              <th scope="col" className={styles.textCenter}>
-                Trạng thái
-              </th>
-              <th scope="col" className={styles.textRight}>
-                Cân nặng (kg)
-              </th>
-              <th scope="col" className={styles.textRight}>
-                Tổng tiền
-              </th>
-              <th scope="col" className={styles.textRight}>
-                Số kiện
-              </th>
-              <th scope="col" className={styles.textRight}>
-                Số sản phẩm
-              </th>
-              <th scope="col" className={styles.textRight}>
-                Đơn giá
-              </th>
-              <th scope="col" className={styles.textRight}>
-                Ship nội địa
-              </th>
-              <th scope="col" className={styles.textRight}>
-                Giá trị hàng
-              </th>
-              <th scope="col" className={styles.textCenter}>
-                Bảo hiểm
-              </th>
-              <th scope="col" className={styles.textCenter}>
-                Kiểm đếm
-              </th>
-              <th scope="col" className={styles.textCenter}>
-                Đóng gỗ
-              </th>
-              <th scope="col" className={styles.textCenter}>
-                Bọt khí
-              </th>
-              <th scope="col" className={styles.textLeft}>
-                Ngày nhập kho gửi
-              </th>
-              <th scope="col" className={styles.textLeft}>
-                Ngày xuất kho gửi
-              </th>
-              <th scope="col" className={styles.textLeft}>
-                Ngày nhập kho nhận
-              </th>
-              <th scope="col" className={styles.textLeft}>
-                Ngày xuất kho nhận
-              </th>
+              {orderedVisibleColumns.map((col) => {
+                const isSticky = col.id === "trackingNumber";
+                const alignClass = getHeaderAlignClass(col.id);
+
+                return (
+                  <th
+                    key={col.id}
+                    scope="col"
+                    className={`${alignClass} ${
+                      isSticky ? styles.stickyColumnTh : ""
+                    }`}
+                  >
+                    {col.label}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
-            {parcels.map((parcel) => {
-              const isCopied = copiedId === parcel.id;
-              const statusClass = styles[getStatusToneKey(parcel.status)];
+            {parcels.map((parcel) => (
+              <tr key={parcel.id} className={styles.parcelRow}>
+                {orderedVisibleColumns.map((col) => {
+                  const isSticky = col.id === "trackingNumber";
+                  const alignClass = getHeaderAlignClass(col.id);
 
-              return (
-                <tr key={parcel.id} className={styles.parcelRow}>
-                  {/* Mã vận đơn (Sticky Column) */}
-                  <td className={`${styles.textLeft} ${styles.stickyColumnTd}`}>
-                    <div className={styles.trackingCell}>
-                      <span className={styles.trackingCode}>
-                        {parcel.trackingNumber}
-                      </span>
-                      <button
-                        type="button"
-                        className={`${styles.copyButton} ${
-                          isCopied ? styles.copySuccess : ""
-                        }`}
-                        onClick={() =>
-                          handleCopy(parcel.id, parcel.trackingNumber)
-                        }
-                        title={
-                          isCopied
-                            ? "Đã sao chép mã vận đơn!"
-                            : "Sao chép mã vận đơn"
-                        }
-                        aria-label={`Sao chép mã vận đơn ${parcel.trackingNumber}`}
-                      >
-                        {isCopied ? (
-                          <Check size={14} aria-hidden="true" />
-                        ) : (
-                          <Copy size={14} aria-hidden="true" />
-                        )}
-                      </button>
-                    </div>
-                  </td>
-
-                  {/* Tên sản phẩm */}
-                  <td
-                    className={`${styles.textLeft} ${styles.productCell}`}
-                    title={parcel.productName}
-                  >
-                    <span className={styles.productTooltip}>
-                      {parcel.productName}
-                    </span>
-                  </td>
-
-                  {/* Trạng thái */}
-                  <td className={styles.textCenter}>
-                    <span className={`${styles.statusBadge} ${statusClass}`}>
-                      <span className={styles.statusDot} aria-hidden="true" />
-                      <span>{parcel.statusLabel}</span>
-                    </span>
-                  </td>
-
-                  {/* Cân nặng (kg) */}
-                  <td className={`${styles.textRight} ${styles.numberCell}`}>
-                    {formatWeight(parcel.weightKg)}
-                  </td>
-
-                  {/* Tổng tiền */}
-                  <td
-                    className={`${styles.textRight} ${styles.totalAmountCell}`}
-                  >
-                    {formatVnd(parcel.totalAmount)}
-                  </td>
-
-                  {/* Số kiện */}
-                  <td className={`${styles.textRight} ${styles.numberCell}`}>
-                    {parcel.packageCount}
-                  </td>
-
-                  {/* Số sản phẩm */}
-                  <td className={`${styles.textRight} ${styles.numberCell}`}>
-                    {parcel.itemCount}
-                  </td>
-
-                  {/* Đơn giá */}
-                  <td className={`${styles.textRight} ${styles.numberCell}`}>
-                    {formatVnd(parcel.unitPrice)}
-                  </td>
-
-                  {/* Ship nội địa */}
-                  <td className={`${styles.textRight} ${styles.numberCell}`}>
-                    {parcel.domesticShippingFee > 0
-                      ? formatVnd(parcel.domesticShippingFee)
-                      : "0 ₫"}
-                  </td>
-
-                  {/* Giá trị hàng */}
-                  <td className={`${styles.textRight} ${styles.numberCell}`}>
-                    {formatVnd(parcel.declaredValue)}
-                  </td>
-
-                  {/* Dịch vụ phụ: Bảo hiểm, Kiểm đếm, Đóng gỗ, Bọt khí */}
-                  <td className={styles.textCenter}>
-                    {parcel.hasInsurance ? (
-                      <span
-                        className={styles.serviceTagActive}
-                        title="Có bảo hiểm"
-                      >
-                        ✓
-                      </span>
-                    ) : (
-                      <span className={styles.serviceTagInactive}>—</span>
-                    )}
-                  </td>
-                  <td className={styles.textCenter}>
-                    {parcel.hasInspection ? (
-                      <span
-                        className={styles.serviceTagActive}
-                        title="Có kiểm đếm"
-                      >
-                        ✓
-                      </span>
-                    ) : (
-                      <span className={styles.serviceTagInactive}>—</span>
-                    )}
-                  </td>
-                  <td className={styles.textCenter}>
-                    {parcel.hasWoodenCrate ? (
-                      <span
-                        className={styles.serviceTagActive}
-                        title="Có đóng gỗ"
-                      >
-                        ✓
-                      </span>
-                    ) : (
-                      <span className={styles.serviceTagInactive}>—</span>
-                    )}
-                  </td>
-                  <td className={styles.textCenter}>
-                    {parcel.hasBubbleWrap ? (
-                      <span
-                        className={styles.serviceTagActive}
-                        title="Có quấn bọt khí"
-                      >
-                        ✓
-                      </span>
-                    ) : (
-                      <span className={styles.serviceTagInactive}>—</span>
-                    )}
-                  </td>
-
-                  {/* Các mốc thời gian */}
-                  <td className={`${styles.textLeft} ${styles.dateCell}`}>
-                    {formatDate(parcel.departureInboundDate)}
-                  </td>
-                  <td className={`${styles.textLeft} ${styles.dateCell}`}>
-                    {formatDate(parcel.departureOutboundDate)}
-                  </td>
-                  <td className={`${styles.textLeft} ${styles.dateCell}`}>
-                    {formatDate(parcel.destinationInboundDate)}
-                  </td>
-                  <td className={`${styles.textLeft} ${styles.dateCell}`}>
-                    {formatDate(parcel.destinationOutboundDate)}
-                  </td>
-                </tr>
-              );
-            })}
+                  return (
+                    <td
+                      key={col.id}
+                      className={`${alignClass} ${
+                        isSticky ? styles.stickyColumnTd : ""
+                      }`}
+                    >
+                      {renderCellContent(col.id, parcel)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
