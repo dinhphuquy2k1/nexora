@@ -1,10 +1,11 @@
 export type NavStatus = "available" | "planned";
 
-export type NavGroup = "Workspace" | "System";
+export type NavGroup = "Workspace" | "Logistics" | "System";
 
 export type NavIconKey =
   | "overview"
   | "shipment"
+  | "parcels"
   | "customers"
   | "system"
   | "settings";
@@ -36,6 +37,14 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     iconKey: "shipment",
   },
   {
+    id: "parcels",
+    label: "Kiện hàng lẻ",
+    href: "/logistics/parcels",
+    status: "available",
+    group: "Logistics",
+    iconKey: "parcels",
+  },
+  {
     id: "customers",
     label: "Khách hàng",
     href: null,
@@ -63,5 +72,6 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
 
 export const GROUP_LABELS: Record<NavGroup, string> = {
   Workspace: "Không gian làm việc",
+  Logistics: "Logistics",
   System: "Hệ thống",
 };

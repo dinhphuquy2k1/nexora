@@ -30,8 +30,9 @@ Components dedicated to Nexora's application shell, layout frame, and cross-rout
 
 ### Tier C: Feature-Level Components (`apps/web/features/<feature>/`)
 
-Future feature-specific modules (e.g., `ShipmentTable`, `TrackingTimeline`, `CustomerForm`):
+Feature-specific modules (e.g. `apps/web/features/parcels/`):
 
+- **Parcels Feature (`features/parcels/`)**: Individual parcel list screen ("Kiện hàng lẻ") implementing deterministic local fixture dataset, status tabs with item counts, search input, responsive desktop table with sticky tracking code and horizontal scrolling, touch-optimized mobile card list (<768px), pagination, and accessible empty/no-results states.
 - Kept strictly local to the feature directory.
 - Reuses Tier A shared UI primitives and Tier B layout slots.
 - May own feature-specific validation schemas, presentation types, and SDK caller hooks.
@@ -80,8 +81,8 @@ Nexora adheres strictly to Next.js App Router boundary best practices:
 
 Navigation metadata is centralized in `apps/web/lib/navigation/nav-config.ts`:
 
-- **Typed Configuration (`NAVIGATION_ITEMS`)**: Single source of truth defining `id`, `label`, `href`, `status` (`available` | `planned`), `group` (`Workspace` | `System`), and `iconKey`.
-- **Approved Navigation Contract (`navigation.test.mjs`)**: Verified against an independent `APPROVED_NAVIGATION_CONTRACT` table in Node.js test runner. Detects unauthorized route additions, missing items, status alterations, or planned items with navigable URLs.
+- **Typed Configuration (`NAVIGATION_ITEMS`)**: Single source of truth defining `id`, `label`, `href`, `status` (`available` | `planned`), `group` (`Workspace` | `Logistics` | `System`), and `iconKey`.
+- **Approved Navigation Contract (`navigation.test.mjs`)**: Verified against an independent `APPROVED_NAVIGATION_CONTRACT` table in Node.js test runner covering `/` (Overview), planned `/shipment` and `/customers`, `/logistics/parcels` (Kiện hàng lẻ), `/system`, and `/settings`. Detects unauthorized route additions, missing items, status alterations, or planned items with navigable URLs.
 - **Pure Resolvers (`apps/web/lib/navigation/resolve-active.ts`)**: Pure functions for URL normalization (`normalizePathname`), active route matching (`isItemActive`, `resolveActiveItem`), and breadcrumb trail derivation (`resolveBreadcrumbs`).
 - **Collapsed Sidebar Overflow Handling**: Tooltips use `visibility: hidden` and `opacity: 0` in resting state, revealed on `:hover` and `:focus-within`. `.collapsed .nav { overflow: visible; }` ensures tooltip visibility without clipping, while compact header layout guarantees `scrollWidth <= clientWidth` across all approved viewports.
 

@@ -16,7 +16,11 @@ interface SidebarProps {
   isCollapsed: boolean;
 }
 
-const GROUPS: readonly NavGroup[] = ["Workspace", "System"] as const;
+const GROUPS: readonly NavGroup[] = [
+  "Workspace",
+  "Logistics",
+  "System",
+] as const;
 
 export function Sidebar({ isCollapsed }: SidebarProps) {
   const pathname = usePathname();

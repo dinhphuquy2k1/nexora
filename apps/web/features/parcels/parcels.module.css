@@ -1,0 +1,763 @@
+/* ==========================================================================
+   Parcels Feature CSS Module (Tier C Feature Styles)
+   Consumes centralized design tokens from apps/web/styles/tokens.css
+   ========================================================================== */
+
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+  width: 100%;
+}
+
+/* Header & Actions */
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+  flex-wrap: wrap;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--color-accent-text);
+  margin: 0 0 var(--space-1, 4px);
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: -0.3px;
+  margin: 0 0 var(--space-1, 4px);
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 600px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+
+.createButtonDisabled {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  opacity: 0.85;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.createButtonBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-accent-light);
+  color: var(--color-accent-text);
+  border: 1px solid var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Status Filter Tabs */
+.tabsNav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  overflow-x: auto;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-border);
+  scrollbar-width: thin;
+}
+
+.tabsNav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tabsNav::-webkit-scrollbar-thumb {
+  background: var(--color-border-subtle);
+  border-radius: var(--radius-full, 9999px);
+}
+
+.tabButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 8px 14px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tabButton:hover {
+  color: var(--color-primary);
+  background-color: var(--color-surface-subtle);
+}
+
+.tabButtonActive {
+  color: var(--color-primary-strong);
+  font-weight: 600;
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.tabCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+}
+
+.tabCountActive {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+/* Search and Controls Bar */
+.controlsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4, 16px);
+  flex-wrap: wrap;
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 420px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 9px 36px 9px 36px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-accent-light);
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.searchClearButton {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: var(--radius-full, 9999px);
+  border: none;
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.searchClearButton:hover {
+  background-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.resultsMeta {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.resultsCountHighlight {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Table Presentation (Desktop View) */
+.tableCard {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.tableScrollWrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.parcelTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  min-width: 1320px;
+}
+
+.parcelTable th {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.parcelTable td {
+  padding: 14px 14px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: middle;
+  background-color: var(--color-surface);
+  transition: background-color 0.1s ease;
+}
+
+.parcelRow:hover td {
+  background-color: var(--color-surface-subtle);
+}
+
+.parcelRow:last-child td {
+  border-bottom: none;
+}
+
+/* Alignments */
+.textLeft {
+  text-align: left;
+}
+
+.textCenter {
+  text-align: center;
+}
+
+.textRight {
+  text-align: right;
+}
+
+/* Sticky first column on horizontal table scroll */
+.stickyColumnTh {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background-color: var(--color-surface-muted) !important;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.03);
+}
+
+.stickyColumnTd {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: var(--color-surface);
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.03);
+}
+
+.parcelRow:hover .stickyColumnTd {
+  background-color: var(--color-surface-subtle) !important;
+}
+
+/* Table Cells Formatting */
+.trackingCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.trackingCode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: var(--color-surface-subtle);
+  padding: 3px 6px;
+  border-radius: var(--radius-xs, 4px);
+  border: 1px solid var(--color-border);
+}
+
+.copyButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs, 4px);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.copyButton:hover {
+  background-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.copySuccess {
+  color: var(--color-status-success-text);
+}
+
+.productCell {
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.productTooltip {
+  cursor: help;
+}
+
+.numberCell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.totalAmountCell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.dateCell {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.emptyValue {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+/* Service boolean indicator tags */
+.serviceTagActive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+}
+
+.serviceTagInactive {
+  color: var(--color-text-muted);
+  opacity: 0.4;
+}
+
+/* Status Badges */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full, 9999px);
+  flex-shrink: 0;
+}
+
+/* Status tones */
+.toneIncomingDeparture {
+  background-color: var(--color-status-neutral-bg);
+  color: var(--color-status-neutral-text);
+}
+.toneIncomingDeparture .statusDot {
+  background-color: var(--color-status-neutral-text);
+}
+
+.toneReceivedDeparture {
+  background-color: var(--color-status-info-bg);
+  color: var(--color-status-info-text);
+}
+.toneReceivedDeparture .statusDot {
+  background-color: var(--color-status-info-text);
+}
+
+.toneInTransit {
+  background-color: var(--color-status-warning-bg);
+  color: var(--color-status-warning-text);
+}
+.toneInTransit .statusDot {
+  background-color: var(--color-status-warning-text);
+}
+
+.toneReceivedDestination {
+  background-color: #ede9fe;
+  color: #6d28d9;
+}
+.toneReceivedDestination .statusDot {
+  background-color: #6d28d9;
+}
+
+.toneDelivered {
+  background-color: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+}
+.toneDelivered .statusDot {
+  background-color: var(--color-status-success-text);
+}
+
+.toneClaim {
+  background-color: var(--color-status-error-bg);
+  color: var(--color-status-error-text);
+}
+.toneClaim .statusDot {
+  background-color: var(--color-status-error-text);
+}
+
+/* Mobile Card List (Hidden on desktop) */
+.mobileCardList {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .tableCard {
+    display: none;
+  }
+
+  .mobileCardList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3, 12px);
+  }
+}
+
+.mobileCard {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-4, 16px);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.mobileCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.mobileProductTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.mobileMetricsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2, 8px);
+  background-color: var(--color-surface-subtle);
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 8px);
+}
+
+.mobileMetricItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobileMetricLabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mobileMetricValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.mobileTotalHighlight {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.mobileToggleDetailsButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 0;
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent-text);
+  cursor: pointer;
+}
+
+.mobileDetailsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  padding-top: var(--space-2, 8px);
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+}
+
+.mobileDetailRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+}
+
+.mobileDetailRow span:last-child {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.mobileServicesRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.mobileServiceBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 6px);
+  background-color: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.mobileServiceBadgeActive {
+  background-color: var(--color-status-success-bg);
+  border-color: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  font-weight: 600;
+}
+
+/* Pagination Bar */
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: var(--space-3, 12px) 0;
+  flex-wrap: wrap;
+}
+
+.paginationRange {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.paginationButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1, 4px);
+  padding: 6px 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.paginationButton:hover:not(:disabled) {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-border-subtle);
+  color: var(--color-primary);
+}
+
+.paginationButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageIndicator {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 0 var(--space-2, 8px);
+}
+
+/* Empty & No Results State */
+.emptyStateCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm);
+  gap: var(--space-3, 12px);
+}
+
+.emptyStateIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full, 9999px);
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.emptyStateTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.emptyStateText {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  max-width: 440px;
+  margin: 0;
+}
+
+.resetFilterButton {
+  margin-top: var(--space-2, 8px);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.resetFilterButton:hover {
+  background-color: var(--color-primary-hover);
+}
+
+/* Loading Skeleton */
+.skeletonContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  width: 100%;
+}
+
+.skeletonBlock {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-subtle) 25%,
+    var(--color-surface) 37%,
+    var(--color-surface-subtle) 63%
+  );
+  background-size: 400% 100%;
+  animation: skeletonPulse 1.4s ease infinite;
+  border-radius: var(--radius-md, 8px);
+}
+
+@keyframes skeletonPulse {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Package,
+  Boxes,
   Users,
   Activity,
   Settings,
@@ -12,6 +13,7 @@ import type { NavIconKey } from "./navigation/nav-config.ts";
 export const navIconRegistry: Record<NavIconKey, LucideIcon> = {
   overview: LayoutDashboard,
   shipment: Package,
+  parcels: Boxes,
   customers: Users,
   system: Activity,
   settings: Settings,
