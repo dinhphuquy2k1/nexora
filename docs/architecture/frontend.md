@@ -141,9 +141,22 @@ Form controls and interactive buttons adhere to consistent height tiers:
 
 To eliminate unnecessary outer vertical scrolling on desktop:
 
-- **Flex Container Containment**: `.contentArea` in `AppShell.module.css` specifies `min-width: 0;` to prevent wide children from forcing horizontal expansion of the main layout and misaligning sticky headers or sidebars.
-- **Internal Table Scrolling**: On desktop screens with sufficient viewport height (`min-width: 1024px` and `min-height: 680px`), the parcels screen container uses flex column layout with `height: 100%` and `min-height: 0`. The table wrapper (`.tableScrollContainer`) manages internal vertical and horizontal overflow with a sticky header (`top: 0`, `z-index: 10`) and sticky tracking column (`left: 0`, `z-index: 12` / `15`). Pagination remains fixed outside the scroll container.
+- **Desktop Flex Container Hierarchy**: On desktop screens with sufficient viewport height (`min-width: 1024px` and `min-height: 680px`), `.container` and `.mainWrapper` in `AppShell.module.css` establish a `height: 100vh` flex column container without hardcoded `calc()` offsets. `.contentArea` uses `min-height: 0; overflow-y: auto; flex: 1 1 0%` to allow natural scrolling for general pages, while `.pageContainer` in parcels manages an internal flex column structure.
+- **Internal Table Scrolling & Empty Space Hugging**: When rows exceed available viewport space, the table wrapper (`.tableScrollWrapper`) manages internal vertical and horizontal overflow with a sticky header (`top: 0`, `z-index: 10`) and sticky tracking column (`left: 0`, `z-index: 5` / `15`). When filtered to 1–3 rows (e.g. "Khiếu nại" tab), `.tableCard` uses `flex: 0 1 auto; max-height: 100%` to hug content without rendering a massive unfinished blank void, while pagination remains stably positioned below.
 - **Responsive Adaptability**: Short desktop screens (<680px height) and mobile viewports (<768px) smoothly fall back to normal outer scrolling and stacked responsive card layouts.
+
+### Status Navigation Standardization
+
+- **Unified Geometry**: Status filter tabs (`ParcelStatusTabs`) enforce an exact `36px` height, `padding: 0 12px;`, `8px` border radius, and `8px` gap across both active and inactive states.
+- **Badge & Typography Consistency**: Both active and inactive count badges use `height: 20px; min-width: 20px; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums`.
+- **Zero Layout Shift**: Tab labels maintain `font-weight: 500` with active tabs distinguished via `--color-primary-strong` text, solid `--color-surface` background, `--color-border` border, and subtle elevation shadow (`--shadow-sm`). Inactive badges use `--color-surface-subtle`, while active badges switch to `--color-primary` with high-contrast text.
+
+### Table Column Stabilization
+
+- **Predictable Widths by Data Type**: Columns use explicit width and min-width classes (`colTrackingNumber: 175px`, `colProductName: min-width 220px`, `colStatus: 165px`, `colWeight: 120px`, `colTotalAmount: 140px`, `colPackageCount: 90px`, `colItemCount: 110px`, `colUnitPrice: 130px`, `colShippingFee: 130px`, `colDeclaredValue: 140px`, `colDate: 140px`, `colService: 90px`).
+- **Product Text Truncation**: Product name cells (`.productCell`) use `display: block; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;` with full values accessible via native `title` tooltips.
+- **Sticky Column Alignment**: Tracking code cells (`.stickyColumnTh`, `.stickyColumnTd`) remain sticky at `left: 0` with opaque backgrounds and right-edge box shadows to prevent row text bleed-through during horizontal scrolling.
+- **Monetary Values**: All VND currency values and kg weight values use `white-space: nowrap` and `text-align: right` to prevent currency unit wrapping.
 
 ### Configurable Table Columns (`nexora.parcels.columns.v1`)
 
@@ -153,3 +166,11 @@ Table column visibility is user-configurable without backend storage:
 - **Pinned Columns & Constraints**: The tracking number (`trackingNumber`) is permanently visible (`required: true`) and cannot be unchecked. Configurations with zero visible columns are strictly disallowed.
 - **Local Persistence & Hydration Safety**: Preferences are saved in `localStorage` under `nexora.parcels.columns.v1`. To avoid Next.js hydration mismatches, default columns render initially on the server, while stored preferences hydrate safely inside `useEffect`.
 - **Resilient Parsing**: `parseStoredColumns` validates against active column schemas, strips unknown keys, rejects corrupted or obsolete JSON, and falls back gracefully to defaults. A "Khôi phục mặc định" action allows users to reset their selection at any time.
+
+### Configurable Page Size Selector (`PAGE_SIZE_OPTIONS`)
+
+- **Options Contract**: Centralized in `features/parcels/types.ts`: `PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100]` with `DEFAULT_PAGE_SIZE = 10`.
+- **URL Synchronization**: Selected page size synchronizes directly with URL search parameters (`?pageSize=20`). The default value (`10`) is omitted from query strings for clean URLs.
+- **Page Reset & Out-of-Range Clamping**: Changing page size automatically resets the active page to `1`. Manual URL input or filter transitions clamp out-of-range pages gracefully to `totalPages`.
+- **Parser Resilience**: Pure function `parsePageSize` safely normalizes invalid, negative, non-numeric, or missing values to `DEFAULT_PAGE_SIZE (10)`.
+- **Compact Control**: Styled via `--control-height-compact: 32px` with a custom chevron dropdown matching the pagination toolbar.

@@ -99,7 +99,7 @@
   align-items: center;
   gap: var(--space-2, 8px);
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding: 2px 2px 6px;
   border-bottom: 1px solid var(--color-border);
   scrollbar-width: thin;
   flex-shrink: 0;
@@ -119,22 +119,32 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2, 8px);
-  padding: 0 14px;
+  padding: 0 12px;
   border-radius: var(--radius-md, 8px);
   font-size: 13px;
   font-weight: 500;
   color: var(--color-text-muted);
-  background: transparent;
+  background-color: transparent;
   border: 1px solid transparent;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .tabButton:hover {
-  color: var(--color-primary);
+  color: var(--color-text);
   background-color: var(--color-surface-subtle);
+}
+
+.tabButton:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
 }
 
 .tabButtonActive {
@@ -143,6 +153,11 @@
   background-color: var(--color-surface);
   border-color: var(--color-border);
   box-shadow: var(--shadow-sm);
+}
+
+.tabLabel {
+  display: inline-block;
+  line-height: 1.2;
 }
 
 .tabCount {
@@ -154,9 +169,14 @@
   padding: 0 6px;
   font-size: 11px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
   border-radius: var(--radius-full, 9999px);
   background-color: var(--color-surface-subtle);
   color: var(--color-text-muted);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .tabCountActive {
@@ -452,24 +472,27 @@
 /* Desktop Viewport-Aware Internal Scroll Architecture */
 @media (min-width: 1024px) and (min-height: 680px) {
   .pageContainer {
-    height: calc(100vh - var(--header-height, 64px) - 64px);
-    max-height: calc(100vh - var(--header-height, 64px) - 64px);
-  }
-
-  .panelRegion {
     flex: 1 1 0%;
     min-height: 0;
   }
 
-  .tableCard {
+  .panelRegion {
     flex: 1 1 0%;
     min-height: 0;
     display: flex;
     flex-direction: column;
   }
 
+  .tableCard {
+    flex: 0 1 auto;
+    max-height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
   .tableScrollWrapper {
-    flex: 1 1 0%;
+    flex: 1 1 auto;
     min-height: 0;
   }
 }
@@ -526,6 +549,66 @@
 
 .textRight {
   text-align: right;
+}
+
+/* Predictable Column Widths by Data Type */
+.colTrackingNumber {
+  width: 175px;
+  min-width: 175px;
+}
+
+.colProductName {
+  min-width: 220px;
+}
+
+.colStatus {
+  width: 165px;
+  min-width: 165px;
+}
+
+.colWeight {
+  width: 120px;
+  min-width: 110px;
+}
+
+.colTotalAmount {
+  width: 140px;
+  min-width: 130px;
+}
+
+.colPackageCount {
+  width: 90px;
+  min-width: 80px;
+}
+
+.colItemCount {
+  width: 110px;
+  min-width: 100px;
+}
+
+.colUnitPrice {
+  width: 130px;
+  min-width: 120px;
+}
+
+.colShippingFee {
+  width: 130px;
+  min-width: 120px;
+}
+
+.colDeclaredValue {
+  width: 140px;
+  min-width: 130px;
+}
+
+.colDate {
+  width: 140px;
+  min-width: 130px;
+}
+
+.colService {
+  width: 90px;
+  min-width: 80px;
 }
 
 /* Sticky first column on horizontal table scroll */
@@ -594,7 +677,8 @@
 }
 
 .productCell {
-  max-width: 280px;
+  display: block;
+  max-width: 320px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -871,6 +955,67 @@
   color: var(--color-text-muted);
 }
 
+.paginationActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 16px);
+  flex-wrap: wrap;
+}
+
+.pageSizeSelector {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.pageSizeLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.pageSizeSelectWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pageSizeSelect {
+  height: var(--control-height-compact, 32px);
+  padding: 0 28px 0 10px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  box-shadow: var(--shadow-sm);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.pageSizeSelect:hover {
+  background-color: var(--color-surface-subtle);
+  border-color: var(--color-border-subtle);
+}
+
+.pageSizeSelect:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
+}
+
+.pageSizeSelectIcon {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  color: var(--color-text-muted);
+}
+
 .paginationControls {
   display: flex;
   align-items: center;
@@ -916,6 +1061,20 @@
   font-weight: 600;
   color: var(--color-text);
   padding: 0 var(--space-2, 8px);
+}
+
+@media (max-width: 480px) {
+  .paginationBar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3, 12px);
+  }
+
+  .paginationActions {
+    width: 100%;
+    justify-content: space-between;
+    gap: var(--space-2, 8px);
+  }
 }
 
 /* ==========================================================================

@@ -2,7 +2,12 @@
 
 import { useMemo, useCallback, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import type { ParcelStatus } from "../types.ts";
+import {
+  DEFAULT_PAGE_SIZE,
+  type ParcelStatus,
+  type PageSize,
+} from "../types.ts";
+import { parsePageSize } from "../utils.ts";
 import { FIXTURE_PARCELS } from "../fixtures/parcels.ts";
 import { useColumnPreferences } from "../hooks/useColumnPreferences.ts";
 import { ParcelListHeader } from "./ParcelListHeader.tsx";
@@ -14,8 +19,6 @@ import { ParcelCardList } from "./ParcelCardList.tsx";
 import { ParcelPagination } from "./ParcelPagination.tsx";
 import { ParcelEmptyState } from "./ParcelEmptyState.tsx";
 import styles from "../parcels.module.css";
-
-const PAGE_SIZE = 8;
 
 export function ParcelView() {
   const router = useRouter();
@@ -50,6 +53,8 @@ export function ParcelView() {
   const searchQuery = searchParams.get("q") || "";
   const rawPage = parseInt(searchParams.get("page") || "1", 10);
   const currentPage = Number.isInteger(rawPage) && rawPage > 0 ? rawPage : 1;
+  const rawPageSize = searchParams.get("pageSize");
+  const pageSize: PageSize = parsePageSize(rawPageSize);
 
   // Compute status counts across entire fixture dataset
   const statusCounts = useMemo(() => {
@@ -95,17 +100,22 @@ export function ParcelView() {
 
   // Pagination calculation
   const totalItems = filteredParcels.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
 
   const paginatedParcels = useMemo(() => {
-    const startIndex = (safeCurrentPage - 1) * PAGE_SIZE;
-    return filteredParcels.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [filteredParcels, safeCurrentPage]);
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return filteredParcels.slice(startIndex, startIndex + pageSize);
+  }, [filteredParcels, safeCurrentPage, pageSize]);
 
   // URL query parameter updater
   const updateUrlParams = useCallback(
-    (updates: { status?: ParcelStatus; q?: string; page?: number }) => {
+    (updates: {
+      status?: ParcelStatus;
+      q?: string;
+      page?: number;
+      pageSize?: number;
+    }) => {
       const params = new URLSearchParams(searchParams.toString());
 
       if (updates.status !== undefined) {
@@ -122,6 +132,14 @@ export function ParcelView() {
           params.delete("q");
         } else {
           params.set("q", trimmed);
+        }
+      }
+
+      if (updates.pageSize !== undefined) {
+        if (updates.pageSize === DEFAULT_PAGE_SIZE) {
+          params.delete("pageSize");
+        } else {
+          params.set("pageSize", updates.pageSize.toString());
         }
       }
 
@@ -165,6 +183,13 @@ export function ParcelView() {
   const handlePageChange = useCallback(
     (page: number) => {
       updateUrlParams({ page });
+    },
+    [updateUrlParams],
+  );
+
+  const handlePageSizeChange = useCallback(
+    (newPageSize: number) => {
+      updateUrlParams({ pageSize: newPageSize, page: 1 });
     },
     [updateUrlParams],
   );
@@ -229,8 +254,9 @@ export function ParcelView() {
               currentPage={safeCurrentPage}
               totalPages={totalPages}
               totalItems={totalItems}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
               onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
             />
           </>
         )}

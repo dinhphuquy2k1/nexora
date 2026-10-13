@@ -2,11 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { FIXTURE_PARCELS } from "../features/parcels/fixtures/parcels.ts";
-import { STATUS_TABS } from "../features/parcels/types.ts";
+import {
+  STATUS_TABS,
+  PAGE_SIZE_OPTIONS,
+  DEFAULT_PAGE_SIZE,
+} from "../features/parcels/types.ts";
 import {
   formatVnd,
   formatWeight,
   formatDate,
+  parsePageSize,
 } from "../features/parcels/utils.ts";
 import {
   PARCEL_COLUMNS,
@@ -155,7 +160,37 @@ test("Column configuration: serialization and stable ordering", () => {
   ]);
 });
 
-test("Filtering and pagination calculations", () => {
+test("Page-size selector contract and parsePageSize resilience", () => {
+  assert.deepEqual(Array.from(PAGE_SIZE_OPTIONS), [5, 10, 20, 50, 100]);
+  assert.equal(DEFAULT_PAGE_SIZE, 10);
+
+  // Missing or nullish values return default 10
+  assert.equal(parsePageSize(null), 10);
+  assert.equal(parsePageSize(undefined), 10);
+  assert.equal(parsePageSize(""), 10);
+
+  // Valid numbers and string numbers
+  assert.equal(parsePageSize(5), 5);
+  assert.equal(parsePageSize("5"), 5);
+  assert.equal(parsePageSize(10), 10);
+  assert.equal(parsePageSize("10"), 10);
+  assert.equal(parsePageSize(20), 20);
+  assert.equal(parsePageSize("20"), 20);
+  assert.equal(parsePageSize(50), 50);
+  assert.equal(parsePageSize("50"), 50);
+  assert.equal(parsePageSize(100), 100);
+  assert.equal(parsePageSize("100"), 100);
+
+  // Invalid values fall back safely to DEFAULT_PAGE_SIZE (10)
+  assert.equal(parsePageSize(0), 10);
+  assert.equal(parsePageSize(8), 10);
+  assert.equal(parsePageSize(-10), 10);
+  assert.equal(parsePageSize(999), 10);
+  assert.equal(parsePageSize("invalid"), 10);
+  assert.equal(parsePageSize("NaN"), 10);
+});
+
+test("Filtering and pagination calculations across configurable page sizes", () => {
   // Test query filtering
   const query = "vn829";
   const filteredByTracking = FIXTURE_PARCELS.filter(
@@ -172,15 +207,55 @@ test("Filtering and pagination calculations", () => {
   );
   assert.ok(inTransit.length >= 4);
 
-  // Pagination calculation
-  const pageSize = 8;
   const total = FIXTURE_PARCELS.length;
-  const totalPages = Math.ceil(total / pageSize);
-  assert.ok(totalPages >= 3);
 
-  const page1 = FIXTURE_PARCELS.slice(0, pageSize);
-  assert.equal(page1.length, pageSize);
+  // Page size 5: totalPages = ceil(23 / 5) = 5
+  const size5Pages = Math.ceil(total / 5);
+  assert.equal(size5Pages, 5);
+  const size5Page1 = FIXTURE_PARCELS.slice(0, 5);
+  assert.equal(size5Page1.length, 5);
+  const size5LastPage = FIXTURE_PARCELS.slice(4 * 5, 5 * 5);
+  assert.equal(size5LastPage.length, total - 20);
 
-  const page3 = FIXTURE_PARCELS.slice(2 * pageSize, 3 * pageSize);
-  assert.equal(page3.length, total - 2 * pageSize);
+  // Page size 10 (default): totalPages = ceil(23 / 10) = 3
+  const size10Pages = Math.ceil(total / 10);
+  assert.equal(size10Pages, 3);
+  const size10Page1 = FIXTURE_PARCELS.slice(0, 10);
+  assert.equal(size10Page1.length, 10);
+  const size10LastPage = FIXTURE_PARCELS.slice(2 * 10, 3 * 10);
+  assert.equal(size10LastPage.length, 3); // 23 - 20 = 3 items
+
+  // Page size 20: totalPages = ceil(23 / 20) = 2
+  const size20Pages = Math.ceil(total / 20);
+  assert.equal(size20Pages, 2);
+  const size20LastPage = FIXTURE_PARCELS.slice(20, 40);
+  assert.equal(size20LastPage.length, 3);
+
+  // Page size 50: totalPages = 1
+  const size50Pages = Math.ceil(total / 50);
+  assert.equal(size50Pages, 1);
+  const size50Page1 = FIXTURE_PARCELS.slice(0, 50);
+  assert.equal(size50Page1.length, total);
+
+  // Page size 100: totalPages = 1
+  const size100Pages = Math.ceil(total / 100);
+  assert.equal(size100Pages, 1);
+  const size100Page1 = FIXTURE_PARCELS.slice(0, 100);
+  assert.equal(size100Page1.length, total);
+});
+
+test("Pagination clamping on page size transition or invalid query", () => {
+  const total = FIXTURE_PARCELS.length; // 23
+  const size = 20;
+  const totalPages = Math.max(1, Math.ceil(total / size)); // 2
+
+  // Page 5 clamped to totalPages (2)
+  const requestedPage = 5;
+  const safePage = Math.min(requestedPage, totalPages);
+  assert.equal(safePage, 2);
+
+  const startItem = (safePage - 1) * size + 1; // 21
+  const endItem = Math.min(safePage * size, total); // 23
+  assert.equal(startItem, 21);
+  assert.equal(endItem, 23);
 });

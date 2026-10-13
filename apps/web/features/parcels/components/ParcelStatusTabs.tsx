@@ -35,7 +35,7 @@ export function ParcelStatusTabs({
             }`}
             onClick={() => onSelectTab(tab.key)}
           >
-            <span>{tab.label}</span>
+            <span className={styles.tabLabel}>{tab.label}</span>
             <span
               className={`${styles.tabCount} ${
                 isActive ? styles.tabCountActive : ""

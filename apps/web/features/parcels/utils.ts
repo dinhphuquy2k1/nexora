@@ -1,4 +1,5 @@
-import type { ParcelStatus } from "./types.ts";
+import type { ParcelStatus, PageSize } from "./types.ts";
+import { PAGE_SIZE_OPTIONS, DEFAULT_PAGE_SIZE } from "./types.ts";
 
 export function formatVnd(amount: number): string {
   return new Intl.NumberFormat("vi-VN").format(amount) + " ₫";
@@ -43,4 +44,21 @@ export function getStatusToneKey(
     default:
       return "toneIncomingDeparture";
   }
+}
+
+export function parsePageSize(
+  value: string | number | null | undefined,
+): PageSize {
+  if (value === null || value === undefined) {
+    return DEFAULT_PAGE_SIZE;
+  }
+  const parsed =
+    typeof value === "number" ? value : parseInt(String(value), 10);
+  if (
+    Number.isInteger(parsed) &&
+    (PAGE_SIZE_OPTIONS as readonly number[]).includes(parsed)
+  ) {
+    return parsed as PageSize;
+  }
+  return DEFAULT_PAGE_SIZE;
 }

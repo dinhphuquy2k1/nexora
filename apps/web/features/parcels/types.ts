@@ -22,6 +22,10 @@ export const STATUS_TABS: readonly StatusTabConfig[] = [
   { key: "claim", label: "Khiếu nại" },
 ] as const;
 
+export const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100] as const;
+export type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
+export const DEFAULT_PAGE_SIZE: PageSize = 10;
+
 export interface ParcelItem {
   readonly id: string;
   readonly trackingNumber: string;

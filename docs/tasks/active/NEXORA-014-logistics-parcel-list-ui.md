@@ -72,18 +72,18 @@ Documentation Impact: REQUIRED
 
 ## 4. Evidence
 
-| Claim                                                      | Evidence                                                                                                                                   | Date       | Result |
-| :--------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
-| Navigation contract and breadcrumb unit tests pass         | `node --test apps/web/test/navigation.test.mjs` (6 tests passing)                                                                          | 2026-10-13 | PASS   |
-| Shared UI primitives and token reference tests pass        | `node --test apps/web/test/shared-ui.test.mjs` (4 tests passing)                                                                           | 2026-10-13 | PASS   |
-| Parcels fixtures, column config, and formatters unit tests | `node --test apps/web/test/parcels.test.mjs` (6 tests passing: defaults, persistence parsing, ordering, filtering, pagination)             | 2026-10-13 | PASS   |
-| Web application typecheck passes with zero errors          | `pnpm --filter @nexora/web typecheck` (`tsc --noEmit`)                                                                                     | 2026-10-13 | PASS   |
-| Repository boundaries and ESLint checks pass               | `pnpm lint` (`boundaries.mjs` + `eslint .`)                                                                                                | 2026-10-13 | PASS   |
-| Prettier formatting check passes across all files          | `pnpm format:check` (`prettier --check .`)                                                                                                 | 2026-10-13 | PASS   |
-| Documentation governance, links, and task schema pass      | `pnpm docs:check` (`node scripts/docs-check.mjs`)                                                                                          | 2026-10-13 | PASS   |
-| Next.js production build succeeds with parcels route       | `pnpm --filter @nexora/web build` (prerenders all routes, 0 errors)                                                                        | 2026-10-13 | PASS   |
-| Real Docker container build and restart succeeds           | `docker compose build web; docker compose up -d web`                                                                                       | 2026-10-13 | PASS   |
-| Interactive Chromium browser verification across viewports | Desktop 1440×900, 1366×768, Tablet 768px, Mobile 390px/320px, column toggle popover, localStorage persistence, and sidebar toggle verified | 2026-10-13 | PASS   |
+| Claim                                                      | Evidence                                                                                                                                                                                  | Date       | Result |
+| :--------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Navigation contract and breadcrumb unit tests pass         | `node --test apps/web/test/navigation.test.mjs` (6 tests passing)                                                                                                                         | 2026-10-13 | PASS   |
+| Shared UI primitives and token reference tests pass        | `node --test apps/web/test/shared-ui.test.mjs` (4 tests passing)                                                                                                                          | 2026-10-13 | PASS   |
+| Parcels fixtures, column config, and formatters unit tests | `node --test apps/web/test/parcels.test.mjs` (8 tests passing: fixtures, formatters, column defaults, parsing, ordering, page sizes 5/10/20/50/100, parser resilience, clamping)          | 2026-10-13 | PASS   |
+| Web application typecheck passes with zero errors          | `pnpm --filter @nexora/web typecheck` (`tsc --noEmit`)                                                                                                                                    | 2026-10-13 | PASS   |
+| Repository boundaries and ESLint checks pass               | `pnpm lint` (`boundaries.mjs` + `eslint .`)                                                                                                                                               | 2026-10-13 | PASS   |
+| Prettier formatting check passes across all files          | `pnpm format:check` (`prettier --check .`)                                                                                                                                                | 2026-10-13 | PASS   |
+| Documentation governance, links, and task schema pass      | `pnpm docs:check` (`node scripts/docs-check.mjs`)                                                                                                                                         | 2026-10-13 | PASS   |
+| Next.js production build succeeds with parcels route       | `pnpm --filter @nexora/web build` (prerenders all routes, 0 errors)                                                                                                                       | 2026-10-13 | PASS   |
+| Real Docker container build and restart succeeds           | `docker compose build web; docker compose up -d web`                                                                                                                                      | 2026-10-13 | PASS   |
+| Interactive Chromium browser verification across viewports | Desktop 1440×900 (0 outer scroll, 805px client=scroll), 1366×768, Tablet 768px, Mobile 390px/320px, page sizes 5/10/20/50, 2-row card hugging, sticky column, and sidebar toggle verified | 2026-10-13 | PASS   |
 
 ---
 

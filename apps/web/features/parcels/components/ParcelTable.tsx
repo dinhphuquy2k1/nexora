@@ -50,6 +50,43 @@ export function ParcelTable({
     }
   };
 
+  const getColumnWidthClass = (id: ParcelColumnKey): string => {
+    switch (id) {
+      case "trackingNumber":
+        return styles.colTrackingNumber;
+      case "productName":
+        return styles.colProductName;
+      case "status":
+        return styles.colStatus;
+      case "weightKg":
+        return styles.colWeight;
+      case "totalAmount":
+        return styles.colTotalAmount;
+      case "packageCount":
+        return styles.colPackageCount;
+      case "itemCount":
+        return styles.colItemCount;
+      case "unitPrice":
+        return styles.colUnitPrice;
+      case "domesticShippingFee":
+        return styles.colShippingFee;
+      case "declaredValue":
+        return styles.colDeclaredValue;
+      case "insurance":
+      case "inspection":
+      case "woodenCrate":
+      case "bubbleWrap":
+        return styles.colService;
+      case "departureInboundDate":
+      case "departureOutboundDate":
+      case "destinationInboundDate":
+      case "destinationOutboundDate":
+        return styles.colDate;
+      default:
+        return "";
+    }
+  };
+
   const renderCellContent = (
     id: ParcelColumnKey,
     parcel: ParcelItem,
@@ -204,12 +241,13 @@ export function ParcelTable({
               {orderedVisibleColumns.map((col) => {
                 const isSticky = col.id === "trackingNumber";
                 const alignClass = getHeaderAlignClass(col.id);
+                const widthClass = getColumnWidthClass(col.id);
 
                 return (
                   <th
                     key={col.id}
                     scope="col"
-                    className={`${alignClass} ${
+                    className={`${alignClass} ${widthClass} ${
                       isSticky ? styles.stickyColumnTh : ""
                     }`}
                   >
@@ -225,11 +263,12 @@ export function ParcelTable({
                 {orderedVisibleColumns.map((col) => {
                   const isSticky = col.id === "trackingNumber";
                   const alignClass = getHeaderAlignClass(col.id);
+                  const widthClass = getColumnWidthClass(col.id);
 
                   return (
                     <td
                       key={col.id}
-                      className={`${alignClass} ${
+                      className={`${alignClass} ${widthClass} ${
                         isSticky ? styles.stickyColumnTd : ""
                       }`}
                     >
