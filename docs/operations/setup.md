@@ -6,10 +6,10 @@ Nexora operates under three distinct runtime topologies:
 
 ### Mode A: Docker Local Release (Canonical & Recommended)
 
-- **Start**: `docker compose up --build -d` or `./start.sh` / `Start.cmd` (wraps Compose and waits up to 180 seconds for health).
+- **Start**: `docker compose up --build -d --wait` (builds images, starts containers in background, and waits for health checks to pass).
 - **Access**: Open `http://127.0.0.1:3001` in the browser (configurable via `WEB_PORT`).
 - **Network Topology**: Browser connects to Web on loopback `127.0.0.1:3001`. Next.js proxies `/api/*` requests internally to `http://api:4000`. API and PostgreSQL services are private to Docker bridge networking and intentionally NOT published to the host.
-- **Stop**: `docker compose down` or `./stop.sh` / `Stop.cmd`. All volumes (database, credentials, uploads) persist.
+- **Stop**: `docker compose down`. All named volumes (database, credentials, uploads) persist; never use `-v` unless intentionally destroying data.
 
 ### Mode B: Docker Development
 
@@ -75,11 +75,11 @@ Never run `docker compose down -v`, `docker volume rm`, or reset database volume
 
 Docker Engine 24+ with Compose v2.22.0+ (BuildKit enabled) and Linux containers is required for BuildKit named contexts (`service:<name>`). First install requires Internet. Estimated minimum: 4 CPU, 8 GB RAM, 20 GB free disk. Cloud proxy installations may supply platform CA as BuildKit secret `build_ca`.
 
-| Platform                         | Status                     |
-| -------------------------------- | -------------------------- |
-| Windows Docker Desktop/Start.cmd | See executed task evidence |
-| Linux Docker Engine/start.sh     | Supported POSIX scripts    |
-| macOS Docker Desktop             | Supported POSIX scripts    |
+| Platform               | Status                       |
+| ---------------------- | ---------------------------- |
+| Windows Docker Desktop | Supported via Docker Compose |
+| Linux Docker Engine    | Supported via Docker Compose |
+| macOS Docker Desktop   | Supported via Docker Compose |
 
 For offline Docker dependency preparation, an optional named build context `dependency-cache` may contain `pnpm-cache.tar` created from a pnpm store that passed `pnpm store status`. Default scratch context is empty and performs a normal frozen online install.
 
