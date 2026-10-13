@@ -23,7 +23,7 @@ jobs:
           node-version: 24.19.0
       - name: Local release runtime, provisioning, TTY and browser smoke
         run: sh scripts/runtime-smoke.sh
-      - name: DB and source backup restore smoke
+      - name: DB and storage persistence smoke
         run: sh scripts/data-smoke.sh
       - name: Development HMR and dependency drift smoke
         run: sh scripts/dev-smoke.sh

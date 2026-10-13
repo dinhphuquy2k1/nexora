@@ -20,7 +20,7 @@ PR #8 began at 4d3733a; origin/main was merged normally, without rebase/force-pu
 
 ## Phase 0 scope and interface pre-flight
 
-[Unified identity decision](../../decisions/unified-identity.md) owns approved direction, future access/session policy, provider questions/error policy and phase boundaries. [Database](../../architecture/database.md) owns the planned database summary; [Backup and restore](../../operations/backup-restore.md) owns upgrade safeguards. Existing runtime/API/SDK/UI stay unchanged.
+[Unified identity decision](../../decisions/unified-identity.md) owns approved direction, future access/session policy, provider questions/error policy and phase boundaries. [Database](../../architecture/database.md) owns the planned database summary; Backup and restore (historical) owns upgrade safeguards. Existing runtime/API/SDK/UI stay unchanged.
 
 Inspection of merged-main code/history found: LocalUser maps local_users; UUID ID, unique case-sensitive username, password_hash VARCHAR(255), is_active default true, preserved timestamps; Session references LocalUser with cascade and non-unique user index. Named objects include local_users_pkey, local_users_username_key and sessions_user_id_fkey. The trusted compiled CLI delegates to infrastructure user-provisioner, the only production localUser.create found; integration tests create isolated accounts, smoke invokes the real CLI, and historical pre-auth fixture has no identities. No production seed/public registration was found. Merged-main inspection confirms these production paths; this planning audit does not authorize migration yet. NEXORA-011 repeats provenance preflight on its implementation baseline and accounts for unsupported direct writes.
 

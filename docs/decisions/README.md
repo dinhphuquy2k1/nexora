@@ -4,12 +4,13 @@ This directory contains Architecture Decision Records (ADRs) for Nexora. Durable
 
 ## Accepted decisions
 
-| Decision                                    | Title                                                                       | Date       | Status   |
-| :------------------------------------------ | :-------------------------------------------------------------------------- | :--------- | :------- |
-| [ADR-001](technology-baseline.md)           | Technology baseline & provenance                                            | 2026-10-09 | Accepted |
-| [ADR-002](product-scope.md)                 | Product scope & domain boundaries                                           | 2026-10-09 | Accepted |
-| [ADR-003](reference-architecture-policy.md) | Reference architecture & engineering governance policy                      | 2026-10-10 | Accepted |
-| [ADR-004](per-app-docker-architecture.md)   | Per-application Docker architecture & shared BuildKit dependency foundation | 2026-10-10 | Accepted |
+| Decision                                     | Title                                                                       | Date       | Status   |
+| :------------------------------------------- | :-------------------------------------------------------------------------- | :--------- | :------- |
+| [ADR-001](technology-baseline.md)            | Technology baseline & provenance                                            | 2026-10-09 | Accepted |
+| [ADR-002](product-scope.md)                  | Product scope & domain boundaries                                           | 2026-10-09 | Accepted |
+| [ADR-003](reference-architecture-policy.md)  | Reference architecture & engineering governance policy                      | 2026-10-10 | Accepted |
+| [ADR-004](per-app-docker-architecture.md)    | Per-application Docker architecture & shared BuildKit dependency foundation | 2026-10-10 | Accepted |
+| [ADR-006](scope-reduction-backup-restore.md) | Removal of custom Backup/Restore subsystem & test simplification            | 2026-10-13 | Accepted |
 
 ## Foundational architectural topics
 

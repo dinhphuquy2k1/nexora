@@ -85,9 +85,9 @@ For offline Docker dependency preparation, an optional named build context `depe
 
 ## Unified identity upgrade
 
-Unified identity storage and local ADMIN provisioning are implemented; follow NEXORA-011 verification evidence before upgrading. Before any future upgrade containing that migration, follow the mandatory maintenance, verified-backup and isolated recovery safeguards in [Backup and restore](backup-restore.md#unified-identity-upgrade-safeguards). The verified baseline, migration prerequisites and execution evidence are tracked in [NEXORA-011](../tasks/completed/NEXORA-011-unified-identity-migration.md).
+Unified identity storage and local ADMIN provisioning are implemented; follow NEXORA-011 verification evidence before upgrading. The verified baseline, migration prerequisites and execution evidence are tracked in [NEXORA-011](../tasks/completed/NEXORA-011-unified-identity-migration.md).
 
-For identity upgrades, stop API/Web and external provisioning writers after a verified protected backup, retain PostgreSQL/credential/upload volumes, and use the reviewed matching release's migrate service before bringing application writers back. Do not start old images against migrated schema. See the backup owner for isolated rollback/recovery; source SQL must never be tested against operator volumes.
+For identity upgrades, stop API/Web and external provisioning writers, retain PostgreSQL/credential/upload volumes, and use the reviewed matching release's migrate service before bringing application writers back. Do not start old images against migrated schema.
 
 ## Manual Uniship OPERATOR registration
 

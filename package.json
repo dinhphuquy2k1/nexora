@@ -20,7 +20,7 @@
     "contracts:generate": "pnpm --filter @nexora/api exec tsc -p tsconfig.contract.json && node apps/api/.contracts/openapi.js && pnpm --filter @nexora/sdk generate",
     "contracts:check": "node scripts/contracts-check.mjs",
     "docs:check": "node scripts/docs-check.mjs",
-    "test:operations": "node --test scripts/smoke-checks.test.mjs scripts/restore.test.mjs",
+    "test:operations": "node --test scripts/smoke-checks.test.mjs",
     "test:docs": "node --test scripts/docs-check.test.mjs",
     "quality": "pnpm format:check && pnpm lint && pnpm docs:check && pnpm typecheck && pnpm test && pnpm test:docs && pnpm test:operations && pnpm contracts:check && pnpm build"
   },
