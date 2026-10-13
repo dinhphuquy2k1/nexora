@@ -14,7 +14,7 @@ Nexora operates under three distinct runtime topologies:
 ### Mode B: Docker Development
 
 - **Start**: `docker compose -f compose.yml -f compose.dev.yml up --build`.
-- **Characteristics**: Reuses Docker service networking (`http://api:4000`), mounts local source into containers, and runs watchers inside Docker. Containerized Next.js listens internally on port 3000 and publishes user-facing port `http://127.0.0.1:3001`. PostgreSQL automatically publishes loopback port `127.0.0.1:5432` to the host by default (configurable via `POSTGRES_PORT`), allowing direct connections from local database clients like DBeaver or pgAdmin.
+- **Characteristics**: Reuses Docker service networking (`http://api:4000`), mounts local source into containers, and runs watchers inside Docker. Containerized Next.js listens internally on port 3000 and publishes user-facing port `http://127.0.0.1:3001`. In development mode, PostgreSQL automatically publishes loopback port `127.0.0.1:5432` to the host by default (numeric port configurable via `POSTGRES_PORT`, always bound to `127.0.0.1`), allowing direct inspection by local database tools like DBeaver or pgAdmin.
 - **Stop**: `docker compose -f compose.yml -f compose.dev.yml down`. Always use the same file combination to stop development containers.
 
 ### Mode C: Host-run Development (Optional / Constrained)
@@ -86,7 +86,7 @@ For offline Docker dependency preparation, an optional named build context `depe
 
 ## Connecting Local Database Clients (DBeaver / pgAdmin)
 
-For development inspections, schema reviews, and manual queries:
+For local development inspections, schema reviews, and manual SQL queries:
 
 1. **Start development mode**:
 
@@ -94,10 +94,28 @@ For development inspections, schema reviews, and manual queries:
    docker compose -f compose.yml -f compose.dev.yml up --build -d
    ```
 
-   In Mode B, PostgreSQL publishes port `127.0.0.1:5432` restricted strictly to the host loopback interface (configurable via `POSTGRES_PORT` in `.env`). It is never exposed to external networks.
+   In Mode B (Docker Development), PostgreSQL automatically publishes port `127.0.0.1:5432` to the host. The host binding is permanently pinned to loopback (`127.0.0.1`) in `compose.dev.yml` and cannot be exposed to external network interfaces. The port number can be customized via numeric `POSTGRES_PORT` (e.g. `POSTGRES_PORT=5433` in `.env`). In standard release mode (`compose.yml`), PostgreSQL remains private and unpublished.
 
-2. **Retrieve the generated database password**:
-   Passwords are generated once per environment and stored in the isolated credentials volume:
+2. **Retrieve the generated database password securely**:
+   Passwords are generated once per environment during container initialization and stored in the isolated credentials volume (`credentials:/config/postgres_password`).
+
+   > [!WARNING]
+   > **Secret Exposure Warning**: Inspecting the credential reveals a secret to the local administrator. Never execute commands that print passwords in shared terminals, recorded sessions, video presentations, or CI logs.
+
+   To avoid exposing the password in terminal history, copy it directly to your system clipboard:
+   - **Windows (PowerShell)**:
+     ```powershell
+     docker compose exec -T postgres cat /config/postgres_password | Set-Clipboard
+     ```
+   - **macOS**:
+     ```sh
+     docker compose exec -T postgres cat /config/postgres_password | pbcopy
+     ```
+   - **Linux (xclip)**:
+     ```sh
+     docker compose exec -T postgres cat /config/postgres_password | xclip -selection clipboard
+     ```
+     If clipboard tools are unavailable, print it strictly in a private terminal:
 
    ```sh
    docker compose exec postgres cat /config/postgres_password
@@ -105,10 +123,10 @@ For development inspections, schema reviews, and manual queries:
 
 3. **Configure the client**:
    - **Host**: `127.0.0.1` (or `localhost`)
-   - **Port**: `5432` (or custom `POSTGRES_PORT`)
+   - **Port**: `5432` (or configured numeric `POSTGRES_PORT`)
    - **Database**: `nexora`
    - **Username**: `nexora`
-   - **Password**: _(output from step 2)_
+   - **Password**: _(retrieved from step 2)_
 
 4. **Persistence & Data Safety**:
    PostgreSQL data is stored in the Docker named volume `postgres` (`nexora_postgres`). Running `docker compose down` retains all database state. Never use `-v` unless you intend to permanently delete local data. Custom backup/restore scripts have been retired under ADR-006 in favor of native volume persistence.

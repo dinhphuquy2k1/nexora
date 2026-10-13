@@ -1,6 +1,6 @@
 # Nexora · Quản lý vận đơn độc lập
 
-Foundation v0.1.0: NestJS API, Next.js shell tiếng Việt, health endpoints, PostgreSQL catalog, local file storage và OpenAPI SDK. Nghiệp vụ vận đơn, quản lý khách hàng, theo dõi mã vận đơn, import XLSX, tích hợp nhà cung cấp vận chuyển và identity **chưa triển khai**. Không có login/RBAC; chỉ chạy cục bộ. Đây là nền tảng kỹ thuật hạ tầng (infrastructure only), không phải bản MVP hay public production deployment.
+Foundation v0.1.0: NestJS API, Next.js Web shell tiếng Việt, PostgreSQL catalog, local file storage, Prisma migrations, OpenAPI SDK, xác thực ADMIN nội bộ (Argon2id, session cookie), unified identity storage, nền tảng xác thực OPERATOR liên kết nhà cung cấp (Uniship mock), quản lý phiên và đăng xuất. Các nghiệp vụ Vận đơn đầy đủ (tạo đơn, điều phối, theo dõi kiện hàng), phân tích dữ liệu, giao diện quản trị nhân viên hoàn chỉnh và tích hợp API Uniship trực tiếp đang trong lộ trình phát triển. Hệ thống hiện chỉ chạy cục bộ, không phải bản public production deployment.
 
 ## Khởi động từ checkout
 
@@ -56,7 +56,7 @@ docker compose -f compose.yml -f compose.dev.yml down
 
 Lưu ý: Cả hai lệnh khởi động và dừng phát triển bắt buộc phải sử dụng cùng tổ hợp file Compose (`-f compose.yml -f compose.dev.yml`).
 
-Trong chế độ phát triển, PostgreSQL tự động mở cổng loopback `127.0.0.1:5432` lên host (có thể cấu hình qua biến `POSTGRES_PORT` trong `.env`), cho phép các công cụ quản lý cơ sở dữ liệu như DBeaver hoặc pgAdmin kết nối trực tiếp.
+Trong chế độ phát triển, PostgreSQL tự động mở cổng loopback `127.0.0.1:5432` lên host (có thể cấu hình số cổng qua biến `POSTGRES_PORT` trong `.env`, luôn luôn gắn chặt vào địa chỉ loopback `127.0.0.1`), cho phép các công cụ quản lý cơ sở dữ liệu như DBeaver hoặc pgAdmin kết nối trực tiếp. Chế độ chuẩn không publish cổng PostgreSQL ra host.
 
 ## Phát triển và kiểm chứng
 
