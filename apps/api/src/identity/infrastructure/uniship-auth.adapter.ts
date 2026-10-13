@@ -9,6 +9,137 @@ export interface UnishipAuthAdapterOptions {
   timeoutMs?: number;
 }
 
+function parseProviderIdentity(payload: unknown): VerifiedProviderIdentity {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new HttpException(
+      {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Phản hồi xác thực không hợp lệ.",
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
+  const record = payload as Record<string, unknown>;
+
+  // Token must be a non-empty string
+  if (typeof record.token !== "string" || record.token.trim().length === 0) {
+    throw new HttpException(
+      {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Phản hồi xác thực không hợp lệ.",
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
+  // Nested user must be a non-null, non-array object
+  const user = record.user;
+  if (!user || typeof user !== "object" || Array.isArray(user)) {
+    throw new HttpException(
+      {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Phản hồi xác thực không hợp lệ.",
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
+  const userRecord = user as Record<string, unknown>;
+
+  // Username must be a non-empty string
+  if (
+    typeof userRecord.username !== "string" ||
+    userRecord.username.trim().length === 0
+  ) {
+    throw new HttpException(
+      {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Phản hồi xác thực không hợp lệ.",
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
+  // If is_verified is explicitly false, reject with 401 AUTHENTICATION_FAILED
+  if (userRecord.is_verified === false) {
+    throw new HttpException(
+      {
+        code: "AUTHENTICATION_FAILED",
+        message:
+          "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập.",
+      },
+      HttpStatus.UNAUTHORIZED,
+    );
+  }
+
+  // If is_verified is provided, it must be a boolean
+  if (
+    userRecord.is_verified !== undefined &&
+    typeof userRecord.is_verified !== "boolean"
+  ) {
+    throw new HttpException(
+      {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Phản hồi xác thực không hợp lệ.",
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
+  // Validate userid: accept positive safe integer or valid decimal string
+  const rawUserId = userRecord.userid;
+  let normalizedSubject: string;
+
+  if (typeof rawUserId === "number") {
+    if (!Number.isSafeInteger(rawUserId) || rawUserId <= 0) {
+      throw new HttpException(
+        {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Phản hồi xác thực không hợp lệ.",
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+    normalizedSubject = String(rawUserId);
+  } else if (typeof rawUserId === "string") {
+    const trimmed = rawUserId.trim();
+    if (trimmed.length === 0 || !/^[1-9]\d*$/.test(trimmed)) {
+      throw new HttpException(
+        {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Phản hồi xác thực không hợp lệ.",
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+    normalizedSubject = trimmed;
+  } else {
+    throw new HttpException(
+      {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Phản hồi xác thực không hợp lệ.",
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
+  if (normalizedSubject.length > 128) {
+    throw new HttpException(
+      {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Phản hồi xác thực không hợp lệ.",
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
+  return {
+    provider: "uniship",
+    providerSubject: normalizedSubject,
+  };
+}
+
 @Injectable()
 export class UnishipAuthAdapter implements ProviderAuthenticationPort {
   private readonly apiUrl?: string;
@@ -134,56 +265,12 @@ export class UnishipAuthAdapter implements ProviderAuthenticationPort {
       throw new HttpException(
         {
           code: "SERVICE_UNAVAILABLE",
-          message:
-            "Dịch vụ xác thực tạm thời không khả dụng. Vui lòng thử lại sau.",
+          message: "Phản hồi xác thực không hợp lệ.",
         },
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
 
-    if (
-      !payload ||
-      typeof payload !== "object" ||
-      !("userid" in payload) ||
-      typeof (payload as { token?: unknown }).token !== "string"
-    ) {
-      throw new HttpException(
-        {
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Dịch vụ xác thực tạm thời không khả dụng. Vui lòng thử lại sau.",
-        },
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
-    }
-
-    const rawUserId = (payload as { userid: unknown }).userid;
-    if (rawUserId === null || rawUserId === undefined) {
-      throw new HttpException(
-        {
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Dịch vụ xác thực tạm thời không khả dụng. Vui lòng thử lại sau.",
-        },
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
-    }
-
-    const providerSubject = String(rawUserId).trim();
-    if (providerSubject.length === 0 || providerSubject.length > 128) {
-      throw new HttpException(
-        {
-          code: "SERVICE_UNAVAILABLE",
-          message:
-            "Dịch vụ xác thực tạm thời không khả dụng. Vui lòng thử lại sau.",
-        },
-        HttpStatus.SERVICE_UNAVAILABLE,
-      );
-    }
-
-    return {
-      provider: "uniship",
-      providerSubject,
-    };
+    return parseProviderIdentity(payload);
   }
 }

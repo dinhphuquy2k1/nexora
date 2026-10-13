@@ -515,15 +515,51 @@ test("end-to-end provider login: HTTP client -> NestJS endpoint -> Uniship adapt
             non_field_errors: ["Unable to log in with provided credentials."],
           }),
         );
+      } else if (mockMode === "invalid-payload") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ token: "synthetic-token", malformed: true }));
+      } else if (mockMode === "provider-unavailable") {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "provider crash" }));
       } else if (mockMode === "unregistered") {
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ token: "tok_unreg", userid: 999999 }));
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-unreg",
+            user: {
+              email: "",
+              username: "unreg_operator",
+              userid: 999999,
+              is_verified: true,
+            },
+          }),
+        );
       } else if (mockMode === "disabled") {
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ token: "tok_dis", userid: disabledSubject }));
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-dis",
+            user: {
+              email: "",
+              username: `${prefix}-op-disabled`,
+              userid: Number(disabledSubject),
+              is_verified: true,
+            },
+          }),
+        );
       } else {
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ token: "tok_ok", userid: activeSubject }));
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-ok",
+            user: {
+              email: "",
+              username: `${prefix}-op`,
+              userid: Number(activeSubject),
+              is_verified: true,
+            },
+          }),
+        );
       }
     });
   });
@@ -536,8 +572,8 @@ test("end-to-end provider login: HTTP client -> NestJS endpoint -> Uniship adapt
   const mockProviderUrl = `http://127.0.0.1:${mockPort}`;
 
   const prefix = `pve2e-${randomUUID().slice(0, 8)}`;
-  activeSubject = `${prefix}-subj-active`;
-  disabledSubject = `${prefix}-subj-disabled`;
+  activeSubject = String(Math.floor(100000 + Math.random() * 400000));
+  disabledSubject = String(Math.floor(500000 + Math.random() * 400000));
   const userIds = [];
 
   let app;
@@ -654,6 +690,34 @@ test("end-to-end provider login: HTTP client -> NestJS endpoint -> Uniship adapt
     assert.equal((await disRes.json()).code, "AUTHENTICATION_FAILED");
     assert.equal(disRes.headers.get("set-cookie"), null);
 
+    // 6a. Reject invalid provider payload -> 503 SERVICE_UNAVAILABLE
+    mockMode = "invalid-payload";
+    const invalidPayloadRes = await fetch(`${appUrl}/api/auth/provider/login`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3001",
+      },
+      body: JSON.stringify({ username: "someuser", password: "goodpassword" }),
+    });
+    assert.equal(invalidPayloadRes.status, 503);
+    assert.equal((await invalidPayloadRes.json()).code, "SERVICE_UNAVAILABLE");
+    assert.equal(invalidPayloadRes.headers.get("set-cookie"), null);
+
+    // 6b. Reject provider outage -> 503 SERVICE_UNAVAILABLE
+    mockMode = "provider-unavailable";
+    const outageRes = await fetch(`${appUrl}/api/auth/provider/login`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "http://localhost:3001",
+      },
+      body: JSON.stringify({ username: "someuser", password: "goodpassword" }),
+    });
+    assert.equal(outageRes.status, 503);
+    assert.equal((await outageRes.json()).code, "SERVICE_UNAVAILABLE");
+    assert.equal(outageRes.headers.get("set-cookie"), null);
+
     // 7. Successful login for active operator
     mockMode = "success";
     const successRes = await fetch(`${appUrl}/api/auth/provider/login`, {
@@ -668,6 +732,10 @@ test("end-to-end provider login: HTTP client -> NestJS endpoint -> Uniship adapt
     const successBody = await successRes.json();
     assert.equal(successBody.user.id, activeOp.id);
     assert.equal(successBody.user.username, activeOp.username);
+    assert.equal(
+      JSON.stringify(successBody).includes("synthetic-token"),
+      false,
+    );
 
     // Verify session cookie attributes
     const setCookie = successRes.headers.get("set-cookie");
@@ -677,10 +745,20 @@ test("end-to-end provider login: HTTP client -> NestJS endpoint -> Uniship adapt
     assert.ok(setCookie.includes("SameSite=Lax"));
     assert.ok(setCookie.includes("Path=/"));
     assert.ok(!setCookie.includes("Secure")); // loopback deployment
+    assert.equal(setCookie.includes("synthetic-token"), false);
 
     const cookieMatch = /nexora_session=([^;]+)/.exec(setCookie);
     const sessionToken = cookieMatch[1];
     assert.equal(sessionToken.length, 64);
+
+    // Verify no provider token stored in database sessions
+    const sessionsInDb = await dbAdapter.client.session.findMany({
+      where: { userId: activeOp.id },
+    });
+    assert.ok(sessionsInDb.length > 0);
+    for (const sess of sessionsInDb) {
+      assert.equal(sess.tokenHash.includes("synthetic-token"), false);
+    }
 
     // 8. Access protected session endpoint with cookie
     const sessionRes = await fetch(`${appUrl}/api/auth/session`, {
@@ -692,6 +770,10 @@ test("end-to-end provider login: HTTP client -> NestJS endpoint -> Uniship adapt
     const sessionData = await sessionRes.json();
     assert.equal(sessionData.authenticated, true);
     assert.equal(sessionData.user.id, activeOp.id);
+    assert.equal(
+      JSON.stringify(sessionData).includes("synthetic-token"),
+      false,
+    );
 
     // 9. Logout
     const logoutRes = await fetch(`${appUrl}/api/auth/logout`, {
@@ -710,6 +792,25 @@ test("end-to-end provider login: HTTP client -> NestJS endpoint -> Uniship adapt
       },
     });
     assert.equal(afterLogout.status, 401);
+
+    // 11. ADMIN local login is unaffected
+    const adminUser = await dbAdapter.client.user.create({
+      data: {
+        username: `${prefix}-admin`,
+        role: "ADMIN",
+        status: "ACTIVE",
+        credential: {
+          create: {
+            passwordHash: "$scrypt$N=16384,r=8,p=1$ZGF0YQ$c29tZXNhbHQ", // won't match, verify service login call
+          },
+        },
+      },
+    });
+    userIds.push(adminUser.id);
+    await assert.rejects(
+      authService.login(adminUser.username, "wrong_password"),
+      (err) => err.getStatus?.() === 401,
+    );
   } finally {
     if (app) await app.close();
     await new Promise((resolve) => mockServer.close(resolve));

@@ -59,7 +59,7 @@ test("UnishipAuthAdapter enforces URL configuration, HTTPS in production, and bl
 });
 
 test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts, and redirects", async () => {
-  let mode = "success";
+  let mode = "success-number";
   const mockServer = await createMockProviderServer((req, res) => {
     assert.equal(req.method, "POST");
     assert.equal(req.url, "/client/api-token-auth/");
@@ -73,10 +73,172 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
 
       if (mode === "success-number") {
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ token: "tok_123", userid: 10482 }));
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-num",
+            user: {
+              email: "",
+              username: "test_operator",
+              userid: 10482,
+              is_verified: true,
+            },
+          }),
+        );
       } else if (mode === "success-string") {
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ token: "tok_123", userid: "10482" }));
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-str",
+            user: {
+              email: "",
+              username: "test_operator",
+              userid: "10482",
+              is_verified: true,
+            },
+          }),
+        );
+      } else if (mode === "root-userid-only") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-legacy",
+            userid: 10482,
+          }),
+        );
+      } else if (mode === "missing-user") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-nouser",
+          }),
+        );
+      } else if (mode === "missing-nested-userid") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-nouserid",
+            user: {
+              email: "",
+              username: "test_operator",
+              is_verified: true,
+            },
+          }),
+        );
+      } else if (mode === "null-nested-userid") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-nulluserid",
+            user: {
+              email: "",
+              username: "test_operator",
+              userid: null,
+              is_verified: true,
+            },
+          }),
+        );
+      } else if (mode === "empty-userid") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-emptyuserid",
+            user: {
+              email: "",
+              username: "test_operator",
+              userid: "   ",
+              is_verified: true,
+            },
+          }),
+        );
+      } else if (mode === "invalid-userid-type") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-arrayuserid",
+            user: {
+              email: "",
+              username: "test_operator",
+              userid: [10482],
+              is_verified: true,
+            },
+          }),
+        );
+      } else if (mode === "float-userid") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-floatuserid",
+            user: {
+              email: "",
+              username: "test_operator",
+              userid: 10482.5,
+              is_verified: true,
+            },
+          }),
+        );
+      } else if (mode === "missing-token") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            user: {
+              email: "",
+              username: "test_operator",
+              userid: 10482,
+              is_verified: true,
+            },
+          }),
+        );
+      } else if (mode === "empty-token") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "  ",
+            user: {
+              email: "",
+              username: "test_operator",
+              userid: 10482,
+              is_verified: true,
+            },
+          }),
+        );
+      } else if (mode === "missing-username") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-nousername",
+            user: {
+              email: "",
+              userid: 10482,
+              is_verified: true,
+            },
+          }),
+        );
+      } else if (mode === "empty-username") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-emptyusername",
+            user: {
+              email: "",
+              username: "   ",
+              userid: 10482,
+              is_verified: true,
+            },
+          }),
+        );
+      } else if (mode === "unverified-false") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            token: "synthetic-token-unverified",
+            user: {
+              email: "",
+              username: "test_operator",
+              userid: 10482,
+              is_verified: false,
+            },
+          }),
+        );
       } else if (mode === "invalid-creds") {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(
@@ -93,12 +255,6 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
       } else if (mode === "malformed-json") {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end("NOT_JSON_BODY");
-      } else if (mode === "missing-userid") {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ token: "tok_only" }));
-      } else if (mode === "missing-token") {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ userid: 10482 }));
       } else if (mode === "redirect") {
         res.writeHead(302, { Location: "http://127.0.0.1:9999/other" });
         res.end();
@@ -108,13 +264,23 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
     });
   });
 
+  const loggedOutput = [];
+  const origLog = console.log;
+  const origError = console.error;
+  console.log = (...args) => {
+    loggedOutput.push(args.join(" "));
+  };
+  console.error = (...args) => {
+    loggedOutput.push(args.join(" "));
+  };
+
   try {
     const adapter = new UnishipAuthAdapter({
       apiUrl: mockServer.url,
       timeoutMs: 300,
     });
 
-    // 1. Success with numeric userid
+    // 1. Success with nested numeric userid
     mode = "success-number";
     const result1 = await adapter.authenticate({
       username: "op_nam",
@@ -125,7 +291,7 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
       providerSubject: "10482",
     });
 
-    // 2. Success with string userid
+    // 2. Success with nested decimal string userid
     mode = "success-string";
     const result2 = await adapter.authenticate({
       username: "op_nam",
@@ -136,26 +302,8 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
       providerSubject: "10482",
     });
 
-    // 3. 400 invalid credentials -> 401 AUTHENTICATION_FAILED
-    mode = "invalid-creds";
-    await assert.rejects(
-      adapter.authenticate({ username: "op_nam", password: "wrong" }),
-      (err) =>
-        err.getStatus?.() === 401 &&
-        err.getResponse?.().code === "AUTHENTICATION_FAILED",
-    );
-
-    // 4. 401 status -> 401 AUTHENTICATION_FAILED
-    mode = "unauthorized-401";
-    await assert.rejects(
-      adapter.authenticate({ username: "op_nam", password: "wrong" }),
-      (err) =>
-        err.getStatus?.() === 401 &&
-        err.getResponse?.().code === "AUTHENTICATION_FAILED",
-    );
-
-    // 5. 500 server error -> 503 SERVICE_UNAVAILABLE
-    mode = "server-500";
+    // 3. Root-level-only userid rejected under new contract -> 503 SERVICE_UNAVAILABLE
+    mode = "root-userid-only";
     await assert.rejects(
       adapter.authenticate({ username: "op_nam", password: "pwd" }),
       (err) =>
@@ -163,8 +311,8 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
         err.getResponse?.().code === "SERVICE_UNAVAILABLE",
     );
 
-    // 6. Malformed JSON -> 503 SERVICE_UNAVAILABLE
-    mode = "malformed-json";
+    // 4. Missing user object -> 503 SERVICE_UNAVAILABLE
+    mode = "missing-user";
     await assert.rejects(
       adapter.authenticate({ username: "op_nam", password: "pwd" }),
       (err) =>
@@ -172,8 +320,8 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
         err.getResponse?.().code === "SERVICE_UNAVAILABLE",
     );
 
-    // 7. Missing userid -> 503 SERVICE_UNAVAILABLE
-    mode = "missing-userid";
+    // 5. Missing nested userid -> 503 SERVICE_UNAVAILABLE
+    mode = "missing-nested-userid";
     await assert.rejects(
       adapter.authenticate({ username: "op_nam", password: "pwd" }),
       (err) =>
@@ -181,7 +329,43 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
         err.getResponse?.().code === "SERVICE_UNAVAILABLE",
     );
 
-    // 8. Missing token -> 503 SERVICE_UNAVAILABLE
+    // 6. Null nested userid -> 503 SERVICE_UNAVAILABLE
+    mode = "null-nested-userid";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "pwd" }),
+      (err) =>
+        err.getStatus?.() === 503 &&
+        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
+    );
+
+    // 7. Empty userid -> 503 SERVICE_UNAVAILABLE
+    mode = "empty-userid";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "pwd" }),
+      (err) =>
+        err.getStatus?.() === 503 &&
+        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
+    );
+
+    // 8. Invalid userid type (array) -> 503 SERVICE_UNAVAILABLE
+    mode = "invalid-userid-type";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "pwd" }),
+      (err) =>
+        err.getStatus?.() === 503 &&
+        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
+    );
+
+    // 9. Float userid -> 503 SERVICE_UNAVAILABLE
+    mode = "float-userid";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "pwd" }),
+      (err) =>
+        err.getStatus?.() === 503 &&
+        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
+    );
+
+    // 10. Missing token -> 503 SERVICE_UNAVAILABLE
     mode = "missing-token";
     await assert.rejects(
       adapter.authenticate({ username: "op_nam", password: "pwd" }),
@@ -190,7 +374,79 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
         err.getResponse?.().code === "SERVICE_UNAVAILABLE",
     );
 
-    // 9. Redirect rejection -> 503 SERVICE_UNAVAILABLE
+    // 11. Empty token -> 503 SERVICE_UNAVAILABLE
+    mode = "empty-token";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "pwd" }),
+      (err) =>
+        err.getStatus?.() === 503 &&
+        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
+    );
+
+    // 12. Missing username -> 503 SERVICE_UNAVAILABLE
+    mode = "missing-username";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "pwd" }),
+      (err) =>
+        err.getStatus?.() === 503 &&
+        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
+    );
+
+    // 13. Empty username -> 503 SERVICE_UNAVAILABLE
+    mode = "empty-username";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "pwd" }),
+      (err) =>
+        err.getStatus?.() === 503 &&
+        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
+    );
+
+    // 14. is_verified: false -> 401 AUTHENTICATION_FAILED
+    mode = "unverified-false";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "pwd" }),
+      (err) =>
+        err.getStatus?.() === 401 &&
+        err.getResponse?.().code === "AUTHENTICATION_FAILED",
+    );
+
+    // 15. 400 invalid credentials -> 401 AUTHENTICATION_FAILED
+    mode = "invalid-creds";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "wrong" }),
+      (err) =>
+        err.getStatus?.() === 401 &&
+        err.getResponse?.().code === "AUTHENTICATION_FAILED",
+    );
+
+    // 16. 401 status -> 401 AUTHENTICATION_FAILED
+    mode = "unauthorized-401";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "wrong" }),
+      (err) =>
+        err.getStatus?.() === 401 &&
+        err.getResponse?.().code === "AUTHENTICATION_FAILED",
+    );
+
+    // 17. 500 server error -> 503 SERVICE_UNAVAILABLE
+    mode = "server-500";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "pwd" }),
+      (err) =>
+        err.getStatus?.() === 503 &&
+        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
+    );
+
+    // 18. Malformed JSON -> 503 SERVICE_UNAVAILABLE
+    mode = "malformed-json";
+    await assert.rejects(
+      adapter.authenticate({ username: "op_nam", password: "pwd" }),
+      (err) =>
+        err.getStatus?.() === 503 &&
+        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
+    );
+
+    // 19. Redirect rejection -> 503 SERVICE_UNAVAILABLE
     mode = "redirect";
     await assert.rejects(
       adapter.authenticate({ username: "op_nam", password: "pwd" }),
@@ -199,7 +455,7 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
         err.getResponse?.().code === "SERVICE_UNAVAILABLE",
     );
 
-    // 10. Timeout -> 503 SERVICE_UNAVAILABLE
+    // 20. Timeout -> 503 SERVICE_UNAVAILABLE
     mode = "timeout";
     await assert.rejects(
       adapter.authenticate({ username: "op_nam", password: "pwd" }),
@@ -207,7 +463,14 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
         err.getStatus?.() === 503 &&
         err.getResponse?.().code === "SERVICE_UNAVAILABLE",
     );
+
+    // 21. No sensitive token or credential is logged in console output
+    const allLogs = loggedOutput.join("\n");
+    assert.equal(allLogs.includes("synthetic-token"), false);
+    assert.equal(allLogs.includes("password123"), false);
   } finally {
+    console.log = origLog;
+    console.error = origError;
     await mockServer.close();
   }
 });
