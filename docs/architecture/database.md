@@ -40,7 +40,7 @@ CREATE TABLE carrier_connections (
     user_id             UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     provider            VARCHAR(32) NOT NULL,
     external_account_id VARCHAR(128) NOT NULL,
-    login_identifier    VARCHAR(128) NOT NULL,
+    login_identifier    VARCHAR(128),
     display_name        VARCHAR(100) NOT NULL,
     status              VARCHAR(32) NOT NULL,
     last_verified_at    TIMESTAMPTZ,
@@ -54,6 +54,7 @@ CREATE INDEX idx_carrier_connections_user_provider ON carrier_connections(user_i
 
 - **Global Uniqueness**: `UNIQUE (provider, external_account_id)` strictly prohibits binding the same physical carrier account to multiple Nexora users.
 - **Ownership**: `user_id` is foreign-keyed to `users.id` with `ON DELETE CASCADE`.
+- **Conditional Login Identifier**: `login_identifier` (e.g. username/email) is conditional per adapter and nullable at the schema level to support providers that authenticate via OAuth, bearer tokens, or API keys without login usernames.
 
 ### 2. `carrier_connection_secrets` (PR 3)
 
@@ -94,6 +95,7 @@ CREATE TABLE carrier_connection_secrets (
       last_used_step          BIGINT NOT NULL
   );
   ```
+  `last_used_step` is initialized during CLI enrollment to the exact TOTP time-step of the confirmation code, preventing initial replay.
 - **`mfa_challenges`**: Ephemeral pending MFA challenges:
   ```sql
   CREATE TABLE mfa_challenges (
@@ -119,15 +121,26 @@ CREATE TABLE carrier_connection_secrets (
 
 ### 4. Concurrency & Transactional Invariants
 
-- **Last Active Admin Invariant**: Any mutation decreasing active administrators executes inside a short transaction that first locks all active admin rows:
+- **Last Active Admin Invariant & Deterministic Lock Ordering**: Any mutation decreasing active administrators executes inside a short transaction that locks all active admin rows using deterministic lock ordering to prevent deadlocks:
   ```sql
-  SELECT id FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE' FOR UPDATE;
+  SELECT id FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE' ORDER BY id ASC FOR UPDATE;
   ```
-  This prevents concurrent disablement/demotion from reducing active administrators to zero.
+  This prevents concurrent disablement/demotion from reducing active administrators to zero and eliminates deadlock hazards between concurrent transactions.
+- **Password-Hash Recheck in Session/Challenge Issuance**: Scrypt password verification runs outside the database transaction. Subsequently, inside a short transaction:
+  ```sql
+  SELECT id, role, status FROM users WHERE id = $1 FOR UPDATE;
+  ```
+  The transaction verifies `status = 'ACTIVE'`, expected role, and re-checks that `user_credentials.password_hash` exactly equals the verified hash before inserting into `sessions` or `mfa_challenges`.
+- **Atomic Challenge & Session Revocation**: Any password update, role change, MFA reset, or account disablement atomically revokes all sessions and all pending challenges:
+  ```sql
+  DELETE FROM sessions WHERE user_id = $1;
+  DELETE FROM mfa_challenges WHERE user_id = $1;
+  ```
 - **User Disablement**: Executed in a single atomic transaction:
   1. `SELECT id FROM users WHERE id = $1 FOR UPDATE;`
   2. Update `users.status = 'DISABLED'`.
   3. Delete all sessions (`DELETE FROM sessions WHERE user_id = $1;`).
-  4. Delete all carrier connection secrets (`DELETE FROM carrier_connection_secrets WHERE connection_id IN (SELECT id FROM carrier_connections WHERE user_id = $1);`).
-  5. Update carrier connections status to `'REAUTH_REQUIRED'`.
+  4. Delete all pending challenges (`DELETE FROM mfa_challenges WHERE user_id = $1;`).
+  5. Delete all carrier connection secrets (`DELETE FROM carrier_connection_secrets WHERE connection_id IN (SELECT id FROM carrier_connections WHERE user_id = $1);`).
+  6. Update carrier connections status to `'REAUTH_REQUIRED'`.
 - **Pre-Commit Write Validation**: Before persisting renewed tokens or secrets, transactions lock the user row to ensure the account remains `ACTIVE`. In-flight responses arriving after disablement are safely discarded.

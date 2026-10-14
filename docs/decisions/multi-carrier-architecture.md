@@ -37,7 +37,8 @@ Nexora is actively under development and has **zero real production users or leg
    - A single Nexora user can create and manage multiple carrier connections across multiple providers or multiple accounts of the same provider.
    - Each connection record belongs to exactly one `users.id` (foreign key `user_id` referencing `users(id)`).
    - Connections and decrypted secrets are never shared across users.
-   - **Global Uniqueness**: A physical carrier account is strictly bound to at most one Nexora user at any given time. The database enforces a global unique constraint on `(provider, external_account_id)`. Two users cannot link the same carrier account simultaneously. Attempted duplicate linkage returns a generic error to prevent account enumeration.
+   - **Global Uniqueness & Generic Error**: A physical carrier account is strictly bound to at most one Nexora user at any given time. The database enforces a global unique constraint on `(provider, external_account_id)`. Two users cannot link the same carrier account simultaneously. Attempted duplicate linkage returns a generic error (`CANNOT_CONNECT_CARRIER_ACCOUNT`) without disclosing whether the carrier account is already linked to another user. Detailed duplicate conflicts are recorded strictly in the server-side security audit log.
+   - **Conditional Login Identifier**: `login_identifier` (e.g. username/email) is conditional per adapter and nullable at the schema level to accommodate providers that rely solely on OAuth, API keys, or bearer tokens without username/email credentials.
 
 5. **Mandatory Encrypted Credential Storage & Key Hierarchy**:
    - Carrier connection credentials (access tokens, refresh tokens, and passwords) are encrypted using **AES-256-GCM** with a cryptographically secure 96-bit random nonce generated per encryption operation.
@@ -46,7 +47,7 @@ Nexora is actively under development and has **zero real production users or leg
    - Shared cryptographic primitives (`AES-256-GCM`, HKDF, nonce generation, and key versioning) reside in `apps/api/src/common/crypto/`. Neither Identity nor Carrier modules import crypto logic from each other.
    - **Separate Master Keys**: The Carrier Master Key is strictly isolated from the Identity Master Key. A corruption or unavailability of the carrier key prevents carrier API calls but never blocks administrative login or system operations.
    - **Default Encrypted Password Storage**: Carrier passwords are encrypted and persisted by default upon connection to enable automated re-login when tokens expire. There is no opt-in checkbox or configuration toggle. The UI explicitly discloses that carrier passwords are stored encrypted for session recovery and are destroyed upon disconnection.
-   - Re-login password decryption is restricted to authorized API infrastructure services and requires a durable security audit log entry.
+   - **Durable Audit & Fail-Closed Decryption**: Re-login password decryption is restricted to authorized API infrastructure services and requires an immutable security audit log entry via `SecurityAuditPort`. If the audit sink is unavailable or fails to persist the audit record, the operation MUST fail-closed: decryption is aborted and no re-login is attempted.
    - Missing or corrupted master keys result in fail-closed errors; they never overwrite ciphertexts, fabricate mock credentials, or degrade connection status to `REAUTH_REQUIRED`.
 
 6. **Token Verification Protocol (`api-token-verify`)**:
@@ -59,13 +60,14 @@ Nexora is actively under development and has **zero real production users or leg
 
 7. **ADMIN TOTP Multi-Factor Authentication (PR 6)**:
    - All `ADMIN` users must complete RFC 6238 TOTP (SHA-1, 6 digits, 30-second step, ±1 step tolerance) before receiving an administrative session.
-   - **CLI Enrollment Only**: MFA secret generation and enrollment are performed exclusively via an interactive server-side CLI (`dist/cli/mfa-enroll.js`). No public or internal HTTP endpoint allows MFA registration or bypass.
+   - **CLI Enrollment Only & `last_used_step` Initialization**: MFA secret generation and enrollment are performed exclusively via an interactive server-side CLI (`dist/cli/mfa-enroll.js`). The CLI prompts for the admin's Nexora password, opens a transaction locking the `users` row (`SELECT ... FOR UPDATE`), verifies `status = 'ACTIVE'` and `role = 'ADMIN'`, prompts for an initial confirmation code, verifies it, and initializes `user_mfa.last_used_step` to the exact TOTP time-step of that confirmation code. This guarantees that the enrollment confirmation code cannot be replayed for the initial login. No public or internal HTTP endpoint allows MFA registration or bypass.
    - **Atomic Two-Step Authentication**:
      1. Password verification issues an ephemeral pending MFA challenge token stored in an `HttpOnly`, `SameSite=Strict` cookie (path `/api/auth/mfa`, TTL 5 minutes) and persists the token's SHA-256 hash in `mfa_challenges`. No session is created.
-     2. `POST /api/auth/mfa/verify` validates the candidate TOTP code or recovery code. Inside a single database transaction, the pending challenge is consumed atomically (`UPDATE mfa_challenges SET consumed_at = now() WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now() RETURNING user_id;`), `user_mfa.last_used_step` is updated (`WHERE last_used_step < $2`) to prevent replay attacks, and a session with `auth_level = 'MFA'` is issued.
+     2. `POST /api/auth/mfa/verify` is decorated with `@Public()` to bypass the global `SessionGuard`, but strictly enforces `OriginGuard`, presence of a valid pending MFA challenge token cookie, account-level rate limiting, and replay prevention. Inside a single database transaction, the pending challenge is consumed atomically (`UPDATE mfa_challenges SET consumed_at = now() WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now() RETURNING user_id;`), `user_mfa.last_used_step` is updated (`WHERE last_used_step < $2`) to prevent replay attacks, and a session with `auth_level = 'MFA'` is issued.
+   - **Password-Hash Recheck in Session/Challenge Issuance**: Scrypt password verification runs outside the database transaction. Subsequently, inside a short transaction, the server locks the user row (`SELECT ... FROM users ... FOR UPDATE`), verifies `status = 'ACTIVE'`, expected role, and strictly re-verifies that `user_credentials.password_hash` exactly matches the hash used for the Scrypt verification. Any mismatch indicates a concurrent password change and immediately aborts issuance.
+   - **Atomic Challenge Revocation**: Password changes, role modifications, account disablement, and MFA resets atomically delete all active sessions (`sessions`) AND all pending challenges (`mfa_challenges`) for that user within the same database transaction.
    - **Single-Use Recovery Codes**: Enrollment generates 10 high-entropy recovery codes (≥80 bits CSPRNG). Nexora stores only their SHA-256 hashes. Recovery codes are consumed atomically.
    - **Session Assurance**: Database table `sessions` includes `auth_level` (`VARCHAR(16) NOT NULL DEFAULT 'PASSWORD'`). Every administrative route checks both `role === 'ADMIN'` and `auth_level === 'MFA'` per request.
-   - Ephemeral challenge tokens and active sessions are immediately revoked upon password change, role modification, account disablement, or MFA reset.
 
 8. **Public HTTPS Release Gate (PR 7)**:
    - ADMIN and OPERATOR access over public HTTPS is authorized subject to strict release gates:
@@ -75,7 +77,11 @@ Nexora is actively under development and has **zero real production users or leg
      4. Remote operator onboarding uses single-use, time-bounded setup links delivered over secure HTTPS.
 
 9. **Concurrency & Database Transaction Invariants**:
-   - **Last Active Admin Invariant**: To prevent accidental lockout or race conditions that leave zero active administrators, any operation reducing active admins (disablement, role demotion) must acquire row-level locks on all active admin rows (`SELECT id FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE' FOR UPDATE`) before counting and executing changes.
+   - **Last Active Admin Invariant & Deterministic Lock Ordering**: To prevent accidental lockout or race conditions that leave zero active administrators, and to prevent deadlocks between concurrent operations, any mutation reducing active admins (disablement, role demotion) must acquire row-level locks on all active admin rows in a deterministic order:
+     ```sql
+     SELECT id FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE' ORDER BY id ASC FOR UPDATE;
+     ```
+     Using deterministic `ORDER BY id ASC` prevents PostgreSQL deadlocks between concurrent administrative updates.
    - **User Disablement**: Disabling a user atomically sets `status = 'DISABLED'`, revokes all active sessions, deletes all carrier connection secrets, and sets connection statuses to `REAUTH_REQUIRED`. Subsequent late-arriving carrier HTTP responses cannot recreate secrets.
    - **Connection Deletion**: Disconnection is implemented as a hard delete (`DELETE FROM carrier_connections WHERE id = $1`), atomically removing the connection and cascading to all associated secrets.
    - **Singleflight Concurrency**: In-memory singleflight deduplicates simultaneous carrier token refresh requests within a single API instance. Database transactions are never held across external HTTP carrier calls.

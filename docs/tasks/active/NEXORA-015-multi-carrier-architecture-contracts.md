@@ -6,6 +6,7 @@
 - **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
 - **Working branch**: `feat/multi-carrier-architecture-contracts`
+- **Target GitHub PR**: #15
 - **Starting main SHA**: `e18bef4e5a4557baee60b9b8729dc72b789315a1`
 
 ## 1. Context & Objectives
@@ -22,13 +23,15 @@ As established by the owner on 2026-10-14 in `NEXORA_MULTI_CARRIER_CONTEXT_v10 (
 6. **ADMIN TOTP MFA**: RFC 6238 TOTP enrolled strictly via server CLI (`pnpm mfa:enroll`), session `auth_level`, and two-step atomic challenge consumption.
 7. **Public HTTPS Release Gate**: Public internet access requires PR 6 (ADMIN TOTP MFA enforced at application startup) and host NTP clock synchronization.
 
-This task (`NEXORA-015`, PR 1) delivers the complete architectural decisions, specifications, security controls, and API contracts in documentation, establishing the foundation for implementation tasks PR 2 through PR 7.
+> **Roadmap Sequencing Note**: In this architecture roadmap, "Logical PR 1" represents the documentation, security architecture, and API contracts stage within the 6-phase plan (Logical PRs 1, 2, 3, 4, 6, 7; where PR 5 was consolidated into PR 2). In GitHub, this task is submitted as **GitHub PR #15** (`feat/multi-carrier-architecture-contracts`).
+
+This task (`NEXORA-015`, Logical PR 1 / GitHub PR #15) delivers the complete architectural decisions, specifications, security controls, and API contracts in documentation, establishing the foundation for implementation tasks PR 2 through PR 7.
 
 ## 2. Six-Phase Implementation Roadmap
 
 | Logical PR         | Scope Summary                                          | Key Acceptance Criteria                                                                                                                                                                                                                                                                                                                                                    | Dependencies                 |
 | :----------------- | :----------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------- |
-| **PR 1** (Current) | **ADR / Security / Contracts**                         | ADR-007 accepted, canonical architecture documents updated, API contracts specified, test plan and threat model documented. `Documentation Impact: REQUIRED`.                                                                                                                                                                                                              | None                         |
+| **PR 1** (Current) | **ADR / Security / Contracts**                         | ADR-007 accepted, canonical architecture documents updated, API contracts specified, test plan and threat model documented. `Documentation Impact: REQUIRED`. Delivered in GitHub PR #15.                                                                                                                                                                                  | None                         |
 | **PR 2**           | **Unified Local Login / RBAC / Legacy Removal**        | Both OPERATOR and ADMIN login locally; backend RBAC; one-time setup links for operators; last active ADMIN invariant. Complete removal of provider login (`/api/auth/provider/login` returns 404); forward-only migration drops `external_identities`; separate one-time script purges dev operators. Uniship HTTP client refactored to `carrier/infrastructure/uniship/`. | PR 1                         |
 | **PR 3**           | **Carrier Connections & Encrypted Secrets Foundation** | Database schemas for `carrier_connections` and `carrier_connection_secrets`; shared cryptographic module `apps/api/src/common/crypto/` (AES-256-GCM, HKDF); key versioning; global unique constraint enforcement; user disablement race control.                                                                                                                           | PR 1                         |
 | **PR 4**           | **Uniship Carrier Adapter & UI**                       | Integration adapter calling `api-token-verify`; connect / reconnect / re-login orchestration; default encrypted password persistence; Carrier Settings UI. _Merge Gate_: Requires confirmed carrier credential storage terms.                                                                                                                                              | PR 2 + PR 3                  |
@@ -49,6 +52,13 @@ This task (`NEXORA-015`, PR 1) delivers the complete architectural decisions, sp
   - `docs/architecture/api-contract.md` updated with carrier connection and MFA endpoints, plus PR 2 provider login deprecation.
   - `docs/architecture/runtime.md` and `docs/operations/deployment.md` updated with public HTTPS release gates and host NTP verification.
   - `docs/domains/shipments.md` updated to clarify that carrier connections do not implement shipment tables or background workers.
+- [x] **Findings 1–6 Addressed**:
+  - `POST /api/auth/mfa/verify` specified with `@Public()`, bypassing global `SessionGuard`, but protected by `OriginGuard`, ephemeral challenge cookie, rate limits, and replay prevention.
+  - Duplicate carrier account conflict returns generic error `400 CANNOT_CONNECT_CARRIER_ACCOUNT` without leaking cross-user linkages; detailed conflict logged to server-side audit.
+  - Security invariants synchronized: password-hash recheck in session/challenge transaction, initial `last_used_step` in enrollment, atomic challenge revocation on credential/status changes, CLI password verification, and durable audit fail-closed during carrier password decryption.
+  - `login_identifier` specified as conditional per adapter and nullable at schema level.
+  - Outdated "no login/session" baseline description corrected in `docs/operations/deployment.md`.
+  - Deterministic lock ordering (`ORDER BY id ASC`) defined for last active admin invariant to prevent deadlocks.
 - [x] **Documentation Verification Checks PASS**: `pnpm docs:check`, `pnpm format:check`, `node scripts/boundaries.mjs`, and `pnpm contracts:check` pass without errors.
 - [x] **Documentation-Only Boundary Respected**: No runtime code deleted, no Prisma migrations executed, no OpenAPI/SDK artifacts regenerated, and no live carrier calls executed.
 

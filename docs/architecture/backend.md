@@ -61,7 +61,9 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), the backend modular
    - `apps/api/src/common/crypto/`: Central cryptographic module implementing AES-256-GCM, HKDF subkey derivation, 96-bit CSPRNG nonces, and authenticated associated data (AAD) binding. Both Identity and Carrier consume this module; neither module imports cryptographic routines or domain entities from the other.
 
 2. **RBAC & Multi-Level Session Assurance**:
-   - `SessionGuard` validates the active opaque session.
+   - `SessionGuard` validates the active opaque session globally as `APP_GUARD`.
+   - `POST /api/auth/mfa/verify` is explicitly decorated with `@Public()` to bypass `SessionGuard` during the two-step login sequence, but is strictly protected by `OriginGuard`, pending challenge cookie validation (`SameSite: Strict`, `HttpOnly`), account-level rate limits, and atomic replay protection.
+   - **Password-Hash Recheck in Session/Challenge Issuance**: Scrypt password verification runs outside the database transaction. Subsequently, inside a short transaction, the server locks the user row (`SELECT ... FROM users ... FOR UPDATE`), verifies `status = 'ACTIVE'` and the expected role, and strictly re-verifies that `user_credentials.password_hash` exactly matches the hash used for the Scrypt verification. Any mismatch indicates a concurrent password change and immediately aborts issuance.
    - Route-level RBAC decorators enforce specific roles and authentication levels:
      - Standard operator routes: Require active user session (`auth_level = 'PASSWORD'` or `'MFA'`).
      - Administrative endpoints (`/api/admin/...`): Strictly enforce `role === 'ADMIN'` AND `auth_level === 'MFA'` on every request.
@@ -70,5 +72,6 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), the backend modular
 3. **Carrier Connection Orchestration**:
    - **Connection Lifecycle**: Supports `CONNECTED`, `REAUTH_REQUIRED`, and `ERROR` states.
    - **Token Verification (`api-token-verify`)**: Verifies candidate access tokens against `POST /client/api-token-verify/` (or login response) ensuring `user.userid == external_account_id`. Identity mismatch marks connection `REAUTH_REQUIRED` and permanently prevents automatic re-login.
+   - **Durable Audit & Fail-Closed Decryption**: Decrypting saved passwords for automated re-login requires persisting an immutable security audit event through `SecurityAuditPort`. If the audit sink fails or is unavailable, decryption is immediately aborted (fail-closed).
    - **Singleflight Concurrency**: In-memory singleflight per `connection_id` prevents redundant token refresh or re-login storms within a single API instance. Database transactions are never held across external HTTP calls.
    - **Carrier Budget & Backoff**: Outbound requests are governed by per-carrier concurrency budgets; HTTP 429 triggers carrier-wide backoff without spamming logins.

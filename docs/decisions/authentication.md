@@ -65,8 +65,11 @@ Per [ADR-007](multi-carrier-architecture.md), the authentication and session mod
 1. **Unified Local Login for Operators**: Provider login (`POST /api/auth/provider/login`) is eliminated in PR 2. Both `ADMIN` and `OPERATOR` use local credentials (`POST /api/auth/login`).
 2. **ADMIN Mandatory TOTP MFA (PR 6)**:
    - All `ADMIN` logins require RFC 6238 TOTP (SHA-1, 6 digits, 30s step).
-   - MFA enrollment occurs strictly through interactive server CLI (`pnpm mfa:enroll`); no HTTP enrollment endpoints exist.
-   - Successful password verification produces a short-lived pending MFA challenge (cookie `SameSite: Strict`, `HttpOnly`).
+   - MFA enrollment occurs strictly through interactive server CLI (`pnpm mfa:enroll`); no HTTP enrollment endpoints exist. The CLI initializes `user_mfa.last_used_step` with the confirmation code's time-step, preventing replay.
+   - Successful password verification produces a short-lived pending MFA challenge (cookie `SameSite: Strict`, `HttpOnly`, 5m TTL).
+   - `POST /api/auth/mfa/verify` is explicitly decorated with `@Public()` to bypass global `SessionGuard`, but strictly enforced by `OriginGuard`, valid challenge cookie, account rate limiting, and replay prevention.
+   - **Password-Hash Recheck**: Scrypt password verification runs outside the transaction; inside a short transaction, the server locks `users` (`FOR UPDATE`), verifies role/status, and re-checks `user_credentials.password_hash` against the verified hash.
+   - **Atomic Challenge Revocation**: Password update, role modification, account disablement, and MFA reset atomically delete all active sessions and pending MFA challenges in the same database transaction.
    - `POST /api/auth/mfa/verify` consumes the challenge atomically and issues a session with `auth_level = 'MFA'`.
    - Single-use recovery codes (≥80-bit CSPRNG, hashed with SHA-256) provide backup access.
    - Database table `sessions` includes `auth_level` (`VARCHAR(16) NOT NULL DEFAULT 'PASSWORD'`). Administrative endpoints check `role === 'ADMIN'` AND `auth_level === 'MFA'` on every request.
