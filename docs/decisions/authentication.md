@@ -57,3 +57,20 @@ ADR-005 continues to define the implemented local authentication and session run
 Phase 1 extends storage to users/user_credentials without changing these session/cookie/API policies. Local password Login requires ACTIVE ADMIN with credential. Generic sessions require an ACTIVE user only, irrespective of role and local credentials. See [unified identity](unified-identity.md) and NEXORA-011 for migration verification.
 
 Phase 2 adds `ProviderAuthenticationPort`, `UnishipAuthAdapter`, and `POST /api/auth/provider/login` for employee authentication, alongside frontend mode routing (`/login` for employee, `/login?mode=admin` for local admin). Sessions issued to verified active operators reuse the identical opaque PostgreSQL session tokens, cookie policy, and `SessionGuard` verification without schema alteration. The owner confirmed Uniship API integration authorization on 2026-10-13. Local HTTP mock-provider tests passed under NEXORA-012; real Uniship authentication is not technically verified. `UNISHIP_LIVE_AUTHORIZED` remains a deployment switch, default `false`, which the administrator may explicitly enable under the approved authorization and deployment procedure. It is not a statement that permission is missing. The operator selects the correct `UNISHIP_API_URL`; existing production HTTPS, timeout, redirect rejection, payload validation and token non-persistence remain unchanged.
+
+## Multi-Carrier & MFA Amendment — 2026-10-14
+
+Per [ADR-007](multi-carrier-architecture.md), the authentication and session model is extended as follows:
+
+1. **Unified Local Login for Operators**: Provider login (`POST /api/auth/provider/login`) is eliminated in PR 2. Both `ADMIN` and `OPERATOR` use local credentials (`POST /api/auth/login`).
+2. **ADMIN Mandatory TOTP MFA (PR 6)**:
+   - All `ADMIN` logins require RFC 6238 TOTP (SHA-1, 6 digits, 30s step).
+   - MFA enrollment occurs strictly through interactive server CLI (`pnpm mfa:enroll`); no HTTP enrollment endpoints exist.
+   - Successful password verification produces a short-lived pending MFA challenge (cookie `SameSite: Strict`, `HttpOnly`).
+   - `POST /api/auth/mfa/verify` consumes the challenge atomically and issues a session with `auth_level = 'MFA'`.
+   - Single-use recovery codes (≥80-bit CSPRNG, hashed with SHA-256) provide backup access.
+   - Database table `sessions` includes `auth_level` (`VARCHAR(16) NOT NULL DEFAULT 'PASSWORD'`). Administrative endpoints check `role === 'ADMIN'` AND `auth_level === 'MFA'` on every request.
+3. **Public HTTPS Release Gate (PR 7)**:
+   - ADMIN Internet access is permitted over public HTTPS subject to mandatory TOTP enforcement.
+   - The API runtime refuses to boot in public profile if MFA enforcement is disabled.
+   - Host clock must be synchronized via NTP (`chrony` or `systemd-timesyncd`), verified by runbook.

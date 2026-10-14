@@ -1,13 +1,58 @@
 # API contract
 
-| Endpoint                      | Success                                                 | Failure                                                                                                                            |
-| ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| GET /api/health/live          | 200 `{status:"ok"}`                                     | Process unreachable if down                                                                                                        |
-| GET /api/health/ready         | 200 `{status:"ok",checks:{database:true,storage:true}}` | 503 with checks plus `code:"NOT_READY"`, safe message, requestId                                                                   |
-| POST /api/auth/login          | 200 `{user:{id,username}}` + `Set-Cookie` session       | 400 validation error, 401 invalid credentials, 403 invalid origin, 429 rate limit                                                  |
-| POST /api/auth/provider/login | 200 `{user:{id,username}}` + `Set-Cookie` session       | 400 validation error, 401 invalid/unregistered/disabled/non-operator, 403 invalid origin, 429 rate limit, 503 provider unavailable |
-| GET /api/auth/session         | 200 `{authenticated:true,user:{id,username}}`           | 401 unauthorized if missing or expired session                                                                                     |
-| POST /api/auth/logout         | 200 `{success:true}` + clears session cookie            | 403 invalid origin, 500 failed database revocation, 200 idempotent logout                                                          |
+## Implemented baseline contracts
+
+| Endpoint                      | Success                                                 | Failure                                                                                                                            | Notes                                                            |
+| ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| GET /api/health/live          | 200 `{status:"ok"}`                                     | Process unreachable if down                                                                                                        | `@Public()`, infrastructure                                      |
+| GET /api/health/ready         | 200 `{status:"ok",checks:{database:true,storage:true}}` | 503 with checks plus `code:"NOT_READY"`, safe message, requestId                                                                   | `@Public()`, infrastructure                                      |
+| POST /api/auth/login          | 200 `{user:{id,username}}` + `Set-Cookie` session       | 400 validation error, 401 invalid credentials, 403 invalid origin, 429 rate limit                                                  | `@Public()`, local ADMIN login at baseline                       |
+| POST /api/auth/provider/login | 200 `{user:{id,username}}` + `Set-Cookie` session       | 400 validation error, 401 invalid/unregistered/disabled/non-operator, 403 invalid origin, 429 rate limit, 503 provider unavailable | **Scheduled for complete removal in PR 2** (returns 404 in PR 2) |
+| GET /api/auth/session         | 200 `{authenticated:true,user:{id,username}}`           | 401 unauthorized if missing or expired session                                                                                     | Session verification                                             |
+| POST /api/auth/logout         | 200 `{success:true}` + clears session cookie            | 403 invalid origin, 500 failed database revocation, 200 idempotent logout                                                          | Idempotent revocation                                            |
+
+## Multi-Carrier & MFA Target Contracts (ADR-007)
+
+Under [ADR-007](../decisions/multi-carrier-architecture.md), the API surface is extended across the planned PR milestones. The generated OpenAPI spec and SDK will be updated during each implementation task.
+
+### 1. Authentication & MFA Lifecycle (PR 2 & PR 6)
+
+| Method | Endpoint               | Target PR | Access      | Payload / Request                                              | Success Response                                          | Failure Codes                                                                                   |
+| :----- | :--------------------- | :-------- | :---------- | :------------------------------------------------------------- | :-------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| `POST` | `/api/auth/login`      | PR 2      | `@Public()` | `{ username, password }`                                       | **OPERATOR**: 200 `{ user }` + `nexora_session` cookie    | 400 `VALIDATION_ERROR`, 401 `AUTHENTICATION_FAILED`, 403 `FORBIDDEN_ORIGIN`, 429 `RATE_LIMITED` |
+|        |                        | PR 6      | `@Public()` | `{ username, password }`                                       | **ADMIN**: 200 `{ mfaRequired: true }` + challenge cookie | 400 `VALIDATION_ERROR`, 401 `AUTHENTICATION_FAILED`, 403 `FORBIDDEN_ORIGIN`, 429 `RATE_LIMITED` |
+| `POST` | `/api/auth/mfa/verify` | PR 6      | Pending MFA | `{ code }` (TOTP or recovery code) + `nexora_mfa_token` cookie | 200 `{ user }` + `nexora_session` (`auth_level = 'MFA'`)  | 400 `VALIDATION_ERROR`, 401 `INVALID_MFA_CODE`, 403 `FORBIDDEN_ORIGIN`, 429 `RATE_LIMITED`      |
+
+- **Challenge Cookie**: `nexora_mfa_token` is scoped to `/api/auth/mfa`, `HttpOnly`, `SameSite: Strict`, 5-minute TTL (`Secure: true` in public profile).
+- **Session Assurance**: ADMIN users obtain sessions strictly via `mfa/verify`.
+
+### 2. Carrier Connections Management (PR 3 & PR 4)
+
+Endpoints strictly enforce ownership from the authenticated session (`user_id`). Users cannot access, mutate, or inspect other users' carrier connections.
+
+| Method   | Endpoint                                 | Target PR | Access        | Payload                                                | Response                                      | Failure Codes                                                                                                     |
+| :------- | :--------------------------------------- | :-------- | :------------ | :----------------------------------------------------- | :-------------------------------------------- | :---------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/carriers`                          | PR 3      | Authenticated | None                                                   | 200 `{ carriers: CarrierProviderSummary[] }`  | 401 `UNAUTHORIZED`                                                                                                |
+| `GET`    | `/api/carrier-connections`               | PR 3      | Authenticated | None                                                   | 200 `{ connections: CarrierConnectionDto[] }` | 401 `UNAUTHORIZED`                                                                                                |
+| `POST`   | `/api/carrier-connections`               | PR 4      | Authenticated | `{ provider, loginIdentifier, password, displayName }` | 201 `{ connection: CarrierConnectionDto }`    | 400 `VALIDATION_ERROR`, 401 `PROVIDER_AUTH_FAILED`, 409 `ACCOUNT_ALREADY_LINKED`, 429 `RATE_LIMITED`, 503 `ERROR` |
+| `PATCH`  | `/api/carrier-connections/:id`           | PR 3      | Owner only    | `{ displayName }`                                      | 200 `{ connection: CarrierConnectionDto }`    | 400 `VALIDATION_ERROR`, 404 `NOT_FOUND`                                                                           |
+| `POST`   | `/api/carrier-connections/:id/reconnect` | PR 4      | Owner only    | `{ password }`                                         | 200 `{ connection: CarrierConnectionDto }`    | 400 `VALIDATION_ERROR`, 401 `PROVIDER_AUTH_FAILED`, 404 `NOT_FOUND`, 429 `RATE_LIMITED`, 503 `ERROR`              |
+| `DELETE` | `/api/carrier-connections/:id`           | PR 3      | Owner only    | None                                                   | 200 `{ success: true }`                       | 404 `NOT_FOUND`                                                                                                   |
+
+- **Payload Safety**: Connection DTOs expose only metadata (`id, provider, externalAccountId, loginIdentifier, displayName, status, lastVerifiedAt, createdAt`). Plaintext passwords, tokens, nonces, and ciphertexts are never returned.
+- **Account Duplicate Privacy**: Duplicate carrier account detection (`UNIQUE(provider, external_account_id)`) returns generic `ACCOUNT_ALREADY_LINKED` without disclosing the owning user identity.
+- **Rate Limiting**: `POST /api/carrier-connections` and `reconnect` enforce per-user burst and window limits to prevent credential stuffing attacks against carrier infrastructure.
+
+### 3. Administrative Carrier Management (PR 3 / PR 4)
+
+| Method   | Endpoint                             | Access      | Functionality                                        |
+| :------- | :----------------------------------- | :---------- | :--------------------------------------------------- |
+| `GET`    | `/api/admin/carrier-connections`     | ADMIN + MFA | List metadata of all carrier connections in system   |
+| `DELETE` | `/api/admin/carrier-connections/:id` | ADMIN + MFA | Hard-delete connection across users (audit recorded) |
+
+- **Security Boundary**: Administrators cannot decrypt credentials, reconnect, or invoke carrier APIs on behalf of another user.
+
+## Contract Generation & Verification
 
 All responses carry server-generated `x-request-id`; HTTP errors contain code/message/requestId and do not expose stack, SQL or credentials. Unknown paths return 404 NOT_FOUND. Swagger is off by default, explicitly enabled via API_DOCS_ENABLED=true.
 `contracts:generate` compiles a documentation-only Nest module with the SAME health controller/decorators, never listens and never requires a DB/storage connection, writes OpenAPI then runs openapi-typescript. `packages/sdk` uses openapi-fetch over generated paths; both types and client behavior follow OpenAPI rather than importing API code.

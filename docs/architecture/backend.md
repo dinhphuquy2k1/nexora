@@ -15,9 +15,9 @@ Local password Login consumes the User plus optional credential: ADMIN, ACTIVE a
 
 Generic session lookup includes its user and checks ACTIVE status only, independently of role/credential/provider/IP/User-Agent. SessionGuard continues checking token/session existence and expiry; any ACTIVE Operator can use a valid opaque session without local credentials. Route role authorization remains future Phase 2 scope. Logout retains idempotent current-token deletion/error propagation. Compiled trusted CLI creates explicit ADMIN/ACTIVE and nested credential in one atomic Prisma write, preserving hidden input, normalization and duplicate behavior.
 
-## Verified provider authentication port
+## Verified provider authentication port (Baseline — Scheduled for PR 2 removal)
 
-IMPLEMENTED in PR #10, verification tracked in NEXORA-012:
+IMPLEMENTED in PR #10, verification tracked in NEXORA-012; SUPERSEDED by [ADR-007](../decisions/multi-carrier-architecture.md):
 
 1. **Port Interfaces**:
    - `IdentityPort` specifies `findExternalIdentity(provider: string, providerSubject: string): Promise<ExternalIdentityRecord | null>`, implemented by `IdentityDatabaseAdapter`.
@@ -50,3 +50,25 @@ IMPLEMENTED in PR #10, verification tracked in NEXORA-012:
    - Cookie is never set on failure; no provider tokens or raw identifiers are returned to the client.
 
 Identity provider vocabulary is owned by `identity/domain/provider-policy.ts`: `IdentityProvider = { UNISHIP: "uniship" } as const` with a derived union type. Trusted identity records and lookup ports use that type; application validation and the Uniship adapter use the constant. The infrastructure boundary maps the CHECK-constrained persisted string to the domain type. SQL fixtures/migrations retain the exact scalar `uniship`; this vocabulary extraction adds no registry, enum, shared-package dependency, schema or public contract change.
+
+## Multi-Carrier Modular Architecture (Target Architecture — ADR-007)
+
+Under [ADR-007](../decisions/multi-carrier-architecture.md), the backend modular monolith separates operator identity from external logistics provider management:
+
+1. **Module Organization**:
+   - `apps/api/src/identity/`: Owns local Nexora operator identity (`users`, `user_credentials`, `sessions`, `user_mfa`). In PR 2, `POST /api/auth/provider/login`, `AuthService.loginWithProvider()`, and `authenticateExternalIdentity()` are completely eliminated.
+   - `apps/api/src/carrier/`: Owns multi-carrier connections (`carrier_connections`), encrypted credential persistence (`carrier_connection_secrets`), connection lifecycle, and carrier adapters. Uniship HTTP client is refactored into `carrier/infrastructure/uniship/`.
+   - `apps/api/src/common/crypto/`: Central cryptographic module implementing AES-256-GCM, HKDF subkey derivation, 96-bit CSPRNG nonces, and authenticated associated data (AAD) binding. Both Identity and Carrier consume this module; neither module imports cryptographic routines or domain entities from the other.
+
+2. **RBAC & Multi-Level Session Assurance**:
+   - `SessionGuard` validates the active opaque session.
+   - Route-level RBAC decorators enforce specific roles and authentication levels:
+     - Standard operator routes: Require active user session (`auth_level = 'PASSWORD'` or `'MFA'`).
+     - Administrative endpoints (`/api/admin/...`): Strictly enforce `role === 'ADMIN'` AND `auth_level === 'MFA'` on every request.
+     - Carrier connection operations (`/api/carrier-connections/...`): Strictly enforce connection ownership (`user_id` matching session). Administrative sessions cannot decrypt, reconnect, or trigger carrier API operations on behalf of another user.
+
+3. **Carrier Connection Orchestration**:
+   - **Connection Lifecycle**: Supports `CONNECTED`, `REAUTH_REQUIRED`, and `ERROR` states.
+   - **Token Verification (`api-token-verify`)**: Verifies candidate access tokens against `POST /client/api-token-verify/` (or login response) ensuring `user.userid == external_account_id`. Identity mismatch marks connection `REAUTH_REQUIRED` and permanently prevents automatic re-login.
+   - **Singleflight Concurrency**: In-memory singleflight per `connection_id` prevents redundant token refresh or re-login storms within a single API instance. Database transactions are never held across external HTTP calls.
+   - **Carrier Budget & Backoff**: Outbound requests are governed by per-carrier concurrency budgets; HTTP 429 triggers carrier-wide backoff without spamming logins.

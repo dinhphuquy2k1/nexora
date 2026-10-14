@@ -61,3 +61,10 @@ Future data synchronization must follow a one-way pipeline:
 ## Unified identity amendment
 
 [Unified identity](unified-identity.md) defines implemented local ADMIN and preregistered OPERATOR access through independent Nexora sessions. The provider authentication port/adapter and local mock-tested Login are implemented; provider tokens remain separate from application sessions and are not persisted. On 2026-10-13 the owner confirmed Uniship API integration permission and approved `userid` identity mapping. Missing permission and userid semantics are not unresolved blockers for this scope. Real Uniship authentication remains technically unverified; `UNISHIP_LIVE_AUTHORIZED` is an explicit deployment switch, default `false`. Broader rights to retain provider tokens, customer profiles or shipment data are not established by that confirmation and remain outside this milestone. General feasibility requirements still apply to future shipment synchronization and other providers.
+
+## Multi-Carrier Management Amendment — 2026-10-14
+
+Per [ADR-007](multi-carrier-architecture.md), Nexora introduces multi-carrier connection management while preserving strict product scope boundaries:
+
+1. **Scope Inclusion**: Connection metadata (`carrier_connections`), encrypted credential storage (`carrier_connection_secrets`), provider adapters (starting with Uniship in PR 4), and on-demand token verification (`POST /client/api-token-verify/`).
+2. **Strict Exclusions**: No shipment business tables (`shipments`, `tracking_events`), no background sync jobs, no message queues (Kafka/RabbitMQ), no Redis caching clusters, and no analytics dashboards. All carrier interactions remain on-demand. Carrier connections do not alter Nexora's ownership of the Shipment domain.
