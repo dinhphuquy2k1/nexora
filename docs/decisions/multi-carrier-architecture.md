@@ -101,11 +101,28 @@ Nexora is actively under development and has **zero real production users or leg
      - **Initial Issuance (`POST /api/admin/operators`)**: ADMIN creates an operator account (`{ username }`), creating `users` with `role = 'OPERATOR'`, `status = 'ACTIVE'`, and no password credential. The API generates a high-entropy CSPRNG setup token (≥128 bits entropy), stores its SHA-256 hash in `operator_setup_tokens`, and returns `{ user, setupUrl, expiresAt }`.
      - **Reissue Endpoint (`POST /api/admin/operators/:id/setup-link`)**: ADMIN can reissue a setup link for an active operator. The transaction locks the target user row (`SELECT ... FOR UPDATE`), verifies that the user is `ACTIVE`, has `role = 'OPERATOR'`, and strictly checks that no credential exists in `user_credentials`. If credentials already exist, it rejects with `400 OPERATOR_ALREADY_CONFIGURED` ("Tài khoản đã thiết lập mật khẩu") because setup links cannot be used as an arbitrary password reset tool. Reissue atomically invalidates all unconsumed setup tokens for that user (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL;`), generates a new CSPRNG token hash (24h TTL), and returns `{ setupUrl, expiresAt }`.
      - **Token Lifecycle & Privacy**: Token has a short TTL (24 hours) and is strictly single-use. Only the SHA-256 hash is persisted. The raw token is returned only once in `setupUrl`, never echoed again, never logged, and never included in error payloads.
-     - **Atomic Consumption (`POST /api/auth/setup-password`)**: Decorated with `@Public()` and `OriginGuard`. Inside a short transaction:
-       1. Atomically consumes token: `UPDATE operator_setup_tokens SET consumed_at = now() WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now() RETURNING user_id;` (aborts if not found).
-       2. Locks user row (`SELECT id, status, role FROM users WHERE id = $user_id FOR UPDATE;`), verifies `status = 'ACTIVE'` and `role = 'OPERATOR'`.
-       3. Re-checks that `user_credentials` does NOT exist for this user (preventing race overwrites of existing passwords).
-       4. Persists Scrypt password hash to `user_credentials`.
+     - **Atomic Consumption (`POST /api/auth/setup-password`)**: Decorated with `@Public()` and `OriginGuard`. Follows the strict unified lock order (**user row lock → operator_setup_tokens update**) to eliminate cross-transaction deadlocks:
+       1. Validates token/password, enforces rate limiting, and computes SHA-256 token hash.
+       2. Computes Scrypt password hash strictly **outside** the database transaction to prevent holding DB locks during CPU/memory-intensive work.
+       3. Executes a non-locking query: `SELECT user_id FROM operator_setup_tokens WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now();` to locate `user_id`. If not found, aborts with `400 INVALID_OR_EXPIRED_SETUP_TOKEN`.
+       4. Opens a short database transaction:
+          - Locks user row FIRST: `SELECT id, role, status FROM users WHERE id = $user_id FOR UPDATE;`
+          - Verifies `role = 'OPERATOR'` and `status = 'ACTIVE'` (aborts/rollbacks if violated).
+          - Executes conditional atomic token consumption:
+            ```sql
+            UPDATE operator_setup_tokens
+            SET consumed_at = now()
+            WHERE token_hash = $1
+              AND user_id = $2
+              AND consumed_at IS NULL
+              AND expires_at > now()
+            RETURNING id;
+            ```
+            If zero rows are returned (token was consumed, invalidated, or expired concurrently), aborts and rollbacks with `400 INVALID_OR_EXPIRED_SETUP_TOKEN`.
+          - Strictly verifies that no credential exists in `user_credentials` for this user (preventing password overwrite races).
+          - Inserts Scrypt password credential into `user_credentials`.
+          - Commits transaction.
+     - **Unified Lock Ordering Invariant**: Every operation modifying setup tokens (`consume`, `reissue`, `disable`) MUST lock the target user row (`users FOR UPDATE`) before updating `operator_setup_tokens`. Consistent lock ordering prevents PostgreSQL cross-transaction deadlocks.
      - **Revocation on User Disablement**: Disabling an operator atomically marks all unconsumed `operator_setup_tokens` for that user as consumed/invalidated in the same transaction. Reactivating the user does NOT restore old setup tokens; a new link must be explicitly reissued.
      - **Administrator Boundary**: Administrators CANNOT view or choose operator passwords.
      - **Scope**: PR 2 implements and verifies onboarding in local/test environments. PR 7 verifies remote employee password setup over HTTPS. General email/SMS delivery systems are excluded from this milestone.
@@ -129,7 +146,11 @@ Nexora is actively under development and has **zero real production users or leg
      4. Lock the target user row: `SELECT id, role, status FROM users WHERE id = $1 FOR UPDATE;` and perform the update.
      - The transaction-level advisory lock acquired before user-row locks serializes operations that reduce active administrators under this protocol, preventing lock-ordering deadlocks and race conditions specifically between those administrative mutations.
      - Invariant: Transactions holding advisory locks or row locks are NEVER held across HTTP calls or slow operations.
-   - **User Disablement**: Disabling a user atomically sets `status = 'DISABLED'`, revokes all active sessions, revokes all pending MFA challenges, invalidates all unconsumed operator setup tokens (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL`), deletes all carrier connection secrets, and sets connection statuses to `REAUTH_REQUIRED`. Subsequent late-arriving carrier HTTP responses cannot recreate secrets, and reactivation of the user does NOT resurrect revoked setup tokens.
+   - **Stage-Aware Progressive User Disablement Transaction**: Disabling a user expands transaction responsibilities incrementally across milestones. Each PR only queries tables physically existing in its schema stage; using `catch` blocks or raw SQL `IF EXISTS` to mask unmigrated tables is strictly prohibited:
+     - **Logical PR 2**: Acquires advisory lock if disabling an ADMIN (`SELECT pg_advisory_xact_lock(...)`), locks target user row (`SELECT id, role, status FROM users WHERE id = $1 FOR UPDATE;`), sets `status = 'DISABLED'`, deletes active sessions (`DELETE FROM sessions WHERE user_id = $1;`), and invalidates all unconsumed setup tokens (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL;`). Zero queries against carrier secrets or MFA challenge tables.
+     - **Logical PR 3 (Carrier Extension)**: Extends the PR 2 transaction to delete carrier secrets (`DELETE FROM carrier_connection_secrets WHERE connection_id IN (SELECT id FROM carrier_connections WHERE user_id = $1);`) and update carrier connections status to `REAUTH_REQUIRED`. Late-arriving carrier HTTP responses cannot recreate secrets.
+     - **Logical PR 6 (MFA Extension)**: Extends the PR 3 transaction to delete all pending MFA challenges (`DELETE FROM mfa_challenges WHERE user_id = $1;`) and revoke MFA challenges on role/status change.
+     - _Invariant_: Reactivation of a user does NOT restore invalidated setup tokens or deleted carrier secrets. A new setup link must be explicitly reissued.
    - **Connection Deletion**: Disconnection is implemented as a hard delete (`DELETE FROM carrier_connections WHERE id = $1`), atomically removing the connection and cascading to all associated secrets.
    - **Singleflight Concurrency**: In-memory singleflight deduplicates simultaneous carrier token refresh requests within a single API instance. Database transactions are never held across external HTTP carrier calls.
 

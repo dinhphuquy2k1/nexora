@@ -53,16 +53,24 @@ This task (`NEXORA-015`, Logical PR 1 / GitHub PR #15) delivers the complete arc
   - `docs/architecture/api-contract.md` updated with carrier connection endpoints (generic `400 CANNOT_CONNECT_CARRIER_ACCOUNT`, `401 UNAUTHORIZED` across carrier endpoints), operator setup endpoints, deferred admin carrier endpoints, and MFA endpoints.
   - `docs/architecture/runtime.md` and `docs/operations/deployment.md` updated with public HTTPS release gates and host NTP verification.
   - `docs/domains/shipments.md` updated to clarify that carrier connections do not implement shipment tables or background workers.
-- [x] **Milestone-Based ADMIN Authorization Policy (I1)**:
-  - PR 2 through pre-PR 6: ACTIVE ADMIN with local password session (`auth_level = 'PASSWORD'`) accesses `/api/admin/operators` and setup link reissue on loopback/local environment; no public Internet exposure; does not depend on unreleased MFA.
-  - PR 6 onward: All `/api/admin/...` endpoints strictly require `role = 'ADMIN'` AND `auth_level = 'MFA'`; password-only admin sessions revoked/rejected; no permanent MFA bypass.
+- [x] **Operator Setup Token Deadlock-Free Lock Ordering (I1)**:
+  - Unified lock order: **user row lock → operator_setup_tokens update** across `consume`, `reissue`, and `disable`.
+  - `POST /api/auth/setup-password` runs Scrypt hashing outside the transaction, performs non-locking lookup of `user_id`, opens transaction and locks user FIRST (`SELECT ... FOR UPDATE`), validates `role = 'OPERATOR'` and `status = 'ACTIVE'`, conditionally consumes token (`WHERE token_hash = $1 AND user_id = $2 AND consumed_at IS NULL AND expires_at > now() RETURNING id`), checks absence of `user_credentials`, and inserts credential.
+- [x] **Stage-Aware Progressive User Disablement Transaction (M1)**:
+  - PR 2 transaction: disables user, revokes sessions, invalidates unconsumed setup tokens, protects last active admin via advisory lock. Zero queries to carrier secrets or MFA challenge tables.
+  - PR 3 transaction: extends PR 2 to delete carrier connection secrets and mark connections `REAUTH_REQUIRED`.
+  - PR 6 transaction: extends PR 3 to revoke pending MFA challenges.
+  - Prohibits `catch` blocks or raw SQL `IF EXISTS` to swallow unmigrated schema errors.
+- [x] **Milestone-Based ADMIN Authorization & sessions.auth_level Decoupling (M2)**:
+  - Database schema in PR 2..5 does NOT have `sessions.auth_level`. ADMIN authorization on loopback checks active session and `role === 'ADMIN'`. "PASSWORD" is a logical assurance property, NOT a database field at PR 2.
+  - PR 6 migration adds `sessions.auth_level VARCHAR(16) NOT NULL DEFAULT 'PASSWORD'` with CHECK constraint. Enforces `role === 'ADMIN'` AND `auth_level === 'MFA'` on all `/api/admin/...` endpoints; revokes password-only admin sessions.
   - PR 7: Public HTTPS profile boot validation fails if MFA enforcement disabled; zero admin endpoints bypass MFA.
-- [x] **Operator Setup Link Reissue Contract (M1)**:
+- [x] **Operator Setup Link Reissue Contract**:
   - `POST /api/admin/operators/:id/setup-link` specified for ACTIVE OPERATOR without credentials.
   - Atomically invalidates all prior unconsumed setup tokens for that user.
   - Returns `{ setupUrl, expiresAt }` (high-entropy CSPRNG token, SHA-256 hash only stored, 24h TTL, single-use, never logged or echoed).
   - Rejects if user already has credentials (`400 OPERATOR_ALREADY_CONFIGURED`). Cannot be used as a password reset tool.
-- [x] **Setup Token Revocation on Operator Disablement & Non-Overwrite (M2)**:
+- [x] **Setup Token Revocation on Operator Disablement & Non-Overwrite**:
   - Disabling an OPERATOR atomically invalidates all unconsumed `operator_setup_tokens` in the same transaction; reactivation does not restore old tokens.
   - `POST /api/auth/setup-password` verifies that the operator is `ACTIVE` and has no existing `user_credentials` before persisting credentials.
 - [x] **Interim Carrier Admin CLI Clarification (M3)**:

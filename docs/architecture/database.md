@@ -48,9 +48,30 @@ CREATE INDEX idx_operator_setup_tokens_user ON operator_setup_tokens(user_id);
 ```
 
 - **High-Entropy Token Hash**: Random token is generated via CSPRNG (≥128 bits entropy). Only its SHA-256 hash is persisted in the database; raw tokens are never saved or logged.
-- **Short TTL & Single-Use**: Default TTL is 24 hours. The token is consumed atomically in a single transaction (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now() RETURNING user_id;`).
-- **Reissue Invalidation**: Reissuing an onboarding link via `POST /api/admin/operators/:id/setup-link` atomically invalidates all prior unconsumed tokens for that `user_id` (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL;`). Only OPERATOR accounts in `ACTIVE` status without existing credentials in `user_credentials` may have links reissued.
-- **Credential Non-Overwrite Constraint**: `POST /api/auth/setup-password` atomicaly validates that the user is `ACTIVE` and has NO existing record in `user_credentials`. If credentials already exist, consumption fails (`400 OPERATOR_ALREADY_CONFIGURED`). Setup tokens cannot be used as password resets and cannot overwrite established passwords.
+- **Short TTL & Single-Use**: Default TTL is 24 hours. Token consumption follows the strict unified lock order (**user row lock → token update**):
+  1. Input validation, rate limiting, and SHA-256 token hash computation.
+  2. Scrypt password hashing executes strictly **outside** the database transaction to prevent holding DB locks during CPU/memory-intensive work.
+  3. Non-locking lookup: `SELECT user_id FROM operator_setup_tokens WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now();` locates candidate `user_id`. If not found, aborts with 400.
+  4. Open short database transaction:
+     - Lock target user first: `SELECT id, role, status FROM users WHERE id = $user_id FOR UPDATE;`
+     - Verify `role = 'OPERATOR'` and `status = 'ACTIVE'` (aborts/rollbacks if violated).
+     - Conditional atomic token consumption:
+       ```sql
+       UPDATE operator_setup_tokens
+       SET consumed_at = now()
+       WHERE token_hash = $1
+         AND user_id = $2
+         AND consumed_at IS NULL
+         AND expires_at > now()
+       RETURNING id;
+       ```
+       If zero rows returned (token was consumed, invalidated, or expired concurrently), abort and rollback with `400 INVALID_OR_EXPIRED_SETUP_TOKEN`.
+     - Verify no existing credential: `SELECT user_id FROM user_credentials WHERE user_id = $user_id;`. If exists, abort with `400 OPERATOR_ALREADY_CONFIGURED`.
+     - Insert Scrypt hash into `user_credentials`.
+     - Commit transaction.
+- **Unified Lock Ordering Invariant**: Every operation modifying setup tokens (`consume`, `reissue`, `disable`) MUST lock the target user row (`users FOR UPDATE`) before modifying `operator_setup_tokens`. Consistent lock ordering prevents PostgreSQL cross-transaction deadlocks.
+- **Reissue Invalidation**: Reissuing an onboarding link via `POST /api/admin/operators/:id/setup-link` locks `users` FOR UPDATE, validates `ACTIVE` OPERATOR without credentials, and atomically invalidates all prior unconsumed tokens for that `user_id` (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL;`). Only OPERATOR accounts in `ACTIVE` status without existing credentials in `user_credentials` may have links reissued.
+- **Credential Non-Overwrite Constraint**: `POST /api/auth/setup-password` atomically validates under user lock that the user is `ACTIVE` and has NO existing record in `user_credentials`. If credentials already exist, consumption fails (`400 OPERATOR_ALREADY_CONFIGURED`). Setup tokens cannot be used as password resets and cannot overwrite established passwords.
 - **Revocation on User Disablement**: Disabling an OPERATOR account atomically marks all unconsumed `operator_setup_tokens` for that user as consumed/invalidated. Account reactivation does NOT resurrect old tokens; a fresh token must be explicitly generated via reissue.
 - **Credential Isolation**: ADMIN cannot view or choose the operator's password. Password hash is inserted directly into `user_credentials` when the operator consumes the setup link.
 
@@ -108,7 +129,10 @@ CREATE TABLE carrier_connection_secrets (
 
 ### 4. Session Assurance & MFA Tables (PR 6)
 
-- **`sessions.auth_level`**: Added in PR 6 with `DEFAULT 'PASSWORD'`, `NOT NULL`, and `CHECK (auth_level IN ('PASSWORD', 'MFA'))`. Session migration assigns `PASSWORD` to all existing sessions without downtime.
+- **`sessions.auth_level` (Deferred to PR 6)**: The physical database column `sessions.auth_level` is introduced exclusively in Logical PR 6 (`ALTER TABLE sessions ADD COLUMN auth_level VARCHAR(16) NOT NULL DEFAULT 'PASSWORD'`, with `CONSTRAINT chk_sessions_auth_level CHECK (auth_level IN ('PASSWORD', 'MFA'))`).
+  - **PR 2 → Prior to PR 6**: The database table `sessions` does NOT possess an `auth_level` column. Schema migrations in PR 2..5 do not read, write, or require this column. In this interim milestone, administrative authorization on loopback/local relies strictly on opaque session lookup, validity, and the linked user's `role === 'ADMIN'`. "PASSWORD" in PR 2..5 is strictly a logical assurance classification, NOT a database field.
+  - **PR 6 Onward**: Session migration assigns `PASSWORD` to all existing active sessions without downtime. Administrative endpoints then enforce `role === 'ADMIN'` AND `auth_level === 'MFA'`. Password-only administrative sessions are rejected or revoked.
+  - **PR 7**: Public HTTPS profile verifies at application boot that MFA enforcement is active; zero admin endpoints bypass MFA.
 - **`user_mfa`**: Stores TOTP configuration for ADMIN users:
   ```sql
   CREATE TABLE user_mfa (
@@ -180,14 +204,17 @@ CREATE TABLE carrier_connection_secrets (
   DELETE FROM sessions WHERE user_id = $1;
   DELETE FROM mfa_challenges WHERE user_id = $1;
   ```
-- **User Disablement**: Executed in a single atomic transaction:
-  1. Acquire advisory lock if disabling an ADMIN (`SELECT pg_advisory_xact_lock(...)`).
-  2. `SELECT id FROM users WHERE id = $1 FOR UPDATE;`
-  3. Update `users.status = 'DISABLED'`.
-  4. Delete all sessions (`DELETE FROM sessions WHERE user_id = $1;`).
-  5. Delete all pending challenges (`DELETE FROM mfa_challenges WHERE user_id = $1;`).
-  6. Invalidate all unconsumed setup tokens (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL;`).
-  7. Delete all carrier connection secrets (`DELETE FROM carrier_connection_secrets WHERE connection_id IN (SELECT id FROM carrier_connections WHERE user_id = $1);`).
-  8. Update carrier connections status to `'REAUTH_REQUIRED'`.
-  - _Note_: Reactivation does not restore invalidated setup tokens. A new setup link must be issued via `POST /api/admin/operators/:id/setup-link`.
+- **Stage-Aware Progressive User Disablement Transaction**: User disablement responsibilities expand incrementally across milestones. Each PR only queries tables physically existing in its schema stage; using `catch` blocks or raw SQL `IF EXISTS` to mask unmigrated tables is strictly prohibited.
+  - **Logical PR 2**:
+    1. Acquire advisory lock if disabling an ADMIN (`SELECT pg_advisory_xact_lock(...)`).
+    2. Lock target user row: `SELECT id, role, status FROM users WHERE id = $1 FOR UPDATE;`
+    3. Update `users.status = 'DISABLED'`.
+    4. Revoke active sessions: `DELETE FROM sessions WHERE user_id = $1;`
+    5. Invalidate unconsumed setup tokens: `UPDATE operator_setup_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL;`
+    6. Commit transaction. (Zero queries or deletions against carrier secrets or MFA challenge tables).
+  - **Logical PR 3 (Carrier Extension)**:
+    Extends the PR 2 transaction to clean up carrier connection credentials: 7. Delete all carrier connection secrets: `DELETE FROM carrier_connection_secrets WHERE connection_id IN (SELECT id FROM carrier_connections WHERE user_id = $1);` 8. Update carrier connections status: `UPDATE carrier_connections SET status = 'REAUTH_REQUIRED' WHERE user_id = $1;`
+  - **Logical PR 6 (MFA Extension)**:
+    Extends the PR 3 transaction to revoke MFA challenges: 9. Delete all pending MFA challenges: `DELETE FROM mfa_challenges WHERE user_id = $1;`
+  - _Note_: Reactivation of a user does NOT restore invalidated setup tokens or deleted carrier secrets. A new setup link must be explicitly issued via `POST /api/admin/operators/:id/setup-link`.
 - **Pre-Commit Write Validation**: Before persisting renewed tokens or secrets, transactions lock the user row to ensure the account remains `ACTIVE`. In-flight responses arriving after disablement are safely discarded.
