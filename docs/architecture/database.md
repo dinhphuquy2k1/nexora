@@ -49,7 +49,9 @@ CREATE INDEX idx_operator_setup_tokens_user ON operator_setup_tokens(user_id);
 
 - **High-Entropy Token Hash**: Random token is generated via CSPRNG (≥128 bits entropy). Only its SHA-256 hash is persisted in the database; raw tokens are never saved or logged.
 - **Short TTL & Single-Use**: Default TTL is 24 hours. The token is consumed atomically in a single transaction (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now() RETURNING user_id;`).
-- **Reissue Invalidation**: Reissuing an onboarding link atomically marks any previous unconsumed token for that `user_id` as consumed.
+- **Reissue Invalidation**: Reissuing an onboarding link via `POST /api/admin/operators/:id/setup-link` atomically invalidates all prior unconsumed tokens for that `user_id` (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL;`). Only OPERATOR accounts in `ACTIVE` status without existing credentials in `user_credentials` may have links reissued.
+- **Credential Non-Overwrite Constraint**: `POST /api/auth/setup-password` atomicaly validates that the user is `ACTIVE` and has NO existing record in `user_credentials`. If credentials already exist, consumption fails (`400 OPERATOR_ALREADY_CONFIGURED`). Setup tokens cannot be used as password resets and cannot overwrite established passwords.
+- **Revocation on User Disablement**: Disabling an OPERATOR account atomically marks all unconsumed `operator_setup_tokens` for that user as consumed/invalidated. Account reactivation does NOT resurrect old tokens; a fresh token must be explicitly generated via reissue.
 - **Credential Isolation**: ADMIN cannot view or choose the operator's password. Password hash is inserted directly into `user_credentials` when the operator consumes the setup link.
 
 ### 2. `carrier_connections` (PR 3)
@@ -156,7 +158,7 @@ CREATE TABLE carrier_connection_secrets (
      ```
   3. If count is `<= 1` and the target user is an active admin, abort with `400 CANNOT_DISABLE_LAST_ADMIN` (or `CANNOT_DEMOTE_LAST_ADMIN`).
   4. Lock the target user row (`SELECT id, role, status FROM users WHERE id = $1 FOR UPDATE;`) and execute the status/role mutation.
-  - The advisory lock serializes all administrative reductions across the cluster, completely eliminating deadlock hazards and guaranteeing that zero active administrators can ever occur.
+  - The transaction-level advisory lock acquired before user-row locks serializes administrative operations that reduce active administrators adhering to this protocol, preventing lock-ordering deadlocks and race conditions specifically between those administrative mutations while strictly guaranteeing that the active administrator count never falls to zero.
   - _Strict Rule_: Transactions holding advisory locks or row locks are never held across HTTP requests or slow I/O.
 - **CLI TOTP Enrollment Protocol (No Locks During Interactive Input)**:
   1. CLI prompts for password via hidden terminal prompt; Scrypt hash verification executes outside the transaction.
@@ -184,6 +186,8 @@ CREATE TABLE carrier_connection_secrets (
   3. Update `users.status = 'DISABLED'`.
   4. Delete all sessions (`DELETE FROM sessions WHERE user_id = $1;`).
   5. Delete all pending challenges (`DELETE FROM mfa_challenges WHERE user_id = $1;`).
-  6. Delete all carrier connection secrets (`DELETE FROM carrier_connection_secrets WHERE connection_id IN (SELECT id FROM carrier_connections WHERE user_id = $1);`).
-  7. Update carrier connections status to `'REAUTH_REQUIRED'`.
+  6. Invalidate all unconsumed setup tokens (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL;`).
+  7. Delete all carrier connection secrets (`DELETE FROM carrier_connection_secrets WHERE connection_id IN (SELECT id FROM carrier_connections WHERE user_id = $1);`).
+  8. Update carrier connections status to `'REAUTH_REQUIRED'`.
+  - _Note_: Reactivation does not restore invalidated setup tokens. A new setup link must be issued via `POST /api/admin/operators/:id/setup-link`.
 - **Pre-Commit Write Validation**: Before persisting renewed tokens or secrets, transactions lock the user row to ensure the account remains `ACTIVE`. In-flight responses arriving after disablement are safely discarded.
