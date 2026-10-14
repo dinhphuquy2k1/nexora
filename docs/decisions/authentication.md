@@ -62,10 +62,13 @@ Phase 2 adds `ProviderAuthenticationPort`, `UnishipAuthAdapter`, and `POST /api/
 
 Per [ADR-007](multi-carrier-architecture.md), the authentication and session model is extended as follows:
 
-1. **Unified Local Login for Operators**: Provider login (`POST /api/auth/provider/login`) is eliminated in PR 2. Both `ADMIN` and `OPERATOR` use local credentials (`POST /api/auth/login`).
+1. **Unified Local Login & Operator Onboarding (PR 2)**:
+   - Provider login (`POST /api/auth/provider/login`) is eliminated in PR 2. Both `ADMIN` and `OPERATOR` use local credentials (`POST /api/auth/login`).
+   - Operator onboarding uses single-use setup links: `POST /api/admin/operators` creates the operator account without a password and generates a high-entropy CSPRNG token hash (24h TTL) stored in `operator_setup_tokens`. The operator consumes the link via `POST /api/auth/setup-password` (`@Public()`, `OriginGuard`) which atomically consumes the token and sets the Scrypt password. Admins cannot view or set operator passwords.
+   - Operations reducing active admins are serialized by a transaction-level advisory lock (`pg_advisory_xact_lock(hashtext('nexora_active_admin_invariant'))`) preventing deadlocks and zero active admin lockout.
 2. **ADMIN Mandatory TOTP MFA (PR 6)**:
    - All `ADMIN` logins require RFC 6238 TOTP (SHA-1, 6 digits, 30s step).
-   - MFA enrollment occurs strictly through interactive server CLI (`pnpm mfa:enroll`); no HTTP enrollment endpoints exist. The CLI initializes `user_mfa.last_used_step` with the confirmation code's time-step, preventing replay.
+   - MFA enrollment occurs strictly through interactive server CLI (`pnpm mfa:enroll`); no HTTP enrollment endpoints exist. Password verification, secret generation, and confirmation code entry occur outside database transactions (no row locks held during TTY input). After verification, a short transaction locks the user row, verifies status/role/hash equality, initializes `user_mfa.last_used_step` to the confirmation step (preventing replay), saves recovery code hashes, revokes sessions/challenges, and commits. Recovery codes are displayed once only after commit.
    - Successful password verification produces a short-lived pending MFA challenge (cookie `SameSite: Strict`, `HttpOnly`, 5m TTL).
    - `POST /api/auth/mfa/verify` is explicitly decorated with `@Public()` to bypass global `SessionGuard`, but strictly enforced by `OriginGuard`, valid challenge cookie, account rate limiting, and replay prevention.
    - **Password-Hash Recheck**: Scrypt password verification runs outside the transaction; inside a short transaction, the server locks `users` (`FOR UPDATE`), verifies role/status, and re-checks `user_credentials.password_hash` against the verified hash.

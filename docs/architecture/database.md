@@ -28,9 +28,31 @@ IMPLEMENTED in PR #10, verification tracked in NEXORA-012; SUPERSEDED by [ADR-00
 
 ## Multi-Carrier & MFA Database Schemas (Target Architecture — ADR-007)
 
-Under [ADR-007](../decisions/multi-carrier-architecture.md), the database schema introduces multi-carrier connections, encrypted credentials, and MFA primitives:
+Under [ADR-007](../decisions/multi-carrier-architecture.md), the database schema introduces multi-carrier connections, encrypted credentials, operator onboarding tokens, and MFA primitives:
 
-### 1. `carrier_connections` (PR 3)
+### 1. `operator_setup_tokens` (PR 2)
+
+Supports secure, one-time remote onboarding for OPERATOR users:
+
+```sql
+CREATE TABLE operator_setup_tokens (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash   VARCHAR(64) NOT NULL UNIQUE,
+    issued_by    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at   TIMESTAMPTZ NOT NULL,
+    consumed_at  TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_operator_setup_tokens_user ON operator_setup_tokens(user_id);
+```
+
+- **High-Entropy Token Hash**: Random token is generated via CSPRNG (≥128 bits entropy). Only its SHA-256 hash is persisted in the database; raw tokens are never saved or logged.
+- **Short TTL & Single-Use**: Default TTL is 24 hours. The token is consumed atomically in a single transaction (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now() RETURNING user_id;`).
+- **Reissue Invalidation**: Reissuing an onboarding link atomically marks any previous unconsumed token for that `user_id` as consumed.
+- **Credential Isolation**: ADMIN cannot view or choose the operator's password. Password hash is inserted directly into `user_credentials` when the operator consumes the setup link.
+
+### 2. `carrier_connections` (PR 3)
 
 Tracks carrier connection metadata owned by an individual Nexora user:
 
@@ -46,17 +68,19 @@ CREATE TABLE carrier_connections (
     last_verified_at    TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_carrier_connections_provider CHECK (provider IN ('uniship')),
     CONSTRAINT chk_carrier_connections_status CHECK (status IN ('CONNECTED', 'REAUTH_REQUIRED', 'ERROR')),
     CONSTRAINT uq_carrier_connections_provider_account UNIQUE (provider, external_account_id)
 );
 CREATE INDEX idx_carrier_connections_user_provider ON carrier_connections(user_id, provider);
 ```
 
-- **Global Uniqueness**: `UNIQUE (provider, external_account_id)` strictly prohibits binding the same physical carrier account to multiple Nexora users.
+- **Global Uniqueness**: `UNIQUE (provider, external_account_id)` strictly prohibits binding the same physical carrier account to multiple Nexora users. Attempted duplicate linkage returns a generic error (`400 CANNOT_CONNECT_CARRIER_ACCOUNT`) without leaking cross-user linkages.
 - **Ownership**: `user_id` is foreign-keyed to `users.id` with `ON DELETE CASCADE`.
+- **Domain Vocabulary & SQL CHECK**: `provider` is persisted domain vocabulary protected by raw SQL CHECK constraint `chk_carrier_connections_provider`. Adding future providers is executed via forward-only migrations modifying this constraint. Prisma enums, PostgreSQL ENUM types, and TypeScript enums are strictly forbidden.
 - **Conditional Login Identifier**: `login_identifier` (e.g. username/email) is conditional per adapter and nullable at the schema level to support providers that authenticate via OAuth, bearer tokens, or API keys without login usernames.
 
-### 2. `carrier_connection_secrets` (PR 3)
+### 3. `carrier_connection_secrets` (PR 3)
 
 Separates encrypted credentials (tokens, passwords) from metadata:
 
@@ -80,7 +104,7 @@ CREATE TABLE carrier_connection_secrets (
 - **Encryption**: AES-256-GCM. AAD binds `connection_id:user_id:provider:secret_type`.
 - **Default Password Persistence**: Carrier passwords are encrypted and stored by default upon connection. Disconnection cascades deletion of all secret rows.
 
-### 3. Session Assurance & MFA Tables (PR 6)
+### 4. Session Assurance & MFA Tables (PR 6)
 
 - **`sessions.auth_level`**: Added in PR 6 with `DEFAULT 'PASSWORD'`, `NOT NULL`, and `CHECK (auth_level IN ('PASSWORD', 'MFA'))`. Session migration assigns `PASSWORD` to all existing sessions without downtime.
 - **`user_mfa`**: Stores TOTP configuration for ADMIN users:
@@ -119,13 +143,31 @@ CREATE TABLE carrier_connection_secrets (
   CREATE INDEX idx_mfa_recovery_codes_user ON mfa_recovery_codes(user_id);
   ```
 
-### 4. Concurrency & Transactional Invariants
+### 5. Concurrency & Transactional Invariants
 
-- **Last Active Admin Invariant & Deterministic Lock Ordering**: Any mutation decreasing active administrators executes inside a short transaction that locks all active admin rows using deterministic lock ordering to prevent deadlocks:
-  ```sql
-  SELECT id FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE' ORDER BY id ASC FOR UPDATE;
-  ```
-  This prevents concurrent disablement/demotion from reducing active administrators to zero and eliminates deadlock hazards between concurrent transactions.
+- **Last Active Admin Invariant & Advisory Lock Protocol**: Row-level locking alone (`SELECT ... ORDER BY id ASC FOR UPDATE`) is vulnerable to deadlocks if another transaction previously locked a target user row. Therefore, any operation reducing active administrators (account disablement, role demotion, self-disablement) must adhere to a strict cluster-wide protocol:
+  1. Acquire a dedicated transaction-level PostgreSQL advisory lock:
+     ```sql
+     SELECT pg_advisory_xact_lock(hashtext('nexora_active_admin_invariant'));
+     ```
+  2. Inside the same transaction, count active administrators:
+     ```sql
+     SELECT count(*) FROM users WHERE role = 'ADMIN' AND status = 'ACTIVE';
+     ```
+  3. If count is `<= 1` and the target user is an active admin, abort with `400 CANNOT_DISABLE_LAST_ADMIN` (or `CANNOT_DEMOTE_LAST_ADMIN`).
+  4. Lock the target user row (`SELECT id, role, status FROM users WHERE id = $1 FOR UPDATE;`) and execute the status/role mutation.
+  - The advisory lock serializes all administrative reductions across the cluster, completely eliminating deadlock hazards and guaranteeing that zero active administrators can ever occur.
+  - _Strict Rule_: Transactions holding advisory locks or row locks are never held across HTTP requests or slow I/O.
+- **CLI TOTP Enrollment Protocol (No Locks During Interactive Input)**:
+  1. CLI prompts for password via hidden terminal prompt; Scrypt hash verification executes outside the transaction.
+  2. Candidate TOTP secret and recovery codes generated; confirmation code prompted and verified against secret outside the transaction.
+  3. After confirmation code verification, open a short database transaction:
+     - `SELECT id, role, status FROM users WHERE id = $1 FOR UPDATE;`
+     - Verify `status = 'ACTIVE'`, `role = 'ADMIN'`, and that `user_credentials.password_hash` exactly equals the verified hash.
+     - Insert `user_mfa` (with `last_used_step` set to the confirmed code step), insert recovery code hashes, and atomically delete all sessions and MFA challenges for that user.
+     - Commit transaction.
+  4. Print recovery codes to the terminal once only after successful transaction commit.
+  - _Strict Rule_: Never hold a database transaction or row lock while awaiting CLI user interaction.
 - **Password-Hash Recheck in Session/Challenge Issuance**: Scrypt password verification runs outside the database transaction. Subsequently, inside a short transaction:
   ```sql
   SELECT id, role, status FROM users WHERE id = $1 FOR UPDATE;
@@ -137,10 +179,11 @@ CREATE TABLE carrier_connection_secrets (
   DELETE FROM mfa_challenges WHERE user_id = $1;
   ```
 - **User Disablement**: Executed in a single atomic transaction:
-  1. `SELECT id FROM users WHERE id = $1 FOR UPDATE;`
-  2. Update `users.status = 'DISABLED'`.
-  3. Delete all sessions (`DELETE FROM sessions WHERE user_id = $1;`).
-  4. Delete all pending challenges (`DELETE FROM mfa_challenges WHERE user_id = $1;`).
-  5. Delete all carrier connection secrets (`DELETE FROM carrier_connection_secrets WHERE connection_id IN (SELECT id FROM carrier_connections WHERE user_id = $1);`).
-  6. Update carrier connections status to `'REAUTH_REQUIRED'`.
+  1. Acquire advisory lock if disabling an ADMIN (`SELECT pg_advisory_xact_lock(...)`).
+  2. `SELECT id FROM users WHERE id = $1 FOR UPDATE;`
+  3. Update `users.status = 'DISABLED'`.
+  4. Delete all sessions (`DELETE FROM sessions WHERE user_id = $1;`).
+  5. Delete all pending challenges (`DELETE FROM mfa_challenges WHERE user_id = $1;`).
+  6. Delete all carrier connection secrets (`DELETE FROM carrier_connection_secrets WHERE connection_id IN (SELECT id FROM carrier_connections WHERE user_id = $1);`).
+  7. Update carrier connections status to `'REAUTH_REQUIRED'`.
 - **Pre-Commit Write Validation**: Before persisting renewed tokens or secrets, transactions lock the user row to ensure the account remains `ACTIVE`. In-flight responses arriving after disablement are safely discarded.
