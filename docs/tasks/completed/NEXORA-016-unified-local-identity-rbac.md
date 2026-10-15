@@ -1,9 +1,9 @@
 # NEXORA-016 — Unified Local Identity, RBAC & Legacy Provider Removal
 
 - **Task ID**: `NEXORA-016`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `PARTIALLY VERIFIED`
+- **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
 
 ## Baseline and scope
@@ -90,7 +90,7 @@ Documentation Impact: REQUIRED
 | Frozen dependency installation                                                    | pinned pnpm 10.34.6 install --frozen-lockfile, no lockfile changes                                                                                                                                                                                                                | 2026-10-15 | PASS   |
 | Test-first local identity regression                                              | local-identity.test.cjs failed 3/3 against the baseline before implementation (old issuance API and configured OPERATOR rejection); subsequent API unit and genuine PostgreSQL suites pass                                                                                        | 2026-10-15 | PASS   |
 
-## Completion and verification scope
+## Original implementation verification scope (historical)
 
 All implementation acceptance criteria passed in the full canonical pipeline at `abbae80fc8463bd14a06337ed5df4b57ab3090f7`. That run executes `sh scripts/quality-docker.sh` (format, boundaries/lint, docs, typecheck, unit, docs/operations tests, contracts drift, build, migrated integration, real Prisma migration and actual psql cleanup), `sh scripts/runtime-smoke.sh`, `sh scripts/data-smoke.sh` and `sh scripts/dev-smoke.sh`. Native Web build/typecheck and `git diff --check` also passed. Final completion-record CI is tracked on [PR #16](https://github.com/dinhphuquy2k1/nexora/pull/16); this record adds no runtime behavior.
 
@@ -114,7 +114,7 @@ Reviewed/reopened baseline `016ef52e4a1ac3446732191b6cb4dfe25b2b132b`; remote HE
 
 ### PLAN ISSUE — LEGACY_PROVIDER_SESSION_CUTOVER
 
-RESOLVED — owner explicitly approved the proposed minimum cutover policy in chat on 2026-10-15. Approved policy: a new forward-only migration deletes every session (valid or expired) whose user is OPERATOR and has no local credential at cutover; preserves ADMIN sessions, configured OPERATOR sessions, users/credentials/files and other session rows. The schema contains no authentication-source marker, so provider-origin sessions of an already-configured OPERATOR cannot be distinguished. Deleted hashes never return when the operator sets a password. This intentionally narrows the earlier blanket session-preservation statement. Implement it as new migration `20261015010000_legacy_provider_session_cutover`; historical migration files remain unchanged. Policy approval is resolved, while fresh verification keeps this task active.
+RESOLVED — owner explicitly approved the proposed minimum cutover policy in chat on 2026-10-15. Approved policy: a new forward-only migration deletes every session (valid or expired) whose user is OPERATOR and has no local credential at cutover; preserves ADMIN sessions, configured OPERATOR sessions, users/credentials/files and other session rows. The schema contains no authentication-source marker, so provider-origin sessions of an already-configured OPERATOR cannot be distinguished. Deleted hashes never return when the operator sets a password. This intentionally narrows the earlier blanket session-preservation statement. Implement it as new migration `20261015010000_legacy_provider_session_cutover`; historical migration files remain unchanged. Policy approval is resolved; the fresh review verification below closes this follow-up.
 
 Canonical owners for this follow-up: ADR-007, authentication/unified identity, backend/database/API contract, setup/testing/deployment, and this task. Verify docs:check, format:check, contract drift and complete diff review.
 
@@ -122,7 +122,7 @@ Canonical owners for this follow-up: ADR-007, authentication/unified identity, b
 
 I1 tests were written before the new migration. The owned PostgreSQL SQL probe reproduced the baseline, then failed its desired revocation postcondition (RED). After the new migration, that same probe passed, preserving all four users, two credentials, two eligible sessions and the stored-file row (GREEN). This raw-DDL probe is not genuine Prisma history evidence; the staged Prisma/Nest tests provide that separately in canonical CI. No SessionGuard or authentication-source field was changed. Stop API/Web/provisioning writers for upgrade as documented.
 
-M2 adds a separate real HTTP matrix in `apps/api/test/user-status-http.test.cjs`; adapter races remain untouched. M1/m1 update current setup/testing and remove PR2 routes from deferred contracts. NEXORA-012 historical task evidence is preserved. Native frozen install passed on 2026-10-15; new-head CI and all required checks remain pending.
+M2 adds a separate real HTTP matrix in `apps/api/test/user-status-http.test.cjs`; adapter races remain untouched. M1/m1 update current setup/testing and remove PR2 routes from deferred contracts. NEXORA-012 historical task evidence is preserved. Native frozen install passed on 2026-10-15; fresh new-head results are recorded below.
 
 ### Fresh review verification (prior-head evidence is not reused)
 
@@ -133,4 +133,35 @@ M2 adds a separate real HTTP matrix in `apps/api/test/user-status-http.test.cjs`
 | I1 minimum approved cutover SQL                         | same fresh-database probe after sixth migration: only credentialless OPERATOR sessions removed, ADMIN/configured sessions/users/credentials/file preserved | 2026-10-15 | PASS   |
 | Review lint and documentation                           | pnpm lint (including boundaries), pnpm docs:check on review changes                                                                                        | 2026-10-15 | PASS   |
 
-Fresh genuine Prisma/Nest integration, migration drift, full Docker runtime/data/dev and exact new-head CI remain pending. The raw DDL probe is not reported as Prisma deployment evidence. M1/M2/m1 implementation is in place; I1 policy is approved and SQL implemented, subject to full verification.
+Fresh genuine Prisma/Nest integration, migration drift and full Docker runtime/data/dev subsequently passed at the review implementation head (see below). The raw DDL probe is not reported as Prisma deployment evidence. M1/M2/m1 implementation is in place; I1 policy is approved and SQL implemented, verified by the fresh full pipeline recorded below.
+
+### Fresh review evidence at implementation head
+
+| Claim                                                    | Evidence                                                                                                                                                                                                                                                                                      | Date       | Result |
+| :------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Real Prisma/Nest review integration and migration checks | [CI 38715955191](https://github.com/dinhphuquy2k1/nexora/actions/runs/38715955191), Docker quality and migrated integration step success at `7e3d87aefb7d7c7de4ceeaa89d29e7fcd4018b55`; includes I1 staged reproduction/cutover/setup/no-resurrection, full M2 HTTP matrix and existing races | 2026-10-15 | PASS   |
+| Current contracts unchanged                              | pnpm contracts:check at `7e3d87aefb7d7c7de4ceeaa89d29e7fcd4018b55`, Contracts reproducible PASS                                                                                                                                                                                               | 2026-10-15 | PASS   |
+| Review documentation/operations unit suites              | pnpm test:docs 6/6, pnpm test:operations 3/3, format:check and docs:check                                                                                                                                                                                                                     | 2026-10-15 | PASS   |
+| Native full typecheck                                    | configured API_INTERNAL_URL with pnpm typecheck; genuine Prisma engine download fails under environment network restrictions; no client/history substitution                                                                                                                                  | 2026-10-15 | FAIL   |
+| Setup P2 review finding addressed                        | [reply 4281509261](https://github.com/dinhphuquy2k1/nexora/pull/16#discussion_r4281509261), points to fixed setup.md:44 in pushed `7e3d87a`; thread PRRT_kwDOVCLk786ss15H resolved after actual doc correction                                                                                | 2026-10-15 | PASS   |
+
+Runtime/browser, persistence and dev subsequently passed on the same review head in attempt 2; historical implementation CI is not used in their place. Decision index `docs/decisions/README.md` also reflects implemented provider-login removal.
+
+| Claim                                 | Evidence                                                                                                                                                                                                                                                                                    | Date       | Result |
+| :------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------- | :----- |
+| First fresh review CI runtime attempt | CI 38715955191 attempt 1: quality/integration/migrations and proxy/auth runtime passed; Chromium did not create DevToolsActivePort within the existing launch wait, failing BROWSER_LAUNCH before form checks. Failed job rerun on the identical head; no assertion was skipped or weakened | 2026-10-15 | FAIL   |
+
+### Review completion — I1 / M1 / M2 / m1
+
+| Claim                                       | Evidence                                                                                                                                                                                                                                                                                                                           | Date       | Result |
+| :------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Complete fresh review CI                    | [38715955191 attempt 2](https://github.com/dinhphuquy2k1/nexora/actions/runs/38715955191/attempts/2), full success at `7e3d87aefb7d7c7de4ceeaa89d29e7fcd4018b55`; no source change between failed browser-launch attempt and successful retry                                                                                      | 2026-10-15 | PASS   |
+| I1 genuine staged migration/session cutover | Same fresh CI: pre-PR2 provider identity/session -> original PR2 reproduces acceptance -> approved sixth migration revokes credentialless OPERATOR sessions; ADMIN/configured sessions, users/credentials/files preserved; password setup cannot resurrect the old token, fresh local login succeeds, repeated deploy preserves it | 2026-10-15 | PASS   |
+| M2 full HTTP matrix and retained races      | pnpm test:integration, 13/13 including seven HTTP subtests, real Nest and isolated PostgreSQL; statuses/codes/envelopes/seven-field summaries, auth/Origin/validation/not-found, revocation/reactivation, self/other ADMIN and concurrent 200/409; existing transaction races unchanged                                            | 2026-10-15 | PASS   |
+| Migration constraints/preservation/drift    | pnpm --filter @nexora/database test:migrations: authentic Prisma history, selective cutover, old schema rollback/recovery, repeat and drift; no historical SQL changes                                                                                                                                                             | 2026-10-15 | PASS   |
+| M1 and m1 canonical synchronization         | setup.md:44 always-404/local credentials/independent future Carrier; testing.md actual suites; API contract implemented/deferred separation; ADR/authentication/backend/database/setup/deployment and decision index synchronized; final Unified Identity historical phase table clarified                                         | 2026-10-15 | PASS   |
+| Required fresh canonical commands           | quality-docker.sh executes frozen build context, format/boundaries/lint/docs/typecheck/test/test:docs/test:operations/contracts:check/build, test:integration and test:migrations; runtime-smoke.sh, data-smoke.sh and dev-smoke.sh all pass on review implementation head                                                         | 2026-10-15 | PASS   |
+
+All four review findings are resolved. `LEGACY_PROVIDER_SESSION_CUTOVER` and `USER_STATUS_ADMIN_CONTRACT` are owner-approved; no PLAN ISSUE remains open. Generic SessionGuard and HTTP/SDK contracts are unchanged. Minimum-policy limitation is explicit: old schema cannot distinguish provider-origin sessions of configured OPERATORs, whose sessions are retained by the approved decision.
+
+NEXORA-016 returns to COMPLETED / VERIFIED. Final documentation-record CI is tracked on PR #16 and must be reported against its exact final HEAD. Native engine-download failure and first-attempt Chromium startup failure remain visible above; neither is represented as a test PASS. No live Uniship, volume reset, historical migration rewrite, force-push, rebase or merge occurred. Documentation Impact: REQUIRED remains satisfied by the updated canonical owners and validation.

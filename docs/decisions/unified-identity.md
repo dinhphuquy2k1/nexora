@@ -35,11 +35,11 @@ No real credential/token is included. The owner confirmed permission for Uniship
 
 API permission and approved userid mapping do not establish unrestricted rights to retain provider tokens, customer profiles or shipment data. Exact retention terms, token lifecycle and rate limits are not available in repository evidence; broader storage remains deferred. No authorization-document metadata is inferred from the owner confirmation.
 
-Recorded decisions and remaining technical/data-handling questions:
+Historical provider observations and remaining Carrier technical/data-handling questions:
 
 1. Server-to-server API integration permission: confirmed by the owner on 2026-10-13; no reconfirmation required.
 2. Is userid stable and non-reassignable? (Owner confirmed permanent for application planning; formal provider contract pending)
-3. How may Admin legitimately obtain employee userids? (Owner confirmed: Admin manually obtains and enters userid via SQL)
+3. Historical preregistration used owner-confirmed manual userid entry; that SQL workflow is removed. Future Carrier linkage follows ADR-007.
 4. Are identities independent customer accounts or corporate subaccounts?
 5. What source-IP rate limits apply?
 6. Is server-IP allowlisting supported?
@@ -53,29 +53,22 @@ Recorded decisions and remaining technical/data-handling questions:
 
 The removed Identity provider flow had generic authentication failures and bounded admission. Its implementation/evidence is preserved in NEXORA-012. Current local login and deferred Carrier errors are owned by [API contract](../architecture/api-contract.md) and ADR-007; no provider authentication method remains in AuthService.
 
-## Separate future phases
+## Historical phases superseded by ADR-007
 
-| Phase | Dependency                                                                             | Scope                                                                                                                                   |
-| :---- | :------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | Phase 0 merged, merged schema/applicable migration CI verified, provenance established | Unified users/local credentials and preserved local authentication (IMPLEMENTED)                                                        |
-| 2     | Phase 1 merged/verified; owner confirms permanent userid semantics & manual SQL flow   | External identity schema, manual SQL operator registration, fake-provider login foundation (IMPLEMENTED); Admin UI/CRUD APIs (DEFERRED) |
-| 3     | Hosting inputs and administrative access policy approved                               | HTTPS ingress, cookies, Host/Origin, public/private separation, remote sessions                                                         |
-| 4     | Authorization confirmed; live technical evidence and applicable data terms             | Live Uniship verification; separately approved token persistence and oracle controls                                                    |
-| 5     | All dependency/security gates verified                                                 | Public HTTPS employee activation and remote multi-device readiness; local UI modes already implemented                                  |
+Original Phase 1/2 storage and experimental provider-login delivery are historical milestones recorded in NEXORA-011/NEXORA-012. Their old future-phase plan is superseded by ADR-007. Current Logical PR 2 implements local identity, onboarding and ADMIN status/list APIs. Carrier Connections (PR 3), Uniship Carrier Adapter (PR 4), ADMIN MFA (PR 6) and Public HTTPS (PR 7) remain deferred; staff management UI is also deferred. No old login-mode or SQL-registration workflow remains supported.
 
-Phases 3–5 require separate prompts and PRs. No JWT, Redis, generic RBAC framework, shipment integration or automatic deployment/merge follows from this decision.
+## Current storage ownership — Logical PR 2
 
-## Approved Phase 1 & 2 amendment — 2026-10-12
+This supersedes the Phase 1/2 external-binding selection while preserving accepted local identity ownership.
 
-The owner selects `users` plus `user_credentials` plus `external_identities` plus existing `sessions`.
+| Component             | Ownership                                                                               |
+| :-------------------- | :-------------------------------------------------------------------------------------- |
+| users                 | Nexora identity, ADMIN/OPERATOR role, ACTIVE/DISABLED status and metadata               |
+| user_credentials      | Optional one-to-one local Scrypt hash, user_id primary key/FK with cascade deletion     |
+| sessions              | Opaque SHA-256 session-token hashes, user association and expiry; independent per login |
+| operator_setup_tokens | Hashed 24h single-use OPERATOR setup links with target/issuer references                |
 
-| Component             | Ownership                                                                                                             |
-| :-------------------- | :-------------------------------------------------------------------------------------------------------------------- |
-| users                 | Application identity, role (ADMIN/OPERATOR), status (ACTIVE/DISABLED) and metadata                                    |
-| user_credentials      | Nexora-managed local Scrypt hashes; optional one-to-one UserCredential, user_id primary key/FK with ON DELETE CASCADE |
-| sessions              | Existing opaque session-token hashes, user association and expiry; multiple independent sessions                      |
-| operator_setup_tokens | Hashed 24h single-use OPERATOR setup links with target/issuer references                                              |
-| provider_credentials  | Future permitted encrypted provider tokens in a later phase                                                           |
+Carrier credential persistence is deferred under Carrier ownership in ADR-007; no provider credential table exists in PR 2.
 
 Never place carrier passwords or bearer tokens in user_credentials. Generic validation still checks an unrevoked/unexpired opaque session and ACTIVE user. Local Login independently requires an ACTIVE ADMIN or OPERATOR with a verified local credential. Provider Identity authentication no longer exists. Upgrade revocation is explicit in the approved cutover below, rather than a broad SessionGuard policy change.
 
