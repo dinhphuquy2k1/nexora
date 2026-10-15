@@ -1,3 +1,4 @@
+import { UserStatus } from "../../identity/domain/user-policy";
 import type { PrismaClient } from "@nexora/database";
 import { SecretCipher } from "../../common/crypto/secret-cipher";
 import { CarrierError, SecretType } from "../domain/carrier";
@@ -35,7 +36,8 @@ export class CarrierSecretWriter {
       const users = await tx.$queryRaw<
         Array<{ status: string }>
       >`SELECT status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
-      if (users[0]?.status !== "ACTIVE") throw new CarrierError("UNAUTHORIZED");
+      if (users[0]?.status !== UserStatus.ACTIVE)
+        throw new CarrierError("UNAUTHORIZED");
       const rows = await tx.$queryRaw<
         Array<{ provider: string }>
       >`SELECT provider FROM carrier_connections WHERE id=${connectionId}::uuid AND user_id=${userId}::uuid FOR UPDATE`;

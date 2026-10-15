@@ -1,11 +1,13 @@
 import { Injectable, HttpException } from "@nestjs/common";
 import { CarrierPort } from "./carrier.port";
-import { CarrierError } from "../domain/carrier";
+import { CarrierProvider, CarrierError } from "../domain/carrier";
 @Injectable()
 export class CarrierService {
   constructor(private readonly port: CarrierPort) {}
   providers() {
-    return { carriers: [{ provider: "uniship", displayName: "Uniship" }] };
+    return {
+      carriers: [{ provider: CarrierProvider.UNISHIP, displayName: "Uniship" }],
+    };
   }
   private validateId(id: string) {
     if (

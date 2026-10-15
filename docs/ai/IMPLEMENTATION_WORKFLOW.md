@@ -56,6 +56,7 @@ When Documentation Impact is `REQUIRED`, update the canonical owner in the same 
 
 1. Run targeted checks first, followed by relevant broader test suites (`pnpm quality`, `sh scripts/quality-docker.sh`, or smoke scripts).
 2. Inspect the complete Git diff (`git diff`) to verify:
+   - Canonical persisted vocabulary references audited across the production diff; `pnpm lint` and `pnpm test:lint` pass (including new vocabulary/context cases).
    - No architectural boundary violations (`node scripts/boundaries.mjs`).
    - No leaked credentials or sensitive headers in logs.
    - No untracked files or leftover scratch artifacts.

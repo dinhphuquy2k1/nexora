@@ -1,9 +1,9 @@
 # NEXORA-017 — Carrier Connections & Encrypted Secrets Foundation
 
 - **Task ID**: `NEXORA-017`
-- **Status**: `COMPLETED`
+- **Status**: `VERIFICATION PENDING`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `VERIFIED`
+- **Verification**: `PARTIALLY VERIFIED`
 - **Classification**: SIGNIFICANT
 - **Baseline**: `dd7d975cfbce960cfe37387a3d3c6e3ce1e638a3`
 - **Branch**: `feat/carrier-connections-foundation`
@@ -53,6 +53,8 @@ Carrier persistence, metadata APIs, shared crypto and key custody, stage-aware d
 - docs/architecture/runtime.md
 - docs/operations/configuration.md
 - docs/operations/testing.md
+- docs/ai/PROJECT_RULES.md
+- docs/ai/IMPLEMENTATION_WORKFLOW.md
 - docs/decisions/authentication.md
 - docs/decisions/unified-identity.md
 - docs/decisions/multi-carrier-architecture.md (owner-approved key custody amendment only)
@@ -100,3 +102,45 @@ Implemented paths: GET /api/carriers; GET /api/carrier-connections; PATCH /api/c
 PR4 remains PLANNED: provider contract/live merge gate, create/reconnect, verification, automatic refresh/re-login, durable SecurityAuditPort/sink and Carrier UI. Production password decryption is unavailable until durable audit is confirmed; PR3 provides generic primitive tests and encrypted writes only. ADMIN cross-user Carrier endpoints/CLI remain post-PR6. MFA/auth_level, public HTTPS, shipments/dashboard/workers are excluded. PR14 is untouched.
 
 Documentation Impact: REQUIRED is satisfied by synchronized canonical owners and executed validation. NEXORA-017 follows PLANNED -> IN PROGRESS -> VERIFICATION PENDING -> COMPLETED. PR17 is ready for review after exact final-head CI success, never automatically merged.
+
+## Canonical vocabulary enforcement follow-up — 2026-10-15
+
+Classification: SIGNIFICANT. Documentation Impact remains REQUIRED. Reopened from COMPLETED for the owner-requested PR17 follow-up; all previous evidence above is historical and preserved. Reviewed remote/local HEAD f438f19e19f47fc8b7529eb08cec6f118230880f, clean worktree, PR17 open/unmerged; no new PR or unrelated work.
+
+### Plan and interface preflight
+
+1. Test-first local AST ESLint rule using actual RuleTester/ESLint plus CLI failure/success probes. First demonstrate that violations are accepted without the rule (RED), then enable it before production changes to reproduce the four violations with nonzero lint exit.
+2. Rule scope: production apps/api/src/identity and carrier TypeScript; no blanket application/infrastructure exclusion. Recognize status/role/provider/secretType fields in object writes, nested Prisma filters, comparisons and assignments, including TypeScript wrappers. Ambiguous ERROR requires connection context. Never classify string value alone. Tests/generated/declarations/messages/routes are excluded. Canonical declaration keys are accepted without blanket file exemptions; arbitrary as-const objects with persisted fields are still checked.
+3. Reuse identity/domain/user-policy.ts UserStatus/UserRole and carrier/domain/carrier.ts ConnectionStatus/CarrierProvider/SecretType. Both leaf files have no imports: direct cross-feature imports introduce no cycle; do not move/duplicate constants. Fix three statuses and provider metadata after RED. Keep transactions/locking, HTTP/crypto/schema semantics identical.
+4. Add test:lint and run it in pnpm quality, while pnpm lint retains boundaries and enables the AST rule at error severity. Execute rule tests with real TypeScript AST and actual config, prove CLI exit nonzero then zero, and retain existing lint rules.
+5. Synchronize PROJECT_RULES, testing and implementation checklist plus this task. No new ADR decision. Run pinned frozen/static/unit/contracts and genuine canonical Docker CI at new HEAD, inspect entire diff, commit/push to existing branch, no rebase/force-push/merge.
+
+### Confirmed audit at reviewed HEAD
+
+- carrier/infrastructure/carrier.adapter.ts:28 — UserStatus ACTIVE comparison.
+- carrier/infrastructure/carrier-secret-writer.ts:38 — UserStatus ACTIVE comparison.
+- identity/infrastructure/user-management.adapter.ts:161 — ConnectionStatus REAUTH_REQUIRED update.
+- carrier/application/carrier.service.ts:8 — CarrierProvider uniship metadata return.
+
+Other matching values are canonical declarations, type vocabulary, unrelated messages/labels or SQL fixtures; no mechanical string replacement is permitted. Scope and deliberate context limitations must be documented and tested. Acceptance: all four fixed, real AST guard and positive/negative/config/CLI tests pass, no added cycles/boundary violations, contracts/crypto/migrations/behavior unchanged, canonical docs synchronized, commit pushed to PR17, fresh full exact-HEAD CI passes. Follow-up verification has not yet executed.
+
+### Executed RED -> GREEN evidence
+
+| Claim                               | Evidence                                                                                                                                            | Date       | Result |
+| :---------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Regression RED before guard         | node --test scripts/eslint-rules/no-domain-vocabulary-literals.test.mjs with no-op rule: first invalid ACTIVE comparison expected 1 error, actual 0 | 2026-10-15 | FAIL   |
+| Production RED after enabling guard | pnpm lint exited 1 with exactly four nexora/no-domain-vocabulary-literals errors at the audited locations, before production refactor               | 2026-10-15 | FAIL   |
+| Production GREEN after refactor     | pnpm lint: boundary checker and all existing/new ESLint rules pass after canonical leaf imports; no suppressions                                    | 2026-10-15 | PASS   |
+
+The rule implementation uses AST nodes rather than source regex. Ambiguous ERROR handling and contextual scope are deliberate; unknown aliases/dynamic properties/raw SQL remain manual review responsibilities. No architecture PLAN ISSUE: domain leaves are dependency-free. Fresh native/static/regression and full exact-head Docker CI evidence pending; previous pipeline PASS above is not reused for this follow-up.
+
+| Claim                       | Evidence                                                                                                                                                            | Date       | Result |
+| :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------- | :----- |
+| Guard GREEN                 | pnpm test:lint, 42/42: RuleTester TS AST, actual config exclusions/severity, CLI exit 1 -> 0, all owning declarations covered                                       | 2026-10-15 | PASS   |
+| Acyclic imports             | node /workspace/work/vocab-cycles.mjs: TypeScript static import/re-export graph over all 42 API source files, zero cycles; domain leaf imports have no dependencies | 2026-10-15 | PASS   |
+| Native regression           | pnpm --filter @nexora/api test: 69/69 using emitted unchanged-behavior JS; this alone does not establish genuine Prisma build                                       | 2026-10-15 | PASS   |
+| Native frozen/static checks | pnpm 10.34.6 install --frozen-lockfile; lint/boundaries; docs:check; format:check; git diff --check                                                                 | 2026-10-15 | PASS   |
+| Native full typecheck       | API_INTERNAL_URL configured, pnpm typecheck fails genuine Prisma schema-engine download with EAI_AGAIN to binaries.prisma.sh; no fake client/checksum bypass        | 2026-10-15 | FAIL   |
+| Contract regression         | pnpm contracts:check: reproducible PASS, generated OpenAPI/SDK unchanged                                                                                            | 2026-10-15 | PASS   |
+
+Native PostgreSQL integration and Docker smoke are NOT RUN on the restricted host; canonical hosted CI must execute the actual scripts and genuine migration history at the new pushed HEAD. ADR007, schema/migrations, DTOs/OpenAPI, crypto and transaction lock ordering are unchanged by this follow-up.

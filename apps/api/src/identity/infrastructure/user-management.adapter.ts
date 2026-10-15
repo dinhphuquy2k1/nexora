@@ -1,3 +1,4 @@
+import { ConnectionStatus } from "../../carrier/domain/carrier";
 import {
   createDatabase,
   hashPassword,
@@ -158,7 +159,7 @@ export class UserManagementAdapter implements UserManagementPort {
         });
         await tx.carrierConnection.updateMany({
           where: { userId },
-          data: { status: "REAUTH_REQUIRED" },
+          data: { status: ConnectionStatus.REAUTH_REQUIRED },
         });
       }
       return {

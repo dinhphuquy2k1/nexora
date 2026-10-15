@@ -1,3 +1,4 @@
+import { UserStatus } from "../../identity/domain/user-policy";
 import {
   createDatabase,
   type PrismaClient,
@@ -25,7 +26,8 @@ export class CarrierAdapter implements CarrierPort {
     const rows = await tx.$queryRaw<
       Array<{ status: string }>
     >`SELECT status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
-    if (rows[0]?.status !== "ACTIVE") throw new CarrierError("UNAUTHORIZED");
+    if (rows[0]?.status !== UserStatus.ACTIVE)
+      throw new CarrierError("UNAUTHORIZED");
   }
   async list(userId: string) {
     return this.client.$transaction(async (tx) => {

@@ -1,3 +1,4 @@
+import domainVocabulary from "./scripts/eslint-rules/no-domain-vocabulary-literals.mjs";
 import js from "@eslint/js";
 import ts from "typescript-eslint";
 export default ts.config(
@@ -10,6 +11,21 @@ export default ts.config(
       "**/generated/**",
       "apps/web/next-env.d.ts",
     ],
+  },
+  {
+    files: ["apps/api/src/{identity,carrier}/**/*.ts"],
+    ignores: [
+      "**/test/**",
+      "**/tests/**",
+      "**/__tests__/**",
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/*.d.ts",
+    ],
+    plugins: {
+      nexora: { rules: { "no-domain-vocabulary-literals": domainVocabulary } },
+    },
+    rules: { "nexora/no-domain-vocabulary-literals": "error" },
   },
   js.configs.recommended,
   ...ts.configs.recommended,
