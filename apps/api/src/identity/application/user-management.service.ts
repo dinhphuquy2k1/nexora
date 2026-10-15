@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { randomBytes, createHash } from "node:crypto";
 import { UserManagementPort } from "./user-management.port";
 import { AuthService } from "./auth.service";
@@ -9,6 +9,55 @@ import { UserStatus } from "../domain/user-policy";
 const hashToken = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+
+export interface IdentityErrorMapping {
+  readonly status: HttpStatus;
+  readonly message: string;
+}
+
+export const IDENTITY_ERROR_MAP: Record<string, IdentityErrorMapping> = {
+  NOT_FOUND: {
+    status: HttpStatus.NOT_FOUND,
+    message: "Không thể thực hiện yêu cầu",
+  },
+  FORBIDDEN: {
+    status: HttpStatus.FORBIDDEN,
+    message: "Không thể thực hiện yêu cầu",
+  },
+  LAST_ACTIVE_ADMIN: {
+    status: HttpStatus.CONFLICT,
+    message: "Không thể vô hiệu hóa quản trị viên hoạt động cuối cùng",
+  },
+  USERNAME_EXISTS: {
+    status: HttpStatus.CONFLICT,
+    message: "Tên đăng nhập đã tồn tại",
+  },
+  OPERATOR_ALREADY_CONFIGURED: {
+    status: HttpStatus.BAD_REQUEST,
+    message: "Tài khoản đã thiết lập mật khẩu",
+  },
+  INVALID_OR_EXPIRED_SETUP_TOKEN: {
+    status: HttpStatus.BAD_REQUEST,
+    message: "Liên kết thiết lập không hợp lệ hoặc đã hết hạn",
+  },
+};
+
+export const DEFAULT_IDENTITY_ERROR: IdentityErrorMapping = {
+  status: HttpStatus.BAD_REQUEST,
+  message: "Không thể thực hiện yêu cầu",
+};
+
+export function mapIdentityError(error: IdentityError): HttpException {
+  const mapping = IDENTITY_ERROR_MAP[error.code] ?? DEFAULT_IDENTITY_ERROR;
+  return new HttpException(
+    {
+      code: error.code,
+      message: mapping.message,
+    },
+    mapping.status,
+  );
+}
+
 @Injectable()
 export class UserManagementService {
   constructor(
@@ -27,29 +76,7 @@ export class UserManagementService {
       return await action();
     } catch (error) {
       if (!(error instanceof IdentityError)) throw error;
-      const status =
-        error.code === "NOT_FOUND"
-          ? 404
-          : error.code === "FORBIDDEN"
-            ? 403
-            : ["LAST_ACTIVE_ADMIN", "USERNAME_EXISTS"].includes(error.code)
-              ? 409
-              : 400;
-      const messages: Record<string, string> = {
-        OPERATOR_ALREADY_CONFIGURED: "Tài khoản đã thiết lập mật khẩu",
-        INVALID_OR_EXPIRED_SETUP_TOKEN:
-          "Liên kết thiết lập không hợp lệ hoặc đã hết hạn",
-        LAST_ACTIVE_ADMIN:
-          "Không thể vô hiệu hóa quản trị viên hoạt động cuối cùng",
-        USERNAME_EXISTS: "Tên đăng nhập đã tồn tại",
-      };
-      throw new HttpException(
-        {
-          code: error.code,
-          message: messages[error.code] ?? "Không thể thực hiện yêu cầu",
-        },
-        status,
-      );
+      throw mapIdentityError(error);
     }
   }
   private link(origin: string) {
