@@ -1,5 +1,13 @@
 # ADR-005 · Local Authentication & Session Architecture
 
+## Implemented Logical PR 2 — NEXORA-016
+
+Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. Carrier Connections, MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
+
+NEXORA-016 implements local login for both roles, user-first transactional issuance/onboarding and atomic disablement. Legacy provider-login material below describes historical milestones, not a supported login path. `external_identities` is removed by a new migration. Current contracts and the owner-approved user administration amendment are maintained in [API contract](../architecture/api-contract.md).
+
+Setup secrets use trusted-origin `/setup#token=<secret>`; the browser clears the fragment, keeps it in memory and posts it only in the setup body. The setup page has no-store/no-referrer, no third-party assets and no automatic session issuance. Scrypt parameters remain unchanged.
+
 **Status**: Accepted (Supersedes initial "Defer authentication" baseline, 2026-10-11)
 
 ## Context & Problem Statement
@@ -54,9 +62,9 @@ The initial v0.1.0 foundation deferred authentication while establishing runtime
 
 ADR-005 continues to define the implemented local authentication and session runtime. The [Unified identity decision](unified-identity.md) extends its future architecture without changing current production behavior. PR #7 is merged; unified storage and local ADMIN credentials are implemented under the unified foundation.
 
-Phase 1 extends storage to users/user_credentials without changing these session/cookie/API policies. Local password Login requires ACTIVE ADMIN with credential. Generic sessions require an ACTIVE user only, irrespective of role and local credentials. See [unified identity](unified-identity.md) and NEXORA-011 for migration verification.
+Historical Phase 1 introduced users/user_credentials and generic ACTIVE-user sessions; NEXORA-011 retains its executed evidence. Current local Login accepts both configured ACTIVE roles.
 
-Phase 2 adds `ProviderAuthenticationPort`, `UnishipAuthAdapter`, and `POST /api/auth/provider/login` for employee authentication, alongside frontend mode routing (`/login` for employee, `/login?mode=admin` for local admin). Sessions issued to verified active operators reuse the identical opaque PostgreSQL session tokens, cookie policy, and `SessionGuard` verification without schema alteration. The owner confirmed Uniship API integration authorization on 2026-10-13. Local HTTP mock-provider tests passed under NEXORA-012; real Uniship authentication is not technically verified. `UNISHIP_LIVE_AUTHORIZED` remains a deployment switch, default `false`, which the administrator may explicitly enable under the approved authorization and deployment procedure. It is not a statement that permission is missing. The operator selects the correct `UNISHIP_API_URL`; existing production HTTPS, timeout, redirect rejection, payload validation and token non-persistence remain unchanged.
+Historical Phase 2 provider login and its frontend mode split were removed by Logical PR 2. NEXORA-012 retains historical mock verification and owner authorization evidence. The independent Carrier HTTP client remains safety-tested with local mocks; live integration is deferred and cannot create a Nexora session.
 
 ## Multi-Carrier & MFA Amendment — 2026-10-14
 
@@ -87,3 +95,7 @@ Per [ADR-007](multi-carrier-architecture.md), the authentication and session mod
    - ADMIN Internet access is permitted over public HTTPS subject to mandatory TOTP enforcement.
    - The API runtime refuses to boot in public profile if MFA enforcement is disabled.
    - Host clock must be synchronized via NTP (`chrony` or `systemd-timesyncd`), verified by runbook.
+
+## Legacy session upgrade boundary
+
+The owner-approved cutover in [ADR-007](../decisions/multi-carrier-architecture.md) is implemented by a new migration. Every OPERATOR session without a local credential is deleted at upgrade, including expired/DISABLED-user sessions. ADMIN and configured OPERATOR sessions are retained. SessionGuard is unchanged; removed tokens cannot regain validity after setup. No auth-source metadata exists to distinguish sessions of configured operators.

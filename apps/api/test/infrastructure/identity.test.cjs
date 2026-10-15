@@ -172,69 +172,57 @@ test("generic session adapter accepts ACTIVE Operator without requesting credent
   assert.equal(await adapter.findSessionByTokenHash("hash"), null);
 });
 
-test("findExternalIdentity queries external_identities by compound unique key and includes user", async () => {
+test("atomic local issuance rechecks locked user and exact hash", async () => {
   const adapter = new IdentityDatabaseAdapter("unused");
-  let query;
-  const mockExternalRecord = {
-    id: "ext-uuid-1",
-    userId: "user-uuid-1",
-    provider: "uniship",
-    providerSubject: "uniship-userid-123",
-    user: {
-      id: "user-uuid-1",
-      username: "operator_one",
-      role: "OPERATOR",
-      status: "ACTIVE",
-    },
+  let inserted = 0;
+  let record = {
+    id: "u",
+    username: "person",
+    role: "OPERATOR",
+    status: "ACTIVE",
   };
-
+  let hash = "verified";
   adapter.instance = {
-    externalIdentity: {
-      findUnique: async (args) => {
-        query = args;
-        if (
-          args.where?.provider_providerSubject?.provider === "uniship" &&
-          args.where?.provider_providerSubject?.providerSubject ===
-            "uniship-userid-123"
-        ) {
-          return mockExternalRecord;
-        }
-        return null;
-      },
-    },
+    $transaction: async (action) =>
+      action({
+        $queryRaw: async () => [record],
+        userCredential: { findUnique: async () => ({ passwordHash: hash }) },
+        session: {
+          create: async () => {
+            inserted++;
+          },
+        },
+      }),
   };
-
-  // 1. Found external identity
-  const found = await adapter.findExternalIdentity(
-    "uniship",
-    "uniship-userid-123",
+  assert.deepEqual(
+    await adapter.createSessionIfUnchanged(
+      "u",
+      "verified",
+      "token",
+      new Date(),
+    ),
+    { id: "u", username: "person" },
   );
-  assert.deepEqual(found, mockExternalRecord);
-  assert.deepEqual(query, {
-    where: {
-      provider_providerSubject: {
-        provider: "uniship",
-        providerSubject: "uniship-userid-123",
-      },
-    },
-    include: {
-      user: true,
-    },
-  });
-
-  // 2. Not found returns null
-  const notFound = await adapter.findExternalIdentity(
-    "uniship",
-    "unknown-user",
+  record.status = "DISABLED";
+  assert.equal(
+    await adapter.createSessionIfUnchanged(
+      "u",
+      "verified",
+      "token",
+      new Date(),
+    ),
+    null,
   );
-  assert.equal(notFound, null);
-
-  // 3. Database error propagates
-  adapter.instance.externalIdentity.findUnique = async () => {
-    throw new Error("database connection timeout");
-  };
-  await assert.rejects(
-    adapter.findExternalIdentity("uniship", "uniship-userid-123"),
-    /database connection timeout/,
+  record.status = "ACTIVE";
+  hash = "changed";
+  assert.equal(
+    await adapter.createSessionIfUnchanged(
+      "u",
+      "verified",
+      "token",
+      new Date(),
+    ),
+    null,
   );
+  assert.equal(inserted, 1);
 });

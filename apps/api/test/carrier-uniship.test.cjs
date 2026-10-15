@@ -1,11 +1,9 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("node:http");
-const { HttpException, HttpStatus } = require("@nestjs/common");
 const {
-  UnishipAuthAdapter,
-} = require("../dist/identity/infrastructure/uniship-auth.adapter");
-const { AuthService } = require("../dist/identity/application/auth.service");
+  UnishipHttpClient,
+} = require("../dist/carrier/infrastructure/uniship/uniship-http.client");
 
 function createMockProviderServer(handler) {
   const server = http.createServer((req, res) => {
@@ -23,9 +21,9 @@ function createMockProviderServer(handler) {
   });
 }
 
-test("UnishipAuthAdapter enforces URL configuration, HTTPS in production, and blocks unapproved live origins", async () => {
+test("UnishipHttpClient enforces URL configuration, HTTPS in production, and blocks unapproved live origins", async () => {
   // 1. Missing apiUrl fails closed
-  const unconfigured = new UnishipAuthAdapter({});
+  const unconfigured = new UnishipHttpClient({});
   await assert.rejects(
     unconfigured.authenticate({ username: "nam", password: "pwd" }),
     (err) =>
@@ -34,7 +32,7 @@ test("UnishipAuthAdapter enforces URL configuration, HTTPS in production, and bl
   );
 
   // 2. Production requires HTTPS
-  const insecureProd = new UnishipAuthAdapter({
+  const insecureProd = new UnishipHttpClient({
     apiUrl: "http://127.0.0.1:8080",
     isProduction: true,
   });
@@ -44,7 +42,7 @@ test("UnishipAuthAdapter enforces URL configuration, HTTPS in production, and bl
   );
 
   // 3. External unapproved origin is blocked without live authorization
-  const liveBlocked = new UnishipAuthAdapter({
+  const liveBlocked = new UnishipHttpClient({
     apiUrl: "https://kh.uniship.vn",
     liveAuthorized: false,
     isProduction: false,
@@ -58,7 +56,7 @@ test("UnishipAuthAdapter enforces URL configuration, HTTPS in production, and bl
   );
 });
 
-test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts, and redirects", async () => {
+test("UnishipHttpClient handles mock HTTP provider contracts, errors, timeouts, and redirects", async () => {
   let mode = "success-number";
   const mockServer = await createMockProviderServer((req, res) => {
     assert.equal(req.method, "POST");
@@ -275,7 +273,7 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
   };
 
   try {
-    const adapter = new UnishipAuthAdapter({
+    const adapter = new UnishipHttpClient({
       apiUrl: mockServer.url,
       timeoutMs: 300,
     });
@@ -287,8 +285,7 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
       password: "password123",
     });
     assert.deepEqual(result1, {
-      provider: "uniship",
-      providerSubject: "10482",
+      externalAccountId: "10482",
     });
 
     // 2. Success with nested decimal string userid
@@ -298,8 +295,7 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
       password: "password123",
     });
     assert.deepEqual(result2, {
-      provider: "uniship",
-      providerSubject: "10482",
+      externalAccountId: "10482",
     });
 
     // 3. Root-level-only userid rejected under new contract -> 503 SERVICE_UNAVAILABLE
@@ -473,186 +469,4 @@ test("UnishipAuthAdapter handles mock HTTP provider contracts, errors, timeouts,
     console.error = origError;
     await mockServer.close();
   }
-});
-
-test("AuthService.loginWithProvider validates inputs, rate limits by provider username, isolates admin lockouts, and issues session", async () => {
-  let time = 1000;
-  const mockPort = {
-    findExternalIdentity: async (provider, subject) => {
-      if (subject === "10482") {
-        return {
-          id: "ext-1",
-          userId: "user-1",
-          provider: "uniship",
-          providerSubject: "10482",
-          user: {
-            id: "user-1",
-            username: "operator_nam",
-            role: "OPERATOR",
-            status: "ACTIVE",
-          },
-        };
-      }
-      if (subject === "disabled-user") {
-        return {
-          id: "ext-2",
-          userId: "user-2",
-          provider: "uniship",
-          providerSubject: "disabled-user",
-          user: {
-            id: "user-2",
-            username: "disabled_operator",
-            role: "OPERATOR",
-            status: "DISABLED",
-          },
-        };
-      }
-      if (subject === "admin-user") {
-        return {
-          id: "ext-3",
-          userId: "user-3",
-          provider: "uniship",
-          providerSubject: "admin-user",
-          user: {
-            id: "user-3",
-            username: "admin_user",
-            role: "ADMIN",
-            status: "ACTIVE",
-          },
-        };
-      }
-      return null;
-    },
-    createSession: async () => ({
-      id: "sess-1",
-      userId: "user-1",
-      expiresAt: new Date(time + 7 * 24 * 60 * 60 * 1000),
-      createdAt: new Date(time),
-    }),
-    findUserByUsername: async (username) => {
-      if (username === "admin") {
-        return {
-          id: "admin-id",
-          username: "admin",
-          role: "ADMIN",
-          status: "ACTIVE",
-          passwordHash: "$scrypt$N=16384,r=8,p=1$fake$fake",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      }
-      return null;
-    },
-    verifyPassword: async () => false,
-  };
-
-  const mockProvider = {
-    authenticate: async ({ username, password }) => {
-      if (password === "wrong") {
-        throw new HttpException(
-          {
-            code: "AUTHENTICATION_FAILED",
-            message:
-              "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập.",
-          },
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-      if (password === "provider-crash") {
-        throw new HttpException(
-          {
-            code: "SERVICE_UNAVAILABLE",
-            message: "Provider outage",
-          },
-          HttpStatus.SERVICE_UNAVAILABLE,
-        );
-      }
-      if (username === "op_disabled") {
-        return { provider: "uniship", providerSubject: "disabled-user" };
-      }
-      if (username === "op_admin") {
-        return { provider: "uniship", providerSubject: "admin-user" };
-      }
-      if (username === "op_unknown") {
-        return { provider: "uniship", providerSubject: "unknown-9999" };
-      }
-      return { provider: "uniship", providerSubject: "10482" };
-    },
-  };
-
-  const service = new AuthService(mockPort, mockProvider, () => time);
-
-  // 1. Input validation
-  await assert.rejects(
-    service.loginWithProvider("ab", "password"),
-    (err) => err.getStatus?.() === 400,
-  );
-  await assert.rejects(
-    service.loginWithProvider("validuser", ""),
-    (err) => err.getStatus?.() === 400,
-  );
-
-  // 2. Successful login for ACTIVE OPERATOR
-  const success = await service.loginWithProvider("op_nam", "correct_pwd");
-  assert.equal(success.user.id, "user-1");
-  assert.equal(success.user.username, "operator_nam");
-  assert.equal(success.token.length, 64);
-
-  // 3. Unknown provider subject -> 401 AUTHENTICATION_FAILED
-  await assert.rejects(
-    service.loginWithProvider("op_unknown", "correct_pwd"),
-    (err) =>
-      err.getStatus?.() === 401 &&
-      err.getResponse?.().code === "AUTHENTICATION_FAILED",
-  );
-
-  // 4. Disabled operator -> 401 AUTHENTICATION_FAILED
-  await assert.rejects(
-    service.loginWithProvider("op_disabled", "correct_pwd"),
-    (err) =>
-      err.getStatus?.() === 401 &&
-      err.getResponse?.().code === "AUTHENTICATION_FAILED",
-  );
-
-  // 5. ADMIN mapped to provider identity -> 401 AUTHENTICATION_FAILED
-  await assert.rejects(
-    service.loginWithProvider("op_admin", "correct_pwd"),
-    (err) =>
-      err.getStatus?.() === 401 &&
-      err.getResponse?.().code === "AUTHENTICATION_FAILED",
-  );
-
-  // 6. Provider outage (503) does NOT increment failure limit
-  await assert.rejects(
-    service.loginWithProvider("op_crash", "provider-crash"),
-    (err) => err.getStatus?.() === 503,
-  );
-  await assert.rejects(
-    service.loginWithProvider("op_crash", "provider-crash"),
-    (err) => err.getStatus?.() === 503,
-  );
-
-  // 7. 5 consecutive authentication failures lock out op_locked
-  time += 10000;
-  for (let i = 0; i < 5; i++) {
-    time += 1000;
-    await assert.rejects(
-      service.loginWithProvider("op_locked", "wrong"),
-      (err) => err.getStatus?.() === 401,
-    );
-  }
-  // 6th attempt is throttled with 429
-  time += 1000;
-  await assert.rejects(
-    service.loginWithProvider("op_locked", "wrong"),
-    (err) => err.getStatus?.() === 429,
-  );
-
-  // 8. Isolation: op_locked lockout does NOT affect local admin password attempts
-  // Local admin attempt fails with 401, NOT 429 throttled!
-  time += 1000;
-  await assert.rejects(
-    service.login("admin", "wrong_admin_pass"),
-    (err) => err.getStatus?.() === 401,
-  );
 });

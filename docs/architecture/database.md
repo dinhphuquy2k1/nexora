@@ -1,7 +1,7 @@
 # Database
 
-Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `external_identities` (provider subject binding for uniship operators), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment domain schema is PLANNED; there are no fake smoke tables or business seeds.
-`20261006000000_storage_catalog`, `20261012000000_local_authentication`, `20261012010000_unified_identity` and `20261012020000_external_identities` define migrations deployed by `prisma migrate deploy`, gated on PostgreSQL healthy. Repeated deployment preserves existing rows. No reset, db push, migrate dev or demo seed runs at startup.
+Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `operator_setup_tokens` (hashed single-use onboarding secrets), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment domain schema is PLANNED; there are no fake smoke tables or business seeds.
+`20261006000000_storage_catalog`, `20261012000000_local_authentication`, `20261012010000_unified_identity` and `20261012020000_external_identities` plus `20261015000000_local_identity_onboarding` and `20261015010000_legacy_provider_session_cutover` define migrations deployed by `prisma migrate deploy`, gated on PostgreSQL healthy. Repeated deployment preserves existing rows except the explicitly approved experimental-session cutover described below. No reset, db push, migrate dev or demo seed runs at startup.
 Integration tests register/read/delete only their own UUID and do not truncate shared data. Persistence smoke runs on disposable projects; see task evidence.
 
 Prisma 7.10.0 uses the PostgreSQL driver adapter; createDatabase stays within the database package. prisma.config.ts reads the server DATABASE_URL for migration, while client generation requires no connection or fabricated database credential.
@@ -10,21 +10,13 @@ Database migrations deploy forward-only via `prisma migrate deploy`, preserving 
 
 ## Unified identity foundation
 
-IMPLEMENTED, verification tracked in NEXORA-011: User maps users; UserCredential maps user_credentials with user_id UUID primary key, foreign key ON DELETE/UPDATE CASCADE and password_hash VARCHAR(255). Users may have zero or one credential; provider-only fixtures need no fake password. Role VARCHAR(16) has NOT NULL, no default and raw SQL users_role_check allowing ADMIN/OPERATOR. Status VARCHAR(16) has NOT NULL, ACTIVE default and users_status_check allowing ACTIVE/DISABLED. Prisma does not express these CHECK constraints; committed SQL owns them. No database/Prisma/TypeScript enums.
+IMPLEMENTED, verification tracked in NEXORA-011: User maps users; UserCredential maps user_credentials with user_id UUID primary key, foreign key ON DELETE/UPDATE CASCADE and password_hash VARCHAR(255). Users may have zero or one credential; unconfigured OPERATOR users need no fake password. Role VARCHAR(16) has NOT NULL, no default and raw SQL users_role_check allowing ADMIN/OPERATOR. Status VARCHAR(16) has NOT NULL, ACTIVE default and users_status_check allowing ACTIVE/DISABLED. Prisma does not express these CHECK constraints; committed SQL owns them. No database/Prisma/TypeScript enums.
 
 The forward-only transaction renames local_users and its primary-key/username index, maps supported trusted legacy accounts to ADMIN, preserves is_active as ACTIVE/DISABLED, copies exact hashes/IDs to credentials and checks snapshots before dropping old columns. Existing sessions and their FK/indexes/token algorithm remain unchanged. Normal upgrade preserves sessions. See [decision](../decisions/unified-identity.md) and [migration/test evidence](../tasks/completed/NEXORA-011-unified-identity-migration.md).
 
-## External identity foundation (Baseline — Scheduled for PR 2 removal)
+## Removed legacy provider bindings
 
-IMPLEMENTED in PR #10, verification tracked in NEXORA-012; SUPERSEDED by [ADR-007](../decisions/multi-carrier-architecture.md): `ExternalIdentity` maps `external_identities` with `id` UUID primary key, foreign key `user_id` referencing `users(id)` ON DELETE CASCADE, `provider` VARCHAR(32) NOT NULL, `provider_subject` VARCHAR(128) NOT NULL, and timestamps.
-
-- **Constraints**:
-  - `chk_external_identities_provider`: raw SQL CHECK constraint restricting `provider` to `'uniship'`.
-  - `chk_external_identities_subject_format`: raw SQL CHECK constraint enforcing trimmed, non-empty `provider_subject` (`LENGTH(TRIM(provider_subject)) > 0 AND provider_subject = TRIM(provider_subject)`).
-  - Unique constraint `(provider, provider_subject)` enforcing 1:1 binding at the database level.
-  - Unique constraint `(user_id, provider)` preventing multiple identities for the same user per provider.
-- **PR 2 Forward-Only Drop**:
-  Because Nexora has zero real production users, PR 2 drops `external_identities` via a forward-only migration. A separate one-time cleanup script purges test operators.
+`external_identities` existed in historical PR #10. It is removed by the new PR 2 migration; the historical migration remains unchanged. There is no automatic user cleanup. Retained credentialless operators can receive setup links, and the optional development cleanup excludes configured users and administrators.
 
 ## Multi-Carrier & MFA Database Schemas (Target Architecture — ADR-007)
 
@@ -218,3 +210,15 @@ CREATE TABLE carrier_connection_secrets (
     Extends the PR 3 transaction to revoke MFA challenges: 9. Delete all pending MFA challenges: `DELETE FROM mfa_challenges WHERE user_id = $1;`
   - _Note_: Reactivation of a user does NOT restore invalidated setup tokens or deleted carrier secrets. A new setup link must be explicitly issued via `POST /api/admin/operators/:id/setup-link`.
 - **Pre-Commit Write Validation**: Before persisting renewed tokens or secrets, transactions lock the user row to ensure the account remains `ACTIVE`. In-flight responses arriving after disablement are safely discarded.
+
+## Local identity onboarding migration
+
+`20261015000000_local_identity_onboarding` creates `operator_setup_tokens` and drops legacy `external_identities` in a forward-only transaction. Historical migrations remain unchanged. That migration preserves user/credential/session/catalog rows; the subsequent approved cutover selectively revokes experimental sessions. Tokens have UUID IDs, unique SHA-256 `token_hash`, target/issuer foreign keys with cascades, expiration, consumed and creation timestamps, and a target index. There is no `sessions.auth_level` or future Carrier/MFA table. Real Prisma migration tests cover legacy upgrades, preservation, constraints, repeated deploy and schema drift.
+
+Existing credentialless test OPERATOR users may remain and receive a new setup link. Optional development cleanup is documented in [Setup](../operations/setup.md); it never runs on startup.
+
+## Approved legacy provider session cutover — 2026-10-15
+
+Owner decision `LEGACY_PROVIDER_SESSION_CUTOVER` is resolved: new migration `20261015010000_legacy_provider_session_cutover` deletes every session whose user is OPERATOR and has no local credential at upgrade, regardless of ACTIVE/DISABLED status or expiration. It preserves ADMIN sessions and configured OPERATOR sessions, users, credentials and stored files. The old schema has no authentication-source marker, so provider-origin sessions for already-configured operators cannot be distinguished; retaining those is part of the explicitly approved minimum policy.
+
+This amends the earlier blanket session-preservation guarantee and the no-cutover language only for revocation of experimental session rows. It performs no account conversion/backfill or user deletion. Historical migrations are unchanged. API/Web and provisioning writers must be stopped during migration. SessionGuard remains generic; deletion permanently invalidates old hashes, including after password setup. New local authentication issues a fresh independent token. No session-source column, MFA or carrier schema is introduced.

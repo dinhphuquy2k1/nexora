@@ -115,7 +115,10 @@ test("successful Login clears only its account failures and releases reservation
     passwordHash: "fixture",
   });
   h.port.verifyPassword = async (password) => password === "correct";
-  h.port.createSession = async () => {};
+  h.port.createSessionIfUnchanged = async () => ({
+    id: "operator",
+    username: "operator",
+  });
   for (let i = 0; i < 4; i++)
     await assert.rejects(h.auth.login("operator", "wrong"), unauthorized);
   await h.auth.login("operator", "correct");

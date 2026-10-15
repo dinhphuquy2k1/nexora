@@ -1,3 +1,11 @@
+import {
+  UserManagementController,
+  SetupPasswordController,
+} from "./identity/presentation/user-management.controller";
+import { UserManagementPort } from "./identity/application/user-management.port";
+import { UserManagementService } from "./identity/application/user-management.service";
+import { UserManagementAdapter } from "./identity/infrastructure/user-management.adapter";
+import { AdminGuard } from "./identity/presentation/admin.guard";
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { loadConfig } from "./config";
@@ -10,15 +18,18 @@ import { AuthController } from "./identity/presentation/auth.controller";
 import { AuthService } from "./identity/application/auth.service";
 import { IdentityPort } from "./identity/application/identity.port";
 import { IdentityDatabaseAdapter } from "./identity/infrastructure/identity.adapter";
-import { ProviderAuthenticationPort } from "./identity/application/provider-auth.port";
-import { UnishipAuthAdapter } from "./identity/infrastructure/uniship-auth.adapter";
 import { SessionGuard } from "./identity/presentation/session.guard";
 import { OriginGuard } from "./identity/presentation/origin.guard";
 
 export const CONFIG = "CONFIG";
 
 @Module({
-  controllers: [HealthController, AuthController],
+  controllers: [
+    HealthController,
+    AuthController,
+    UserManagementController,
+    SetupPasswordController,
+  ],
   providers: [
     { provide: CONFIG, useFactory: () => loadConfig(process.env) },
     {
@@ -52,34 +63,37 @@ export const CONFIG = "CONFIG";
         new IdentityDatabaseAdapter(c.DATABASE_URL),
     },
     {
-      provide: ProviderAuthenticationPort,
-      inject: [CONFIG],
-      useFactory: (c: ReturnType<typeof loadConfig>) =>
-        new UnishipAuthAdapter({
-          apiUrl: c.UNISHIP_API_URL,
-          liveAuthorized: c.UNISHIP_LIVE_AUTHORIZED === "true",
-          isProduction: c.NODE_ENV === "production",
-        }),
-    },
-    {
       provide: AuthService,
-      inject: [IdentityPort, ProviderAuthenticationPort],
-      useFactory: (
-        port: IdentityPort,
-        providerPort: ProviderAuthenticationPort,
-      ) => new AuthService(port, providerPort),
+      inject: [IdentityPort],
+      useFactory: (port: IdentityPort) => new AuthService(port),
     },
     {
       provide: OriginGuard,
       inject: [CONFIG],
       useFactory: (c: ReturnType<typeof loadConfig>) => new OriginGuard(c),
     },
+    {
+      provide: UserManagementPort,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) =>
+        new UserManagementAdapter(c.DATABASE_URL),
+    },
+    {
+      provide: UserManagementService,
+      inject: [UserManagementPort, AuthService, CONFIG],
+      useFactory: (
+        port: UserManagementPort,
+        auth: AuthService,
+        c: ReturnType<typeof loadConfig>,
+      ) => new UserManagementService(port, auth, c.trustedOrigins),
+    },
+    AdminGuard,
     SessionGuard,
     {
       provide: APP_GUARD,
       useClass: SessionGuard,
     },
   ],
-  exports: [AuthService, ProviderAuthenticationPort, SessionGuard, OriginGuard],
+  exports: [AuthService, SessionGuard, OriginGuard],
 })
 export class AppModule {}

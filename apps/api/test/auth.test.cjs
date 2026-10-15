@@ -31,6 +31,13 @@ function createMockIdentityPort() {
       }
       return null;
     },
+    async createSessionIfUnchanged(userId, hash, tokenHash, expiresAt) {
+      const user = [...users.values()].find((u) => u.id === userId);
+      if (!user || user.passwordHash !== hash || user.status !== "ACTIVE")
+        return null;
+      await this.createSession(userId, tokenHash, expiresAt);
+      return { id: user.id, username: user.username };
+    },
     async createSession(userId, tokenHash, expiresAt) {
       const session = {
         id: "sess-" + Math.random().toString(36).slice(2),
@@ -69,11 +76,6 @@ function createMockIdentityPort() {
       }
       return count;
     },
-    externalIdentities: new Map(),
-    async findExternalIdentity(provider, providerSubject) {
-      const key = `${provider}:${providerSubject}`;
-      return this.externalIdentities.get(key) || null;
-    },
     async verifyPassword(password, passwordHash) {
       return password === passwordHash.replace("mock-hash-", "");
     },
@@ -107,7 +109,7 @@ test("AuthService handles validation and generic authentication errors", async (
     auth.login("nonexistent", "pass123", "1.1.1.1"),
     (err) =>
       err.getStatus() === 401 &&
-      err.getResponse().code === "UNAUTHORIZED" &&
+      err.getResponse().code === "AUTHENTICATION_FAILED" &&
       err.getResponse().message ===
         "Tên đăng nhập hoặc mật khẩu không chính xác",
   );
@@ -509,11 +511,16 @@ test("Canonical HTTP session cookie ignores forged forwarding security", async (
   assert.equal(cookies[1].options.maxAge, 0);
 });
 
-test("local password Login requires ACTIVE ADMIN credential, independently of generic sessions", async () => {
+test("local password Login requires ACTIVE local credentials for both roles, independently of generic sessions", async () => {
   for (const record of [
     { role: "ADMIN", status: "ACTIVE", passwordHash: "valid", accepted: true },
     { role: "ADMIN", status: "ACTIVE", passwordHash: null },
-    { role: "OPERATOR", status: "ACTIVE", passwordHash: "valid" },
+    {
+      role: "OPERATOR",
+      status: "ACTIVE",
+      passwordHash: "valid",
+      accepted: true,
+    },
     { role: "OPERATOR", status: "ACTIVE", passwordHash: null },
     { role: "ADMIN", status: "DISABLED", passwordHash: "valid" },
   ]) {
@@ -529,8 +536,9 @@ test("local password Login requires ACTIVE ADMIN credential, independently of ge
         verified = hash;
         return true;
       },
-      createSession: async () => {
+      createSessionIfUnchanged: async () => {
         issued++;
+        return { id: "fixture", username: "fixture" };
       },
     });
     if (record.accepted) await service.login("fixture", "password");
@@ -543,160 +551,4 @@ test("local password Login requires ACTIVE ADMIN credential, independently of ge
     assert.ok(verified);
     if (!record.accepted) assert.match(verified, /^\$scrypt\$/);
   }
-});
-
-test("authenticateExternalIdentity issues opaque session for ACTIVE OPERATOR and enforces uniform failure policy", async () => {
-  const port = createMockIdentityPort();
-  const service = new AuthService(port);
-
-  // Setup fixtures in mock port
-  const activeOp = {
-    id: "user-op-1",
-    username: "operator_one",
-    role: "OPERATOR",
-    status: "ACTIVE",
-  };
-  const disabledOp = {
-    id: "user-op-2",
-    username: "operator_two",
-    role: "OPERATOR",
-    status: "DISABLED",
-  };
-  const activeAdmin = {
-    id: "user-admin-1",
-    username: "admin_one",
-    role: "ADMIN",
-    status: "ACTIVE",
-  };
-
-  port.users.set(activeOp.username, activeOp);
-  port.users.set(disabledOp.username, disabledOp);
-  port.users.set(activeAdmin.username, activeAdmin);
-
-  port.externalIdentities.set("uniship:op-001", {
-    id: "ext-1",
-    userId: activeOp.id,
-    provider: "uniship",
-    providerSubject: "op-001",
-    user: activeOp,
-  });
-
-  port.externalIdentities.set("uniship:op-002", {
-    id: "ext-2",
-    userId: disabledOp.id,
-    provider: "uniship",
-    providerSubject: "op-002",
-    user: disabledOp,
-  });
-
-  port.externalIdentities.set("uniship:admin-001", {
-    id: "ext-3",
-    userId: activeAdmin.id,
-    provider: "uniship",
-    providerSubject: "admin-001",
-    user: activeAdmin,
-  });
-
-  // 1. Successful authentication for ACTIVE OPERATOR
-  const result = await service.authenticateExternalIdentity({
-    provider: "uniship",
-    providerSubject: "op-001",
-  });
-  assert.equal(result.user.id, activeOp.id);
-  assert.equal(result.user.username, activeOp.username);
-  assert.ok(result.token);
-  assert.equal(typeof result.token, "string");
-  assert.equal(result.token.length, 64);
-  assert.ok(result.expiresAt instanceof Date);
-
-  // Validate the newly issued session
-  const validatedUser = await service.validateSession(result.token);
-  assert.deepEqual(validatedUser, {
-    id: activeOp.id,
-    username: activeOp.username,
-  });
-
-  // Logout invalidates the session
-  await service.logout(result.token);
-  assert.equal(await service.validateSession(result.token), null);
-
-  // 2. Failure policy assertions: all unauthorized attempts must produce uniform 401 AUTHENTICATION_FAILED
-  const uniformMessage =
-    "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập.";
-
-  const assertUniformAuthFailure = async (promise) => {
-    await assert.rejects(
-      promise,
-      (err) =>
-        err.getStatus() === 401 &&
-        err.getResponse().code === "AUTHENTICATION_FAILED" &&
-        err.getResponse().message === uniformMessage,
-    );
-  };
-
-  // Unknown provider subject
-  await assertUniformAuthFailure(
-    service.authenticateExternalIdentity({
-      provider: "uniship",
-      providerSubject: "unknown-subject",
-    }),
-  );
-
-  // Disabled operator
-  await assertUniformAuthFailure(
-    service.authenticateExternalIdentity({
-      provider: "uniship",
-      providerSubject: "op-002",
-    }),
-  );
-
-  // Linked Admin user (cannot authenticate via operator external identity)
-  await assertUniformAuthFailure(
-    service.authenticateExternalIdentity({
-      provider: "uniship",
-      providerSubject: "admin-001",
-    }),
-  );
-
-  // Invalid / malformed payloads:
-  // Unsupported provider
-  await assertUniformAuthFailure(
-    service.authenticateExternalIdentity({
-      provider: "other-provider",
-      providerSubject: "op-001",
-    }),
-  );
-
-  // Untrimmed provider subject
-  await assertUniformAuthFailure(
-    service.authenticateExternalIdentity({
-      provider: "uniship",
-      providerSubject: "  op-001  ",
-    }),
-  );
-
-  // Empty provider subject
-  await assertUniformAuthFailure(
-    service.authenticateExternalIdentity({
-      provider: "uniship",
-      providerSubject: "",
-    }),
-  );
-
-  // Excessively long provider subject (> 128 chars)
-  await assertUniformAuthFailure(
-    service.authenticateExternalIdentity({
-      provider: "uniship",
-      providerSubject: "a".repeat(129),
-    }),
-  );
-
-  // Missing or non-object payload
-  await assertUniformAuthFailure(service.authenticateExternalIdentity(null));
-  await assertUniformAuthFailure(
-    service.authenticateExternalIdentity(undefined),
-  );
-  await assertUniformAuthFailure(
-    service.authenticateExternalIdentity("invalid"),
-  );
 });

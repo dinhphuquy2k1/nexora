@@ -82,3 +82,7 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), public deployment r
 2. **Cookie Security**: In public deployment, cookies enforce `Secure: true`. `nexora_session` uses `SameSite: Lax`, while pending MFA challenge tokens (`nexora_mfa_token`) enforce `SameSite: Strict`.
 3. **NTP Host Clock Synchronization**: Containerized TOTP calculation relies on the host clock. Deployment runbooks mandate host NTP synchronization (`chrony` or `systemd-timesyncd`), verified before enabling public ingress.
 4. **Origin & Host Enforcement**: Ingress proxies must forward exact Host and Origin headers validated against server-side configuration; `X-Forwarded-*` headers are accepted only from explicit, trusted proxy subnets.
+
+## Local identity boundary (Logical PR 2)
+
+Both roles use Nexora password sessions, independent of external carrier availability. ADMIN onboarding/status mutations require trusted Origin and a database-backed ACTIVE ADMIN session. Setup uses a client-only fragment secret; Web serves `/setup` with no-store/no-referrer and proxies only the setup JSON body. Carrier/MFA persistence and public HTTPS remain deferred; no new runtime service is introduced.

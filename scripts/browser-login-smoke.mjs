@@ -1,3 +1,4 @@
+import { URLSearchParams } from "node:url";
 // One dependency-free Chromium DevTools test for the real browser Login form.
 // Credentials arrive via stdin, never command-line arguments or diagnostic output.
 import { clearTimeout } from "node:timers";
@@ -74,6 +75,9 @@ try {
   });
   let id = 0;
   const pending = new Map();
+  let setupSecret;
+  let setupStatus;
+  let leakedSetupSecret = false;
   let loginStatus;
   let loginUrl;
   socket.addEventListener("message", (event) => {
@@ -87,10 +91,26 @@ try {
         else operation.resolve(message.result);
       }
     }
+    if (setupSecret && message.method === "Network.requestWillBeSent") {
+      const request = message.params.request;
+      if (
+        request.url.includes(setupSecret) ||
+        Object.entries(request.headers).some(
+          ([key, value]) =>
+            key.toLowerCase() === "referer" &&
+            String(value).includes(setupSecret),
+        )
+      )
+        leakedSetupSecret = true;
+    }
     if (
       message.method === "Network.responseReceived" &&
-      (message.params.response.url === `${baseUrl}/api/auth/login` ||
-        message.params.response.url === `${baseUrl}/api/auth/provider/login`)
+      message.params.response.url === `${baseUrl}/api/auth/setup-password`
+    )
+      setupStatus = message.params.response.status;
+    if (
+      message.method === "Network.responseReceived" &&
+      message.params.response.url === `${baseUrl}/api/auth/login`
     ) {
       loginStatus = message.params.response.status;
       loginUrl = message.params.response.url;
@@ -145,42 +165,11 @@ try {
     "Login page must not render authenticated AppShell",
   );
 
-  checks.step("EMPLOYEE_FORM_VERIFICATION");
-  const hasAdminSwitch = await evaluate(
-    "!!document.querySelector(\"a[href*='mode=admin']\")",
+  checks.step("UNIFIED_LOCAL_FORM");
+  assert.equal(
+    await evaluate("!!document.querySelector(\"a[href*='mode=admin']\")"),
+    false,
   );
-  assert.ok(hasAdminSwitch, "Employee login must link to Admin mode");
-
-  // Verify employee form submits to provider endpoint and shows safe error when provider is unconfigured/fails
-  await delay(500);
-  await evaluate('document.querySelector("input[name=username]").focus()');
-  await send("Input.insertText", { text: "operator_test" });
-  await evaluate('document.querySelector("input[name=password]").focus()');
-  await send("Input.insertText", { text: "TestPassword123!" });
-  await evaluate('document.querySelector("button[type=submit]").click()');
-  let sawProviderResponse = false;
-  for (let i = 0; i < 100; i++) {
-    if (loginUrl === `${baseUrl}/api/auth/provider/login`) {
-      sawProviderResponse = true;
-      break;
-    }
-    await delay(100);
-  }
-  assert.ok(
-    sawProviderResponse,
-    "Employee form must call /api/auth/provider/login",
-  );
-  let hasErrorBanner = false;
-  for (let i = 0; i < 50; i++) {
-    hasErrorBanner = await evaluate('!!document.querySelector("[role=alert]")');
-    if (hasErrorBanner) break;
-    await delay(100);
-  }
-  assert.ok(
-    hasErrorBanner,
-    "Failed provider login must display safe error banner",
-  );
-
   checks.step("UNAUTHENTICATED_WORKSPACE_REDIRECT");
   await send("Page.navigate", { url: `${baseUrl}/settings` });
   let unauthRedirected = false;
@@ -199,7 +188,7 @@ try {
 
   checks.step("ADMIN_MODE_SWITCH_AND_FORM");
   await send("Page.navigate", {
-    url: `${baseUrl}/login?mode=admin&from=%2Fsettings`,
+    url: `${baseUrl}/login?from=%2Fsettings`,
   });
   let adminReady = false;
   for (let i = 0; i < 100; i++) {
@@ -210,13 +199,6 @@ try {
     await delay(100);
   }
   assert.ok(adminReady, "Admin login form did not render");
-  const hasEmployeeSwitch = await evaluate(
-    "!!document.querySelector(\"a[href*='/login']\")",
-  );
-  assert.ok(hasEmployeeSwitch, "Admin login must link back to employee mode");
-
-  checks.step("ADMIN_FORM_INTERACTION");
-  // Allow hydration, then type via browser input events and click the actual submit button.
   await delay(500);
   await evaluate('document.querySelector("input[name=username]").focus()');
   await send("Input.insertText", { text: username });
@@ -269,6 +251,15 @@ try {
   checks.status(session.status, 200);
   assert.equal(session.data.authenticated, true);
   assert.equal(session.data.user.username, username);
+  checks.step("OPERATOR_SETUP_LINK");
+  const operatorName = "browser-" + Date.now();
+  const created = await evaluate(
+    `fetch("/api/admin/operators",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:${JSON.stringify(operatorName)}})}).then(async r=>({status:r.status,data:await r.json()}))`,
+  );
+  checks.status(created.status, 201);
+  const setupUrl = new URL(created.data.setupUrl);
+  setupSecret = new URLSearchParams(setupUrl.hash.slice(1)).get("token");
+  assert.ok(!!setupSecret && setupUrl.origin === new URL(baseUrl).origin);
   checks.step("LOGOUT_SUCCESS");
   checks.status(
     await evaluate(
@@ -296,8 +287,82 @@ try {
     revokedRedirected,
     "Revoked session must redirect to /login when visiting protected workspace",
   );
+  checks.step("SETUP_FRAGMENT_PRIVACY");
+  await send("Page.navigate", { url: created.data.setupUrl });
+  let setupReady = false;
+  for (let i = 0; i < 100; i++) {
+    setupReady = await evaluate(
+      'location.pathname==="/setup" && location.hash==="" && !!document.querySelector("input[name=confirmation]:not(:disabled)")',
+    );
+    if (setupReady) break;
+    await delay(100);
+  }
+  assert.ok(setupReady, "Setup did not consume and clear fragment");
+  const privacy = await evaluate(
+    `fetch("/setup",{cache:"no-store"}).then(async r=>({referrer:r.headers.get("referrer-policy"),cache:r.headers.get("cache-control"),safe:!(await r.text()).includes(${JSON.stringify(setupSecret)})}))`,
+  );
+  assert.equal(privacy.referrer, "no-referrer");
+  assert.ok(privacy.cache.includes("no-store"));
+  assert.equal(privacy.safe, true);
+  assert.equal(
+    await evaluate(
+      `JSON.stringify({...localStorage,...sessionStorage}).includes(${JSON.stringify(setupSecret)})`,
+    ),
+    false,
+  );
+  for (const name of ["password", "confirmation"]) {
+    await evaluate(`document.querySelector('input[name=${name}]').focus()`);
+    await send("Input.insertText", { text: password });
+  }
+  await evaluate('document.querySelector("button[type=submit]").click()');
+  let setupComplete = false;
+  for (let i = 0; i < 100; i++) {
+    if (await evaluate('location.pathname==="/login"')) {
+      setupComplete = true;
+      break;
+    }
+    await delay(100);
+  }
+  checks.status(setupStatus, 200);
+  assert.ok(setupComplete);
+  assert.equal(leakedSetupSecret, false);
+  assert.equal(
+    (await send("Network.getCookies", { urls: [baseUrl] })).cookies.some(
+      (c) => c.name === "nexora_session",
+    ),
+    false,
+  );
+  checks.status(
+    await evaluate('fetch("/api/auth/session").then(r=>r.status)'),
+    401,
+  );
+  checks.step("OPERATOR_LOCAL_LOGIN");
+  checks.status(
+    await evaluate(
+      `fetch("/api/auth/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:${JSON.stringify(operatorName)},password:${JSON.stringify(password)}})}).then(r=>r.status)`,
+    ),
+    200,
+  );
+  if (process.env.COMPOSE_PROJECT_NAME) {
+    checks.step("SETUP_SERVER_LOG_PRIVACY");
+    const args = ["compose", "-f", "compose.yml"];
+    if (process.env.NEXORA_COMPOSE_OVERRIDE)
+      args.push("-f", process.env.NEXORA_COMPOSE_OVERRIDE);
+    args.push("logs", "--no-color", "api", "web");
+    const logs = spawnSync("docker", args, {
+      encoding: "utf8",
+      timeout: 15000,
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    assert.equal(logs.status, 0);
+    assert.equal(
+      logs.stdout.includes(setupSecret),
+      false,
+      "Setup token leaked into server logs",
+    );
+  }
   console.log(
-    "Actual browser Login form, cookie, protected navigation and Logout PASS",
+    "Actual browser unified Login, fragment Setup privacy, no auto-login, OPERATOR login, cookies and Logout PASS",
   );
 } catch (error) {
   checks.failure(error);

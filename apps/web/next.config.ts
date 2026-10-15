@@ -7,6 +7,17 @@ const config: NextConfig = {
   transpilePackages: ["@nexora/sdk", "@nexora/ui", "@nexora/shared"],
   poweredByHeader: false,
   experimental: { cpus: 2 },
+  async headers() {
+    return [
+      {
+        source: "/setup",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

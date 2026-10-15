@@ -8,20 +8,6 @@ export class LoginRequestDto {
   password!: string;
 }
 
-export class ProviderLoginRequestDto {
-  @ApiProperty({
-    description: "Tên đăng nhập tài khoản nhà cung cấp",
-    example: "operator_nam",
-  })
-  username!: string;
-
-  @ApiProperty({
-    description: "Mật khẩu tài khoản nhà cung cấp",
-    example: "secret123",
-  })
-  password!: string;
-}
-
 export class UserDto {
   @ApiProperty({ description: "Mã định danh người dùng" })
   id!: string;

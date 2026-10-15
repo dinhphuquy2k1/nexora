@@ -185,3 +185,15 @@ Nexora is actively under development and has **zero real production users or leg
 - **Boundary Isolation**: Domain and application layers remain strictly Prisma-free. Only API infrastructure boundaries consume database models via `@nexora/database`. Web never imports API source or touches the database.
 - **Type Vocabulary**: All domain statuses and types use `as const` objects with derived TypeScript unions, stored as scalar `VARCHAR` strings with raw PostgreSQL SQL CHECK constraints. Prisma and PostgreSQL ENUMs are forbidden.
 - **Product Scope Boundaries**: This milestone does not introduce `shipments`, `tracking_events`, background job workers, Redis, Kafka, or automated synchronization loops. All carrier API interactions are executed strictly on-demand.
+
+## Approved PR 2 contract amendment — 2026-10-15
+
+Owner decision `USER_STATUS_ADMIN_CONTRACT` is resolved: implement `GET /api/admin/users` and `PATCH /api/admin/users/:id/status` exactly as specified in [API contract](../architecture/api-contract.md). ACTIVE ADMIN may manage operators, other administrators or itself, while preserving the last ACTIVE ADMIN under an advisory transaction lock acquired before row locks. Disablement revokes sessions and unused setup tokens atomically; reactivation restores neither. Safe summaries expose `hasPassword`, never hashes/tokens. All administrative mutations require OriginGuard.
+
+Setup transport is `/setup#token=<256-bit CSPRNG secret>` on a trusted origin. Only SHA-256 is stored. The client clears the fragment immediately after reading it and sends the secret only in the setup-password JSON body. No-store/no-referrer, no persistent browser storage, no SSR token or third-party assets apply. Existing Origin/admission codes `FORBIDDEN`/`TOO_MANY_REQUESTS` are retained in PR 2; planned MFA/Carrier contract codes do not change the existing limiter. PR 2 does not add `sessions.auth_level`, MFA or Carrier Connection persistence.
+
+## Approved legacy provider session cutover — 2026-10-15
+
+Owner decision `LEGACY_PROVIDER_SESSION_CUTOVER` is resolved: new migration `20261015010000_legacy_provider_session_cutover` deletes every session whose user is OPERATOR and has no local credential at upgrade, regardless of ACTIVE/DISABLED status or expiration. It preserves ADMIN sessions and configured OPERATOR sessions, users, credentials and stored files. The old schema has no authentication-source marker, so provider-origin sessions for already-configured operators cannot be distinguished; retaining those is part of the explicitly approved minimum policy.
+
+This amends the earlier blanket session-preservation guarantee and the no-cutover language only for revocation of experimental session rows. It performs no account conversion/backfill or user deletion. Historical migrations are unchanged. API/Web and provisioning writers must be stopped during migration. SessionGuard remains generic; deletion permanently invalidates old hashes, including after password setup. New local authentication issues a fresh independent token. No session-source column, MFA or carrier schema is introduced.

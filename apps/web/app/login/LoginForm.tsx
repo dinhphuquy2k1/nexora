@@ -9,8 +9,6 @@ import styles from "./login.module.css";
 export function LoginForm() {
   const searchParams = useSearchParams();
   const rawFrom = searchParams.get("from");
-  const mode = searchParams.get("mode");
-  const isAdminMode = mode === "admin";
   const returnUrl = sanitizeReturnUrl(rawFrom);
 
   const [username, setUsername] = useState("");
@@ -22,7 +20,7 @@ export function LoginForm() {
   const usernameId = useId();
   const passwordId = useId();
 
-  const endpoint = isAdminMode ? "/api/auth/login" : "/api/auth/provider/login";
+  const endpoint = "/api/auth/login";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -53,13 +51,7 @@ export function LoginForm() {
       }
 
       if (response.status === 401) {
-        if (isAdminMode) {
-          setErrorMessage("Tên đăng nhập hoặc mật khẩu không chính xác.");
-        } else {
-          setErrorMessage(
-            "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập.",
-          );
-        }
+        setErrorMessage("Tên đăng nhập hoặc mật khẩu không chính xác.");
       } else if (response.status === 429) {
         setErrorMessage("Quá nhiều yêu cầu đăng nhập. Vui lòng thử lại sau.");
       } else {
@@ -71,14 +63,6 @@ export function LoginForm() {
       setIsLoading(false);
     }
   };
-
-  const switchModeHref = isAdminMode
-    ? rawFrom
-      ? `/login?from=${encodeURIComponent(rawFrom)}`
-      : "/login"
-    : rawFrom
-      ? `/login?mode=admin&from=${encodeURIComponent(rawFrom)}`
-      : "/login?mode=admin";
 
   return (
     <>
@@ -105,11 +89,7 @@ export function LoginForm() {
               autoComplete="username"
               autoFocus
               className={styles.input}
-              placeholder={
-                isAdminMode
-                  ? "Nhập tên đăng nhập quản trị"
-                  : "Nhập tên đăng nhập nhân viên"
-              }
+              placeholder="Nhập tên đăng nhập Nexora"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={isLoading}
@@ -160,13 +140,6 @@ export function LoginForm() {
           )}
         </button>
       </form>
-      <div className={styles.modeFooter}>
-        <a href={switchModeHref} className={styles.modeToggleLink}>
-          {isAdminMode
-            ? "Đăng nhập nhân viên"
-            : "Đăng nhập Quản trị viên (ADMIN)"}
-        </a>
-      </div>
     </>
   );
 }

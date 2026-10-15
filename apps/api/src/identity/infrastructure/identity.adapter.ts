@@ -1,9 +1,7 @@
 import { PrismaClient, createDatabase, verifyPassword } from "@nexora/database";
-import { UserStatus, type UserRole } from "../domain/user-policy";
-import type { IdentityProvider } from "../domain/provider-policy";
+import { UserStatus, UserRole } from "../domain/user-policy";
 import { IdentityPort } from "../application/identity.port";
 import type {
-  ExternalIdentityRecord,
   LocalLoginRecord,
   SessionSummary,
   UserSummary,
@@ -46,32 +44,38 @@ export class IdentityDatabaseAdapter implements IdentityPort {
     };
   }
 
-  async findExternalIdentity(
-    provider: IdentityProvider,
-    providerSubject: string,
-  ): Promise<ExternalIdentityRecord | null> {
-    const record = await this.client.externalIdentity.findUnique({
-      where: {
-        provider_providerSubject: {
-          provider,
-          providerSubject,
-        },
-      },
-      include: { user: true },
+  async findActiveRole(userId: string): Promise<UserRole | null> {
+    const user = await this.client.user.findUnique({ where: { id: userId } });
+    return user?.status === UserStatus.ACTIVE &&
+      (user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR)
+      ? (user.role as UserRole)
+      : null;
+  }
+
+  async createSessionIfUnchanged(
+    userId: string,
+    verifiedHash: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<UserSummary | null> {
+    return this.client.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<
+        Array<{ id: string; username: string; role: string; status: string }>
+      >`SELECT id,username,role,status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+      const user = rows[0];
+      if (
+        !user ||
+        user.status !== UserStatus.ACTIVE ||
+        !(user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR)
+      )
+        return null;
+      const credential = await tx.userCredential.findUnique({
+        where: { userId },
+      });
+      if (!credential || credential.passwordHash !== verifiedHash) return null;
+      await tx.session.create({ data: { userId, tokenHash, expiresAt } });
+      return { id: user.id, username: user.username };
     });
-    if (!record) return null;
-    return {
-      id: record.id,
-      userId: record.userId,
-      provider: record.provider as IdentityProvider,
-      providerSubject: record.providerSubject,
-      user: {
-        id: record.user.id,
-        username: record.user.username,
-        role: record.user.role as UserRole,
-        status: record.user.status as UserStatus,
-      },
-    };
   }
 
   async createSession(

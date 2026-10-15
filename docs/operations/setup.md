@@ -41,7 +41,7 @@ Automation must explicitly select password stdin; never put a password in comman
 printf '%s' "$ADMIN_PASS" | docker compose exec -T api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js --username admin --password-stdin
 ```
 
-A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private; browser-facing port 3001 connects to the Web container listener (internal container port 3000). Compose forwards `UNISHIP_API_URL` and `UNISHIP_LIVE_AUTHORIZED` to the API service; leaving them unconfigured leaves API startup unaffected while employee provider login safely returns 503 until the provider URL and operational switch are configured. Uniship API integration permission was confirmed by the owner on 2026-10-13; the administrator selects the correct `UNISHIP_API_URL` and may explicitly enable `UNISHIP_LIVE_AUTHORIZED=true` under the approved authorization and deployment procedure. Leave the switch false during ordinary tests/startup. Local mock-provider verification does not establish live Uniship authentication.
+A changed supported `WEB_PORT` is passed into API Origin resolution automatically. An explicit `ALLOWED_ORIGINS` replaces derived defaults; see [Configuration](configuration.md). Docker mode keeps API/PostgreSQL private; browser-facing port 3001 connects to the Web container listener (internal container port 3000). ADMIN and OPERATOR authenticate using local Nexora credentials through `POST /api/auth/login`. The removed `/api/auth/provider/login` route always returns 404, independently of Uniship configuration. Compose retains `UNISHIP_API_URL` and `UNISHIP_LIVE_AUTHORIZED` only for the independent Carrier HTTP client and later Carrier milestones; no provider client is wired into authentication. Leave live authorization false during ordinary startup/tests. Local mock transport tests do not establish live Uniship verification.
 
 ## Windows Developer Experience & Troubleshooting
 
@@ -143,20 +143,18 @@ Unified identity storage and local ADMIN provisioning are implemented; follow NE
 
 For identity upgrades, stop API/Web and external provisioning writers, retain PostgreSQL/credential/upload volumes, and use the reviewed matching release's migrate service before bringing application writers back. Do not start old images against migrated schema.
 
-## Manual Uniship OPERATOR registration
-
-After the committed migrations are deployed, an authorized database administrator obtains the confirmed Uniship userid and runs from the checkout:
-
-```sh
-psql -X -v ON_ERROR_STOP=1 "$DATABASE_URL" \
-  -v username='operator_nam' -v uniship_userid='10482' \
-  -f scripts/sql/register-uniship-operator.sql
-```
-
-Use the correct installation/database connection through the existing administrative channel; Docker PostgreSQL remains private. Supply no password or provider token as registration parameters. The script creates one ACTIVE OPERATOR plus one Uniship binding atomically, without local credentials. Duplicate/invalid inputs or either insert failure exit nonzero and roll back. Username policy is trimmed 3–50 characters without a character allowlist; stored subject policy is nonempty, trimmed and at most 128 characters. Enter the actual provider-issued userid: the authentication adapter independently verifies positive decimal userid payloads. A manually stored mapping is authorization data, not proof of authentication. See [NEXORA-012](../tasks/active/NEXORA-012-admin-staff-management.md) for invariants and deferred Admin CRUD/UI. No broader provider data-retention rights are inferred from userid approval.
-
 ## Uniship configuration example and Web launchers
 
-Copy `.env.example` to `.env` when using the provided configuration example. It contains an active Uniship API base URL `https://kh.uniship.vn` and keeps `UNISHIP_LIVE_AUTHORIZED=false`. The administrator is responsible for the correct base URL; supply no login endpoint path, provider password or token. Environment variables can override the example. API integration permission is owner-confirmed; explicitly enabling the deployment switch is separate from real-provider technical verification, which remains deferred. Removing or emptying the URL preserves provider-unavailable behavior and independent local ADMIN Login.
+Copy `.env.example` to `.env` when using the provided configuration example. It contains an active Uniship API base URL `https://kh.uniship.vn` and keeps `UNISHIP_LIVE_AUTHORIZED=false`. The administrator is responsible for the correct base URL; supply no login endpoint path, provider password or token. Environment variables can override the example. API integration permission is owner-confirmed; explicitly enabling the deployment switch is separate from real-provider technical verification, which remains deferred. Removing or emptying the URL has no effect on Nexora Login for either role. The retained Carrier client is not connected to identity.
 
 The existing `pnpm --filter @nexora/web dev` / `start` commands delegate to one shared launcher. Dev retains `next dev --webpack`; start retains `next start`. Absent PORT defaults to host-facing 3001; an empty/malformed/out-of-range PORT exits nonzero before spawning Next.js. A collision exits nonzero with instructions and never stops the existing listener or selects another port. Preflight does not eliminate a later binding race: the actual child failure still propagates. SIGINT, SIGTERM and SIGHUP are forwarded to the child; the launcher waits for child closure and returns 128 plus the signal number for signal termination. Normal child exit codes are preserved and spawn errors fail safely. Docker development keeps its explicit internal listener on 3000; Docker release keeps its direct Next.js invocation and existing port mapping.
+
+## Local OPERATOR onboarding and optional cleanup
+
+Use the trusted local ADMIN CLI to provision an administrator, then log in through the single Nexora form. ADMIN creates an OPERATOR via `POST /api/admin/operators` and delivers its one-time fragment setup link privately. Never choose or request the operator password. Reissue only for ACTIVE, unconfigured operators. Do not enable live Uniship calls for login; there is no provider login route. Earlier provider registration instructions are historical and no longer supported.
+
+`scripts/sql/cleanup-dev-operators.sql` is optional and never applied automatically to an installation. CI exercises the actual file only in a disposable fixture database. Inspect with `psql -X -v ON_ERROR_STOP=1 -v deployment_env=development -v expected_database=nexora_dev_example -v username_prefix=test_example -f scripts/sql/cleanup-dev-operators.sql`. Default is dry-run. It checks the current database name, development/test naming and explicit test prefix; it excludes ADMIN and users with credentials. Actual deletion additionally requires `-v dry_run=false -v confirmation=DELETE_TEST_OPERATORS`. Use only an explicitly owned disposable development database; never reset volumes. Existing credentialless operators may instead be retained and onboarded.
+
+## Required PR 2 session cutover upgrade
+
+Stop API/Web and external provisioning writers, retain PostgreSQL/credentials/uploads volumes, then run the matching release migrate service before starting new writers. New migration `20261015010000_legacy_provider_session_cutover` deletes all sessions of OPERATOR users without local credentials, including expired and DISABLED-user rows. ADMIN and configured OPERATOR sessions remain. Users/credentials/files remain. Do not edit historical migrations or reset volumes. Retained unconfigured operators need a setup link; their deleted cookies never become valid again after setup. Existing sessions have no auth-source field, so configured operators retain their sessions under the owner-approved minimum policy.

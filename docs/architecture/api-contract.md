@@ -1,41 +1,40 @@
 # API contract
 
-## Implemented baseline contracts
+## Implemented Logical PR 2 — NEXORA-016
 
-| Endpoint                      | Success                                                 | Failure                                                                                                                            | Notes                                                            |
-| ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| GET /api/health/live          | 200 `{status:"ok"}`                                     | Process unreachable if down                                                                                                        | `@Public()`, infrastructure                                      |
-| GET /api/health/ready         | 200 `{status:"ok",checks:{database:true,storage:true}}` | 503 with checks plus `code:"NOT_READY"`, safe message, requestId                                                                   | `@Public()`, infrastructure                                      |
-| POST /api/auth/login          | 200 `{user:{id,username}}` + `Set-Cookie` session       | 400 validation error, 401 invalid credentials, 403 invalid origin, 429 rate limit                                                  | `@Public()`, local ADMIN login at baseline                       |
-| POST /api/auth/provider/login | 200 `{user:{id,username}}` + `Set-Cookie` session       | 400 validation error, 401 invalid/unregistered/disabled/non-operator, 403 invalid origin, 429 rate limit, 503 provider unavailable | **Scheduled for complete removal in PR 2** (returns 404 in PR 2) |
-| GET /api/auth/session         | 200 `{authenticated:true,user:{id,username}}`           | 401 unauthorized if missing or expired session                                                                                     | Session verification                                             |
-| POST /api/auth/logout         | 200 `{success:true}` + clears session cookie            | 403 invalid origin, 500 failed database revocation, 200 idempotent logout                                                          | Idempotent revocation                                            |
+Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. Carrier Connections, MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
 
-## Multi-Carrier & MFA Target Contracts (ADR-007)
+Generated OpenAPI/SDK describe the implemented routes below. Error responses use `{code,message,requestId}`. Every administrative route requires an ACTIVE ADMIN database-backed session; all mutations require a trusted Origin. Missing/revoked/disabled sessions return 401 `UNAUTHORIZED`; OPERATOR callers return 403 `FORBIDDEN`. Origin failures retain 403 `FORBIDDEN`, and shared admission rejection retains 429 `TOO_MANY_REQUESTS` for compatibility.
 
-Under [ADR-007](../decisions/multi-carrier-architecture.md), the API surface is extended across the planned PR milestones. The generated OpenAPI spec and SDK will be updated during each implementation task.
+| Method/path                                | Input                                            | Success                                       | Additional errors                                                                               |
+| :----------------------------------------- | :----------------------------------------------- | :-------------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| POST `/api/auth/login`                     | `{username,password}`                            | 200 `{user:{id,username}}`, session cookie    | 400 `VALIDATION_ERROR`, 401 `AUTHENTICATION_FAILED`, 403, 429                                   |
+| GET `/api/auth/session`                    | session cookie                                   | 200 `{authenticated:true,user:{id,username}}` | 401                                                                                             |
+| POST `/api/auth/logout`                    | cookie, trusted Origin                           | 200 `{success:true}`, revoke and clear cookie | 403, 500                                                                                        |
+| POST `/api/admin/operators`                | `{username}` only                                | 201 `{user:{id,username},setupUrl,expiresAt}` | 400, 409 `USERNAME_EXISTS`                                                                      |
+| POST `/api/admin/operators/:id/setup-link` | no body                                          | 200 `{setupUrl,expiresAt}`                    | 400 `OPERATOR_ALREADY_CONFIGURED`/`VALIDATION_ERROR`, 404                                       |
+| POST `/api/auth/setup-password`            | `{token,password}` only; public, Origin required | 200 `{success:true}`, no session              | 400 `INVALID_OR_EXPIRED_SETUP_TOKEN`/`OPERATOR_ALREADY_CONFIGURED`/`VALIDATION_ERROR`, 403, 429 |
+| GET `/api/admin/users`                     | none                                             | 200 `{users:ManagedUser[]}`                   | 401, 403                                                                                        |
+| PATCH `/api/admin/users/:id/status`        | `{status:"ACTIVE"\|"DISABLED"}` only             | 200 `{user:ManagedUser}`                      | 400, 404 `NOT_FOUND`, 409 `LAST_ACTIVE_ADMIN`                                                   |
 
-### 1. Authentication & MFA Lifecycle (PR 2 & PR 6)
+`ManagedUser` has exactly `id,username,role,status,hasPassword,createdAt,updatedAt`; hashes and tokens are excluded. The owner approved the status/list contract on 2026-10-15 (`USER_STATUS_ADMIN_CONTRACT`, NEXORA-016). ADMIN may change an OPERATOR, another ADMIN or itself, preserving the last ACTIVE ADMIN. Disable revokes all sessions and pending setup tokens atomically; reactivation restores neither. Self-disable revokes its own sessions. Role changes are unsupported.
 
-| Method | Endpoint                              | Target PR | Access                                      | Payload / Request                                              | Success Response                                          | Failure Codes                                                                                                   |
-| :----- | :------------------------------------ | :-------- | :------------------------------------------ | :------------------------------------------------------------- | :-------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/api/auth/login`                     | PR 2      | `@Public()`                                 | `{ username, password }`                                       | **OPERATOR**: 200 `{ user }` + `nexora_session` cookie    | 400 `VALIDATION_ERROR`, 401 `AUTHENTICATION_FAILED`, 403 `FORBIDDEN_ORIGIN`, 429 `RATE_LIMITED`                 |
-|        |                                       | PR 6      | `@Public()`                                 | `{ username, password }`                                       | **ADMIN**: 200 `{ mfaRequired: true }` + challenge cookie | 400 `VALIDATION_ERROR`, 401 `AUTHENTICATION_FAILED`, 403 `FORBIDDEN_ORIGIN`, 429 `RATE_LIMITED`                 |
-| `POST` | `/api/auth/mfa/verify`                | PR 6      | `@Public()` (OriginGuard + Challenge Token) | `{ code }` (TOTP or recovery code) + `nexora_mfa_token` cookie | 200 `{ user }` + `nexora_session` (`auth_level = 'MFA'`)  | 400 `VALIDATION_ERROR`, 401 `INVALID_MFA_CODE`, 403 `FORBIDDEN_ORIGIN`, 429 `RATE_LIMITED`                      |
-| `POST` | `/api/admin/operators`                | PR 2      | ADMIN (Phase-dependent)                     | `{ username }`                                                 | 201 `{ user, setupUrl, expiresAt }`                       | 400 `VALIDATION_ERROR`, 401 `UNAUTHORIZED`, 403 `FORBIDDEN`, 409 `USERNAME_EXISTS`                              |
-| `POST` | `/api/admin/operators/:id/setup-link` | PR 2      | ADMIN (Phase-dependent)                     | None                                                           | 200 `{ setupUrl, expiresAt }`                             | 400 `VALIDATION_ERROR`, 400 `OPERATOR_ALREADY_CONFIGURED`, 401 `UNAUTHORIZED`, 403 `FORBIDDEN`, 404 `NOT_FOUND` |
-| `POST` | `/api/auth/setup-password`            | PR 2      | `@Public()` (OriginGuard)                   | `{ token, password }`                                          | 200 `{ success: true }`                                   | 400 `VALIDATION_ERROR`, 400 `INVALID_OR_EXPIRED_SETUP_TOKEN`, 403 `FORBIDDEN_ORIGIN`, 429 `RATE_LIMITED`        |
+Setup passwords require 8–1024 characters before Scrypt. Links contain 256-bit CSPRNG secrets as `/setup#token=<secret>` on the request's configured trusted origin; only SHA-256 is stored, TTL is 24 hours. Reissue invalidates all old unconsumed links and rejects configured users. Setup never resets an existing credential or automatically logs in. Link responses use `Cache-Control: no-store`.
 
-- **Phased Administrative Authorization Policy**:
-  - **PR 2 → Prior to PR 6**: The database schema in PR 2..5 does NOT contain a `sessions.auth_level` column. Active local `ADMIN` users authenticated with a valid Nexora password session are authorized to access administrative endpoints (`POST /api/admin/operators`, `POST /api/admin/operators/:id/setup-link`). The backend strictly validates `role === 'ADMIN'` and an active session. In this milestone, "PASSWORD" is a logical assurance property, NOT a database field. This is supported strictly on loopback/local deployment; ADMIN Login and administrative routes are NEVER exposed to the public Internet, and administrative functionality does NOT depend on unreleased MFA.
-  - **PR 6 and Onward**: Following the deployment of PR 6, all administrative endpoints (`/api/admin/...`) strictly enforce both `role === 'ADMIN'` AND `auth_level === 'MFA'`. Existing password-only ADMIN sessions are revoked or rejected. No permanent MFA bypass is permitted.
-  - **PR 7 (Public HTTPS)**: Public HTTPS ingress is opened ONLY when MFA enforcement is active and verified at application startup. Zero ADMIN endpoints may bypass MFA over public ingress.
-- **@Public() & Ingress Defense**: `POST /api/auth/mfa/verify` is explicitly decorated with `@Public()` to bypass the global `SessionGuard`, as unauthenticated callers do not yet possess an active session. It strictly enforces `OriginGuard`, presence and validity of the ephemeral MFA challenge token (`nexora_mfa_token` cookie, `HttpOnly`, `SameSite: Strict`, path `/api/auth/mfa`, TTL 5 minutes), account-level rate limits, and atomic replay protection.
-- **Operator Onboarding Lifecycle & Reissue Contract (PR 2 & PR 7)**:
-  - `POST /api/admin/operators`: ADMIN provisions a new OPERATOR user without password. The system generates a high-entropy CSPRNG setup token (≥128 bits entropy) with a 24-hour TTL and stores its SHA-256 hash in `operator_setup_tokens`. Any previous unconsumed setup token for that user is atomically invalidated. Returns the user summary, single-use `setupUrl`, and expiration timestamp. ADMIN cannot view or set operator passwords.
-  - `POST /api/admin/operators/:id/setup-link`: ADMIN reissues a setup link for an active operator. The transaction locks the target user row (`SELECT ... FOR UPDATE`), verifies `status = 'ACTIVE'` and `role = 'OPERATOR'`, and checks that the user does NOT have credentials in `user_credentials`. If credentials already exist, it rejects with `400 OPERATOR_ALREADY_CONFIGURED` ("Tài khoản đã thiết lập mật khẩu") as setup links are NOT password reset mechanisms. Reissuing atomically invalidates all unconsumed setup tokens for that user, creates a new token hash (24h TTL), and returns `{ setupUrl, expiresAt }`. The raw token is returned only once, never echoed again, and never logged.
-  - `POST /api/auth/setup-password`: Unauthenticated operator presents token and sets password (8–1024 characters). Follows unified lock order (**user row lock → operator_setup_tokens update**): Scrypt hashing runs outside the transaction; non-locking lookup locates `user_id`; short transaction locks user row FIRST (`SELECT id, role, status FROM users WHERE id = $user_id FOR UPDATE;`), verifies `role = 'OPERATOR'` and `status = 'ACTIVE'`, conditionally updates setup token (`UPDATE operator_setup_tokens SET consumed_at = now() WHERE token_hash = $1 AND user_id = $2 AND consumed_at IS NULL AND expires_at > now() RETURNING id;`), verifies absence of `user_credentials`, and inserts Scrypt password credential. Replay attempts fail with `400 INVALID_OR_EXPIRED_SETUP_TOKEN`. Tokens are never logged or echoed.
-  - **Token Invalidation on Disablement**: Disabling an operator atomically marks all unconsumed `operator_setup_tokens` for that user as consumed/invalidated in the same transaction. Reactivating the user does NOT restore old setup tokens.
+`POST /api/auth/provider/login` is removed, always returns 404 regardless of Uniship configuration, and is absent from generated contracts. The owner-approved upgrade migration revokes all sessions of credentialless OPERATOR users; ADMIN/configured OPERATOR sessions remain. Deleted tokens cannot regain validity after setup. HTTP contracts and SessionGuard are unchanged.
+
+## Deferred milestones — not implemented
+
+| Milestone | Scope                                                               |
+| :-------- | :------------------------------------------------------------------ |
+| PR 3      | Carrier Connection metadata and ownership                           |
+| PR 4      | Uniship Carrier Adapter and connect/reconnect credentials lifecycle |
+| PR 6      | ADMIN TOTP MFA and sessions.auth_level                              |
+| PR 7      | Public HTTPS release gates                                          |
+
+### ADMIN TOTP MFA — PR 6
+
+The future ADMIN login flow returns `{mfaRequired:true}` plus a pending challenge cookie, followed by `POST /api/auth/mfa/verify` with `{code}` and atomic challenge/TOTP replay protection. These are deferred changes, not the current password-session login contract. PR 2 has no MFA tables or `sessions.auth_level`; its ACTIVE ADMIN password sessions authorize local administration. Public exposure requires the separately planned PR 6/7 gates.
 
 ### 2. Carrier Connections Management (PR 3 & PR 4)
 
@@ -64,8 +63,12 @@ Endpoints strictly enforce ownership from the authenticated session (`user_id`).
 | `DELETE` | `/api/admin/carrier-connections/:id` | Post-PR 6 Follow-up | ADMIN + MFA | Hard-delete connection across users (audit recorded) | 401 `UNAUTHORIZED`, 403 `FORBIDDEN`, 404 `NOT_FOUND` |
 
 - **MFA Precondition & Decoupling**: These administrative carrier endpoints require both `role === 'ADMIN'` AND `auth_level === 'MFA'`. Because MFA is introduced in PR 6, these endpoints are explicitly deferred to a post-PR 6 follow-up task. PR 6 does NOT depend on PR 3 or PR 4, and Public HTTPS (PR 7) does not wait for administrative carrier endpoints.
-- **Interim Maintenance Runbook**: Before these endpoints are implemented, cross-user inspection and emergency disconnection are executed via an authorized server-side CLI runbook (`dist/cli/carrier-admin.js`) run directly by system administrators with database credentials.
+- **Interim Maintenance Runbook**: Before these endpoints are implemented, the administrative Carrier CLI (`dist/cli/carrier-admin.js`) is deferred until after PR 6. Authorized database administrators use reviewed direct SQL maintenance procedures during development.
 - **Security Boundary**: Administrators cannot decrypt credentials, reconnect, or invoke carrier APIs on behalf of another user.
+
+### Public HTTPS — PR 7
+
+Deferred deployment work includes TLS ingress, Secure cookie policy, Host/Origin configuration and mandatory ADMIN MFA. Current supported deployment is loopback HTTP; no public profile is implemented by NEXORA-016.
 
 ## Contract Generation & Verification
 
