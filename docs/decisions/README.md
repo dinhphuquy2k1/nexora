@@ -11,6 +11,7 @@ This directory contains Architecture Decision Records (ADRs) for Nexora. Durable
 | [ADR-003](reference-architecture-policy.md)  | Reference architecture & engineering governance policy                      | 2026-10-10 | Accepted |
 | [ADR-004](per-app-docker-architecture.md)    | Per-application Docker architecture & shared BuildKit dependency foundation | 2026-10-10 | Accepted |
 | [ADR-006](scope-reduction-backup-restore.md) | Removal of custom Backup/Restore subsystem & test simplification            | 2026-10-13 | Accepted |
+| [ADR-007](multi-carrier-architecture.md)     | Multi-Carrier Management, Security Architecture & Independent Identity      | 2026-10-14 | Accepted |
 
 ## Foundational architectural topics
 
@@ -21,4 +22,5 @@ This directory contains Architecture Decision Records (ADRs) for Nexora. Durable
 
 ## Accepted future direction
 
-- [Unified identity foundation](unified-identity.md) — accepted 2026-10-12; implementation PLANNED and gated on Phase 0 merge and NEXORA-011 prerequisites; PR #7 is merged. Phase 0 documentation is separate from the blocked Phase 1 implementation.
+- [Multi-carrier management](multi-carrier-architecture.md) — accepted 2026-10-14; supersedes experimental provider login from [unified identity](unified-identity.md). Implementation follows the 6-PR plan (PR 1–4, 6, 7).
+- [Unified identity foundation](unified-identity.md) — accepted 2026-10-12; Phase 1 users/credentials merged. Phase 2 provider login is superseded by ADR-007 and scheduled for complete elimination in PR 2.

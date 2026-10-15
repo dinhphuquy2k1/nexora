@@ -73,3 +73,12 @@ Release artifact preparation copies the installed frozen graph; package IDs reta
 ## Local account provisioning runtime
 
 API compilation owns `/app/dist/cli/user-create.js` and its infrastructure provisioner; the existing `dist` artifact packaging includes both without repository-level scripts or a new service. Execute through `/scripts/api-entrypoint.sh` to read the existing credential volume and inject DATABASE_URL, as the image's non-root user. Source inspection establishes expected packaging, while executed fresh-install and pseudo-TTY smoke provide runtime evidence; see NEXORA-009 for the current verification state. No API/database host ports or production bootstrap endpoint are added. API receives WEB_PORT/ALLOWED_ORIGINS solely for the exact browser Origin policy documented in [Configuration](../operations/configuration.md).
+
+## Public HTTPS Profile & MFA Release Gate (PR 7 Target)
+
+Under [ADR-007](../decisions/multi-carrier-architecture.md), public deployment requires strict runtime release gates:
+
+1. **Mandatory PR 6 Dependency**: The public profile runtime requires ADMIN TOTP MFA. At startup under the public profile, the API container performs an assertion check and **refuses to start** if MFA enforcement is disabled.
+2. **Cookie Security**: In public deployment, cookies enforce `Secure: true`. `nexora_session` uses `SameSite: Lax`, while pending MFA challenge tokens (`nexora_mfa_token`) enforce `SameSite: Strict`.
+3. **NTP Host Clock Synchronization**: Containerized TOTP calculation relies on the host clock. Deployment runbooks mandate host NTP synchronization (`chrony` or `systemd-timesyncd`), verified before enabling public ingress.
+4. **Origin & Host Enforcement**: Ingress proxies must forward exact Host and Origin headers validated against server-side configuration; `X-Forwarded-*` headers are accepted only from explicit, trusted proxy subnets.

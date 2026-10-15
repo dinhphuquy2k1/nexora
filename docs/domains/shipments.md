@@ -18,3 +18,4 @@ PLANNED: Not implemented in foundation v0.1.0. Foundation provides infrastructur
 - Shipment database table schema, indexes, and partition strategy (deferred to shipment domain milestone).
 - Excel parser implementation and column mapping engine (deferred to ingestion milestone).
 - Provider-specific adapter implementation (deferred pending provider API feasibility study).
+- Multi-carrier connection management ([ADR-007](../decisions/multi-carrier-architecture.md)) provides on-demand carrier credentials and authentication without implementing shipment business tables, background workers, or automated synchronization loops.

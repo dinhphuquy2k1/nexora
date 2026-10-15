@@ -1,6 +1,8 @@
 # Unified identity foundation decision
 
-Accepted direction: 2026-10-12. Phase 1 storage/local-authentication implementation: IMPLEMENTED; verification tracked in NEXORA-011. Phase 2 external identity database schema, manual SQL operator registration, provider authentication port/adapter, employee login API orchestration, mock-provider HTTP integration tests, and frontend login mode split: IMPLEMENTED under NEXORA-012; admin staff management UI and live Uniship verification: DEFERRED. Future phases: PLANNED. This decision defines Phase 0 and the gated Phase 1–2 target; it describes the implemented storage and authentication boundary with Uniship API integration authorization confirmed by the owner on 2026-10-13. Existing runtime decisions remain authoritative until their implementation milestones pass. ADR-005 remains authoritative for implemented Scrypt local credentials, opaque PostgreSQL sessions, operational Login/Logout/Session APIs and loopback HTTP. This decision extends future direction without superseding that runtime. PR #7 is merged at ad01e74; unified users/user_credentials storage is implemented; external_identities schema, manual SQL registration, and testable provider authentication flow are implemented in PR #10; live Uniship authentication remains technically unverified; permission is confirmed and operational enablement is separate. See [NEXORA-010](../tasks/completed/NEXORA-010-unified-identity-foundation.md) for Phase 0, [NEXORA-011](../tasks/completed/NEXORA-011-unified-identity-migration.md) for Phase 1, and [NEXORA-012](../tasks/active/NEXORA-012-admin-staff-management.md) for Phase 2.
+**Status**: Superseded in part (Local unified `users`/`user_credentials` and local authentication remain accepted; external identity mapping and provider login are superseded by [ADR-007](multi-carrier-architecture.md) and scheduled for removal in PR 2).
+
+Accepted direction: 2026-10-12. Phase 1 storage/local-authentication implementation: IMPLEMENTED; verification tracked in NEXORA-011. Phase 2 external identity database schema, manual SQL operator registration, provider authentication port/adapter, employee login API orchestration, mock-provider HTTP integration tests, and frontend login mode split: IMPLEMENTED under NEXORA-012; admin staff management UI and live Uniship verification: DEFERRED. Future phases: SUPERSEDED by [ADR-007](multi-carrier-architecture.md). As decided by the owner on 2026-10-14, Nexora has no real users; therefore, the experimental provider login flow (`POST /api/auth/provider/login`, `external_identities`, and SQL registration script) will be completely removed in PR 2 without backfilling or legacy onboarding, while the Uniship HTTP client will be relocated to `carrier/infrastructure/uniship/`. Both ADMIN and OPERATOR will use independent Nexora local credentials. Existing runtime decisions remain authoritative for merged code until PR 2 is implemented.
 
 ## Identity and access
 
@@ -78,3 +80,13 @@ The owner selects `users` plus `user_credentials` plus `external_identities` plu
 | provider_credentials | Future permitted encrypted provider tokens in a later phase                                                           |
 
 Never place provider passwords or bearer tokens in user_credentials. Session validation is authentication-method agnostic: structurally valid token, matching unrevoked/unexpired session and existing ACTIVE user only. It must not require ADMIN, a credential/hash, a provider identity or IP/User-Agent equality. Local password Login separately requires ADMIN, ACTIVE and a matching credential; missing credentials, disallowed roles and disabled accounts use valid dummy Scrypt after existing admission, with unchanged public failures. External identity authentication strictly requires server-side verified identity, matching registered ACTIVE OPERATOR, and issues standard opaque Nexora sessions.
+
+## Multi-Carrier Architecture Amendment — 2026-10-14
+
+Per [ADR-007](multi-carrier-architecture.md), the owner decided that Nexora has zero real users and that logistics provider accounts must not be coupled to operator authentication. The experimental provider-login subsystem will be completely eliminated in PR 2:
+
+- `external_identities` table is dropped via a forward-only migration.
+- `POST /api/auth/provider/login` and `ProviderAuthenticationPort` are removed.
+- OPERATOR and ADMIN accounts both use local Scrypt credentials in `user_credentials`.
+- Carrier account connections move to independent `carrier_connections` and `carrier_connection_secrets` tables, owned by individual Nexora users.
+- The Uniship HTTP client is relocated to `apps/api/src/carrier/infrastructure/uniship/`.
