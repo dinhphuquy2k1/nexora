@@ -29,132 +29,30 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), the backend modular
 
 1. **Module Organization**:
    - `apps/api/src/identity/`: Owns local Nexora operator identity (`users`, `user_credentials`, `sessions`, `operator_setup_tokens`; `user_mfa` is deferred). In PR 2, `POST /api/auth/provider/login`, `AuthService.loginWithProvider()`, and `authenticateExternalIdentity()` are completely eliminated. The implemented module uses `UserManagementService` for single-use onboarding links (`POST /api/admin/operators`, `POST /api/admin/operators/:id/setup-link`, and `POST /api/auth/setup-password`).
-   - `apps/api/src/carrier/`: Owns multi-carrier connections (`carrier_connections`), encrypted credential persistence (`carrier_connection_secrets`), connection lifecycle, and carrier adapters. U…7309 tokens truncated…rs SSR HTML or browser storage. Query-string tokens are rejected.
+   - `apps/api/src/carrier/`: Owns multi-carrier connections (`carrier_connections`), encrypted credential persistence (`carrier_connection_secrets`), connection lifecycle, and carrier adapters. Uniship HTTP client is refactored into `carrier/infrastructure/uniship/`.
+   - `apps/api/src/common/crypto/`: Central cryptographic module implementing AES-256-GCM, HKDF subkey derivation, 96-bit CSPRNG nonces, and authenticated associated data (AAD) binding. Both Identity and Carrier consume this module; neither module imports cryptographic routines or domain entities from the other.
 
-Historical mode descriptions below are superseded by this implemented flow.
+2. **RBAC, Concurrency Invariants & Multi-Level Session Assurance**:
+   - `SessionGuard` validates the active opaque session globally as `APP_GUARD`.
+   - `POST /api/auth/mfa/verify` is explicitly decorated with `@Public()` to bypass `SessionGuard` during the two-step login sequence, but is strictly protected by `OriginGuard`, pending challenge cookie validation (`SameSite: Strict`, `HttpOnly`), account-level rate limits, and atomic replay protection.
+   - **Password-Hash Recheck in Session/Challenge Issuance**: Scrypt password verification runs outside the database transaction. Subsequently, inside a short transaction, the server locks the user row (`SELECT ... FROM users ... FOR UPDATE`), verifies `status = 'ACTIVE'` and the expected role, and strictly re-verifies that `user_credentials.password_hash` exactly matches the hash used for the Scrypt verification. Any mismatch indicates a concurrent password change and immediately aborts issuance.
+   - **Last Active Admin Invariant & Advisory Lock Protocol**: To prevent deadlocks from inconsistent lock ordering and eliminate race conditions that leave zero active administrators, operations reducing active administrators (disablement, demotion, self-disablement) acquire a dedicated transaction-level PostgreSQL advisory lock (`SELECT pg_advisory_xact_lock(hashtext('nexora_active_admin_invariant'))`) before any row-level locks. The transaction-level advisory lock acquired before user-row locks serializes administrative operations that reduce active administrators adhering to this protocol, preventing lock-ordering deadlocks and race conditions specifically between those administrative mutations while strictly guaranteeing that the active administrator count never falls to zero. Transactions holding advisory locks are never held across HTTP calls or slow I/O.
+   - **CLI TOTP Enrollment Protocol (No Locks During Prompt)**: The interactive CLI (`dist/cli/mfa-enroll.js`) executes password verification, secret/recovery-code generation, and confirmation TOTP verification strictly outside database transactions. After confirmation code verification, a short transaction locks the user row (`SELECT ... FOR UPDATE`), re-checks role, status, and password hash equality, commits `user_mfa` (with `last_used_step`) and recovery code hashes, and atomically invalidates active sessions and challenges. Recovery codes are displayed once only after transaction commit.
+   - **Operator Setup Link Protocol & Reissue**: `POST /api/admin/operators` generates a high-entropy CSPRNG token (≥128 bits entropy), stores only its SHA-256 hash in `operator_setup_tokens` (24h TTL, single-use), and returns the setup URL once. `POST /api/admin/operators/:id/setup-link` allows ADMIN to reissue an onboarding link for an ACTIVE OPERATOR who has no credentials, locking the user row first and atomically marking all previous unconsumed tokens for that user as consumed. `POST /api/auth/setup-password` (`@Public()`, `OriginGuard`) strictly follows the unified lock order (**user row lock → operator_setup_tokens update**): Scrypt hashing executes outside the transaction, a non-locking lookup locates `user_id`, a short transaction locks user row FIRST (`SELECT ... FOR UPDATE`), verifies `ACTIVE` OPERATOR, conditionally updates setup token, verifies absence of `user_credentials`, and inserts the Scrypt hash. If credentials exist, it fails with `400 OPERATOR_ALREADY_CONFIGURED`. All setup token operations adhere to this lock order, eliminating deadlocks. Disabling an OPERATOR atomically invalidates all unconsumed setup tokens in the same transaction; reactivation does not restore them. Plaintext tokens are never logged or stored.
+   - Route-level RBAC decorators enforce specific roles and authentication levels:
+     - Standard operator routes: Require active user session (`auth_level = 'PASSWORD'` or `'MFA'`).
+     - Administrative endpoints (`/api/admin/...`):
+       - **PR 2 → prior to PR 6**: The database schema in PR 2..5 does NOT contain a `sessions.auth_level` column. Local `ADMIN` users with valid password sessions can access administrative onboarding endpoints (`POST /api/admin/operators`, `POST /api/admin/operators/:id/setup-link`). The backend strictly validates `role === 'ADMIN'` and active session. In this milestone, "PASSWORD" is a logical assurance property, NOT a database field. This interim policy is supported exclusively on local loopback environments; administrative endpoints and login are never exposed to the public Internet without MFA. Does not depend on unreleased MFA components.
+       - **From PR 6 onward**: Every administrative endpoint strictly requires `role === 'ADMIN'` AND `auth_level === 'MFA'`. Password-only admin sessions are revoked or rejected. No permanent MFA bypass is retained.
+       - **PR 7**: The public HTTPS profile verifies during boot that MFA enforcement is strictly enabled; any attempt to run public administrative endpoints without MFA fails closed.
+     - Carrier connection operations (`/api/carrier-connections/...`): Strictly enforce connection ownership (`user_id` matching session). Administrative sessions cannot decrypt, reconnect, or trigger carrier API operations on behalf of another user.
 
-Next.js App Router provides the user interface and transport-only `/api/:path*` rewrite proxy. Server configuration selects `http://api:4000`, while client code in the browser consumes the generated SDK using relative same-origin paths. No database access, secrets, or internal server URLs are imported by client components. The build consumes committed SDK definitions and does not generate contracts on the fly.
-
-## 1. Component Ownership & Tier Model
-
-Nexora enforces three distinct component ownership tiers to prevent component duplication and premature global abstractions:
-
-### Tier A: Shared UI Primitives (`packages/ui/`)
-
-Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel`, `StatusBadge`, future `Button`, `Input`):
-
-- **Domain Agnostic**: Must never import Shipment, Customer, or Identity domain models.
-- **Transport Agnostic**: Must never call Nexora API endpoints or SDK client factories.
-- **Self-Contained Styling**: Owns its CSS Modules (`*.module.css`) and consumes semantic design tokens with sensible fallbacks (`var(--token, fallback)`).
-- **Extraction Criterion**: Extract into `packages/ui` only when a primitive has no domain coupling and is actively reused across multiple distinct features or applications.
-
-### Tier B: Application-Level Components (`apps/web/components/`)
-
-Components dedicated to Nexora's application shell, layout frame, and cross-route coordination:
-
-- **`AppShell` (`AppShell.tsx`)**: Authoritative Server Component layout frame consumed exclusively in the protected workspace layout `apps/web/app/(workspace)/layout.tsx`.
-- **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`) and rendering workspace navigation chrome. Fully decoupled from public login routes.
-- **`Sidebar` (`Sidebar.tsx`, `Sidebar.module.css`)**: Logistics navigation bar with geometric monogram logo, grouped navigation items, active route indicators, and planned item tags.
-- **`Header` (`Header.tsx`, `Header.module.css`)**: Top bar containing sidebar toggle, pathname-driven breadcrumbs, and authenticated user account disclosure (`AccountMenu`).
-- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible user account disclosure displaying authenticated username and active session status, with browser POST logout and status-aware retry.
-- **`Breadcrumb` (`Breadcrumb.tsx`)**: Pathname-driven breadcrumbs consuming shared navigation metadata.
-- **`NavigationItem` (`NavigationItem.tsx`)**: Distinguishes available routes (Next.js `Link`) from planned features (disabled action button with "Chưa triển khai" label).
-- **Popover Semantics (`use-dismissable.ts`)**: Reusable disclosure hook managing outside pointer dismissal and Escape key closing with focus restoration.
-
-### Tier C: Feature-Level Components (`apps/web/features/<feature>/`)
-
-Future feature-specific modules (e.g., `ShipmentTable`, `TrackingTimeline`, `CustomerForm`):
-
-- Kept strictly local to the feature directory.
-- Reuses Tier A shared UI primitives and Tier B layout slots.
-- May own feature-specific validation schemas, presentation types, and SDK caller hooks.
-
-## 2. Design Tokens & Styling Strategy
-
-The frontend enforces a CSS Modules architecture governed by centralized design tokens in `apps/web/styles/tokens.css`:
-
-### 2-Tier Token Architecture
-
-1. **Foundation Palette**: Raw brand and color constants (`--brand-navy`, `--brand-navy-dark`, `--brand-navy-light`, `--brand-orange`, `--brand-orange-light`, `--brand-orange-text`, `--gray-50` to `--gray-900`).
-2. **Semantic Application Tokens**: Purpose-driven tokens mapped to the foundation constants (`--color-primary`, `--color-accent`, `--color-surface`, `--color-border`, `--color-status-*`, `--focus-ring-*`).
-3. **Standardized Scales**:
-   - **Spacing**: `--space-1` (4px), `--space-2` (8px), `--space-3` (12px), `--space-4` (16px), `--space-5` (20px), `--space-6` (24px), `--space-8` (32px).
-   - **Radius**: `--radius-xs` (4px), `--radius-sm` (6px), `--radius-md` (8px), `--radius-lg` (12px), `--radius-full` (9999px).
-   - **Shadows**: `--shadow-sm`, `--shadow-md`, `--shadow-lg`.
-
-### Token Ownership & Consumption Contract (Option A)
-
-- **Host Application Ownership**: Tokens are declared on `:root` in `apps/web/styles/tokens.css` and loaded globally in `apps/web/app/styles.css`.
-- **Package Consumption**: Shared primitives in `packages/ui` consume these CSS custom properties via `var(--token-name, fallback)` without directly importing application stylesheets.
-- **Central Theming & Overrides**: Overriding CSS variables on `:root` or scoped selectors cleanly propagates across all shell components and `@nexora/ui` primitives simultaneously without residual hardcoded styles.
-
-### Minimal Global Styles (`apps/web/app/styles.css`)
-
-Global CSS is restricted to root token imports, basic CSS reset, base typography, and macro page layout grids (`.grid`, `.status-grid`). All internal component presentation for `Panel` and `StatusBadge` is decoupled into `@nexora/ui` CSS Modules.
-
-## 3. Server vs. Client Component Conventions
-
-Nexora adheres strictly to Next.js App Router boundary best practices:
-
-- **Server Components by Default**: All page routes (`/`, `/settings`, `/system`) and static wrappers (`AppShell`) are Server Components unless client state is required.
-- **Narrow Client Boundaries**: Client boundaries (`"use client"`) are pushed to the smallest possible leaf nodes (e.g., `ShellClient` for collapse state, `AccountMenu` for disclosure, `/system` for live polling).
-- **Serialization Invariant**: Server-to-Client boundaries only pass serializable data (primitives, plain objects, strings). React component constructors and icon factories are never passed across boundaries; components resolve string identifiers (`iconKey`) via local lookup registries.
-
-## 4. Feature Data-Fetching & UI State Conventions
-
-- **Data Ownership**: Page and feature boundaries own API data fetching; shared UI primitives remain completely transport-agnostic.
-- **Typed SDK Usage**: All client data calls consume the generated OpenAPI SDK (`createNexoraClient()`). Direct database access or direct imports from `apps/api` are strictly disallowed.
-- **Truthful UI State Modeling**:
-  - Always distinguish empty data from unsupported or planned features.
-  - Planned features must render explicit "Chưa triển khai" indicators and must never show mock records or fake success toasts.
-  - Interactive requests must handle loading, error, and cancellation cleanly without external global state stores (Redux, Zustand) until multi-feature operational complexity proves a concrete requirement.
-
-## 5. Navigation Contract & Single Source of Truth
-
-Navigation metadata is centralized in `apps/web/lib/navigation/nav-config.ts`:
-
-- **Typed Configuration (`NAVIGATION_ITEMS`)**: Single source of truth defining `id`, `label`, `href`, `status` (`available` | `planned`), `group` (`Workspace` | `System`), and `iconKey`.
-- **Approved Navigation Contract (`navigation.test.mjs`)**: Verified against an independent `APPROVED_NAVIGATION_CONTRACT` table in Node.js test runner. Detects unauthorized route additions, missing items, status alterations, or planned items with navigable URLs.
-- **Pure Resolvers (`apps/web/lib/navigation/resolve-active.ts`)**: Pure functions for URL normalization (`normalizePathname`), active route matching (`isItemActive`, `resolveActiveItem`), and breadcrumb trail derivation (`resolveBreadcrumbs`).
-- **Collapsed Sidebar Overflow Handling**: Tooltips use `visibility: hidden` and `opacity: 0` in resting state, revealed on `:hover` and `:focus-within`. `.collapsed .nav { overflow: visible; }` ensures tooltip visibility without clipping, while compact header layout guarantees `scrollWidth <= clientWidth` across all approved viewports.
-
-## 6. Product Scope Boundaries & Exclusions (ADR-002)
-
-Nexora is a local-first shipment management platform. In foundation v0.1.0, the UI scope includes Overview (`/`), System Health (`/system`), and Settings (`/settings`). The reference prototype contained sourcing and customer portal features that are strictly excluded from Nexora production code:
-
-- **Excluded Sourcing Features**: China sourcing search (Taobao, 1688, Tmall), image recognition modal, product category grid, search result feedback mockups, and supplier directory listings.
-- **Excluded Financial Features**: Customer wallet balance, VIP tiers, currency exchange rate ticker, payment assistance, and simulated transaction logs.
-- **Preserved Existing Pages**:
-  - `/` (Overview): Concise, professional page hierarchy featuring page title (`Tổng quan`), subtitle (`Quản lý vận đơn, trạng thái nền tảng và kiện hàng.`), compact foundation notice, and 3 capability cards with truthful "Chưa triển khai" indicators.
-  - `/system` (System Health): Real SDK client calls to `/api/health/live` and `/api/health/ready`, database/storage health checks, refresh action, and request ID tracking.
-  - `/settings` (Settings): Foundation version, single-machine local runtime mode, Vietnamese language, and explicit notes on unconfigured network authentication.
-
-## 7. Automated Verification & Runtime Evidence
-
-- **Pure Navigation Tests**: `node --test apps/web/test/navigation.test.mjs` verifies contract compliance, route normalization, active matching, and breadcrumb derivation.
-- **Shared UI & Token Tests**: `node --test apps/web/test/shared-ui.test.mjs` verifies 2-tier design token architecture, absence of global component class coupling in `styles.css`, self-contained CSS modules in `@nexora/ui`, and repository-wide token reference integrity without undeclared CSS custom property usage.
-- **Shared UI Primitives Tests**: `node --test packages/ui/test/status-tone.test.mjs` verifies the pure `resolveStatusTone` resolver in `@nexora/ui` across boolean and null states using Node 24 native TypeScript type stripping.
-- **Workspace Build**: Turbo and Next.js webpack production build (`pnpm build`) transpile `@nexora/ui` and prerender all static pages (`/`, `/_not-found`, `/settings`, `/system`) with zero errors.
-- **Typecheck & Lint**: Zero errors in `pnpm --filter @nexora/ui typecheck`, `pnpm --filter @nexora/web typecheck`, `pnpm lint`, `node scripts/boundaries.mjs`, and `pnpm format:check`.
-- **Interactive Browser & Theme Override Verification**:
-  - Validated across 1440×900, 1280×800, and 1024×768 viewports in expanded and collapsed sidebar modes with `scrollWidth <= clientWidth`.
-  - Tested dynamic theme override of `--color-primary` and `--color-accent` in browser runtime, confirming coherent, system-wide updates without hardcoded color leaks.
-  - Verified Panel paragraph typography and StatusBadge tone mapping visually in the rendered DOM across `/`, `/system`, and `/settings`.
-
-## 8. Authentication & Route Protection
-
-- **Layout Architecture & Route Groups**:
-  - **Root Layout (`apps/web/app/layout.tsx`)**: Owns `html`, `body`, global `styles.css`, and application metadata. Does not render `AppShell`.
-  - **Standalone Public Login Route (`apps/web/app/login/`)**: Uses a standalone `LoginLayout` (`apps/web/app/login/layout.tsx`) and `LoginPage` presenting brand monogram, mode-aware header/subtitle, accessible error banners, mode toggle link, and return URL sanitization (`sanitizeReturnUrl`). Does not render `AppShell`.
-    - **Employee Login (`/login`)**: Default mode submitting credentials to `POST /api/auth/provider/login`. Displays safe error `"Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập."` on 401. Includes a navigation link to switch to Admin mode (`/login?mode=admin`).
-    - **Admin Login (`/login?mode=admin`)**: Independent local administrator mode submitting credentials to `POST /api/auth/login`. Displays `"Tên đăng nhập hoặc mật khẩu không chính xác."` on 401. Includes a navigation link to switch to Employee mode (`/login`).
-  - **Protected Workspace Route Group (`apps/web/app/(workspace)/`)**: Routes (`/`, `/settings`, `/system`) reside in the `(workspace)` route group. Its Server Component layout (`apps/web/app/(workspace)/layout.tsx`) enforces server session verification via `verifyServerSession(cookie)`. Genuinely authenticated users receive `<AppShell user={result.user}>{children}</AppShell>`; unauthenticated requests redirect to `/login?from=...`; upstream backend outages fail closed with a service error banner without redirect loops.
-- **Route Guarding (`middleware.ts`)**: Enforces Host allowlist validation at ingress across all matched paths including `/api/*`. Provides fast loopback redirection for unauthenticated workspace requests lacking `nexora_session` cookies, and injects `x-pathname` header for downstream Server Components while avoiding network requests in middleware.
-- **Authenticated Account State (`AccountMenu`)**: Discloses active operator username, displays local runtime badge, and provides verified server-side logout destroying the session in PostgreSQL and clearing client cookies. Checks response status before redirecting and renders accessible error notifications on failure with retry capability.
-- **Upstream API Proxy (`next.config.ts`) & Server API Configuration (`lib/api/config.ts`)**: Authoritative configuration owner validates `API_INTERNAL_URL` as a required HTTP/HTTPS origin without path, credentials, query, or fragment. No implicit application fallback is permitted; Compose supplies `http://api:4000` for container runtime. Server Component session verification (`lib/api/session.ts`) queries `/api/auth/session` using this configuration, distinguishing authenticated (200), unauthenticated (401), and upstream unavailable (5xx/network) states while performing redirects strictly outside catch blocks.
-
-## 9. Authentication transport and session payload validation
-
-LoginForm and AccountMenu make browser-originated, same-origin relative POST calls through the Web `/api/*` rewrite; these are not Server Actions. The reusable server session helper only performs GET, forwarding the session cookie to the explicit internal API URL. No server-originated authentication mutation or internal Origin bypass exists. Web Host validation remains ahead of proxying, including `/api/*`.
-
-A server HTTP 200 session response authenticates only when `authenticated === true` and user ID/username are nonempty strings. Invalid JSON or malformed 200 payloads return unavailable service; 401 or missing cookie returns unauthenticated; upstream/network failures remain unavailable. LoginPage redirects only from the authenticated result, preventing malformed payloads from entering Workspace. AccountMenu navigates only after successful logout and retains retry behavior on revocation failure. Login displays a generic retry message for 429, covering both account lockout and the faster global admission budget without incorrectly promising a fixed five-minute wait.
+3. **Carrier Connection Orchestration**:
+   - **Connection Lifecycle**: Supports `CONNECTED`, `REAUTH_REQUIRED`, and `ERROR` states.
+   - **Unified Generic Error Mapping**: `POST /api/carrier-connections` returns a single unified generic error (`400 CANNOT_CONNECT_CARRIER_ACCOUNT`, "Không thể kết nối tài khoản này") for both invalid provider credentials and duplicate account linkage (`UNIQUE(provider, external_account_id)`). This eliminates account enumeration hazards while the underlying event (`PROVIDER_AUTH_FAILED` vs `DUPLICATE_EXTERNAL_ACCOUNT`) is logged to the safe server-side security audit sink.
+   - **Protected Carrier Endpoints**: All protected carrier endpoints enforce `401 UNAUTHORIZED` if the caller's session is missing or expired.
+   - **Deferred Administrative Carrier Endpoints & CLI**: Administrative carrier endpoints (`GET /api/admin/carrier-connections`, `DELETE /api/admin/carrier-connections/:id`) require `ADMIN + MFA` and are deferred to post-PR 6. The interim Carrier Admin CLI (`dist/cli/carrier-admin.js`) is also **PLANNED / DEFERRED** post-PR 6 and is not supported in PR 2..5; interim cross-user maintenance during development is conducted exclusively via authorized direct SQL maintenance runbooks by database administrators.
+   - **Token Verification (`api-token-verify`) & Merge Gate**: Candidate access tokens must be verified against `POST /client/api-token-verify/` (or login response) ensuring `user.userid == external_account_id`. Identity mismatch marks connection `REAUTH_REQUIRED` and permanently prevents automatic re-login. PR 4 development uses a mock adapter until live merge gate requirements (request body, identity proof, TTL, refresh rules, quotas, and re-login authorization) are verified through formal API evidence.
+   - **Durable Audit & Fail-Closed Decryption**: Decrypting saved passwords for automated re-login requires persisting an immutable security audit event through `SecurityAuditPort`. If the audit sink fails or is unavailable, decryption is immediately aborted (fail-closed).
+   - **Singleflight Concurrency**: In-memory singleflight per `connection_id` prevents redundant token refresh or re-login storms within a single API instance. Database transactions are never held across external HTTP calls.
+   - **Carrier Budget & Backoff**: Outbound requests are governed by per-carrier concurrency budgets; HTTP 429 triggers carrier-wide backoff without spamming logins.

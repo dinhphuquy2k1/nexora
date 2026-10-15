@@ -1,7 +1,7 @@
 # Database
 
-Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `external_identities` (provider subject binding for uniship operators), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment domain schema is PLANNED; there are no fake smoke tables or business seeds.
-`20261006000000_storage_catalog`, `20261012000000_local_authentication`, `20261012010000_unified_identity` and `20261012020000_external_identities` define migrations deployed by `prisma migrate deploy`, gated on PostgreSQL healthy. Repeated deployment preserves existing rows. No reset, db push, migrate dev or demo seed runs at startup.
+Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `operator_setup_tokens` (hashed single-use onboarding secrets), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment domain schema is PLANNED; there are no fake smoke tables or business seeds.
+`20261006000000_storage_catalog`, `20261012000000_local_authentication`, `20261012010000_unified_identity` and `20261012020000_external_identities` plus `20261015000000_local_identity_onboarding` define migrations deployed by `prisma migrate deploy`, gated on PostgreSQL healthy. Repeated deployment preserves existing rows. No reset, db push, migrate dev or demo seed runs at startup.
 Integration tests register/read/delete only their own UUID and do not truncate shared data. Persistence smoke runs on disposable projects; see task evidence.
 
 Prisma 7.10.0 uses the PostgreSQL driver adapter; createDatabase stays within the database package. prisma.config.ts reads the server DATABASE_URL for migration, while client generation requires no connection or fabricated database credential.
@@ -218,3 +218,9 @@ CREATE TABLE carrier_connection_secrets (
     Extends the PR 3 transaction to revoke MFA challenges: 9. Delete all pending MFA challenges: `DELETE FROM mfa_challenges WHERE user_id = $1;`
   - _Note_: Reactivation of a user does NOT restore invalidated setup tokens or deleted carrier secrets. A new setup link must be explicitly issued via `POST /api/admin/operators/:id/setup-link`.
 - **Pre-Commit Write Validation**: Before persisting renewed tokens or secrets, transactions lock the user row to ensure the account remains `ACTIVE`. In-flight responses arriving after disablement are safely discarded.
+
+## Local identity onboarding migration
+
+`20261015000000_local_identity_onboarding` creates `operator_setup_tokens` and drops legacy `external_identities` in a forward-only transaction. Historical migrations remain unchanged. User/credential/session/catalog rows are preserved. Tokens have UUID IDs, unique SHA-256 `token_hash`, target/issuer foreign keys with cascades, expiration, consumed and creation timestamps, and a target index. There is no `sessions.auth_level` or future Carrier/MFA table. Real Prisma migration tests cover legacy upgrades, preservation, constraints, repeated deploy and schema drift.
+
+Existing credentialless test OPERATOR users may remain and receive a new setup link. Optional development cleanup is documented in [Setup](../operations/setup.md); it never runs on startup.
