@@ -73,3 +73,5 @@ Genuine PostgreSQL/Nest/migration and complete canonical runtime evidence pendin
 ## Verification follow-up
 
 Initial hosted [CI 38744581704](https://github.com/dinhphuquy2k1/nexora/actions/runs/38744581704) at 9035ae4 failed during API compilation: Pick<ProcessEnv,...> incorrectly required named environment properties. Changed the constructor to a readonly environment string map, preserving lazy validation. Also strengthened the real PostgreSQL race gate: query pg_stat_activity and require four concurrent lock waiters before release; no sleeps establish success. Synchronized current identity decision summaries with implemented PR3 foundation; historical task evidence remains untouched. Fresh exact-head pipeline is required after these corrections.
+
+The final security assertion explicitly targets the retained connection for a post-disable secret write and requires UNAUTHORIZED, rather than accepting NOT_FOUND from the connection participating in the delete race. This closes a possible false-positive in that one assertion without changing production behavior or weakening any test. Fresh CI must verify this final test head before task completion.

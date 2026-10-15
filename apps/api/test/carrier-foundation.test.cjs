@@ -548,7 +548,8 @@ test(
           }))
             assert.equal(c.status, "REAUTH_REQUIRED");
           await assert.rejects(
-            writer.write(b.id, cb.id, "ACCESS_TOKEN", "very-late"),
+            writer.write(b.id, retained.id, "ACCESS_TOKEN", "very-late"),
+            (error) => error.code === "UNAUTHORIZED",
           );
           await management.setStatus(actor.id, b.id, "ACTIVE");
           assert.equal(
