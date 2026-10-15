@@ -1,5 +1,13 @@
 # Unified identity foundation decision
 
+## Implemented Logical PR 2 — NEXORA-016
+
+Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. Carrier Connections, MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
+
+NEXORA-016 implements local login for both roles, user-first transactional issuance/onboarding and atomic disablement. Legacy provider-login material below describes historical milestones, not a supported login path. `external_identities` is removed by a new migration. Current contracts and the owner-approved user administration amendment are maintained in [API contract](../architecture/api-contract.md).
+
+Setup secrets use trusted-origin `/setup#token=<secret>`; the browser clears the fragment, keeps it in memory and posts it only in the setup body. The setup page has no-store/no-referrer, no third-party assets and no automatic session issuance. Scrypt parameters remain unchanged.
+
 **Status**: Superseded in part (Local unified `users`/`user_credentials` and local authentication remain accepted; external identity mapping and provider login are superseded by [ADR-007](multi-carrier-architecture.md) and scheduled for removal in PR 2).
 
 Accepted direction: 2026-10-12. Phase 1 storage/local-authentication implementation: IMPLEMENTED; verification tracked in NEXORA-011. Phase 2 external identity database schema, manual SQL operator registration, provider authentication port/adapter, employee login API orchestration, mock-provider HTTP integration tests, and frontend login mode split: IMPLEMENTED under NEXORA-012; admin staff management UI and live Uniship verification: DEFERRED. Future phases: SUPERSEDED by [ADR-007](multi-carrier-architecture.md). As decided by the owner on 2026-10-14, Nexora has no real users; therefore, the experimental provider login flow (`POST /api/auth/provider/login`, `external_identities`, and SQL registration script) will be completely removed in PR 2 without backfilling or legacy onboarding, while the Uniship HTTP client will be relocated to `carrier/infrastructure/uniship/`. Both ADMIN and OPERATOR will use independent Nexora local credentials. Existing runtime decisions remain authoritative for merged code until PR 2 is implemented.

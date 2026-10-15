@@ -272,65 +272,80 @@ try {
   const operatorUser = await db.user.create({
     data: { username: "op-external-test", role: "OPERATOR", status: "ACTIVE" },
   });
-  const extIdentity = await db.externalIdentity.create({
-    data: {
-      userId: operatorUser.id,
-      provider: "uniship",
-      providerSubject: "uniship-test-001",
-    },
-  });
-  assert.equal(extIdentity.provider, "uniship");
-  assert.equal(extIdentity.providerSubject, "uniship-test-001");
-
-  const operatorUser2 = await db.user.create({
-    data: {
-      username: "op-external-test-2",
-      role: "OPERATOR",
-      status: "ACTIVE",
-    },
-  });
-  await assert.rejects(
-    db.externalIdentity.create({
-      data: {
-        userId: operatorUser2.id,
-        provider: "uniship",
-        providerSubject: "uniship-test-001",
-      },
-    }),
+  const extId = randomUUID();
+  await db.$executeRawUnsafe(
+    "INSERT INTO external_identities(id,user_id,provider,provider_subject,updated_at) VALUES($1::uuid,$2::uuid,'uniship','migration-fixture',now())",
+    extId,
+    operatorUser.id,
   );
-
-  await assert.rejects(
-    db.externalIdentity.create({
-      data: {
-        userId: operatorUser.id,
-        provider: "uniship",
-        providerSubject: "uniship-test-002",
-      },
-    }),
-  );
-
   await assert.rejects(
     db.$executeRawUnsafe(
-      "INSERT INTO external_identities(id, user_id, provider, provider_subject, updated_at) VALUES($1::uuid, $2::uuid, 'invalid_provider', 'subj', now())",
+      "INSERT INTO external_identities(id,user_id,provider,provider_subject,updated_at) VALUES($1::uuid,$2::uuid,'invalid_provider','subject',now())",
       randomUUID(),
-      operatorUser2.id,
+      operatorUser.id,
     ),
   );
-
+  await db.storedFile.create({
+    data: { id: randomUUID(), sha256: "a".repeat(64), sizeBytes: 123 },
+  });
+  const preserved = {
+    users: await db.user.findMany({
+      include: { credential: true },
+      orderBy: { id: "asc" },
+    }),
+    sessions: await db.session.findMany({ orderBy: { id: "asc" } }),
+    files: await db.storedFile.findMany({ orderBy: { id: "asc" } }),
+  };
+  step = "LOCAL_IDENTITY_FORWARD_MIGRATION";
+  const localMigration = "20261015000000_local_identity_onboarding";
+  await cp(
+    resolve("prisma/migrations", localMigration),
+    join(work, "prisma/migrations", localMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  assert.deepEqual(
+    {
+      users: await db.user.findMany({
+        include: { credential: true },
+        orderBy: { id: "asc" },
+      }),
+      sessions: await db.session.findMany({ orderBy: { id: "asc" } }),
+      files: await db.storedFile.findMany({ orderBy: { id: "asc" } }),
+    },
+    preserved,
+  );
+  const tables = await db.$queryRawUnsafe(
+    "SELECT to_regclass('public.external_identities') IS NULL AS removed",
+  );
+  assert.equal(tables[0].removed, true);
+  const future = await db.$queryRawUnsafe(
+    "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='sessions' AND column_name='auth_level'",
+  );
+  assert.equal(future.length, 0);
+  const tokenData = {
+    userId: operatorUser.id,
+    issuedBy: ids[0],
+    tokenHash: "f".repeat(64),
+    expiresAt: new Date(Date.now() + 86400000),
+  };
+  await db.operatorSetupToken.create({ data: tokenData });
+  await assert.rejects(db.operatorSetupToken.create({ data: tokenData }));
   await assert.rejects(
-    db.$executeRawUnsafe(
-      "INSERT INTO external_identities(id, user_id, provider, provider_subject, updated_at) VALUES($1::uuid, $2::uuid, 'uniship', '  padded  ', now())",
-      randomUUID(),
-      operatorUser2.id,
-    ),
+    db.operatorSetupToken.create({
+      data: { ...tokenData, userId: randomUUID(), tokenHash: "e".repeat(64) },
+    }),
   );
-
+  await assert.rejects(
+    db.operatorSetupToken.create({
+      data: { ...tokenData, issuedBy: randomUUID(), tokenHash: "d".repeat(64) },
+    }),
+  );
   await db.user.delete({ where: { id: operatorUser.id } });
   assert.equal(
-    await db.externalIdentity.findUnique({ where: { id: extIdentity.id } }),
-    null,
+    await db.operatorSetupToken.count({ where: { userId: operatorUser.id } }),
+    0,
   );
-  await db.user.delete({ where: { id: operatorUser2.id } });
 
   step = "REPEAT_AND_DRIFT";
   const beforeRepeat = await db.user.findMany({
@@ -354,7 +369,7 @@ try {
     "--exit-code",
   ]);
   console.log(
-    "Real Prisma legacy preservation, Phase 2 external identities migration, constraints, repeat and drift PASS",
+    "Real Prisma legacy preservation, forward local identity migration, setup constraints, repeat and drift PASS",
   );
 } catch {
   console.error(`IDENTITY_MIGRATION_TEST_FAILED step=${step}`);

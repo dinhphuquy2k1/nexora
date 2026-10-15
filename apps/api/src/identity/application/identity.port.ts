@@ -1,6 +1,5 @@
-import type { IdentityProvider } from "../domain/provider-policy";
+import type { UserRole } from "../domain/user-policy";
 import type {
-  ExternalIdentityRecord,
   LocalLoginRecord,
   SessionSummary,
   UserSummary,
@@ -11,10 +10,13 @@ export abstract class IdentityPort {
     username: string,
   ): Promise<LocalLoginRecord | null>;
   abstract findUserById(id: string): Promise<UserSummary | null>;
-  abstract findExternalIdentity(
-    provider: IdentityProvider,
-    providerSubject: string,
-  ): Promise<ExternalIdentityRecord | null>;
+  abstract findActiveRole(userId: string): Promise<UserRole | null>;
+  abstract createSessionIfUnchanged(
+    userId: string,
+    verifiedHash: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<UserSummary | null>;
   abstract createSession(
     userId: string,
     tokenHash: string,

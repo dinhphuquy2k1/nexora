@@ -185,3 +185,9 @@ Nexora is actively under development and has **zero real production users or leg
 - **Boundary Isolation**: Domain and application layers remain strictly Prisma-free. Only API infrastructure boundaries consume database models via `@nexora/database`. Web never imports API source or touches the database.
 - **Type Vocabulary**: All domain statuses and types use `as const` objects with derived TypeScript unions, stored as scalar `VARCHAR` strings with raw PostgreSQL SQL CHECK constraints. Prisma and PostgreSQL ENUMs are forbidden.
 - **Product Scope Boundaries**: This milestone does not introduce `shipments`, `tracking_events`, background job workers, Redis, Kafka, or automated synchronization loops. All carrier API interactions are executed strictly on-demand.
+
+## Approved PR 2 contract amendment — 2026-10-15
+
+Owner decision `USER_STATUS_ADMIN_CONTRACT` is resolved: implement `GET /api/admin/users` and `PATCH /api/admin/users/:id/status` exactly as specified in [API contract](../architecture/api-contract.md). ACTIVE ADMIN may manage operators, other administrators or itself, while preserving the last ACTIVE ADMIN under an advisory transaction lock acquired before row locks. Disablement revokes sessions and unused setup tokens atomically; reactivation restores neither. Safe summaries expose `hasPassword`, never hashes/tokens. All administrative mutations require OriginGuard.
+
+Setup transport is `/setup#token=<256-bit CSPRNG secret>` on a trusted origin. Only SHA-256 is stored. The client clears the fragment immediately after reading it and sends the secret only in the setup-password JSON body. No-store/no-referrer, no persistent browser storage, no SSR token or third-party assets apply. Existing Origin/admission codes `FORBIDDEN`/`TOO_MANY_REQUESTS` are retained in PR 2; planned MFA/Carrier contract codes do not change the existing limiter. PR 2 does not add `sessions.auth_level`, MFA or Carrier Connection persistence.

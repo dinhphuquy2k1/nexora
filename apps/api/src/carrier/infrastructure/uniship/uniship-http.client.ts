@@ -1,16 +1,17 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
-import { ProviderAuthenticationPort } from "../application/provider-auth.port";
-import type { VerifiedProviderIdentity } from "../domain/identity.types";
-import { IdentityProvider } from "../domain/provider-policy";
 
-export interface UnishipAuthAdapterOptions {
+export interface UnishipLoginResult {
+  externalAccountId: string;
+}
+
+export interface UnishipHttpClientOptions {
   apiUrl?: string;
   liveAuthorized?: boolean;
   isProduction?: boolean;
   timeoutMs?: number;
 }
 
-function parseProviderIdentity(payload: unknown): VerifiedProviderIdentity {
+export function parseProviderIdentity(payload: unknown): UnishipLoginResult {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw new HttpException(
       {
@@ -136,19 +137,18 @@ function parseProviderIdentity(payload: unknown): VerifiedProviderIdentity {
   }
 
   return {
-    provider: IdentityProvider.UNISHIP,
-    providerSubject: normalizedSubject,
+    externalAccountId: normalizedSubject,
   };
 }
 
 @Injectable()
-export class UnishipAuthAdapter implements ProviderAuthenticationPort {
+export class UnishipHttpClient {
   private readonly apiUrl?: string;
   private readonly liveAuthorized: boolean;
   private readonly isProduction: boolean;
   private readonly timeoutMs: number;
 
-  constructor(options: UnishipAuthAdapterOptions = {}) {
+  constructor(options: UnishipHttpClientOptions = {}) {
     this.apiUrl = options.apiUrl;
     this.liveAuthorized = options.liveAuthorized ?? false;
     this.isProduction = options.isProduction ?? false;
@@ -158,7 +158,7 @@ export class UnishipAuthAdapter implements ProviderAuthenticationPort {
   async authenticate(input: {
     username: string;
     password: string;
-  }): Promise<VerifiedProviderIdentity> {
+  }): Promise<UnishipLoginResult> {
     if (!this.apiUrl) {
       throw new HttpException(
         {
