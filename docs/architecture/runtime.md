@@ -85,4 +85,8 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), public deployment r
 
 ## Local identity boundary (Logical PR 2)
 
-Both roles use Nexora password sessions, independent of external carrier availability. ADMIN onboarding/status mutations require trusted Origin and a database-backed ACTIVE ADMIN session. Setup uses a client-only fragment secret; Web serves `/setup` with no-store/no-referrer and proxies only the setup JSON body. Carrier/MFA persistence and public HTTPS remain deferred; no new runtime service is introduced.
+Both roles use Nexora password sessions, independent of external carrier availability. ADMIN onboarding/status mutations require trusted Origin and a database-backed ACTIVE ADMIN session. Setup uses a client-only fragment secret; Web serves `/setup` with no-store/no-referrer and proxies only the setup JSON body. Carrier persistence is implemented in PR3; connect/reconnect, MFA persistence and public HTTPS remain deferred; no new runtime service is introduced.
+
+## Carrier key runtime — Logical PR 3
+
+Compose forwards CARRIER_KEYRING_JSON and CARRIER_ACTIVE_KEY_VERSION only into API server environment; neither is passed to Web, SDK, build arguments or migration services. Operators supply keys securely; init does not generate or rotate Carrier keys. API startup and all local identity/metadata functionality remain available without valid Carrier keys. EnvironmentKeyring snapshots configuration; restart the API to activate a new version. No new service, volume, worker or network integration is introduced. See [configuration](../operations/configuration.md) for custody and safe staged rotation.

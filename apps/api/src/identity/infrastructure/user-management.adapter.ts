@@ -1,3 +1,4 @@
+import { ConnectionStatus } from "../../carrier/domain/carrier";
 import {
   createDatabase,
   hashPassword,
@@ -151,6 +152,14 @@ export class UserManagementAdapter implements UserManagementPort {
         await tx.operatorSetupToken.updateMany({
           where: { userId, consumedAt: null },
           data: { consumedAt: new Date() },
+        });
+        // User lock is held before touching Carrier children, shared with all writers.
+        await tx.carrierConnectionSecret.deleteMany({
+          where: { connection: { userId } },
+        });
+        await tx.carrierConnection.updateMany({
+          where: { userId },
+          data: { status: ConnectionStatus.REAUTH_REQUIRED },
         });
       }
       return {

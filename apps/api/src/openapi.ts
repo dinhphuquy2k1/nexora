@@ -1,3 +1,5 @@
+import { CarrierController } from "./carrier/presentation/carrier.controller";
+import { CarrierService } from "./carrier/application/carrier.service";
 import { IdentityPort } from "./identity/application/identity.port";
 import {
   UserManagementController,
@@ -17,12 +19,14 @@ import { AuthService } from "./identity/application/auth.service";
 // Documentation-only module: no listener, database, storage or operational endpoint.
 @Module({
   controllers: [
+    CarrierController,
     HealthController,
     AuthController,
     UserManagementController,
     SetupPasswordController,
   ],
   providers: [
+    { provide: CarrierService, useValue: {} },
     { provide: IdentityPort, useValue: {} },
     { provide: HealthService, useValue: {} },
     { provide: AuthService, useValue: {} },

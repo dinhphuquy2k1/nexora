@@ -23,6 +23,7 @@ model User {
   createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
   credential UserCredential?
+  carrierConnections CarrierConnection[]
   sessions   Session[]
   setupTokens OperatorSetupToken[] @relation("setup_target")
   issuedSetupTokens OperatorSetupToken[] @relation("setup_issuer")
@@ -63,4 +64,38 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+model CarrierConnection {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  provider String @db.VarChar(32)
+  externalAccountId String @map("external_account_id") @db.VarChar(128)
+  loginIdentifier String? @map("login_identifier") @db.VarChar(128)
+  displayName String @map("display_name") @db.VarChar(100)
+  status String @db.VarChar(32)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  secrets CarrierConnectionSecret[]
+  @@unique([provider,externalAccountId],map:"uq_carrier_connections_provider_account")
+  @@index([userId,provider],map:"idx_carrier_connections_user_provider")
+  @@map("carrier_connections")
+}
+
+model CarrierConnectionSecret {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  connectionId String @map("connection_id") @db.Uuid
+  secretType String @map("secret_type") @db.VarChar(32)
+  ciphertext String @db.Text
+  nonce String @db.VarChar(64)
+  authTag String @map("auth_tag") @db.VarChar(64)
+  keyVersion Int @map("key_version")
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  connection CarrierConnection @relation(fields:[connectionId],references:[id],onDelete:Cascade)
+  @@unique([connectionId,secretType],map:"uq_carrier_secrets_connection_type")
+  @@map("carrier_connection_secrets")
 }

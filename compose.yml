@@ -79,6 +79,8 @@ services:
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-}"
       UNISHIP_API_URL: "${UNISHIP_API_URL:-}"
       UNISHIP_LIVE_AUTHORIZED: "${UNISHIP_LIVE_AUTHORIZED:-false}"
+      CARRIER_KEYRING_JSON: "${CARRIER_KEYRING_JSON:-}"
+      CARRIER_ACTIVE_KEY_VERSION: "${CARRIER_ACTIVE_KEY_VERSION:-}"
     volumes:
       - credentials:/config:ro
       - uploads:/data/uploads

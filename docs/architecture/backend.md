@@ -60,3 +60,11 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), the backend modular
 ## Legacy session upgrade boundary
 
 The owner-approved cutover in [ADR-007](../decisions/multi-carrier-architecture.md) is implemented by a new migration. Every OPERATOR session without a local credential is deleted at upgrade, including expired/DISABLED-user sessions. ADMIN and configured OPERATOR sessions are retained. SessionGuard is unchanged; removed tokens cannot regain validity after setup. No auth-source metadata exists to distinguish sessions of configured operators.
+
+## Implemented Logical PR 3 Carrier foundation — NEXORA-017
+
+CarrierController delegates metadata GET/PATCH/DELETE to CarrierService and CarrierPort; CarrierAdapter alone owns database access. Global SessionGuard authenticates, OriginGuard protects mutations, and owner predicates apply equally to ADMIN and OPERATOR. Explicit select lists exclude owner IDs and all secrets from connection DTOs. No create/reconnect or administrative Carrier routes are registered.
+
+SecretCipher in common/crypto implements AES-256-GCM, fresh 12-byte random nonces, separate 16-byte tags, canonical base64 and HKDF-SHA256 subkeys. HKDF salt is the protocol domain NEXORA_CARRIER_V1 and info is CARRIER_TOKEN or CARRIER_PASSWORD. CarrierSecretWriter constructs exact AAD connection_id:user_id:provider:secret_type, encrypts outside the transaction and locks ACTIVE owner before connection verification and encrypted upsert. The writer has no read/decrypt method and no HTTP exposure. Generic primitive decrypt is unit-tested; production password re-login must await SecurityAuditPort and a confirmed durable sink in PR4. No unaudited password-decryption workflow is implemented.
+
+EnvironmentKeyring snapshots server configuration but validates lazily at crypto use, keeping missing/malformed Carrier keys isolated from local Login, ADMIN operations and metadata. Errors expose only SECRET_CRYPTO_UNAVAILABLE, never underlying key/plaintext. Ciphertext/key failure changes neither persisted ciphertext nor connection status. Version rotation is configuration-only; no key removal or automated re-encryption path exists.

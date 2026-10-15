@@ -1,5 +1,53 @@
 // Generated. Do not edit.
 export interface paths {
+    "/api/carriers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CarrierController_providers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/carrier-connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["CarrierController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/carrier-connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["CarrierController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["CarrierController_rename"];
+        trace?: never;
+    };
     "/api/health/live": {
         parameters: {
             query?: never;
@@ -167,6 +215,47 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ApiErrorDto: {
+            code: string;
+            message: string;
+            requestId: string;
+        };
+        CarrierProviderSummaryDto: {
+            /** @enum {string} */
+            provider: "uniship";
+            displayName: string;
+        };
+        CarriersDto: {
+            carriers: components["schemas"]["CarrierProviderSummaryDto"][];
+        };
+        CarrierConnectionDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            provider: "uniship";
+            externalAccountId: string;
+            loginIdentifier: string | null;
+            displayName: string;
+            /** @enum {string} */
+            status: "CONNECTED" | "REAUTH_REQUIRED" | "ERROR";
+            /** Format: date-time */
+            lastVerifiedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ConnectionsDto: {
+            connections: components["schemas"]["CarrierConnectionDto"][];
+        };
+        RenameConnectionDto: {
+            displayName: string;
+        };
+        ConnectionDto: {
+            connection: components["schemas"]["CarrierConnectionDto"];
+        };
+        ConnectionDeletedDto: {
+            /** @enum {boolean} */
+            success: true;
+        };
         LiveDto: {
             /** @enum {string} */
             status: "ok";
@@ -208,11 +297,6 @@ export interface components {
         };
         LoginResponseDto: {
             user: components["schemas"]["UserDto"];
-        };
-        ApiErrorDto: {
-            code: string;
-            message: string;
-            requestId: string;
         };
         SessionResponseDto: {
             /**
@@ -286,6 +370,170 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    CarrierController_providers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarriersDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    CarrierController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionsDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    CarrierController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionDeletedDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    CarrierController_rename: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameConnectionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
     HealthController_live: {
         parameters: {
             query?: never;

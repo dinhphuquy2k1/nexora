@@ -409,6 +409,45 @@ try {
     0,
   );
 
+  step = "CARRIER_UPGRADE";
+  const beforeCarrier = {
+    users: await db.user.findMany({
+      include: { credential: true },
+      orderBy: { id: "asc" },
+    }),
+    sessions: await db.session.findMany({ orderBy: { id: "asc" } }),
+    tokens: await db.operatorSetupToken.findMany({ orderBy: { id: "asc" } }),
+    files: await db.storedFile.findMany({ orderBy: { id: "asc" } }),
+  };
+  const carrierMigration = "20261015020000_carrier_connections";
+  await cp(
+    resolve("prisma/migrations", carrierMigration),
+    join(work, "prisma/migrations", carrierMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  assert.deepEqual(
+    {
+      users: await db.user.findMany({
+        include: { credential: true },
+        orderBy: { id: "asc" },
+      }),
+      sessions: await db.session.findMany({ orderBy: { id: "asc" } }),
+      tokens: await db.operatorSetupToken.findMany({ orderBy: { id: "asc" } }),
+      files: await db.storedFile.findMany({ orderBy: { id: "asc" } }),
+    },
+    beforeCarrier,
+  );
+  const carrierIndexes = await db.$queryRawUnsafe(
+    "SELECT indexname FROM pg_indexes WHERE tablename IN ('carrier_connections','carrier_connection_secrets')",
+  );
+  for (const name of [
+    "uq_carrier_connections_provider_account",
+    "idx_carrier_connections_user_provider",
+    "uq_carrier_secrets_connection_type",
+  ])
+    assert.ok(carrierIndexes.some((i) => i.indexname === name));
+
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },

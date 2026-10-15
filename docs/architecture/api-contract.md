@@ -2,7 +2,7 @@
 
 ## Implemented Logical PR 2 — NEXORA-016
 
-Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. Carrier Connections, MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
+Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. Carrier connect/reconnect, MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
 
 Generated OpenAPI/SDK describe the implemented routes below. Error responses use `{code,message,requestId}`. Every administrative route requires an ACTIVE ADMIN database-backed session; all mutations require a trusted Origin. Missing/revoked/disabled sessions return 401 `UNAUTHORIZED`; OPERATOR callers return 403 `FORBIDDEN`. Origin failures retain 403 `FORBIDDEN`, and shared admission rejection retains 429 `TOO_MANY_REQUESTS` for compatibility.
 
@@ -27,7 +27,6 @@ Setup passwords require 8–1024 characters before Scrypt. Links contain 256-bit
 
 | Milestone | Scope                                                               |
 | :-------- | :------------------------------------------------------------------ |
-| PR 3      | Carrier Connection metadata and ownership                           |
 | PR 4      | Uniship Carrier Adapter and connect/reconnect credentials lifecycle |
 | PR 6      | ADMIN TOTP MFA and sessions.auth_level                              |
 | PR 7      | Public HTTPS release gates                                          |
@@ -36,7 +35,7 @@ Setup passwords require 8–1024 characters before Scrypt. Links contain 256-bit
 
 The future ADMIN login flow returns `{mfaRequired:true}` plus a pending challenge cookie, followed by `POST /api/auth/mfa/verify` with `{code}` and atomic challenge/TOTP replay protection. These are deferred changes, not the current password-session login contract. PR 2 has no MFA tables or `sessions.auth_level`; its ACTIVE ADMIN password sessions authorize local administration. Public exposure requires the separately planned PR 6/7 gates.
 
-### 2. Carrier Connections Management (PR 3 & PR 4)
+## Carrier Connections Management — implemented PR 3 / planned PR 4
 
 Endpoints strictly enforce ownership from the authenticated session (`user_id`). Users cannot access, mutate, or inspect other users' carrier connections. All protected carrier endpoints enforce `401 UNAUTHORIZED` if the caller's session is missing or expired.
 
@@ -49,13 +48,15 @@ Endpoints strictly enforce ownership from the authenticated session (`user_id`).
 | `POST`   | `/api/carrier-connections/:id/reconnect` | PR 4      | Owner only    | `{ password }`                                          | 200 `{ connection: CarrierConnectionDto }`    | 400 `VALIDATION_ERROR`, 401 `UNAUTHORIZED`, 401 `PROVIDER_AUTH_FAILED`, 404 `NOT_FOUND`, 429 `RATE_LIMITED`, 503 `SERVICE_UNAVAILABLE` |
 | `DELETE` | `/api/carrier-connections/:id`           | PR 3      | Owner only    | None                                                    | 200 `{ success: true }`                       | 401 `UNAUTHORIZED`, 404 `NOT_FOUND`                                                                                                    |
 
+PR3 GET/PATCH/DELETE are IMPLEMENTED; POST/create and reconnect are PLANNED PR4 and return 404 today. Provider summaries have exactly `provider,displayName`; the single `uniship` entry advertises metadata vocabulary, not live readiness. Connection summaries have exactly the eight fields listed below. GET ignores query ownership selectors: the database predicate always uses the authenticated user ID. PATCH accepts only displayName (1–100 characters, trimmed nonblank); invalid UUID/body returns 400 VALIDATION_ERROR. DELETE also validates UUID (400). Both mutations enforce OriginGuard (403 FORBIDDEN), and return 404 NOT_FOUND for absent/foreign connections, including ADMIN callers. DELETE hard-deletes with secret cascade and returns `{success:true}`. All metadata responses use no-store.
+
 - **Payload Safety**: Connection DTOs expose only metadata (`id, provider, externalAccountId, loginIdentifier, displayName, status, lastVerifiedAt, createdAt`). Plaintext passwords, tokens, nonces, and ciphertexts are never returned.
 - **Unified Generic Error Policy (`CANNOT_CONNECT_CARRIER_ACCOUNT`)**: On `POST /api/carrier-connections`, Nexora returns the identical generic error `400 CANNOT_CONNECT_CARRIER_ACCOUNT` ("Không thể kết nối tài khoản này") for BOTH invalid provider credentials and duplicate account linkage (`UNIQUE(provider, external_account_id)`). This completely obscures whether the carrier credentials were valid, whether the carrier account was already linked to another user, or who the existing owner is. Detailed causes (`PROVIDER_AUTH_FAILED` vs `DUPLICATE_EXTERNAL_ACCOUNT`) are recorded strictly in the server-side security audit log.
 - **Protected Carrier Endpoints & 401 UNAUTHORIZED**: Every carrier management endpoint requires a valid active Nexora session. Missing, expired, or revoked sessions return `401 UNAUTHORIZED`.
 - **Conditional Login Identifier**: `loginIdentifier` is conditional per adapter and nullable at the schema level; providers without username/email credentials (e.g. OAuth/API key) do not require it.
 - **Rate Limiting**: `POST /api/carrier-connections` and `reconnect` enforce per-user burst and window limits to prevent credential stuffing attacks against carrier infrastructure.
 
-### 3. Administrative Carrier Management (Deferred Post-PR 6)
+### Administrative Carrier Management (Deferred Post-PR 6)
 
 | Method   | Endpoint                             | Target PR           | Access      | Functionality                                        | Failure Codes                                        |
 | :------- | :----------------------------------- | :------------------ | :---------- | :--------------------------------------------------- | :--------------------------------------------------- |

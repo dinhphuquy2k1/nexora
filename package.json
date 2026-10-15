@@ -22,7 +22,8 @@
     "docs:check": "node scripts/docs-check.mjs",
     "test:operations": "node --test scripts/smoke-checks.test.mjs",
     "test:docs": "node --test scripts/docs-check.test.mjs",
-    "quality": "pnpm format:check && pnpm lint && pnpm docs:check && pnpm typecheck && pnpm test && pnpm test:docs && pnpm test:operations && pnpm contracts:check && pnpm build"
+    "quality": "pnpm format:check && pnpm lint && pnpm test:lint && pnpm docs:check && pnpm typecheck && pnpm test && pnpm test:docs && pnpm test:operations && pnpm contracts:check && pnpm build",
+    "test:lint": "node --test scripts/eslint-rules/*.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.9.3",

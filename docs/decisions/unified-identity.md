@@ -2,7 +2,7 @@
 
 ## Implemented Logical PR 2 — NEXORA-016
 
-Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. Carrier Connections, MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
+Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. Carrier connect/reconnect, MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
 
 NEXORA-016 implements local login for both roles, user-first transactional issuance/onboarding and atomic disablement. Legacy provider-login material below describes historical milestones, not a supported login path. `external_identities` is removed by a new migration. Current contracts and the owner-approved user administration amendment are maintained in [API contract](../architecture/api-contract.md).
 
@@ -16,7 +16,7 @@ Accepted direction: 2026-10-12. Historical Phase 1 storage is preserved; the exp
 
 `users` owns ADMIN/OPERATOR role and ACTIVE/DISABLED status; `user_credentials` stores an optional local Scrypt credential. Both configured ACTIVE roles use `/login` and `POST /api/auth/login`. Trusted CLI provisions ADMIN; approved ADMIN endpoints create credentialless OPERATORs and issue single-use setup links. The backend owns authorization and protects the last ACTIVE ADMIN. Public summaries and management summaries follow the explicit API contract.
 
-External identity bindings, raw-userid authentication, provider authentication ports and the Employee/Admin mode split are removed. Carrier responses never create Nexora sessions. Session tokens remain opaque SHA-256-hashed values, independent per login; logout revokes the current token, disable revokes all account sessions/tokens atomically. Historical provider-registration and login evidence belongs to NEXORA-012, not current setup instructions. See ADR-007 for the planned Carrier boundary.
+External identity bindings, raw-userid authentication, provider authentication ports and the Employee/Admin mode split are removed. Carrier responses never create Nexora sessions. Session tokens remain opaque SHA-256-hashed values, independent per login; logout revokes the current token, disable revokes all account sessions/tokens atomically. Historical provider-registration and login evidence belongs to NEXORA-012, not current setup instructions. See ADR-007 and the API/database canonical docs for the implemented PR3 Carrier foundation and deferred PR4 workflows.
 
 ## Future deployment boundary
 
@@ -55,7 +55,7 @@ The removed Identity provider flow had generic authentication failures and bound
 
 ## Historical phases superseded by ADR-007
 
-Original Phase 1/2 storage and experimental provider-login delivery are historical milestones recorded in NEXORA-011/NEXORA-012. Their old future-phase plan is superseded by ADR-007. Current Logical PR 2 implements local identity, onboarding and ADMIN status/list APIs. Carrier Connections (PR 3), Uniship Carrier Adapter (PR 4), ADMIN MFA (PR 6) and Public HTTPS (PR 7) remain deferred; staff management UI is also deferred. No old login-mode or SQL-registration workflow remains supported.
+Original Phase 1/2 storage and experimental provider-login delivery are historical milestones recorded in NEXORA-011/NEXORA-012. Their old future-phase plan is superseded by ADR-007. Current Logical PR 2 implements local identity, onboarding and ADMIN status/list APIs. Carrier Connections foundation (PR3) is implemented. Uniship Carrier Adapter (PR4), ADMIN MFA (PR6) and Public HTTPS (PR7) remain deferred; staff management UI is also deferred. No old login-mode or SQL-registration workflow remains supported.
 
 ## Current storage ownership — Logical PR 2
 
@@ -68,7 +68,7 @@ This supersedes the Phase 1/2 external-binding selection while preserving accept
 | sessions              | Opaque SHA-256 session-token hashes, user association and expiry; independent per login |
 | operator_setup_tokens | Hashed 24h single-use OPERATOR setup links with target/issuer references                |
 
-Carrier credential persistence is deferred under Carrier ownership in ADR-007; no provider credential table exists in PR 2.
+PR2 introduced no provider credential table. PR3 adds carrier_connection_secrets under independent Carrier ownership; connect/reconnect remains PR4.
 
 Never place carrier passwords or bearer tokens in user_credentials. Generic validation still checks an unrevoked/unexpired opaque session and ACTIVE user. Local Login independently requires an ACTIVE ADMIN or OPERATOR with a verified local credential. Provider Identity authentication no longer exists. Upgrade revocation is explicit in the approved cutover below, rather than a broad SessionGuard policy change.
 
@@ -79,7 +79,7 @@ Per [ADR-007](multi-carrier-architecture.md), the owner decided that Nexora has 
 - `external_identities` table is dropped via a forward-only migration.
 - `POST /api/auth/provider/login` and `ProviderAuthenticationPort` are removed.
 - OPERATOR and ADMIN accounts both use local Scrypt credentials in `user_credentials`.
-- Carrier account connections are deferred to PR 3/4 in independent `carrier_connections` and `carrier_connection_secrets` tables, owned by individual Nexora users.
+- PR3 implements Carrier metadata and encrypted storage; PR4 connect/reconnect remains deferred. Independent `carrier_connections` and `carrier_connection_secrets` tables, owned by individual Nexora users.
 - The Uniship HTTP client is relocated to `apps/api/src/carrier/infrastructure/uniship/`.
 
 ## Legacy session upgrade boundary
