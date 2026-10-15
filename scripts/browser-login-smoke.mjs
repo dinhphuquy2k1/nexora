@@ -343,6 +343,24 @@ try {
     ),
     200,
   );
+  if (process.env.COMPOSE_PROJECT_NAME) {
+    checks.step("SETUP_SERVER_LOG_PRIVACY");
+    const args = ["compose", "-f", "compose.yml"];
+    if (process.env.NEXORA_COMPOSE_OVERRIDE)
+      args.push("-f", process.env.NEXORA_COMPOSE_OVERRIDE);
+    args.push("logs", "--no-color", "api", "web");
+    const logs = spawnSync("docker", args, {
+      encoding: "utf8",
+      timeout: 15000,
+      maxBuffer: 8 * 1024 * 1024,
+    });
+    assert.equal(logs.status, 0);
+    assert.equal(
+      logs.stdout.includes(setupSecret),
+      false,
+      "Setup token leaked into server logs",
+    );
+  }
   console.log(
     "Actual browser unified Login, fragment Setup privacy, no auto-login, OPERATOR login, cookies and Logout PASS",
   );
