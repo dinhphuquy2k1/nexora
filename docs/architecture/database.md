@@ -10,21 +10,13 @@ Database migrations deploy forward-only via `prisma migrate deploy`, preserving 
 
 ## Unified identity foundation
 
-IMPLEMENTED, verification tracked in NEXORA-011: User maps users; UserCredential maps user_credentials with user_id UUID primary key, foreign key ON DELETE/UPDATE CASCADE and password_hash VARCHAR(255). Users may have zero or one credential; provider-only fixtures need no fake password. Role VARCHAR(16) has NOT NULL, no default and raw SQL users_role_check allowing ADMIN/OPERATOR. Status VARCHAR(16) has NOT NULL, ACTIVE default and users_status_check allowing ACTIVE/DISABLED. Prisma does not express these CHECK constraints; committed SQL owns them. No database/Prisma/TypeScript enums.
+IMPLEMENTED, verification tracked in NEXORA-011: User maps users; UserCredential maps user_credentials with user_id UUID primary key, foreign key ON DELETE/UPDATE CASCADE and password_hash VARCHAR(255). Users may have zero or one credential; unconfigured OPERATOR users need no fake password. Role VARCHAR(16) has NOT NULL, no default and raw SQL users_role_check allowing ADMIN/OPERATOR. Status VARCHAR(16) has NOT NULL, ACTIVE default and users_status_check allowing ACTIVE/DISABLED. Prisma does not express these CHECK constraints; committed SQL owns them. No database/Prisma/TypeScript enums.
 
 The forward-only transaction renames local_users and its primary-key/username index, maps supported trusted legacy accounts to ADMIN, preserves is_active as ACTIVE/DISABLED, copies exact hashes/IDs to credentials and checks snapshots before dropping old columns. Existing sessions and their FK/indexes/token algorithm remain unchanged. Normal upgrade preserves sessions. See [decision](../decisions/unified-identity.md) and [migration/test evidence](../tasks/completed/NEXORA-011-unified-identity-migration.md).
 
-## External identity foundation (Baseline — Scheduled for PR 2 removal)
+## Removed legacy provider bindings
 
-IMPLEMENTED in PR #10, verification tracked in NEXORA-012; SUPERSEDED by [ADR-007](../decisions/multi-carrier-architecture.md): `ExternalIdentity` maps `external_identities` with `id` UUID primary key, foreign key `user_id` referencing `users(id)` ON DELETE CASCADE, `provider` VARCHAR(32) NOT NULL, `provider_subject` VARCHAR(128) NOT NULL, and timestamps.
-
-- **Constraints**:
-  - `chk_external_identities_provider`: raw SQL CHECK constraint restricting `provider` to `'uniship'`.
-  - `chk_external_identities_subject_format`: raw SQL CHECK constraint enforcing trimmed, non-empty `provider_subject` (`LENGTH(TRIM(provider_subject)) > 0 AND provider_subject = TRIM(provider_subject)`).
-  - Unique constraint `(provider, provider_subject)` enforcing 1:1 binding at the database level.
-  - Unique constraint `(user_id, provider)` preventing multiple identities for the same user per provider.
-- **PR 2 Forward-Only Drop**:
-  Because Nexora has zero real production users, PR 2 drops `external_identities` via a forward-only migration. A separate one-time cleanup script purges test operators.
+`external_identities` existed in historical PR #10. It is removed by the new PR 2 migration; the historical migration remains unchanged. There is no automatic user cleanup. Retained credentialless operators can receive setup links, and the optional development cleanup excludes configured users and administrators.
 
 ## Multi-Carrier & MFA Database Schemas (Target Architecture — ADR-007)
 

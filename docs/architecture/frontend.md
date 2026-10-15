@@ -6,8 +6,6 @@ Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Unis
 
 `/login` renders one Nexora form for both roles. Legacy provider/admin mode selection is removed; password visibility, loading/errors, server session redirects, sanitized `from`, logout and HttpOnly cookies remain. `/setup` reads only the token fragment client-side, clears URL history, retains it in memory, validates password/confirmation and posts only the JSON body. It returns to `/login` after success without issuing a session. The page uses no-store/no-referrer and existing local assets; no token enters SSR HTML or browser storage. Query-string tokens are rejected.
 
-Historical mode descriptions below are superseded by this implemented flow.
-
 Next.js App Router provides the user interface and transport-only `/api/:path*` rewrite proxy. Server configuration selects `http://api:4000`, while client code in the browser consumes the generated SDK using relative same-origin paths. No database access, secrets, or internal server URLs are imported by client components. The build consumes committed SDK definitions and does not generate contracts on the fly.
 
 ## 1. Component Ownership & Tier Model
@@ -120,9 +118,8 @@ Nexora is a local-first shipment management platform. In foundation v0.1.0, the 
 
 - **Layout Architecture & Route Groups**:
   - **Root Layout (`apps/web/app/layout.tsx`)**: Owns `html`, `body`, global `styles.css`, and application metadata. Does not render `AppShell`.
-  - **Standalone Public Login Route (`apps/web/app/login/`)**: Uses a standalone `LoginLayout` (`apps/web/app/login/layout.tsx`) and `LoginPage` presenting brand monogram, mode-aware header/subtitle, accessible error banners, mode toggle link, and return URL sanitization (`sanitizeReturnUrl`). Does not render `AppShell`.
-    - **Employee Login (`/login`)**: Default mode submitting credentials to `POST /api/auth/provider/login`. Displays safe error `"Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập."` on 401. Includes a navigation link to switch to Admin mode (`/login?mode=admin`).
-    - **Admin Login (`/login?mode=admin`)**: Independent local administrator mode submitting credentials to `POST /api/auth/login`. Displays `"Tên đăng nhập hoặc mật khẩu không chính xác."` on 401. Includes a navigation link to switch to Employee mode (`/login`).
+  - **Standalone Public Login Route (`apps/web/app/login/`)**: One local Nexora form for both roles, brand monogram, accessible errors, password visibility and sanitized return URL. No mode toggle or AppShell. Posts only to `/api/auth/login`.
+  - **Public Setup Route (`apps/web/app/setup/`)**: One-time fragment secret, password confirmation, no-store/no-referrer, memory-only token and return to login without auto-login.
   - **Protected Workspace Route Group (`apps/web/app/(workspace)/`)**: Routes (`/`, `/settings`, `/system`) reside in the `(workspace)` route group. Its Server Component layout (`apps/web/app/(workspace)/layout.tsx`) enforces server session verification via `verifyServerSession(cookie)`. Genuinely authenticated users receive `<AppShell user={result.user}>{children}</AppShell>`; unauthenticated requests redirect to `/login?from=...`; upstream backend outages fail closed with a service error banner without redirect loops.
 - **Route Guarding (`middleware.ts`)**: Enforces Host allowlist validation at ingress across all matched paths including `/api/*`. Provides fast loopback redirection for unauthenticated workspace requests lacking `nexora_session` cookies, and injects `x-pathname` header for downstream Server Components while avoiding network requests in middleware.
 - **Authenticated Account State (`AccountMenu`)**: Discloses active operator username, displays local runtime badge, and provides verified server-side logout destroying the session in PostgreSQL and clearing client cookies. Checks response status before redirecting and renders accessible error notifications on failure with retry capability.
