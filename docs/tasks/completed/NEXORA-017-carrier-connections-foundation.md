@@ -1,9 +1,9 @@
 # NEXORA-017 — Carrier Connections & Encrypted Secrets Foundation
 
 - **Task ID**: `NEXORA-017`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `NOT VERIFIED`
+- **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
 - **Baseline**: `dd7d975cfbce960cfe37387a3d3c6e3ce1e638a3`
 - **Branch**: `feat/carrier-connections-foundation`
@@ -53,6 +53,9 @@ Carrier persistence, metadata APIs, shared crypto and key custody, stage-aware d
 - docs/architecture/runtime.md
 - docs/operations/configuration.md
 - docs/operations/testing.md
+- docs/decisions/authentication.md
+- docs/decisions/unified-identity.md
+- docs/decisions/multi-carrier-architecture.md (owner-approved key custody amendment only)
 
 ### Documentation verification
 
@@ -68,10 +71,32 @@ pnpm docs:check; pnpm format:check; pnpm contracts:check; complete diff review.
 | Layer lint                  | pnpm lint, boundaries and ESLint                                                                        | 2026-10-15 | PASS   |
 | Native database generation  | pnpm --filter @nexora/database build, genuine engine checksum download HTTP 403 from binaries.prisma.sh | 2026-10-15 | FAIL   |
 
-Genuine PostgreSQL/Nest/migration and complete canonical runtime evidence pending fresh hosted Docker CI. Native API build/typecheck cannot pass without genuine generated Prisma client; no checksum bypass/fabricated history or client used. No prior PR evidence is reused as a PASS for this task.
+Genuine PostgreSQL/Nest/migration and complete canonical runtime evidence passed in the fresh pipelines below. Native API build/typecheck cannot pass without genuine generated Prisma client; no checksum bypass/fabricated history or client used. No prior PR evidence is reused as a PASS for this task.
 
 ## Verification follow-up
 
 Initial hosted [CI 38744581704](https://github.com/dinhphuquy2k1/nexora/actions/runs/38744581704) at 9035ae4 failed during API compilation: Pick<ProcessEnv,...> incorrectly required named environment properties. Changed the constructor to a readonly environment string map, preserving lazy validation. Also strengthened the real PostgreSQL race gate: query pg_stat_activity and require four concurrent lock waiters before release; no sleeps establish success. Synchronized current identity decision summaries with implemented PR3 foundation; historical task evidence remains untouched. Fresh exact-head pipeline is required after these corrections.
 
 The final security assertion explicitly targets the retained connection for a post-disable secret write and requires UNAUTHORIZED, rather than accepting NOT_FOUND from the connection participating in the delete race. This closes a possible false-positive in that one assertion without changing production behavior or weakening any test. Fresh CI must verify this final test head before task completion.
+
+## Fresh canonical verification and completion
+
+| Claim                                          | Evidence                                                                                                                                                                                                                            | Date       | Result |
+| :--------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| First hosted compilation                       | [CI 38744581704](https://github.com/dinhphuquy2k1/nexora/actions/runs/38744581704) at 9035ae4: required Pick environment keys caused TypeScript failure; fixed, no test skipped                                                     | 2026-10-15 | FAIL   |
+| Full foundation pipeline                       | [CI 38744886508](https://github.com/dinhphuquy2k1/nexora/actions/runs/38744886508) at 59a898d: complete quality/migration/runtime/browser/persistence/dev success                                                                   | 2026-10-15 | PASS   |
+| Final security assertion and complete pipeline | [CI 38746106188](https://github.com/dinhphuquy2k1/nexora/actions/runs/38746106188) at bea8b7ee6f666362b56574e40daf16f05570313c, all steps success                                                                                   | 2026-10-15 | PASS   |
+| Real migrated HTTP and concurrency             | Same fresh CI: 21/21 integration tests including Carrier matrix, four observed independent PostgreSQL lock waiters, rollback snapshots and retained-connection late write requires UNAUTHORIZED; all PR2 suites preserved           | 2026-10-15 | PASS   |
+| Crypto and existing unit regressions           | Same fresh CI: API 69/69 (crypto 4), Web 41/41, database 2/2, UI 1/1, docs 6/6, operations 3/3                                                                                                                                      | 2026-10-15 | PASS   |
+| Genuine migrations and preservation            | Same fresh CI: fresh seven-migration deployment; real six-migration baseline -> Carrier upgrade; exact users/credentials/sessions/setup-tokens/files preserved; constraints/FK/cascades/global uniqueness/indexes/repeat/drift pass | 2026-10-15 | PASS   |
+| Required quality commands                      | Same fresh CI quality-docker.sh: frozen dependencies, format:check, lint, docs:check, typecheck, test, test:integration, test:docs, test:operations, contracts:check, boundaries, build and database test:migrations                | 2026-10-15 | PASS   |
+| Canonical runtime and persistence              | Same fresh CI runtime-smoke.sh (including actual Login/setup browser and provisioning), data-smoke.sh, dev-smoke.sh all pass; only disposable CI-owned volumes removed                                                              | 2026-10-15 | PASS   |
+| Native contracts and diff                      | pnpm contracts:generate then contracts:check; git diff --check; complete task-owned diff reviewed, historical migrations unchanged                                                                                                  | 2026-10-15 | PASS   |
+
+All acceptance criteria are satisfied at the verified implementation/test head above. CARRIER_KEY_CUSTODY is resolved by explicit owner approval; no acceptance-blocking PLAN ISSUE remains. Final completion-record HEAD must still receive fresh CI and the final report must link that exact run. Native engine-download/typecheck failures and the first CI compile failure remain visible; no historical PR PASS is substituted for this work. No volume reset, db push, fake migration history, live provider call, force-push, rebase or merge occurred.
+
+Implemented paths: GET /api/carriers; GET /api/carrier-connections; PATCH /api/carrier-connections/:id (displayName only); DELETE /api/carrier-connections/:id. Main code owners: carrier/domain/application/infrastructure/presentation; common/crypto; identity/infrastructure/user-management.adapter.ts; database schema/new migration; generated OpenAPI/SDK. New Carrier vocabulary exports use as const and derived union types; no enums.
+
+PR4 remains PLANNED: provider contract/live merge gate, create/reconnect, verification, automatic refresh/re-login, durable SecurityAuditPort/sink and Carrier UI. Production password decryption is unavailable until durable audit is confirmed; PR3 provides generic primitive tests and encrypted writes only. ADMIN cross-user Carrier endpoints/CLI remain post-PR6. MFA/auth_level, public HTTPS, shipments/dashboard/workers are excluded. PR14 is untouched.
+
+Documentation Impact: REQUIRED is satisfied by synchronized canonical owners and executed validation. NEXORA-017 follows PLANNED -> IN PROGRESS -> VERIFICATION PENDING -> COMPLETED. PR17 is ready for review after exact final-head CI success, never automatically merged.

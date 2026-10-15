@@ -9,6 +9,10 @@ export const SecretType = {
   REFRESH_TOKEN: "REFRESH_TOKEN",
   PASSWORD: "PASSWORD",
 } as const;
+export type CarrierProvider =
+  (typeof CarrierProvider)[keyof typeof CarrierProvider];
+export type ConnectionStatus =
+  (typeof ConnectionStatus)[keyof typeof ConnectionStatus];
 export type SecretType = (typeof SecretType)[keyof typeof SecretType];
 export interface ConnectionMetadata {
   id: string;
