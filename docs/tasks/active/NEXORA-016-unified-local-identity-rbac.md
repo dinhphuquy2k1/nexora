@@ -1,9 +1,9 @@
 # NEXORA-016 — Unified Local Identity, RBAC & Legacy Provider Removal
 
 - **Task ID**: `NEXORA-016`
-- **Status**: `COMPLETED`
+- **Status**: `VERIFICATION PENDING`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `VERIFIED`
+- **Verification**: `PARTIALLY VERIFIED`
 - **Classification**: SIGNIFICANT
 
 ## Baseline and scope
@@ -99,3 +99,38 @@ Native full build/typecheck/integration cannot establish a PASS while the genuin
 `USER_STATUS_ADMIN_CONTRACT` is resolved by explicit owner approval. There are no open PLAN ISSUES. MFA, sessions.auth_level, Carrier Connections, public HTTPS and shipment sync remain deferred. The first runtime failure was a stale harness migration count, corrected without weakening any check. The optional cleanup script is never applied automatically to an installation; CI explicitly tests it only against owned fixtures.
 
 Documentation Impact remains REQUIRED. Authentication/unified identity/ADR-007, backend/database/API/frontend/runtime, configuration/setup/testing/deployment and generated OpenAPI/SDK are synchronized. Final report must cite the exact PR HEAD and its CI result separately from the verified implementation head above. No force-push, rebase or merge was performed.
+
+## PR #16 review follow-up — 2026-10-15
+
+Reviewed/reopened baseline `016ef52e4a1ac3446732191b6cb4dfe25b2b132b`; remote HEAD matches, worktree clean, existing CI 38709323395 passed only the prior head. Classification SIGNIFICANT; Documentation Impact REQUIRED remains applicable. Earlier completion evidence is historical and does not establish these review findings are resolved.
+
+### Plan and acceptance criteria
+
+1. I1: reproduce genuine pre-PR2 provider-session persistence through actual Prisma migrations on a fresh PostgreSQL database; cover ACTIVE credentialless provider OPERATOR, configured OPERATOR, local ADMIN, DISABLED user, expired sessions and stored files. Record the architecture conflict and obtain explicit owner decision before adding cutover SQL. Keep SessionGuard unchanged.
+2. M1: remove obsolete operational provider-login 503 and two-mode guidance; describe current local login and independent future Carrier transport, preserving NEXORA-012 evidence as historical only. Reply to and resolve the existing setup P2 review thread only after the pushed fix addresses it.
+3. M2: add the complete approved user-list/status matrix through real Nest HTTP and isolated PostgreSQL, checking statuses, error envelopes/codes, exact metadata and atomic revocation/no resurrection; keep existing transaction races and add concurrent self-disable HTTP requests.
+4. m1: separate implemented PR2 routes from deferred Carrier/MFA/HTTPS contracts without changing DTOs/runtime contracts.
+5. Execute fresh pinned/frozen/static/unit/contracts and canonical Docker quality/integration/migration/runtime/data/dev checks; report exact new HEAD CI, no historical PASS substitution. No migration edits, volume resets, new carrier/MFA features, force pushes or merge.
+
+### PLAN ISSUE — LEGACY_PROVIDER_SESSION_CUTOVER
+
+RESOLVED — owner explicitly approved the proposed minimum cutover policy in chat on 2026-10-15. Approved policy: a new forward-only migration deletes every session (valid or expired) whose user is OPERATOR and has no local credential at cutover; preserves ADMIN sessions, configured OPERATOR sessions, users/credentials/files and other session rows. The schema contains no authentication-source marker, so provider-origin sessions of an already-configured OPERATOR cannot be distinguished. Deleted hashes never return when the operator sets a password. This intentionally narrows the earlier blanket session-preservation statement. Implement it as new migration `20261015010000_legacy_provider_session_cutover`; historical migration files remain unchanged. Policy approval is resolved, while fresh verification keeps this task active.
+
+Canonical owners for this follow-up: ADR-007, authentication/unified identity, backend/database/API contract, setup/testing/deployment, and this task. Verify docs:check, format:check, contract drift and complete diff review.
+
+### Review implementation and executed evidence
+
+I1 tests were written before the new migration. The owned PostgreSQL SQL probe reproduced the baseline, then failed its desired revocation postcondition (RED). After the new migration, that same probe passed, preserving all four users, two credentials, two eligible sessions and the stored-file row (GREEN). This raw-DDL probe is not genuine Prisma history evidence; the staged Prisma/Nest tests provide that separately in canonical CI. No SessionGuard or authentication-source field was changed. Stop API/Web/provisioning writers for upgrade as documented.
+
+M2 adds a separate real HTTP matrix in `apps/api/test/user-status-http.test.cjs`; adapter races remain untouched. M1/m1 update current setup/testing and remove PR2 routes from deferred contracts. NEXORA-012 historical task evidence is preserved. Native frozen install passed on 2026-10-15; new-head CI and all required checks remain pending.
+
+### Fresh review verification (prior-head evidence is not reused)
+
+| Claim                                                   | Evidence                                                                                                                                                   | Date       | Result |
+| :------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Frozen dependencies                                     | pnpm 10.34.6 install --frozen-lockfile, current review changes                                                                                             | 2026-10-15 | PASS   |
+| I1 baseline reproduction and desired negative assertion | owned unpublished PostgreSQL 17.11, original five migration DDL files; provider session still eligible; revocation assertion failed before new SQL         | 2026-10-15 | FAIL   |
+| I1 minimum approved cutover SQL                         | same fresh-database probe after sixth migration: only credentialless OPERATOR sessions removed, ADMIN/configured sessions/users/credentials/file preserved | 2026-10-15 | PASS   |
+| Review lint and documentation                           | pnpm lint (including boundaries), pnpm docs:check on review changes                                                                                        | 2026-10-15 | PASS   |
+
+Fresh genuine Prisma/Nest integration, migration drift, full Docker runtime/data/dev and exact new-head CI remain pending. The raw DDL probe is not reported as Prisma deployment evidence. M1/M2/m1 implementation is in place; I1 policy is approved and SQL implemented, subject to full verification.

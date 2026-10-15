@@ -1,7 +1,7 @@
 # Database
 
 Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `operator_setup_tokens` (hashed single-use onboarding secrets), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment domain schema is PLANNED; there are no fake smoke tables or business seeds.
-`20261006000000_storage_catalog`, `20261012000000_local_authentication`, `20261012010000_unified_identity` and `20261012020000_external_identities` plus `20261015000000_local_identity_onboarding` define migrations deployed by `prisma migrate deploy`, gated on PostgreSQL healthy. Repeated deployment preserves existing rows. No reset, db push, migrate dev or demo seed runs at startup.
+`20261006000000_storage_catalog`, `20261012000000_local_authentication`, `20261012010000_unified_identity` and `20261012020000_external_identities` plus `20261015000000_local_identity_onboarding` and `20261015010000_legacy_provider_session_cutover` define migrations deployed by `prisma migrate deploy`, gated on PostgreSQL healthy. Repeated deployment preserves existing rows except the explicitly approved experimental-session cutover described below. No reset, db push, migrate dev or demo seed runs at startup.
 Integration tests register/read/delete only their own UUID and do not truncate shared data. Persistence smoke runs on disposable projects; see task evidence.
 
 Prisma 7.10.0 uses the PostgreSQL driver adapter; createDatabase stays within the database package. prisma.config.ts reads the server DATABASE_URL for migration, while client generation requires no connection or fabricated database credential.
@@ -213,6 +213,12 @@ CREATE TABLE carrier_connection_secrets (
 
 ## Local identity onboarding migration
 
-`20261015000000_local_identity_onboarding` creates `operator_setup_tokens` and drops legacy `external_identities` in a forward-only transaction. Historical migrations remain unchanged. User/credential/session/catalog rows are preserved. Tokens have UUID IDs, unique SHA-256 `token_hash`, target/issuer foreign keys with cascades, expiration, consumed and creation timestamps, and a target index. There is no `sessions.auth_level` or future Carrier/MFA table. Real Prisma migration tests cover legacy upgrades, preservation, constraints, repeated deploy and schema drift.
+`20261015000000_local_identity_onboarding` creates `operator_setup_tokens` and drops legacy `external_identities` in a forward-only transaction. Historical migrations remain unchanged. That migration preserves user/credential/session/catalog rows; the subsequent approved cutover selectively revokes experimental sessions. Tokens have UUID IDs, unique SHA-256 `token_hash`, target/issuer foreign keys with cascades, expiration, consumed and creation timestamps, and a target index. There is no `sessions.auth_level` or future Carrier/MFA table. Real Prisma migration tests cover legacy upgrades, preservation, constraints, repeated deploy and schema drift.
 
 Existing credentialless test OPERATOR users may remain and receive a new setup link. Optional development cleanup is documented in [Setup](../operations/setup.md); it never runs on startup.
+
+## Approved legacy provider session cutover — 2026-10-15
+
+Owner decision `LEGACY_PROVIDER_SESSION_CUTOVER` is resolved: new migration `20261015010000_legacy_provider_session_cutover` deletes every session whose user is OPERATOR and has no local credential at upgrade, regardless of ACTIVE/DISABLED status or expiration. It preserves ADMIN sessions and configured OPERATOR sessions, users, credentials and stored files. The old schema has no authentication-source marker, so provider-origin sessions for already-configured operators cannot be distinguished; retaining those is part of the explicitly approved minimum policy.
+
+This amends the earlier blanket session-preservation guarantee and the no-cutover language only for revocation of experimental session rows. It performs no account conversion/backfill or user deletion. Historical migrations are unchanged. API/Web and provisioning writers must be stopped during migration. SessionGuard remains generic; deletion permanently invalidates old hashes, including after password setup. New local authentication issues a fresh independent token. No session-source column, MFA or carrier schema is introduced.

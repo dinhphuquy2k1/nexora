@@ -288,6 +288,35 @@ try {
   await db.storedFile.create({
     data: { id: randomUUID(), sha256: "a".repeat(64), sizeBytes: 123 },
   });
+  const configuredOperator = await db.user.create({
+    data: {
+      username: "cutover-configured-op",
+      role: "OPERATOR",
+      status: "ACTIVE",
+      credential: { create: { passwordHash: hash } },
+    },
+  });
+  const disabledOperator = await db.user.create({
+    data: {
+      username: "cutover-disabled-op",
+      role: "OPERATOR",
+      status: "DISABLED",
+    },
+  });
+  for (const [userId, expiresAt] of [
+    [operatorUser.id, new Date(Date.now() + 86400000)],
+    [operatorUser.id, new Date(0)],
+    [configuredOperator.id, new Date(Date.now() + 86400000)],
+    [disabledOperator.id, new Date(Date.now() + 86400000)],
+  ]) {
+    await db.session.create({
+      data: {
+        userId,
+        tokenHash: createHash("sha256").update(randomUUID()).digest("hex"),
+        expiresAt,
+      },
+    });
+  }
   const preserved = {
     users: await db.user.findMany({
       include: { credential: true },
@@ -341,6 +370,39 @@ try {
       data: { ...tokenData, issuedBy: randomUUID(), tokenHash: "d".repeat(64) },
     }),
   );
+  step = "APPROVED_LEGACY_SESSION_CUTOVER";
+  const cutoverMigration = "20261015010000_legacy_provider_session_cutover";
+  await cp(
+    resolve("prisma/migrations", cutoverMigration),
+    join(work, "prisma/migrations", cutoverMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  assert.deepEqual(
+    await db.session.findMany({ orderBy: { id: "asc" } }),
+    preserved.sessions.filter(
+      (session) =>
+        ![operatorUser.id, disabledOperator.id].includes(session.userId),
+    ),
+  );
+  assert.deepEqual(
+    await db.user.findMany({
+      include: { credential: true },
+      orderBy: { id: "asc" },
+    }),
+    preserved.users,
+  );
+  assert.deepEqual(
+    await db.storedFile.findMany({ orderBy: { id: "asc" } }),
+    preserved.files,
+  );
+  await db.userCredential.create({
+    data: { userId: operatorUser.id, passwordHash: hash },
+  });
+  assert.equal(
+    await db.session.count({ where: { userId: operatorUser.id } }),
+    0,
+  );
   await db.user.delete({ where: { id: operatorUser.id } });
   assert.equal(
     await db.operatorSetupToken.count({ where: { userId: operatorUser.id } }),
@@ -348,6 +410,9 @@ try {
   );
 
   step = "REPEAT_AND_DRIFT";
+  const sessionsBeforeRepeat = await db.session.findMany({
+    orderBy: { id: "asc" },
+  });
   const beforeRepeat = await db.user.findMany({
     include: { credential: true },
     orderBy: { id: "asc" },
@@ -360,6 +425,10 @@ try {
     }),
     beforeRepeat,
   );
+  assert.deepEqual(
+    await db.session.findMany({ orderBy: { id: "asc" } }),
+    sessionsBeforeRepeat,
+  );
   command(url.toString(), config, [
     "migrate",
     "diff",
@@ -369,7 +438,7 @@ try {
     "--exit-code",
   ]);
   console.log(
-    "Real Prisma legacy preservation, forward local identity migration, setup constraints, repeat and drift PASS",
+    "Real Prisma legacy preservation, forward local identity migration, approved legacy session cutover, setup constraints, repeat and drift PASS",
   );
 } catch {
   console.error(`IDENTITY_MIGRATION_TEST_FAILED step=${step}`);

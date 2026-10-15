@@ -23,4 +23,4 @@ This directory contains Architecture Decision Records (ADRs) for Nexora. Durable
 ## Accepted future direction
 
 - [Multi-carrier management](multi-carrier-architecture.md) — accepted 2026-10-14; supersedes experimental provider login from [unified identity](unified-identity.md). Implementation follows the 6-PR plan (PR 1–4, 6, 7).
-- [Unified identity foundation](unified-identity.md) — accepted 2026-10-12; Phase 1 users/credentials merged. Phase 2 provider login is superseded by ADR-007 and scheduled for complete elimination in PR 2.
+- [Unified identity foundation](unified-identity.md) — accepted 2026-10-12; Phase 1 users/credentials merged. Phase 2 provider login is superseded by ADR-007 and removed in implemented Logical PR 2.

@@ -56,3 +56,7 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), the backend modular
    - **Durable Audit & Fail-Closed Decryption**: Decrypting saved passwords for automated re-login requires persisting an immutable security audit event through `SecurityAuditPort`. If the audit sink fails or is unavailable, decryption is immediately aborted (fail-closed).
    - **Singleflight Concurrency**: In-memory singleflight per `connection_id` prevents redundant token refresh or re-login storms within a single API instance. Database transactions are never held across external HTTP calls.
    - **Carrier Budget & Backoff**: Outbound requests are governed by per-carrier concurrency budgets; HTTP 429 triggers carrier-wide backoff without spamming logins.
+
+## Legacy session upgrade boundary
+
+The owner-approved cutover in [ADR-007](../decisions/multi-carrier-architecture.md) is implemented by a new migration. Every OPERATOR session without a local credential is deleted at upgrade, including expired/DISABLED-user sessions. ADMIN and configured OPERATOR sessions are retained. SessionGuard is unchanged; removed tokens cannot regain validity after setup. No auth-source metadata exists to distinguish sessions of configured operators.

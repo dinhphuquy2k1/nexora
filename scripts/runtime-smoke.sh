@@ -21,7 +21,7 @@ logs=$(compose logs --no-color api)
 case "$logs" in *sensitive-test-marker*) echo 'Sensitive header leaked in logs' >&2; exit 1;; esac
 compose run --rm --no-deps -T migrate
 schema=$(compose exec -T postgres psql -U nexora -d nexora -Atc "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL; SELECT count(*) FROM stored_files;")
-[ "$schema" = "$(printf '5\n0')" ] || { echo 'Migrated schema assertion failed' >&2; exit 1; }
+[ "$schema" = "$(printf '6\n0')" ] || { echo 'Migrated schema assertion failed' >&2; exit 1; }
 compose exec -T api node -e "if(process.getuid()===0)process.exit(1)"
 compose exec -T web node -e "if(process.getuid()===0)process.exit(1)"
 
