@@ -144,3 +144,7 @@ The rule implementation uses AST nodes rather than source regex. Ambiguous ERROR
 | Contract regression         | pnpm contracts:check: reproducible PASS, generated OpenAPI/SDK unchanged                                                                                            | 2026-10-15 | PASS   |
 
 Native PostgreSQL integration and Docker smoke are NOT RUN on the restricted host; canonical hosted CI must execute the actual scripts and genuine migration history at the new pushed HEAD. ADR007, schema/migrations, DTOs/OpenAPI, crypto and transaction lock ordering are unchanged by this follow-up.
+
+### Conditional ERROR regression refinement
+
+A further review found that `connection.status = flag ? "ERROR" : ConnectionStatus.CONNECTED` had known persisted context but the original ERROR check only inspected immediate siblings. Added a failing RuleTester case first (43 tests, one failure: expected 1 error, actual 0), then extended context lookup to inspect assignment/comparison operands on the ancestor chain. This keeps unknown transport ERROR exempt and covers direct/reversed comparisons plus conditional assignments without value-only guessing. The guard suite now passes 43/43. Production behavior and all four constant replacements are unchanged. Fresh CI at the refined guard HEAD is required; prior 42-case evidence remains historical.

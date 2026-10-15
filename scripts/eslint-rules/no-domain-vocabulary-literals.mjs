@@ -48,9 +48,16 @@ function connectionContext(node) {
   for (let n = node; n; n = n.parent) {
     if (n.type === "Property" && name(n.key) === "status")
       statusOwner = n.parent;
+    const operands = [n];
+    if (n.type === "BinaryExpression" || n.type === "AssignmentExpression")
+      operands.push(unwrap(n.left), unwrap(n.right));
     if (
-      n.type === "MemberExpression" &&
-      ["connection", "carrierConnection"].includes(name(n.object))
+      operands.some(
+        (operand) =>
+          operand?.type === "MemberExpression" &&
+          field(operand) === "status" &&
+          ["connection", "carrierConnection"].includes(name(operand.object)),
+      )
     )
       return true;
     if (n.type === "CallExpression") {
@@ -129,22 +136,7 @@ export default {
         return;
       const constant = fields[key][value];
       if (!constant) return;
-      if (value === "ERROR") {
-        // Direct connection.status comparison has the connection on a sibling.
-        let parent = node.parent;
-        while (parent && wrappers.has(parent.type)) parent = parent.parent;
-        const sibling =
-          parent?.type === "BinaryExpression" ||
-          parent?.type === "AssignmentExpression";
-        if (
-          !connectionContext(node) &&
-          !(
-            sibling &&
-            (connectionContext(parent.left) || connectionContext(parent.right))
-          )
-        )
-          return;
-      }
+      if (value === "ERROR" && !connectionContext(node)) return;
       context.report({ node, messageId: "canonical", data: { constant } });
     }
     return {

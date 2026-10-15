@@ -79,6 +79,10 @@ new RuleTester({ languageOptions: { parser: ts.parser } }).run(
       ['const connection={status:"ERROR"};', "ConnectionStatus.ERROR"],
       ['connection.status="ERROR";', "ConnectionStatus.ERROR"],
       [
+        'connection.status=flag?"ERROR":ConnectionStatus.CONNECTED;',
+        "ConnectionStatus.ERROR",
+      ],
+      [
         'await db.carrierConnection.update({data:{status:"ERROR"}});',
         "ConnectionStatus.ERROR",
       ],
