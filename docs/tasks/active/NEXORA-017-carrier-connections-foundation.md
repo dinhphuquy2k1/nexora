@@ -69,3 +69,7 @@ pnpm docs:check; pnpm format:check; pnpm contracts:check; complete diff review.
 | Native database generation  | pnpm --filter @nexora/database build, genuine engine checksum download HTTP 403 from binaries.prisma.sh | 2026-10-15 | FAIL   |
 
 Genuine PostgreSQL/Nest/migration and complete canonical runtime evidence pending fresh hosted Docker CI. Native API build/typecheck cannot pass without genuine generated Prisma client; no checksum bypass/fabricated history or client used. No prior PR evidence is reused as a PASS for this task.
+
+## Verification follow-up
+
+Initial hosted [CI 38744581704](https://github.com/dinhphuquy2k1/nexora/actions/runs/38744581704) at 9035ae4 failed during API compilation: Pick<ProcessEnv,...> incorrectly required named environment properties. Changed the constructor to a readonly environment string map, preserving lazy validation. Also strengthened the real PostgreSQL race gate: query pg_stat_activity and require four concurrent lock waiters before release; no sleeps establish success. Synchronized current identity decision summaries with implemented PR3 foundation; historical task evidence remains untouched. Fresh exact-head pipeline is required after these corrections.

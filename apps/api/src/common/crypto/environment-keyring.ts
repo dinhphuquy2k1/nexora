@@ -5,12 +5,7 @@ import { CryptoFailure, type KeyProvider } from "./secret-cipher";
 export class EnvironmentKeyring implements KeyProvider {
   private readonly encoded: string | undefined;
   private readonly active: string | undefined;
-  constructor(
-    env: Pick<
-      NodeJS.ProcessEnv,
-      "CARRIER_KEYRING_JSON" | "CARRIER_ACTIVE_KEY_VERSION"
-    >,
-  ) {
+  constructor(env: Readonly<Record<string, string | undefined>>) {
     this.encoded = env.CARRIER_KEYRING_JSON;
     this.active = env.CARRIER_ACTIVE_KEY_VERSION;
   }

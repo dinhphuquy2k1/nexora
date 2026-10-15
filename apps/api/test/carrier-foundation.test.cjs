@@ -509,8 +509,23 @@ test(
             carrier.rename(b.id, cb.id, "Concurrent"),
             carrier.remove(b.id, cb.id),
           ]);
-          release();
+          let waiters = 0;
+          try {
+            for (let attempt = 0; attempt < 200; attempt++) {
+              const rows =
+                await db.$queryRaw`SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND pid<>pg_backend_pid()`;
+              waiters = rows[0].count;
+              if (waiters >= 4) break;
+              await new Promise((resolve) => setTimeout(resolve, 10));
+            }
+          } finally {
+            release();
+          }
           await held;
+          assert.ok(
+            waiters >= 4,
+            "four independent transactions must actually wait on the held user lock",
+          );
           const outcomes = await outcomesPromise;
           assert.equal(outcomes[0].status, "fulfilled");
           for (const result of outcomes)
