@@ -1,4 +1,5 @@
--- OPTIONAL development maintenance only; never invoked by startup or CI.
+-- OPTIONAL development maintenance; never applied automatically to an installation.
+-- CI exercises this file only against disposable fixture databases.
 -- psql -X -v ON_ERROR_STOP=1 "$DEV_DATABASE_URL" -v deployment_env=development \
 --   -v expected_database=nexora_dev_test -v username_prefix=test_demo \
 --   -v dry_run=true -v confirmation=NONE -f scripts/sql/cleanup-dev-operators.sql
