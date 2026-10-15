@@ -1,3 +1,9 @@
+import { EnvironmentKeyring } from "./common/crypto/environment-keyring";
+import { SecretCipher } from "./common/crypto/secret-cipher";
+import { CarrierPort } from "./carrier/application/carrier.port";
+import { CarrierAdapter } from "./carrier/infrastructure/carrier.adapter";
+import { CarrierController } from "./carrier/presentation/carrier.controller";
+import { CarrierService } from "./carrier/application/carrier.service";
 import {
   UserManagementController,
   SetupPasswordController,
@@ -25,12 +31,28 @@ export const CONFIG = "CONFIG";
 
 @Module({
   controllers: [
+    CarrierController,
     HealthController,
     AuthController,
     UserManagementController,
     SetupPasswordController,
   ],
   providers: [
+    {
+      provide: SecretCipher,
+      useFactory: () => new SecretCipher(new EnvironmentKeyring(process.env)),
+    },
+    {
+      provide: CarrierPort,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) =>
+        new CarrierAdapter(c.DATABASE_URL),
+    },
+    {
+      provide: CarrierService,
+      inject: [CarrierPort],
+      useFactory: (port: CarrierPort) => new CarrierService(port),
+    },
     { provide: CONFIG, useFactory: () => loadConfig(process.env) },
     {
       provide: DatabaseAdapter,

@@ -152,6 +152,14 @@ export class UserManagementAdapter implements UserManagementPort {
           where: { userId, consumedAt: null },
           data: { consumedAt: new Date() },
         });
+        // User lock is held before touching Carrier children, shared with all writers.
+        await tx.carrierConnectionSecret.deleteMany({
+          where: { connection: { userId } },
+        });
+        await tx.carrierConnection.updateMany({
+          where: { userId },
+          data: { status: "REAUTH_REQUIRED" },
+        });
       }
       return {
         id: updated.id,
