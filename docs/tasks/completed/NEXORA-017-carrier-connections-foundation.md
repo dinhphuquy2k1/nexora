@@ -1,9 +1,9 @@
 # NEXORA-017 — Carrier Connections & Encrypted Secrets Foundation
 
 - **Task ID**: `NEXORA-017`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `PARTIALLY VERIFIED`
+- **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
 - **Baseline**: `dd7d975cfbce960cfe37387a3d3c6e3ce1e638a3`
 - **Branch**: `feat/carrier-connections-foundation`
@@ -44,6 +44,8 @@ Documentation Impact: REQUIRED
 ### Changed facts
 
 Carrier persistence, metadata APIs, shared crypto and key custody, stage-aware disablement and verification commands.
+
+The vocabulary follow-up adds canonical-constant usage requirements, a contextual AST ESLint guard, test:lint and canonical quality integration. No new architecture decision or runtime contract is introduced.
 
 ### Canonical owners
 
@@ -148,3 +150,23 @@ Native PostgreSQL integration and Docker smoke are NOT RUN on the restricted hos
 ### Conditional ERROR regression refinement
 
 A further review found that `connection.status = flag ? "ERROR" : ConnectionStatus.CONNECTED` had known persisted context but the original ERROR check only inspected immediate siblings. Added a failing RuleTester case first (43 tests, one failure: expected 1 error, actual 0), then extended context lookup to inspect assignment/comparison operands on the ancestor chain. This keeps unknown transport ERROR exempt and covers direct/reversed comparisons plus conditional assignments without value-only guessing. The guard suite now passes 43/43. Production behavior and all four constant replacements are unchanged. Fresh CI at the refined guard HEAD is required; prior 42-case evidence remains historical.
+
+### Vocabulary follow-up completion — fresh evidence
+
+| Claim                                    | Evidence                                                                                                                                                                                                          | Date       | Result |
+| :--------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Complete refined-guard CI                | [CI 38755324938](https://github.com/dinhphuquy2k1/nexora/actions/runs/38755324938) at 6994eacb65789bb81fe18bc7ed07589fa87c5d23, all quality/runtime/persistence/dev steps success                                 | 2026-10-15 | PASS   |
+| Automated guard and pipeline integration | Same new-head CI quality: pnpm lint executes the error-level AST rule and unchanged boundaries; pnpm test:lint executes all 43 actual RuleTester/config/CLI/canonical-AST catalog tests                           | 2026-10-15 | PASS   |
+| Fresh functional regression              | Same CI: API unit 69/69 including crypto; Web 41/41; database 2/2; UI 1/1; docs 6/6; operations 3/3; migrated Nest/PostgreSQL HTTP/concurrency 21/21                                                              | 2026-10-15 | PASS   |
+| Genuine database verification            | Same CI: explicit real Prisma deployment/upgrade, preservation, constraints/cascades/unique, repeated deploy and zero schema drift; no migration/schema changes by this follow-up                                 | 2026-10-15 | PASS   |
+| Canonical mandatory checks               | Same CI quality-docker.sh runs frozen dependencies, format:check, lint, test:lint, docs:check, typecheck, test, test:docs, test:operations, contracts:check, build, test:integration and database test:migrations | 2026-10-15 | PASS   |
+| Runtime regression                       | Same CI runtime-smoke.sh including actual Login/setup browser, provisioning, cookies and revocation; data-smoke.sh; dev-smoke.sh all pass in disposable CI projects                                               | 2026-10-15 | PASS   |
+| Preserved contracts and boundaries       | Native contracts:check, git diff --check; existing boundaries PASS; TypeScript import/re-export graph of all 42 API source files zero cycles; no new runtime dependencies/duplicate constants                     | 2026-10-15 | PASS   |
+
+F1/F2 use UserStatus.ACTIVE from identity/domain/user-policy.ts; F3 uses ConnectionStatus.REAUTH_REQUIRED from carrier/domain/carrier.ts; F4 CarrierService metadata uses CarrierProvider.UNISHIP from that same Carrier owner. UserRole and SecretType were already canonical and remain unchanged; the guard checks all five vocabularies. Reviewed f438f19 source findings are recorded above with original lines. The production diff changes only four constant references/imports; advisory/user locks, ownership, crypto and all database/HTTP semantics remain unchanged.
+
+The contextual AST guard is deliberately bounded: it covers documented static fields and expression forms, not arbitrary aliases/dynamic keys/raw SQL/type-only literals. Unknown string values and unrelated ERROR/UNAUTHORIZED are accepted; explicit persisted contexts are rejected at severity error. No application/infrastructure blanket exception, weakened rule, scanner-only warning, new package, shared vocabulary relocation or ADR007 amendment was introduced. The owned CLI probe uses exclusive creation and removes a file only after successfully creating it.
+
+All vocabulary follow-up acceptance criteria are verified at the refined guard head above. Native Prisma download/typecheck FAIL and local PostgreSQL/Docker NOT RUN remain recorded separately; hosted genuine Docker/PostgreSQL evidence closes those required checks. Historical foundation/RED/42-case evidence is retained, not reused for the 43-case implementation. Documentation Impact REQUIRED is satisfied: PROJECT_RULES, IMPLEMENTATION_WORKFLOW, testing and this follow-up are synchronized and validated.
+
+NEXORA-017 returns to COMPLETED / VERIFIED. Final completion-record HEAD requires its own fresh CI before the final readiness report; its exact run must be linked on PR17. No force-push, rebase, new PR or merge. PR4 and all other deferred scope remain unchanged; no PLAN ISSUE remains open.
