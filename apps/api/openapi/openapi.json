@@ -1101,7 +1101,8 @@
           "loginIdentifier": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 128
+            "maxLength": 128,
+            "description": "Required nonblank username for Uniship. Future providers without username/email will use their own request schema."
           },
           "password": {
             "type": "string",

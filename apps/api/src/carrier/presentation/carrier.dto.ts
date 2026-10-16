@@ -37,7 +37,13 @@ export class ConnectionDeletedDto {
 }
 export class ConnectCarrierDto {
   @ApiProperty({ enum: Object.values(CarrierProvider) }) provider!: string;
-  @ApiProperty({ minLength: 1, maxLength: 128 }) loginIdentifier!: string;
+  @ApiProperty({
+    minLength: 1,
+    maxLength: 128,
+    description:
+      "Required nonblank username for Uniship. Future providers without username/email will use their own request schema.",
+  })
+  loginIdentifier!: string;
   @ApiProperty({ minLength: 1, maxLength: 1024, writeOnly: true })
   password!: string;
   @ApiProperty({ minLength: 1, maxLength: 100 }) displayName!: string;

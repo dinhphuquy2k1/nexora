@@ -9,7 +9,7 @@ Nexora operates under three distinct runtime topologies:
 - **Start**: `docker compose up --build -d --wait` (builds images, starts containers in background, and waits for health checks to pass).
 - **Access**: Open `http://127.0.0.1:3001` in the browser (configurable via `WEB_PORT`).
 - **Network Topology**: Browser connects to Web on loopback `127.0.0.1:3001`. Next.js proxies `/api/*` requests internally to `http://api:4000`. API and PostgreSQL services are private to Docker bridge networking and intentionally NOT published to the host in standard release mode.
-- **Stop**: `docker compose down`. All named volumes (database, credentials, uploads) persist; never use `-v` unless intentionally destroying data.
+- **Stop**: `docker compose down`. All named volumes (database, credentials, runtime_credentials, uploads) persist; never use `-v` unless intentionally destroying data.
 
 ### Mode B: Docker Development
 
@@ -141,7 +141,7 @@ For local development inspections, schema reviews, and manual SQL queries:
 
 Unified identity storage and local ADMIN provisioning are implemented; follow NEXORA-011 verification evidence before upgrading. The verified baseline, migration prerequisites and execution evidence are tracked in [NEXORA-011](../tasks/completed/NEXORA-011-unified-identity-migration.md).
 
-For identity upgrades, stop API/Web and external provisioning writers, retain PostgreSQL/credential/upload volumes, and use the reviewed matching release's migrate service before bringing application writers back. Do not start old images against migrated schema.
+For identity upgrades, stop API/Web and external provisioning writers, retain PostgreSQL/credential/upload volumes, and use the reviewed matching release's migrate service then the matching db-runtime provisioning job before bringing application writers back. Do not start old images against migrated schema.
 
 ## Uniship configuration example and Web launchers
 
@@ -158,3 +158,9 @@ Use the trusted local ADMIN CLI to provision an administrator, then log in throu
 ## Required PR 2 session cutover upgrade
 
 Stop API/Web and external provisioning writers, retain PostgreSQL/credentials/uploads volumes, then run the matching release migrate service before starting new writers. New migration `20261015010000_legacy_provider_session_cutover` deletes all sessions of OPERATOR users without local credentials, including expired and DISABLED-user rows. ADMIN and configured OPERATOR sessions remain. Users/credentials/files remain. Do not edit historical migrations or reset volumes. Retained unconfigured operators need a setup link; their deleted cookies never become valid again after setup. Existing sessions have no auth-source field, so configured operators retain their sessions under the owner-approved minimum policy.
+
+## Required PR18 runtime-role upgrade — NEXORA-019
+
+Stop API/Web and external provisioning writers; retain postgres, credentials and uploads, including the existing admin password. Rebuild matching images and run docker compose up --build -d --wait: init adds only the new runtime_credentials secret, migrate applies authentic history, db-runtime provisions nexora_app, and only then API/Web start. Do not reset volumes, edit old migrations or start stale images. The same dependency chain handles fresh install. Repeated provisioning/restart/down-up preserves all users, credentials, sessions, Carrier ciphertext, audit and files. Standard CLI account creation still runs inside API via api-entrypoint, now with runtime privileges.
+
+If provisioning fails, API stays blocked. An authorized administrator must inspect role flags/membership/object ownership and credential-file custody; never resolve a conflict by granting API superuser, mounting admin credentials into API, deleting roles/data/volumes or silently rotating a secret. Restore the original admin secret from secure custody if damaged. Missing/corrupt retained files require deliberate custody recovery; there is no automatic password fallback. Development admin database-client instructions above are administrative access, not application credentials. Web has no DB credential access.

@@ -20,6 +20,8 @@ RUN --mount=type=secret,id=build_ca \
     cd /migration && rm -rf src && \
     /workspace/packages/database/node_modules/.bin/prisma generate --schema prisma/schema.prisma
 
+COPY packages/database/scripts/provision-runtime.mjs /migration/scripts/provision-runtime.mjs
+
 FROM tools AS migrate
 WORKDIR /app
 COPY --from=migrate-artifacts --chown=node:node /migration /app

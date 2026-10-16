@@ -15,6 +15,7 @@ cleanup(){
   status=$?; if [ "$status" -ne 0 ]; then compose logs --no-color --tail 60 >&2; fi;  compose down -v --remove-orphans >/dev/null; }
 trap cleanup EXIT HUP INT TERM
 if [ "${NEXORA_SMOKE_NO_BUILD:-0}" = 1 ]; then compose up --no-build -d --wait --wait-timeout 180; else compose up --build -d --wait --wait-timeout 180; fi
+python3 scripts/database-runtime-smoke.py
 compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/health/ready').then(async r=>{const b=await r.json();if(r.status!==200||!b.checks.database||!b.checks.storage)process.exit(1);console.log('Same-origin readiness PASS')})"
 compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/missing',{headers:{authorization:'Bearer sensitive-test-marker'}}).then(async r=>{const b=await r.json();if(r.status!==404||b.code!=='NOT_FOUND'||!b.requestId||b.requestId!==r.headers.get('x-request-id'))process.exit(1);console.log('Proxy error contract PASS')})"
 logs=$(compose logs --no-color api)

@@ -275,6 +275,7 @@ export interface components {
         ConnectCarrierDto: {
             /** @enum {string} */
             provider: "uniship";
+            /** @description Required nonblank username for Uniship. Future providers without username/email will use their own request schema. */
             loginIdentifier: string;
             password: string;
             displayName: string;

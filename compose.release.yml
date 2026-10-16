@@ -7,6 +7,7 @@ services:
     entrypoint: [sh, /scripts/init-local.sh]
     volumes:
       - credentials:/config
+      - runtime_credentials:/runtime-config
       - uploads:/uploads
   postgres:
     image: postgres:17.11-bookworm
@@ -26,7 +27,7 @@ services:
       retries: 30
   migrate:
     image: ghcr.io/dinhphuquy2k1/nexora-migrate:0.1.0
-    entrypoint: [sh, /scripts/api-entrypoint.sh]
+    entrypoint: [sh, /scripts/migration-entrypoint.sh]
     command:
       [
         node,
@@ -40,6 +41,16 @@ services:
       - credentials:/config:ro
     depends_on:
       postgres: { condition: service_healthy }
+  db-runtime:
+    image: ghcr.io/dinhphuquy2k1/nexora-migrate:0.1.0
+    user: "0:0"
+    entrypoint: [sh, /scripts/migration-entrypoint.sh]
+    command: [node, scripts/provision-runtime.mjs]
+    volumes:
+      - credentials:/config:ro
+      - runtime_credentials:/runtime-config:ro
+    depends_on:
+      migrate: { condition: service_completed_successfully }
   api:
     image: ghcr.io/dinhphuquy2k1/nexora-api:0.1.0
     entrypoint: [sh, /scripts/api-entrypoint.sh]
@@ -53,10 +64,10 @@ services:
       UNISHIP_API_URL: "${UNISHIP_API_URL:-}"
       UNISHIP_LIVE_AUTHORIZED: "${UNISHIP_LIVE_AUTHORIZED:-false}"
     volumes:
-      - credentials:/config:ro
+      - runtime_credentials:/runtime-config:ro
       - uploads:/data/uploads
     depends_on:
-      migrate: { condition: service_completed_successfully }
+      db-runtime: { condition: service_completed_successfully }
     healthcheck:
       test:
         [
@@ -88,6 +99,7 @@ services:
       timeout: 8s
       retries: 20
 volumes:
+  runtime_credentials:
   credentials:
   postgres:
   uploads:

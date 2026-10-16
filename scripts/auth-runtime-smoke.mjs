@@ -305,8 +305,19 @@ try {
   checks.step("SESSION_EXPIRY_SETUP");
   // Controlled expiry data belongs only to this script's disposable database.
   await run(
-    ["exec", "-T", "api", "sh", "/scripts/api-entrypoint.sh", "node"],
-    `const {createDatabase}=require('@nexora/database'); (async()=>{const db=createDatabase(process.env.DATABASE_URL);try{await db.session.updateMany({where:{user:{username:'smoke_user'}},data:{expiresAt:new Date(0)}});}finally{await db.$disconnect();}})().catch(()=>process.exit(1));`,
+    [
+      "exec",
+      "-T",
+      "postgres",
+      "psql",
+      "-U",
+      "nexora",
+      "-d",
+      "nexora",
+      "-v",
+      "ON_ERROR_STOP=1",
+    ],
+    "UPDATE sessions SET expires_at=to_timestamp(0) WHERE user_id IN (SELECT id FROM users WHERE username='smoke_user');",
   );
   checks.step("SESSION_EXPIRED");
   checks.status(

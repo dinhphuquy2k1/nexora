@@ -154,9 +154,25 @@ test(
         },
       );
       db = createDatabase(url.toString());
-      store = new CarrierLifecycleAdapter(url.toString());
-      identity = new IdentityDatabaseAdapter(url.toString());
-      management = new UserManagementAdapter(url.toString());
+      // Only db/admin are privileged fixture connections. Every application adapter
+      // and the HTTP app below authenticates using the actual restricted secret.
+      const { readFile } = require("node:fs/promises");
+      const { provisionRuntime, runtimeUrl } = await import(
+        "../../../packages/database/scripts/provision-runtime.mjs"
+      );
+      const { assertRuntimePrivileges } = await import(
+        "../../../packages/database/test/runtime-privilege-assertions.mjs"
+      );
+      const runtimePassword = (
+        await readFile("/runtime-config/postgres_app_password", "utf8")
+      ).trim();
+      await provisionRuntime(url.toString(), runtimePassword);
+      await assertRuntimePrivileges(url.toString(), runtimePassword);
+      const applicationUrl = runtimeUrl(url.toString(), runtimePassword);
+
+      store = new CarrierLifecycleAdapter(applicationUrl);
+      identity = new IdentityDatabaseAdapter(applicationUrl);
+      management = new UserManagementAdapter(applicationUrl);
       const audit = new PostgresSecurityAudit(store.client);
       const makeService = (customCipher = cipher) =>
         new CarrierConnectionLifecycleService(
@@ -192,7 +208,7 @@ test(
         ),
       );
       Object.assign(process.env, {
-        DATABASE_URL: url.toString(),
+        DATABASE_URL: applicationUrl,
         STORAGE_ROOT: root,
         UNISHIP_API_URL: providerUrl,
         UNISHIP_LIVE_AUTHORIZED: "false",
@@ -764,6 +780,33 @@ test(
               `INSERT INTO security_audit_events(event_type,outcome,reason,provider,correlation_id) VALUES ('UNKNOWN','SUCCESS','VERIFIED','uniship','${randomUUID()}')`,
             ),
           );
+        },
+      );
+      await t.test(
+        "repeat role provisioning preserves every application row",
+        async () => {
+          const tables = [
+            "users",
+            "user_credentials",
+            "sessions",
+            "operator_setup_tokens",
+            "stored_files",
+            "carrier_connections",
+            "carrier_connection_secrets",
+            "carrier_user_states",
+            "security_audit_events",
+          ];
+          const snapshot = async () =>
+            Promise.all(
+              tables.map((table) =>
+                db.$queryRawUnsafe(
+                  `SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) AS rows FROM ${table} t`,
+                ),
+              ),
+            );
+          const before = await snapshot();
+          await provisionRuntime(url.toString(), runtimePassword);
+          assert.deepEqual(await snapshot(), before);
         },
       );
     } catch (error) {

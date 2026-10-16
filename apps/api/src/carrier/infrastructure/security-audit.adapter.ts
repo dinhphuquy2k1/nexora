@@ -14,6 +14,6 @@ export class PostgresSecurityAudit extends SecurityAuditPort {
     db: Pick<Prisma.TransactionClient, "securityAuditEvent">,
     event: CarrierSecurityEvent,
   ): Promise<void> {
-    await db.securityAuditEvent.create({ data: event });
+    await db.securityAuditEvent.create({ data: event, select: { id: true } });
   }
 }
