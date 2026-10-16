@@ -1,6 +1,6 @@
 # Configuration
 
-Compose supplies defaults and two idempotently generated local database credentials, stored in separate dedicated volumes. Never print its contents or commit it. This credential is for isolated local PostgreSQL, not public deployment.
+Compose supplies defaults and two idempotently generated local database credentials, stored in separate dedicated volumes. Never print its contents or commit it. These credentials are for isolated local PostgreSQL, not public deployment.
 
 | Variable                | Owner / contract                                                                                                                                                                                                                                                                                                                                                                                      |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
