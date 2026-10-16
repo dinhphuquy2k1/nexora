@@ -1,8 +1,8 @@
 # Frontend Architecture
 
-## Implemented Logical PR 2 — NEXORA-016
+## Current local authentication — Logical PR6
 
-Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. Supported deployment remains local/loopback; public HTTPS, Carrier UI and shipment sync remain PLANNED. Implementation verification is tracked in active NEXORA-022 until canonical CI passes.
+Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. Supported deployment remains local/loopback; public HTTPS, Carrier UI and shipment sync remain PLANNED. Executed full canonical verification is recorded in completed NEXORA-022; PR19 records the final exact-head CI.
 
 `/login` renders one Nexora form for both roles. Legacy provider/admin mode selection is removed; password visibility, loading/errors, server session redirects, sanitized `from`, logout and HttpOnly cookies remain. `/setup` reads only the token fragment client-side, clears URL history, retains it in memory, validates password/confirmation and posts only the JSON body. It returns to `/login` after success without issuing a session. The page uses no-store/no-referrer and existing local assets; no token enters SSR HTML or browser storage. Query-string tokens are rejected.
 

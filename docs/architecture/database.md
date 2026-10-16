@@ -123,7 +123,7 @@ CREATE TABLE carrier_connection_secrets (
 
 - **`sessions.auth_level` (introduced in PR6)**: The physical database column `sessions.auth_level` is introduced exclusively in Logical PR 6 (`ALTER TABLE sessions ADD COLUMN auth_level VARCHAR(16) NOT NULL DEFAULT 'PASSWORD'`, with `CONSTRAINT chk_sessions_auth_level CHECK (auth_level IN ('PASSWORD', 'MFA'))`).
   - **PR 2 → Prior to PR 6**: The database table `sessions` does NOT possess an `auth_level` column. Schema migrations in PR 2..5 do not read, write, or require this column. In this interim milestone, administrative authorization on loopback/local relies strictly on opaque session lookup, validity, and the linked user's `role === 'ADMIN'`. "PASSWORD" in PR 2..5 is strictly a logical assurance classification, NOT a database field.
-  - **PR 6 Onward**: Session migration assigns `PASSWORD` to all existing active sessions without downtime. Administrative endpoints then enforce `role === 'ADMIN'` AND `auth_level === 'MFA'`. Password-only administrative sessions are rejected or revoked.
+  - **PR 6 Onward**: Session migration assigns `PASSWORD` to all existing sessions during the documented stop-writers cutover. Administrative endpoints then enforce `role === 'ADMIN'` AND `auth_level === 'MFA'`. Password-only administrative sessions are rejected or revoked.
   - **PR 7**: Public HTTPS profile verifies at application boot that MFA enforcement is active; zero admin endpoints bypass MFA.
 - **`user_mfa`**: Stores TOTP configuration for ADMIN users:
   ```sql

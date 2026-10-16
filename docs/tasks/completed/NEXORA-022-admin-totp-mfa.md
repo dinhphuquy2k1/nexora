@@ -1,9 +1,9 @@
 # NEXORA-022 — Mandatory ADMIN TOTP MFA
 
 - **Task ID**: `NEXORA-022`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `NOT VERIFIED`
+- **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
 - **Branch**: `feat/admin-totp-mfa`
 - **Baseline**: `42c862e6b486aa0718984f76d521e03e8d00cb67`
@@ -85,3 +85,22 @@ Additional threat review reproduced a logical-key collision: a legal username mf
 ## Dev smoke fixture correction
 
 Runs38897378086(source4ce17db) and38897703414(sourceb2d29e3) passed genuine quality/migrations/integration, compiled CLI TTY/browser/restart and data persistence. Both FAIL at dev-smoke: its old fixture was ADMIN but expected password-only login. Preserve every HMR/frozen-drift/data assertion, first assert unenrolled ADMIN403/no-cookie, then convert only the owned disposable fixture to OPERATOR for one-step HMR. Do not weaken MFA guards or add a test bypass. Updated source also explicitly asserts MFA secret privacy in browser URLs/Referer/SSR/storage/location/server logs. Complete updated-source and final-head CI still pending.
+
+## Verified result — 2026-10-16
+
+Full canonical [run38899221991](https://github.com/dinhphuquy2k1/nexora/actions/runs/38899221991), attempt1 at366eec21ced74b1c6db2bcc6a4a2215fcd75fcde, SUCCESS. All new and prior assertions passed with actual Prisma/PostgreSQL/runtime role and real HTTP/CLI/browser. Earlier failures above remain recorded as executed failures, not relabeled as success. No workflow rerun or weakened guard/assertion was used; corrective commits fixed the actual fixture/namespace issues.
+
+| Claim                      | Evidence                                                                                                                                                                                                                                                                                       | Date       | Result |
+| :------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Full quality               | Same source/run: pinned frozen install,format/lint/boundaries/test:lint50/typecheck/tests/docs/contracts/build PASS;128 API,42 Web,2 DB,1 UI,6 docs and3 operations tests PASS                                                                                                                 | 2026-10-16 | PASS   |
+| Genuine PostgreSQL         | pnpm test:integration:58 PASS, including17 new MFA/Nest/runtime-role tests; one winner under20 requests, TOTP/recovery/challenge replay, rollback, status/role/hash races, actual observed lock wait, duplicate enrollment, future Public admin policy, cookie/Origin and legacy assurances    | 2026-10-16 | PASS   |
+| Migration/custody          | Genuine fresh/staged eight-to-nine Prisma deploy, baseline snapshot preservation, CHECK,repeat/drift PASS; actual restricted runtime credentials, column-scoped MFA grants and negative secret/audit/DDL/SET ROLE probes PASS                                                                  | 2026-10-16 | PASS   |
+| Compiled enrollment        | runtime-smoke real non-root MFA CLI pseudo-TTY: hidden password,backspace,Enter,Ctrl+C/Ctrl+D,cleanup,trigger rollback,no codes on failure,10 codes only after commit,duplicate refusal PASS                                                                                                   | 2026-10-16 | PASS   |
+| Browser/HTTP               | Real generated-SDK ADMIN two-step,no session/navigation before MFA,wrong/expired proof,cancel/retry,network-paused loading,recovery input,TOTP success,pending and issued-session API restarts; no secret in URL/Referer/SSR/storage/location/server logs; original setup/OPERATOR/logout PASS | 2026-10-16 | PASS   |
+| Persistence                | data-smoke user_mfa/challenges/recovery-code and all earlier Identity/Carrier/audit/file rows plus both credential hashes preserved across restart/down-up PASS                                                                                                                                | 2026-10-16 | PASS   |
+| Development                | Dev unenrolled ADMIN403/no cookie,OPERATOR HMR/shared propagation,real frozen-lock drift blocking and data preservation PASS                                                                                                                                                                   | 2026-10-16 | PASS   |
+| Complete canonical scripts | quality-docker.sh,runtime-smoke.sh,data-smoke.sh,dev-smoke.sh all SUCCESS in source run38899221991                                                                                                                                                                                             | 2026-10-16 | PASS   |
+
+Identity key custody is the explicitly owner-approved independent environment contract, not a default/key-service addition. All8 historical migrations and completed task evidence, Carrier production code/protocol/live gate, DB admin secret isolation and audit append-only contract remain intact. No plaintext secret persists in database/API/SDK/logs or global caches. ADMIN password never issues a new session; old PASSWORD ADMIN rows are preserved by migration but globally denied administrative capability. OPERATOR behavior remains. CLI enrollment/disablement revoke sessions/challenges atomically; no reset/reenrollment overwrite or public ingress is implemented.
+
+No unresolved implementation PLAN ISSUE. Host genuine Prisma checksum download remains HTTP403-blocked; hosted evidence supplies actual generation/build/migrations and cannot be replaced by local emitted JS. Live Uniship authorization, PR7/public HTTPS, MFA reset/key retirement and Carrier admin APIs remain separate reviewed scope. No user-volume reset,fake engine/client/history,checksum bypass,force-push or automatic merge. The final documentation-only commit receives the full canonical workflow again; PR19 records its exact SHA/conclusion/link and remains draft until it passes.

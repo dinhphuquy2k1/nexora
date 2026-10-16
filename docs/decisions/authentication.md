@@ -1,8 +1,8 @@
 # ADR-005 · Local Authentication & Session Architecture
 
-## Implemented Logical PR 2 — NEXORA-016
+## Current local authentication — Logical PR6
 
-Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. Supported deployment remains local/loopback; public HTTPS, Carrier UI and shipment sync remain PLANNED. Implementation verification is tracked in active NEXORA-022 until canonical CI passes.
+Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. Supported deployment remains local/loopback; public HTTPS, Carrier UI and shipment sync remain PLANNED. Executed full canonical verification is recorded in completed NEXORA-022; PR19 records the final exact-head CI.
 
 NEXORA-016 implements local login for both roles, user-first transactional issuance/onboarding and atomic disablement. Legacy provider-login material below describes historical milestones, not a supported login path. `external_identities` is removed by a new migration. Current contracts and the owner-approved user administration amendment are maintained in [API contract](../architecture/api-contract.md).
 

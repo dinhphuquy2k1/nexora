@@ -1,6 +1,6 @@
 # API contract
 
-## Implemented Logical PR 2 — NEXORA-016
+## Current Identity and MFA contract — Logical PR6
 
 Current Logical PR6: OPERATOR authenticates with local password and receives a PASSWORD session; ADMIN receives only a pending challenge after password and must complete TOTP or single-use recovery verification for an MFA session. All admin APIs require database-backed ADMIN+MFA. Uniship is independent of identity. Public HTTPS and shipment sync remain PLANNED. See the PR6 contract amendment below and NEXORA-022 verification evidence.
 
