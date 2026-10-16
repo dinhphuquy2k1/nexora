@@ -69,6 +69,8 @@ test(
       expiry = false,
       mismatch = false,
       loginMismatch = false,
+      identityOther = false,
+      rejectPassword = false,
       mode = "ok",
       pending;
     const tokens = new Map();
@@ -83,17 +85,29 @@ test(
         gate.started();
         await gate.wait;
       }
+      if (mode === "timeout") return;
+      if (mode === "429") {
+        res.writeHead(429, { "retry-after": "1" });
+        return res.end();
+      }
+      if (mode === "verify-reject" && req.url === "/client/api-token-verify/") {
+        res.writeHead(401);
+        return res.end();
+      }
       if (mode === "500") {
         res.writeHead(500);
         return res.end();
       }
       if (req.url === "/client/api-token-auth/") {
         loginCalls++;
-        if (body.password === "wrong") {
+        if (body.password === "wrong" || rejectPassword) {
           res.writeHead(401);
           return res.end();
         }
-        const id = body.username;
+        const id =
+          identityOther || body.password === "late-other"
+            ? "999999"
+            : body.username;
         const token = expiry
           ? `synthetic.${Buffer.from(JSON.stringify({ exp: 123 })).toString("base64url")}.${randomUUID()}`
           : "synthetic-" + randomUUID();
@@ -174,13 +188,15 @@ test(
       identity = new IdentityDatabaseAdapter(applicationUrl);
       management = new UserManagementAdapter(applicationUrl);
       const audit = new PostgresSecurityAudit(store.client);
-      const makeService = (customCipher = cipher) =>
+      const makeService = (customCipher = cipher, timeoutMs = 5000) =>
         new CarrierConnectionLifecycleService(
           store,
           new CarrierCredentialVault(
             store,
             customCipher,
-            new UnishipAdapter(new UnishipHttpClient({ apiUrl: providerUrl })),
+            new UnishipAdapter(
+              new UnishipHttpClient({ apiUrl: providerUrl, timeoutMs }),
+            ),
             audit,
           ),
           new UserCarrierAdmission(),
@@ -373,6 +389,282 @@ test(
           assert.equal(loginCalls, verifyCalls + 1); // wrong login is not verified
         },
       );
+      stage = "NON_DESTRUCTIVE_MANUAL";
+      await t.test(
+        "failed manual replacement preserves full rows, verification time, usable old token and failure audit",
+        async () => {
+          const c = await connect(users[4], "119");
+          const rows = () =>
+            db.carrierConnectionSecret.findMany({
+              where: { connectionId: c.id },
+              orderBy: { secretType: "asc" },
+            });
+          const row = () =>
+            db.carrierConnection.findUniqueOrThrow({ where: { id: c.id } });
+          const protectedFields = (r) => ({
+            status: r.status,
+            lastVerifiedAt: r.lastVerifiedAt,
+            externalAccountId: r.externalAccountId,
+            userId: r.userId,
+            loginIdentifier: r.loginIdentifier,
+          });
+          const before = await rows(),
+            initial = await row();
+          const oldToken = await makeService().withToken(
+            users[4].id,
+            c.id,
+            async (token) => token,
+          );
+          const wrong = await request(
+            `/carrier-connections/${c.id}/reconnect`,
+            4,
+            { password: "wrong" },
+          );
+          assert.equal(wrong.status, 401);
+          assert.equal((await wrong.json()).code, "PROVIDER_AUTH_FAILED");
+          assert.deepEqual(await rows(), before);
+          assert.deepEqual(
+            protectedFields(await row()),
+            protectedFields(initial),
+          );
+          assert.equal(
+            await makeService().withToken(
+              users[4].id,
+              c.id,
+              async (token) => token,
+            ),
+            oldToken,
+          );
+          const outage = await (async () => {
+            mode = "timeout";
+            try {
+              return await request(
+                `/carrier-connections/${c.id}/reconnect`,
+                4,
+                { password: "synthetic" },
+              );
+            } finally {
+              mode = "ok";
+            }
+          })();
+          assert.equal(outage.status, 503);
+          assert.equal((await outage.json()).code, "SERVICE_UNAVAILABLE");
+          assert.deepEqual(await rows(), before);
+          assert.deepEqual(
+            protectedFields(await row()),
+            protectedFields(initial),
+          );
+          // Respect the actual process-wide transport backoff before later HTTP tests.
+          await new Promise((resolve) => setTimeout(resolve, 1050));
+          let passwordDecrypts = 0;
+          const observed = {
+            encrypt: (...args) => cipher.encrypt(...args),
+            decrypt: (...args) => {
+              if (args[0] === "CARRIER_PASSWORD") passwordDecrypts++;
+              return cipher.decrypt(...args);
+            },
+          };
+          for (const [state, kind, error, reason] of [
+            [
+              "CONNECTED",
+              "wrong",
+              "PROVIDER_AUTH_FAILED",
+              "INVALID_CREDENTIALS",
+            ],
+            ["CONNECTED", "500", "SERVICE_UNAVAILABLE", "UNAVAILABLE"],
+            ["CONNECTED", "timeout", "SERVICE_UNAVAILABLE", "UNAVAILABLE"],
+            ["CONNECTED", "429", "RATE_LIMITED", "UNAVAILABLE"],
+            [
+              "CONNECTED",
+              "verify-reject",
+              "TOKEN_REJECTED",
+              "INVALID_CREDENTIALS",
+            ],
+            [
+              "CONNECTED",
+              "inconsistent",
+              "CANDIDATE_IDENTITY_MISMATCH",
+              "IDENTITY_MISMATCH",
+            ],
+            [
+              "REAUTH_REQUIRED",
+              "wrong",
+              "PROVIDER_AUTH_FAILED",
+              "INVALID_CREDENTIALS",
+            ],
+            ["ERROR", "wrong", "PROVIDER_AUTH_FAILED", "INVALID_CREDENTIALS"],
+          ]) {
+            // Privileged fixture only; all business calls use actual nexora_app.
+            await db.carrierConnection.update({
+              where: { id: c.id },
+              data: { status: state },
+            });
+            const baseline = await row(),
+              correlationId = randomUUID();
+            mode = ["wrong", "inconsistent"].includes(kind) ? "ok" : kind;
+            loginMismatch = kind === "inconsistent";
+            try {
+              await assert.rejects(
+                makeService(
+                  observed,
+                  kind === "timeout" ? 100 : 5000,
+                ).reconnect(
+                  users[4].id,
+                  c.id,
+                  kind === "wrong" ? "wrong" : "synthetic",
+                  correlationId,
+                ),
+                { code: error },
+              );
+            } finally {
+              mode = "ok";
+              loginMismatch = false;
+            }
+            assert.deepEqual(await rows(), before);
+            assert.deepEqual(
+              protectedFields(await row()),
+              protectedFields(baseline),
+            );
+            const events = await db.securityAuditEvent.findMany({
+              where: { correlationId },
+            });
+            assert.equal(events.length, 1);
+            assert.equal(events[0].eventType, "RECONNECT");
+            assert.equal(events[0].outcome, "FAILURE");
+            assert.equal(events[0].reason, reason);
+            if (state === "CONNECTED")
+              assert.equal(
+                await makeService(observed).withToken(
+                  users[4].id,
+                  c.id,
+                  async (token) => token,
+                ),
+                oldToken,
+              );
+          }
+          await db.carrierConnection.update({
+            where: { id: c.id },
+            data: { status: "CONNECTED" },
+          });
+          loginMismatch = true;
+          try {
+            const inconsistent = await request(
+              `/carrier-connections/${c.id}/reconnect`,
+              4,
+              { password: "synthetic" },
+            );
+            assert.equal(inconsistent.status, 401);
+            assert.equal(
+              (await inconsistent.json()).code,
+              "PROVIDER_AUTH_FAILED",
+            );
+            const generic = await request(
+              "/carrier-connections",
+              4,
+              input("129"),
+            );
+            assert.equal(generic.status, 400);
+            assert.equal(
+              (await generic.json()).code,
+              "CANNOT_CONNECT_CARRIER_ACCOUNT",
+            );
+          } finally {
+            loginMismatch = false;
+          }
+          assert.deepEqual(await rows(), before);
+          assert.deepEqual(
+            protectedFields(await row()),
+            protectedFields(initial),
+          );
+          assert.equal(passwordDecrypts, 0);
+          assert.equal(
+            await db.securityAuditEvent.count({
+              where: { connectionId: c.id, eventType: "PASSWORD_DECRYPT" },
+            }),
+            0,
+          );
+        },
+      );
+      stage = "RECOVERY_FAILURE_POLICIES";
+      await t.test(
+        "automatic recovery retains password/identity reauth and temporary-failure ERROR policies",
+        async () => {
+          let index = 0;
+          for (const [kind, code, status] of [
+            ["wrong", "PROVIDER_AUTH_FAILED", "REAUTH_REQUIRED"],
+            ["inconsistent", "CANDIDATE_IDENTITY_MISMATCH", "REAUTH_REQUIRED"],
+            ["other", "IDENTITY_MISMATCH", "REAUTH_REQUIRED"],
+            ["verify-reject", "TOKEN_REJECTED", "REAUTH_REQUIRED"],
+            ["500", "SERVICE_UNAVAILABLE", "ERROR"],
+            ["timeout", "SERVICE_UNAVAILABLE", "ERROR"],
+            ["429", "RATE_LIMITED", "ERROR"],
+          ]) {
+            expiry = true;
+            let c;
+            try {
+              c = await connect(users[4], String(200 + index++));
+            } finally {
+              expiry = false;
+            }
+            const rows = () =>
+              db.carrierConnectionSecret.findMany({
+                where: { connectionId: c.id },
+                orderBy: { secretType: "asc" },
+              });
+            const before = await rows(),
+              baseline = await db.carrierConnection.findUniqueOrThrow({
+                where: { id: c.id },
+              }),
+              correlationId = randomUUID();
+            mode = ["wrong", "inconsistent", "other"].includes(kind)
+              ? "ok"
+              : kind;
+            rejectPassword = kind === "wrong";
+            loginMismatch = kind === "inconsistent";
+            identityOther = kind === "other";
+            let operations = 0;
+            try {
+              await assert.rejects(
+                makeService(cipher, kind === "timeout" ? 100 : 5000).withToken(
+                  users[4].id,
+                  c.id,
+                  async () => {
+                    operations++;
+                  },
+                  correlationId,
+                ),
+                { code },
+              );
+            } finally {
+              mode = "ok";
+              rejectPassword = false;
+              loginMismatch = false;
+              identityOther = false;
+            }
+            assert.equal(operations, 0);
+            assert.deepEqual(await rows(), before);
+            const after = await db.carrierConnection.findUniqueOrThrow({
+              where: { id: c.id },
+            });
+            assert.equal(after.status, status);
+            assert.deepEqual(after.lastVerifiedAt, baseline.lastVerifiedAt);
+            assert.equal(after.externalAccountId, baseline.externalAccountId);
+            const events = await db.securityAuditEvent.findMany({
+              where: { correlationId },
+            });
+            assert.equal(
+              events.filter((e) => e.eventType === "PASSWORD_DECRYPT").length,
+              1,
+            );
+            assert.equal(
+              events.filter(
+                (e) => e.eventType === "RECOVERY" && e.outcome === "FAILURE",
+              ).length,
+              1,
+            );
+          }
+        },
+      );
       stage = "ATOMIC_RECONNECT";
       await t.test(
         "reconnect atomically rotates secrets; mismatch preserves old secrets and requires manual reconnect",
@@ -395,14 +687,14 @@ test(
             after.map((s) => s.ciphertext),
             before.map((s) => s.ciphertext),
           );
-          loginMismatch = true;
+          identityOther = true;
           const mismatchResponse = await request(
             `/carrier-connections/${connected.id}/reconnect`,
             1,
             { password: "synthetic-other" },
           );
           assert.equal(mismatchResponse.status, 401);
-          loginMismatch = false;
+          identityOther = false;
           assert.equal(
             (
               await db.carrierConnection.findUnique({
@@ -582,16 +874,25 @@ test(
           const c = await connect(users[7], "107"),
             s = makeService();
           let hold = holdLogin(),
-            old = s.reconnect(users[7].id, c.id, "old-password"),
-            rejection = assert.rejects(old, { code: "STALE" });
+            old = s.reconnect(users[7].id, c.id, "late-other"),
+            rejection = assert.rejects(old, { code: "IDENTITY_MISMATCH" });
           await hold.ready;
           await makeService().reconnect(users[7].id, c.id, "new-password");
           const savedSecrets = await db.carrierConnectionSecret.findMany({
             where: { connectionId: c.id },
             orderBy: { secretType: "asc" },
           });
+          const winning = await db.carrierConnection.findUniqueOrThrow({
+            where: { id: c.id },
+          });
           hold.release();
           await rejection;
+          assert.deepEqual(
+            await db.carrierConnection.findUniqueOrThrow({
+              where: { id: c.id },
+            }),
+            winning,
+          );
           assert.deepEqual(
             await db.carrierConnectionSecret.findMany({
               where: { connectionId: c.id },
@@ -719,7 +1020,7 @@ test(
           assert.equal(
             (await db.carrierConnection.findUnique({ where: { id: c.id } }))
               .status,
-            "ERROR",
+            "CONNECTED",
           );
           assert.ok(
             await new AuthService(identity).validateSession(sessions[5]),

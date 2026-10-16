@@ -74,7 +74,12 @@ export class CarrierConnectionLifecycleService {
     if (error instanceof LifecycleFailure) {
       if (error.code === LifecycleCode.DUPLICATE)
         reason = CarrierAuditReason.DUPLICATE_ACCOUNT;
-      if (error.code === LifecycleCode.IDENTITY_MISMATCH)
+      if (
+        [
+          LifecycleCode.IDENTITY_MISMATCH,
+          LifecycleCode.CANDIDATE_IDENTITY_MISMATCH,
+        ].some((code) => code === error.code)
+      )
         reason = CarrierAuditReason.IDENTITY_MISMATCH;
       if (
         error.code === LifecycleCode.PROVIDER_AUTH_FAILED ||
@@ -125,7 +130,7 @@ export class CarrierConnectionLifecycleService {
         correlationId,
       );
     } catch (error) {
-      await this.failure(userId, snapshot, error);
+      await this.handleReconnectFailure(userId, snapshot, error);
       await this.auditFailure(
         userId,
         id,
@@ -140,7 +145,20 @@ export class CarrierConnectionLifecycleService {
     if (snapshot.connection.externalAccountId !== verifiedId)
       throw new LifecycleFailure(LifecycleCode.IDENTITY_MISMATCH);
   }
-  private async failure(
+  private async handleReconnectFailure(
+    userId: string,
+    snapshot: LifecycleSnapshot,
+    error: unknown,
+  ) {
+    // A failed candidate says nothing about the stored credentials. Only a
+    // verified different account invalidates this connection's identity.
+    if (
+      error instanceof LifecycleFailure &&
+      error.code === LifecycleCode.IDENTITY_MISMATCH
+    )
+      await this.store.fail(userId, snapshot, ConnectionStatus.REAUTH_REQUIRED);
+  }
+  private async handleRecoveryFailure(
     userId: string,
     snapshot: LifecycleSnapshot,
     error: unknown,
@@ -151,6 +169,7 @@ export class CarrierConnectionLifecycleService {
       (error instanceof LifecycleFailure &&
         [
           LifecycleCode.IDENTITY_MISMATCH,
+          LifecycleCode.CANDIDATE_IDENTITY_MISMATCH,
           LifecycleCode.PROVIDER_AUTH_FAILED,
           LifecycleCode.TOKEN_REJECTED,
           LifecycleCode.REAUTH_REQUIRED,
@@ -210,7 +229,7 @@ export class CarrierConnectionLifecycleService {
         CarrierAuditType.RECOVERY,
       );
     } catch (error) {
-      await this.failure(userId, snapshot, error);
+      await this.handleRecoveryFailure(userId, snapshot, error);
       await this.auditFailure(
         userId,
         snapshot.connection.id,

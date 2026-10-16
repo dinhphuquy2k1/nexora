@@ -36,7 +36,7 @@ export class UnishipAdapter {
         const login = await this.client.authenticate({ username, password });
         const verified = await this.client.verify(login.candidateToken);
         if (login.externalAccountId !== verified.externalAccountId)
-          throw new LifecycleFailure(LifecycleCode.IDENTITY_MISMATCH);
+          throw new LifecycleFailure(LifecycleCode.CANDIDATE_IDENTITY_MISMATCH);
         return {
           externalAccountId: verified.externalAccountId,
           token: login.candidateToken,

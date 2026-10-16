@@ -188,3 +188,95 @@ test("failed manual reconnect cannot clear an existing manual reauthentication r
     { code: LifecycleCode.REAUTH_REQUIRED },
   );
 });
+
+for (const status of Object.values(ConnectionStatus)) {
+  for (const code of [
+    LifecycleCode.PROVIDER_AUTH_FAILED,
+    LifecycleCode.TOKEN_REJECTED,
+    LifecycleCode.SERVICE_UNAVAILABLE,
+    LifecycleCode.RATE_LIMITED,
+    LifecycleCode.CANDIDATE_IDENTITY_MISMATCH,
+  ]) {
+    test(`manual ${code} preserves ${status}, records failure audit and never acquires stored password`, async () => {
+      const f = fixture(false);
+      f.state(status);
+      const events = [];
+      f.service.audit.append = async (e) => events.push(e);
+      f.credentials.acquireNew = async () => {
+        throw new LifecycleFailure(code);
+      };
+      await assert.rejects(
+        f.service.reconnect("owner", "connection", "wrong"),
+        { code },
+      );
+      assert.equal(f.snapshot().connection.status, status);
+      assert.equal(f.counts().fails, 0);
+      assert.equal(f.counts().acquisitions, 0);
+      assert.equal(events.length, 1);
+      assert.equal(events[0].eventType, "RECONNECT");
+      assert.equal(events[0].outcome, "FAILURE");
+      if (status === ConnectionStatus.CONNECTED)
+        assert.equal(
+          await f.service.withToken(
+            "owner",
+            "connection",
+            async (token) => token,
+          ),
+          "synthetic-token",
+        );
+    });
+  }
+}
+test("manual verified stored identity mismatch alone requires reauthentication", async () => {
+  const f = fixture(false);
+  f.credentials.acquireNew = async () => ({ externalAccountId: "other" });
+  await assert.rejects(f.service.reconnect("owner", "connection", "new"), {
+    code: LifecycleCode.IDENTITY_MISMATCH,
+  });
+  assert.equal(
+    f.snapshot().connection.status,
+    ConnectionStatus.REAUTH_REQUIRED,
+  );
+});
+for (const [code, status] of [
+  [LifecycleCode.PROVIDER_AUTH_FAILED, ConnectionStatus.REAUTH_REQUIRED],
+  [LifecycleCode.TOKEN_REJECTED, ConnectionStatus.REAUTH_REQUIRED],
+  [LifecycleCode.CANDIDATE_IDENTITY_MISMATCH, ConnectionStatus.REAUTH_REQUIRED],
+  [LifecycleCode.SERVICE_UNAVAILABLE, ConnectionStatus.ERROR],
+  [LifecycleCode.RATE_LIMITED, ConnectionStatus.ERROR],
+]) {
+  test(`recovery ${code} retains fail-closed ${status} policy`, async () => {
+    const f = fixture();
+    f.credentials.acquireStored = async () => {
+      throw new LifecycleFailure(code);
+    };
+    await assert.rejects(
+      f.service.withToken("owner", "connection", async () => {}),
+      { code },
+    );
+    assert.equal(f.snapshot().connection.status, status);
+  });
+}
+test("late failed manual candidate cannot overwrite a newer success", async () => {
+  const f = fixture(false);
+  let release;
+  const gate = new Promise((r) => (release = r));
+  f.credentials.acquireNew = async (_u, _id, _name, password) => {
+    if (password === "old") {
+      await gate;
+      throw new LifecycleFailure(LifecycleCode.IDENTITY_MISMATCH);
+    }
+    return { externalAccountId: "1" };
+  };
+  const older = assert.rejects(
+    f.service.reconnect("owner", "connection", "old"),
+    { code: LifecycleCode.IDENTITY_MISMATCH },
+  );
+  await new Promise((r) => setTimeout(r, 0));
+  await f.service.reconnect("owner", "connection", "new");
+  release();
+  await older;
+  assert.equal(f.snapshot().connection.status, ConnectionStatus.CONNECTED);
+  assert.equal(f.counts().fails, 0);
+  assert.equal(f.counts().writes, 1);
+});

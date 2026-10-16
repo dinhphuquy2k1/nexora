@@ -89,7 +89,7 @@ test("adapter verifies every acquired token and keeps login/verify identity cohe
   assert.deepEqual(calls, ["login", ["verify", "synthetic"]]);
   client.verify = async () => ({ externalAccountId: "2" });
   await assert.rejects(adapter.acquire("synthetic", "synthetic"), {
-    code: LifecycleCode.IDENTITY_MISMATCH,
+    code: LifecycleCode.CANDIDATE_IDENTITY_MISMATCH,
   });
   assert.equal(tokenExpiry("opaque"), null);
   const jwt = (exp) =>

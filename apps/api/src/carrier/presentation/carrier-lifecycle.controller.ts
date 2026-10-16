@@ -79,6 +79,7 @@ export class CarrierLifecycleController {
         LifecycleCode.PROVIDER_AUTH_FAILED,
         LifecycleCode.TOKEN_REJECTED,
         LifecycleCode.IDENTITY_MISMATCH,
+        LifecycleCode.CANDIDATE_IDENTITY_MISMATCH,
         LifecycleCode.REAUTH_REQUIRED,
       ].some((code) => code === error.code);
       if (connect && (auth || error.code === LifecycleCode.DUPLICATE))
