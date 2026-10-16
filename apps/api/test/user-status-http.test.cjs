@@ -1,3 +1,4 @@
+const { loginWithMfa } = require("./helpers/mfa-fixture.cjs");
 require("reflect-metadata");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -17,7 +18,6 @@ const {
 const {
   UserManagementAdapter,
 } = require("../dist/identity/infrastructure/user-management.adapter");
-const { AuthService } = require("../dist/identity/application/auth.service");
 const digest = (s) => createHash("sha256").update(s).digest("hex");
 const secret = () => randomBytes(32).toString("hex");
 const fields = [
@@ -96,7 +96,7 @@ test(
         ),
       );
       const session = async (user) =>
-        (await new AuthService(identity).login(user.username, password)).token;
+        (await loginWithMfa(identity, user.username, password)).token;
       let cookieA = await session(a),
         cookieB = await session(b);
       const cookieOp = await session(op);

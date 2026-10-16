@@ -39,7 +39,26 @@ export async function assertRuntimePrivileges(adminUrl, password) {
       )
     ).rows[0];
     assert.ok(event.id);
+    for (const [table, column] of [
+      ["user_mfa", "last_used_step"],
+      ["mfa_challenges", "consumed_at"],
+      ["mfa_recovery_codes", "used_at"],
+    ]) {
+      const grants = (
+        await db.query(
+          "SELECT has_column_privilege(current_user,$1,$2,'UPDATE') AS allowed,has_table_privilege(current_user,$1,'UPDATE') AS broad",
+          [table, column],
+        )
+      ).rows[0];
+      assert.equal(grants.allowed, true);
+      assert.equal(grants.broad, false);
+    }
     const denied = [
+      "UPDATE user_mfa SET nonce='forbidden'",
+      "UPDATE mfa_challenges SET token_hash='forbidden'",
+      "UPDATE mfa_recovery_codes SET code_hash='forbidden'",
+      "DELETE FROM user_mfa",
+      "DELETE FROM mfa_recovery_codes",
       "UPDATE security_audit_events SET reason='UNAVAILABLE'",
       "DELETE FROM security_audit_events",
       "TRUNCATE security_audit_events",

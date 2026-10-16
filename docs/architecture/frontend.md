@@ -1,8 +1,8 @@
 # Frontend Architecture
 
-## Implemented Logical PR 2 — NEXORA-016
+## Current local authentication — Logical PR6
 
-Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. Carrier Connections UI, MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
+Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. Supported deployment remains local/loopback; public HTTPS, Carrier UI and shipment sync remain PLANNED. Executed full canonical verification is recorded in completed NEXORA-022; PR19 records the final exact-head CI.
 
 `/login` renders one Nexora form for both roles. Legacy provider/admin mode selection is removed; password visibility, loading/errors, server session redirects, sanitized `from`, logout and HttpOnly cookies remain. `/setup` reads only the token fragment client-side, clears URL history, retains it in memory, validates password/confirmation and posts only the JSON body. It returns to `/login` after success without issuing a session. The page uses no-store/no-referrer and existing local assets; no token enters SSR HTML or browser storage. Query-string tokens are rejected.
 
@@ -118,7 +118,7 @@ Nexora is a local-first shipment management platform. In foundation v0.1.0, the 
 
 - **Layout Architecture & Route Groups**:
   - **Root Layout (`apps/web/app/layout.tsx`)**: Owns `html`, `body`, global `styles.css`, and application metadata. Does not render `AppShell`.
-  - **Standalone Public Login Route (`apps/web/app/login/`)**: One local Nexora form for both roles, brand monogram, accessible errors, password visibility and sanitized return URL. No mode toggle or AppShell. Posts only to `/api/auth/login`.
+  - **Standalone Public Login Route (`apps/web/app/login/`)**: One local Nexora form for both roles, brand monogram, accessible errors, password visibility and sanitized return URL. No mode toggle or AppShell. Posts to `/api/auth/login`, then `/api/auth/mfa/verify` for ADMIN; cancel revokes the pending challenge through `/api/auth/mfa/cancel`.
   - **Public Setup Route (`apps/web/app/setup/`)**: One-time fragment secret, password confirmation, no-store/no-referrer, memory-only token and return to login without auto-login.
   - **Protected Workspace Route Group (`apps/web/app/(workspace)/`)**: Routes (`/`, `/settings`, `/system`) reside in the `(workspace)` route group. Its Server Component layout (`apps/web/app/(workspace)/layout.tsx`) enforces server session verification via `verifyServerSession(cookie)`. Genuinely authenticated users receive `<AppShell user={result.user}>{children}</AppShell>`; unauthenticated requests redirect to `/login?from=...`; upstream backend outages fail closed with a service error banner without redirect loops.
 - **Route Guarding (`middleware.ts`)**: Enforces Host allowlist validation at ingress across all matched paths including `/api/*`. Provides fast loopback redirection for unauthenticated workspace requests lacking `nexora_session` cookies, and injects `x-pathname` header for downstream Server Components while avoiding network requests in middleware.
@@ -132,3 +132,9 @@ LoginForm and AccountMenu make browser-originated, same-origin relative POST cal
 A server HTTP 200 session response authenticates only when `authenticated === true` and user ID/username are nonempty strings. Invalid JSON or malformed 200 payloads return unavailable service; 401 or missing cookie returns unauthenticated; upstream/network failures remain unavailable. LoginPage redirects only from the authenticated result, preventing malformed payloads from entering Workspace. AccountMenu navigates only after successful logout and retains retry behavior on revocation failure. Login displays a generic retry message for 429, covering both account lockout and the faster global admission budget without incorrectly promising a fixed five-minute wait.
 
 PR4 owner amendment (2026-10-16) is backend-only: connect/reconnect SDK contracts do not add a Carrier Settings page, credential form or navigation item. Carrier UI remains PLANNED in a separate future task. No UI worker or shipment sync is introduced.
+
+## ADMIN second step — NEXORA-022
+
+LoginForm consumes the generated same-origin SDK. It parses the successful password result strictly: mfaRequired displays the second step without protected navigation and clears password state; only an actual user session result permits the existing sanitized return URL. TOTP input preserves leading zeros and supports one-time-code autocomplete, accessible labels/focus, six-digit validation and disabled/loading states. Recovery mode accepts the documented four-group code; switching clears input/errors.401 explains invalid/expired proof and offers retry or cancel/back;429 requests a later retry without promising a fixed wait. Correct-password unenrolled ADMIN sees trusted CLI guidance.
+
+Cancel calls the Origin-protected pending-challenge revocation endpoint before returning to the password form. Network/cancel failures stay on the current step. No pending token is read by JavaScript, stored in browser storage, URL or SSR. Existing server session validation, layout, Host guard, fragment setup, AppShell and OPERATOR one-step login remain. Browser smoke uses disposable CLI-enrolled ADMIN fixtures, checks no session or navigation before MFA, wrong-code/expired-challenge/back/retry, TOTP/recovery input mode, successful MFA then the existing onboarding/OPERATOR/logout checks.

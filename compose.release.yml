@@ -62,6 +62,8 @@ services:
       WEB_PORT: "${WEB_PORT:-127.0.0.1:3001}"
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-}"
       UNISHIP_API_URL: "${UNISHIP_API_URL:-}"
+      IDENTITY_KEYRING_JSON: "${IDENTITY_KEYRING_JSON:-}"
+      IDENTITY_ACTIVE_KEY_VERSION: "${IDENTITY_ACTIVE_KEY_VERSION:-}"
       UNISHIP_LIVE_AUTHORIZED: "${UNISHIP_LIVE_AUTHORIZED:-false}"
     volumes:
       - runtime_credentials:/runtime-config:ro

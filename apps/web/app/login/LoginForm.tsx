@@ -1,5 +1,7 @@
 "use client";
 
+import { createNexoraClient } from "@nexora/sdk";
+import { loginOutcome } from "../../lib/auth/login-outcome.ts";
 import { useState, useId, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
@@ -20,7 +22,66 @@ export function LoginForm() {
   const usernameId = useId();
   const passwordId = useId();
 
-  const endpoint = "/api/auth/login";
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mode, setMode] = useState<"totp" | "recovery">("totp");
+  const [code, setCode] = useState("");
+  const codeId = useId();
+  const client = createNexoraClient();
+  const cancelMfa = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const { response } = await client.POST("/api/auth/mfa/cancel");
+      if (!response.ok) throw new Error();
+      setMfaRequired(false);
+      setCode("");
+      setPassword("");
+    } catch {
+      setErrorMessage("Chưa thể hủy phiên chờ. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const verifyMfa = async (e: FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    const candidate = mode === "recovery" ? code.trim().toUpperCase() : code;
+    if (
+      !(
+        mode === "totp" ? /^[0-9]{6}$/ : /^[0-9A-F]{8}(?:-[0-9A-F]{8}){3}$/
+      ).test(candidate)
+    ) {
+      setErrorMessage(
+        mode === "totp"
+          ? "Nhập đúng 6 chữ số xác thực."
+          : "Nhập mã khôi phục gồm 4 nhóm, mỗi nhóm 8 ký tự.",
+      );
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { response, data } = await client.POST("/api/auth/mfa/verify", {
+        body: { type: mode, code: candidate },
+      });
+      if (response.ok && loginOutcome(data) === "session") {
+        setCode("");
+        window.location.href = returnUrl;
+        return;
+      }
+      setErrorMessage(
+        response.status === 429
+          ? "Quá nhiều yêu cầu xác thực. Vui lòng thử lại sau."
+          : response.status === 401
+            ? "Mã hoặc phiên chờ không hợp lệ hoặc đã hết hạn. Thử mã khác hoặc quay lại đăng nhập."
+            : "Không thể xác thực. Vui lòng thử lại.",
+      );
+      setCode("");
+    } catch {
+      setErrorMessage("Không thể kết nối đến dịch vụ. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -33,20 +94,34 @@ export function LoginForm() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username.trim(),
-          password,
-        }),
+      const { response, data, error } = await client.POST("/api/auth/login", {
+        body: { username: username.trim(), password },
       });
-
       if (response.ok) {
-        // Full navigation to ensure session cookie is picked up across Next.js layout and client state
-        window.location.href = returnUrl;
+        const outcome = loginOutcome(data);
+        setPassword("");
+        setShowPassword(false);
+        if (outcome === "mfa") {
+          setMfaRequired(true);
+          setCode("");
+          setMode("totp");
+          return;
+        }
+        if (outcome === "session") {
+          window.location.href = returnUrl;
+          return;
+        }
+        setErrorMessage("Phản hồi đăng nhập không hợp lệ. Vui lòng thử lại.");
+        return;
+      }
+      if (
+        response.status === 403 &&
+        error?.code === "MFA_ENROLLMENT_REQUIRED"
+      ) {
+        setPassword("");
+        setErrorMessage(
+          "Tài khoản cần thiết lập MFA. Liên hệ người vận hành để chạy pnpm mfa:enroll tại máy chủ.",
+        );
         return;
       }
 
@@ -63,6 +138,73 @@ export function LoginForm() {
       setIsLoading(false);
     }
   };
+
+  if (mfaRequired)
+    return (
+      <form
+        className={styles.form}
+        onSubmit={verifyMfa}
+        noValidate
+        aria-busy={isLoading}
+      >
+        <p>Xác thực hai bước để hoàn tất đăng nhập.</p>
+        {errorMessage && (
+          <div className={styles.errorBanner} role="alert">
+            {errorMessage}
+          </div>
+        )}
+        <div className={styles.fieldGroup}>
+          <label htmlFor={codeId} className={styles.label}>
+            {mode === "totp" ? "Mã xác thực 6 chữ số" : "Mã khôi phục một lần"}
+          </label>
+          <input
+            key={mode}
+            id={codeId}
+            name="mfa-code"
+            type="text"
+            autoFocus
+            inputMode={mode === "totp" ? "numeric" : "text"}
+            autoComplete="one-time-code"
+            spellCheck={false}
+            autoCapitalize="characters"
+            maxLength={mode === "totp" ? 6 : 35}
+            className={styles.input}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            disabled={isLoading}
+            aria-describedby={`${codeId}-help`}
+          />
+          <p id={`${codeId}-help`}>
+            {mode === "totp"
+              ? "Lấy mã từ ứng dụng xác thực của bạn."
+              : "Mỗi mã khôi phục chỉ sử dụng được một lần."}
+          </p>
+        </div>
+        <button type="submit" className={styles.submitBtn} disabled={isLoading}>
+          {isLoading ? "Đang xác thực..." : "Xác thực"}
+        </button>
+        <button
+          type="button"
+          className={styles.modeToggleLink}
+          disabled={isLoading}
+          onClick={() => {
+            setMode(mode === "totp" ? "recovery" : "totp");
+            setCode("");
+            setErrorMessage(null);
+          }}
+        >
+          {mode === "totp" ? "Dùng mã khôi phục" : "Dùng ứng dụng xác thực"}
+        </button>
+        <button
+          type="button"
+          className={styles.modeToggleLink}
+          disabled={isLoading}
+          onClick={cancelMfa}
+        >
+          Hủy và quay lại đăng nhập
+        </button>
+      </form>
+    );
 
   return (
     <>

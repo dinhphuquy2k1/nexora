@@ -1,3 +1,4 @@
+const { loginWithMfa } = require("./helpers/mfa-fixture.cjs");
 require("reflect-metadata");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -218,9 +219,9 @@ test(
       );
       const sessions = await Promise.all(
         users.map((u) =>
-          new AuthService(identity)
-            .login(u.username, "SyntheticLocalPassword!")
-            .then((r) => r.token),
+          loginWithMfa(identity, u.username, "SyntheticLocalPassword!").then(
+            (r) => r.token,
+          ),
         ),
       );
       Object.assign(process.env, {

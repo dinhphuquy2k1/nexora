@@ -1,3 +1,4 @@
+const { loginWithMfa } = require("./helpers/mfa-fixture.cjs");
 require("reflect-metadata");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -180,7 +181,11 @@ test("real unified identities keep local Login eligibility separate from generic
         "IntegrationPass123!",
       ),
     );
-    const logged = await service.login(admin.username, "IntegrationPass123!");
+    const logged = await loginWithMfa(
+      adapter,
+      admin.username,
+      "IntegrationPass123!",
+    );
     assert.equal(logged.user.id, admin.id);
     await assert.rejects(
       service.login(admin.username, "wrong"),

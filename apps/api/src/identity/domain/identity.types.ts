@@ -1,3 +1,4 @@
+import type { AuthLevel } from "./session-assurance";
 import type { UserRole, UserStatus } from "./user-policy";
 export interface UserSummary {
   id: string;
@@ -5,6 +6,7 @@ export interface UserSummary {
 }
 
 export interface SessionSummary {
+  authLevel: AuthLevel;
   id: string;
   userId: string;
   expiresAt: Date;

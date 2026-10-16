@@ -149,6 +149,7 @@ export class UserManagementAdapter implements UserManagementPort {
       });
       if (status === UserStatus.DISABLED) {
         await tx.session.deleteMany({ where: { userId } });
+        await tx.mfaChallenge.deleteMany({ where: { userId } });
         await tx.operatorSetupToken.updateMany({
           where: { userId, consumedAt: null },
           data: { consumedAt: new Date() },

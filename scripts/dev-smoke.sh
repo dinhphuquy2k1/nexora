@@ -15,6 +15,14 @@ compose(){ docker compose -f compose.yml -f compose.dev.yml "$@"; }
 compose up -d --no-build --wait --wait-timeout 180
 compose run --rm --no-deps -T dependencies dependencies
 printf '%s' 'DevSmokePass123!' | compose exec -T api sh /workspace/scripts/api-entrypoint.sh node scripts/user-create.mjs --username dev_smoke_user --password-stdin
+# Explicit new security assertion: trusted provisioning alone never enables ADMIN login.
+compose exec -T web node <<'JS'
+(async()=>{const r=await fetch('http://127.0.0.1:3000/api/auth/login',{method:'POST',headers:{'content-type':'application/json',origin:'http://127.0.0.1:3001'},body:JSON.stringify({username:'dev_smoke_user',password:'DevSmokePass123!'})});const b=await r.json();if(r.status!==403||b.code!=='MFA_ENROLLMENT_REQUIRED'||r.headers.get('set-cookie'))throw Error('ADMIN enrollment gate failed');console.log('Dev unenrolled ADMIN password-only denial PASS');})().catch(()=>process.exitCode=1);
+JS
+# This owned disposable fixture tests unchanged OPERATOR HMR; real ADMIN MFA
+# enrollment/browser/restart is exercised separately by runtime-smoke.sh.
+compose exec -T postgres psql -U nexora -d nexora -v ON_ERROR_STOP=1 -c "UPDATE users SET role='OPERATOR' WHERE username='dev_smoke_user';" >/dev/null
+
 compose run --rm --no-deps -T api node -e "const f=require('fs');const p='packages/shared/src/index.ts';f.writeFileSync(p,f.readFileSync(p,'utf8').replace('Nexora','Nexora workspace propagation'));const q='apps/web/app/(workspace)/page.tsx';f.writeFileSync(q,f.readFileSync(q,'utf8').replace('Quản lý vận đơn,','HMR source verified,'));"
 compose exec -T web node <<'JS'
 (async()=>{
@@ -28,7 +36,7 @@ compose exec -T web node <<'JS'
       });
       if(lr.ok){
         cookie=lr.headers.get('set-cookie')?.split(';')[0]||'';
-        if(cookie)break;
+        if(/^nexora_session=[a-f0-9]{64}$/.test(cookie))break;
       }
     }catch{}
     await new Promise(r=>setTimeout(r,1000));

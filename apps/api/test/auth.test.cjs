@@ -119,7 +119,7 @@ test("AuthService handles validation and generic authentication errors", async (
     id: "u-disabled",
     username: "disabled_user",
     passwordHash: "mock-hash-secret123",
-    role: "ADMIN",
+    role: "OPERATOR",
     status: "DISABLED",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -155,7 +155,7 @@ test("AuthService rate limits consecutive failed login attempts and clears on su
     id: "u-valid",
     username: "validuser",
     passwordHash: "mock-hash-goodpass",
-    role: "ADMIN",
+    role: "OPERATOR",
     status: "ACTIVE",
   });
   const res = await auth.login("validuser", "goodpass", ip);
@@ -170,7 +170,7 @@ test("AuthService authenticates valid user, creates session, and validates lifec
     id: "u-123",
     username: "operator",
     passwordHash: "mock-hash-securepass",
-    role: "ADMIN",
+    role: "OPERATOR",
     status: "ACTIVE",
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -214,7 +214,7 @@ test("AuthService handles expired session deletion failure without unhandled rej
     id: "u-exp",
     username: "user_exp",
     passwordHash: "mock-hash-p",
-    role: "ADMIN",
+    role: "OPERATOR",
     status: "ACTIVE",
   });
 
@@ -257,8 +257,8 @@ test("SessionGuard enforces authentication policy and honors @Public decorator (
   const reqNoCookie = { headers: {} };
   await assert.rejects(
     protectedGuard.canActivate({
-      getHandler: () => {},
-      getClass: () => {},
+      getHandler: () => function handler() {},
+      getClass: () => class TestController {},
       switchToHttp: () => ({ getRequest: () => reqNoCookie }),
     }),
     (err) => err.getStatus() === 401,
@@ -267,8 +267,8 @@ test("SessionGuard enforces authentication policy and honors @Public decorator (
   // Guard for public route (isPublic = true) -> passes without cookie
   const publicGuard = new SessionGuard(auth, createMockReflector(true));
   const publicResult = await publicGuard.canActivate({
-    getHandler: () => {},
-    getClass: () => {},
+    getHandler: () => function handler() {},
+    getClass: () => class TestController {},
     switchToHttp: () => ({ getRequest: () => reqNoCookie }),
   });
   assert.equal(publicResult, true);
@@ -278,7 +278,7 @@ test("SessionGuard enforces authentication policy and honors @Public decorator (
     id: "u-valid",
     username: "validuser",
     passwordHash: "mock-hash-p",
-    role: "ADMIN",
+    role: "OPERATOR",
     status: "ACTIVE",
   });
   const loginRes = await auth.login("validuser", "p", "127.0.0.1");
@@ -287,8 +287,8 @@ test("SessionGuard enforces authentication policy and honors @Public decorator (
     headers: { cookie: `nexora_session=${loginRes.token}` },
   };
   const canActivate = await protectedGuard.canActivate({
-    getHandler: () => {},
-    getClass: () => {},
+    getHandler: () => function handler() {},
+    getClass: () => class TestController {},
     switchToHttp: () => ({ getRequest: () => reqWithCookie }),
   });
   assert.equal(canActivate, true);
@@ -431,7 +431,7 @@ test("Login keeps case-sensitive identity and independent failure counters", asy
     port.users.set(username, {
       id: username,
       username,
-      role: "ADMIN",
+      role: "OPERATOR",
       status: "ACTIVE",
       passwordHash: "mock-hash-correct",
     });
@@ -491,6 +491,7 @@ test("Canonical HTTP session cookie ignores forged forwarding security", async (
   };
   const cookies = [];
   const response = {
+    setHeader() {},
     cookie(name, value, options) {
       cookies.push({ name, value, options });
     },
@@ -511,10 +512,10 @@ test("Canonical HTTP session cookie ignores forged forwarding security", async (
   assert.equal(cookies[1].options.maxAge, 0);
 });
 
-test("local password Login requires ACTIVE local credentials for both roles, independently of generic sessions", async () => {
+test("OPERATOR password sessions require ACTIVE credentials; ADMIN needs MFA, independently of generic sessions", async () => {
   for (const record of [
     { role: "ADMIN", status: "ACTIVE", passwordHash: "valid", accepted: true },
-    { role: "ADMIN", status: "ACTIVE", passwordHash: null },
+    { role: "OPERATOR", status: "ACTIVE", passwordHash: null },
     {
       role: "OPERATOR",
       status: "ACTIVE",
@@ -522,25 +523,34 @@ test("local password Login requires ACTIVE local credentials for both roles, ind
       accepted: true,
     },
     { role: "OPERATOR", status: "ACTIVE", passwordHash: null },
-    { role: "ADMIN", status: "DISABLED", passwordHash: "valid" },
+    { role: "OPERATOR", status: "DISABLED", passwordHash: "valid" },
   ]) {
     let issued = 0;
     let verified;
-    const service = new AuthService({
-      findUserByUsername: async () => ({
-        id: "fixture",
-        username: "fixture",
-        ...record,
-      }),
-      verifyPassword: async (_password, hash) => {
-        verified = hash;
-        return true;
+    const service = new AuthService(
+      {
+        findUserByUsername: async () => ({
+          id: "fixture",
+          username: "fixture",
+          ...record,
+        }),
+        verifyPassword: async (_password, hash) => {
+          verified = hash;
+          return true;
+        },
+        createSessionIfUnchanged: async () => {
+          issued++;
+          return { id: "fixture", username: "fixture" };
+        },
       },
-      createSessionIfUnchanged: async () => {
-        issued++;
-        return { id: "fixture", username: "fixture" };
+      Date.now,
+      {
+        issueChallenge: async () => {
+          issued++;
+          return { id: "fixture", username: "fixture" };
+        },
       },
-    });
+    );
     if (record.accepted) await service.login("fixture", "password");
     else
       await assert.rejects(

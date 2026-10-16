@@ -462,7 +462,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponseDto"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/LoginResponseDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/MfaRequiredResponseDto"
+                    }
+                  ]
                 }
               }
             }
@@ -509,6 +516,108 @@
           }
         },
         "summary": "Xác thực danh tính và thiết lập phiên làm việc",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/mfa/verify": {
+      "post": {
+        "operationId": "AuthController_verifyMfa",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaVerifyRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaVerifyResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/mfa/cancel": {
+      "post": {
+        "operationId": "AuthController_cancelMfa",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
         "tags": [
           "Authentication"
         ]
@@ -1216,25 +1325,6 @@
           "requestId"
         ]
       },
-      "LoginRequestDto": {
-        "type": "object",
-        "properties": {
-          "username": {
-            "type": "string",
-            "description": "Tên đăng nhập",
-            "example": "admin"
-          },
-          "password": {
-            "type": "string",
-            "description": "Mật khẩu",
-            "example": "secret123"
-          }
-        },
-        "required": [
-          "username",
-          "password"
-        ]
-      },
       "UserDto": {
         "type": "object",
         "properties": {
@@ -1263,6 +1353,85 @@
           "user"
         ]
       },
+      "MfaRequiredResponseDto": {
+        "type": "object",
+        "properties": {
+          "mfaRequired": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Password accepted; pending MFA only, no authenticated session"
+          }
+        },
+        "required": [
+          "mfaRequired"
+        ]
+      },
+      "LoginRequestDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Tên đăng nhập",
+            "example": "admin"
+          },
+          "password": {
+            "type": "string",
+            "description": "Mật khẩu",
+            "example": "secret123"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "MfaVerifyRequestDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "totp",
+              "recovery"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "Six ASCII TOTP digits or four groups of eight recovery-code hex characters",
+            "maxLength": 35
+          }
+        },
+        "required": [
+          "type",
+          "code"
+        ]
+      },
+      "MfaVerifyResponseDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          }
+        },
+        "required": [
+          "user"
+        ]
+      },
+      "LogoutResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Kết quả đăng xuất",
+            "example": true
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
       "SessionResponseDto": {
         "type": "object",
         "properties": {
@@ -1278,19 +1447,6 @@
         "required": [
           "authenticated",
           "user"
-        ]
-      },
-      "LogoutResponseDto": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "Kết quả đăng xuất",
-            "example": true
-          }
-        },
-        "required": [
-          "success"
         ]
       },
       "CreateOperatorDto": {

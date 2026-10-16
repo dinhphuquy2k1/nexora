@@ -83,9 +83,9 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), public deployment r
 3. **NTP Host Clock Synchronization**: Containerized TOTP calculation relies on the host clock. Deployment runbooks mandate host NTP synchronization (`chrony` or `systemd-timesyncd`), verified before enabling public ingress.
 4. **Origin & Host Enforcement**: Ingress proxies must forward exact Host and Origin headers validated against server-side configuration; `X-Forwarded-*` headers are accepted only from explicit, trusted proxy subnets.
 
-## Local identity boundary (Logical PR 2)
+## Historical local identity boundary (Logical PR 2)
 
-Both roles use Nexora password sessions, independent of external carrier availability. ADMIN onboarding/status mutations require trusted Origin and a database-backed ACTIVE ADMIN session. Setup uses a client-only fragment secret; Web serves `/setup` with no-store/no-referrer and proxies only the setup JSON body. Carrier persistence is implemented in PR3; connect/reconnect, MFA persistence and public HTTPS remain deferred; no new runtime service is introduced.
+At PR2 both roles used Nexora password sessions, independent of Carrier availability; ADMIN APIs required ACTIVE ADMIN and trusted Origin. Fragment setup remains unchanged. Carrier lifecycle is now implemented by PR18 and mandatory ADMIN MFA/session assurance by PR6 below. Public HTTPS remains deferred. No new runtime service is introduced.
 
 ## Carrier key runtime — Logical PR 3
 
@@ -102,3 +102,9 @@ Internal withToken performs lazy recovery only when a real Carrier operation nee
 Admin role nexora retains existing database/object ownership and credentials:/config/postgres_password; PostgreSQL and migrate mount that volume read-only. API has only runtime_credentials:/runtime-config read-only, containing postgres_app_password, and cannot read or mount the admin volume. Web has neither secret. Only trusted init (write) and one-shot db-runtime (read-only, root to handle development UID mapping) receive both. API never falls back to admin or an inherited URL. Development init stats a read-only checkout to assign runtime-file ownership; it does not chown source. Release API remains UID1000.
 
 Startup is init → healthy PostgreSQL → genuine Prisma migrate deploy → transactional role provisioning → API → Web. Both fresh and retained-volume upgrades follow this order. New secrets use CSPRNG 32-byte hex, mode0600; existing files are never rotated, and empty/corrupt files fail closed. db-runtime repeats grants/password from the same retained runtime file without changing data. Profile test's quality service is a separate trusted fixture runner, reading admin credentials before dropping to the mapped checkout user; production API never receives its authority. See Database for exact grants and Setup for upgrade/recovery.
+
+## Local mandatory ADMIN MFA runtime — NEXORA-022
+
+The compiled non-root API image includes dist/cli/mfa-enroll.js. API/one-off CLI receive only server-side IDENTITY_KEYRING_JSON and IDENTITY_ACTIVE_KEY_VERSION; Web, builds and migration services receive neither. No new runtime service/volume or automatic Identity key generation exists. Restart retains encrypted enrollment, replay steps, recovery use and pending challenges in PostgreSQL; operator-supplied old keys must remain available. Dedicated Identity keys are independent of Carrier keys and database credentials.
+
+Ninth migration and explicit post-migration MFA grants precede API start. For upgrade enrollment, stop writers and run the matching-image interactive one-off API CLI before normal API/Web startup. ADMIN password never grants a new authenticated session, even without configured keys/enrollment. OPERATOR remains available independently. All admin APIs require MFA without an enable/disable bypass. Local HTTP cookie Secure=false remains; public HTTPS/PR7 is not implemented by this milestone.

@@ -44,11 +44,14 @@ cred AS (INSERT INTO user_credentials SELECT id,'non-authenticating persistence 
 s AS (INSERT INTO sessions(id,token_hash,user_id,expires_at) SELECT gen_random_uuid(),md5(random()::text)||md5(random()::text),id,now()+interval '1 day' FROM u),
 t AS (INSERT INTO operator_setup_tokens(user_id,issued_by,token_hash,expires_at) SELECT id,id,md5(random()::text)||md5(random()::text),now()+interval '1 day' FROM u),
 e AS (INSERT INTO carrier_user_states SELECT id,1 FROM u),
+m AS (INSERT INTO user_mfa(user_id,totp_secret_ciphertext,nonce,auth_tag,key_version,last_used_step) SELECT id,'opaque-mfa-persistence-fixture','opaque-nonce','opaque-tag',1,0 FROM u RETURNING user_id),
+mc AS (INSERT INTO mfa_challenges(user_id,token_hash,expires_at) SELECT id,md5(random()::text)||md5(random()::text),now()+interval '5 minutes' FROM u),
+rc AS (INSERT INTO mfa_recovery_codes(user_id,code_hash) SELECT user_id,md5(random()::text)||md5(random()::text) FROM m CROSS JOIN generate_series(1,10)),
 a AS (INSERT INTO security_audit_events(event_type,outcome,reason,user_id,connection_id,provider,correlation_id) SELECT 'CONNECT','SUCCESS','VERIFIED',user_id,id,'uniship',gen_random_uuid() FROM c)
 INSERT INTO carrier_connection_secrets(connection_id,secret_type,ciphertext,nonce,auth_tag,key_version) SELECT id,'PASSWORD','opaque-persistence-fixture','opaque-nonce','opaque-tag',1 FROM c;
 SQL
 snapshot(){
- for table in users user_credentials sessions operator_setup_tokens stored_files carrier_connections carrier_connection_secrets carrier_user_states security_audit_events; do
+ for table in user_mfa mfa_challenges mfa_recovery_codes users user_credentials sessions operator_setup_tokens stored_files carrier_connections carrier_connection_secrets carrier_user_states security_audit_events; do
   compose exec -T postgres psql -U nexora -d nexora -Atc "SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM $table t;"
  done
  compose exec -T postgres sha256sum /config/postgres_password

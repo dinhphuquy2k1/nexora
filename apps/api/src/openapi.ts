@@ -17,6 +17,7 @@ import { Module } from "@nestjs/common";
 import { HealthController } from "./health/presentation/health.controller";
 import { HealthService } from "./health/application/health.service";
 import { AuthController } from "./identity/presentation/auth.controller";
+import { MfaService } from "./identity/application/mfa.service";
 import { AuthService } from "./identity/application/auth.service";
 // Documentation-only module: no listener, database, storage or operational endpoint.
 @Module({
@@ -34,6 +35,7 @@ import { AuthService } from "./identity/application/auth.service";
     { provide: IdentityPort, useValue: {} },
     { provide: HealthService, useValue: {} },
     { provide: AuthService, useValue: {} },
+    { provide: MfaService, useValue: {} },
     { provide: UserManagementService, useValue: {} },
     { provide: AdminGuard, useValue: {} },
   ],
