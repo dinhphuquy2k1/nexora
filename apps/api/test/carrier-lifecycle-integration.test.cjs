@@ -11,6 +11,7 @@ const { createDatabase, hashPassword } = require("@nexora/database");
 const { NestFactory } = require("@nestjs/core");
 const { AppModule } = require("../dist/app.module");
 const { configure } = require("../dist/http");
+const { loadConfig } = require("../dist/config");
 const { AuthService } = require("../dist/identity/application/auth.service");
 const {
   IdentityDatabaseAdapter,
@@ -203,12 +204,8 @@ test(
       configure(app);
       await app.listen(0, "127.0.0.1");
       const base = await app.getUrl();
-      const request = async (
-        path,
-        index,
-        body,
-        origin = "http://localhost:3000",
-      ) =>
+      const allowedOrigin = loadConfig(process.env).trustedOrigins[0];
+      const request = async (path, index, body, origin = allowedOrigin) =>
         fetch(base + "/api" + path, {
           method: "POST",
           headers: {
@@ -281,6 +278,28 @@ test(
           );
           assert.equal(connected.externalAccountId, "101");
           assert.equal(connected.status, "CONNECTED");
+          const beforeForeign = providerCalls;
+          for (const index of [0, 2])
+            await assert.rejects(
+              service.withToken(
+                users[index].id,
+                connected.id,
+                async () => true,
+              ),
+              { code: "NOT_FOUND" },
+            );
+          assert.equal(providerCalls, beforeForeign);
+
+          assert.equal(
+            (await request("/carrier-connections", 1, input("103"))).status,
+            201,
+          );
+          const list = await fetch(base + "/api/carrier-connections", {
+            headers: { cookie: `nexora_session=${sessions[1]}` },
+          });
+          assert.equal(list.status, 200);
+          assert.equal((await list.json()).connections.length, 2);
+
           const secrets = await db.carrierConnectionSecret.findMany({
             where: { connectionId: connected.id },
           });
@@ -505,6 +524,24 @@ test(
           );
           assert.equal(decrypts, oldDecrypts);
           assert.equal(providerCalls, calls);
+          const preserved = await db.carrierConnectionSecret.findMany({
+            where: { connectionId: c.id },
+            orderBy: { secretType: "asc" },
+          });
+          await assert.rejects(
+            makeService().reconnect(
+              users[6].id,
+              c.id,
+              "synthetic-new-password",
+            ),
+          );
+          assert.deepEqual(
+            await db.carrierConnectionSecret.findMany({
+              where: { connectionId: c.id },
+              orderBy: { secretType: "asc" },
+            }),
+            preserved,
+          );
           assert.equal(
             (await db.carrierConnection.findUnique({ where: { id: c.id } }))
               .status,
