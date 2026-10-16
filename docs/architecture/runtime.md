@@ -83,9 +83,9 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), public deployment r
 3. **NTP Host Clock Synchronization**: Containerized TOTP calculation relies on the host clock. Deployment runbooks mandate host NTP synchronization (`chrony` or `systemd-timesyncd`), verified before enabling public ingress.
 4. **Origin & Host Enforcement**: Ingress proxies must forward exact Host and Origin headers validated against server-side configuration; `X-Forwarded-*` headers are accepted only from explicit, trusted proxy subnets.
 
-## Local identity boundary (Logical PR 2)
+## Historical local identity boundary (Logical PR 2)
 
-Both roles use Nexora password sessions, independent of external carrier availability. ADMIN onboarding/status mutations require trusted Origin and a database-backed ACTIVE ADMIN session. Setup uses a client-only fragment secret; Web serves `/setup` with no-store/no-referrer and proxies only the setup JSON body. Carrier persistence is implemented in PR3; connect/reconnect, MFA persistence and public HTTPS remain deferred; no new runtime service is introduced.
+At PR2 both roles used Nexora password sessions, independent of Carrier availability; ADMIN APIs required ACTIVE ADMIN and trusted Origin. Fragment setup remains unchanged. Carrier lifecycle is now implemented by PR18 and mandatory ADMIN MFA/session assurance by PR6 below. Public HTTPS remains deferred. No new runtime service is introduced.
 
 ## Carrier key runtime — Logical PR 3
 

@@ -117,18 +117,27 @@ try {
     }
     if (message.method === "Fetch.requestPaused")
       pausedMfa = message.params.requestId;
-    if (setupSecret && message.method === "Network.requestWillBeSent") {
+    if (message.method === "Network.requestWillBeSent") {
       const request = message.params.request;
+      const secrets = [
+        setupSecret,
+        mfaSetupKey,
+        ...(recoveryCodes ?? []),
+      ].filter((value) => typeof value === "string" && value.length);
       if (
-        request.url.includes(setupSecret) ||
-        Object.entries(request.headers).some(
-          ([key, value]) =>
-            key.toLowerCase() === "referer" &&
-            String(value).includes(setupSecret),
+        secrets.some(
+          (secret) =>
+            request.url.includes(secret) ||
+            Object.entries(request.headers).some(
+              ([key, value]) =>
+                key.toLowerCase() === "referer" &&
+                String(value).includes(secret),
+            ),
         )
       )
         leakedSetupSecret = true;
     }
+
     if (
       message.method === "Network.responseReceived" &&
       message.params.response.url === `${baseUrl}/api/auth/setup-password`
@@ -424,8 +433,8 @@ try {
     const browserStorage = await evaluate(
       "JSON.stringify({...localStorage,...sessionStorage})",
     );
-    assert.equal(browserStorage.includes(mfaSetupKey), false);
-    assert.equal(browserStorage.includes(recoveryCodes[0]), false);
+    for (const secret of [mfaSetupKey, ...recoveryCodes])
+      assert.equal(browserStorage.includes(secret), false);
     restartMfaSession = restartMfaApi;
   }
   checks.step("LOGIN_RESPONSE_AND_NAVIGATION");
@@ -481,6 +490,21 @@ try {
     );
   }
 
+  if (mfaSetupKey) {
+    checks.step("ADMIN_MFA_SECRET_PRIVACY");
+    const html = await fetch(baseUrl + "/login").then((r) => r.text());
+    for (const value of [mfaSetupKey, ...recoveryCodes])
+      assert.equal(html.includes(value), false);
+    assert.equal(
+      await evaluate(
+        'document.cookie.includes("nexora_session") || document.cookie.includes("nexora_mfa_token")',
+      ),
+      false,
+    );
+    const href = await evaluate("location.href");
+    for (const value of [mfaSetupKey, ...recoveryCodes])
+      assert.equal(href.includes(value), false);
+  }
   checks.step("OPERATOR_SETUP_LINK");
   const operatorName = "browser-" + Date.now();
   const created = await evaluate(
@@ -585,6 +609,9 @@ try {
       maxBuffer: 8 * 1024 * 1024,
     });
     assert.equal(logs.status, 0);
+    if (mfaSetupKey)
+      for (const secret of [mfaSetupKey, ...recoveryCodes])
+        assert.equal(logs.stdout.includes(secret), false);
     assert.equal(
       logs.stdout.includes(setupSecret),
       false,

@@ -23,9 +23,9 @@ Nexora operates under three distinct runtime topologies:
 - **Port Policy & Collision Prevention**: `pnpm --filter @nexora/web dev` runs `scripts/dev.mjs`, which defaults to the canonical browser-facing port 3001 (or `PORT` env var). If port 3001 is already bound (e.g. Docker Web is active), the preflight refuses startup with an explicit `EADDRINUSE` error instead of silently switching to port 3002. Never run host Web and Docker Web simultaneously on port 3001.
 - **API Configuration**: Next.js does not provide an implicit fallback for `API_INTERNAL_URL`. If unconfigured, build and startup fail explicitly with an actionable error. Because Docker does not publish the internal API port to the host, pointing host Next.js to `http://api:4000` fails with `getaddrinfo ENOTFOUND api`. Host-run Web requires an independently reachable host API listener and explicit configuration: `API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @nexora/web dev`. For standard local work, Docker Mode A or B is recommended.
 
-## Initial Operator Account Provisioning
+## Initial ADMIN Account Provisioning
 
-Fresh installations contain no default credentials or demo accounts. The authoritative implementation is compiled with API; host tooling remains `pnpm user:create` after building API and securely supplying `DATABASE_URL`.
+Fresh installations contain no default credentials or demo accounts. The trusted user-create command provisions ADMIN; from PR6 this account must complete CLI MFA enrollment before its first HTTP login (see the mandatory MFA rollout below). OPERATOR accounts use the existing administrative setup-link flow. The authoritative implementation is compiled with API; host tooling remains `pnpm user:create` after building API and securely supplying `DATABASE_URL`.
 
 The compiled runtime invocation below passed fresh-install provisioning and pseudo-TTY checks in hosted run `38202165584` at commit `de73dca550b7a07e0e99697c00bae570634e5df9` (see NEXORA-009). The previous repository-script path is unavailable in that image and must not be used:
 

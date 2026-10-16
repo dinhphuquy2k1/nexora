@@ -2,7 +2,7 @@
 
 ## Implemented Logical PR 2 — NEXORA-016
 
-Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
+Current Logical PR6: OPERATOR authenticates with local password and receives a PASSWORD session; ADMIN receives only a pending challenge after password and must complete TOTP or single-use recovery verification for an MFA session. All admin APIs require database-backed ADMIN+MFA. Uniship is independent of identity. Public HTTPS and shipment sync remain PLANNED. See the PR6 contract amendment below and NEXORA-022 verification evidence.
 
 Generated OpenAPI/SDK describe the implemented routes below. Error responses use `{code,message,requestId}`. Every administrative route requires an ACTIVE ADMIN database-backed session; all mutations require a trusted Origin. Missing/revoked/disabled sessions return 401 `UNAUTHORIZED`; OPERATOR callers return 403 `FORBIDDEN`. Origin failures retain 403 `FORBIDDEN`, and shared admission rejection retains 429 `TOO_MANY_REQUESTS` for compatibility.
 

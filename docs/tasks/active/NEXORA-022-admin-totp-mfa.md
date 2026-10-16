@@ -81,3 +81,7 @@ Owner approved custody in chat; shared crypto now supports explicit Identity nam
 ## Admission namespace review
 
 Additional threat review reproduced a logical-key collision: a legal username mfa:<user UUID> shared an MFA counter, letting successful password login clear failed-proof state. New functional regression RED: sixth bad MFA returned401 instead of429 after intervening password success. Explicit login:/mfa:/setup: namespaces fix the collision without changing thresholds or public APIs. Targeted10 admission/MFA tests GREEN. Full updated-source verification remains pending.
+
+## Dev smoke fixture correction
+
+Runs38897378086(source4ce17db) and38897703414(sourceb2d29e3) passed genuine quality/migrations/integration, compiled CLI TTY/browser/restart and data persistence. Both FAIL at dev-smoke: its old fixture was ADMIN but expected password-only login. Preserve every HMR/frozen-drift/data assertion, first assert unenrolled ADMIN403/no-cookie, then convert only the owned disposable fixture to OPERATOR for one-step HMR. Do not weaken MFA guards or add a test bypass. Updated source also explicitly asserts MFA secret privacy in browser URLs/Referer/SSR/storage/location/server logs. Complete updated-source and final-head CI still pending.
