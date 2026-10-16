@@ -1,9 +1,9 @@
 # NEXORA-021 — Superseded Lazy Recovery
 
 - **Task ID**: `NEXORA-021`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `PARTIALLY VERIFIED`
+- **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
 - **Branch**: `feat/uniship-carrier-integration`
 - **Baseline**: `69158ee9d39ab83bc58a038120c6db0ec5ddec9f`
@@ -87,4 +87,4 @@ Host genuine Prisma download remains HTTP403-blocked; executed genuine hosted CI
 
 ## Nullable-expiry follow-up
 
-The initial source workflow above passed its executed coverage. Additional test-first review found an observed-expired sealed revision could appear eligible after metadata-only expiry changed to null during supersession. Regression RED:40 tests,1 FAIL, callback received expired instead of fresh. Pin the initially unusable revision across all rechecks, as already done for provider rejection; only changed eligible sealed credentials can replace that evidence. Local emitted-JS GREEN:40 lifecycle tests. The real PostgreSQL single-caller barrier now also changes only expiry to null through the administrative fixture, proves sealed revision unchanged, and requires one audited recovery. No production metadata writer or privilege change. Full updated-source and final-head canonical verification pending.
+The initial source workflow above passed its executed coverage. Additional test-first review found an observed-expired sealed revision could appear eligible after metadata-only expiry changed to null during supersession. Regression RED:40 tests,1 FAIL, callback received expired instead of fresh. Pin the initially unusable revision across all rechecks, as already done for provider rejection; only changed eligible sealed credentials can replace that evidence. Local emitted-JS GREEN:40 lifecycle tests. The real PostgreSQL single-caller barrier now also changes only expiry to null through the administrative fixture, proves sealed revision unchanged, and requires one audited recovery. No production metadata writer or privilege change. Updated source ba4da52f562520e06f15a945db01e0a0d7cfd790 passed [full canonical run38873882638](https://github.com/dinhphuquy2k1/nexora/actions/runs/38873882638), attempt1:118 API units,41 genuine PostgreSQL integration tests,50 guard tests and all other workspace/docs/operations tests; frozen installation, format/lint/typecheck/contracts/build and all four quality/runtime/data/dev Docker scripts SUCCESS. The single-caller PG barrier explicitly verifies unchanged sealed revision after administrative fixture expiry=null, then one committed PASSWORD_DECRYPT and one successful recovery with a new usable token;20 callers still share one acquisition. No CI retry required. Final documentation-only HEAD receives the same complete workflow; its SHA/result is recorded on PR18. No outstanding implementation PLAN ISSUE.
