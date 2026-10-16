@@ -674,6 +674,145 @@ test(
           f.secret.fill(0);
         },
       );
+      await t.test(
+        "cancel is targeted, idempotent and never consumes proof material",
+        async () => {
+          const u = await fixture(),
+            f = await enroll(u),
+            other = await challenge(b);
+          const pending = [];
+          for (let i = 0; i < 6; i++) pending.push(await challenge(u));
+          assert.equal(
+            await db.mfaChallenge.count({ where: { userId: u.id } }),
+            5,
+          );
+          assert.equal(await mfa.challengeOwner(hash(pending[0])), null);
+          const before = await db.userMfa.findUnique({
+            where: { userId: u.id },
+          });
+          const codes = await db.mfaRecoveryCode.findMany({
+            where: { userId: u.id },
+            orderBy: { id: "asc" },
+          });
+          const service = new MfaService(mfa, new AuthService(identity));
+          await service.cancel(pending[5]);
+          await service.cancel(pending[5]);
+          for (const invalid of [null, "", "%", "A".repeat(64), token()])
+            await service.cancel(invalid);
+          assert.equal(await mfa.challengeOwner(hash(pending[5])), null);
+          assert.equal(await mfa.challengeOwner(hash(pending[4])), u.id);
+          assert.equal(await mfa.challengeOwner(hash(other)), b.id);
+          await assert.rejects(
+            verify(pending[5], { type: "recovery", code: f.codes[0] }),
+            (e) => e.getStatus() === 401,
+          );
+          await assert.rejects(
+            verify(pending[5], {
+              type: "totp",
+              code: totpAt(f.secret, Math.floor(Date.now() / 30000) + 1),
+            }),
+            (e) => e.getStatus() === 401,
+          );
+          assert.equal(await db.session.count({ where: { userId: u.id } }), 0);
+          assert.deepEqual(
+            await db.userMfa.findUnique({ where: { userId: u.id } }),
+            before,
+          );
+          assert.deepEqual(
+            await db.mfaRecoveryCode.findMany({
+              where: { userId: u.id },
+              orderBy: { id: "asc" },
+            }),
+            codes,
+          );
+          await verify(pending[4], { type: "recovery", code: f.codes[0] });
+          f.secret.fill(0);
+        },
+      );
+      for (const first of ["verify", "cancel"])
+        await t.test(
+          `deterministic ${first}-first verify/cancel serial outcome`,
+          async () => {
+            const u = await fixture(),
+              f = await enroll(u),
+              c = await challenge(u);
+            const initialStep = (
+              await db.userMfa.findUnique({ where: { userId: u.id } })
+            ).lastUsedStep;
+            const locked = deferred(),
+              release = deferred();
+            const holder = db.$transaction(
+              async (tx) => {
+                await tx.$queryRaw`SELECT id FROM users WHERE id=${u.id}::uuid FOR UPDATE`;
+                locked.resolve();
+                await release.promise;
+              },
+              { timeout: 15000 },
+            );
+            await locked.promise;
+            const input = { type: "recovery", code: f.codes[0] };
+            const cancel = () =>
+              new MfaService(mfa, new AuthService(identity)).cancel(c);
+            const waiters = async (count) => {
+              const deadline = Date.now() + 5000;
+              while (Date.now() < deadline) {
+                const [row] =
+                  await db.$queryRaw`SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND usename='nexora_app' AND wait_event_type='Lock' AND query LIKE '%FROM users%'`;
+                if (row.n >= count) return;
+                await new Promise((resolve) => setImmediate(resolve));
+              }
+              assert.fail("expected actual user-row lock waiters");
+            };
+            let one, two;
+            try {
+              one = Promise.allSettled([
+                first === "verify" ? verify(c, input) : cancel(),
+              ]);
+              await waiters(1);
+              two = Promise.allSettled([
+                first === "verify" ? cancel() : verify(c, input),
+              ]);
+              await waiters(2);
+            } finally {
+              release.resolve();
+              await holder;
+            }
+            const [r1] = await one,
+              [r2] = await two;
+            assert.equal(r1.status, "fulfilled");
+            assert.equal(
+              r2.status,
+              first === "verify" ? "fulfilled" : "rejected",
+            );
+            if (first === "cancel") assert.equal(r2.reason.getStatus(), 401);
+            assert.equal(
+              await db.mfaChallenge.count({ where: { tokenHash: hash(c) } }),
+              0,
+            );
+            assert.equal(
+              await db.session.count({
+                where: { userId: u.id, authLevel: "MFA" },
+              }),
+              first === "verify" ? 1 : 0,
+            );
+            assert.equal(
+              await db.mfaRecoveryCode.count({
+                where: { userId: u.id, usedAt: { not: null } },
+              }),
+              first === "verify" ? 1 : 0,
+            );
+            assert.equal(
+              (await db.userMfa.findUnique({ where: { userId: u.id } }))
+                .lastUsedStep,
+              initialStep,
+            );
+            if (first === "verify")
+              assert.ok(
+                await new AuthService(identity).validateSession(r1.value.token),
+              );
+            f.secret.fill(0);
+          },
+        );
       stage = "NEST_HTTP";
       class FutureAdmin {
         probe() {
@@ -717,6 +856,66 @@ test(
           },
           ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
         });
+      await t.test(
+        "HTTP cancellation persistence failure, retry, Origin and cancelled-token replay",
+        async () => {
+          const u = await fixture(),
+            f = await enroll(u),
+            c = await challenge(u),
+            cookie = "nexora_mfa_token=" + c;
+          for (const o of [null, "http://attacker.example"])
+            assert.equal(
+              (await request("/api/auth/mfa/cancel", {}, cookie, o)).status,
+              403,
+            );
+          await db.$executeRawUnsafe(
+            "CREATE FUNCTION reject_cancel() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled cancellation failure'; END $$",
+          );
+          await db.$executeRawUnsafe(
+            "CREATE TRIGGER reject_cancel BEFORE DELETE ON mfa_challenges FOR EACH ROW EXECUTE FUNCTION reject_cancel()",
+          );
+          try {
+            const failed = await request("/api/auth/mfa/cancel", {}, cookie);
+            assert.equal(failed.status, 500);
+            assert.equal(failed.headers.get("set-cookie"), null);
+            assert.equal(failed.headers.get("cache-control"), "no-store");
+            const error = await failed.json();
+            assert.equal(error.code, "INTERNAL_ERROR");
+            assert.deepEqual(Object.keys(error).sort(), [
+              "code",
+              "message",
+              "requestId",
+            ]);
+            assert.ok(!JSON.stringify(error).includes(c));
+            assert.equal(await mfa.challengeOwner(hash(c)), u.id);
+          } finally {
+            await db.$executeRawUnsafe(
+              "DROP TRIGGER reject_cancel ON mfa_challenges",
+            );
+            await db.$executeRawUnsafe("DROP FUNCTION reject_cancel()");
+          }
+          const cancelled = await request("/api/auth/mfa/cancel", {}, cookie);
+          assert.equal(cancelled.status, 200);
+          assert.match(
+            cancelled.headers.get("set-cookie"),
+            /nexora_mfa_token=;.*Max-Age=0;.*Path=\/api\/auth\/mfa/,
+          );
+          assert.equal(await mfa.challengeOwner(hash(c)), null);
+          const replay = await request(
+            "/api/auth/mfa/verify",
+            { type: "recovery", code: f.codes[0] },
+            cookie,
+          );
+          assert.equal(replay.status, 401);
+          assert.equal(await db.session.count({ where: { userId: u.id } }), 0);
+          for (const missing of [undefined, "nexora_mfa_token=%", cookie])
+            assert.equal(
+              (await request("/api/auth/mfa/cancel", {}, missing)).status,
+              200,
+            );
+          f.secret.fill(0);
+        },
+      );
       await t.test(
         "HTTP ADMIN two-step cookies, Origin, replay, recovery and DB assurance; OPERATOR unchanged",
         async () => {
@@ -879,6 +1078,62 @@ test(
           });
           assert.equal(wrong.status, 401);
           assert.equal((await wrong.json()).code, "AUTHENTICATION_FAILED");
+          await db.$executeRawUnsafe(
+            "CREATE FUNCTION reject_logout() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled logout failure'; END $$",
+          );
+          await db.$executeRawUnsafe(
+            "CREATE TRIGGER reject_logout BEFORE DELETE ON sessions FOR EACH ROW EXECUTE FUNCTION reject_logout()",
+          );
+          try {
+            for (const current of [session, opCookie]) {
+              const failed = await request("/api/auth/logout", {}, current);
+              assert.equal(failed.status, 500);
+              assert.equal(failed.headers.get("set-cookie"), null);
+              assert.equal((await failed.json()).code, "INTERNAL_ERROR");
+              assert.equal(
+                (
+                  await request(
+                    "/api/auth/session",
+                    undefined,
+                    current,
+                    origin,
+                    "GET",
+                  )
+                ).status,
+                200,
+              );
+            }
+          } finally {
+            await db.$executeRawUnsafe(
+              "DROP TRIGGER reject_logout ON sessions",
+            );
+            await db.$executeRawUnsafe("DROP FUNCTION reject_logout()");
+          }
+          for (const current of [session, opCookie]) {
+            for (const o of [null, "http://attacker.example"])
+              assert.equal(
+                (await request("/api/auth/logout", {}, current, o)).status,
+                403,
+              );
+            const logout = await request("/api/auth/logout", {}, current);
+            assert.equal(logout.status, 200);
+            assert.match(
+              logout.headers.get("set-cookie"),
+              /nexora_session=;.*Max-Age=0/,
+            );
+            assert.equal(
+              (
+                await request(
+                  "/api/auth/session",
+                  undefined,
+                  current,
+                  origin,
+                  "GET",
+                )
+              ).status,
+              401,
+            );
+          }
           const loggedOut = await request("/api/auth/logout", {}, session);
           assert.equal(loggedOut.status, 200);
           assert.equal(
