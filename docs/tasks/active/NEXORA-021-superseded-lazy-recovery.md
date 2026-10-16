@@ -1,9 +1,9 @@
 # NEXORA-021 — Superseded Lazy Recovery
 
 - **Task ID**: `NEXORA-021`
-- **Status**: `COMPLETED`
+- **Status**: `VERIFICATION PENDING`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `VERIFIED`
+- **Verification**: `PARTIALLY VERIFIED`
 - **Classification**: SIGNIFICANT
 - **Branch**: `feat/uniship-carrier-integration`
 - **Baseline**: `69158ee9d39ab83bc58a038120c6db0ec5ddec9f`
@@ -84,3 +84,7 @@ Production: carrier/application/carrier-connection-lifecycle.service.ts, carrier
 ## Final HEAD and limitations
 
 Host genuine Prisma download remains HTTP403-blocked; executed genuine hosted CI supplies full build/typecheck/migration/integration evidence. Local emitted JS is not substituted for persistence evidence. No source CI retry was needed. The closing record is documentation-only and receives another full canonical workflow; final HEAD SHA/status/link are recorded on PR18, avoiding self-referential SHA evidence. No user-volume reset, fake client/history, checksum bypass, external provider call, new PR, force-push or merge occurred. No unresolved implementation PLAN ISSUE; UNISHIP_LIVE_AUTHORIZATION remains OPEN outside this mock-only scope. READY TO REVIEW only after final-head canonical CI passes.
+
+## Nullable-expiry follow-up
+
+The initial source workflow above passed its executed coverage. Additional test-first review found an observed-expired sealed revision could appear eligible after metadata-only expiry changed to null during supersession. Regression RED:40 tests,1 FAIL, callback received expired instead of fresh. Pin the initially unusable revision across all rechecks, as already done for provider rejection; only changed eligible sealed credentials can replace that evidence. Local emitted-JS GREEN:40 lifecycle tests. The real PostgreSQL single-caller barrier now also changes only expiry to null through the administrative fixture, proves sealed revision unchanged, and requires one audited recovery. No production metadata writer or privilege change. Full updated-source and final-head canonical verification pending.

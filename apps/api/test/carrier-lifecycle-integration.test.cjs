@@ -460,6 +460,17 @@ test(
                 initial.connection.lastVerifiedAt,
               );
               assert.deepEqual(await secretRows(c.id), before);
+              if (callers === 1) {
+                // Fixture-only metadata perturbation: null cannot prove refresh of
+                // a sealed token this operation already observed as expired.
+                await db.carrierConnectionSecret.updateMany({
+                  where: { connectionId: c.id, secretType: "ACCESS_TOKEN" },
+                  data: { expiresAt: null },
+                });
+                const metadataOnly = await store.read(users[2].id, c.id);
+                assert.equal(metadataOnly.expiresAt, null);
+                assert.equal(metadataOnly.tokenRevision, initial.tokenRevision);
+              }
             } finally {
               gate.release();
             }

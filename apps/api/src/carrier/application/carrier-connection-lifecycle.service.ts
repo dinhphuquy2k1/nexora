@@ -292,11 +292,17 @@ export class CarrierConnectionLifecycleService {
     correlationId: string,
     rejectedRevision?: string | null,
   ): Promise<LifecycleSnapshot> {
+    const unusableRevision =
+      rejectedRevision !== undefined
+        ? rejectedRevision
+        : this.needsRecovery(initial)
+          ? initial.tokenRevision
+          : undefined;
     let snapshot = initial;
     // Shared across both phases of one logical operation, not reset after rejection.
     for (let check = 0; check <= MAX_RECOVERY_RECHECKS; check++) {
       this.canRecover(snapshot);
-      if (!this.needsRecovery(snapshot, rejectedRevision)) return snapshot;
+      if (!this.needsRecovery(snapshot, unusableRevision)) return snapshot;
       if (budget.attempted || budget.rechecks >= MAX_RECOVERY_RECHECKS)
         throw new LifecycleFailure(LifecycleCode.STALE);
       budget.rechecks++;

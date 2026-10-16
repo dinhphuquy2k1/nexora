@@ -337,6 +337,32 @@ for (const count of [1, 20])
     assert.equal(operations, count);
     assert.equal(f.service.recoveries.size, 0);
   });
+test("observed expired revision stays unusable when metadata becomes null after failed manual", async () => {
+  const f = fixture(),
+    barrier = pauseRecovery(f);
+  const read = f.store.read.bind(f.store);
+  f.store.read = async (...args) => {
+    const snapshot = await read(...args);
+    return snapshot.version > 0 && f.counts().writes === 0
+      ? { ...snapshot, expiresAt: null }
+      : snapshot;
+  };
+  f.credentials.acquireNew = async () => {
+    throw new LifecycleFailure(LifecycleCode.PROVIDER_AUTH_FAILED);
+  };
+  f.credentials.useToken = async (_u, _s, op) =>
+    op(f.counts().writes ? "fresh" : "expired");
+  const pending = f.service.withToken("owner", "connection", async (token) => {
+    assert.equal(token, "fresh");
+    return true;
+  });
+  await barrier.started;
+  await assert.rejects(f.service.reconnect("owner", "connection", "wrong"));
+  barrier.release();
+  assert.equal(await pending, true);
+  assert.equal(f.counts().acquisitions, 1);
+  assert.equal(f.service.recoveries.size, 0);
+});
 test("unknown expiry rejected token is not reused after failed manual claim", async () => {
   const f = fixture(false);
   let operations = 0;
