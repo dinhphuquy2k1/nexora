@@ -76,7 +76,7 @@ export async function assertRuntimePrivileges(adminUrl, password) {
     );
     const altered = (
       await admin.query(
-        "SELECT count(*)::int AS count FROM pg_class WHERE relowner=(SELECT oid FROM pg_roles WHERE rolname='nexora_app')",
+        "SELECT (SELECT count(*) FROM pg_class WHERE relowner=(SELECT oid FROM pg_roles WHERE rolname='nexora_app'))::int + (SELECT count(*) FROM pg_namespace WHERE nspowner=(SELECT oid FROM pg_roles WHERE rolname='nexora_app'))::int + (SELECT count(*) FROM pg_proc WHERE proowner=(SELECT oid FROM pg_roles WHERE rolname='nexora_app'))::int + (SELECT count(*) FROM pg_database WHERE datdba=(SELECT oid FROM pg_roles WHERE rolname='nexora_app'))::int AS count",
       )
     ).rows[0].count;
     assert.equal(altered, 0);

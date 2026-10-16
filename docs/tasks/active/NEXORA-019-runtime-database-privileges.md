@@ -76,8 +76,13 @@ pnpm docs:check, format:check, contracts:check; real Compose mount/startup check
 | Host genuine Prisma engine | prisma generate --config prisma.config.ts blocked by binaries.prisma.sh checksum HTTP403; no checksum bypass, fake client/history or db push | 2026-10-16 | FAIL |
 | Uniship conditional contract | Emitted-JS controller unit missing/blank/unknown/extra rejection, valid flow, required OpenAPI plus nullable metadata | 2026-10-16 | PASS |
 | Static checks | pnpm lint, test:lint50 tests, docs:check, format:check; shell/JS/Python syntax and git diff --check | 2026-10-16 | PASS |
-| Contracts regeneration | contracts:generate succeeds reproducibly; contracts:check precommit detects expected uncommitted OpenAPI/SDK description updates; repeat after commit required | 2026-10-16 | FAIL |
+| Initial contracts regeneration | contracts:generate succeeds reproducibly; contracts:check precommit detects expected uncommitted OpenAPI/SDK description updates; repeat after commit required | 2026-10-16 | FAIL |
 
 ## Verification still required
 
 Exact-head full Foundation CI must pass genuine Prisma generation/migrations, full quality and all four canonical Docker scripts, including the new real runtime-credential Carrier integration, actual mount/role checks and retained data/secret comparisons. No completion claim is made from native SQL-only probe or emitted-JS tests. Task018 CI is historical evidence only. No provider live call, volume reset or admin fallback is authorized for verification.
+
+| Committed contract reproducibility | pnpm contracts:check at18e1bd9 regenerates OpenAPI/SDK with no content or git drift | 2026-10-16 | PASS |
+| First canonical CI attempt | run38841465176 at18e1bd9 built/migrated/started healthy restricted API and verified mounts, then smoke incorrectly expected Prisma error.meta.code for denied SET ROLE; PostgreSQL logged real permission denial; switch denial assertions to actual native driver SQLSTATE, no policy weakening | 2026-10-16 | FAIL |
+
+Follow-up adds first-cutover snapshots on the genuine migrated fixture before any runtime grants (not just repeat provisioning), and explicit ownership checks for tables/schemas/functions/databases. Full final-head canonical verification remains required.

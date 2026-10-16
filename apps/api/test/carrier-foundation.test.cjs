@@ -94,8 +94,6 @@ test(
       const runtimePassword = (
         await readFile("/runtime-config/postgres_app_password", "utf8")
       ).trim();
-      await provisionRuntime(url.toString(), runtimePassword);
-      await assertRuntimePrivileges(url.toString(), runtimePassword);
       const applicationUrl = runtimeUrl(url.toString(), runtimePassword);
 
       identity = new IdentityDatabaseAdapter(applicationUrl);
@@ -135,6 +133,30 @@ test(
       await writer.write(b.id, retained.id, "PASSWORD", "retained-fixture");
       await writer.write(a.id, ca.id, "ACCESS_TOKEN", "fixture-token");
       await writer.write(a.id, ca.id, "PASSWORD", "fixture-carrier-password");
+      // Upgrade from the genuine migrated owner-only schema with existing rows.
+      const upgradeTables = [
+        "users",
+        "user_credentials",
+        "carrier_connections",
+        "carrier_connection_secrets",
+        "stored_files",
+        "sessions",
+        "operator_setup_tokens",
+        "carrier_user_states",
+        "security_audit_events",
+      ];
+      const upgradeSnapshot = () =>
+        Promise.all(
+          upgradeTables.map((table) =>
+            db.$queryRawUnsafe(
+              `SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) AS rows FROM ${table} t`,
+            ),
+          ),
+        );
+      const retainedBeforeCutover = await upgradeSnapshot();
+      await provisionRuntime(url.toString(), runtimePassword);
+      assert.deepEqual(await upgradeSnapshot(), retainedBeforeCutover);
+      await assertRuntimePrivileges(url.toString(), runtimePassword);
       const tokens = await Promise.all(
         users.map((u) =>
           new AuthService(identity)

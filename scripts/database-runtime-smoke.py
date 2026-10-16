@@ -36,15 +36,19 @@ for service, expected in [('api', {runtime}), ('web', set()), ('migrate', {admin
 
 run(compose + ['exec', '-T', 'api', 'sh', '/scripts/api-entrypoint.sh' if '--development' not in sys.argv else '/workspace/scripts/api-entrypoint.sh', 'node', '-e', """
 const assert=require('node:assert/strict'), fs=require('node:fs');
-const {createDatabase}=require(require.resolve('@nexora/database',{paths:[process.cwd()+'/apps/api',process.cwd()]}));
+const databasePath=require.resolve('@nexora/database',{paths:[process.cwd()+'/apps/api',process.cwd()]});
+const {createDatabase}=require(databasePath);
+const {Client}=require('node:module').createRequire(databasePath)('pg');
+const runtime=new Client({connectionString:process.env.DATABASE_URL});
 assert.equal(fs.existsSync('/config/postgres_password'),false);
 assert.match(new URL(process.env.DATABASE_URL).username,/^nexora_app$/);
 const db=createDatabase(process.env.DATABASE_URL);
 (async()=>{try {
  const [role]=await db.$queryRawUnsafe('SELECT current_user,session_user,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=current_user');
  assert.deepEqual(role,{current_user:'nexora_app',session_user:'nexora_app',rolsuper:false,rolcreatedb:false,rolcreaterole:false,rolreplication:false,rolbypassrls:false});
- for(const sql of ['SET ROLE nexora','ALTER TABLE security_audit_events DISABLE TRIGGER security_audit_append_only','TRUNCATE security_audit_events','CREATE TEMP TABLE runtime_forbidden(id int)']) await assert.rejects(db.$executeRawUnsafe(sql),e=>e.meta?.code==='42501');
-} finally {await db.$disconnect();}})().catch(()=>process.exit(1));
+ await runtime.connect();
+ for(const sql of ['SET ROLE nexora','ALTER TABLE security_audit_events DISABLE TRIGGER security_audit_append_only','TRUNCATE security_audit_events','CREATE TEMP TABLE runtime_forbidden(id int)']) await assert.rejects(runtime.query(sql),e=>e.code==='42501');
+} finally {await db.$disconnect();await runtime.end();}})().catch(()=>process.exit(1));
 """])
 run(compose + ['run', '--rm', '--no-deps', '-T', 'migrate', 'node', '-e', """
 const {Client}=require('pg');const db=new Client({connectionString:process.env.DATABASE_URL});
