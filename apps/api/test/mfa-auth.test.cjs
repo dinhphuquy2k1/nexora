@@ -103,3 +103,38 @@ test("AdminGuard requires DB session MFA even if client supplies MFA", async () 
   level = "MFA";
   assert.equal(await guard.canActivate(context), true);
 });
+
+test("a username matching an MFA admission key cannot reset another account MFA failures", async () => {
+  const owner = "20000000-0000-4000-8000-000000000001",
+    username = "mfa:" + owner;
+  const port = {
+    findUserByUsername: async () => ({
+      id: "operator",
+      username,
+      role: "OPERATOR",
+      status: "ACTIVE",
+      passwordHash: "verified",
+    }),
+    verifyPassword: async () => true,
+    createSessionIfUnchanged: async () => ({ id: "operator", username }),
+  };
+  const mfa = { challengeOwner: async () => owner, verify: async () => null };
+  const auth = new AuthService(port),
+    service = new MfaService(mfa, auth),
+    raw = "a".repeat(64),
+    input = { type: "totp", code: "123456" };
+  for (let i = 0; i < 4; i++)
+    await assert.rejects(
+      service.verify(raw, input),
+      (e) => e.getStatus() === 401,
+    );
+  assert.ok((await auth.login(username, "password")).token);
+  await assert.rejects(
+    service.verify(raw, input),
+    (e) => e.getStatus() === 401,
+  );
+  await assert.rejects(
+    service.verify(raw, input),
+    (e) => e.getStatus() === 429,
+  );
+});

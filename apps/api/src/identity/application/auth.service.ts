@@ -126,7 +126,7 @@ export class AuthService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    return this.withAdmission(username, async () => {
+    return this.withAdmission("login:" + username, async () => {
       const record = await this.port.findUserByUsername(username);
       const eligible =
         !!record &&

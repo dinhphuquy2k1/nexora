@@ -122,12 +122,12 @@ test("successful Login clears only its account failures and releases reservation
   for (let i = 0; i < 4; i++)
     await assert.rejects(h.auth.login("operator", "wrong"), unauthorized);
   await h.auth.login("operator", "correct");
-  assert.equal(h.auth.rateLimits.has("operator"), false);
+  assert.equal(h.auth.rateLimits.has("login:operator"), false);
   for (let i = 0; i < 4; i++)
     await assert.rejects(h.auth.login("operator", "wrong"), unauthorized);
-  assert.equal(h.auth.rateLimits.get("operator").count, 4);
+  assert.equal(h.auth.rateLimits.get("login:operator").count, 4);
   assert.equal(h.auth.pending, 0);
-  assert.equal(h.auth.rateLimits.get("operator").pending, 0);
+  assert.equal(h.auth.rateLimits.get("login:operator").pending, 0);
 });
 
 test("database failure releases concurrent admission without resetting global budget", async () => {

@@ -77,3 +77,7 @@ Owner approved custody in chat; shared crypto now supports explicit Identity nam
 ## First hosted verification and correction
 
 [Run38896546354](https://github.com/dinhphuquy2k1/nexora/actions/runs/38896546354), source086d2d17133a27bd191e4fbf21ab9ede3eee3804, FAIL: full genuine quality/build/typecheck/contracts and127 API/42 Web/50 guard tests passed; all17 new MFA PostgreSQL/Nest tests passed, but three prior integration suites failed owned-database cleanup with55006 (open connections). Root cause was test helper returning its verify Promise before finally disconnected the adapter, allowing later async queries to reopen the pool. Await verification completion before disconnect; do not force-drop databases or weaken assertions. Migration/runtime/browser/data/dev steps beyond that failure were NOT RUN. Follow-up strengthens actual PostgreSQL lock-wait observation, avoids enrollment-step fixture boundary drift, and adds real API restart plus network-paused loading assertions to browser MFA. Updated full CI remains required.
+
+## Admission namespace review
+
+Additional threat review reproduced a logical-key collision: a legal username mfa:<user UUID> shared an MFA counter, letting successful password login clear failed-proof state. New functional regression RED: sixth bad MFA returned401 instead of429 after intervening password success. Explicit login:/mfa:/setup: namespaces fix the collision without changing thresholds or public APIs. Targeted10 admission/MFA tests GREEN. Full updated-source verification remains pending.
