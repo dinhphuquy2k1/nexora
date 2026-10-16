@@ -7,6 +7,8 @@ export interface LifecycleSnapshot {
   generation: number;
   version: number;
   hasToken: boolean;
+  /** Internal sealed-artifact revision; never plaintext-derived or public metadata. */
+  tokenRevision: string | null;
   expiresAt: Date | null;
 }
 export interface SealedCandidate {

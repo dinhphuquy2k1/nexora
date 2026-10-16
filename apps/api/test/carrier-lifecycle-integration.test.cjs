@@ -389,6 +389,314 @@ test(
           assert.equal(loginCalls, verifyCalls + 1); // wrong login is not verified
         },
       );
+      stage = "SUPERSEDED_LAZY_RECOVERY";
+      function deferred() {
+        let resolve;
+        const promise = new Promise((r) => (resolve = r));
+        return { promise, resolve };
+      }
+      function pauseRecovery(s) {
+        const started = deferred(),
+          release = deferred();
+        const original = s.performRecovery.bind(s);
+        let calls = 0;
+        s.performRecovery = async (...args) => {
+          if (++calls === 1) {
+            started.resolve();
+            await release.promise;
+          }
+          return original(...args);
+        };
+        return {
+          started: started.promise,
+          release: release.resolve,
+          restore: () => {
+            s.performRecovery = original;
+          },
+        };
+      }
+      const secretRows = (id) =>
+        db.carrierConnectionSecret.findMany({
+          where: { connectionId: id },
+          orderBy: { secretType: "asc" },
+        });
+      for (const callers of [1, 20])
+        await t.test(
+          `PG expired token plus failed manual claim: ${callers} callers recover exactly once`,
+          async () => {
+            expiry = true;
+            let c;
+            try {
+              c = await connect(users[2], String(310 + callers));
+            } finally {
+              expiry = false;
+            }
+            const s = app.get(CarrierConnectionLifecycleService),
+              gate = pauseRecovery(s),
+              before = await secretRows(c.id),
+              initial = await store.read(users[2].id, c.id),
+              logins = loginCalls;
+            let operations = 0;
+            const pending = Array.from({ length: callers }, () =>
+              s.withToken(users[2].id, c.id, async (token) => {
+                operations++;
+                assert.ok(token.startsWith("synthetic-"));
+                assert.ok(tokens.has(token));
+                assert.equal(tokens.get(token), String(310 + callers));
+                return true;
+              }),
+            );
+            await gate.started;
+            try {
+              await assert.rejects(s.reconnect(users[2].id, c.id, "wrong"), {
+                code: "PROVIDER_AUTH_FAILED",
+              });
+              const afterManual = await store.read(users[2].id, c.id);
+              assert.ok(afterManual.version > initial.version);
+              assert.ok(afterManual.tokenRevision === initial.tokenRevision);
+              assert.equal(afterManual.connection.status, "CONNECTED");
+              assert.deepEqual(
+                afterManual.connection.lastVerifiedAt,
+                initial.connection.lastVerifiedAt,
+              );
+              assert.deepEqual(await secretRows(c.id), before);
+            } finally {
+              gate.release();
+            }
+            try {
+              assert.deepEqual(
+                await Promise.all(pending),
+                Array(callers).fill(true),
+              );
+            } finally {
+              gate.restore();
+            }
+            const current = await store.read(users[2].id, c.id);
+            assert.equal(current.connection.status, "CONNECTED");
+            assert.ok(current.tokenRevision !== initial.tokenRevision);
+            assert.equal(current.expiresAt, null);
+            assert.equal(operations, callers);
+            assert.equal(loginCalls, logins + 2);
+            assert.equal(s.recoveries.size, 0);
+            assert.equal(
+              await db.securityAuditEvent.count({
+                where: { connectionId: c.id, eventType: "PASSWORD_DECRYPT" },
+              }),
+              1,
+            );
+            assert.equal(
+              await db.securityAuditEvent.count({
+                where: {
+                  connectionId: c.id,
+                  eventType: "RECOVERY",
+                  outcome: "SUCCESS",
+                },
+              }),
+              1,
+            );
+          },
+        );
+      await t.test(
+        "PG unknown-expiry rejected token survives only as old ciphertext until bounded recovery",
+        async () => {
+          const c = await connect(users[4], "341"),
+            s = makeService(),
+            before = await secretRows(c.id),
+            initial = await store.read(users[4].id, c.id),
+            logins = loginCalls;
+          let operations = 0,
+            oldToken;
+          assert.equal(initial.expiresAt, null);
+          assert.equal(
+            await s.withToken(users[4].id, c.id, async (token) => {
+              operations++;
+              if (operations === 1) {
+                oldToken = token;
+                await assert.rejects(s.reconnect(users[4].id, c.id, "wrong"), {
+                  code: "PROVIDER_AUTH_FAILED",
+                });
+                const claimed = await store.read(users[4].id, c.id);
+                assert.ok(claimed.version > initial.version);
+                assert.ok(claimed.tokenRevision === initial.tokenRevision);
+                assert.deepEqual(await secretRows(c.id), before);
+                throw new LifecycleFailure(LifecycleCode.TOKEN_REJECTED);
+              }
+              assert.ok(token !== oldToken);
+              assert.equal(tokens.get(token), "341");
+              return true;
+            }),
+            true,
+          );
+          assert.equal(operations, 2);
+          assert.equal(loginCalls, logins + 2);
+          assert.equal(s.recoveries.size, 0);
+          assert.equal(
+            await db.securityAuditEvent.count({
+              where: { connectionId: c.id, eventType: "PASSWORD_DECRYPT" },
+            }),
+            1,
+          );
+        },
+      );
+      for (const expired of [true, false])
+        await t.test(
+          `PG concurrent successful manual token reused without password decrypt (expired=${expired})`,
+          async () => {
+            expiry = expired;
+            let c;
+            try {
+              c = await connect(users[4], expired ? "342" : "343");
+            } finally {
+              expiry = false;
+            }
+            const s = makeService(),
+              initial = await store.read(users[4].id, c.id),
+              logins = loginCalls;
+            let operations = 0;
+            if (expired) {
+              const gate = pauseRecovery(s);
+              const pending = s.withToken(users[4].id, c.id, async () => {
+                operations++;
+                return true;
+              });
+              await gate.started;
+              await s.reconnect(users[4].id, c.id, "new-manual");
+              gate.release();
+              try {
+                assert.equal(await pending, true);
+              } finally {
+                gate.restore();
+              }
+            } else
+              assert.equal(
+                await s.withToken(users[4].id, c.id, async () => {
+                  operations++;
+                  if (operations === 1) {
+                    await s.reconnect(users[4].id, c.id, "new-manual");
+                    throw new LifecycleFailure(LifecycleCode.TOKEN_REJECTED);
+                  }
+                  return true;
+                }),
+                true,
+              );
+            const current = await store.read(users[4].id, c.id);
+            assert.ok(current.tokenRevision !== initial.tokenRevision);
+            assert.equal(current.connection.status, "CONNECTED");
+            assert.equal(loginCalls, logins + 1);
+            assert.equal(
+              await db.securityAuditEvent.count({
+                where: { connectionId: c.id, eventType: "PASSWORD_DECRYPT" },
+              }),
+              0,
+            );
+            assert.equal(s.recoveries.size, 0);
+            assert.equal(operations, expired ? 1 : 2);
+          },
+        );
+      await t.test(
+        "PG repeated failed claims stop after three rechecks without stale writes or decrypt",
+        async () => {
+          expiry = true;
+          let c;
+          try {
+            c = await connect(users[4], "344");
+          } finally {
+            expiry = false;
+          }
+          const s = makeService(),
+            original = s.performRecovery.bind(s),
+            before = await secretRows(c.id);
+          let decisions = 0,
+            operations = 0;
+          s.performRecovery = async (...args) => {
+            if (++decisions > 5) throw Error("UNBOUNDED_RECOVERY");
+            await assert.rejects(s.reconnect(users[4].id, c.id, "wrong"), {
+              code: "PROVIDER_AUTH_FAILED",
+            });
+            return original(...args);
+          };
+          await assert.rejects(
+            s.withToken(users[4].id, c.id, async () => operations++),
+            { code: "STALE" },
+          );
+          assert.ok(decisions <= 3);
+          assert.equal(operations, 0);
+          assert.deepEqual(await secretRows(c.id), before);
+          assert.equal(
+            (await store.read(users[4].id, c.id)).connection.status,
+            "CONNECTED",
+          );
+          assert.equal(
+            await db.securityAuditEvent.count({
+              where: { connectionId: c.id, eventType: "PASSWORD_DECRYPT" },
+            }),
+            0,
+          );
+          assert.equal(s.recoveries.size, 0);
+        },
+      );
+      for (const revocation of ["disable", "delete"])
+        await t.test(
+          `PG recovery waiting before authorization fails closed on ${revocation}`,
+          async () => {
+            expiry = true;
+            let c;
+            try {
+              c = await connect(
+                users[4],
+                revocation === "disable" ? "345" : "346",
+              );
+            } finally {
+              expiry = false;
+            }
+            const s = makeService(),
+              gate = pauseRecovery(s),
+              logins = loginCalls;
+            let operations = 0;
+            await assert.rejects(
+              s.withToken(users[3].id, c.id, async () => {}),
+              { code: "NOT_FOUND" },
+            );
+            const result = assert.rejects(
+              s.withToken(users[4].id, c.id, async () => operations++),
+              { code: revocation === "disable" ? "UNAUTHORIZED" : "NOT_FOUND" },
+            );
+            await gate.started;
+            if (revocation === "disable")
+              await management.setStatus(users[0].id, users[4].id, "DISABLED");
+            else await db.carrierConnection.delete({ where: { id: c.id } });
+            gate.release();
+            try {
+              await result;
+            } finally {
+              gate.restore();
+            }
+            assert.equal(operations, 0);
+            assert.equal(loginCalls, logins);
+            assert.equal(
+              await db.carrierConnectionSecret.count({
+                where: { connectionId: c.id },
+              }),
+              0,
+            );
+            assert.equal(
+              await db.securityAuditEvent.count({
+                where: { connectionId: c.id, eventType: "PASSWORD_DECRYPT" },
+              }),
+              0,
+            );
+            assert.equal(s.recoveries.size, 0);
+            if (revocation === "disable") {
+              await management.setStatus(users[0].id, users[4].id, "ACTIVE");
+              sessions[4] = (
+                await new AuthService(identity).login(
+                  users[4].username,
+                  "SyntheticLocalPassword!",
+                )
+              ).token;
+            }
+          },
+        );
       stage = "NON_DESTRUCTIVE_MANUAL";
       await t.test(
         "failed manual replacement preserves full rows, verification time, usable old token and failure audit",
@@ -933,7 +1241,7 @@ test(
           expiry = false;
           hold = holdLogin();
           old = makeService().withToken(users[9].id, d.id, async () => true);
-          rejection = assert.rejects(old, { code: "STALE" });
+          rejection = old.then((value) => assert.equal(value, true));
           await hold.ready;
           await makeService().reconnect(
             users[9].id,

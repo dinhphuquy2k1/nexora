@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import type { EncryptedSecret } from "../../common/crypto/secret-cipher";
 import {
   createDatabase,
   type Prisma,
@@ -71,56 +73,82 @@ export class CarrierLifecycleAdapter
       select: { ...metadata, lifecycleVersion: true, secrets: true },
     });
   }
+  private tokenRevision(token?: EncryptedSecret): string | null {
+    // Unlike timestamps/row IDs, the sealed artifact identifies actual token writes.
+    // Do not decrypt, log, audit or expose this internal ciphertext digest.
+    return token
+      ? createHash("sha256")
+          .update(
+            JSON.stringify([
+              token.ciphertext,
+              token.nonce,
+              token.authTag,
+              token.keyVersion,
+            ]),
+          )
+          .digest("hex")
+      : null;
+  }
   async authorizeNew(userId: string) {
     return this.client.$transaction((tx) => this.active(tx, userId));
   }
   async read(userId: string, id: string): Promise<LifecycleSnapshot> {
-    return this.client.$transaction(async (tx) => {
-      const generation = await this.active(tx, userId),
-        row = await this.locked(tx, userId, id);
-      const { lifecycleVersion, secrets, ...connection } = row;
-      const token = secrets.find(
-        (secret) => secret.secretType === SecretType.ACCESS_TOKEN,
-      );
-      return {
-        connection,
-        generation,
-        version: lifecycleVersion,
-        hasToken: !!token,
-        expiresAt: token?.expiresAt ?? null,
-      };
-    });
+    const { token, ...snapshot } = await this.client.$transaction(
+      async (tx) => {
+        const generation = await this.active(tx, userId),
+          row = await this.locked(tx, userId, id);
+        const { lifecycleVersion, secrets, ...connection } = row;
+        const token = secrets.find(
+          (secret) => secret.secretType === SecretType.ACCESS_TOKEN,
+        );
+        return {
+          connection,
+          generation,
+          version: lifecycleVersion,
+          hasToken: !!token,
+          token,
+          expiresAt: token?.expiresAt ?? null,
+        };
+      },
+    );
+    // Derive the internal revision after releasing database locks.
+    return { ...snapshot, tokenRevision: this.tokenRevision(token) };
   }
   async claim(
     userId: string,
     id: string,
     expectedVersion?: number,
   ): Promise<LifecycleSnapshot> {
-    return this.client.$transaction(async (tx) => {
-      const generation = await this.active(tx, userId),
-        row = await this.locked(tx, userId, id);
-      if (
-        expectedVersion !== undefined &&
-        (row.lifecycleVersion !== expectedVersion ||
-          row.status === ConnectionStatus.REAUTH_REQUIRED)
-      )
-        throw new LifecycleFailure(LifecycleCode.STALE);
-      const { lifecycleVersion, secrets, ...connection } = row;
-      await tx.carrierConnection.update({
-        where: { id },
-        data: { lifecycleVersion: { increment: 1 } },
-      });
-      const token = secrets.find(
-        (secret) => secret.secretType === SecretType.ACCESS_TOKEN,
-      );
-      return {
-        connection,
-        generation,
-        version: lifecycleVersion + 1,
-        hasToken: !!token,
-        expiresAt: token?.expiresAt ?? null,
-      };
-    });
+    const { token, ...snapshot } = await this.client.$transaction(
+      async (tx) => {
+        const generation = await this.active(tx, userId),
+          row = await this.locked(tx, userId, id);
+        if (
+          expectedVersion !== undefined &&
+          (row.lifecycleVersion !== expectedVersion ||
+            row.status === ConnectionStatus.REAUTH_REQUIRED)
+        )
+          throw new LifecycleFailure(LifecycleCode.STALE);
+        const { lifecycleVersion, secrets, ...connection } = row;
+        await tx.carrierConnection.update({
+          where: { id },
+          data: { lifecycleVersion: { increment: 1 } },
+        });
+        const token = secrets.find(
+          (secret) => secret.secretType === SecretType.ACCESS_TOKEN,
+        );
+        return {
+          connection,
+          generation,
+          version: lifecycleVersion + 1,
+          hasToken: !!token,
+          token,
+          expiresAt: token?.expiresAt ?? null,
+        };
+      },
+    );
+    // Derive the internal revision after releasing database locks.
+    return { ...snapshot, tokenRevision: this.tokenRevision(token) };
   }
   private async secrets(
     tx: Prisma.TransactionClient,
