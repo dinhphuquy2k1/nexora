@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { URLSearchParams } from "node:url";
 // One dependency-free Chromium DevTools test for the real browser Login form.
 // Credentials arrive via stdin, never command-line arguments or diagnostic output.
@@ -14,7 +15,27 @@ import { setTimeout as delay } from "node:timers/promises";
 const checks = createSmokeChecks(console.error, "BROWSER_LOGIN_SMOKE_FAILED");
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
-const { baseUrl, username, password } = JSON.parse(input);
+const { baseUrl, username, password, mfaSetupKey, recoveryCodes } =
+  JSON.parse(input);
+function totp(key, offset = 0) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0,
+    v = 0,
+    bytes = [];
+  for (const c of key) {
+    v = (v << 5) | alphabet.indexOf(c);
+    bits += 5;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((v >>> bits) & 255);
+    }
+  }
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000) + offset));
+  const mac = createHmac("sha1", Buffer.from(bytes)).update(counter).digest(),
+    at = mac.at(-1) & 15;
+  return String((mac.readUInt32BE(at) & 0x7fffffff) % 1000000).padStart(6, "0");
+}
 checks.step("BROWSER_BINARY");
 const executable =
   process.env.CHROME_BIN ||
@@ -78,6 +99,7 @@ try {
   let setupSecret;
   let setupStatus;
   let leakedSetupSecret = false;
+  let mfaStatus;
   let loginStatus;
   let loginUrl;
   socket.addEventListener("message", (event) => {
@@ -108,6 +130,11 @@ try {
       message.params.response.url === `${baseUrl}/api/auth/setup-password`
     )
       setupStatus = message.params.response.status;
+    if (
+      message.method === "Network.responseReceived" &&
+      message.params.response.url === `${baseUrl}/api/auth/mfa/verify`
+    )
+      mfaStatus = message.params.response.status;
     if (
       message.method === "Network.responseReceived" &&
       message.params.response.url === `${baseUrl}/api/auth/login`
@@ -207,6 +234,152 @@ try {
   loginStatus = undefined;
   loginUrl = undefined;
   await evaluate('document.querySelector("button[type=submit]").click()');
+  if (mfaSetupKey) {
+    checks.step("ADMIN_MFA_PENDING");
+    let ready = false;
+    for (let i = 0; i < 100; i++) {
+      ready = await evaluate(
+        '!!document.querySelector("input[name=mfa-code]")',
+      );
+      if (ready) break;
+      await delay(100);
+    }
+    assert.ok(ready, "MFA step missing");
+    assert.equal(await evaluate("location.pathname"), "/login");
+    assert.equal(
+      (await send("Network.getCookies", { urls: [baseUrl] })).cookies.some(
+        (c) => c.name === "nexora_session",
+      ),
+      false,
+    );
+    const pendingCookies = (
+      await send("Network.getCookies", {
+        urls: [baseUrl + "/api/auth/mfa/verify"],
+      })
+    ).cookies;
+    assert.ok(
+      pendingCookies.some(
+        (c) =>
+          c.name === "nexora_mfa_token" &&
+          c.httpOnly &&
+          c.path === "/api/auth/mfa" &&
+          c.sameSite === "Strict",
+      ),
+    );
+    const submitCode = async (value) => {
+      await evaluate('document.querySelector("input[name=mfa-code]").focus()');
+      await send("Input.insertText", { text: value });
+      mfaStatus = undefined;
+      await evaluate('document.querySelector("button[type=submit]").click()');
+      for (let i = 0; i < 100 && mfaStatus === undefined; i++) await delay(100);
+      return mfaStatus;
+    };
+    checks.step("ADMIN_MFA_ERROR_RETRY");
+    let wrong = "000000";
+    const valid = new Set([-1, 0, 1].map((o) => totp(mfaSetupKey, o)));
+    while (valid.has(wrong)) wrong = String(Number(wrong) + 1).padStart(6, "0");
+    checks.status(await submitCode(wrong), 401);
+    assert.equal(await evaluate("location.pathname"), "/login");
+    for (let i = 0; i < 100; i++) {
+      if (
+        await evaluate(
+          '!!document.querySelector("[role=alert]") && !document.querySelector("button[type=submit]").disabled',
+        )
+      )
+        break;
+      await delay(50);
+    }
+    assert.equal(
+      await evaluate('!!document.querySelector("[role=alert]")'),
+      true,
+    );
+    // Exercise recovery entry without putting a recovery code in URL/storage.
+    await evaluate(
+      'Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Dùng mã khôi phục")).click()',
+    );
+    assert.equal(
+      await evaluate(
+        'document.querySelector("input[name=mfa-code]").maxLength',
+      ),
+      35,
+    );
+    await evaluate(
+      'Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Dùng ứng dụng xác thực")).click()',
+    );
+    checks.step("ADMIN_MFA_EXPIRED_CHALLENGE");
+    assert.match(username, /^[a-z_]+$/);
+    const compose = [
+      "compose",
+      "-f",
+      "compose.yml",
+      ...(process.env.NEXORA_COMPOSE_OVERRIDE
+        ? ["-f", process.env.NEXORA_COMPOSE_OVERRIDE]
+        : []),
+    ];
+    const expired = spawnSync(
+      "docker",
+      [
+        ...compose,
+        "exec",
+        "-T",
+        "postgres",
+        "psql",
+        "-U",
+        "nexora",
+        "-d",
+        "nexora",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-c",
+        `UPDATE mfa_challenges SET expires_at=now()-interval '1 second' WHERE user_id=(SELECT id FROM users WHERE username='${username}');`,
+      ],
+      { stdio: "pipe" },
+    );
+    assert.equal(expired.status, 0);
+    checks.status(await submitCode(totp(mfaSetupKey)), 401);
+    for (let i = 0; i < 100; i++) {
+      if (
+        await evaluate(
+          '!document.querySelector("button[type=submit]").disabled',
+        )
+      )
+        break;
+      await delay(50);
+    }
+    await evaluate(
+      'Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Hủy và quay lại")).click()',
+    );
+    for (let i = 0; i < 100; i++) {
+      if (await evaluate('!!document.querySelector("input[name=username]")'))
+        break;
+      await delay(100);
+    }
+    await evaluate('document.querySelector("input[name=username]").focus()');
+    await send("Input.insertText", { text: "" });
+    // Username remains; password is cleared on entering the MFA step.
+    await evaluate('document.querySelector("input[name=password]").focus()');
+    await send("Input.insertText", { text: password });
+    await evaluate('document.querySelector("button[type=submit]").click()');
+    for (let i = 0; i < 100; i++) {
+      if (await evaluate('!!document.querySelector("input[name=mfa-code]")'))
+        break;
+      await delay(100);
+    }
+    checks.step("ADMIN_MFA_SUCCESS");
+    checks.status(await submitCode(totp(mfaSetupKey)), 200);
+    assert.equal(
+      await evaluate(
+        `JSON.stringify({...localStorage,...sessionStorage}).includes(${JSON.stringify(mfaSetupKey)})`,
+      ),
+      false,
+    );
+    assert.equal(
+      await evaluate(
+        `JSON.stringify({...localStorage,...sessionStorage}).includes(${JSON.stringify(recoveryCodes[0])})`,
+      ),
+      false,
+    );
+  }
   checks.step("LOGIN_RESPONSE_AND_NAVIGATION");
   let location;
   for (let i = 0; i < 150; i++) {

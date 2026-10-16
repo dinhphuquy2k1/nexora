@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+umask 077
 cd "$(dirname "$0")/.."
 compose(){
  if [ -n "${NEXORA_COMPOSE_OVERRIDE:-}" ]; then
@@ -11,8 +12,12 @@ compose(){
 # Only this script's disposable project may be removed with volumes.
 project="nexora-smoke-$$"
 export COMPOSE_PROJECT_NAME="$project"
+# Test-only independent keys for this disposable project, never production defaults.
+IDENTITY_KEYRING_JSON=$(node -e 'console.log(JSON.stringify({1:require("node:crypto").randomBytes(32).toString("base64")}))')
+export IDENTITY_KEYRING_JSON IDENTITY_ACTIVE_KEY_VERSION=1
+mfa_work=$(mktemp -d)
 cleanup(){
-  status=$?; if [ "$status" -ne 0 ]; then compose logs --no-color --tail 60 >&2; fi;  compose down -v --remove-orphans >/dev/null; }
+  status=$?; if [ "$status" -ne 0 ]; then compose logs --no-color --tail 60 >&2; fi;  compose down -v --remove-orphans >/dev/null; rm -rf "$mfa_work"; }
 trap cleanup EXIT HUP INT TERM
 if [ "${NEXORA_SMOKE_NO_BUILD:-0}" = 1 ]; then compose up --no-build -d --wait --wait-timeout 180; else compose up --build -d --wait --wait-timeout 180; fi
 python3 scripts/database-runtime-smoke.py
@@ -22,7 +27,7 @@ logs=$(compose logs --no-color api)
 case "$logs" in *sensitive-test-marker*) echo 'Sensitive header leaked in logs' >&2; exit 1;; esac
 compose run --rm --no-deps -T migrate
 schema=$(compose exec -T postgres psql -U nexora -d nexora -Atc "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL; SELECT count(*) FROM stored_files;")
-[ "$schema" = "$(printf '8\n0')" ] || { echo 'Migrated schema assertion failed' >&2; exit 1; }
+[ "$schema" = "$(printf '9\n0')" ] || { echo 'Migrated schema assertion failed' >&2; exit 1; }
 compose exec -T api node -e "if(process.getuid()===0)process.exit(1)"
 compose exec -T web node -e "if(process.getuid()===0)process.exit(1)"
 
@@ -34,11 +39,16 @@ if printf '%s' 'SmokeTestPass123!' | compose exec -T api sh /scripts/api-entrypo
 fi
 printf '%s' 'BrowserTestPass123!' | compose exec -T api sh /scripts/api-entrypoint.sh node dist/cli/user-create.js --username browser_user --password-stdin
 python3 scripts/provisioning-tty-smoke.py
+# Preserve the old one-step smoke as an OPERATOR regression, provisioned via CLI.
+compose exec -T postgres psql -U nexora -d nexora -v ON_ERROR_STOP=1 -c "UPDATE users SET role='OPERATOR' WHERE username='smoke_user';" >/dev/null
+python3 scripts/mfa-enrollment-tty-smoke.py "$mfa_work/fixture.json"
 node scripts/auth-runtime-smoke.mjs
 # Drive the actual form through the browser-facing host port, with browser-generated Origin.
 browser_port=${WEB_PORT:-127.0.0.1:3001}
 browser_port=${browser_port##*:}
-printf '{"baseUrl":"http://127.0.0.1:%s","username":"browser_user","password":"BrowserTestPass123!"}' "$browser_port" | node scripts/browser-login-smoke.mjs
+node - "$mfa_work/fixture.json" "$browser_port" <<'JS' | node scripts/browser-login-smoke.mjs
+const fs=require('node:fs');const fixture=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));fixture.baseUrl='http://127.0.0.1:'+process.argv[3];process.stdout.write(JSON.stringify(fixture));
+JS
 
 compose stop postgres
 compose exec -T web node -e "Promise.all(['/live','/ready'].map(p=>fetch('http://127.0.0.1:3000/api/health'+p))).then(async ([l,r])=>{if(l.status!==200||r.status!==503||(await r.json()).checks.database!==false)process.exit(1);console.log('DB outage/live separation PASS')})"
