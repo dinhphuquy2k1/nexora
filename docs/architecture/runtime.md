@@ -90,3 +90,9 @@ Both roles use Nexora password sessions, independent of external carrier availab
 ## Carrier key runtime — Logical PR 3
 
 Compose forwards CARRIER_KEYRING_JSON and CARRIER_ACTIVE_KEY_VERSION only into API server environment; neither is passed to Web, SDK, build arguments or migration services. Operators supply keys securely; init does not generate or rotate Carrier keys. API startup and all local identity/metadata functionality remain available without valid Carrier keys. EnvironmentKeyring snapshots configuration; restart the API to activate a new version. No new service, volume, worker or network integration is introduced. See [configuration](../operations/configuration.md) for custody and safe staged rotation.
+
+## PR4 backend lifecycle runtime
+
+Apply forward migration20261016000000_carrier_lifecycle before starting API; there are eight migrations. No worker, cron, Redis or new service is added. Connect/reconnect use loopback mocks in automated tests; external Uniship remains hard-closed even with UNISHIP_LIVE_AUTHORIZED=true until official authorization evidence is verified. Nexora login/session checks never call the provider or require Carrier crypto keys. Missing/wrong keys fail the Carrier operation safely and do not downgrade it to manual reauthentication.
+
+Internal withToken performs lazy recovery only when a real Carrier operation needs a token: known expiry/missing token or one typed provider rejection. It commits durable password-decrypt audit, decrypts inside authorized infrastructure, logs in and verifies, then atomically persists encrypted password/token under ACTIVE-user epoch/version checks. No public lazy-recovery endpoint or refresh API exists. Singleflight and local budgets are per API instance; DB uniqueness/row locking and version fences provide shared persistence protection, without a distributed recovery-lock framework. No token/password persists in global maps.

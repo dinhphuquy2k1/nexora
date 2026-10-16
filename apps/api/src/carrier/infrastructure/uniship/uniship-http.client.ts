@@ -1,7 +1,9 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 
 export interface UnishipLoginResult {
   externalAccountId: string;
+  candidateToken: string;
 }
 
 export interface UnishipHttpClientOptions {
@@ -9,6 +11,17 @@ export interface UnishipHttpClientOptions {
   liveAuthorized?: boolean;
   isProduction?: boolean;
   timeoutMs?: number;
+}
+
+function unsafeToken(value: string): boolean {
+  return (
+    value.length === 0 ||
+    value.length > 16384 ||
+    Array.from(value).some(
+      (character) =>
+        character.charCodeAt(0) <= 32 || character.charCodeAt(0) === 127,
+    )
+  );
 }
 
 export function parseProviderIdentity(payload: unknown): UnishipLoginResult {
@@ -25,7 +38,7 @@ export function parseProviderIdentity(payload: unknown): UnishipLoginResult {
   const record = payload as Record<string, unknown>;
 
   // Token must be a non-empty string
-  if (typeof record.token !== "string" || record.token.trim().length === 0) {
+  if (typeof record.token !== "string" || unsafeToken(record.token)) {
     throw new HttpException(
       {
         code: "SERVICE_UNAVAILABLE",
@@ -49,45 +62,7 @@ export function parseProviderIdentity(payload: unknown): UnishipLoginResult {
 
   const userRecord = user as Record<string, unknown>;
 
-  // Username must be a non-empty string
-  if (
-    typeof userRecord.username !== "string" ||
-    userRecord.username.trim().length === 0
-  ) {
-    throw new HttpException(
-      {
-        code: "SERVICE_UNAVAILABLE",
-        message: "Phản hồi xác thực không hợp lệ.",
-      },
-      HttpStatus.SERVICE_UNAVAILABLE,
-    );
-  }
-
-  // If is_verified is explicitly false, reject with 401 AUTHENTICATION_FAILED
-  if (userRecord.is_verified === false) {
-    throw new HttpException(
-      {
-        code: "AUTHENTICATION_FAILED",
-        message:
-          "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập.",
-      },
-      HttpStatus.UNAUTHORIZED,
-    );
-  }
-
-  // If is_verified is provided, it must be a boolean
-  if (
-    userRecord.is_verified !== undefined &&
-    typeof userRecord.is_verified !== "boolean"
-  ) {
-    throw new HttpException(
-      {
-        code: "SERVICE_UNAVAILABLE",
-        message: "Phản hồi xác thực không hợp lệ.",
-      },
-      HttpStatus.SERVICE_UNAVAILABLE,
-    );
-  }
+  // Owner amendment: username/email/is_verified are not identity or authorization evidence.
 
   // Validate userid: accept positive safe integer or valid decimal string
   const rawUserId = userRecord.userid;
@@ -138,8 +113,13 @@ export function parseProviderIdentity(payload: unknown): UnishipLoginResult {
 
   return {
     externalAccountId: normalizedSubject,
+    candidateToken: record.token,
   };
 }
+
+// Official permission, credential retention and automated re-login terms remain UNVERIFIED.
+// Runtime opt-in alone cannot open live traffic in this mock-only implementation.
+const UNISHIP_LIVE_CONTRACT_VERIFIED: boolean = false;
 
 @Injectable()
 export class UnishipHttpClient {
@@ -159,6 +139,54 @@ export class UnishipHttpClient {
     username: string;
     password: string;
   }): Promise<UnishipLoginResult> {
+    return this.post("/client/api-token-auth/", {
+      username: input.username,
+      password: input.password,
+      FirebaseToken: null,
+    });
+  }
+
+  async verify(candidateToken: string): Promise<UnishipLoginResult> {
+    if (unsafeToken(candidateToken)) {
+      throw this.unavailable();
+    }
+    const result = await this.post(
+      "/client/api-token-verify/",
+      { token: candidateToken, FirebaseToken: null },
+      candidateToken,
+    );
+    // Hashes have fixed length, so comparison does not expose token prefixes/lengths.
+    const digest = (value: string) =>
+      createHash("sha256").update(value).digest();
+    if (
+      !timingSafeEqual(digest(candidateToken), digest(result.candidateToken))
+    ) {
+      throw new HttpException(
+        {
+          code: "TOKEN_REJECTED",
+          message: "Không thể xác minh token nhà cung cấp.",
+        },
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    return result;
+  }
+
+  private unavailable(): HttpException {
+    return new HttpException(
+      {
+        code: "SERVICE_UNAVAILABLE",
+        message: "Dịch vụ xác thực tạm thời không khả dụng.",
+      },
+      HttpStatus.SERVICE_UNAVAILABLE,
+    );
+  }
+
+  private async post(
+    path: string,
+    body: Record<string, unknown>,
+    token?: string,
+  ): Promise<UnishipLoginResult> {
     if (!this.apiUrl) {
       throw new HttpException(
         {
@@ -172,7 +200,17 @@ export class UnishipHttpClient {
 
     let targetUrl: URL;
     try {
-      targetUrl = new URL("/client/api-token-auth/", this.apiUrl);
+      const configured = new URL(this.apiUrl);
+      if (
+        configured.username ||
+        configured.password ||
+        configured.search ||
+        configured.hash ||
+        !["http:", "https:"].includes(configured.protocol)
+      ) {
+        throw this.unavailable();
+      }
+      targetUrl = new URL(path, configured);
     } catch {
       throw new HttpException(
         {
@@ -186,7 +224,7 @@ export class UnishipHttpClient {
     const isLoopback =
       targetUrl.hostname === "127.0.0.1" ||
       targetUrl.hostname === "localhost" ||
-      targetUrl.hostname === "::1";
+      targetUrl.hostname === "[::1]";
 
     if (this.isProduction && targetUrl.protocol !== "https:") {
       throw new HttpException(
@@ -199,8 +237,14 @@ export class UnishipHttpClient {
       );
     }
 
+    if (!isLoopback && targetUrl.protocol !== "https:")
+      throw this.unavailable();
+
     // Require explicit operational authorization before permitting external/live network requests
-    if (!isLoopback && !this.liveAuthorized) {
+    if (
+      !isLoopback &&
+      (!this.liveAuthorized || !UNISHIP_LIVE_CONTRACT_VERIFIED)
+    ) {
       throw new HttpException(
         {
           code: "SERVICE_UNAVAILABLE",
@@ -211,19 +255,17 @@ export class UnishipHttpClient {
     }
 
     let response: Response;
+    const signal = AbortSignal.timeout(this.timeoutMs);
     try {
       response = await fetch(targetUrl.toString(), {
         method: "POST",
         headers: {
           "content-type": "application/json",
           accept: "application/json",
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          username: input.username,
-          password: input.password,
-          FirebaseToken: null,
-        }),
-        signal: AbortSignal.timeout(this.timeoutMs),
+        body: JSON.stringify(body),
+        signal,
         redirect: "error",
       });
     } catch {
@@ -237,10 +279,31 @@ export class UnishipHttpClient {
       );
     }
 
-    if (response.status === 400 || response.status === 401) {
+    if (response.status === 429) {
+      const raw = response.headers.get("retry-after");
+      const seconds =
+        raw && /^\d+$/.test(raw)
+          ? Number(raw) * 1000
+          : Date.parse(raw ?? "") - Date.now();
+      await response.body?.cancel();
       throw new HttpException(
         {
-          code: "AUTHENTICATION_FAILED",
+          code: "RATE_LIMITED",
+          message: "Vui lòng thử lại sau.",
+          retryAfterMs:
+            Number.isFinite(seconds) && seconds > 0
+              ? Math.min(seconds, 300000)
+              : 1000,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    if (response.status === 400 || response.status === 401) {
+      await response.body?.cancel();
+      throw new HttpException(
+        {
+          code: token ? "TOKEN_REJECTED" : "AUTHENTICATION_FAILED",
           message:
             "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa được cấp quyền truy cập.",
         },
@@ -249,6 +312,7 @@ export class UnishipHttpClient {
     }
 
     if (response.status !== 200) {
+      await response.body?.cancel();
       throw new HttpException(
         {
           code: "SERVICE_UNAVAILABLE",
@@ -261,7 +325,24 @@ export class UnishipHttpClient {
 
     let payload: unknown;
     try {
-      payload = await response.json();
+      const reader = response.body?.getReader();
+      if (!reader) throw this.unavailable();
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      try {
+        while (true) {
+          signal.throwIfAborted();
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          size += chunk.value.length;
+          if (size > 65536) throw this.unavailable();
+          chunks.push(chunk.value);
+        }
+        payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      } finally {
+        await reader.cancel().catch(() => undefined);
+        reader.releaseLock();
+      }
     } catch {
       throw new HttpException(
         {

@@ -15,6 +15,10 @@ new RuleTester({ languageOptions: { parser: ts.parser } }).run(
   rule,
   {
     valid: [
+      "const event={eventType:CarrierAuditType.CONNECT,outcome:CarrierAuditOutcome.SUCCESS,reason:CarrierAuditReason.VERIFIED};",
+      'export const CarrierAuditOutcome={SUCCESS:"SUCCESS"} as const;',
+      'const unrelated={message:"PASSWORD_DECRYPT",code:"IDENTITY_MISMATCH"};',
+
       "if(user.status!==UserStatus.ACTIVE){}",
       "const data={status:ConnectionStatus.REAUTH_REQUIRED,role:UserRole.ADMIN,provider:CarrierProvider.UNISHIP,secretType:SecretType.PASSWORD};",
       'export const UserStatus={ACTIVE:"ACTIVE",DISABLED:"DISABLED"} as const;',
@@ -35,6 +39,17 @@ new RuleTester({ languageOptions: { parser: ts.parser } }).run(
       'const crypto={purpose:"CARRIER_PASSWORD"};',
     ].map((code) => ({ code, filename })),
     invalid: [
+      [
+        'const event={eventType:"PASSWORD_DECRYPT"};',
+        "CarrierAuditType.PASSWORD_DECRYPT",
+      ],
+      ['const event={event_type:"RECOVERY"};', "CarrierAuditType.RECOVERY"],
+      ['if(event.outcome === "ALLOWED") {}', "CarrierAuditOutcome.ALLOWED"],
+      [
+        'const event={reason:"INVALID_CREDENTIALS"};',
+        "CarrierAuditReason.INVALID_CREDENTIALS",
+      ],
+
       ['if(user.status!=="ACTIVE"){}', "UserStatus.ACTIVE"],
       ['if(status!=="ACTIVE"){}', "UserStatus.ACTIVE"],
       [
@@ -165,6 +180,14 @@ test("guard catalog covers every canonical owning-domain value", async () => {
     [
       "identity/domain/user-policy.ts",
       { UserStatus: "status", UserRole: "role" },
+    ],
+    [
+      "carrier/domain/security-audit.ts",
+      {
+        CarrierAuditType: "eventType",
+        CarrierAuditOutcome: "outcome",
+        CarrierAuditReason: "reason",
+      },
     ],
     [
       "carrier/domain/carrier.ts",

@@ -1,3 +1,5 @@
+import { CarrierLifecycleController } from "./carrier/presentation/carrier-lifecycle.controller";
+import { CarrierConnectionLifecycleService } from "./carrier/application/carrier-connection-lifecycle.service";
 import { CarrierController } from "./carrier/presentation/carrier.controller";
 import { CarrierService } from "./carrier/application/carrier.service";
 import { IdentityPort } from "./identity/application/identity.port";
@@ -20,12 +22,14 @@ import { AuthService } from "./identity/application/auth.service";
 @Module({
   controllers: [
     CarrierController,
+    CarrierLifecycleController,
     HealthController,
     AuthController,
     UserManagementController,
     SetupPasswordController,
   ],
   providers: [
+    { provide: CarrierConnectionLifecycleService, useValue: {} },
     { provide: CarrierService, useValue: {} },
     { provide: IdentityPort, useValue: {} },
     { provide: HealthService, useValue: {} },

@@ -348,13 +348,13 @@ test(
           );
           error(
             await request("/api/carrier-connections", tokens[0], "POST", {}),
-            404,
-            "NOT_FOUND",
+            400,
+            "VALIDATION_ERROR",
           );
           error(
             await request(path + "/reconnect", tokens[0], "POST", {}),
-            404,
-            "NOT_FOUND",
+            400,
+            "VALIDATION_ERROR",
           );
         },
       );

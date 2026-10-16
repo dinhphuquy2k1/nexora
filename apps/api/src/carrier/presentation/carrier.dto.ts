@@ -35,3 +35,14 @@ export class RenameConnectionDto {
 export class ConnectionDeletedDto {
   @ApiProperty({ enum: [true] }) success!: boolean;
 }
+export class ConnectCarrierDto {
+  @ApiProperty({ enum: Object.values(CarrierProvider) }) provider!: string;
+  @ApiProperty({ minLength: 1, maxLength: 128 }) loginIdentifier!: string;
+  @ApiProperty({ minLength: 1, maxLength: 1024, writeOnly: true })
+  password!: string;
+  @ApiProperty({ minLength: 1, maxLength: 100 }) displayName!: string;
+}
+export class ReconnectCarrierDto {
+  @ApiProperty({ minLength: 1, maxLength: 1024, writeOnly: true })
+  password!: string;
+}

@@ -286,6 +286,7 @@ test("UnishipHttpClient handles mock HTTP provider contracts, errors, timeouts, 
     });
     assert.deepEqual(result1, {
       externalAccountId: "10482",
+      candidateToken: "synthetic-token-num",
     });
 
     // 2. Success with nested decimal string userid
@@ -296,6 +297,7 @@ test("UnishipHttpClient handles mock HTTP provider contracts, errors, timeouts, 
     });
     assert.deepEqual(result2, {
       externalAccountId: "10482",
+      candidateToken: "synthetic-token-str",
     });
 
     // 3. Root-level-only userid rejected under new contract -> 503 SERVICE_UNAVAILABLE
@@ -379,32 +381,19 @@ test("UnishipHttpClient handles mock HTTP provider contracts, errors, timeouts, 
         err.getResponse?.().code === "SERVICE_UNAVAILABLE",
     );
 
-    // 12. Missing username -> 503 SERVICE_UNAVAILABLE
-    mode = "missing-username";
-    await assert.rejects(
-      adapter.authenticate({ username: "op_nam", password: "pwd" }),
-      (err) =>
-        err.getStatus?.() === 503 &&
-        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
-    );
-
-    // 13. Empty username -> 503 SERVICE_UNAVAILABLE
-    mode = "empty-username";
-    await assert.rejects(
-      adapter.authenticate({ username: "op_nam", password: "pwd" }),
-      (err) =>
-        err.getStatus?.() === 503 &&
-        err.getResponse?.().code === "SERVICE_UNAVAILABLE",
-    );
-
-    // 14. is_verified: false -> 401 AUTHENTICATION_FAILED
-    mode = "unverified-false";
-    await assert.rejects(
-      adapter.authenticate({ username: "op_nam", password: "pwd" }),
-      (err) =>
-        err.getStatus?.() === 401 &&
-        err.getResponse?.().code === "AUTHENTICATION_FAILED",
-    );
+    // Owner amendment: these fields have no acceptance/identity role.
+    for (const accepted of [
+      "missing-username",
+      "empty-username",
+      "unverified-false",
+    ]) {
+      mode = accepted;
+      assert.equal(
+        (await adapter.authenticate({ username: "op_nam", password: "pwd" }))
+          .externalAccountId,
+        "10482",
+      );
+    }
 
     // 15. 400 invalid credentials -> 401 AUTHENTICATION_FAILED
     mode = "invalid-creds";

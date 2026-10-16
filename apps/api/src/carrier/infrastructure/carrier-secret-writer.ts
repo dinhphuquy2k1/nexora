@@ -1,7 +1,7 @@
 import { UserStatus } from "../../identity/domain/user-policy";
 import type { PrismaClient } from "@nexora/database";
 import { SecretCipher } from "../../common/crypto/secret-cipher";
-import { CarrierError, SecretType } from "../domain/carrier";
+import { CarrierError, ConnectionStatus, SecretType } from "../domain/carrier";
 
 /** Internal only; never registered as a controller or exposes a decryption method.
  * Provider verification/acquisition and durable audit orchestration belong to PR4.
@@ -24,7 +24,7 @@ export class CarrierSecretWriter {
     connectionId = connectionId.toLowerCase();
     const connection = await this.db.carrierConnection.findFirst({
       where: { id: connectionId, userId },
-      select: { provider: true },
+      select: { provider: true, lifecycleVersion: true },
     });
     if (!connection) throw new CarrierError("NOT_FOUND");
     const aad = `${connectionId}:${userId}:${connection.provider}:${secretType}`;
@@ -39,10 +39,18 @@ export class CarrierSecretWriter {
       if (users[0]?.status !== UserStatus.ACTIVE)
         throw new CarrierError("UNAUTHORIZED");
       const rows = await tx.$queryRaw<
-        Array<{ provider: string }>
-      >`SELECT provider FROM carrier_connections WHERE id=${connectionId}::uuid AND user_id=${userId}::uuid FOR UPDATE`;
-      if (rows[0]?.provider !== connection.provider)
+        Array<{ provider: string; lifecycle_version: number; status: string }>
+      >`SELECT provider,lifecycle_version,status FROM carrier_connections WHERE id=${connectionId}::uuid AND user_id=${userId}::uuid FOR UPDATE`;
+      if (
+        rows[0]?.provider !== connection.provider ||
+        rows[0].lifecycle_version !== connection.lifecycleVersion ||
+        rows[0].status === ConnectionStatus.REAUTH_REQUIRED
+      )
         throw new CarrierError("NOT_FOUND");
+      await tx.carrierConnection.update({
+        where: { id: connectionId },
+        data: { lifecycleVersion: { increment: 1 } },
+      });
       const data = { ...encrypted, expiresAt };
       await tx.carrierConnectionSecret.upsert({
         where: { connectionId_secretType: { connectionId, secretType } },

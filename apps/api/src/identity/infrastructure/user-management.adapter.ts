@@ -153,13 +153,22 @@ export class UserManagementAdapter implements UserManagementPort {
           where: { userId, consumedAt: null },
           data: { consumedAt: new Date() },
         });
+        // User lock precedes the Carrier epoch and children. Reactivation never restores it.
+        await tx.carrierUserState.upsert({
+          where: { userId },
+          create: { userId, generation: 1 },
+          update: { generation: { increment: 1 } },
+        });
         // User lock is held before touching Carrier children, shared with all writers.
         await tx.carrierConnectionSecret.deleteMany({
           where: { connection: { userId } },
         });
         await tx.carrierConnection.updateMany({
           where: { userId },
-          data: { status: ConnectionStatus.REAUTH_REQUIRED },
+          data: {
+            status: ConnectionStatus.REAUTH_REQUIRED,
+            lifecycleVersion: { increment: 1 },
+          },
         });
       }
       return {
