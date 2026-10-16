@@ -2,7 +2,7 @@
 
 ## Implemented Logical PR 2 — NEXORA-016
 
-Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. Carrier connect/reconnect, MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
+Both ACTIVE ADMIN and OPERATOR authenticate using Nexora local credentials. Uniship is independent of Nexora identity. MFA, `sessions.auth_level`, public HTTPS and shipment sync remain PLANNED; none is required by this implementation. Administration is supported only on loopback/local deployments before MFA.
 
 Generated OpenAPI/SDK describe the implemented routes below. Error responses use `{code,message,requestId}`. Every administrative route requires an ACTIVE ADMIN database-backed session; all mutations require a trusted Origin. Missing/revoked/disabled sessions return 401 `UNAUTHORIZED`; OPERATOR callers return 403 `FORBIDDEN`. Origin failures retain 403 `FORBIDDEN`, and shared admission rejection retains 429 `TOO_MANY_REQUESTS` for compatibility.
 
@@ -25,17 +25,17 @@ Setup passwords require 8–1024 characters before Scrypt. Links contain 256-bit
 
 ## Deferred milestones — not implemented
 
-| Milestone | Scope                                                               |
-| :-------- | :------------------------------------------------------------------ |
-| PR 4      | Uniship Carrier Adapter and connect/reconnect credentials lifecycle |
-| PR 6      | ADMIN TOTP MFA and sessions.auth_level                              |
-| PR 7      | Public HTTPS release gates                                          |
+| Milestone | Scope                                                         |
+| :-------- | :------------------------------------------------------------ |
+| PR 4      | Backend lifecycle implemented; Carrier UI deferred separately |
+| PR 6      | ADMIN TOTP MFA and sessions.auth_level                        |
+| PR 7      | Public HTTPS release gates                                    |
 
 ### ADMIN TOTP MFA — PR 6
 
 The future ADMIN login flow returns `{mfaRequired:true}` plus a pending challenge cookie, followed by `POST /api/auth/mfa/verify` with `{code}` and atomic challenge/TOTP replay protection. These are deferred changes, not the current password-session login contract. PR 2 has no MFA tables or `sessions.auth_level`; its ACTIVE ADMIN password sessions authorize local administration. Public exposure requires the separately planned PR 6/7 gates.
 
-## Carrier Connections Management — implemented PR 3 / planned PR 4
+## Carrier Connections Management — implemented PR 3 / PR 4
 
 Endpoints strictly enforce ownership from the authenticated session (`user_id`). Users cannot access, mutate, or inspect other users' carrier connections. All protected carrier endpoints enforce `401 UNAUTHORIZED` if the caller's session is missing or expired.
 
@@ -48,7 +48,7 @@ Endpoints strictly enforce ownership from the authenticated session (`user_id`).
 | `POST`   | `/api/carrier-connections/:id/reconnect` | PR 4      | Owner only    | `{ password }`                                          | 200 `{ connection: CarrierConnectionDto }`    | 400 `VALIDATION_ERROR`, 401 `UNAUTHORIZED`, 401 `PROVIDER_AUTH_FAILED`, 404 `NOT_FOUND`, 429 `RATE_LIMITED`, 503 `SERVICE_UNAVAILABLE` |
 | `DELETE` | `/api/carrier-connections/:id`           | PR 3      | Owner only    | None                                                    | 200 `{ success: true }`                       | 401 `UNAUTHORIZED`, 404 `NOT_FOUND`                                                                                                    |
 
-PR3 GET/PATCH/DELETE are IMPLEMENTED; POST/create and reconnect are PLANNED PR4 and return 404 today. Provider summaries have exactly `provider,displayName`; the single `uniship` entry advertises metadata vocabulary, not live readiness. Connection summaries have exactly the eight fields listed below. GET ignores query ownership selectors: the database predicate always uses the authenticated user ID. PATCH accepts only displayName (1–100 characters, trimmed nonblank); invalid UUID/body returns 400 VALIDATION_ERROR. DELETE also validates UUID (400). Both mutations enforce OriginGuard (403 FORBIDDEN), and return 404 NOT_FOUND for absent/foreign connections, including ADMIN callers. DELETE hard-deletes with secret cascade and returns `{success:true}`. All metadata responses use no-store.
+PR3 GET/PATCH/DELETE and PR4 POST/create/reconnect are IMPLEMENTED (backend only). Provider summaries have exactly `provider,displayName`; the single `uniship` entry advertises metadata vocabulary, not live readiness. Connection summaries have exactly the eight fields listed below. GET ignores query ownership selectors: the database predicate always uses the authenticated user ID. PATCH accepts only displayName (1–100 characters, trimmed nonblank); invalid UUID/body returns 400 VALIDATION_ERROR. DELETE also validates UUID (400). Both mutations enforce OriginGuard (403 FORBIDDEN), and return 404 NOT_FOUND for absent/foreign connections, including ADMIN callers. DELETE hard-deletes with secret cascade and returns `{success:true}`. All metadata responses use no-store.
 
 - **Payload Safety**: Connection DTOs expose only metadata (`id, provider, externalAccountId, loginIdentifier, displayName, status, lastVerifiedAt, createdAt`). Plaintext passwords, tokens, nonces, and ciphertexts are never returned.
 - **Unified Generic Error Policy (`CANNOT_CONNECT_CARRIER_ACCOUNT`)**: On `POST /api/carrier-connections`, Nexora returns the identical generic error `400 CANNOT_CONNECT_CARRIER_ACCOUNT` ("Không thể kết nối tài khoản này") for BOTH invalid provider credentials and duplicate account linkage (`UNIQUE(provider, external_account_id)`). This completely obscures whether the carrier credentials were valid, whether the carrier account was already linked to another user, or who the existing owner is. Detailed causes (`PROVIDER_AUTH_FAILED` vs `DUPLICATE_EXTERNAL_ACCOUNT`) are recorded strictly in the server-side security audit log.
@@ -81,3 +81,23 @@ Breaking contract changes require consumer/tests/docs together. Monetary JSON fi
 Login runtime input accepts a JSON object with string `username` and `password`. Username is trimmed, case-sensitive, 3–50 characters; password is nonempty and at most 1024 characters. Null, arrays, invalid types and length violations return `400 VALIDATION_ERROR` before lookup/Scrypt. Origin enforcement and cookie policy are owned by [Configuration](../operations/configuration.md). Successful logout clears the cookie only after revocation; unexpected database failure uses the existing safe `500 INTERNAL_ERROR` envelope. No DTO or generated schema changes are required by these boundary checks.
 
 Published authentication failures reference the existing `ApiErrorDto` JSON schema (`code`, `message`, `requestId`): Login 400/401/403/429, session 401, and Logout 403/500. Generated SDK consumers can inspect these response bodies without escaping generated types. This schema correction changes no runtime statuses, error codes, messages or request ID behavior.
+
+### PR4 lifecycle details — NEXORA-018
+
+Both POST mutations require OriginGuard (403 FORBIDDEN), an ACTIVE owner session and no-store responses. Connect requires exactly provider, loginIdentifier, password, displayName; uniship requires a trimmed nonblank identifier of at most 128 characters, trimmed nonblank displayName of at most 100, and an unchanged password of 1..1024 characters. Client userId/externalAccountId/token/status and unknown fields are rejected 400. Reconnect accepts password only and a UUID; foreign/missing connection returns 404, including for ADMIN. Successful201/200 results contain the same eight metadata fields, never secrets/versions/epochs.
+
+Every login token is verified using the observed verify contract, with coherent login/verify userid; only verified userid supplies external identity. Identity mismatch requires manual reconnect and preserves previous ciphertext. Invalid credentials and duplicate external account share exactly 400 CANNOT_CONNECT_CARRIER_ACCOUNT / "Không thể kết nối tài khoản này"; safe audit reasons distinguish them internally. Reconnect provider rejection or identity mismatch returns 401 PROVIDER_AUTH_FAILED. Temporary provider/crypto/audit/stale-result failure returns 503 SERVICE_UNAVAILABLE; local admission/provider429 returns 429 RATE_LIMITED. Other Identity admission retains its existing TOO_MANY_REQUESTS code. Unknown expiry is null, JWT exp is scheduling only, no fixed TTL or refresh endpoint. No public endpoint triggers lazy recovery or reads decrypted secrets. External live execution is hard-closed pending official provider evidence; generated SDK presence does not imply live readiness.
+
+### Provider-conditional loginIdentifier — NEXORA-019
+
+The generic connect shape above uses loginIdentifier? because requirements depend on the provider's authentication protocol. The current only provider, Uniship, requires a trimmed nonblank username of at most128 characters. Its current ConnectCarrierDto/OpenAPI/SDK therefore correctly mark loginIdentifier required. Missing, blank, null, oversized, unknown-provider and extra-field payloads return400 VALIDATION_ERROR before provider work. Database/metadata loginIdentifier remains nullable for future providers. A future OAuth/API-key provider that needs no username/email will get its own request schema when implemented; no union framework or new provider is added now.
+
+### Manual reconnect failure semantics — owner-approved 2026-10-16
+
+POST /api/carrier-connections/:id/reconnect is a non-destructive replacement attempt. Wrong new password returns401 PROVIDER_AUTH_FAILED while preserving the previous status, complete encrypted credentials and lastVerifiedAt. Temporary timeout/5xx returns503 SERVICE_UNAVAILABLE;429 retains RATE_LIMITED/backoff; both preserve prior state. Candidate verification rejection or login/verify identity inconsistency also returns the existing safe401 and preserves the old connection. An already REAUTH_REQUIRED or ERROR connection retains that status on these failures. Only coherent verified userid different from the stored account requires REAUTH_REQUIRED; successful matching replacement atomically sets CONNECTED. Failure audit remains metadata-only. Claim/version increments are internal and may still occur; lastVerifiedAt changes only after successful verification/persistence.
+
+No new public error, endpoint, DTO or identity disclosure is introduced. New-connect authentication/identity failures retain generic400 CANNOT_CONNECT_CARRIER_ACCOUNT. Internal automatic recovery keeps fail-closed REAUTH_REQUIRED for unusable stored credentials/identity failure and ERROR/backoff for temporary provider failures; crypto and audit gates remain unchanged. See the dated ADR-007 clarification and NEXORA-020 regression evidence.
+
+### Internal superseded recovery — NEXORA-021
+
+No endpoint, DTO, generated contract or public error is added. Lazy recovery re-evaluates owner/status and committed token evidence after supersession; a failed manual claim does not make an expired/rejected token usable. A newer eligible token is reused. Repeated contention or exhausted recovery budget uses the existing safe503 SERVICE_UNAVAILABLE mapping for internal STALE. Internal sealed-token revision/outcomes are never public fields or audit metadata. Manual reconnect and automatic failure semantics above remain unchanged.

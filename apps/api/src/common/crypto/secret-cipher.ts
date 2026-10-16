@@ -31,7 +31,7 @@ function decode(value: string, length?: number): Buffer {
     throw new CryptoFailure();
   return bytes;
 }
-/** Generic primitive. Carrier production code deliberately has no password reader. */
+/** Generic primitive. Stored Carrier passwords are read only through the audited infrastructure vault. */
 export class SecretCipher {
   constructor(private readonly keys: KeyProvider) {}
   private subkey(version: number, purpose: CryptoPurpose): Buffer {

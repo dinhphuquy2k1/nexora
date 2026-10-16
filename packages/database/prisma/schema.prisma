@@ -24,6 +24,7 @@ model User {
   updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
   credential UserCredential?
   carrierConnections CarrierConnection[]
+  carrierState CarrierUserState?
   sessions   Session[]
   setupTokens OperatorSetupToken[] @relation("setup_target")
   issuedSetupTokens OperatorSetupToken[] @relation("setup_issuer")
@@ -74,6 +75,7 @@ model CarrierConnection {
   loginIdentifier String? @map("login_identifier") @db.VarChar(128)
   displayName String @map("display_name") @db.VarChar(100)
   status String @db.VarChar(32)
+  lifecycleVersion Int @default(0) @map("lifecycle_version")
   lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz(3)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -98,4 +100,25 @@ model CarrierConnectionSecret {
   connection CarrierConnection @relation(fields:[connectionId],references:[id],onDelete:Cascade)
   @@unique([connectionId,secretType],map:"uq_carrier_secrets_connection_type")
   @@map("carrier_connection_secrets")
+}
+
+model CarrierUserState {
+  userId String @id @map("user_id") @db.Uuid
+  generation Int @default(0)
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@map("carrier_user_states")
+}
+
+model SecurityAuditEvent {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  eventType String @map("event_type") @db.VarChar(32)
+  outcome String @db.VarChar(16)
+  reason String @db.VarChar(32)
+  userId String? @map("user_id") @db.Uuid
+  connectionId String? @map("connection_id") @db.Uuid
+  provider String @db.VarChar(32)
+  correlationId String @map("correlation_id") @db.Uuid
+  @@index([connectionId,createdAt],map:"idx_security_audit_connection_time")
+  @@map("security_audit_events")
 }

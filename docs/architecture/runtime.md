@@ -2,8 +2,8 @@
 
 ## Local release (default)
 
-Compose `init` generates and retains a random local DB password, repairs only dedicated credential/upload volume permissions; PostgreSQL 17.11 has no published ports. One-shot `migrate` runs after DB healthy; compiled non-root API starts after migrate success and owns uploads as UID 1000. Non-root web waits for API healthy and publishes host port `127.0.0.1:3001:3000` (configurable via `WEB_PORT`). Next.js rewrites `/api/*` internally to `http://api:4000` on the Docker bridge network; neither PostgreSQL nor API publishes host ports.
-Named volumes: postgres, uploads and credentials survive down/restart. No auth/encryption key is generated without a consumer. Init is idempotent and does not rotate existing DB credentials. Host source is not mounted into release containers.
+Compose `init` generates and retains separate random admin and runtime DB passwords, repairs only dedicated credential/upload volume permissions; PostgreSQL 17.11 has no published ports. One-shot `migrate` runs after DB healthy; trusted one-shot `db-runtime` provisions restricted `nexora_app` after migrate success; compiled non-root API starts after provisioning success and owns uploads as UID 1000. Non-root web waits for API healthy and publishes host port `127.0.0.1:3001:3000` (configurable via `WEB_PORT`). Next.js rewrites `/api/*` internally to `http://api:4000` on the Docker bridge network; neither PostgreSQL nor API publishes host ports.
+Named volumes: postgres, uploads, credentials and runtime_credentials survive down/restart. No auth/encryption key is generated without a consumer. Init is idempotent and does not rotate existing DB credentials. Host source is not mounted into release containers.
 
 ### Docker architecture layout
 
@@ -72,7 +72,7 @@ Release artifact preparation copies the installed frozen graph; package IDs reta
 
 ## Local account provisioning runtime
 
-API compilation owns `/app/dist/cli/user-create.js` and its infrastructure provisioner; the existing `dist` artifact packaging includes both without repository-level scripts or a new service. Execute through `/scripts/api-entrypoint.sh` to read the existing credential volume and inject DATABASE_URL, as the image's non-root user. Source inspection establishes expected packaging, while executed fresh-install and pseudo-TTY smoke provide runtime evidence; see NEXORA-009 for the current verification state. No API/database host ports or production bootstrap endpoint are added. API receives WEB_PORT/ALLOWED_ORIGINS solely for the exact browser Origin policy documented in [Configuration](../operations/configuration.md).
+API compilation owns `/app/dist/cli/user-create.js` and its infrastructure provisioner; the existing `dist` artifact packaging includes both without repository-level scripts or a new service. Execute through `/scripts/api-entrypoint.sh` to read only runtime_credentials:/runtime-config/postgres_app_password and inject the nexora_app DATABASE_URL, as the image's non-root user. Source inspection establishes expected packaging, while executed fresh-install and pseudo-TTY smoke provide runtime evidence; see NEXORA-009 for the current verification state. No API/database host ports or production bootstrap endpoint are added. API receives WEB_PORT/ALLOWED_ORIGINS solely for the exact browser Origin policy documented in [Configuration](../operations/configuration.md).
 
 ## Public HTTPS Profile & MFA Release Gate (PR 7 Target)
 
@@ -90,3 +90,15 @@ Both roles use Nexora password sessions, independent of external carrier availab
 ## Carrier key runtime — Logical PR 3
 
 Compose forwards CARRIER_KEYRING_JSON and CARRIER_ACTIVE_KEY_VERSION only into API server environment; neither is passed to Web, SDK, build arguments or migration services. Operators supply keys securely; init does not generate or rotate Carrier keys. API startup and all local identity/metadata functionality remain available without valid Carrier keys. EnvironmentKeyring snapshots configuration; restart the API to activate a new version. No new service, volume, worker or network integration is introduced. See [configuration](../operations/configuration.md) for custody and safe staged rotation.
+
+## PR4 backend lifecycle runtime
+
+Apply forward migration20261016000000_carrier_lifecycle before starting API; there are eight migrations. No worker, cron, Redis or new service is added. Connect/reconnect use loopback mocks in automated tests; external Uniship remains hard-closed even with UNISHIP_LIVE_AUTHORIZED=true until official authorization evidence is verified. Nexora login/session checks never call the provider or require Carrier crypto keys. Missing/wrong keys fail the Carrier operation safely and do not downgrade it to manual reauthentication.
+
+Internal withToken performs lazy recovery only when a real Carrier operation needs a token: known expiry/missing token or one typed provider rejection. It commits durable password-decrypt audit, decrypts inside authorized infrastructure, logs in and verifies, then atomically persists encrypted password/token under ACTIVE-user epoch/version checks. No public lazy-recovery endpoint or refresh API exists. Singleflight and local budgets are per API instance; DB uniqueness/row locking and version fences provide shared persistence protection, without a distributed recovery-lock framework. No token/password persists in global maps.
+
+## PostgreSQL authority separation — NEXORA-019
+
+Admin role nexora retains existing database/object ownership and credentials:/config/postgres_password; PostgreSQL and migrate mount that volume read-only. API has only runtime_credentials:/runtime-config read-only, containing postgres_app_password, and cannot read or mount the admin volume. Web has neither secret. Only trusted init (write) and one-shot db-runtime (read-only, root to handle development UID mapping) receive both. API never falls back to admin or an inherited URL. Development init stats a read-only checkout to assign runtime-file ownership; it does not chown source. Release API remains UID1000.
+
+Startup is init → healthy PostgreSQL → genuine Prisma migrate deploy → transactional role provisioning → API → Web. Both fresh and retained-volume upgrades follow this order. New secrets use CSPRNG 32-byte hex, mode0600; existing files are never rotated, and empty/corrupt files fail closed. db-runtime repeats grants/password from the same retained runtime file without changing data. Profile test's quality service is a separate trusted fixture runner, reading admin credentials before dropping to the mapped checkout user; production API never receives its authority. See Database for exact grants and Setup for upgrade/recovery.

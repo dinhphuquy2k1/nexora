@@ -448,6 +448,49 @@ try {
   ])
     assert.ok(carrierIndexes.some((i) => i.indexname === name));
 
+  step = "PR3_LIFECYCLE_UPGRADE";
+  const carrierId = randomUUID();
+  const owner = beforeCarrier.users[0].id;
+  await db.$executeRawUnsafe(
+    "INSERT INTO carrier_connections(id,user_id,provider,external_account_id,login_identifier,display_name,status) VALUES($1::uuid,$2::uuid,'uniship','12345','fixture','Branch','CONNECTED')",
+    carrierId,
+    owner,
+  );
+  await db.$executeRawUnsafe(
+    "INSERT INTO carrier_connection_secrets(connection_id,secret_type,ciphertext,nonce,auth_tag,key_version) VALUES($1::uuid,'ACCESS_TOKEN','opaque-encrypted-fixture','nonce','tag',1)",
+    carrierId,
+  );
+  const oldConnections = await db.$queryRawUnsafe(
+      "SELECT * FROM carrier_connections ORDER BY id",
+    ),
+    oldSecrets = await db.$queryRawUnsafe(
+      "SELECT * FROM carrier_connection_secrets ORDER BY id",
+    );
+  const lifecycleMigration = "20261016000000_carrier_lifecycle";
+  await cp(
+    resolve("prisma/migrations", lifecycleMigration),
+    join(work, "prisma/migrations", lifecycleMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  assert.deepEqual(
+    (
+      await db.$queryRawUnsafe("SELECT * FROM carrier_connections ORDER BY id")
+    ).map(({ lifecycle_version, ...row }) => {
+      assert.equal(lifecycle_version, 0);
+      return row;
+    }),
+    oldConnections,
+  );
+  assert.deepEqual(
+    await db.$queryRawUnsafe(
+      "SELECT * FROM carrier_connection_secrets ORDER BY id",
+    ),
+    oldSecrets,
+  );
+  assert.equal(await db.securityAuditEvent.count(), 0);
+  assert.equal(await db.carrierUserState.count(), 0);
+
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },

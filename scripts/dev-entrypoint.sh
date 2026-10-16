@@ -2,10 +2,6 @@
 set -eu
 workspace_uid=$(stat -c '%u' /workspace)
 workspace_gid=$(stat -c '%g' /workspace)
-if [ -f /config/postgres_password ]; then
- password=$(cat /config/postgres_password)
- export DATABASE_URL="postgresql://nexora:$password@postgres:5432/nexora?connect_timeout=3"
-fi
 run_owner() { exec gosu "$workspace_uid:$workspace_gid" "$@"; }
 if [ "${1:-}" != dependencies ]; then run_owner "$@"; fi
 if [ -d /data/uploads ]; then

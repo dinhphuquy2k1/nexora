@@ -15,6 +15,9 @@ x-development-volumes: &development-volumes
   - turbo_cache:/workspace/.turbo
 
 services:
+  init:
+    volumes:
+      - .:/checkout:ro
   postgres:
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
@@ -75,6 +78,32 @@ services:
     volumes: *development-volumes
     depends_on:
       dependencies: { condition: service_completed_successfully }
+  quality:
+    profiles: [test]
+    image: nexora-dev:0.1.0
+    user: "0:0"
+    entrypoint: [sh, /workspace/scripts/quality-entrypoint.sh]
+    command: ["true"]
+    environment:
+      STORAGE_ROOT: /data/uploads
+    volumes:
+      - .:/workspace
+      - root_deps:/workspace/node_modules
+      - pnpm_store:/pnpm/store
+      - web_cache:/workspace/apps/web/.next
+      - apps_api_deps:/workspace/apps/api/node_modules
+      - apps_web_deps:/workspace/apps/web/node_modules
+      - packages_database_deps:/workspace/packages/database/node_modules
+      - packages_sdk_deps:/workspace/packages/sdk/node_modules
+      - packages_shared_deps:/workspace/packages/shared/node_modules
+      - packages_ui_deps:/workspace/packages/ui/node_modules
+      - api_dist:/workspace/apps/api/dist
+      - database_dist:/workspace/packages/database/dist
+      - shared_dist:/workspace/packages/shared/dist
+      - turbo_cache:/workspace/.turbo
+      - credentials:/config:ro
+      - runtime_credentials:/runtime-config:ro
+      - uploads:/data/uploads
   web:
     build: !reset null
     image: nexora-dev:0.1.0

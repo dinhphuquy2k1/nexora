@@ -1,3 +1,11 @@
+import { CarrierLifecycleController } from "./carrier/presentation/carrier-lifecycle.controller";
+import { CarrierConnectionLifecycleService } from "./carrier/application/carrier-connection-lifecycle.service";
+import { CarrierLifecycleAdapter } from "./carrier/infrastructure/carrier-lifecycle.adapter";
+import { PostgresSecurityAudit } from "./carrier/infrastructure/security-audit.adapter";
+import { CarrierCredentialVault } from "./carrier/infrastructure/carrier-credential-vault";
+import { UnishipHttpClient } from "./carrier/infrastructure/uniship/uniship-http.client";
+import { UnishipAdapter } from "./carrier/infrastructure/uniship/uniship-adapter";
+import { UserCarrierAdmission } from "./carrier/infrastructure/uniship/provider-budget";
 import { EnvironmentKeyring } from "./common/crypto/environment-keyring";
 import { SecretCipher } from "./common/crypto/secret-cipher";
 import { CarrierPort } from "./carrier/application/carrier.port";
@@ -32,12 +40,57 @@ export const CONFIG = "CONFIG";
 @Module({
   controllers: [
     CarrierController,
+    CarrierLifecycleController,
     HealthController,
     AuthController,
     UserManagementController,
     SetupPasswordController,
   ],
   providers: [
+    {
+      provide: CarrierLifecycleAdapter,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) =>
+        new CarrierLifecycleAdapter(c.DATABASE_URL),
+    },
+    {
+      provide: PostgresSecurityAudit,
+      inject: [CarrierLifecycleAdapter],
+      useFactory: (store: CarrierLifecycleAdapter) =>
+        new PostgresSecurityAudit(store.client),
+    },
+    {
+      provide: CarrierConnectionLifecycleService,
+      inject: [
+        CarrierLifecycleAdapter,
+        SecretCipher,
+        PostgresSecurityAudit,
+        CONFIG,
+      ],
+      useFactory: (
+        store: CarrierLifecycleAdapter,
+        cipher: SecretCipher,
+        audit: PostgresSecurityAudit,
+        c: ReturnType<typeof loadConfig>,
+      ) =>
+        new CarrierConnectionLifecycleService(
+          store,
+          new CarrierCredentialVault(
+            store,
+            cipher,
+            new UnishipAdapter(
+              new UnishipHttpClient({
+                apiUrl: c.UNISHIP_API_URL,
+                liveAuthorized: c.UNISHIP_LIVE_AUTHORIZED === "true",
+                isProduction: c.NODE_ENV === "production",
+              }),
+            ),
+            audit,
+          ),
+          new UserCarrierAdmission(),
+          audit,
+        ),
+    },
     {
       provide: SecretCipher,
       useFactory: () => new SecretCipher(new EnvironmentKeyring(process.env)),

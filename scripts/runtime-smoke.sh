@@ -15,13 +15,14 @@ cleanup(){
   status=$?; if [ "$status" -ne 0 ]; then compose logs --no-color --tail 60 >&2; fi;  compose down -v --remove-orphans >/dev/null; }
 trap cleanup EXIT HUP INT TERM
 if [ "${NEXORA_SMOKE_NO_BUILD:-0}" = 1 ]; then compose up --no-build -d --wait --wait-timeout 180; else compose up --build -d --wait --wait-timeout 180; fi
+python3 scripts/database-runtime-smoke.py
 compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/health/ready').then(async r=>{const b=await r.json();if(r.status!==200||!b.checks.database||!b.checks.storage)process.exit(1);console.log('Same-origin readiness PASS')})"
 compose exec -T web node -e "fetch('http://127.0.0.1:3000/api/missing',{headers:{authorization:'Bearer sensitive-test-marker'}}).then(async r=>{const b=await r.json();if(r.status!==404||b.code!=='NOT_FOUND'||!b.requestId||b.requestId!==r.headers.get('x-request-id'))process.exit(1);console.log('Proxy error contract PASS')})"
 logs=$(compose logs --no-color api)
 case "$logs" in *sensitive-test-marker*) echo 'Sensitive header leaked in logs' >&2; exit 1;; esac
 compose run --rm --no-deps -T migrate
 schema=$(compose exec -T postgres psql -U nexora -d nexora -Atc "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL; SELECT count(*) FROM stored_files;")
-[ "$schema" = "$(printf '7\n0')" ] || { echo 'Migrated schema assertion failed' >&2; exit 1; }
+[ "$schema" = "$(printf '8\n0')" ] || { echo 'Migrated schema assertion failed' >&2; exit 1; }
 compose exec -T api node -e "if(process.getuid()===0)process.exit(1)"
 compose exec -T web node -e "if(process.getuid()===0)process.exit(1)"
 

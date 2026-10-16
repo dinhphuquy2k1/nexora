@@ -1,5 +1,24 @@
 // Tooling vocabulary catalog; canonical runtime definitions stay in their domains.
 const fields = {
+  eventType: {
+    PASSWORD_DECRYPT: "CarrierAuditType.PASSWORD_DECRYPT",
+    CONNECT: "CarrierAuditType.CONNECT",
+    RECONNECT: "CarrierAuditType.RECONNECT",
+    RECOVERY: "CarrierAuditType.RECOVERY",
+  },
+  outcome: {
+    ALLOWED: "CarrierAuditOutcome.ALLOWED",
+    SUCCESS: "CarrierAuditOutcome.SUCCESS",
+    FAILURE: "CarrierAuditOutcome.FAILURE",
+  },
+  reason: {
+    RECOVERY_REQUESTED: "CarrierAuditReason.RECOVERY_REQUESTED",
+    VERIFIED: "CarrierAuditReason.VERIFIED",
+    INVALID_CREDENTIALS: "CarrierAuditReason.INVALID_CREDENTIALS",
+    DUPLICATE_ACCOUNT: "CarrierAuditReason.DUPLICATE_ACCOUNT",
+    IDENTITY_MISMATCH: "CarrierAuditReason.IDENTITY_MISMATCH",
+    UNAVAILABLE: "CarrierAuditReason.UNAVAILABLE",
+  },
   status: {
     ACTIVE: "UserStatus.ACTIVE",
     DISABLED: "UserStatus.DISABLED",
@@ -40,7 +59,9 @@ function field(node) {
   return name(node);
 }
 function normalize(value) {
-  return value === "secret_type" ? "secretType" : value;
+  if (value === "secret_type") return "secretType";
+  if (value === "event_type") return "eventType";
+  return value;
 }
 function connectionContext(node) {
   // ERROR alone is ambiguous (transport/logging may have the same status).
