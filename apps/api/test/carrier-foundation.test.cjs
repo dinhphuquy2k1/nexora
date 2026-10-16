@@ -1,3 +1,4 @@
+const { loginWithMfa } = require("./helpers/mfa-fixture.cjs");
 require("reflect-metadata");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -21,7 +22,6 @@ const { SecretCipher } = require("../dist/common/crypto/secret-cipher");
 const {
   UserManagementAdapter,
 } = require("../dist/identity/infrastructure/user-management.adapter");
-const { AuthService } = require("../dist/identity/application/auth.service");
 const {
   IdentityDatabaseAdapter,
 } = require("../dist/identity/infrastructure/identity.adapter");
@@ -159,9 +159,7 @@ test(
       await assertRuntimePrivileges(url.toString(), runtimePassword);
       const tokens = await Promise.all(
         users.map((u) =>
-          new AuthService(identity)
-            .login(u.username, password)
-            .then((r) => r.token),
+          loginWithMfa(identity, u.username, password).then((r) => r.token),
         ),
       );
       process.env.DATABASE_URL = applicationUrl;

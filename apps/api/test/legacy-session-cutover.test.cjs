@@ -113,13 +113,9 @@ test(
         );
       const tokens = users.map(() => randomBytes(32).toString("hex"));
       for (let i = 0; i < users.length; i++)
-        await identity.createSession(
-          users[i].id,
-          digest(tokens[i]),
-          new Date(Date.now() + 86400000),
-        );
+        await db.$executeRaw`INSERT INTO sessions(id,user_id,token_hash,expires_at) VALUES(${randomUUID()}::uuid,${users[i].id}::uuid,${digest(tokens[i])},${new Date(Date.now() + 86400000)})`;
       const expired = randomBytes(32).toString("hex");
-      await identity.createSession(users[1].id, digest(expired), new Date(0));
+      await db.$executeRaw`INSERT INTO sessions(id,user_id,token_hash,expires_at) VALUES(${randomUUID()}::uuid,${users[1].id}::uuid,${digest(expired)},${new Date(0)})`;
       await db.storedFile.create({
         data: { id: randomUUID(), sha256: "c".repeat(64), sizeBytes: 321 },
       });
@@ -131,8 +127,39 @@ test(
         files: await db.storedFile.findMany({ orderBy: { id: "asc" } }),
       });
       const before = await preserved();
-      const sessions = await db.session.findMany({ orderBy: { id: "asc" } });
-      const auth = new AuthService(identity);
+      const sessions = await db.session.findMany({
+        select: {
+          id: true,
+          tokenHash: true,
+          userId: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+        orderBy: { id: "asc" },
+      });
+      // Historical stages have no auth_level. Query their real rows explicitly;
+      // do not run the new-schema session adapter against an old schema.
+      let auth = new AuthService({
+        findSessionByTokenHash: async (tokenHash) => {
+          const rows =
+            await db.$queryRaw`SELECT s.id,s.user_id,s.expires_at,s.created_at,u.username,u.status FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=${tokenHash}`;
+          const row = rows[0];
+          return row && row.status === "ACTIVE"
+            ? {
+                session: {
+                  id: row.id,
+                  userId: row.user_id,
+                  expiresAt: row.expires_at,
+                  createdAt: row.created_at,
+                },
+                user: { id: row.user_id, username: row.username },
+              }
+            : null;
+        },
+        deleteSessionByTokenHash: async (tokenHash) => {
+          await db.session.deleteMany({ where: { tokenHash } });
+        },
+      });
       assert.ok(await auth.validateSession(tokens[0]));
       assert.ok(await auth.validateSession(tokens[1]));
       assert.ok(await auth.validateSession(tokens[2]));
@@ -147,7 +174,16 @@ test(
       deploy();
       assert.deepEqual(await preserved(), before);
       assert.deepEqual(
-        await db.session.findMany({ orderBy: { id: "asc" } }),
+        await db.session.findMany({
+          select: {
+            id: true,
+            tokenHash: true,
+            userId: true,
+            expiresAt: true,
+            createdAt: true,
+          },
+          orderBy: { id: "asc" },
+        }),
         sessions,
       );
       assert.ok(await auth.validateSession(tokens[1]));
@@ -184,6 +220,18 @@ test(
       assert.ok(await auth.validateSession(tokens[0]));
       assert.ok(await auth.validateSession(tokens[2]));
       stage = "NO_RESURRECTION_AFTER_PASSWORD_SETUP";
+      for (const migration of [
+        "20261015020000_carrier_connections",
+        "20261016000000_carrier_lifecycle",
+        "20261016010000_admin_totp_mfa",
+      ])
+        await cp(
+          join(databaseRoot, "prisma/migrations", migration),
+          join(work, "migrations", migration),
+          { recursive: true },
+        );
+      deploy();
+      auth = new AuthService(identity);
       const {
         UserManagementAdapter,
       } = require("../dist/identity/infrastructure/user-management.adapter");
@@ -203,10 +251,28 @@ test(
           "CutoverFixturePassword!",
         );
         assert.ok(await auth.validateSession(fresh.token));
-        const retained = await db.session.findMany({ orderBy: { id: "asc" } });
+        const retained = await db.session.findMany({
+          select: {
+            id: true,
+            tokenHash: true,
+            userId: true,
+            expiresAt: true,
+            createdAt: true,
+          },
+          orderBy: { id: "asc" },
+        });
         deploy();
         assert.deepEqual(
-          await db.session.findMany({ orderBy: { id: "asc" } }),
+          await db.session.findMany({
+            select: {
+              id: true,
+              tokenHash: true,
+              userId: true,
+              expiresAt: true,
+              createdAt: true,
+            },
+            orderBy: { id: "asc" },
+          }),
           retained,
         );
       } finally {

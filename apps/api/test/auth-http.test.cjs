@@ -6,6 +6,7 @@ const { NestFactory, APP_GUARD } = require("@nestjs/core");
 const {
   AuthController,
 } = require("../dist/identity/presentation/auth.controller");
+const { MfaService } = require("../dist/identity/application/mfa.service");
 const { AuthService } = require("../dist/identity/application/auth.service");
 const { SessionGuard } = require("../dist/identity/presentation/session.guard");
 const { OriginGuard } = require("../dist/identity/presentation/origin.guard");
@@ -25,6 +26,7 @@ test("real Nest HTTP rejects Origin/type/session failures and preserves safe err
     controllers: [AuthController],
     providers: [
       { provide: AuthService, useValue: service },
+      { provide: MfaService, useValue: {} },
       {
         provide: "CONFIG",
         useValue: { trustedOrigins: ["http://localhost:3101"] },

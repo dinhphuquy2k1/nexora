@@ -1,4 +1,5 @@
 import { PrismaClient, createDatabase, verifyPassword } from "@nexora/database";
+import { AuthLevel } from "../domain/session-assurance";
 import { UserStatus, UserRole } from "../domain/user-policy";
 import { IdentityPort } from "../application/identity.port";
 import type {
@@ -66,7 +67,7 @@ export class IdentityDatabaseAdapter implements IdentityPort {
       if (
         !user ||
         user.status !== UserStatus.ACTIVE ||
-        !(user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR)
+        user.role !== UserRole.OPERATOR
       )
         return null;
       const credential = await tx.userCredential.findUnique({
@@ -91,6 +92,7 @@ export class IdentityDatabaseAdapter implements IdentityPort {
       },
     });
     return {
+      authLevel: session.authLevel as AuthLevel,
       id: session.id,
       userId: session.userId,
       expiresAt: session.expiresAt,
@@ -110,6 +112,7 @@ export class IdentityDatabaseAdapter implements IdentityPort {
 
     return {
       session: {
+        authLevel: record.authLevel as AuthLevel,
         id: record.id,
         userId: record.userId,
         expiresAt: record.expiresAt,

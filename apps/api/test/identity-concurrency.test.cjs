@@ -1,3 +1,4 @@
+const { loginWithMfa } = require("./helpers/mfa-fixture.cjs");
 require("reflect-metadata");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -80,7 +81,7 @@ test(
       };
       stage = "LOCAL_LOGIN_AND_SETUP";
       const auth = new AuthService(identity);
-      await auth.login(admins[0].username, password);
+      await loginWithMfa(identity, admins[0].username, password);
       const first = await operator();
       await a.consume(first.token, hash);
       await auth.login(first.username, password);
@@ -217,7 +218,11 @@ test(
       const base = await app.getUrl();
       const { loadConfig } = require("../dist/config");
       const origin = loadConfig(process.env).trustedOrigins[0];
-      const adminSession = await auth.login(admins[0].username, password);
+      const adminSession = await loginWithMfa(
+        identity,
+        admins[0].username,
+        password,
+      );
       const opSession = await auth.login(first.username, password);
       const request = (route, token, method = "GET", body) =>
         fetch(base + route, {

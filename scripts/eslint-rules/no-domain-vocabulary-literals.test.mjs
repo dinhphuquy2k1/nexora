@@ -177,6 +177,7 @@ test("guard catalog covers every canonical owning-domain value", async () => {
   const { readFile } = await import("node:fs/promises");
   const eslint = new ESLint();
   for (const [path, objects] of [
+    ["identity/domain/session-assurance.ts", { AuthLevel: "authLevel" }],
     [
       "identity/domain/user-policy.ts",
       { UserStatus: "status", UserRole: "role" },

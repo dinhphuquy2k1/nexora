@@ -110,7 +110,7 @@ test("successful Login clears only its account failures and releases reservation
   h.port.findUserByUsername = async (username) => ({
     id: username,
     username,
-    role: "ADMIN",
+    role: "OPERATOR",
     status: "ACTIVE",
     passwordHash: "fixture",
   });

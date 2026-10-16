@@ -5,6 +5,9 @@ export const RUNTIME_ROLE = "nexora_app";
 export const RUNTIME_GRANTS = {
   users: ["SELECT", "INSERT", "UPDATE"],
   user_credentials: ["SELECT", "INSERT"],
+  user_mfa: ["SELECT", "INSERT"],
+  mfa_challenges: ["SELECT", "INSERT", "DELETE"],
+  mfa_recovery_codes: ["SELECT", "INSERT"],
   sessions: ["SELECT", "INSERT", "DELETE"],
   operator_setup_tokens: ["SELECT", "INSERT", "UPDATE"],
   carrier_connections: ["SELECT", "INSERT", "UPDATE", "DELETE"],
@@ -95,6 +98,9 @@ export async function provisionRuntime(adminUrl, password) {
       await db.query(
         `GRANT ${grants.join(",")} ON TABLE public.${identifier(table)} TO nexora_app`,
       );
+    await db.query(
+      "GRANT UPDATE(last_used_step) ON user_mfa TO nexora_app; GRANT UPDATE(consumed_at) ON mfa_challenges TO nexora_app; GRANT UPDATE(used_at) ON mfa_recovery_codes TO nexora_app",
+    );
     await db.query(
       "GRANT INSERT ON TABLE public.security_audit_events TO nexora_app; GRANT SELECT(id) ON TABLE public.security_audit_events TO nexora_app",
     );

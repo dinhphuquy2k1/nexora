@@ -1,3 +1,7 @@
+import { MfaPort } from "./identity/application/mfa.port";
+import { MfaService } from "./identity/application/mfa.service";
+import { IdentityMfaAdapter } from "./identity/infrastructure/mfa.adapter";
+import { AdminBoundaryGuard } from "./identity/presentation/admin-boundary.guard";
 import { CarrierLifecycleController } from "./carrier/presentation/carrier-lifecycle.controller";
 import { CarrierConnectionLifecycleService } from "./carrier/application/carrier-connection-lifecycle.service";
 import { CarrierLifecycleAdapter } from "./carrier/infrastructure/carrier-lifecycle.adapter";
@@ -139,8 +143,9 @@ export const CONFIG = "CONFIG";
     },
     {
       provide: AuthService,
-      inject: [IdentityPort],
-      useFactory: (port: IdentityPort) => new AuthService(port),
+      inject: [IdentityPort, MfaPort],
+      useFactory: (port: IdentityPort, mfa: MfaPort) =>
+        new AuthService(port, Date.now, mfa),
     },
     {
       provide: OriginGuard,
@@ -162,12 +167,29 @@ export const CONFIG = "CONFIG";
         c: ReturnType<typeof loadConfig>,
       ) => new UserManagementService(port, auth, c.trustedOrigins),
     },
+    {
+      provide: MfaPort,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) =>
+        new IdentityMfaAdapter(
+          c.DATABASE_URL,
+          new SecretCipher(new EnvironmentKeyring(process.env, "IDENTITY")),
+        ),
+    },
+    {
+      provide: MfaService,
+      inject: [MfaPort, AuthService],
+      useFactory: (port: MfaPort, auth: AuthService) =>
+        new MfaService(port, auth),
+    },
     AdminGuard,
+    AdminBoundaryGuard,
     SessionGuard,
     {
       provide: APP_GUARD,
       useClass: SessionGuard,
     },
+    { provide: APP_GUARD, useClass: AdminBoundaryGuard },
   ],
   exports: [AuthService, SessionGuard, OriginGuard],
 })

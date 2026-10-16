@@ -1,5 +1,6 @@
 // Tooling vocabulary catalog; canonical runtime definitions stay in their domains.
 const fields = {
+  authLevel: { PASSWORD: "AuthLevel.PASSWORD", MFA: "AuthLevel.MFA" },
   eventType: {
     PASSWORD_DECRYPT: "CarrierAuditType.PASSWORD_DECRYPT",
     CONNECT: "CarrierAuditType.CONNECT",
@@ -59,6 +60,7 @@ function field(node) {
   return name(node);
 }
 function normalize(value) {
+  if (value === "auth_level") return "authLevel";
   if (value === "secret_type") return "secretType";
   if (value === "event_type") return "eventType";
   return value;

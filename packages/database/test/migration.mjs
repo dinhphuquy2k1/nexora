@@ -309,20 +309,23 @@ try {
     [configuredOperator.id, new Date(Date.now() + 86400000)],
     [disabledOperator.id, new Date(Date.now() + 86400000)],
   ]) {
-    await db.session.create({
-      data: {
-        userId,
-        tokenHash: createHash("sha256").update(randomUUID()).digest("hex"),
-        expiresAt,
-      },
-    });
+    await db.$executeRaw`INSERT INTO sessions(id,user_id,token_hash,expires_at) VALUES(${randomUUID()}::uuid,${userId}::uuid,${createHash("sha256").update(randomUUID()).digest("hex")},${expiresAt})`;
   }
   const preserved = {
     users: await db.user.findMany({
       include: { credential: true },
       orderBy: { id: "asc" },
     }),
-    sessions: await db.session.findMany({ orderBy: { id: "asc" } }),
+    sessions: await db.session.findMany({
+      select: {
+        id: true,
+        tokenHash: true,
+        userId: true,
+        expiresAt: true,
+        createdAt: true,
+      },
+      orderBy: { id: "asc" },
+    }),
     files: await db.storedFile.findMany({ orderBy: { id: "asc" } }),
   };
   step = "LOCAL_IDENTITY_FORWARD_MIGRATION";
@@ -339,7 +342,16 @@ try {
         include: { credential: true },
         orderBy: { id: "asc" },
       }),
-      sessions: await db.session.findMany({ orderBy: { id: "asc" } }),
+      sessions: await db.session.findMany({
+        select: {
+          id: true,
+          tokenHash: true,
+          userId: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+        orderBy: { id: "asc" },
+      }),
       files: await db.storedFile.findMany({ orderBy: { id: "asc" } }),
     },
     preserved,
@@ -379,7 +391,16 @@ try {
   );
   command(url.toString(), config, ["migrate", "deploy"]);
   assert.deepEqual(
-    await db.session.findMany({ orderBy: { id: "asc" } }),
+    await db.session.findMany({
+      select: {
+        id: true,
+        tokenHash: true,
+        userId: true,
+        expiresAt: true,
+        createdAt: true,
+      },
+      orderBy: { id: "asc" },
+    }),
     preserved.sessions.filter(
       (session) =>
         ![operatorUser.id, disabledOperator.id].includes(session.userId),
@@ -415,7 +436,16 @@ try {
       include: { credential: true },
       orderBy: { id: "asc" },
     }),
-    sessions: await db.session.findMany({ orderBy: { id: "asc" } }),
+    sessions: await db.session.findMany({
+      select: {
+        id: true,
+        tokenHash: true,
+        userId: true,
+        expiresAt: true,
+        createdAt: true,
+      },
+      orderBy: { id: "asc" },
+    }),
     tokens: await db.operatorSetupToken.findMany({ orderBy: { id: "asc" } }),
     files: await db.storedFile.findMany({ orderBy: { id: "asc" } }),
   };
@@ -432,7 +462,16 @@ try {
         include: { credential: true },
         orderBy: { id: "asc" },
       }),
-      sessions: await db.session.findMany({ orderBy: { id: "asc" } }),
+      sessions: await db.session.findMany({
+        select: {
+          id: true,
+          tokenHash: true,
+          userId: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+        orderBy: { id: "asc" },
+      }),
       tokens: await db.operatorSetupToken.findMany({ orderBy: { id: "asc" } }),
       files: await db.storedFile.findMany({ orderBy: { id: "asc" } }),
     },
@@ -490,6 +529,49 @@ try {
   );
   assert.equal(await db.securityAuditEvent.count(), 0);
   assert.equal(await db.carrierUserState.count(), 0);
+
+  step = "MFA_FORWARD_PRESERVATION";
+  const baselineTables = [
+    "users",
+    "user_credentials",
+    "sessions",
+    "operator_setup_tokens",
+    "stored_files",
+    "carrier_connections",
+    "carrier_connection_secrets",
+    "carrier_user_states",
+    "security_audit_events",
+  ];
+  const baselineRows = {};
+  for (const table of baselineTables)
+    baselineRows[table] = await db.$queryRawUnsafe(
+      `SELECT * FROM ${table} ORDER BY 1`,
+    );
+  const mfaMigration = "20261016010000_admin_totp_mfa";
+  await cp(
+    resolve("prisma/migrations", mfaMigration),
+    join(work, "prisma/migrations", mfaMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  for (const table of baselineTables) {
+    const rows = await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`);
+    assert.deepEqual(
+      table === "sessions"
+        ? rows.map(({ auth_level, ...row }) => {
+            assert.equal(auth_level, "PASSWORD");
+            return row;
+          })
+        : rows,
+      baselineRows[table],
+    );
+  }
+  assert.equal(await db.userMfa.count(), 0);
+  assert.equal(await db.mfaChallenge.count(), 0);
+  assert.equal(await db.mfaRecoveryCode.count(), 0);
+  await assert.rejects(
+    db.$executeRawUnsafe("UPDATE sessions SET auth_level='UNTRUSTED'"),
+  );
 
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({

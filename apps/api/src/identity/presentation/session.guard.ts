@@ -8,6 +8,7 @@ import {
 import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import { AuthService } from "../application/auth.service";
+import { isAdminBoundary } from "./admin-boundary";
 import { IS_PUBLIC_KEY } from "./public.decorator";
 
 export function extractSessionToken(cookieHeader?: string): string | null {
@@ -34,7 +35,7 @@ export class SessionGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (isPublic) {
+    if (isPublic && !isAdminBoundary(context)) {
       return true;
     }
 

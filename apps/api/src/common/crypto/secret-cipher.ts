@@ -10,7 +10,10 @@ export class CryptoFailure extends Error {
     super("SECRET_CRYPTO_UNAVAILABLE");
   }
 }
-export type CryptoPurpose = "CARRIER_TOKEN" | "CARRIER_PASSWORD";
+export type CryptoPurpose =
+  | "CARRIER_TOKEN"
+  | "CARRIER_PASSWORD"
+  | "IDENTITY_TOTP";
 export interface KeyProvider {
   activeVersion(): number;
   key(version: number): Buffer;
@@ -38,7 +41,7 @@ export class SecretCipher {
     if (
       !Number.isSafeInteger(version) ||
       version < 1 ||
-      !["CARRIER_TOKEN", "CARRIER_PASSWORD"].includes(purpose)
+      !["CARRIER_TOKEN", "CARRIER_PASSWORD", "IDENTITY_TOTP"].includes(purpose)
     )
       throw new CryptoFailure();
     const master = this.keys.key(version);
@@ -47,7 +50,11 @@ export class SecretCipher {
       hkdfSync(
         "sha256",
         master,
-        Buffer.from("NEXORA_CARRIER_V1"),
+        Buffer.from(
+          purpose === "IDENTITY_TOTP"
+            ? "NEXORA_IDENTITY_V1"
+            : "NEXORA_CARRIER_V1",
+        ),
         Buffer.from(purpose),
         32,
       ),

@@ -113,6 +113,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AuthController_verifyMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/mfa/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AuthController_cancelMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/session": {
         parameters: {
             query?: never;
@@ -304,6 +336,22 @@ export interface components {
             message: string;
             requestId: string;
         };
+        UserDto: {
+            /** @description Mã định danh người dùng */
+            id: string;
+            /** @description Tên đăng nhập */
+            username: string;
+        };
+        LoginResponseDto: {
+            user: components["schemas"]["UserDto"];
+        };
+        MfaRequiredResponseDto: {
+            /**
+             * @description Password accepted; pending MFA only, no authenticated session
+             * @enum {boolean}
+             */
+            mfaRequired: true;
+        };
         LoginRequestDto: {
             /**
              * @description Tên đăng nhập
@@ -316,21 +364,13 @@ export interface components {
              */
             password: string;
         };
-        UserDto: {
-            /** @description Mã định danh người dùng */
-            id: string;
-            /** @description Tên đăng nhập */
-            username: string;
+        MfaVerifyRequestDto: {
+            /** @enum {string} */
+            type: "totp" | "recovery";
+            /** @description Six ASCII TOTP digits or four groups of eight recovery-code hex characters */
+            code: string;
         };
-        LoginResponseDto: {
-            user: components["schemas"]["UserDto"];
-        };
-        SessionResponseDto: {
-            /**
-             * @description Trạng thái xác thực
-             * @example true
-             */
-            authenticated: boolean;
+        MfaVerifyResponseDto: {
             user: components["schemas"]["UserDto"];
         };
         LogoutResponseDto: {
@@ -339,6 +379,14 @@ export interface components {
              * @example true
              */
             success: boolean;
+        };
+        SessionResponseDto: {
+            /**
+             * @description Trạng thái xác thực
+             * @example true
+             */
+            authenticated: boolean;
+            user: components["schemas"]["UserDto"];
         };
         CreateOperatorDto: {
             /** @example operator_one */
@@ -762,7 +810,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LoginResponseDto"];
+                    "application/json": components["schemas"]["LoginResponseDto"] | components["schemas"]["MfaRequiredResponseDto"];
                 };
             };
             /** @description Yêu cầu không hợp lệ hoặc thiếu thông tin */
@@ -794,6 +842,88 @@ export interface operations {
             };
             /** @description Quá nhiều lần đăng nhập thất bại */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    AuthController_verifyMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaVerifyRequestDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaVerifyResponseDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    AuthController_cancelMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogoutResponseDto"];
+                };
+            };
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

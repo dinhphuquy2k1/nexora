@@ -5,6 +5,8 @@ import { normalizeUsername, isLoginPassword } from "../domain/credentials";
 import { UserRole, UserStatus } from "../domain/user-policy";
 import type { UserSummary } from "../domain/identity.types";
 
+import { MfaPort } from "./mfa.port";
+
 interface RateLimitEntry {
   count: number;
   resetAt: number;
@@ -35,6 +37,7 @@ export class AuthService {
   constructor(
     private readonly port: IdentityPort,
     private readonly now: () => number = Date.now,
+    private readonly mfa?: MfaPort,
   ) {
     this.lastRefill = this.now();
   }
@@ -109,7 +112,10 @@ export class AuthService {
   async login(
     usernameInput: unknown,
     password: unknown,
-  ): Promise<{ user: UserSummary; token: string; expiresAt: Date }> {
+  ): Promise<
+    | { user: UserSummary; token: string; expiresAt: Date }
+    | { mfaRequired: true; challengeToken: string }
+  > {
     const username = normalizeUsername(usernameInput);
     if (!username || !isLoginPassword(password)) {
       throw new HttpException(
@@ -140,6 +146,33 @@ export class AuthService {
           401,
         );
       if (!eligible || !matches) throw denied();
+      if (record.role === UserRole.ADMIN) {
+        if (!this.mfa)
+          throw new HttpException(
+            {
+              code: "MFA_ENROLLMENT_REQUIRED",
+              message: "Cần thiết lập MFA bằng CLI trên máy chủ.",
+            },
+            403,
+          );
+        const challengeToken = randomBytes(32).toString("hex");
+        const issued = await this.mfa.issueChallenge(
+          record.id,
+          record.passwordHash!,
+          createHash("sha256").update(challengeToken).digest("hex"),
+          new Date(this.now() + 5 * 60 * 1000),
+        );
+        if (issued === "NOT_ENROLLED")
+          throw new HttpException(
+            {
+              code: "MFA_ENROLLMENT_REQUIRED",
+              message: "Cần thiết lập MFA bằng CLI trên máy chủ.",
+            },
+            403,
+          );
+        if (!issued) throw denied();
+        return { mfaRequired: true as const, challengeToken };
+      }
       const token = randomBytes(32).toString("hex");
       const expiresAt = new Date(this.now() + SESSION_TTL_MS);
       const user = await this.port.createSessionIfUnchanged(
@@ -163,7 +196,7 @@ export class AuthService {
 
     if (!result) return null;
 
-    if (result.session.expiresAt.getTime() < Date.now()) {
+    if (result.session.expiresAt.getTime() <= Date.now()) {
       // Best-effort expired session invalidation with safe error handling to prevent unhandled rejections
       void this.port.deleteSessionByTokenHash(tokenHash).catch(() => {
         // Silently swallow cleanup error; expired session is already treated as null
