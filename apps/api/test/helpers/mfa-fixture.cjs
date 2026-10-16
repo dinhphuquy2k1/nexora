@@ -40,7 +40,7 @@ async function loginWithMfa(identity, username, password) {
           verified.id,
           verified.passwordHash,
           secret,
-          Math.floor(Date.now() / 30000) - 1,
+          Math.floor(Date.now() / 30000),
           codes.map(hashRecoveryCode),
         );
       } finally {
@@ -52,10 +52,13 @@ async function loginWithMfa(identity, username, password) {
     if (!codes.length) throw Error("Test MFA recovery fixture exhausted");
     const auth = new AuthService(identity, Date.now, adapter),
       challenge = await auth.login(username, password);
-    return new MfaService(adapter, auth).verify(challenge.challengeToken, {
-      type: "recovery",
-      code: codes.shift(),
-    });
+    return await new MfaService(adapter, auth).verify(
+      challenge.challengeToken,
+      {
+        type: "recovery",
+        code: codes.shift(),
+      },
+    );
   } finally {
     await adapter.onApplicationShutdown();
   }

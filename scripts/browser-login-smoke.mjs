@@ -69,6 +69,7 @@ const exited = new Promise((resolve) => {
   child.once("error", resolve);
 });
 let socket;
+let restartMfaSession;
 try {
   checks.step("BROWSER_LAUNCH");
   let port;
@@ -99,6 +100,7 @@ try {
   let setupSecret;
   let setupStatus;
   let leakedSetupSecret = false;
+  let pausedMfa;
   let mfaStatus;
   let loginStatus;
   let loginUrl;
@@ -113,6 +115,8 @@ try {
         else operation.resolve(message.result);
       }
     }
+    if (message.method === "Fetch.requestPaused")
+      pausedMfa = message.params.requestId;
     if (setupSecret && message.method === "Network.requestWillBeSent") {
       const request = message.params.request;
       if (
@@ -266,11 +270,60 @@ try {
           c.sameSite === "Strict",
       ),
     );
+    const composeMfa = [
+      "compose",
+      "-f",
+      "compose.yml",
+      ...(process.env.NEXORA_COMPOSE_OVERRIDE
+        ? ["-f", process.env.NEXORA_COMPOSE_OVERRIDE]
+        : []),
+    ];
+    const restartMfaApi = async () => {
+      const result = spawnSync("docker", [...composeMfa, "restart", "api"], {
+        stdio: "pipe",
+        timeout: 45000,
+      });
+      assert.equal(result.status, 0);
+      const deadline = Date.now() + 30000;
+      let ready = false;
+      while (Date.now() < deadline) {
+        try {
+          ready =
+            (
+              await fetch(baseUrl + "/api/health/ready", {
+                signal: AbortSignal.timeout(2000),
+              })
+            ).status === 200;
+        } catch {
+          /* actual runtime restart */
+        }
+        if (ready) break;
+        await delay(100);
+      }
+      assert.ok(ready, "API did not recover from restart");
+    };
+    checks.step("ADMIN_PENDING_CHALLENGE_API_RESTART");
+    await restartMfaApi();
+    await send("Fetch.enable", {
+      patterns: [
+        { urlPattern: "*/api/auth/mfa/verify", requestStage: "Request" },
+      ],
+    });
     const submitCode = async (value) => {
       await evaluate('document.querySelector("input[name=mfa-code]").focus()');
       await send("Input.insertText", { text: value });
       mfaStatus = undefined;
+      pausedMfa = undefined;
       await evaluate('document.querySelector("button[type=submit]").click()');
+      for (let i = 0; i < 100 && !pausedMfa; i++) await delay(20);
+      assert.ok(pausedMfa, "Expected paused MFA request");
+      assert.equal(
+        await evaluate(
+          'document.querySelector("button[type=submit]").disabled',
+        ),
+        true,
+      );
+      await send("Fetch.continueRequest", { requestId: pausedMfa });
       for (let i = 0; i < 100 && mfaStatus === undefined; i++) await delay(100);
       return mfaStatus;
     };
@@ -366,19 +419,14 @@ try {
       await delay(100);
     }
     checks.step("ADMIN_MFA_SUCCESS");
-    checks.status(await submitCode(totp(mfaSetupKey)), 200);
-    assert.equal(
-      await evaluate(
-        `JSON.stringify({...localStorage,...sessionStorage}).includes(${JSON.stringify(mfaSetupKey)})`,
-      ),
-      false,
+    checks.status(await submitCode(totp(mfaSetupKey, 1)), 200);
+    await send("Fetch.disable");
+    const browserStorage = await evaluate(
+      "JSON.stringify({...localStorage,...sessionStorage})",
     );
-    assert.equal(
-      await evaluate(
-        `JSON.stringify({...localStorage,...sessionStorage}).includes(${JSON.stringify(recoveryCodes[0])})`,
-      ),
-      false,
-    );
+    assert.equal(browserStorage.includes(mfaSetupKey), false);
+    assert.equal(browserStorage.includes(recoveryCodes[0]), false);
+    restartMfaSession = restartMfaApi;
   }
   checks.step("LOGIN_RESPONSE_AND_NAVIGATION");
   let location;
@@ -424,6 +472,15 @@ try {
   checks.status(session.status, 200);
   assert.equal(session.data.authenticated, true);
   assert.equal(session.data.user.username, username);
+  if (restartMfaSession) {
+    checks.step("ADMIN_MFA_SESSION_API_RESTART");
+    await restartMfaSession();
+    checks.status(
+      await evaluate('fetch("/api/auth/session").then(r=>r.status)'),
+      200,
+    );
+  }
+
   checks.step("OPERATOR_SETUP_LINK");
   const operatorName = "browser-" + Date.now();
   const created = await evaluate(

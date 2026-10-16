@@ -1,4 +1,5 @@
 require("reflect-metadata");
+const { setImmediate } = require("node:timers");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { randomUUID, randomBytes, createHash } = require("node:crypto");
@@ -125,7 +126,7 @@ test(
           user.id,
           passwordHash,
           secret,
-          Math.floor(Date.now() / 30000) - 1,
+          Math.floor(Date.now() / 30000),
           codes.map(hashRecoveryCode),
         );
         return { user, secret, codes };
@@ -207,7 +208,7 @@ test(
         async () => {
           const c1 = await challenge(),
             c2 = await challenge(),
-            code = totpAt(af.secret, Math.floor(Date.now() / 30000)),
+            code = totpAt(af.secret, Math.floor(Date.now() / 30000) + 1),
             input = { type: "totp", code };
           const settled = await Promise.allSettled([
             verify(c1, input),
@@ -494,7 +495,25 @@ test(
           await locked.promise;
           const pending = verify(c, recovery(f)),
             rejected = assert.rejects(pending);
-          release.resolve();
+          let waited = false;
+          try {
+            const deadline = Date.now() + 2000;
+            while (Date.now() < deadline) {
+              const rows =
+                await db.$queryRaw`SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND usename='nexora_app' AND wait_event_type='Lock' AND query LIKE '%FROM users%') AS waiting`;
+              if (rows[0].waiting) {
+                waited = true;
+                break;
+              }
+              await new Promise((resolve) => setImmediate(resolve));
+            }
+            assert.ok(
+              waited,
+              "MFA verifier must actually wait on the locked user",
+            );
+          } finally {
+            release.resolve();
+          }
           await blocking;
           await rejected;
           assert.equal(
@@ -621,7 +640,7 @@ test(
             before = await db.userMfa.findUnique({ where: { userId: u.id } }),
             input = {
               type: "totp",
-              code: totpAt(f.secret, Math.floor(Date.now() / 30000)),
+              code: totpAt(f.secret, Math.floor(Date.now() / 30000) + 1),
             };
           await db.$executeRawUnsafe(
             "CREATE FUNCTION reject_mfa_step_session() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled rollback'; END $$",
