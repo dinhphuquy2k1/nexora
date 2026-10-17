@@ -1,5 +1,13 @@
 # Testing
 
+## Current review regressions — NEXORA-025
+
+Targeted password tests run `node --test packages/database/test/password.test.mjs` against the actual TypeScript crypto implementation; malformed format matrix includes empty/nonhex/odd/truncated salt/key, missing/extra fields, duplicate/unknown/invalid/suffixed costs and trailing newline. Correct/wrong password and random salts remain covered. Web tests include control-character authority escapes and normalized internal query/fragment plus real HTTP session-deadline tests (no headers and unfinished body), proving abort/connection closure.
+
+LOCAL runtime smoke executes committed `node scripts/browser-account-ready.test.mjs` using real Chromium and the delayed-handler/menu HTML fixture, then the full application browser harness. The fixture demonstrates why DOM-only clicks cannot prove readiness. A shared disclosure helper waits for aria-expanded, controlled panel and enabled logout before a single logout; no credential/logout/assertion retry or deadline inflation. The real harness observes logout HTTP success, cookie removal and rejected replay of the previous token, retaining Origin/failure/pending cancellation assertions. Native password/MFA return navigation and authenticated server redirects use percent-encoded controls and block the dummy attacker domain.
+
+RuntimeDatabase unit tests cover lazy single construction and exactly-once shutdown. Genuine restricted-role Carrier foundation integration asserts all six Nest-injected adapters share the same client, adapter shutdown does not disconnect peers, bounded expired/active/boundary cleanup and exact related-table/session preservation. Existing MFA/Carrier concurrency/readiness suites remain mandatory. Host Prisma downloads may be blocked; report that separately and use full genuine Foundation at the final PR head, never fabricated engines or historical CI. NEXORA-025 owns executed RED/GREEN/final evidence.
+
 `sh scripts/quality-docker.sh` starts development mode, then runs frozen-installed formatting, architectural lint, typecheck, meaningful unit tests, contract drift, build and migrated PostgreSQL integration inside the separate profile-gated quality test runner in Docker. It pauses API/web watchers while build outputs are rewritten, restarts them on exit and does not delete volumes. Use the `run` mapped-user entrypoint for commands writing generated outputs rather than bypassing it with exec.
 
 ```sh

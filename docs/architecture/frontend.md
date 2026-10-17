@@ -1,5 +1,13 @@
 # Frontend Architecture
 
+## Current redirect, verification and presentation hardening — NEXORA-025
+
+IMPLEMENTED: every server and password/MFA return redirect uses the same sanitizer. It rejects controls/DEL, backslashes, absolute and protocol-relative input, parses against a fixed trusted synthetic origin, checks the normalized origin, then returns internal path/query/fragment only (fallback `/`). Dot segments normalize; valid query/fragment survive. Percent-encoded `from` regressions cover actual browser password/MFA and authenticated server redirects without visiting external sites.
+
+SSR session verification has a five-second AbortController deadline covering headers and body, retaining no-store and authenticated/unauthenticated/unavailable distinctions. Timeout/malformed200/backend outage is unavailable, not logout; Next redirects remain outside catches. Real stalled-header and stalled-body HTTP tests verify request closure.
+
+AppShell/Settings derive minimal profile presentation text on the server; client shell receives only badge/session/runtime strings, no policy/environment or secrets. LOCAL labels remain local; PUBLIC_HTTPS displays HTTPS. Settings now describes implemented authentication/MFA instead of claiming there is none. Production gates remain open under NEXORA-024; verification of these changes is tracked in NEXORA-025.
+
 ## Current identity and deployment profiles
 
 Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. LOCAL remains the default loopback profile. NEXORA-024 adds the explicit PUBLIC_HTTPS application/ingress profile; real production activation still requires DNS/TLS/firewall/host NTP evidence. Carrier UI and shipment sync remain PLANNED. Executed full canonical verification is recorded in completed NEXORA-022; PR19 records the final exact-head CI.

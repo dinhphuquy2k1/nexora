@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8" />
+<button aria-label="Tài khoản người dùng: fixture" aria-expanded="false">
+  Account
+</button>
+<script>
+  // Intentionally separate DOM arrival, handler attachment and menu rendering.
+  window.attachHandlers = () => {
+    const trigger = document.querySelector("button");
+    trigger.onclick = () => {
+      if (trigger.getAttribute("aria-expanded") === "true") return;
+      trigger.setAttribute("aria-expanded", "true");
+      trigger.setAttribute("aria-controls", "account-panel");
+      setTimeout(() => {
+        const panel = document.createElement("div");
+        panel.id = "account-panel";
+        panel.innerHTML =
+          '<button aria-label="Đăng xuất khỏi hệ thống">Logout</button>';
+        panel.querySelector("button").onclick = () => {
+          document.documentElement.dataset.logout = "once";
+        };
+        document.body.append(panel);
+      }, 250);
+    };
+  };
+</script>

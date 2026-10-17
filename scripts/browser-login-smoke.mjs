@@ -1,3 +1,5 @@
+import { waitForInteractiveLogin } from "./browser-login-ready.mjs";
+import { openInteractiveAccountMenu } from "./browser-account-ready.mjs";
 import { createHmac } from "node:crypto";
 import { URLSearchParams } from "node:url";
 // One dependency-free Chromium DevTools test for the real browser Login form.
@@ -105,6 +107,7 @@ try {
   let cancelStatus;
   const cookieRequests = new Map(),
     requestUrls = new Map();
+  let logoutStatus;
   let loginStatus;
   let loginUrl;
   socket.addEventListener("message", (event) => {
@@ -152,6 +155,11 @@ try {
         leakedSetupSecret = true;
     }
 
+    if (
+      message.method === "Network.responseReceived" &&
+      message.params.response.url === `${baseUrl}/api/auth/logout`
+    )
+      logoutStatus = message.params.response.status;
     if (
       message.method === "Network.responseReceived" &&
       message.params.response.url === `${baseUrl}/api/auth/setup-password`
@@ -202,8 +210,16 @@ try {
         returnByValue: true,
       })
     ).result.value;
+  const until = async (expression) => {
+    for (let i = 0; i < 100; i++) {
+      if (await evaluate(expression)) return;
+      await delay(100);
+    }
+    throw new Error("Browser readiness timeout");
+  };
   checks.step("LOGIN_PAGE_RENDER");
   await send("Network.enable");
+  await send("Network.setBlockedURLs", { urls: ["*://attacker.example/*"] });
   await send("Page.navigate", { url: `${baseUrl}/login?from=%2Fsettings` });
   let ready = false;
   for (let i = 0; i < 100; i++) {
@@ -247,7 +263,7 @@ try {
 
   checks.step("ADMIN_MODE_SWITCH_AND_FORM");
   await send("Page.navigate", {
-    url: `${baseUrl}/login?from=%2Fsettings`,
+    url: `${baseUrl}/login?from=${encodeURIComponent("/\t/attacker.example/path")}`,
   });
   let adminReady = false;
   for (let i = 0; i < 100; i++) {
@@ -258,7 +274,7 @@ try {
     await delay(100);
   }
   assert.ok(adminReady, "Admin login form did not render");
-  await delay(500);
+  await waitForInteractiveLogin({ until, evaluate });
   await evaluate('document.querySelector("input[name=username]").focus()');
   await send("Input.insertText", { text: username });
   await evaluate('document.querySelector("input[name=password]").focus()');
@@ -580,18 +596,14 @@ try {
       await delay(100);
       continue;
     }
-    if (location === "/settings") break;
+    if (location === "/") break;
     await delay(100);
   }
   checks.step("LOGIN_RESPONSE");
   assert.equal(loginUrl, `${baseUrl}/api/auth/login`);
   checks.status(loginStatus, 200);
   checks.step("PROTECTED_NAVIGATION");
-  assert.equal(
-    location,
-    "/settings",
-    "Browser did not reach protected return page",
-  );
+  assert.equal(location, "/", "Browser did not reach protected return page");
   const shellPresent = await evaluate(
     '!!document.querySelector("header[aria-label=\'Thanh công cụ đầu trang\']") && !!document.querySelector("aside")',
   );
@@ -599,6 +611,7 @@ try {
     shellPresent,
     "Protected workspace must render AppShell for authenticated session",
   );
+  assert.equal(await evaluate("location.origin"), new URL(baseUrl).origin);
   checks.step("SESSION_COOKIE");
   const cookies = (await send("Network.getCookies", { urls: [baseUrl] }))
     .cookies;
@@ -730,26 +743,45 @@ try {
     401,
   );
   checks.step("OPERATOR_LOCAL_LOGIN");
-  checks.status(
-    await evaluate(
-      `fetch("/api/auth/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:${JSON.stringify(operatorName)},password:${JSON.stringify(password)}})}).then(r=>r.status)`,
-    ),
-    200,
-  );
+  await send("Page.navigate", {
+    url: `${baseUrl}/login?from=${encodeURIComponent("/\n/attacker.example/path")}`,
+  });
+  await waitForInteractiveLogin({ until, evaluate });
+  loginStatus = undefined;
+  await evaluate('document.querySelector("input[name=username]").focus()');
+  await send("Input.insertText", { text: operatorName });
+  await evaluate('document.querySelector("input[name=password]").focus()');
+  await send("Input.insertText", { text: password });
+  await evaluate('document.querySelector("button[type=submit]").click()');
+  await until('location.pathname === "/" && !!document.querySelector("aside")');
+  checks.status(loginStatus, 200);
+  assert.equal(await evaluate("location.origin"), new URL(baseUrl).origin);
+  const sessionCookie = (
+    await send("Network.getCookies", { urls: [baseUrl] })
+  ).cookies.find((c) => c.name === "nexora_session");
+  assert.ok(sessionCookie);
+  checks.step("SERVER_RETURN_URL_CONTROLS");
+  for (const control of ["\t", "\n", "\r"]) {
+    const response = await fetch(
+      `${baseUrl}/login?from=${encodeURIComponent("/" + control + "/attacker.example/path")}`,
+      {
+        redirect: "manual",
+        headers: { cookie: `nexora_session=${sessionCookie.value}` },
+      },
+    );
+    checks.status(response.status, 307);
+    const target = new URL(response.headers.get("location"), baseUrl);
+    assert.equal(target.origin, new URL(baseUrl).origin);
+    assert.equal(target.pathname, "/");
+  }
   checks.step("OPERATOR_ACCOUNT_MENU_LOGOUT");
   await send("Page.navigate", { url: baseUrl + "/settings" });
-  for (let i = 0; i < 100; i++) {
-    if (
-      await evaluate(
-        `!!document.querySelector('button[aria-label^="Tài khoản người dùng"]')`,
-      )
-    )
-      break;
-    await delay(100);
-  }
-  await evaluate(
-    `document.querySelector('button[aria-label^="Tài khoản người dùng"]').click()`,
-  );
+  await openInteractiveAccountMenu({ until });
+  const operatorCookie = (
+    await send("Network.getCookies", { urls: [baseUrl] })
+  ).cookies.find((c) => c.name === "nexora_session");
+  assert.ok(operatorCookie);
+  logoutStatus = undefined;
   await evaluate(
     `document.querySelector('button[aria-label="Đăng xuất khỏi hệ thống"]').click()`,
   );
@@ -758,6 +790,21 @@ try {
     await delay(100);
   }
   assert.equal(await evaluate("location.pathname"), "/login");
+  checks.status(logoutStatus, 200);
+  assert.equal(
+    (await send("Network.getCookies", { urls: [baseUrl] })).cookies.some(
+      (c) => c.name === "nexora_session",
+    ),
+    false,
+  );
+  checks.status(
+    (
+      await fetch(baseUrl + "/api/auth/session", {
+        headers: { cookie: `nexora_session=${operatorCookie.value}` },
+      })
+    ).status,
+    401,
+  );
   checks.status(
     await evaluate('fetch("/api/auth/session").then(r=>r.status)'),
     401,

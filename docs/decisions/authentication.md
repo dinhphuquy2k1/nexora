@@ -1,8 +1,12 @@
 # ADR-005 · Local Authentication & Session Architecture
 
+## Current review hardening — NEXORA-025
+
+Strict Scrypt serialization validation is IMPLEMENTED without changing algorithm/cost/salt/key length or historical migrations. Malformed stored hashes return false before derivation; the confirmed empty-buffer issue affects malformed stored data, not all valid accounts and not MFA. Supported serialization remains the original generated lowercase hex format. Return URLs are normalized and same-origin checked using a fixed trusted base, with controls and authority escapes rejected. SSR session requests have a finite five-second header/body deadline and remain unavailable on timeout. Explicit bounded DB-clock expired-session maintenance and one shared restricted API pool are implemented; historical decisions below remain intact. Active NEXORA-025 tracks verification; production release gates remain open.
+
 ## Current local authentication — Logical PR6
 
-Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. Supported deployment remains local/loopback; public HTTPS, Carrier UI and shipment sync remain PLANNED. Executed full canonical verification is recorded in completed NEXORA-022; PR19 records the final exact-head CI.
+Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. LOCAL remains default; NEXORA-024 implements the explicit PUBLIC_HTTPS profile and approved ingress, while actual public production gates remain NOT VERIFIED. Carrier UI and shipment sync remain PLANNED. Executed full canonical verification is recorded in completed NEXORA-022; PR19 records the final exact-head CI.
 
 NEXORA-016 implements local login for both roles, user-first transactional issuance/onboarding and atomic disablement. Legacy provider-login material below describes historical milestones, not a supported login path. `external_identities` is removed by a new migration. Current contracts and the owner-approved user administration amendment are maintained in [API contract](../architecture/api-contract.md).
 

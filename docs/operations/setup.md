@@ -1,5 +1,17 @@
 # Setup
 
+## Current session maintenance — NEXORA-025
+
+IMPLEMENTED: matching API images contain an explicit session-only cleanup CLI. In an authorized private terminal use the existing restricted runtime entrypoint (never admin credentials):
+
+```sh
+docker compose exec -T api sh /scripts/api-entrypoint.sh node dist/cli/sessions-cleanup.js
+```
+
+For PUBLIC_HTTPS use the same approved project/environment and `-f compose.yml -f compose.public.yml` options as deployment. No additional service/scheduler/port is installed. The CLI accepts no arguments, logs only event/deleted/batches/capped and exits nonzero with a fixed safe error on failure; always closes its own client. Each short transaction deletes only sessions with expires_at at or before DB statement time, up to500 rows, at most20 batches per invocation (10000 deletions). A capped result can mean more rows remain: rerun explicitly after checking output; concurrent runs may delete fewer candidates. Statement/lock/transaction timeouts bound contention; a failed later batch does not undo earlier committed batches. No active session, MFA/challenge/recovery/setup token, Carrier, audit, user or file is removed. This is storage maintenance, not logout or revocation of active sessions. No cleanup was run on user data during development; genuine tests use owned disposable databases.
+
+Optional authorized runtime SQL `SELECT count(*) FROM sessions WHERE expires_at <= statement_timestamp();` before/after can check remaining expired rows without exposing tokens. Do not grant new privileges or mount admin credentials if maintenance fails. No password format/cost migration, MFA reset or key rotation is needed for this release. PUBLIC_HTTPS production acceptance remains separately gated by NEXORA-024.
+
 ## Supported Runtime Modes
 
 Nexora operates under three distinct runtime topologies:

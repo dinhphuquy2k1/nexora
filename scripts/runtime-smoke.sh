@@ -46,6 +46,7 @@ node scripts/auth-runtime-smoke.mjs
 # Drive the actual form through the browser-facing host port, with browser-generated Origin.
 browser_port=${WEB_PORT:-127.0.0.1:3001}
 browser_port=${browser_port##*:}
+node scripts/browser-account-ready.test.mjs
 node - "$mfa_work/fixture.json" "$browser_port" <<'JS' | node scripts/browser-login-smoke.mjs
 const fs=require('node:fs');const fixture=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));fixture.baseUrl='http://127.0.0.1:'+process.argv[3];process.stdout.write(JSON.stringify(fixture));
 JS
