@@ -64,6 +64,7 @@ export class UserManagementService {
     private readonly port: UserManagementPort,
     private readonly auth: AuthService,
     private readonly trustedOrigins: readonly string[],
+    private readonly publicOrigin?: string,
   ) {}
   private validation(): never {
     throw new HttpException(
@@ -86,7 +87,7 @@ export class UserManagementService {
         403,
       );
     const token = randomBytes(32).toString("hex");
-    const url = new URL("/setup", origin);
+    const url = new URL("/setup", this.publicOrigin ?? origin);
     url.hash = "token=" + token;
     return {
       tokenHash: hashToken(token),

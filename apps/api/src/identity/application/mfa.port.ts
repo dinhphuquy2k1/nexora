@@ -1,6 +1,7 @@
 import type { UserSummary } from "../domain/identity.types";
 export type MfaInput = { type: "totp" | "recovery"; code: string };
 export abstract class MfaPort {
+  abstract assertPublicReady(): Promise<void>;
   abstract issueChallenge(
     userId: string,
     verifiedHash: string,

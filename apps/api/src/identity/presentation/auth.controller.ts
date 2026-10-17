@@ -1,5 +1,9 @@
+import { loadDeploymentPolicy, type DeploymentPolicy } from "@nexora/shared";
+import { cookieOptions } from "./cookie-policy";
 import {
   Body,
+  Inject,
+  Optional,
   Controller,
   Get,
   HttpCode,
@@ -40,19 +44,21 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 @ApiTags("Authentication")
 @Controller("auth")
 export class AuthController {
+  private readonly cookiePolicy: DeploymentPolicy;
   constructor(
     private readonly authService: AuthService,
     private readonly mfa: MfaService,
-  ) {}
+    @Optional() @Inject("CONFIG") config?: { deployment: DeploymentPolicy },
+  ) {
+    this.cookiePolicy = config?.deployment ?? loadDeploymentPolicy(process.env);
+  }
 
   private setSessionCookie(res: Response, token: string): void {
-    res.cookie("nexora_session", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      secure: false, // Canonical loopback HTTP deployment; forwarded headers are not a policy input.
-      maxAge: SEVEN_DAYS_MS,
-    });
+    res.cookie(
+      "nexora_session",
+      token,
+      cookieOptions(this.cookiePolicy, "session", SEVEN_DAYS_MS),
+    );
   }
 
   @Public()
@@ -97,13 +103,11 @@ export class AuthController {
     res.setHeader("Cache-Control", "no-store");
     const result = await this.authService.login(dto?.username, dto?.password);
     if ("mfaRequired" in result) {
-      res.cookie("nexora_session", "", {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: false,
-        maxAge: 0,
-      });
+      res.cookie(
+        "nexora_session",
+        "",
+        cookieOptions(this.cookiePolicy, "session", 0),
+      );
       this.pendingCookie(res, result.challengeToken, 5 * 60 * 1000);
       return { mfaRequired: true };
     }
@@ -114,13 +118,11 @@ export class AuthController {
   }
 
   private pendingCookie(res: Response, token: string, maxAge: number) {
-    res.cookie("nexora_mfa_token", token, {
-      httpOnly: true,
-      sameSite: "strict",
-      path: "/api/auth/mfa",
-      secure: false,
-      maxAge,
-    });
+    res.cookie(
+      "nexora_mfa_token",
+      token,
+      cookieOptions(this.cookiePolicy, "pending", maxAge),
+    );
   }
   @Public()
   @UseGuards(OriginGuard)
@@ -210,13 +212,11 @@ export class AuthController {
       await this.authService.logout(token);
     }
 
-    res.cookie("nexora_session", "", {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      secure: false, // Canonical loopback HTTP deployment; forwarded headers are not a policy input.
-      maxAge: 0,
-    });
+    res.cookie(
+      "nexora_session",
+      "",
+      cookieOptions(this.cookiePolicy, "session", 0),
+    );
 
     return { success: true };
   }

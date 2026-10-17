@@ -12,6 +12,14 @@ import { IdentityPort } from "../application/identity.port";
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(private readonly port: IdentityPort) {}
+  assertAssurance(role: string | null, authLevel: string): true {
+    if (role !== UserRole.ADMIN || authLevel !== AuthLevel.MFA)
+      throw new HttpException(
+        { code: "FORBIDDEN", message: "Không có quyền quản trị" },
+        403,
+      );
+    return true;
+  }
   async canActivate(context: ExecutionContext) {
     const req = context
       .switchToHttp()
@@ -39,14 +47,9 @@ export class AdminGuard implements CanActivate {
         },
         401,
       );
-    if (
-      (await this.port.findActiveRole(req.user.id)) !== UserRole.ADMIN ||
-      session.session.authLevel !== AuthLevel.MFA
-    )
-      throw new HttpException(
-        { code: "FORBIDDEN", message: "Không có quyền quản trị" },
-        403,
-      );
-    return true;
+    return this.assertAssurance(
+      await this.port.findActiveRole(req.user.id),
+      session.session.authLevel,
+    );
   }
 }

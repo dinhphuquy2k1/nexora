@@ -1,6 +1,8 @@
+import { loadDeploymentPolicy } from "@nexora/shared";
 import type { NextConfig } from "next";
 import { resolveApiInternalUrl } from "./lib/api/config.ts";
 
+loadDeploymentPolicy(process.env);
 const apiInternalUrl = resolveApiInternalUrl(process.env.API_INTERNAL_URL);
 
 const config: NextConfig = {

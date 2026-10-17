@@ -1,3 +1,4 @@
+import { loadDeploymentPolicy } from "@nexora/shared";
 import { NextResponse, type NextRequest } from "next/server.js";
 import { isAllowedHost } from "./lib/auth/host.ts";
 
@@ -13,7 +14,10 @@ export function middleware(request: NextRequest) {
   // Protect workspace routes: redirect to /login if no session cookie
   if (pathname === "/" || pathname === "/system" || pathname === "/settings") {
     if (!sessionToken) {
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = new URL(
+        "/login",
+        loadDeploymentPolicy(process.env).publicOrigin ?? request.url,
+      );
       if (pathname !== "/") {
         loginUrl.searchParams.set("from", pathname);
       }
