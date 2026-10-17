@@ -1,21 +1,29 @@
-const ALLOWED_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
-
-export function isAllowedHost(hostHeader: string | null): boolean {
-  if (!hostHeader) return false;
-  const hostname = hostHeader.split(":")[0]?.toLowerCase();
-  if (ALLOWED_HOSTNAMES.has(hostname)) {
-    return true;
+import {
+  DeploymentProfile,
+  loadDeploymentPolicy,
+  normalizeAuthority,
+} from "@nexora/shared";
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
+export function isAllowedHost(
+  hostHeader: string | null | undefined,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): boolean {
+  try {
+    if (!hostHeader) return false;
+    const authority = normalizeAuthority(hostHeader),
+      policy = loadDeploymentPolicy(env);
+    if (policy.profile === DeploymentProfile.PUBLIC_HTTPS)
+      return policy.allowedHosts.includes(authority);
+    const hostname = new URL(`https://${authority}`).hostname;
+    if (LOCAL_HOSTS.has(hostname)) return true;
+    return (env.ALLOWED_HOSTS?.split(",") ?? []).some((value) => {
+      const configured = normalizeAuthority(value.trim());
+      return (
+        configured === authority ||
+        (!value.includes(":") && configured === hostname)
+      );
+    });
+  } catch {
+    return false;
   }
-  if (process.env.ALLOWED_HOSTS) {
-    const custom = process.env.ALLOWED_HOSTS.split(",").map((h) =>
-      h.trim().toLowerCase(),
-    );
-    if (
-      custom.includes(hostname) ||
-      custom.includes(hostHeader.toLowerCase())
-    ) {
-      return true;
-    }
-  }
-  return false;
 }

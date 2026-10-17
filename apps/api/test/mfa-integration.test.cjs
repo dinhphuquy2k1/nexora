@@ -1159,6 +1159,57 @@ test(
           );
         },
       );
+      await t.test(
+        "public startup read-only runtime-role enrollment/key/guard gate",
+        async () => {
+          const { verifyPublicStartup } = require("../dist/public-startup");
+          const config = { deployment: { profile: "PUBLIC_HTTPS" } };
+          await assert.rejects(verifyPublicStartup(app, config));
+          // Only this test's owned database: retained unenrolled fixtures deliberately fail public readiness.
+          await db.user.updateMany({
+            where: { role: "ADMIN", status: "ACTIVE", mfa: { is: null } },
+            data: { status: "DISABLED" },
+          });
+          const before = await db.session.findMany({ orderBy: { id: "asc" } });
+          await verifyPublicStartup(app, config);
+          assert.deepEqual(
+            await db.session.findMany({ orderBy: { id: "asc" } }),
+            before,
+          );
+          const missing = new IdentityMfaAdapter(
+            applicationUrl,
+            new SecretCipher(new EnvironmentKeyring({}, "IDENTITY")),
+          );
+          const wrong = new IdentityMfaAdapter(
+            applicationUrl,
+            new SecretCipher(
+              new EnvironmentKeyring(
+                {
+                  IDENTITY_KEYRING_JSON: JSON.stringify({
+                    1: randomBytes(32).toString("base64"),
+                  }),
+                  IDENTITY_ACTIVE_KEY_VERSION: "1",
+                },
+                "IDENTITY",
+              ),
+            ),
+          );
+          const privileged = new IdentityMfaAdapter(url.toString(), cipher);
+          try {
+            await assert.rejects(missing.assertPublicReady());
+            await assert.rejects(wrong.assertPublicReady());
+            await assert.rejects(privileged.assertPublicReady());
+          } finally {
+            await missing.onApplicationShutdown();
+            await wrong.onApplicationShutdown();
+            await privileged.onApplicationShutdown();
+          }
+          assert.deepEqual(
+            await db.session.findMany({ orderBy: { id: "asc" } }),
+            before,
+          );
+        },
+      );
       af.secret.fill(0);
       bf.secret.fill(0);
     } catch {

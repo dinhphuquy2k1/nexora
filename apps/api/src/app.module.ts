@@ -165,7 +165,13 @@ export const CONFIG = "CONFIG";
         port: UserManagementPort,
         auth: AuthService,
         c: ReturnType<typeof loadConfig>,
-      ) => new UserManagementService(port, auth, c.trustedOrigins),
+      ) =>
+        new UserManagementService(
+          port,
+          auth,
+          c.trustedOrigins,
+          c.deployment.publicOrigin,
+        ),
     },
     {
       provide: MfaPort,
@@ -187,9 +193,9 @@ export const CONFIG = "CONFIG";
     SessionGuard,
     {
       provide: APP_GUARD,
-      useClass: SessionGuard,
+      useExisting: SessionGuard,
     },
-    { provide: APP_GUARD, useClass: AdminBoundaryGuard },
+    { provide: APP_GUARD, useExisting: AdminBoundaryGuard },
   ],
   exports: [AuthService, SessionGuard, OriginGuard],
 })

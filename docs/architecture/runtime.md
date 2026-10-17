@@ -85,7 +85,7 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), public deployment r
 
 ## Historical local identity boundary (Logical PR 2)
 
-At PR2 both roles used Nexora password sessions, independent of Carrier availability; ADMIN APIs required ACTIVE ADMIN and trusted Origin. Fragment setup remains unchanged. Carrier lifecycle is now implemented by PR18 and mandatory ADMIN MFA/session assurance by PR6 below. Public HTTPS remains deferred. No new runtime service is introduced.
+At PR2 both roles used Nexora password sessions, independent of Carrier availability; ADMIN APIs required ACTIVE ADMIN and trusted Origin. Fragment setup remains unchanged. Carrier lifecycle is now implemented by PR18 and mandatory ADMIN MFA/session assurance by PR6 below. At that historical stage public HTTPS was deferred and no runtime service was added. NEXORA-024 below adds the explicit ingress profile; real public activation still requires actual host evidence.
 
 ## Carrier key runtime — Logical PR 3
 
@@ -108,3 +108,13 @@ Startup is init → healthy PostgreSQL → genuine Prisma migrate deploy → tra
 The compiled non-root API image includes dist/cli/mfa-enroll.js. API/one-off CLI receive only server-side IDENTITY_KEYRING_JSON and IDENTITY_ACTIVE_KEY_VERSION; Web, builds and migration services receive neither. No new runtime service/volume or automatic Identity key generation exists. Restart retains encrypted enrollment, replay steps, recovery use and pending challenges in PostgreSQL; operator-supplied old keys must remain available. Dedicated Identity keys are independent of Carrier keys and database credentials.
 
 Ninth migration and explicit post-migration MFA grants precede API start. For upgrade enrollment, stop writers and run the matching-image interactive one-off API CLI before normal API/Web startup. ADMIN password never grants a new authenticated session, even without configured keys/enrollment. OPERATOR remains available independently. All admin APIs require MFA without an enable/disable bypass. Local HTTP cookie Secure=false remains; public HTTPS/PR7 is not implemented by this milestone.
+
+## Public HTTPS topology — NEXORA-024
+
+LOCAL remains default and keeps loopback Web publishing. Owner-approved `compose.public.yml` overlays the source-built `compose.yml`: removes Web ports, places Nginx and Web on ingress network, Web/API/PG/migration/runtime-grant tooling on a separate internal backend, and publishes only Nginx80/443. API stays non-root and mounts runtime credentials only; Web has no DB/Identity/Carrier keys; Nginx mounts certificate custody read-only and no DB keys/socket. Named data/credential volumes and dependency ordering remain. The optional ACME bootstrap serves only challenges/404 and must stop before normal ingress binds80. The registry release template remains unpublished and is not the public profile.
+
+Explicit profile/Host/Origin/canonical URL and narrow proxy config are mandatory; API public startup gates global MFA enforcement and actual runtime-role enrollment/key readiness before binding. Ingress starts only after Web/API healthy, validates certificate custody, serves TLS1.2/1.3+HTTP2, canonical redirects, safe headers and instance-local rate limits. Application images do not contain TLS private keys. Certbot renewal is a separate trusted host timer/one-off with tested reload, not a Docker-socket sidecar.
+
+See [Deployment](../operations/deployment.md) for stop-writers/private CLI/bootstrap/upgrade/backup/rollback and [Configuration](../operations/configuration.md) for exact networks/variables. Real production DNS/certificate/firewall/host NTP remain NOT VERIFIED because no actual host/domain exists. Public CI uses a fresh owned project, loopback-only published test ports and disposable CA/leaf; it does not activate a public server.
+
+Public Web's container healthcheck uses node:http to send the canonical public Host over its private loopback listener. Node24 fetch rewrites Host overrides and therefore cannot probe this policy correctly. This does not add loopback to the public allowlist; the real HTTP request passes the same middleware validation as ingress traffic. The helper lives in Web's existing lib runtime artifacts and reports failure on non200/network errors.

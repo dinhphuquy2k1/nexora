@@ -29,6 +29,36 @@ export class IdentityMfaAdapter implements MfaPort {
   get client(): PrismaClient {
     return (this.instance ??= createDatabase(this.url));
   }
+  async assertPublicReady() {
+    // Read-only runtime-role check; no credentials/session/assurance mutation.
+    const [role] = await this.client.$queryRaw<
+      Array<{ name: string; super: boolean }>
+    >`SELECT current_user AS name,rolsuper AS super FROM pg_roles WHERE rolname=current_user`;
+    if (role?.name !== "nexora_app" || role.super)
+      throw new Error("PUBLIC_SECURITY_NOT_READY");
+    this.cipher.encrypt("IDENTITY_TOTP", "startup-key-custody-probe", "");
+    const admins = await this.client.user.findMany({
+      where: { role: UserRole.ADMIN, status: UserStatus.ACTIVE },
+      include: { mfa: true, credential: { select: { userId: true } } },
+    });
+    if (!admins.length) throw new Error("PUBLIC_SECURITY_NOT_READY");
+    for (const user of admins) {
+      if (!user.mfa || !user.credential)
+        throw new Error("PUBLIC_SECURITY_NOT_READY");
+      const plaintext = this.cipher.decrypt(
+        "IDENTITY_TOTP",
+        aad(user.id),
+        user.mfa,
+      );
+      const secret = Buffer.from(plaintext, "base64");
+      try {
+        if (secret.length !== 20 || secret.toString("base64") !== plaintext)
+          throw new Error("PUBLIC_SECURITY_NOT_READY");
+      } finally {
+        secret.fill(0);
+      }
+    }
+  }
   async issueChallenge(
     userId: string,
     verifiedHash: string,

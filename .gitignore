@@ -10,3 +10,5 @@ backups/
 **/.contracts/
 **/*.tsbuildinfo
 apps/web/next-env.d.ts
+
+!.env.public.example

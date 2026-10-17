@@ -1,16 +1,15 @@
-function normalizeOrigin(value: string): string {
-  if (!/^https?:\/\/[^/?#\\@\s]+$/i.test(value))
-    throw new Error("Invalid Origin");
-  const parsed = new URL(value);
-  if (!parsed.hostname || parsed.origin === "null")
-    throw new Error("Invalid Origin");
-  return parsed.origin;
-}
-
+import {
+  DeploymentProfile,
+  loadDeploymentPolicy,
+  normalizeOrigin,
+} from "@nexora/shared";
 /** WEB_PORT is a Docker host binding, not necessarily a bare port number. */
 export function resolveAllowedOrigins(
   env: NodeJS.ProcessEnv,
 ): readonly string[] {
+  const policy = loadDeploymentPolicy(env);
+  if (policy.profile === DeploymentProfile.PUBLIC_HTTPS)
+    return policy.allowedOrigins;
   if (env.ALLOWED_ORIGINS?.trim()) {
     try {
       return [

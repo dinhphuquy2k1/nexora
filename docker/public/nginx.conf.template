@@ -1,0 +1,76 @@
+worker_processes auto;
+error_log /dev/stderr crit;
+pid /var/run/nginx.pid;
+events { worker_connections 1024; }
+http {
+  include /etc/nginx/mime.types;
+  default_type application/octet-stream;
+  server_tokens off;
+  merge_slashes on;
+  access_log off;
+  client_max_body_size 2m;
+  client_body_timeout 15s;
+  client_header_timeout 15s;
+  keepalive_timeout 30s;
+  map $http_host $approved_host {
+    default 0;
+    "${PUBLIC_AUTHORITY}" 1;
+    ${PUBLIC_AUTHORITY_ALT_DIRECTIVE}
+  }
+  # Instance-local per-connection-source limits. Empty keys exempt unrelated/health paths.
+  map "$request_method:$uri" $sensitive_client {
+    default "";
+    ~*^POST:/api/auth/(login|mfa/verify|mfa/cancel|setup-password)/?$ $binary_remote_addr;
+    ~*^(POST|PATCH|DELETE):/api/admin(?:/|$) $binary_remote_addr;
+  }
+  limit_req_zone $sensitive_client zone=auth:10m rate=6r/s;
+  limit_req_status 429;
+  server {
+    listen 80 default_server;
+    server_name ${PUBLIC_FQDN};
+    if ($approved_host = 0) { return 421; }
+    location ^~ /.well-known/acme-challenge/ { root /var/www/acme; }
+    location / { return 308 ${PUBLIC_ORIGIN}$request_uri; }
+  }
+  server {
+    listen 443 ssl default_server;
+    http2 on;
+    server_name ${PUBLIC_FQDN};
+    ssl_certificate /etc/letsencrypt/live/${PUBLIC_FQDN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${PUBLIC_FQDN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:TLS:10m;
+    ssl_session_tickets off;
+    if ($approved_host = 0) { return 421; }
+    include /nexora/security-headers.conf;
+    error_page 429 = @limited;
+    location @limited {
+      include /nexora/security-headers.conf;
+      default_type application/json;
+      add_header Cache-Control no-store always;
+      add_header X-Nexora-Ingress-Rate-Limit 1 always;
+      add_header X-Request-Id $request_id always;
+      return 429 '{"code":"TOO_MANY_REQUESTS","message":"Too many requests","requestId":"$request_id"}';
+    }
+    location / {
+      limit_req zone=auth burst=20 nodelay;
+      proxy_pass http://web:3000;
+      proxy_http_version 1.1;
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Host ${PUBLIC_AUTHORITY};
+      proxy_set_header X-Forwarded-Port 443;
+      proxy_set_header Forwarded "";
+      proxy_set_header Connection "";
+      # The ingress owns this policy; avoid duplicating Next setup responses.
+      proxy_hide_header Referrer-Policy;
+      proxy_connect_timeout 5s;
+      proxy_read_timeout 30s;
+      proxy_send_timeout 30s;
+    }
+  }
+}

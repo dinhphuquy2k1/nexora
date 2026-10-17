@@ -1,3 +1,5 @@
+import { loadDeploymentPolicy } from "@nexora/shared";
+import { trustedProxies } from "./proxy-policy";
 import { Catch, HttpException, HttpStatus } from "@nestjs/common";
 import type {
   ArgumentsHost,
@@ -84,7 +86,10 @@ export function configure(app: INestApplication) {
   if (typeof httpAdapter?.getInstance === "function") {
     const instance = httpAdapter.getInstance();
     if (typeof instance?.set === "function") {
-      instance.set("trust proxy", "loopback, linklocal, uniquelocal");
+      instance.set(
+        "trust proxy",
+        trustedProxies(process.env, loadDeploymentPolicy(process.env)),
+      );
     }
   }
   app.setGlobalPrefix("api");

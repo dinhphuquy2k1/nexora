@@ -1,3 +1,4 @@
+import { verifyPublicStartup } from "./public-startup";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { SwaggerModule } from "@nestjs/swagger";
@@ -13,7 +14,14 @@ async function main() {
   const c = app.get<Config>(CONFIG);
   if (c.API_DOCS_ENABLED === "true")
     SwaggerModule.setup("api/docs", app, document(app));
-  await app.listen(c.PORT, "0.0.0.0");
+  try {
+    await app.init();
+    await verifyPublicStartup(app, c);
+    await app.listen(c.PORT, "0.0.0.0");
+  } catch (error) {
+    await app.close();
+    throw error;
+  }
   console.log(
     JSON.stringify({ level: "info", event: "started", port: c.PORT }),
   );
