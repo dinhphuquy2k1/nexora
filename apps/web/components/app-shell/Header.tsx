@@ -1,5 +1,7 @@
 "use client";
 
+import type { DeploymentPresentation } from "../../lib/auth/deployment-presentation.ts";
+
 import { Menu } from "lucide-react";
 import { Breadcrumb } from "./Breadcrumb.tsx";
 import { AccountMenu } from "./AccountMenu.tsx";
@@ -9,12 +11,14 @@ interface HeaderProps {
   isSidebarCollapsed: boolean;
   onToggleSidebar: () => void;
   user?: { id: string; username: string };
+  deployment: DeploymentPresentation;
 }
 
 export function Header({
   isSidebarCollapsed,
   onToggleSidebar,
   user,
+  deployment,
 }: HeaderProps) {
   return (
     <header className={styles.header} aria-label="Thanh công cụ đầu trang">
@@ -43,7 +47,7 @@ export function Header({
 
       {/* Right section: User Account */}
       <div className={styles.rightSection}>
-        <AccountMenu initialUser={user} />
+        <AccountMenu initialUser={user} deployment={deployment} />
       </div>
     </header>
   );
