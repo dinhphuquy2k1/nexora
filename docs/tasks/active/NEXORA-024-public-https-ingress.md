@@ -99,3 +99,12 @@ Added explicit verification for TOTP success over real HTTPS as well as recovery
 | Genuine source quality and database | Same source/run: full quality/build/types/contracts and63 actual PostgreSQL tests PASS, including new public enrollment/key/runtime-role guard gate | 2026-10-17 | PASS   |
 | LOCAL compatibility                 | Same source/run: complete runtime-smoke.sh with provisioning/TTY/browser/cancel/logout/restart security PASS                                        | 2026-10-17 | PASS   |
 | HTTPS first orchestration           | Same run: bootstrap/fixture PASS, db-runtime exit0 rejected by root compose --wait target; TLS/public browser/data/dev not reached                  | 2026-10-17 | FAIL   |
+
+## Second hosted execution: narrow the fixture failure
+
+Run39003320320, source8879f3d199958c45532036e5825a0ac1baec971f, job117310612111: full quality/63 PG and LOCAL runtime again PASS. New HTTPS harness now completes private PG health, genuine migration and runtime role provisioning, then exits before positive ingress/browser. Captured one-off gate logs were not emitted, so the exact subsequent gate failure is not claimed from inspection. Add fixed stage labels and secret-free error categories. Hypothesis: binding a child certificate directory beneath the empty read-only named certificate volume fails mountpoint creation before entrypoint, so the expected TLS-custody diagnostic never appears. Override the entire /etc/letsencrypt root with the owned fixture's correctly shaped live/FQDN directory; production named-volume custody remains unchanged. Verify again; no skipped assertion or production behavior workaround.
+
+| Claim                                 | Evidence                                                                                                                                 | Date       | Result |
+| :------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Corrected private dependency sequence | Same run: PostgreSQL health, genuine9-migration no-drift deploy and explicit restricted runtime provision one-offs complete successfully | 2026-10-17 | PASS   |
+| Second HTTPS attempt                  | Same run stops during subsequent gate preparation before positive TLS/browser; no later data/dev verification claimed                    | 2026-10-17 | FAIL   |

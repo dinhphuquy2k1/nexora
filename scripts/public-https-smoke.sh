@@ -17,12 +17,20 @@ CARRIER_KEYRING_JSON=$(node -e 'console.log(JSON.stringify({1:require("node:cryp
 export CARRIER_KEYRING_JSON CARRIER_ACTIVE_KEY_VERSION=1
 local_compose(){ docker compose -f compose.yml "$@"; }
 public_compose(){ docker compose -f compose.yml -f compose.public.yml -f "$work/https.yml" "$@"; }
+gate_diagnostic(){
+  python3 - "$1" <<'PYCODE'
+import pathlib,sys
+text=pathlib.Path(sys.argv[1]).read_text(errors='replace').lower()
+patterns=[('read-only file system','READ_ONLY_MOUNT'),('address already in use','ADDRESS_IN_USE'),('address is already in use','ADDRESS_IN_USE'),('invalid pool','NETWORK_POOL'),('manifest unknown','IMAGE_MISSING'),('toomanyrequests','IMAGE_PULL_LIMIT'),('pull access denied','IMAGE_PULL_DENIED'),('cannot find module','MODULE_LOAD'),('invalid runtime credential','RUNTIME_CREDENTIAL'),('startup_failed','APPLICATION_GATE')]
+print('One-off diagnostic: '+next((name for pattern,name in patterns if pattern in text),'UNCLASSIFIED'))
+PYCODE
+}
 assert_public_startup_rejected(){
   gate_log=$1; shift
   gate_status=0
   timeout 40s docker compose -f compose.yml -f compose.public.yml -f "$work/https.yml" run --rm --no-deps -T "$@" api > "$gate_log" 2>&1 || gate_status=$?
   if [ "$gate_status" -eq 0 ] || [ "$gate_status" -eq 124 ]; then echo 'Public startup gate did not reject safely within deadline' >&2; exit 1; fi
-  grep -q '"event":"startup_failed"' "$gate_log"
+  if ! grep -q '"event":"startup_failed"' "$gate_log"; then gate_diagnostic "$gate_log"; exit 1; fi
 }
 cleanup(){
   status=$?
@@ -37,12 +45,12 @@ PY
   exit "$status"
 }
 trap cleanup EXIT HUP INT TERM
-mkdir -p "$work/tls"
+mkdir -p "$work/tls/live/$PUBLIC_FQDN"
 openssl req -x509 -newkey rsa:2048 -nodes -keyout "$work/ca.key" -out "$work/ca.crt" -sha256 -days 2 -subj '/CN=Nexora disposable HTTPS test CA' >/dev/null 2>&1
-openssl req -newkey rsa:2048 -nodes -keyout "$work/tls/privkey.pem" -out "$work/leaf.csr" -subj "/CN=$PUBLIC_FQDN" >/dev/null 2>&1
+openssl req -newkey rsa:2048 -nodes -keyout "$work/tls/live/$PUBLIC_FQDN/privkey.pem" -out "$work/leaf.csr" -subj "/CN=$PUBLIC_FQDN" >/dev/null 2>&1
 printf 'subjectAltName=DNS:%s\nbasicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n' "$PUBLIC_FQDN" > "$work/ext"
 openssl x509 -req -in "$work/leaf.csr" -CA "$work/ca.crt" -CAkey "$work/ca.key" -CAcreateserial -out "$work/leaf.crt" -days 2 -sha256 -extfile "$work/ext" >/dev/null 2>&1
-cat "$work/leaf.crt" "$work/ca.crt" > "$work/tls/fullchain.pem"
+cat "$work/leaf.crt" "$work/ca.crt" > "$work/tls/live/$PUBLIC_FQDN/fullchain.pem"
 # Chromium exception is scoped to this disposable leaf SPKI only; Node verifies the real CA/name normally.
 spki=$(openssl x509 -in "$work/leaf.crt" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl base64 -A)
 cat > "$work/https.yml" <<YAML
@@ -50,7 +58,7 @@ services:
   ingress:
     ports: !override ["127.0.0.1:$https_port:443", "127.0.0.1:$http_port:80"]
     volumes:
-      - $work/tls:/etc/letsencrypt/live/$PUBLIC_FQDN:ro
+      - $work/tls:/etc/letsencrypt:ro
 YAML
 # Local CLI bootstrap is private. Same named volumes then upgrade to public profile.
 local_compose up --no-build -d --wait --wait-timeout 180
@@ -64,11 +72,17 @@ local_compose stop api web >/dev/null
 public_compose up --no-build -d --wait --wait-timeout 180 postgres
 public_compose run --rm --no-deps -T migrate
 public_compose run --rm --no-deps -T db-runtime
+echo 'Checking public unenrolled ADMIN rejection'
 assert_public_startup_rejected "$work/gate.log"
+echo 'Public unenrolled ADMIN startup rejection PASS'
 local_compose exec -T postgres psql -U nexora -d nexora -v ON_ERROR_STOP=1 -c "UPDATE users SET status='DISABLED' WHERE username='gate_unenrolled';" >/dev/null
+echo 'Checking public Identity custody rejection'
 assert_public_startup_rejected "$work/key-gate.log" -e IDENTITY_KEYRING_JSON=invalid
+echo 'Public Identity custody startup rejection PASS'
+echo 'Checking missing TLS custody rejection'
 if public_compose run --rm --no-deps -T -e PUBLIC_FQDN=missing.example.test -e PUBLIC_ORIGIN=https://missing.example.test ingress > "$work/tls-gate.log" 2>&1; then echo 'Missing TLS custody incorrectly succeeded' >&2; exit 1; fi
-grep -q 'TLS certificate custody unavailable' "$work/tls-gate.log"
+if ! grep -q 'TLS certificate custody unavailable' "$work/tls-gate.log"; then gate_diagnostic "$work/tls-gate.log"; exit 1; fi
+echo 'Missing TLS custody rejection PASS'
 public_compose up --no-build -d --wait --wait-timeout 180 ingress
 public_compose config --format json > "$work/compose.json"
 public_compose ps -a --format json > "$work/containers.json"
