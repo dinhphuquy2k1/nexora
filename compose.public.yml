@@ -39,6 +39,7 @@ services:
     ports: ["80:80", "443:443"]
     volumes:
       - ./docker/public/ingress-entrypoint.sh:/nexora/ingress-entrypoint.sh:ro
+      - ./docker/public/public-authority.sh:/nexora/public-authority.sh:ro
       - ./docker/public/nginx.conf.template:/nexora/nginx.conf.template:ro
       - ./docker/public/security-headers.conf:/nexora/security-headers.conf:ro
       - public_certificates:/etc/letsencrypt:ro

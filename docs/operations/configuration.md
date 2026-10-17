@@ -86,3 +86,5 @@ Nginx uses actual socket client addresses for instance-local rate limiting, over
 The supplied Nginx profile serves one canonical PUBLIC_FQDN/certificate authority. Additional app allowlist aliases are not automatically exposed by ingress; adding DNS/certificate/server aliases requires an explicit matching reviewed ingress configuration.
 
 Public TLS1.2 permits only ECDHE AEAD AES-GCM/ChaCha20 suites (no static RSA exchange or CBC); TLS1.3 uses the current library suites. Disposable certificate replacement/reload verification is separate from actual Certbot renewal on a production host.
+
+Nginx normalizes operator FQDN/origin case and removes explicit default443 before rendering its canonical authority and redirect. Both bare canonical Host and explicit :443 are accepted for the default TLS port; alternate configured ports remain exact. The portable entrypoint policy rejects mismatched FQDN, non-HTTPS origin and malformed/ambiguous/zero/out-of-range ports before template substitution.
