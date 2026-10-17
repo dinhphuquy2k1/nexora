@@ -1,3 +1,4 @@
+import { waitForInteractiveLogin } from "./browser-login-ready.mjs";
 import { connect as http2Connect } from "node:http2";
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { clearTimeout, setTimeout } from "node:timers";
@@ -403,10 +404,9 @@ try {
   await send("Network.enable");
   await send("Page.enable");
   await send("Page.navigate", { url: origin + "/login" });
+  checks.step("ADMIN_BROWSER_INTERACTIVE_LOGIN");
+  await waitForInteractiveLogin({ until, evaluate });
   checks.step("ADMIN_BROWSER_PASSWORD_LOGIN");
-  await until(
-    '!!document.querySelector("input[name=password]:not(:disabled)")',
-  );
   await type("username", f.username);
   await type("password", f.password);
   await evaluate('document.querySelector("button[type=submit]").click()');
@@ -676,8 +676,9 @@ try {
     `fetch("/api/auth/setup-password",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token:${JSON.stringify(setupToken)},password:${JSON.stringify(f.password)}})}).then(r=>r.status)`,
   );
   checks.status(replay, 400);
+  checks.step("REMOTE_OPERATOR_INTERACTIVE_LOGIN");
+  await waitForInteractiveLogin({ until, evaluate });
   checks.step("REMOTE_OPERATOR_LOGIN_AND_STORAGE_PRIVACY");
-  await until('!!document.querySelector("input[name=password]")');
   await type("username", "https_operator");
   await type("password", f.password);
   await evaluate('document.querySelector("button[type=submit]").click()');
