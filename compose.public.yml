@@ -46,6 +46,7 @@ services:
     volumes:
       - ./docker/public/ingress-entrypoint.sh:/nexora/ingress-entrypoint.sh:ro
       - ./docker/public/nginx.conf.template:/nexora/nginx.conf.template:ro
+      - ./docker/public/security-headers.conf:/nexora/security-headers.conf:ro
       - public_certificates:/etc/letsencrypt:ro
       - public_acme:/var/www/acme:ro
     networks:

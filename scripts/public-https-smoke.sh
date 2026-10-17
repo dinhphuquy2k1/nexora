@@ -17,6 +17,13 @@ CARRIER_KEYRING_JSON=$(node -e 'console.log(JSON.stringify({1:require("node:cryp
 export CARRIER_KEYRING_JSON CARRIER_ACTIVE_KEY_VERSION=1
 local_compose(){ docker compose -f compose.yml "$@"; }
 public_compose(){ docker compose -f compose.yml -f compose.public.yml -f "$work/https.yml" "$@"; }
+assert_public_startup_rejected(){
+  gate_log=$1; shift
+  gate_status=0
+  timeout 40s docker compose -f compose.yml -f compose.public.yml -f "$work/https.yml" run --rm --no-deps -T "$@" api > "$gate_log" 2>&1 || gate_status=$?
+  if [ "$gate_status" -eq 0 ] || [ "$gate_status" -eq 124 ]; then echo 'Public startup gate did not reject safely within deadline' >&2; exit 1; fi
+  grep -q '"event":"startup_failed"' "$gate_log"
+}
 cleanup(){
   status=$?
   # Fixed safe app logs only; no config/env or certificate/fixture output.
@@ -54,10 +61,12 @@ local_compose exec -T api sh /scripts/api-entrypoint.sh node - seed < scripts/pu
 local_compose exec -T postgres sha256sum /config/postgres_password > "$work/admin-hash"
 local_compose exec -T api sha256sum /runtime-config/postgres_app_password > "$work/runtime-hash"
 local_compose stop api web >/dev/null
-public_compose up --no-build -d --wait --wait-timeout 180 db-runtime
-if public_compose run --rm --no-deps -T api > "$work/gate.log" 2>&1; then echo 'Unenrolled ADMIN public startup incorrectly succeeded' >&2; exit 1; fi
+public_compose up --no-build -d --wait --wait-timeout 180 postgres
+public_compose run --rm --no-deps -T migrate
+public_compose run --rm --no-deps -T db-runtime
+assert_public_startup_rejected "$work/gate.log"
 local_compose exec -T postgres psql -U nexora -d nexora -v ON_ERROR_STOP=1 -c "UPDATE users SET status='DISABLED' WHERE username='gate_unenrolled';" >/dev/null
-if public_compose run --rm --no-deps -T -e IDENTITY_KEYRING_JSON=invalid api > "$work/key-gate.log" 2>&1; then echo 'Invalid Identity custody public startup incorrectly succeeded' >&2; exit 1; fi
+assert_public_startup_rejected "$work/key-gate.log" -e IDENTITY_KEYRING_JSON=invalid
 if public_compose run --rm --no-deps -T -e PUBLIC_FQDN=missing.example.test -e PUBLIC_ORIGIN=https://missing.example.test ingress > "$work/tls-gate.log" 2>&1; then echo 'Missing TLS custody incorrectly succeeded' >&2; exit 1; fi
 grep -q 'TLS certificate custody unavailable' "$work/tls-gate.log"
 public_compose up --no-build -d --wait --wait-timeout 180 ingress

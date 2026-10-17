@@ -6,6 +6,7 @@ http {
   include /etc/nginx/mime.types;
   default_type application/octet-stream;
   server_tokens off;
+  merge_slashes on;
   access_log off;
   client_max_body_size 2m;
   client_body_timeout 15s;
@@ -19,8 +20,8 @@ http {
   # Instance-local per-connection-source limits. Empty keys exempt unrelated/health paths.
   map "$request_method:$uri" $sensitive_client {
     default "";
-    ~^POST:/api/auth/(login|mfa/verify|mfa/cancel|setup-password)$ $binary_remote_addr;
-    ~^(POST|PATCH|DELETE):/api/admin/ $binary_remote_addr;
+    ~*^POST:/api/auth/(login|mfa/verify|mfa/cancel|setup-password)/?$ $binary_remote_addr;
+    ~*^(POST|PATCH|DELETE):/api/admin(?:/|$) $binary_remote_addr;
   }
   limit_req_zone $sensitive_client zone=auth:10m rate=6r/s;
   limit_req_status 429;
@@ -42,13 +43,10 @@ http {
     ssl_session_cache shared:TLS:10m;
     ssl_session_tickets off;
     if ($approved_host = 0) { return 421; }
-    add_header Strict-Transport-Security "max-age=31536000" always;
-    add_header X-Content-Type-Options nosniff always;
-    add_header X-Frame-Options DENY always;
-    add_header Referrer-Policy no-referrer always;
-    add_header Content-Security-Policy "frame-ancestors 'none'; object-src 'none'; base-uri 'self'" always;
+    include /nexora/security-headers.conf;
     error_page 429 = @limited;
     location @limited {
+      include /nexora/security-headers.conf;
       default_type application/json;
       add_header Cache-Control no-store always;
       add_header X-Nexora-Ingress-Rate-Limit 1 always;

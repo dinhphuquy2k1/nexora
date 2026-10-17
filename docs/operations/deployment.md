@@ -64,7 +64,9 @@ Commands below assume approved non-secret PUBLIC_FQDN/TLS_CONTACT_EMAIL are set 
 # Inspect resolved settings in a trusted terminal; do not paste secret-bearing compose config into logs.
 docker compose --env-file .env.public -f compose.yml -f compose.public.yml build
 # Start private dependency chain only; public listener is not started.
-docker compose --env-file .env.public -f compose.yml -f compose.public.yml up -d --wait db-runtime
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml up -d --wait postgres
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml run --rm --no-deps -T migrate
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml run --rm --no-deps -T db-runtime
 # Fresh installations only: hidden password and interactive trusted TTY enrollment.
 docker compose --env-file .env.public -f compose.yml -f compose.public.yml run --rm --no-deps api node dist/cli/user-create.js
 docker compose --env-file .env.public -f compose.yml -f compose.public.yml run --rm --no-deps api node dist/cli/mfa-enroll.js
@@ -94,3 +96,5 @@ Close public exposure and stop application/provisioning writers before changing 
 Build matching source images, validate public settings/networks/certificates, run genuine migrate then runtime grants, verify all ACTIVE ADMIN enrollment, host NTP/firewall and external DNS/TLS. Only then start ingress. Test preserved data/sessions/files/Carrier state; do not rotate DB credentials or encryption keys as part of this upgrade. Old LOCAL cookies may be replaced with Secure cookies after public login; existing DB sessions remain subject to current assurance and revocation. Switching to a different hostname does not transfer browser cookies. A rollback to HTTP may require login again; Secure cookies cannot be relied on over HTTP.
 
 Rollback closes ingress/80/443 first, stops Web/API writers, retains volumes/keys/certificates, and restores compatible matching binaries/configuration. Use LOCAL only with loopback publishing; never expose downgraded HTTP. No destructive migration rollback or old incompatible binary against a newer schema. Restore backups into a separate validated target before any deliberate production recovery; keep original volumes until acceptance. Actual production backup/restore has not been performed by CI. The disposable HTTPS harness verifies a logical database restore and original file archive extraction in its owned test project only.
+
+Before public activation, use a trusted private administrative terminal to inventory all relevant ACTIVE ADMIN rows (never expose this through readiness): `SELECT u.id,u.username,(m.user_id IS NOT NULL) AS enrolled,m.key_version FROM users u LEFT JOIN user_mfa m ON m.user_id=u.id WHERE u.role='ADMIN' AND u.status='ACTIVE';`. At least one must exist; enroll each missing administrator through the trusted CLI. Inventory key versions without exposing ciphertext/plaintext. Startup still performs actual runtime-role ciphertext authentication; SQL metadata alone is not proof of readable custody. Never reset MFA or disable accounts automatically to bypass this release prerequisite.

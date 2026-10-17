@@ -1,5 +1,5 @@
 import { connect as http2Connect } from "node:http2";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import { clearTimeout, setTimeout } from "node:timers";
 const WebSocket = globalThis.WebSocket;
 import assert from "node:assert/strict";
@@ -57,6 +57,28 @@ function request(
     req.on("timeout", () => req.destroy(new Error("Request timeout")));
     req.end(body);
   });
+}
+function totp(key) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0,
+    value = 0;
+  const bytes = [];
+  for (const char of key) {
+    value = (value << 5) | alphabet.indexOf(char);
+    bits += 5;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((value >>> bits) & 255);
+    }
+  }
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000) + 1));
+  const mac = createHmac("sha1", Buffer.from(bytes)).update(counter).digest(),
+    offset = mac.at(-1) & 15;
+  return String((mac.readUInt32BE(offset) & 0x7fffffff) % 1000000).padStart(
+    6,
+    "0",
+  );
 }
 const profile = await mkdtemp(join(tmpdir(), "nexora-https-browser-"));
 let chrome, socket;
@@ -468,6 +490,29 @@ try {
     ).status,
     401,
   );
+  const totpProof = await request("/api/auth/mfa/verify", {
+    method: "POST",
+    headers: {
+      origin,
+      cookie: secondCookie,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ type: "totp", code: totp(f.mfaSetupKey) }),
+  });
+  checks.status(totpProof.status, 200);
+  const totpSession = totpProof.headers["set-cookie"].find((value) =>
+    /^nexora_session=[a-f0-9]{64}/.test(value),
+  );
+  assert.ok(totpSession.includes("; Secure"));
+  checks.status(
+    (
+      await request("/api/auth/logout", {
+        method: "POST",
+        headers: { origin, cookie: totpSession.split(";")[0] },
+      })
+    ).status,
+    200,
+  );
   const cancel = await request("/api/auth/mfa/cancel", {
     method: "POST",
     headers: { origin, cookie: secondCookie },
@@ -615,6 +660,29 @@ try {
   for (const r of limited) {
     assert.equal(JSON.parse(r.text).code, "TOO_MANY_REQUESTS");
     assert.equal(r.headers["cache-control"], "no-store");
+    assert.ok(
+      r.headers["strict-transport-security"].includes("max-age=31536000"),
+    );
+    assert.equal(r.headers["x-content-type-options"], "nosniff");
+  }
+  for (const path of [
+    "/api/auth/mfa/cancel/",
+    "/api/auth/MFA/CANCEL",
+    "/api/auth/mfa//cancel",
+    "/api/auth/mfa%2Fcancel",
+  ]) {
+    const responses = await Promise.all(
+      Array.from({ length: 20 }, () =>
+        request(path, { method: "POST", headers: { origin, ...forged } }),
+      ),
+    );
+    assert.ok(
+      responses.some(
+        (response) =>
+          response.status === 429 &&
+          response.headers["x-nexora-ingress-rate-limit"] === "1",
+      ),
+    );
   }
   checks.status((await request("/api/health/ready")).status, 200);
   console.log(
