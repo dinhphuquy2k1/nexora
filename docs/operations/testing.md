@@ -11,8 +11,9 @@ RuntimeDatabase unit tests cover lazy single construction and exactly-once shutd
 `sh scripts/quality-docker.sh` starts development mode, then runs frozen-installed formatting, architectural lint, typecheck, meaningful unit tests, contract drift, build and migrated PostgreSQL integration inside the separate profile-gated quality test runner in Docker. It pauses API/web watchers while build outputs are rewritten, restarts them on exit and does not delete volumes. Use the `run` mapped-user entrypoint for commands writing generated outputs rather than bypassing it with exec.
 
 ```sh
-docker compose -f compose.yml -f compose.dev.yml run --rm --no-deps -T api sh /workspace/scripts/api-entrypoint.sh sh -c 'NODE_ENV=production API_INTERNAL_URL=http://api:4000 pnpm quality && NODE_ENV=test pnpm test:integration'
+sh scripts/quality-docker.sh
 sh scripts/runtime-smoke.sh
+sh scripts/public-https-smoke.sh
 sh scripts/data-smoke.sh
 sh scripts/dev-smoke.sh
 ```

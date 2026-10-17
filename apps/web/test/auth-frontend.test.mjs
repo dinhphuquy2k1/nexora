@@ -417,3 +417,9 @@ test("deployment presentation reflects the selected server profile without seria
   ]);
   assert.equal(JSON.stringify(presentation).includes("never-serialize"), false);
 });
+
+test("return URL invalid transport shapes fail safely", () => {
+  for (const value of [["/settings", "//attacker.example"], {}, 123]) {
+    assert.equal(sanitizeReturnUrl(value), "/");
+  }
+});

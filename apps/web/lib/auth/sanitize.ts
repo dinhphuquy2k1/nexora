@@ -2,6 +2,7 @@ const RETURN_ORIGIN = "https://nexora-return.invalid";
 
 export function sanitizeReturnUrl(returnUrl?: string | null): string {
   if (
+    typeof returnUrl !== "string" ||
     !returnUrl ||
     !returnUrl.startsWith("/") ||
     returnUrl.startsWith("//") ||
