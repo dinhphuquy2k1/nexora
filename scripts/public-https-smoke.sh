@@ -117,7 +117,7 @@ docker run --rm --network none --volumes-from "$backup_api:ro" --entrypoint tar 
 public_compose exec -T postgres pg_dump -U nexora nexora > "$work/backup.sql"
 public_compose exec -T postgres createdb -U nexora nexora_public_restore
 public_compose exec -T postgres psql -U nexora -d nexora_public_restore -v ON_ERROR_STOP=1 < "$work/backup.sql" > "$work/restore.log"
-query="SELECT count(*) FROM users; SELECT count(*) FROM sessions; SELECT count(*) FROM user_mfa; SELECT count(*) FROM operator_setup_tokens; SELECT md5(string_agg(ciphertext,',' ORDER BY user_id)) FROM user_mfa; SELECT md5(string_agg(ciphertext,',' ORDER BY connection_id)) FROM carrier_connection_secrets; SELECT count(*) FROM stored_files;"
+query="SELECT count(*) FROM users; SELECT count(*) FROM sessions; SELECT count(*) FROM user_mfa; SELECT count(*) FROM operator_setup_tokens; SELECT md5(string_agg(totp_secret_ciphertext,',' ORDER BY user_id)) FROM user_mfa; SELECT md5(string_agg(ciphertext,',' ORDER BY connection_id)) FROM carrier_connection_secrets; SELECT count(*) FROM stored_files;"
 original=$(public_compose exec -T postgres psql -U nexora -d nexora -Atc "$query")
 restored=$(public_compose exec -T postgres psql -U nexora -d nexora_public_restore -Atc "$query")
 [ "$original" = "$restored" ] || { echo 'Isolated HTTPS database restore mismatch' >&2; exit 1; }
