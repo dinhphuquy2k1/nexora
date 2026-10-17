@@ -25,7 +25,7 @@ Setup passwords require 8–1024 characters before Scrypt. Links contain 256-bit
 
 ## Implemented and deferred milestones
 
-Implemented: PR4 Carrier backend lifecycle (mock-only, live gate closed); PR6 mandatory ADMIN TOTP MFA, sessions.auth_level, CLI-only enrollment, pending verification/cancellation, TOTP/recovery replay protection and global ADMIN+MFA authorization. The authoritative authentication endpoint details are in the PR6 section below.
+Implemented: PR4 Carrier backend lifecycle (mock-only, live gate closed); PR6 mandatory ADMIN TOTP MFA, sessions.auth_level, CLI-only enrollment, pending verification/cancellation, TOTP/recovery replay protection and global ADMIN+MFA authorization; PR7 explicit HTTPS profile and ingress security implementation (NEXORA-024), separate from actual production activation. The authoritative authentication endpoint details are in the PR6 section below.
 
 Deferred: actual production public activation/release evidence (DNS/TLS/firewall/NTP), Carrier Settings UI, cross-user administrative Carrier APIs/CLI, live Uniship authorization, shipment provider synchronization, MFA reset and key retirement procedures.
 
@@ -65,7 +65,7 @@ PR3 GET/PATCH/DELETE and PR4 POST/create/reconnect are IMPLEMENTED (backend only
 
 ### Public HTTPS — PR 7
 
-Deferred deployment work includes TLS ingress, Secure cookie policy, public Host/Origin configuration and release/startup verification gates. Mandatory ADMIN MFA is implemented by PR6. Current supported deployment remains loopback HTTP; the explicit PR7 profile below does not imply production activation.
+PR7 implements the explicit profile, TLS ingress configuration, Secure cookie policy, strict public Host/Origin/proxy validation and MFA startup checks. Actual production DNS, certificate issuance/renewal, firewall, host NTP and release evidence remain pending because no domain/host is selected. LOCAL remains the default loopback deployment; the profile implementation does not imply production activation.
 
 ## Contract Generation & Verification
 

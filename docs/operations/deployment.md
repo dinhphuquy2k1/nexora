@@ -28,7 +28,7 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), public deployment o
 
 ## Logical PR 2 local identity rollout
 
-Deploy the new `20261015000000_local_identity_onboarding` migration forward without editing history or resetting volumes. It preserves valid local users, credentials, sessions and stored files, adds hashed setup tokens and removes legacy provider bindings. Both ADMIN and OPERATOR use Nexora local login; credentialless retained operators require ADMIN-issued setup links. The legacy provider route returns 404; Uniship configuration cannot affect local sessions. Administration remains loopback-only until the separately planned MFA/HTTPS milestones. Setup links are sensitive, expire after 24 hours and must be delivered privately. Optional development cleanup is manual and guarded; see [Setup](setup.md).
+Deploy the new `20261015000000_local_identity_onboarding` migration forward without editing history or resetting volumes. It preserves valid local users, credentials, sessions and stored files, adds hashed setup tokens and removes legacy provider bindings. Both ADMIN and OPERATOR use Nexora local login; credentialless retained operators require ADMIN-issued setup links. The legacy provider route returns 404; Uniship configuration cannot affect local sessions. At PR2 rollout administration remained loopback-only; current ADMIN MFA and the explicit HTTPS profile follow the later milestones below. Setup links are sensitive, expire after 24 hours and must be delivered privately. Optional development cleanup is manual and guarded; see [Setup](setup.md).
 
 The owner-approved PR 2 follow-up migration `20261015010000_legacy_provider_session_cutover` intentionally narrows blanket session preservation: every OPERATOR session without a local credential is revoked, regardless of status/expiry; ADMIN and configured OPERATOR sessions remain. Stop API/Web and provisioning writers during upgrade. Account/file data remains, old cookies never revive after setup, and no authentication-source distinction is available for configured operators. See [Setup](setup.md) and ADR-007.
 
@@ -42,7 +42,7 @@ Role provisioning is idempotent and fail-closed on unsafe role/custody conflicts
 
 Deploy matching ninth-migration/runtime images with writers stopped, retain all volumes, supply dedicated Identity keys, run genuine migrate then explicit restricted runtime grants, enroll administrators via the one-off interactive API CLI, and only then start new API/Web. The detailed ordered runbook and fresh-install command are in Setup. There is no temporary HTTP enrollment or privileged password bypass. Existing PASSWORD session rows are preserved by migration but globally denied admin capability; enrollment revokes them. User/credential/Carrier/audit/files remain intact. Update of Identity key custody requires restart and retention of old versions; no automatic re-encryption/reset exists.
 
-This implements mandatory ADMIN MFA for the current local deployment only. Public TLS, ingress, public boot release gates and PR7 readiness remain PLANNED. No deployment command should expose Web beyond loopback or unlock live Uniship traffic.
+That historical PR6 rollout implemented mandatory ADMIN MFA for LOCAL. NEXORA-024 below adds explicit public TLS/ingress/startup checks; actual public release readiness still requires real host evidence. Web itself must remain unpublished in public mode, and no deployment command unlocks live Uniship traffic.
 
 ## Public HTTPS runbook — owner-approved topology, 2026-10-17
 

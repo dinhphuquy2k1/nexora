@@ -167,7 +167,7 @@ If provisioning fails, API stays blocked. An authorized administrator must inspe
 
 ## Mandatory ADMIN MFA rollout — Logical PR6/NEXORA-022
 
-Use only the supported trusted local/loopback deployment. Preserve PostgreSQL, credentials, runtime_credentials and uploads. Before upgrade inventory ADMIN accounts with authorized database tooling and arrange access to each account's Nexora password and authenticator; do not ask administrators to share passwords. Verify host time synchronization and secure, independent Identity key custody (Configuration). A missing enrollment never permits password-only administrative login.
+For LOCAL use the trusted loopback deployment. PUBLIC_HTTPS additionally requires the dated public runbook and its release gates below. Preserve PostgreSQL, credentials, runtime_credentials and uploads. Before upgrade inventory ADMIN accounts with authorized database tooling and arrange access to each account's Nexora password and authenticator; do not ask administrators to share passwords. Verify host time synchronization and secure, independent Identity key custody (Configuration). A missing enrollment never permits password-only administrative login.
 
 1. Stop API/Web and external provisioning writers: docker compose stop api web. Keep existing volumes and all historical migrations.
 2. Supply IDENTITY_KEYRING_JSON/IDENTITY_ACTIVE_KEY_VERSION securely in the deployment environment, independently of Carrier keys, and retain them outside containers. Build matching images: docker compose build. Do not expose keys in commands/logs or start old application images against new schema.

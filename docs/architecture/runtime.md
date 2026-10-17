@@ -85,7 +85,7 @@ Under [ADR-007](../decisions/multi-carrier-architecture.md), public deployment r
 
 ## Historical local identity boundary (Logical PR 2)
 
-At PR2 both roles used Nexora password sessions, independent of Carrier availability; ADMIN APIs required ACTIVE ADMIN and trusted Origin. Fragment setup remains unchanged. Carrier lifecycle is now implemented by PR18 and mandatory ADMIN MFA/session assurance by PR6 below. Public HTTPS remains deferred. No new runtime service is introduced.
+At PR2 both roles used Nexora password sessions, independent of Carrier availability; ADMIN APIs required ACTIVE ADMIN and trusted Origin. Fragment setup remains unchanged. Carrier lifecycle is now implemented by PR18 and mandatory ADMIN MFA/session assurance by PR6 below. At that historical stage public HTTPS was deferred and no runtime service was added. NEXORA-024 below adds the explicit ingress profile; real public activation still requires actual host evidence.
 
 ## Carrier key runtime — Logical PR 3
 

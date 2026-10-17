@@ -458,7 +458,13 @@ try {
       ],
       { stdio: "pipe", timeout: 15000 },
     );
-    assert.equal(result.status, 0);
+    if (result.status !== 0)
+      throw Object.assign(new Error("Owned SQL fixture failed"), {
+        code:
+          result.error?.code === "ETIMEDOUT"
+            ? "DOCKER_TIMEOUT"
+            : "DOCKER_FAILURE",
+      });
   };
   checks.step("HTTPS_PASSWORD_ASSURANCE_AND_RECOVERY_REPLAY");
   const adminIdentity = JSON.parse(
@@ -471,9 +477,11 @@ try {
   assert.ok(/^[a-f0-9-]{36}$/i.test(adminIdentity));
   const legacyToken = randomBytes(32).toString("hex"),
     legacyHash = createHash("sha256").update(legacyToken).digest("hex");
+  checks.step("OWNED_LEGACY_PASSWORD_SESSION_FIXTURE");
   sql(
-    `INSERT INTO sessions(user_id,token_hash,expires_at,auth_level) VALUES('${adminIdentity}'::uuid,'${legacyHash}',now()+interval '1 day','PASSWORD');`,
+    `INSERT INTO sessions(id,user_id,token_hash,expires_at,auth_level) VALUES(gen_random_uuid(),'${adminIdentity}'::uuid,'${legacyHash}',now()+interval '1 day','PASSWORD');`,
   );
+  checks.step("HTTPS_PASSWORD_ASSURANCE_AND_RECOVERY_REPLAY");
   checks.status(
     (
       await request("/api/admin/users", {
@@ -607,7 +615,7 @@ try {
     ).status,
     401,
   );
-  await send("Page.navigate", { url: created.data.setupUrl });
+  await send("Page.navigate", { url: reissued.data.setupUrl });
   await until(
     'location.hash==="" && !!document.querySelector("input[name=confirmation]:not(:disabled)")',
   );
