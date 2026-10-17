@@ -1,3 +1,4 @@
+import { RuntimeDatabase } from "./common/infrastructure/runtime-database";
 import { MfaPort } from "./identity/application/mfa.port";
 import { MfaService } from "./identity/application/mfa.service";
 import { IdentityMfaAdapter } from "./identity/infrastructure/mfa.adapter";
@@ -52,10 +53,16 @@ export const CONFIG = "CONFIG";
   ],
   providers: [
     {
-      provide: CarrierLifecycleAdapter,
+      provide: RuntimeDatabase,
       inject: [CONFIG],
       useFactory: (c: ReturnType<typeof loadConfig>) =>
-        new CarrierLifecycleAdapter(c.DATABASE_URL),
+        new RuntimeDatabase(c.DATABASE_URL),
+    },
+    {
+      provide: CarrierLifecycleAdapter,
+      inject: [CONFIG, RuntimeDatabase],
+      useFactory: (c: ReturnType<typeof loadConfig>, db: RuntimeDatabase) =>
+        new CarrierLifecycleAdapter(c.DATABASE_URL, db),
     },
     {
       provide: PostgresSecurityAudit,
@@ -101,9 +108,9 @@ export const CONFIG = "CONFIG";
     },
     {
       provide: CarrierPort,
-      inject: [CONFIG],
-      useFactory: (c: ReturnType<typeof loadConfig>) =>
-        new CarrierAdapter(c.DATABASE_URL),
+      inject: [CONFIG, RuntimeDatabase],
+      useFactory: (c: ReturnType<typeof loadConfig>, db: RuntimeDatabase) =>
+        new CarrierAdapter(c.DATABASE_URL, db),
     },
     {
       provide: CarrierService,
@@ -113,9 +120,9 @@ export const CONFIG = "CONFIG";
     { provide: CONFIG, useFactory: () => loadConfig(process.env) },
     {
       provide: DatabaseAdapter,
-      inject: [CONFIG],
-      useFactory: (c: ReturnType<typeof loadConfig>) =>
-        new DatabaseAdapter(c.DATABASE_URL),
+      inject: [CONFIG, RuntimeDatabase],
+      useFactory: (c: ReturnType<typeof loadConfig>, db: RuntimeDatabase) =>
+        new DatabaseAdapter(c.DATABASE_URL, db),
     },
     {
       provide: LocalStorage,
@@ -137,9 +144,9 @@ export const CONFIG = "CONFIG";
     },
     {
       provide: IdentityPort,
-      inject: [CONFIG],
-      useFactory: (c: ReturnType<typeof loadConfig>) =>
-        new IdentityDatabaseAdapter(c.DATABASE_URL),
+      inject: [CONFIG, RuntimeDatabase],
+      useFactory: (c: ReturnType<typeof loadConfig>, db: RuntimeDatabase) =>
+        new IdentityDatabaseAdapter(c.DATABASE_URL, db),
     },
     {
       provide: AuthService,
@@ -154,9 +161,9 @@ export const CONFIG = "CONFIG";
     },
     {
       provide: UserManagementPort,
-      inject: [CONFIG],
-      useFactory: (c: ReturnType<typeof loadConfig>) =>
-        new UserManagementAdapter(c.DATABASE_URL),
+      inject: [CONFIG, RuntimeDatabase],
+      useFactory: (c: ReturnType<typeof loadConfig>, db: RuntimeDatabase) =>
+        new UserManagementAdapter(c.DATABASE_URL, db),
     },
     {
       provide: UserManagementService,
@@ -175,11 +182,13 @@ export const CONFIG = "CONFIG";
     },
     {
       provide: MfaPort,
-      inject: [CONFIG],
-      useFactory: (c: ReturnType<typeof loadConfig>) =>
+      inject: [CONFIG, RuntimeDatabase],
+      useFactory: (c: ReturnType<typeof loadConfig>, db: RuntimeDatabase) =>
         new IdentityMfaAdapter(
           c.DATABASE_URL,
           new SecretCipher(new EnvironmentKeyring(process.env, "IDENTITY")),
+          Date.now,
+          db,
         ),
     },
     {
