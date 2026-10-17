@@ -3,7 +3,7 @@
 - **Task ID**: `NEXORA-024`
 - **Status**: `VERIFICATION PENDING`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `NOT VERIFIED`
+- **Verification**: `PARTIALLY VERIFIED`
 - **Classification**: SIGNIFICANT
 - **Branch**: `feat/public-https-ingress`
 - **Baseline**: `6d6bd53024bc86480d069b00f3e5c281bd92690f`
@@ -12,7 +12,7 @@
 
 Clean worktree, fetched main equals reviewed baseline. PR19 merged at baseline; no open PR found, Task024 unused. New branch from origin/main; do not modify PR19 or unrelated PR14. Preserve all nine migrations, completed dependency evidence and volumes. Uploaded request ends mid-final acceptance item; the preceding detailed requirements define scope.
 
-## PLAN ISSUE — PUBLIC_INGRESS_TOPOLOGY
+## PLAN ISSUE — PUBLIC_INGRESS_TOPOLOGY (RESOLVED)
 
 ADR-007 approves public security requirements but not environment, proxy or certificate operations. Owner approval required by the uploaded request section4 before committing production ingress choice. Proposed simplest dependency-free rate limiting: one maintained Linux VPS/dedicated host with Docker Compose, Nginx TLS ingress (standard limit_req, no plugin/Redis), operator-owned FQDN, Let's Encrypt HTTP-01 certificates via separate Certbot job/host systemd timer, no Docker socket. Only80 (ACME plus HTTPS redirect) and443 public; management SSH restricted by firewall. Nginx strips/overwrites forwarding headers; dedicated private networks with explicitly assigned proxy/Web addresses, API trusts only Web hop and known ingress hop, no blanket private-subnet trust. Operator must confirm non-overlapping subnets. Web/API/PG have no public ports. Standard HTTP/2/TLS1.2+; no plaintext auth fallback, no proxy dashboard. Certificate renewal requires a tested timer and safe Nginx reload, avoiding third-party rate-limit modules at cost of separate certificate operations.
 
@@ -153,3 +153,11 @@ Writers stop, network-disabled read-only file archive and real logical dump/isol
 | Real public HTTPS application and ingress | Same run/job, complete public-https-browser.mjs PASS: strict TLS CA/name, TLS1.2/HTTP2, native browser MFA/onboarding/privacy, negative Host/Origin/forwarding, private network/ports and Nginx429 aliases | 2026-10-17 | PASS   |
 | Disposable TLS reload                     | Same run: nginx -t/reload plus fresh strict-CA session probe requires new certificate fingerprint and HTTP200                                                                                              | 2026-10-17 | PASS   |
 | Restore comparison query                  | Same run: logical restore succeeds but user_mfa ciphertext SQL column is invalid; remaining restart/data/dev not reached                                                                                   | 2026-10-17 | FAIL   |
+
+## Review and public release status
+
+Owner-approved architecture is IMPLEMENTED. This task remains active in VERIFICATION PENDING and PARTIALLY VERIFIED: the executed source evidence above proves application/HTTPS/reload assertions, while actual public deployment acceptance is still impossible without the owner's domain/DNS and Linux host. No production listener is activated, no public certificate is issued and no production volumes are accessed.
+
+The final reviewed commit must pass the complete Foundation workflow: frozen installation, format/lint/test:lint/docs/typecheck/tests/integration/test:docs/test:operations/contracts/build/boundaries plus quality-docker.sh, runtime-smoke.sh, public-https-smoke.sh, data-smoke.sh and dev-smoke.sh. Earlier partial source results do not satisfy that final check. The exact final SHA, executed workflow run and full command outcomes are recorded in [PR20](https://github.com/dinhphuquy2k1/nexora/pull/20); a documentation commit cannot contain its own future CI result. Any missing or failing mandatory job blocks ready-for-review status. Host Prisma generation HTTP403 is separate from genuine hosted Prisma/PostgreSQL validation.
+
+Production gates remain NOT VERIFIED until dated evidence exists from the actual approved environment: domain/DNS ownership and A/AAAA; external trusted TLS issuance/renewal/timer/reload; actual container bindings/private bypass/firewall including Docker NAT/IPv6; active NTP and synchronized host clock via public-host-preflight.sh; all relevant real ACTIVE ADMIN enrollments and independent key custody; encrypted off-host backup plus isolated production-data restoration and rollback rehearsal. Disposable CI proves only its owned fixtures and never closes these gates. Do not move this task to completed or activate public ingress based on CI alone.
