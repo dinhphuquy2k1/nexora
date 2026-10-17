@@ -108,3 +108,16 @@ Run39003320320, source8879f3d199958c45532036e5825a0ac1baec971f, job117310612111:
 | :------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
 | Corrected private dependency sequence | Same run: PostgreSQL health, genuine9-migration no-drift deploy and explicit restricted runtime provision one-offs complete successfully | 2026-10-17 | PASS   |
 | Second HTTPS attempt                  | Same run stops during subsequent gate preparation before positive TLS/browser; no later data/dev verification claimed                    | 2026-10-17 | FAIL   |
+
+## Third execution and explicit debug re-plan
+
+Run39004085634 at9cea90f97bcfd3f1bf11a201d3fac242a55c43c8 (job117312857184): quality/63 PostgreSQL and LOCAL runtime PASS again. The corrected fixture now reaches and passes actual unenrolled ADMIN rejection, invalid Identity custody rejection and missing TLS custody rejection. Positive public API starts and stays healthy with real enrollment/key gates. Web process starts but its public healthcheck remains unhealthy; TLS ingress correctly refuses to activate while Web is unhealthy. No HTTPS/browser PASS is claimed.
+
+Paused edits and re-evaluated the boundary after three full attempts. Reproduced the precise new failure with a real Node24 local HTTP server: fetch supplied Host=nexora.example.test:443 but server received127.0.0.1:<port>; raw node:http sent the intended public Host. Thus the healthcheck was being rejected by the strict public allowlist, not a reason to weaken it. New raw-HTTP public-healthcheck helper is shipped in Web's existing lib artifact tree, tested against a real listener and rejection/outage, and invoked by public Compose only. LOCAL healthcheck remains unchanged. This is test-first health transport correction, not an allowlist bypass or fake success.
+
+| Claim                           | Evidence                                                                                                                                     | Date       | Result |
+| :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Actual public pre-listen gates  | Same run: fixed labels confirm unenrolled ADMIN, invalid Identity key and missing TLS certificate custody all rejected; positive API healthy | 2026-10-17 | PASS   |
+| Public Web health transport RED | Same run fails Web health before ingress; independent real Node24 server confirms fetch overwrites Host, raw HTTP preserves it               | 2026-10-17 | FAIL   |
+
+Full updated-source CI and the not-yet-executed HTTPS/browser/data/dev assertions remain required. No production gates closed from this diagnosis.
