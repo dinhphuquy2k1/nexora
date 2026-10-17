@@ -121,3 +121,7 @@ Paused edits and re-evaluated the boundary after three full attempts. Reproduced
 | Public Web health transport RED | Same run fails Web health before ingress; independent real Node24 server confirms fetch overwrites Host, raw HTTP preserves it               | 2026-10-17 | FAIL   |
 
 Full updated-source CI and the not-yet-executed HTTPS/browser/data/dev assertions remain required. No production gates closed from this diagnosis.
+
+## Remaining verification-first ingress assertions
+
+Add forced TLS1.2/HTTP2 checks and explicit forward-secret AEAD TLS1.2 suites. Replace the disposable certificate/key, validate Nginx config/reload, then require a fresh trusted-CA handshake with the new certificate fingerprint and the same valid application session. Production Certbot renewal remains NOT VERIFIED. Quiesce API/Web/ingress before file archiving, since readiness itself writes temporary storage probes; a network-disabled read-only helper archives the stopped API volumes. Verify file restoration separately and preserve all prior encrypted-data/session/credential assertions. New assertions remain pending actual CI execution.

@@ -96,11 +96,23 @@ for(const value of [f.password,f.mfaSetupKey,...f.recoveryCodes,s.token,s.setupT
 console.log('HTTPS API/Web/ingress secret-log privacy PASS');
 JS
 public_compose exec -T api sh /scripts/api-entrypoint.sh node - check < scripts/public-persistence-fixture.cjs
-public_compose exec -T api tar -C /data/uploads -cf - . > "$work/files.tar"
-public_compose exec -T api mkdir /tmp/nexora-https-restore
-public_compose exec -T api tar -C /tmp/nexora-https-restore -xf - < "$work/files.tar"
-public_compose exec -T api sh /scripts/api-entrypoint.sh node - check /tmp/nexora-https-restore < scripts/public-persistence-fixture.cjs
+# Simulate certificate replacement and safe reload only within this disposable test CA.
+openssl req -newkey rsa:2048 -nodes -keyout "$work/next-key.pem" -out "$work/next.csr" -subj "/CN=$PUBLIC_FQDN" >/dev/null 2>&1
+openssl x509 -req -in "$work/next.csr" -CA "$work/ca.crt" -CAkey "$work/ca.key" -CAcreateserial -out "$work/next-leaf.crt" -days 2 -sha256 -extfile "$work/ext" >/dev/null 2>&1
+cat "$work/next-leaf.crt" "$work/ca.crt" > "$work/next-chain.pem"
+mv "$work/next-key.pem" "$work/tls/live/$PUBLIC_FQDN/privkey.pem"
+mv "$work/next-chain.pem" "$work/tls/live/$PUBLIC_FQDN/fullchain.pem"
+expected_fingerprint=$(openssl x509 -in "$work/next-leaf.crt" -noout -fingerprint -sha256 | cut -d= -f2)
+public_compose exec -T ingress nginx -t
+public_compose exec -T ingress nginx -s reload
+node scripts/public-https-restart.mjs "$work/session.json" "$work/ca.crt" "$https_port" "$expected_fingerprint"
+echo 'Disposable certificate replacement and safe Nginx reload preserve session PASS'
+# Stop every application/health writer before archiving, including storage readiness probes.
 public_compose stop ingress web api >/dev/null
+backup_api=$(public_compose ps -aq api)
+[ -n "$backup_api" ]
+backup_image=$(docker inspect --format '{{.Config.Image}}' "$backup_api")
+docker run --rm --network none --volumes-from "$backup_api:ro" --entrypoint tar "$backup_image" -C /data/uploads -cf - . > "$work/files.tar"
 # Genuine offline backup and isolated restore: never restore into the live test database.
 public_compose exec -T postgres pg_dump -U nexora nexora > "$work/backup.sql"
 public_compose exec -T postgres createdb -U nexora nexora_public_restore
@@ -111,6 +123,9 @@ restored=$(public_compose exec -T postgres psql -U nexora -d nexora_public_resto
 [ "$original" = "$restored" ] || { echo 'Isolated HTTPS database restore mismatch' >&2; exit 1; }
 public_compose exec -T postgres dropdb -U nexora nexora_public_restore
 public_compose up --no-build -d --wait --wait-timeout 180 ingress
+public_compose exec -T api mkdir /tmp/nexora-https-restore
+public_compose exec -T api tar -C /tmp/nexora-https-restore -xf - < "$work/files.tar"
+public_compose exec -T api sh /scripts/api-entrypoint.sh node - check /tmp/nexora-https-restore < scripts/public-persistence-fixture.cjs
 public_compose restart api web ingress >/dev/null
 public_compose up --no-build -d --wait --wait-timeout 180 ingress
 restart=$(public_compose exec -T postgres psql -U nexora -d nexora -Atc "$query")

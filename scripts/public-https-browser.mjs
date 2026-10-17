@@ -14,8 +14,14 @@ import { createSmokeChecks } from "./smoke-checks.mjs";
 const checks = createSmokeChecks(console.error, "PUBLIC_HTTPS_SMOKE_FAILED");
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
-const f = JSON.parse(input),
-  ca = await readFile(f.caPath),
+let f;
+try {
+  f = JSON.parse(input);
+} catch {
+  console.error("Invalid HTTPS fixture input");
+  process.exit(1);
+}
+const ca = await readFile(f.caPath),
   origin = `https://${f.host}:${f.httpsPort}`;
 function request(
   path,
@@ -26,6 +32,7 @@ function request(
     trust = ca,
     servername = f.host,
     plain = false,
+    tlsVersion,
   } = {},
 ) {
   return new Promise((resolve, reject) => {
@@ -37,6 +44,9 @@ function request(
         method,
         servername,
         ca: trust,
+        ...(tlsVersion
+          ? { minVersion: tlsVersion, maxVersion: tlsVersion, agent: false }
+          : {}),
         lookup: (_hostname, options, callback) =>
           options.all
             ? callback(null, [{ address: "127.0.0.1", family: 4 }])
@@ -45,10 +55,16 @@ function request(
         timeout: 10000,
       },
       (res) => {
+        const protocol = res.socket.getProtocol?.();
         let text = "";
         res.on("data", (chunk) => (text += chunk));
         res.on("end", () =>
-          resolve({ status: res.statusCode, headers: res.headers, text }),
+          resolve({
+            status: res.statusCode,
+            headers: res.headers,
+            text,
+            protocol,
+          }),
         );
         res.on("error", reject);
       },
@@ -86,6 +102,10 @@ try {
   checks.step("STRICT_TLS_CA_AND_HOSTNAME");
   const readiness = await request("/api/health/ready");
   checks.status(readiness.status, 200);
+  assert.ok(["TLSv1.2", "TLSv1.3"].includes(readiness.protocol));
+  const tls12 = await request("/api/health/live", { tlsVersion: "TLSv1.2" });
+  checks.status(tls12.status, 200);
+  assert.equal(tls12.protocol, "TLSv1.2");
   assert.equal(readiness.headers["x-content-type-options"], "nosniff");
   assert.equal(readiness.headers["x-frame-options"], "DENY");
   assert.ok(
