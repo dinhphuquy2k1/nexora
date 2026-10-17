@@ -64,6 +64,10 @@ function request(
             headers: res.headers,
             text,
             protocol,
+            referrerPolicyCount: res.rawHeaders.filter(
+              (name, index) =>
+                index % 2 === 0 && name.toLowerCase() === "referrer-policy",
+            ).length,
           }),
         );
         res.on("error", reject);
@@ -384,6 +388,7 @@ try {
   await send("Network.enable");
   await send("Page.enable");
   await send("Page.navigate", { url: origin + "/login" });
+  checks.step("REMOTE_OPERATOR_LOGIN_AND_STORAGE_PRIVACY");
   await until('!!document.querySelector("input[name=password]")');
   await type("username", f.username);
   await type("password", f.password);
@@ -615,6 +620,7 @@ try {
     ).status,
     401,
   );
+  checks.step("REMOTE_SETUP_FRAGMENT_PRIVACY");
   await send("Page.navigate", { url: reissued.data.setupUrl });
   await until(
     'location.hash==="" && !!document.querySelector("input[name=confirmation]:not(:disabled)")',
@@ -627,9 +633,12 @@ try {
     ),
     false,
   );
+  checks.step("REMOTE_SETUP_REFERRER_AND_SSR");
   const setupPage = await request("/setup");
+  assert.equal(setupPage.referrerPolicyCount, 1);
   assert.equal(setupPage.headers["referrer-policy"], "no-referrer");
   assert.ok(!setupPage.text.includes(setupToken));
+  checks.step("REMOTE_SETUP_PASSWORD_AND_REPLAY");
   await type("password", f.password);
   await type("confirmation", f.password);
   await evaluate('document.querySelector("button[type=submit]").click()');
@@ -642,6 +651,7 @@ try {
     `fetch("/api/auth/setup-password",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token:${JSON.stringify(setupToken)},password:${JSON.stringify(f.password)}})}).then(r=>r.status)`,
   );
   checks.status(replay, 400);
+  checks.step("REMOTE_OPERATOR_LOGIN_AND_STORAGE_PRIVACY");
   await until('!!document.querySelector("input[name=password]")');
   await type("username", "https_operator");
   await type("password", f.password);
