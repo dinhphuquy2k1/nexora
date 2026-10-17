@@ -102,6 +102,12 @@ function totp(key) {
 }
 const profile = await mkdtemp(join(tmpdir(), "nexora-https-browser-"));
 let chrome, socket;
+const browserStatuses = new Map();
+const observedPaths = new Map([
+  ["/api/auth/login", "LOGIN"],
+  ["/api/auth/mfa/verify", "MFA_VERIFY"],
+  ["/api/auth/setup-password", "SETUP_PASSWORD"],
+]);
 try {
   checks.step("STRICT_TLS_CA_AND_HOSTNAME");
   const readiness = await request("/api/health/ready");
@@ -334,6 +340,13 @@ try {
         else op.resolve(message.result);
       }
     }
+    if (message.method === "Network.responseReceived") {
+      const response = message.params.response;
+      const url = new URL(response.url);
+      const label = url.origin === origin && observedPaths.get(url.pathname);
+      if (label && Number.isInteger(response.status))
+        browserStatuses.set(label, response.status);
+    }
     if (message.method === "Network.requestWillBeSent") {
       const req = message.params.request;
       for (const secret of [
@@ -379,7 +392,9 @@ try {
       }
       await delay(100);
     }
-    throw Error("Browser condition timeout");
+    throw Object.assign(Error("Browser condition timeout"), {
+      name: "TimeoutError",
+    });
   };
   const type = async (name, value) => {
     await evaluate(`document.querySelector('input[name="${name}"]').focus()`);
@@ -388,12 +403,17 @@ try {
   await send("Network.enable");
   await send("Page.enable");
   await send("Page.navigate", { url: origin + "/login" });
-  checks.step("REMOTE_OPERATOR_LOGIN_AND_STORAGE_PRIVACY");
-  await until('!!document.querySelector("input[name=password]")');
+  checks.step("ADMIN_BROWSER_PASSWORD_LOGIN");
+  await until(
+    '!!document.querySelector("input[name=password]:not(:disabled)")',
+  );
   await type("username", f.username);
   await type("password", f.password);
   await evaluate('document.querySelector("button[type=submit]").click()');
-  await until('!!document.querySelector("input[name=mfa-code]")');
+  checks.step("ADMIN_BROWSER_PENDING_MFA");
+  await until(
+    '!!document.querySelector("input[name=mfa-code]:not(:disabled)")',
+  );
   assert.equal(await evaluate("location.pathname"), "/login");
   let cookies = (
     await send("Network.getCookies", {
@@ -418,10 +438,15 @@ try {
     await evaluate('document.cookie.includes("nexora_mfa_token")'),
     false,
   );
+  checks.step("ADMIN_BROWSER_RECOVERY_MODE");
   await evaluate(
     'Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Dùng mã khôi phục")).click()',
   );
+  await until(
+    'document.querySelector("input[name=mfa-code]:not(:disabled)")?.maxLength===35',
+  );
   await type("mfa-code", f.recoveryCodes[0]);
+  checks.step("ADMIN_BROWSER_RECOVERY_VERIFY");
   await evaluate('document.querySelector("button[type=submit]").click()');
   await until(
     `location.pathname!=="/login" && !!document.querySelector('[aria-label^="Tài khoản người dùng"]')`,
@@ -728,6 +753,8 @@ try {
   );
 } catch (error) {
   checks.failure(error);
+  for (const [label, status] of browserStatuses)
+    console.error(`Observed browser HTTP ${label}: ${status}`);
   process.exitCode = 1;
 } finally {
   socket?.close();
