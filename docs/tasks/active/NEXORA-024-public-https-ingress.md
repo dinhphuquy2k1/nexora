@@ -1,0 +1,87 @@
+# NEXORA-024 — Public HTTPS profile and ingress hardening
+
+- **Task ID**: `NEXORA-024`
+- **Status**: `VERIFICATION PENDING`
+- **Implementation**: `IMPLEMENTED`
+- **Verification**: `NOT VERIFIED`
+- **Classification**: SIGNIFICANT
+- **Branch**: `feat/public-https-ingress`
+- **Baseline**: `6d6bd53024bc86480d069b00f3e5c281bd92690f`
+
+## Preflight
+
+Clean worktree, fetched main equals reviewed baseline. PR19 merged at baseline; no open PR found, Task024 unused. New branch from origin/main; do not modify PR19 or unrelated PR14. Preserve all nine migrations, completed dependency evidence and volumes. Uploaded request ends mid-final acceptance item; the preceding detailed requirements define scope.
+
+## PLAN ISSUE — PUBLIC_INGRESS_TOPOLOGY
+
+ADR-007 approves public security requirements but not environment, proxy or certificate operations. Owner approval required by the uploaded request section4 before committing production ingress choice. Proposed simplest dependency-free rate limiting: one maintained Linux VPS/dedicated host with Docker Compose, Nginx TLS ingress (standard limit_req, no plugin/Redis), operator-owned FQDN, Let's Encrypt HTTP-01 certificates via separate Certbot job/host systemd timer, no Docker socket. Only80 (ACME plus HTTPS redirect) and443 public; management SSH restricted by firewall. Nginx strips/overwrites forwarding headers; dedicated private networks with explicitly assigned proxy/Web addresses, API trusts only Web hop and known ingress hop, no blanket private-subnet trust. Operator must confirm non-overlapping subnets. Web/API/PG have no public ports. Standard HTTP/2/TLS1.2+; no plaintext auth fallback, no proxy dashboard. Certificate renewal requires a tested timer and safe Nginx reload, avoiding third-party rate-limit modules at cost of separate certificate operations.
+
+Production domain/DNS, actual host/subnets/firewall/NTP are not yet supplied or verified. Secret custody: retain separate admin/runtime DB credential volumes and independently held Identity/Carrier keys/all old versions; mounted TLS private key read-only to ingress only. Stop writers for encrypted off-host backups of PG/files/credentials plus separately encrypted key/certificate custody; verify restore only in an owned disposable target. Rollback closes public ingress first, preserves volumes/keys/schema, uses compatible matching images and LOCAL only behind loopback. No public activation authorized by this proposal.
+
+Alternative Caddy simplifies automatic TLS but standard distribution lacks the required rate-limit directive, adding a reviewed plugin/build or another boundary; external managed TLS adds provider-specific trust/operational dependencies. No selection is treated as approved until owner replies.
+
+## Plan and interface preflight
+
+1. Define NEXORA_DEPLOYMENT_PROFILE=LOCAL(default)|PUBLIC_HTTPS; PUBLIC_ORIGIN, explicit ALLOWED_HOSTS/ALLOWED_ORIGINS and TRUSTED_PROXY_CIDRS. Reject incomplete public config, wildcard/loopback authority, non-HTTPS origins, ambiguous ports/CIDRs and fallback. Shared pure policy only if genuinely consumed by both apps; no secrets or Prisma outside API infrastructure.
+2. Test-first profile config, strict authority parsing, cookie options and forged-forwarding immunity; central cookie policy controls setting/clearing every session/MFA cookie with existing paths/TTL/SameSite.
+3. Public startup gate before listen: actual registered SessionGuard/AdminBoundaryGuard/AdminGuard enforcement exercised using a real guard probe and metadata validation, plus restricted-role database enumeration of ACTIVE ADMIN enrollment and authenticated decryption under independent Identity keys. No fake MFA flag, public enrollment details, writes or session deletion. Local lazy crypto remains compatible.
+4. Public exact Host and Origin validation; canonical setup URLs from configured origin; trusted proxy validation independent of eventual network assignment. Keep local behavior and same-origin proxy, private API/PG, safe logs and Origin mandatory.
+5. After topology approval only: production ingress/network/rate-limit/certificate profile and dated ADR clarification. While waiting, isolated test-only TLS ingress is permitted and is not production approval. Real trusted test CA, Next/Nest/PG/Chromium MFA/onboarding, spoof/bypass/rate/network/persistence tests.
+6. Canonical docs/runbooks: explicit implementation/test/production readiness distinctions; actual host timedatectl service+synchronization gates NOT VERIFIED without evidence; secure backup/restore/rollback and no public activation before all gates.
+7. Targeted RED/GREEN then full existing canonical suite/all four Docker scripts plus new HTTPS harness. Genuine hosted CI if host Prisma blocked. Push new branch, reviewable PR when approved scope implemented and verified, exact final HEAD CI; no force/merge.
+
+## Acceptance and boundaries
+
+All request section22 prerequisites required for full completion; actual DNS/TLS/firewall/NTP host evidence cannot be inferred from CI. Preserve local compatibility, ADMIN+MFA, five-minute scoped challenges, separate cancellation/logout, hashed single-use24h setup links, CLI enrollment, database grants, Carrier encryption/live closure and all data. No schema/migration, provider live, shipment/UI/admin-carrier/reset scope.
+
+## Documentation Impact
+
+Documentation Impact: REQUIRED
+
+### Changed facts
+
+Explicit profile, cookie/security configuration, public startup readiness, canonical URLs, ingress decision/release gates and operations.
+
+### Canonical owners
+
+- docs/decisions/multi-carrier-architecture.md (dated approved clarification only)
+- docs/decisions/authentication.md
+- docs/architecture/runtime.md
+- docs/architecture/backend.md
+- docs/architecture/frontend.md
+- docs/architecture/api-contract.md
+- docs/operations/configuration.md
+- docs/operations/deployment.md
+- docs/operations/setup.md
+- docs/operations/testing.md
+
+### Documentation verification
+
+pnpm docs:check, test:docs, format:check, contracts:check; actual canonical and HTTPS evidence recorded separately from production host readiness.
+
+## Evidence
+
+| Claim     | Evidence                                                                                              | Date       | Result |
+| :-------- | :---------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Preflight | git fetch origin main; baseline6d6bd53; PR19 merged; clean worktree; Task024 unused; no open PR found | 2026-10-17 | PASS   |
+
+## Owner decision — 2026-10-17
+
+Owner explicitly approved Nginx + Certbot proposal in chat. Domain/DNS/host answer: not yet available. Implement parameterized approved ingress and disposable HTTPS harness; do not activate public deployment or claim production DNS/certificate/firewall/NTP verification. This is no longer an unresolved proxy selection. Actual deployment topology values and host evidence remain release gates.
+
+## Local test-first and implementation evidence — 2026-10-17
+
+Owner-approved ingress choice implemented; actual host/domain not supplied. Public release prerequisites remain open and this task cannot be COMPLETED on CI alone. A draft PR is needed to execute genuine hosted Prisma/PostgreSQL/HTTPS canonical checks before any ready-to-review claim.
+
+| Claim                           | Evidence                                                                                                                                                                                                                                     | Date       | Result |
+| :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Profile RED                     | node --test apps/api/test/public-profile.test.cjs at baseline: invalid/incomplete PUBLIC_HTTPS did not throw                                                                                                                                 | 2026-10-17 | FAIL   |
+| Cookie/Host RED                 | New controller/profile and Web host tests before respective edits fail Secure/profile authority expectations                                                                                                                                 | 2026-10-17 | FAIL   |
+| Startup RED                     | node --test apps/api/test/public-startup.test.cjs before implementation: missing public-startup module                                                                                                                                       | 2026-10-17 | FAIL   |
+| Targeted GREEN                  | Profile/config, all7 cookie set/clear operations, canonical setup URL, real Nest trusted/untrusted HTTP attribution, startup guard/readiness unit probes and Web Host matrix:6 PASS after emitted-JS compilation; not full build/DB evidence | 2026-10-17 | PASS   |
+| Host units                      | pnpm --filter @nexora/api test:133 PASS; pnpm --filter @nexora/web test:43 PASS; emitted-JS API units only                                                                                                                                   | 2026-10-17 | PASS   |
+| Local static/contracts          | Pinned pnpm10.34.6 install --frozen-lockfile; lint/boundaries; test:lint50; Web typecheck; docs:check; test:docs6; test:operations3; contracts:check; format:check and git diff --check PASS                                                 | 2026-10-17 | PASS   |
+| Genuine Prisma blocker          | prisma generate --config prisma.config.ts with synthetic generation-only URL fails binaries.prisma.sh schema-engine checksum HTTP403; API full build lacks genuine generated types. No fake client/engine/history or checksum bypass         | 2026-10-17 | FAIL   |
+| Official ingress image versions | Authenticated public Docker Registry tag-list lookup confirmed nginx1.30.6-alpine and certbot/certbot:v5.8.0; actual image execution remains CI-required                                                                                     | 2026-10-17 | PASS   |
+
+Ingress config and test harness are verification-first with explicit executable assertions; their presence is not runtime PASS. New HTTPS harness uses real signed SAN leaf/CA, strict Node trust/name and HTTP2 checks plus Chromium's narrowly pinned disposable leaf SPKI. No global TLS-validation disable. It exercises private container bindings/mounts/networks, actual ADMIN MFA and PASSWORD denial/recovery replay/cancel, HTTPS setup/reissue/disabled/expired/replayed token rules, privacy, forged headers/ingress429, file/Carrier preservation, real logical dump/isolated restore and restarted HTTPS session. All four previous Docker scripts remain required. Production DNS/cert issuance/renewal/firewall/NTP/production restore are NOT VERIFIED.

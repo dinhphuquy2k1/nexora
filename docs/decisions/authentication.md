@@ -99,3 +99,11 @@ Per [ADR-007](multi-carrier-architecture.md), the authentication and session mod
 ## Legacy session upgrade boundary
 
 The owner-approved cutover in [ADR-007](../decisions/multi-carrier-architecture.md) is implemented by a new migration. Every OPERATOR session without a local credential is deleted at upgrade, including expired/DISABLED-user sessions. ADMIN and configured OPERATOR sessions are retained. SessionGuard is unchanged; removed tokens cannot regain validity after setup. No auth-source metadata exists to distinguish sessions of configured operators.
+
+## Public transport clarification — 2026-10-17, NEXORA-024
+
+Owner-approved Nginx/Certbot ingress adds an explicit PUBLIC_HTTPS deployment profile alongside default LOCAL. Profile configuration, not NODE_ENV/Host/forwarding/req.secure, selects cookie Secure. Session HttpOnly/Lax/path/7days and pending HttpOnly/Strict/path/api/auth/mfa/5minutes remain identical, including clearing attributes and separate cancel/logout semantics.
+
+Before API listen in public mode, verify actual registered SessionGuard/AdminBoundaryGuard and the AdminGuard assurance assertion/no-session Public-admin denial; then restricted-role read-only enrollment and Identity key/ciphertext readiness for every ACTIVE ADMIN, with at least one present. This is not an authenticated session and does not upgrade PASSWORD rows or replace DB-backed per-request authorization. CLI-only provisioning/enrollment can run privately before HTTP startup. Missing/bad Identity keys block public startup; LOCAL retains lazy crypto validation/OPERATOR independence. Canonical HTTPS origin owns public setup links and redirects. No password-only ADMIN public capability or plaintext HTTP authentication fallback exists.
+
+No actual public host/domain is selected. Production TLS/DNS/firewall/renewal and host NTP require separate real evidence before activation; disposable CI TLS does not establish them.

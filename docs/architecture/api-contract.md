@@ -2,7 +2,7 @@
 
 ## Current Identity and MFA contract — Logical PR6
 
-Current Logical PR6: OPERATOR authenticates with local password and receives a PASSWORD session; ADMIN receives only a pending challenge after password and must complete TOTP or single-use recovery verification for an MFA session. All admin APIs require database-backed ADMIN+MFA. Uniship is independent of identity. Public HTTPS and shipment sync remain PLANNED. See the PR6 contract amendment below and NEXORA-022 verification evidence.
+Current Logical PR6: OPERATOR authenticates with local password and receives a PASSWORD session; ADMIN receives only a pending challenge after password and must complete TOTP or single-use recovery verification for an MFA session. All admin APIs require database-backed ADMIN+MFA. Uniship is independent of identity. Public activation still requires actual deployment evidence; the explicit profile is implemented by NEXORA-024. Shipment sync remains PLANNED. See the PR6 contract amendment below and NEXORA-022 verification evidence.
 
 Generated OpenAPI/SDK describe the implemented routes below. Error responses use `{code,message,requestId}`. Every administrative route requires an ACTIVE ADMIN database-backed MFA session; all mutations require a trusted Origin. Missing/revoked/disabled sessions return 401 `UNAUTHORIZED`; OPERATOR callers return 403 `FORBIDDEN`. Origin failures retain 403 `FORBIDDEN`, and shared admission rejection retains 429 `TOO_MANY_REQUESTS` for compatibility.
 
@@ -27,7 +27,7 @@ Setup passwords require 8–1024 characters before Scrypt. Links contain 256-bit
 
 Implemented: PR4 Carrier backend lifecycle (mock-only, live gate closed); PR6 mandatory ADMIN TOTP MFA, sessions.auth_level, CLI-only enrollment, pending verification/cancellation, TOTP/recovery replay protection and global ADMIN+MFA authorization. The authoritative authentication endpoint details are in the PR6 section below.
 
-Deferred: PR7 public HTTPS/release gates, Carrier Settings UI, cross-user administrative Carrier APIs/CLI, live Uniship authorization, shipment provider synchronization, MFA reset and key retirement procedures.
+Deferred: actual production public activation/release evidence (DNS/TLS/firewall/NTP), Carrier Settings UI, cross-user administrative Carrier APIs/CLI, live Uniship authorization, shipment provider synchronization, MFA reset and key retirement procedures.
 
 Historical PR2 (before PR6) had no MFA tables or sessions.auth_level and permitted ACTIVE ADMIN password sessions for local administrative APIs. This is historical behavior; current administrative authorization requires MFA.
 
@@ -65,7 +65,7 @@ PR3 GET/PATCH/DELETE and PR4 POST/create/reconnect are IMPLEMENTED (backend only
 
 ### Public HTTPS — PR 7
 
-Deferred deployment work includes TLS ingress, Secure cookie policy, public Host/Origin configuration and release/startup verification gates. Mandatory ADMIN MFA is implemented by PR6. Current supported deployment remains loopback HTTP; no public profile is implemented.
+Deferred deployment work includes TLS ingress, Secure cookie policy, public Host/Origin configuration and release/startup verification gates. Mandatory ADMIN MFA is implemented by PR6. Current supported deployment remains loopback HTTP; the explicit PR7 profile below does not imply production activation.
 
 ## Contract Generation & Verification
 
@@ -115,3 +115,9 @@ AccountMenu logout revokes only the presented authenticated session and clears n
 Tabs share cookies within the same browser profile. Later ADMIN password success replaces the browser's pending cookie; older pending rows follow the existing maximum-five retention/expiry policy. Cancel targets the currently presented cookie only. Cancel/back stays on the MFA form on network/database failure and returns to the password form only on success. No pending token is exposed to JavaScript, bodies or URLs. Unified termination would require a separately reviewed design; two requests would not be atomic.
 
 All /api/admin/... APIs require active ADMIN role plus persisted session.auth_level=MFA globally; PASSWORD assurance returns403, missing/expired/revoked sessions401. Client body/header/cookie assurance values are never trusted. Existing seven-field user administration summaries and Carrier metadata remain unchanged. Normal workspace accepts a valid ACTIVE PASSWORD or MFA session. OpenAPI/SDK are regenerated with no raw challenge field.
+
+## Public profile transport — NEXORA-024 (2026-10-17)
+
+No endpoint/DTO/SDK shape changes. Default LOCAL retains existing loopback cookie behavior; PUBLIC_HTTPS makes every session/pending set and clear Secure using explicit trusted profile config. Paths, HttpOnly, SameSite, TTL, assurance and separate logout/cancel contracts remain unchanged. Browser mutations still require exact trusted Origin; public policy requires explicit HTTPS origins and cannot fall back to local defaults. Public setupUrl always uses configured canonical HTTPS origin, including when a different approved request Origin is used. Host/forwarded authority cannot select the link origin.
+
+Owner-approved Nginx adds safe no-store ingress429 for sensitive auth/admin mutation bursts, with code/message/requestId and X-Nexora-Ingress-Rate-Limit:1; existing application admission/errors remain. No direct public API listener, wildcard CORS, enrollment/reset endpoint or password-only ADMIN capability. Public startup verifies runtime enforcement/enrollment/key readiness; it is not a public endpoint and returns no enrollment inventory. Logical PR7 application/ingress implementation is separate from actual production public release gates; no domain/host has been selected. Earlier deferred public-profile statements describe the pre-PR7 baseline.

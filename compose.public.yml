@@ -1,0 +1,86 @@
+# Owner-approved Nginx/Certbot topology. Use with compose.yml, never compose.dev.yml.
+services:
+  postgres:
+    networks: [backend]
+  migrate:
+    networks: [backend]
+  db-runtime:
+    networks: [backend]
+  api:
+    environment:
+      NEXORA_DEPLOYMENT_PROFILE: PUBLIC_HTTPS
+      PUBLIC_ORIGIN: "${PUBLIC_ORIGIN:?Set canonical public HTTPS origin}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:?Set explicit public Host allowlist}"
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:?Set explicit HTTPS Origin allowlist}"
+      TRUSTED_PROXY_CIDRS: "${PUBLIC_WEB_BACKEND_IPV4:-172.30.11.3}/32,${PUBLIC_INGRESS_IPV4:-172.30.10.2}/32"
+    networks:
+      backend:
+        ipv4_address: "${PUBLIC_API_IPV4:-172.30.11.4}"
+  web:
+    ports: !reset []
+    environment:
+      NEXORA_DEPLOYMENT_PROFILE: PUBLIC_HTTPS
+      PUBLIC_ORIGIN: "${PUBLIC_ORIGIN:?Set canonical public HTTPS origin}"
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:?Set explicit public Host allowlist}"
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:?Set explicit HTTPS Origin allowlist}"
+    networks:
+      ingress:
+        ipv4_address: "${PUBLIC_WEB_FRONTEND_IPV4:-172.30.10.3}"
+      backend:
+        ipv4_address: "${PUBLIC_WEB_BACKEND_IPV4:-172.30.11.3}"
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/api/health/ready',{headers:{host:new URL(process.env.PUBLIC_ORIGIN).host}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+  ingress:
+    image: nginx:1.30.6-alpine
+    entrypoint: [sh, /nexora/ingress-entrypoint.sh]
+    environment:
+      PUBLIC_ORIGIN: "${PUBLIC_ORIGIN:?Set canonical public HTTPS origin}"
+      PUBLIC_FQDN: "${PUBLIC_FQDN:?Set approved FQDN}"
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./docker/public/ingress-entrypoint.sh:/nexora/ingress-entrypoint.sh:ro
+      - ./docker/public/nginx.conf.template:/nexora/nginx.conf.template:ro
+      - public_certificates:/etc/letsencrypt:ro
+      - public_acme:/var/www/acme:ro
+    networks:
+      ingress:
+        ipv4_address: "${PUBLIC_INGRESS_IPV4:-172.30.10.2}"
+    depends_on:
+      web: { condition: service_healthy }
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+  certbot:
+    image: certbot/certbot:v5.8.0
+    profiles: [certificates]
+    volumes:
+      - public_certificates:/etc/letsencrypt
+      - public_acme:/var/www/acme
+    networks: [ingress]
+    # Explicit commands only: issuance/renewal and reload are operator-controlled.
+    entrypoint: [certbot]
+  acme-bootstrap:
+    image: nginx:1.30.6-alpine
+    profiles: [certificates]
+    ports: ["80:80"]
+    volumes:
+      - ./docker/public/acme-bootstrap.conf:/etc/nginx/nginx.conf:ro
+      - public_acme:/var/www/acme:ro
+    networks: [ingress]
+    security_opt: [no-new-privileges:true]
+networks:
+  ingress:
+    ipam:
+      config: [{ subnet: "${PUBLIC_INGRESS_SUBNET:-172.30.10.0/24}" }]
+  backend:
+    internal: true
+    ipam:
+      config: [{ subnet: "${PUBLIC_BACKEND_SUBNET:-172.30.11.0/24}" }]
+volumes:
+  public_certificates:
+  public_acme:

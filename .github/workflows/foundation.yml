@@ -23,6 +23,8 @@ jobs:
           node-version: 24.19.0
       - name: Local release runtime, provisioning, TTY and browser smoke
         run: sh scripts/runtime-smoke.sh
+      - name: Disposable public HTTPS, ingress and remote onboarding
+        run: sh scripts/public-https-smoke.sh
       - name: DB and storage persistence smoke
         run: sh scripts/data-smoke.sh
       - name: Development HMR and dependency drift smoke

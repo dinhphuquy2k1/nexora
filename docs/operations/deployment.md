@@ -43,3 +43,54 @@ Role provisioning is idempotent and fail-closed on unsafe role/custody conflicts
 Deploy matching ninth-migration/runtime images with writers stopped, retain all volumes, supply dedicated Identity keys, run genuine migrate then explicit restricted runtime grants, enroll administrators via the one-off interactive API CLI, and only then start new API/Web. The detailed ordered runbook and fresh-install command are in Setup. There is no temporary HTTP enrollment or privileged password bypass. Existing PASSWORD session rows are preserved by migration but globally denied admin capability; enrollment revokes them. User/credential/Carrier/audit/files remain intact. Update of Identity key custody requires restart and retention of old versions; no automatic re-encryption/reset exists.
 
 This implements mandatory ADMIN MFA for the current local deployment only. Public TLS, ingress, public boot release gates and PR7 readiness remain PLANNED. No deployment command should expose Web beyond loopback or unlock live Uniship traffic.
+
+## Public HTTPS runbook — owner-approved topology, 2026-10-17
+
+Use `compose.yml` plus `compose.public.yml`, not compose.dev.yml or the unpublished registry template. Nginx1.30.6-alpine and Certbot5.8.0 are pinned official images; application images are built from the matching reviewed source, not presumed published. Compose must support !reset/!override (2.24.4+). Only Nginx publishes80/443; Web's loopback publication is removed, API/PG never publish. The separate bootstrap service publishes80 only while obtaining the first certificate and serves ACME challenges/404, never application/authentication.
+
+The owner has not supplied a domain/host. This is an implementation/runbook, not evidence that any server is publicly deployed. Production DNS, real certificate renewal, firewall, NTP and production backup/restore remain NOT VERIFIED until performed on the actual approved host. CI does not close these gates.
+
+### Fresh deployment and first certificate
+
+1. Provision the approved maintained Linux host, Docker/Compose and pinned Node24 tooling for preflight. Record OS/Docker/Compose versions. Establish restricted administrative access, encrypted off-host backup custody and security updates. Verify network subnets against host routes/VPNs; explicitly override defaults if they conflict.
+2. Select and verify ownership of the FQDN and DNS A/AAAA. Publish AAAA only if IPv6 ingress/firewall is actually configured. Firewall permits only ingress80/443 plus management from approved administrator ranges. Check Docker's published-port firewall behavior; host firewall alone may not filter Docker NAT as expected. Do not expose Web3000/3001, API4000 or PG5432.
+3. Execute `sh scripts/public-host-preflight.sh` on the actual host. It runs timedatectl status and requires NTP service active and system clock synchronized. Configure chrony/systemd-timesyncd through host operations if needed; containers never alter host clocks. Save dated output; mock/CI output is insufficient.
+4. Copy `.env.public.example` to an untracked mode0600 operator file and fill approved public origin/FQDN/Host/Origin/network values. Supply independently retained Identity/Carrier keyrings securely through the operator environment; never argv/history, build args or NEXT_PUBLIC. Preserve all old versions. The public file is not a source of default keys.
+5. Build matching images privately. Keep the same Compose project name and named credentials/runtime_credentials/postgres/uploads volumes as existing installs. Init and role provisioning are idempotent; never delete a credential volume to fix startup. No new schema migration belongs to PR7.
+
+Commands below assume approved non-secret PUBLIC_FQDN/TLS_CONTACT_EMAIL are set by the operator and required keys are supplied securely. Every invocation uses the same project/environment file:
+
+```sh
+# Inspect resolved settings in a trusted terminal; do not paste secret-bearing compose config into logs.
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml build
+# Start private dependency chain only; public listener is not started.
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml up -d --wait db-runtime
+# Fresh installations only: hidden password and interactive trusted TTY enrollment.
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml run --rm --no-deps api node dist/cli/user-create.js
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml run --rm --no-deps api node dist/cli/mfa-enroll.js
+# Enroll EVERY relevant ACTIVE ADMIN. Do not reset/overwrite existing MFA.
+# Temporary ACME-only HTTP listener; never a plaintext Web/API alternative.
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml --profile certificates up -d acme-bootstrap
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml --profile certificates run --rm certbot certonly --webroot -w /var/www/acme -d "${PUBLIC_FQDN:?}" --email "${TLS_CONTACT_EMAIL:?}" --agree-tos --non-interactive
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml stop acme-bootstrap
+# Start only after actual host/DNS/certificate/firewall/NTP gates and enrollment pass.
+docker compose --env-file .env.public -f compose.yml -f compose.public.yml up -d --wait ingress
+```
+
+Initial ADMIN creation requires the existing CLI's username prompt/contract; inspect `pnpm user:create` help before use. No HTTP bootstrap/MFA enrollment endpoint is introduced. CLI one-offs stay private and do not run the HTTP server. API startup verifies actual global guard registration, probes no Public/admin bypass and the same assurance assertion used by AdminGuard, then performs read-only restricted-role enrollment/ciphertext validation before listen. It does not grant session assurance, repair keys, delete sessions or modify credentials. No MFA_ENABLED flag exists. Startup checks do not replace per-request DB-backed ADMIN+MFA authorization or continuous operational monitoring.
+
+From an external network, verify DNS and a normal trusted TLS chain/hostname (no insecure curl flags), HTTPS redirects, Host/Origin negatives and closed3001/4000/5432. Log in ADMIN using password+MFA, create/reissue a test OPERATOR setup link, confirm canonical HTTPS fragment URL, complete setup from a separate browser, confirm no automatic session and then OPERATOR login/logout. Confirm only ingress is reachable using resolved Compose configuration AND actual container port/mount/network inspection. Record evidence before public acceptance.
+
+### Renewal and safe reload
+
+Install an operator-owned systemd timer (for example twice daily) to run the same profile's `certbot renew --webroot -w /var/www/acme --non-interactive`. The ingress ACME location remains available on80; every other HTTP path redirects to canonical HTTPS and never authenticates. On success run `docker compose ... exec -T ingress nginx -t` and only then `docker compose ... exec -T ingress nginx -s reload`. Keep old workers/certificate on validation failure and alert operators; never copy keys into images. Test `certbot renew --dry-run`, timer execution, expiry monitoring and reload with live sessions on the actual host. No Docker socket is mounted into Nginx or Certbot. A host timer with Docker authority is trusted administrative tooling, not a public endpoint.
+
+TLS is1.2/1.3 with HTTP/2, session tickets off, HSTS31536000 (no preload/includeSubDomains), nosniff, frame denial, no-referrer and restricted frame/object/base CSP. Request bodies are limited to2MiB at ingress,15s header/body timeout and30s upstream read/send; existing API limits may be stricter. No public dashboard exists. Rate limits/forwarding assumptions are owned by [Configuration](configuration.md).
+
+### Upgrade, backup and rollback
+
+Close public exposure and stop application/provisioning writers before changing profiles or taking coordinated backups. Retain all named volumes, both existing PostgreSQL credential files and every independent Identity/Carrier key version. Take a consistent PostgreSQL logical backup or a stopped-cluster volume snapshot, plus uploads and protected credential/certificate volumes; encrypt off-host copies and separately protect key custody. Never archive a running PG data directory as a consistent backup. Record restore evidence on a separate owned disposable project, including role provisioning, file/catalog bytes, encrypted-secret readability and both credential hashes. CLI/keyring custody is not reconstructed from a database dump. No custom backup API/subsystem is reintroduced.
+
+Build matching source images, validate public settings/networks/certificates, run genuine migrate then runtime grants, verify all ACTIVE ADMIN enrollment, host NTP/firewall and external DNS/TLS. Only then start ingress. Test preserved data/sessions/files/Carrier state; do not rotate DB credentials or encryption keys as part of this upgrade. Old LOCAL cookies may be replaced with Secure cookies after public login; existing DB sessions remain subject to current assurance and revocation. Switching to a different hostname does not transfer browser cookies. A rollback to HTTP may require login again; Secure cookies cannot be relied on over HTTP.
+
+Rollback closes ingress/80/443 first, stops Web/API writers, retains volumes/keys/certificates, and restores compatible matching binaries/configuration. Use LOCAL only with loopback publishing; never expose downgraded HTTP. No destructive migration rollback or old incompatible binary against a newer schema. Restore backups into a separate validated target before any deliberate production recovery; keep original volumes until acceptance. Actual production backup/restore has not been performed by CI. The disposable HTTPS harness verifies a logical database restore and original file archive extraction in its owned test project only.
