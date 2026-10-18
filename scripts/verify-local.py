@@ -97,6 +97,12 @@ def run_step(args, cwd, env, log):
     return code, round(time.monotonic() - start, 3)
 
 
+def docker_subnets(networks):
+    return [ipaddress.ip_network(c['Subnet'], strict=False)
+            for network in networks for c in (network.get('IPAM', {}).get('Config') or [])
+            if c.get('Subnet')]
+
+
 def preflight(source, env, facts):
     versions = [('node', ['node', '--version']), ('pnpm', ['pnpm', '--version']),
                 ('docker', ['docker', 'version', '--format', '{{.Server.Version}}']),
@@ -140,8 +146,7 @@ def preflight(source, env, facts):
     networks = [ipaddress.ip_network(r['dst'], strict=False) for r in routes if r.get('dst') not in [None, 'default']]
     ids = text(['docker', 'network', 'ls', '-q'], source, env).split()
     if ids:
-        for network in json.loads(text(['docker', 'network', 'inspect', *ids], source, env)):
-            networks.extend(ipaddress.ip_network(c['Subnet'], strict=False) for c in network.get('IPAM', {}).get('Config', []) if c.get('Subnet'))
+        networks.extend(docker_subnets(json.loads(text(['docker', 'network', 'inspect', *ids], source, env))))
     if any(a.version == b.version and a.overlaps(b) for a in reserved for b in networks):
         raise ValueError('PUBLIC_SUBNET_CONFLICT')
     text(['docker', 'compose', '-f', 'compose.yml', '-f', 'compose.dev.yml', 'config', '--quiet'], source, env)
@@ -264,7 +269,7 @@ def main():
         if code == 0:
             code = 1
         # Never persist raw exceptions/subprocess stderr; they can contain secrets.
-        reason = str(error) if isinstance(error, ValueError) else type(error).__name__
+        reason = str(error) if isinstance(error, ValueError) else 'UNEXPECTED_' + type(error).__name__.upper()
         evidence['reason'] = reason if re.fullmatch(r'[A-Z_0-9]+', reason) else 'PREREQUISITE_OR_EXECUTION_BLOCKED'
     finally:
         if cleanup_owned(source, env, registry, evidence['steps'], output):

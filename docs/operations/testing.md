@@ -8,7 +8,7 @@ Run `sh scripts/verify-local.sh --sha <exact-full-PR-head-SHA>` from a clean mat
 
 Prerequisites: Linux (Ubuntu WSL2 with Docker Desktop WSL integration is a documented option, NOT VERIFIED here), repository-pinned Node24.19.0/pnpm10.34.6, Python3, Git, local Linux Docker daemon/Buildx, Compose2.24.4+ for !reset/!override, OpenSSL, tar, GNU timeout, iproute2 and Chrome/Chromium (optional CHROME_BIN path). Ports127.0.0.1:3001 and5432 must be free. Public test subnets172.30.10.0/24 and172.30.11.0/24 must not overlap host routes or existing Docker networks. Reach registry/package manager and the genuine pinned Prisma checksum/engine endpoints with normal TLS. Preflight probes are only reachability/config checks: registry401 is expected for an anonymous probe and does not prove authenticated pull success; actual frozen installs/builds and real engines are still required.
 
-The runner first executes its eight harness unit tests, then preflight. It calls existing scripts sequentially without copying their internal test logic:
+The runner first executes its harness unit tests, then preflight. It calls existing scripts sequentially without copying their internal test logic:
 
 1. sh scripts/quality-docker.sh: frozen development dependency initialization, pnpm quality (format/lint/rules/docs/typecheck/unit/contracts/build), genuine restricted PostgreSQL integration and authentic migration/drift tests.
 2. Stop this run's development project without deleting volumes, matching Foundation ordering and freeing test ports.

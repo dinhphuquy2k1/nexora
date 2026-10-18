@@ -163,3 +163,13 @@ Documentation Impact remains REQUIRED. scripts/verify-local.sh + verify-local.py
 | Harness exception GREEN | Exception handling now forces nonzero; python3 scripts/verify-local.test.py runs8 unit tests PASS, including exit7 preservation/filtering, secret/env exclusion and ownership/cleanup failure regressions | 2026-10-18 | PASS   |
 
 These are orchestration unit tests only. No Docker/Prisma/PostgreSQL/browser-suite PASS is inferred. Final exact-commit local run and artifacts will be recorded on PR21 after committing scripts/docs; if network preflight blocks it, every canonical suite step remains NOT_RUN.
+
+### First committed local execution and IPAM parser correction
+
+| Claim                                | Evidence                                                                                                                                                                                                                                                                                   | Date       | Result |
+| :----------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Exact clean local invocation blocked | verify-local.sh --sha61769cb5375e17512ead7cb521b91c278b713aa8 on clean source and matching detached clone; harness8 PASS, exit2 BLOCKED before canonical scripts; Docker network IPAM.Config=null caused TypeError. Private artifacts retained outside checkout; no test namespace created | 2026-10-18 | FAIL   |
+| IPAM RED                             | Added fixture using real observed Docker schema (null host/none network ranges): unit parser raises TypeError                                                                                                                                                                              | 2026-10-18 | FAIL   |
+| IPAM GREEN                           | Treat absent/null ranges as empty without ignoring real subnet overlaps; all9 harness unit tests PASS. Unexpected exception class is now recorded as a fixed safe category, never raw exception text                                                                                       | 2026-10-18 | PASS   |
+
+The first local attempt is not a suite PASS and not a Prisma/network result: all five scripts were NOT_RUN. Final execution must use the new committed parser fix; final SHA/artifacts/outcome are recorded in PR description. Existing network restriction remains independent; no network/TLS/checksum bypass or runtime assertion change.

@@ -27,6 +27,10 @@ projects = load('smoke-project')
 
 
 class HarnessTests(unittest.TestCase):
+    def test_docker_network_without_ipam_ranges(self):
+        ranges = verify.docker_subnets([{'IPAM': {'Config': None}}, {'IPAM': {'Config': [{'Subnet': '172.18.0.0/16'}]}}])
+        self.assertEqual([str(value) for value in ranges], ['172.18.0.0/16'])
+
     def test_failure_exit_and_secret_safe_log(self):
         with tempfile.TemporaryDirectory() as directory:
             log = Path(directory) / 'safe.log'
