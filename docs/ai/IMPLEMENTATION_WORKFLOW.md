@@ -85,3 +85,7 @@ or
 
 - **Reason**: <explanation why no canonical fact was changed>
 ```
+
+## Owner-approved execution alternative — 2026-10-18
+
+Full local canonical Docker verification is an accepted alternative when hosted runners are unavailable, under [Project rules](PROJECT_RULES.md#owner-approved-local-execution-alternative--2026-10-18) and the [Testing runbook](../operations/testing.md#owner-approved-local-docker-verification--2026-10-18). Commit all necessary changes first; execute on a clean exact-commit checkout, record safe per-step outcomes/environment/timing/SHA/artifact checksums, then update PR evidence. Do not substitute targeted/emitted-JS/mock results or a successful older commit. A preflight failure remains BLOCKED and keeps Draft; it does not require buying hosted budget. Production release and GitHub merge gates are independent.

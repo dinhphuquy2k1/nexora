@@ -1,5 +1,19 @@
 # Setup
 
+## Local PR verification on Linux/Ubuntu WSL2 — owner decision 2026-10-18
+
+Full local canonical Docker verification is an accepted alternative to unavailable hosted Actions; it does not weaken checks or imply public production readiness. Prepare the tool/network/port/subnet prerequisites in [Testing](testing.md#owner-approved-local-docker-verification--2026-10-18). On Windows use Ubuntu WSL2 with Docker Desktop integration enabled and a Linux-filesystem checkout; this is guidance, not executed Windows/WSL2 evidence. Do not auto-install system tools or change host configuration through the verifier. Close your own conflicting test service deliberately; the verifier will not stop an unrelated Nexora installation.
+
+One reproducible invocation (replace the SHA with the exact current PR21 head from its description; keep the checkout clean):
+
+```sh
+git fetch origin fix/auth-session-review
+git switch --detach <exact-full-PR-head-SHA>
+sh scripts/verify-local.sh --sha <exact-full-PR-head-SHA>
+```
+
+The command prints the new private evidence directory. Provide only its summary.json, \*.log and SHA256SUMS for review, distinguishing owner-run evidence from agent-observed results. The runner uses an isolated clone, fixture-only configuration and owned disposable Docker resources; never copy production .env/keys or run cleanup against user data. A BLOCKED preflight or missing tool/network permission is not full-suite PASS. Resolve the named prerequisite on the local test host and run again at the same clean SHA; no hosted-budget purchase is necessary. If this managed agent environment still blocks binaries.prisma.sh, use a local host with permitted genuine engine/checksum access or the supported reviewed network-configuration workflow, never an unapproved mirror or disabled TLS/checksum.
+
 ## Current session maintenance — NEXORA-025
 
 IMPLEMENTED: matching API images contain an explicit session-only cleanup CLI. In an authorized private terminal use the existing restricted runtime entrypoint (never admin credentials):

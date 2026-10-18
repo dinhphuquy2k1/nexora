@@ -133,3 +133,33 @@ Administrator action for local verification: use the supported environment confi
 Administrator action for hosted verification: inspect the run/job annotation in GitHub UI (the available connector cannot read this endpoint), identify and correct the actual launch rejection without assuming billing/quota/permissions. Preserve the existing ubuntu24.04 runner selection, triggers, permissions and assertions. Retry only once there is evidence launch conditions are restored. No test code executed in the runner_id0 jobs. All five Docker canonical scripts, genuine PostgreSQL integration/migrations and real positive/negative application browser assertions remain BLOCKED/NOT RUN for this follow-up.
 
 PR21 remains Draft with task VERIFICATION PENDING / IMPLEMENTED / PARTIALLY VERIFIED. NEXORA-024 production verification is independent and unchanged. Final follow-up SHA, base, run/attempt and actual checkout (or NOT AVAILABLE before launch) are recorded in the PR description after push. No Ready/merge claim while these blockers remain.
+
+## Owner-approved full local verification path — 2026-10-18
+
+Owner confirms hosted Actions quota/budget is exhausted and explicitly selects full Docker local execution as an alternative for this PR. This is owner confirmation, not a newly inferred annotation cause. The dated canonical Project Rules/Implementation Workflow/Testing/Setup/Runtime amendment supersedes earlier hosted-only acceptance language prospectively; historical FAIL/NOT RUN remains unchanged. All original quality/integration/migration/browser/security/persistence/dev criteria remain mandatory. Full LOCAL verification PASS is distinct from Actions SUCCESS and production release readiness; no budget purchase is required for this path.
+
+### Plan and interfaces
+
+- Continue exact PR21 branch/head981b01d and base ea0fce6, initially clean. No replacement PR/task or production logic change.
+- Add one shell entrypoint and standard-library Python runner invoking the existing five scripts in Foundation order, with development shutdown between quality and runtime. No copied test implementation, new CI service, dependency or workflow change.
+- Require clean exact commit and pinned tools; clone locally into a new private evidence directory with detached exact SHA, excluding ignored production environment files. Pass only transport/tool/registry settings; never application DB/Identity/Carrier keys/config or arbitrary Compose overrides.
+- Preflight real tool versions, local Linux Docker/Compose overlays/Buildx/browser, test ports/subnets and registry/package/real pinned engine checksum access. Do not install tools/change host settings or bypass policy/checksum/TLS.
+- Shared namespace guard checks containers/all named volumes/networks before smoke cleanup traps. Wrapper supplies random run-specific suffixes, records ownership claims only after namespace-empty checks, and final cleanup targets exact owned project labels. Existing standalone cleanup fixture already removes only after successful UUID container creation.
+- Record original/input branch, actual detached checkout SHA, lockfile checksum, before/after cleanliness, OS/tool versions, UTC timestamps/durations, original step exit codes, explicit NOT_RUN, safe logs and artifact checksums. Never retain raw output/env/config/credentials. Checksums provide integrity, not independent execution attestation.
+- Targeted harness tests exercise actual child exit7 through filtering, secret suppression, environment allowlist, collision/duplicate claim rejection and owned-label cleanup failure. These unit tests mock Docker queries only and cannot be called real Docker/Prisma verification.
+- Commit all necessary changes before final wrapper execution; update final-head outcomes in PR description afterward. Keep Draft unless full accepted-path canonical verification succeeds; preserve NEXORA-024 gates.
+
+### Read-only GitHub merge-gate checks
+
+Branch main protection GET returned403 Resource not accessible by integration. Rulesets GET returned403 feature unavailable for the current repository plan. These do not establish which required checks apply. No rule/check was changed or bypassed and no runner was registered. Owner/admin must inspect actual protection in GitHub UI if local code verification later passes but GitHub merge stays blocked. Code verification and GitHub merge permission are separate.
+
+### Implementation status before final execution
+
+Documentation Impact remains REQUIRED. scripts/verify-local.sh + verify-local.py provide isolated local orchestration/preflight/evidence; smoke-project.py guards namespace ownership in quality (under wrapper) and each standalone smoke. No application feature/schema/grant/custody/live/public change. Canonical Project Rules, Implementation Workflow, Testing, Setup and Runtime updated with Linux/WSL2 guidance; WSL2 itself NOT VERIFIED. Eight harness unit tests PASS on the agent host; sh -n on wrapper/all five scripts PASS. Full final-head execution is still pending until changes are committed; its exact SHA/result/artifact location belongs in PR21 description.
+
+| Claim                   | Evidence                                                                                                                                                                                                  | Date       | Result |
+| :---------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Harness exception RED   | New real-clean-Git-fixture unit simulates a missing executable after successful preflight; initial orchestrator incorrectly returns0 despite launch exception                                             | 2026-10-18 | FAIL   |
+| Harness exception GREEN | Exception handling now forces nonzero; python3 scripts/verify-local.test.py runs8 unit tests PASS, including exit7 preservation/filtering, secret/env exclusion and ownership/cleanup failure regressions | 2026-10-18 | PASS   |
+
+These are orchestration unit tests only. No Docker/Prisma/PostgreSQL/browser-suite PASS is inferred. Final exact-commit local run and artifacts will be recorded on PR21 after committing scripts/docs; if network preflight blocks it, every canonical suite step remains NOT_RUN.

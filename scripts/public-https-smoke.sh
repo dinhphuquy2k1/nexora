@@ -3,8 +3,9 @@
 set -eu
 umask 077
 cd "$(dirname "$0")/.."
-project="nexora-https-$$"
+project="nexora-https-${NEXORA_VERIFICATION_RUN_ID:-$$}"
 export COMPOSE_PROJECT_NAME="$project"
+python3 scripts/smoke-project.py "$project"
 work=$(mktemp -d)
 export PUBLIC_FQDN=nexora.example.test
 https_port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')

@@ -2,8 +2,9 @@
 export MSYS_NO_PATHCONV=1
 set -eu
 cd "$(dirname "$0")/.."
-project="nexora-dev-smoke-$$"
+project="nexora-dev-smoke-${NEXORA_VERIFICATION_RUN_ID:-$$}"
 export COMPOSE_PROJECT_NAME="$project"
+python3 scripts/smoke-project.py "$project"
 work=$(mktemp -d)
 cp packages/shared/src/index.ts "$work/shared.ts"
 cp "apps/web/app/(workspace)/page.tsx" "$work/page.tsx"

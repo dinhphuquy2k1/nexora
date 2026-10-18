@@ -8,6 +8,9 @@ compose(){
   docker compose -f compose.yml -f compose.dev.yml "$@"
  fi
 }
+if [ -n "${NEXORA_VERIFICATION_OWNERSHIP_DIR:-}" ]; then
+ python3 scripts/smoke-project.py "${COMPOSE_PROJECT_NAME:?}"
+fi
 if [ "${NEXORA_QUALITY_NO_BUILD:-0}" = 1 ]; then
  compose up --no-build -d --wait --wait-timeout 180
 else
