@@ -2,7 +2,7 @@
 
 ## Current redirect, verification and presentation hardening — NEXORA-025
 
-IMPLEMENTED: every server and password/MFA return redirect uses the same sanitizer. It rejects controls/DEL, backslashes, absolute and protocol-relative input, parses against a fixed trusted synthetic origin, checks the normalized origin, then returns internal path/query/fragment only (fallback `/`). Dot segments normalize; valid query/fragment survive. Percent-encoded `from` regressions cover actual browser password/MFA and authenticated server redirects without visiting external sites.
+IMPLEMENTED: every server and password/MFA return redirect uses the same sanitizer. It rejects controls/DEL, backslashes, absolute and protocol-relative input, parses against a fixed trusted synthetic origin, checks the normalized origin, then returns internal path/query/fragment only (fallback `/`). Dot segments normalize; valid query/fragment survive. The committed percent-encoded `from` regressions assert valid normalized `/settings` query/fragment and control-character fallback through browser password/MFA plus separate authenticated server redirects, with the dummy external domain blocked. Full runtime execution is still pending in NEXORA-025; source presence is not a browser PASS.
 
 SSR session verification has a five-second AbortController deadline covering headers and body, retaining no-store and authenticated/unauthenticated/unavailable distinctions. Timeout/malformed200/backend outage is unavailable, not logout; Next redirects remain outside catches. Real stalled-header and stalled-body HTTP tests verify request closure.
 

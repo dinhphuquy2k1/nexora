@@ -217,6 +217,31 @@ try {
     }
     throw new Error("Browser readiness timeout");
   };
+  const validReturnInput = "/a/../settings?tab=security#session";
+  const validReturnPath = "/settings?tab=security#session";
+  const assertBrowserReturn = async (expected) => {
+    await until(
+      `location.href === ${JSON.stringify(new URL(expected, baseUrl).href)} && !!document.querySelector("aside")`,
+    );
+    assert.equal(
+      await evaluate("location.href"),
+      new URL(expected, baseUrl).href,
+    );
+  };
+  const passwordFormLogin = async (name, from) => {
+    await send("Page.navigate", {
+      url: `${baseUrl}/login?from=${encodeURIComponent(from)}`,
+    });
+    await waitForInteractiveLogin({ until, evaluate });
+    loginStatus = undefined;
+    await evaluate('document.querySelector("input[name=username]").focus()');
+    await send("Input.insertText", { text: name });
+    await evaluate('document.querySelector("input[name=password]").focus()');
+    await send("Input.insertText", { text: password });
+    await evaluate('document.querySelector("button[type=submit]").click()');
+    for (let i = 0; i < 100 && loginStatus === undefined; i++) await delay(100);
+    checks.status(loginStatus, 200);
+  };
   checks.step("LOGIN_PAGE_RENDER");
   await send("Network.enable");
   await send("Network.setBlockedURLs", { urls: ["*://attacker.example/*"] });
@@ -263,7 +288,7 @@ try {
 
   checks.step("ADMIN_MODE_SWITCH_AND_FORM");
   await send("Page.navigate", {
-    url: `${baseUrl}/login?from=${encodeURIComponent("/\t/attacker.example/path")}`,
+    url: `${baseUrl}/login?from=${encodeURIComponent(validReturnInput)}`,
   });
   let adminReady = false;
   for (let i = 0; i < 100; i++) {
@@ -596,14 +621,22 @@ try {
       await delay(100);
       continue;
     }
-    if (location === "/") break;
+    if (location === "/settings") break;
     await delay(100);
   }
   checks.step("LOGIN_RESPONSE");
   assert.equal(loginUrl, `${baseUrl}/api/auth/login`);
   checks.status(loginStatus, 200);
   checks.step("PROTECTED_NAVIGATION");
-  assert.equal(location, "/", "Browser did not reach protected return page");
+  assert.equal(
+    location,
+    "/settings",
+    "Browser did not reach protected return page",
+  );
+  assert.equal(
+    await evaluate("location.search + location.hash"),
+    "?tab=security#session",
+  );
   const shellPresent = await evaluate(
     '!!document.querySelector("header[aria-label=\'Thanh công cụ đầu trang\']") && !!document.querySelector("aside")',
   );
@@ -743,27 +776,25 @@ try {
     401,
   );
   checks.step("OPERATOR_LOCAL_LOGIN");
-  await send("Page.navigate", {
-    url: `${baseUrl}/login?from=${encodeURIComponent("/\n/attacker.example/path")}`,
-  });
-  await waitForInteractiveLogin({ until, evaluate });
-  loginStatus = undefined;
-  await evaluate('document.querySelector("input[name=username]").focus()');
-  await send("Input.insertText", { text: operatorName });
-  await evaluate('document.querySelector("input[name=password]").focus()');
-  await send("Input.insertText", { text: password });
-  await evaluate('document.querySelector("button[type=submit]").click()');
-  await until('location.pathname === "/" && !!document.querySelector("aside")');
-  checks.status(loginStatus, 200);
+  await passwordFormLogin(operatorName, "/\n/attacker.example/path");
+  await assertBrowserReturn("/");
   assert.equal(await evaluate("location.origin"), new URL(baseUrl).origin);
   const sessionCookie = (
     await send("Network.getCookies", { urls: [baseUrl] })
   ).cookies.find((c) => c.name === "nexora_session");
   assert.ok(sessionCookie);
-  checks.step("SERVER_RETURN_URL_CONTROLS");
-  for (const control of ["\t", "\n", "\r"]) {
+  checks.step("AUTHENTICATED_SERVER_RETURN_URL_MATRIX");
+  const serverReturnCases = [
+    ["/settings", "/settings"],
+    [validReturnInput, validReturnPath],
+    ...["\t", "\n", "\r"].map((control) => [
+      "/" + control + "/attacker.example/path",
+      "/",
+    ]),
+  ];
+  for (const [from, expected] of serverReturnCases) {
     const response = await fetch(
-      `${baseUrl}/login?from=${encodeURIComponent("/" + control + "/attacker.example/path")}`,
+      `${baseUrl}/login?from=${encodeURIComponent(from)}`,
       {
         redirect: "manual",
         headers: { cookie: `nexora_session=${sessionCookie.value}` },
@@ -772,10 +803,14 @@ try {
     checks.status(response.status, 307);
     const target = new URL(response.headers.get("location"), baseUrl);
     assert.equal(target.origin, new URL(baseUrl).origin);
-    assert.equal(target.pathname, "/");
+    assert.equal(target.href, new URL(expected, baseUrl).href);
   }
+  checks.step("AUTHENTICATED_BROWSER_SERVER_RETURN");
+  await send("Page.navigate", {
+    url: `${baseUrl}/login?from=${encodeURIComponent(validReturnInput)}`,
+  });
+  await assertBrowserReturn(validReturnPath);
   checks.step("OPERATOR_ACCOUNT_MENU_LOGOUT");
-  await send("Page.navigate", { url: baseUrl + "/settings" });
   await openInteractiveAccountMenu({ until });
   const operatorCookie = (
     await send("Network.getCookies", { urls: [baseUrl] })
@@ -810,13 +845,71 @@ try {
     401,
   );
   if (mfaSetupKey) {
+    checks.step("ADMIN_MFA_NEGATIVE_RETURN");
+    await passwordFormLogin(username, "/\t/attacker.example/path");
+    await until(
+      '!!document.querySelector("input[name=mfa-code]:not(:disabled)")',
+    );
+    checks.status(
+      await evaluate('fetch("/api/auth/session").then(r=>r.status)'),
+      401,
+    );
+    assert.equal(
+      (await send("Network.getCookies", { urls: [baseUrl] })).cookies.some(
+        (c) => c.name === "nexora_session",
+      ),
+      false,
+    );
+    await evaluate(
+      'Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Dùng mã khôi phục")).click()',
+    );
+    await until(
+      'document.querySelector("input[name=mfa-code]")?.maxLength === 35',
+    );
+    await evaluate('document.querySelector("input[name=mfa-code]").focus()');
+    await send("Input.insertText", { text: recoveryCodes[0] });
+    mfaStatus = undefined;
+    await evaluate('document.querySelector("button[type=submit]").click()');
+    await assertBrowserReturn("/");
+    checks.status(mfaStatus, 200);
+    const negativeSession = (
+      await send("Network.getCookies", { urls: [baseUrl] })
+    ).cookies.find((c) => c.name === "nexora_session");
+    assert.ok(negativeSession?.httpOnly);
+    checks.status(
+      await evaluate('fetch("/api/auth/session").then(r=>r.status)'),
+      200,
+    );
+    checks.status(
+      await evaluate(
+        'fetch("/api/auth/logout",{method:"POST"}).then(r=>r.status)',
+      ),
+      200,
+    );
+    assert.equal(
+      (await send("Network.getCookies", { urls: [baseUrl] })).cookies.some(
+        (c) => c.name === "nexora_session",
+      ),
+      false,
+    );
+    checks.status(
+      (
+        await fetch(baseUrl + "/api/auth/session", {
+          headers: { cookie: `nexora_session=${negativeSession.value}` },
+        })
+      ).status,
+      401,
+    );
     checks.step("COEXISTING_SESSION_AND_PENDING_COOKIE_SCOPE");
     const browserLogin = (name) =>
       evaluate(
         `fetch("/api/auth/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:${JSON.stringify(name)},password:${JSON.stringify(password)}})}).then(r=>r.status)`,
       );
     checks.status(await browserLogin(username), 200);
-    checks.status(await browserLogin(operatorName), 200);
+    checks.step("OPERATOR_POSITIVE_RETURN_WITH_PENDING_COOKIE");
+    await passwordFormLogin(operatorName, validReturnInput);
+    await assertBrowserReturn(validReturnPath);
+    checks.step("COEXISTING_SESSION_AND_PENDING_COOKIE_SCOPE");
     const before = (
       await send("Network.getCookies", {
         urls: [baseUrl + "/api/auth/mfa/cancel"],
@@ -881,6 +974,7 @@ try {
       false,
     );
   }
+  assert.equal(leakedSetupSecret, false);
   if (process.env.COMPOSE_PROJECT_NAME) {
     checks.step("SETUP_SERVER_LOG_PRIVACY");
     const args = ["compose", "-f", "compose.yml"];
