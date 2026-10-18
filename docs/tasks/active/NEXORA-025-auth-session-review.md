@@ -187,3 +187,18 @@ The first local attempt is not a suite PASS and not a Prisma/network result: all
 | Agent host preflight blocked        | Windows host (platform Windows, Docker Desktop stopped, no Ubuntu WSL2 distro, Node v24.16.0); binaries.prisma.sh probe returns HTTP 403 Forbidden. Canonical Docker suite NOT RUN; PR 21 remains Draft with execution BLOCKED | 2026-10-18 | FAIL   |
 
 Verification cannot run to completion inside this restricted agent environment without a running Linux Docker engine and legitimate egress to binaries.prisma.sh. Under canonical policy, no mocks or unapproved mirrors are used. PR 21 remains Draft and task status remains VERIFICATION PENDING / PARTIALLY VERIFIED. Users with an authorized Linux or Ubuntu WSL2 environment with working Docker integration and genuine Prisma access can execute the reproducible runbook via `sh scripts/verify-local.sh --sha <commit-sha>`.
+
+### Evidence reconciliation and attribution — 2026-10-18
+
+| Claim                                | Evidence                                                                                                                                                                                                                                              | Date       | Result |
+| :----------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Parent head 5d15fdc Linux run        | sh scripts/verify-local.sh --sha 5d15fdc executed at 2026-10-18T04:51:28Z on Linux 6.18.55; BLOCKED at PRISMA_CHECKSUM_NETWORK_BLOCKED (exit 2); artifacts in /workspace/work/pr21-local-verification-5d15fdc not resident on Windows host            | 2026-10-18 | FAIL   |
+| Current head 669c596 Windows inspect | python scripts/verify-local.py --sha 669c596 --preflight-only executed at 2026-10-18T15:11:27Z on Windows 11; Docker daemon stopped, binaries.prisma.sh HTTP 403; resident artifact nexora-verify-jj1uvi2j SHA256 verified; canonical scripts NOT_RUN | 2026-10-18 | FAIL   |
+| Hosted run 39138765345 on 669c596    | GitHub Actions run 39138765345 (job 117709302474) at 2026-10-18T15:06:40Z completed in 4s; steps empty, runner_id 0; launch failure confirmed due to hosted quota exhaustion; checkout not reached                                                    | 2026-10-18 | FAIL   |
+
+Reconciliation details:
+
+- **Attribution correction**: The Linux run at 04:51 UTC belongs strictly to parent commit `5d15fdcffc02504e8dab5d241c949f4d6ff5f855` (created at 04:51:16Z), not `669c596c719041c4ab6c4a7cd65c3ed51c78ad66` (which was created later at 15:03:14Z). The PR description has been updated to separate these records and avoid self-contradictory timestamps.
+- **Artifact residency**: The `/workspace/work/pr21-local-verification-5d15fdc` directory was created in a separate Linux environment and is not resident on this Windows host. On this Windows host, the direct preflight artifact is located at `C:\Users\wayyk\AppData\Local\Temp\nexora-verify-jj1uvi2j` (`summary.json` SHA256 `9f2a48f551b7a5ae2962d8fcaee092426d34b637c4a4bbfc24c848bd9615adbc`).
+- **Hosted CI**: Run `39098540746` evaluated commit `5d15fdc`, while run `39138765345` is the latest hosted run triggered for `669c596`. Both failed before runner assignment / checkout.
+- **Canonical suite status**: Full Docker execution across all five canonical scripts remains `NOT_RUN` / `BLOCKED`. PR 21 remains Draft and task NEXORA-025 remains `VERIFICATION PENDING / PARTIALLY VERIFIED`. Production gates under NEXORA-024 remain independently `NOT VERIFIED`.
