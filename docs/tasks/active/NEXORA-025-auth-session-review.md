@@ -32,14 +32,18 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
-Strict stored hash parser, internal redirect policy, finite SSR deadline, bounded session maintenance, runtime pool lifecycle, profile-aware UI and repeatable browser harness regression.
+Strict stored hash parser, internal redirect policy, finite SSR deadline, bounded session maintenance, runtime pool lifecycle, profile-aware UI, repeatable browser harness regression, and owner-approved local Docker verification alternative policy.
 
 ### Canonical owners
 
+- docs/ai/PROJECT_RULES.md
+- docs/ai/TASK_WORKFLOW.md
+- docs/ai/IMPLEMENTATION_WORKFLOW.md
 - docs/decisions/authentication.md
 - docs/architecture/backend.md
 - docs/architecture/frontend.md
 - docs/architecture/database.md
+- docs/architecture/runtime.md
 - docs/operations/configuration.md
 - docs/operations/testing.md
 - docs/operations/setup.md
@@ -173,3 +177,13 @@ These are orchestration unit tests only. No Docker/Prisma/PostgreSQL/browser-sui
 | IPAM GREEN                           | Treat absent/null ranges as empty without ignoring real subnet overlaps; all9 harness unit tests PASS. Unexpected exception class is now recorded as a fixed safe category, never raw exception text                                                                                       | 2026-10-18 | PASS   |
 
 The first local attempt is not a suite PASS and not a Prisma/network result: all five scripts were NOT_RUN. Final execution must use the new committed parser fix; final SHA/artifacts/outcome are recorded in PR description. Existing network restriction remains independent; no network/TLS/checksum bypass or runtime assertion change.
+
+### Verification policy synchronization and host preflight findings — 2026-10-18
+
+| Claim                               | Evidence                                                                                                                                                                                                                       | Date       | Result |
+| :---------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Smoke project UID check portability | scripts/smoke-project.py guards hasattr(os, 'getuid') before UID comparison; python scripts/verify-local.test.py executes all 9 unit tests PASS without attribute error                                                        | 2026-10-18 | PASS   |
+| Verification policy synchronized    | docs/ai/TASK_WORKFLOW.md updated with owner-approved local Docker alternative policy; docs:check and test:docs PASS                                                                                                            | 2026-10-18 | PASS   |
+| Agent host preflight blocked        | Windows host (platform Windows, Docker Desktop stopped, no Ubuntu WSL2 distro, Node v24.16.0); binaries.prisma.sh probe returns HTTP 403 Forbidden. Canonical Docker suite NOT RUN; PR 21 remains Draft with execution BLOCKED | 2026-10-18 | FAIL   |
+
+Verification cannot run to completion inside this restricted agent environment without a running Linux Docker engine and legitimate egress to binaries.prisma.sh. Under canonical policy, no mocks or unapproved mirrors are used. PR 21 remains Draft and task status remains VERIFICATION PENDING / PARTIALLY VERIFIED. Users with an authorized Linux or Ubuntu WSL2 environment with working Docker integration and genuine Prisma access can execute the reproducible runbook via `sh scripts/verify-local.sh --sha <commit-sha>`.

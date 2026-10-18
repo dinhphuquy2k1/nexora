@@ -21,7 +21,7 @@ def claim(project, run=subprocess.check_output):
     registry = os.environ.get('NEXORA_VERIFICATION_OWNERSHIP_DIR')
     if registry:
         directory = Path(registry)
-        if directory.is_symlink() or not directory.is_dir() or directory.stat().st_uid != os.getuid():
+        if directory.is_symlink() or not directory.is_dir() or (hasattr(os, 'getuid') and directory.stat().st_uid != os.getuid()):
             raise ValueError('INVALID_OWNERSHIP_DIRECTORY')
         with (directory / project).open('x') as marker:
             marker.write(project + '\n')

@@ -47,6 +47,17 @@ Use exactly:
 
 Values like `Done`, `Finished`, `Partial`, or `PASS` are invalid task-level verification values.
 
+### 1.6 Owner-approved local execution alternative — 2026-10-18
+
+When hosted runners are unavailable, full canonical Docker suite verification on a local Linux host is an accepted execution alternative under [Project rules](PROJECT_RULES.md#owner-approved-local-execution-alternative--2026-10-18). This alters the execution venue, not the acceptance criteria:
+
+- **Review commit & clean worktree**: Executed against the exact review commit with a clean worktree before and after, using pinned frozen dependencies.
+- **Authentic runtime**: Genuine Prisma client generation, PostgreSQL, and real browser execution; skipping steps, omitting assertions, or substituting mocks is prohibited.
+- **Traceability**: Requires structured evidence capturing command exit codes, execution duration, environment details, UTC timestamps, and the exact Git SHA.
+- **Resource isolation**: Tests execute exclusively in disposable, owned test namespaces without altering user data or production configuration.
+- **Status distinction**: Distinguish `LOCAL verification PASS` from `GitHub Actions SUCCESS`; hosted check status must never be fabricated. Local verification does not attest that public production release gates are satisfied.
+- **Historical integrity**: Historical `FAIL` and `NOT RUN` entries are preserved. The owner's decision and date are recorded without rewriting previous execution history to `PASS`.
+
 ## 2. Canonical evidence schema
 
 Normal task records document executable verification in an `## Evidence` section:
