@@ -1,3 +1,4 @@
+import type { RuntimeDatabase } from "../../common/infrastructure/runtime-database";
 import {
   createDatabase,
   type PrismaClient,
@@ -25,9 +26,10 @@ export class IdentityMfaAdapter implements MfaPort {
     private readonly url: string,
     private readonly cipher: SecretCipher,
     private readonly now: () => number = Date.now,
+    private readonly runtime?: RuntimeDatabase,
   ) {}
   get client(): PrismaClient {
-    return (this.instance ??= createDatabase(this.url));
+    return this.runtime?.client ?? (this.instance ??= createDatabase(this.url));
   }
   async assertPublicReady() {
     // Read-only runtime-role check; no credentials/session/assurance mutation.

@@ -1,3 +1,4 @@
+import type { RuntimeDatabase } from "../../common/infrastructure/runtime-database";
 import { UserStatus } from "../../identity/domain/user-policy";
 import {
   createDatabase,
@@ -18,9 +19,12 @@ const metadata = {
 } as const;
 export class CarrierAdapter implements CarrierPort {
   private instance?: PrismaClient;
-  constructor(private readonly url: string) {}
+  constructor(
+    private readonly url: string,
+    private readonly runtime?: RuntimeDatabase,
+  ) {}
   get client(): PrismaClient {
-    return (this.instance ??= createDatabase(this.url));
+    return this.runtime?.client ?? (this.instance ??= createDatabase(this.url));
   }
   private async active(tx: Prisma.TransactionClient, userId: string) {
     const rows = await tx.$queryRaw<

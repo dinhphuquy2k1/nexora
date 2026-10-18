@@ -40,25 +40,19 @@ export async function verifyPassword(
   storedHash: string,
 ): Promise<boolean> {
   try {
-    const parts = storedHash.split("$");
-    if (parts.length !== 5 || parts[1] !== "scrypt") {
-      return false;
-    }
-    const params = parts[2]
-      .split(",")
-      .reduce<Record<string, number>>((acc, pair) => {
-        const [k, v] = pair.split("=");
-        if (k && v) acc[k] = parseInt(v, 10);
-        return acc;
-      }, {});
-
-    const salt = Buffer.from(parts[3], "hex");
-    const expectedKey = Buffer.from(parts[4], "hex");
-
-    const derivedKey = await scryptAsync(password, salt, expectedKey.length, {
-      cost: params.N || SCRYPT_CONFIG.N,
-      blockSize: params.r || SCRYPT_CONFIG.r,
-      parallelization: params.p || SCRYPT_CONFIG.p,
+    // Only the format emitted since initial provisioning is supported. Validate
+    // encoding and all costs before decoding or allocating scrypt work.
+    const match =
+      /^\$scrypt\$N=16384,r=8,p=1\$([a-f0-9]{32})\$([a-f0-9]{128})$/.exec(
+        storedHash,
+      );
+    if (!match || match[0] !== storedHash) return false;
+    const salt = Buffer.from(match[1], "hex");
+    const expectedKey = Buffer.from(match[2], "hex");
+    const derivedKey = await scryptAsync(password, salt, SCRYPT_CONFIG.keylen, {
+      cost: SCRYPT_CONFIG.N,
+      blockSize: SCRYPT_CONFIG.r,
+      parallelization: SCRYPT_CONFIG.p,
       maxmem: SCRYPT_CONFIG.maxmem,
     });
 

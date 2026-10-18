@@ -376,3 +376,50 @@ test("middleware passes x-pathname header and enforces unauthenticated redirects
   const resLogin = middleware(reqLogin);
   assert.equal(resLogin.status, 200);
 });
+
+test("return URL rejects parser-normalized authority escapes and controls", () => {
+  for (const value of [
+    "/\t/attacker.example/path",
+    "/\n/attacker.example/path",
+    "/\r/attacker.example/path",
+    "/safe\u0000path",
+    "/safe\u007fpath",
+    "/safe\u0085path",
+    "///attacker.example",
+    "/\\attacker.example",
+  ]) {
+    assert.equal(sanitizeReturnUrl(value), "/");
+  }
+  assert.equal(
+    sanitizeReturnUrl("/a/../settings?tab=security#session"),
+    "/settings?tab=security#session",
+  );
+});
+
+test("deployment presentation reflects the selected server profile without serializing configuration", async () => {
+  const { deploymentPresentation } = await import(
+    "../lib/auth/deployment-presentation.ts"
+  );
+  assert.equal(deploymentPresentation({}).badge, "Cục bộ");
+  const presentation = deploymentPresentation({
+    NEXORA_DEPLOYMENT_PROFILE: "PUBLIC_HTTPS",
+    PUBLIC_ORIGIN: "https://nexora.example",
+    ALLOWED_HOSTS: "nexora.example",
+    ALLOWED_ORIGINS: "https://nexora.example",
+    IDENTITY_KEYRING_JSON: "never-serialize",
+  });
+  assert.equal(presentation.badge, "HTTPS");
+  assert.equal(presentation.runtime.includes("nội bộ"), false);
+  assert.deepEqual(Object.keys(presentation).sort(), [
+    "badge",
+    "runtime",
+    "session",
+  ]);
+  assert.equal(JSON.stringify(presentation).includes("never-serialize"), false);
+});
+
+test("return URL invalid transport shapes fail safely", () => {
+  for (const value of [["/settings", "//attacker.example"], {}, 123]) {
+    assert.equal(sanitizeReturnUrl(value), "/");
+  }
+});

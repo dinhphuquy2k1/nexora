@@ -1,5 +1,9 @@
 # Runtime
 
+## Local verification topology — owner-approved 2026-10-18
+
+Full canonical Docker verification may run on a local Linux test host instead of unavailable hosted Actions. scripts/verify-local.sh orchestrates the existing five scripts in an exact-SHA clean detached clone, with frozen genuine dependencies, disposable runtime-role/MFA/Carrier fixtures and safe artifacts. It introduces no runtime service or production topology. Test namespaces are collision-checked before cleanup, quality has a dedicated project, and port/subnet preflight prevents reuse of a running installation. Original application environment files/keys are not copied. LOCAL verification PASS remains distinct from hosted CI SUCCESS, GitHub merge gates and all NEXORA-024 production prerequisites. See [Testing](../operations/testing.md#owner-approved-local-docker-verification--2026-10-18).
+
 ## Local release (default)
 
 Compose `init` generates and retains separate random admin and runtime DB passwords, repairs only dedicated credential/upload volume permissions; PostgreSQL 17.11 has no published ports. One-shot `migrate` runs after DB healthy; trusted one-shot `db-runtime` provisions restricted `nexora_app` after migrate success; compiled non-root API starts after provisioning success and owns uploads as UID 1000. Non-root web waits for API healthy and publishes host port `127.0.0.1:3001:3000` (configurable via `WEB_PORT`). Next.js rewrites `/api/*` internally to `http://api:4000` on the Docker bridge network; neither PostgreSQL nor API publishes host ports.

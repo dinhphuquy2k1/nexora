@@ -1,5 +1,11 @@
 # Backend
 
+## Current review hardening — NEXORA-025
+
+IMPLEMENTED: API infrastructure DI shares one RuntimeDatabase/Prisma client across health/catalog, Identity, onboarding, MFA and Carrier adapters (including audit), replacing six independent pools. Construction remains lazy with no eager connect; LOCAL liveness/outage behavior and PUBLIC_HTTPS enrollment readiness are unchanged. Only the provider disconnects this shared client, once on shutdown; standalone CLI/test adapters own and close their separate clients. Migration/provisioning never share the restricted runtime client. Existing adapter factories retain standalone construction for independent-process tooling.
+
+Expired sessions can be removed explicitly with the restricted maintenance CLI described in Setup. Each DB-clock batch is session-only and bounded; no automatic worker/scheduler or grants change. Login/Origin/MFA, transactional user-first locks, Carrier fences, audit-before-decrypt and live closure remain unchanged. Verification is tracked in active NEXORA-025, not inferred from implementation.
+
 `HealthController` maps HTTP to `HealthService`; the application service consumes database/storage health ports. DatabaseAdapter is infrastructure and lazily constructs Prisma so liveness remains available when database operations fail. DB URLs use a 3-second connect timeout in Compose. No AI dependency is required for readiness.
 `FilesService` writes the original blob then registers hash/size in the catalog; catalog failure removes the new blob. This is an internal service, with no public upload endpoint. Process crashes between filesystem and catalog writes may leave an orphan; recovery/retention belongs to the ingest milestone. Successful stored files are immutable through the current service.
 Config validates required DB URL, canonical absolute storage root, port, node environment and explicit Swagger toggle. Errors expose safe code/message/requestId. JSON HTTP logs contain requestId, status and duration only; headers, query strings, request bodies, cookies, credentials, file contents and notes are excluded by construction. Express trust proxy is configured strictly for trusted internal network hops (loopback, linklocal, uniquelocal); arbitrary forwarded headers from external clients are not trusted. CORS is not enabled.

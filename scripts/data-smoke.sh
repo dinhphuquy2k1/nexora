@@ -3,7 +3,7 @@ export MSYS_NO_PATHCONV=1
 set -eu
 umask 077
 cd "$(dirname "$0")/.."
-project="nexora-data-smoke-$$"
+project="nexora-data-smoke-${NEXORA_VERIFICATION_RUN_ID:-$$}"
 # This is exclusively this script's disposable project.
 export ALLOWED_ORIGINS=
 export COMPOSE_PROJECT_NAME="$project"
@@ -14,15 +14,8 @@ compose(){
   docker compose -f compose.yml "$@"
  fi
 }
-# Refuse existing namespace before installing a destructive cleanup trap.
-if [ -n "$(docker ps -aq --filter "label=com.docker.compose.project=$project")" ]; then
- echo 'Disposable smoke project already exists; refusing reuse or cleanup.' >&2; exit 1
-fi
-for volume in postgres uploads credentials runtime_credentials; do
- if docker volume inspect "${project}_${volume}" >/dev/null 2>&1; then
-  echo 'Disposable smoke volume already exists; refusing reuse or cleanup.' >&2; exit 1
- fi
-done
+# Shared guard also checks networks and all development-volume names.
+python3 scripts/smoke-project.py "$project"
 work=$(mktemp -d)
 work_mount=$(cd "$work" && (pwd -W 2>/dev/null || pwd))
 cleanup(){

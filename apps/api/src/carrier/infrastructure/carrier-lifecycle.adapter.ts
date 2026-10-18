@@ -1,3 +1,4 @@
+import type { RuntimeDatabase } from "../../common/infrastructure/runtime-database";
 import { createHash } from "node:crypto";
 import type { EncryptedSecret } from "../../common/crypto/secret-cipher";
 import {
@@ -39,11 +40,14 @@ export class CarrierLifecycleAdapter
   implements AuthorizedCredentialReader
 {
   private instance?: PrismaClient;
-  constructor(private readonly url: string) {
+  constructor(
+    private readonly url: string,
+    private readonly runtime?: RuntimeDatabase,
+  ) {
     super();
   }
   get client(): PrismaClient {
-    return (this.instance ??= createDatabase(this.url));
+    return this.runtime?.client ?? (this.instance ??= createDatabase(this.url));
   }
   private async active(tx: Prisma.TransactionClient, userId: string) {
     const rows = await tx.$queryRaw<

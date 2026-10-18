@@ -3,7 +3,8 @@ require("reflect-metadata");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { randomUUID, randomBytes, createHash } = require("node:crypto");
-const { execFileSync } = require("node:child_process");
+const { execFileSync, execFile } = require("node:child_process");
+const { promisify } = require("node:util");
 const { resolve, join } = require("node:path");
 const { tmpdir } = require("node:os");
 const { mkdtemp, rm } = require("node:fs/promises");
@@ -172,6 +173,254 @@ test(
       });
       configure(app);
       await app.listen(0, "127.0.0.1");
+      await t.test(
+        "one runtime client across adapters, bounded DB-clock session cleanup preserves all related data",
+        async () => {
+          const {
+            RuntimeDatabase,
+          } = require("../dist/common/infrastructure/runtime-database");
+          const {
+            DatabaseAdapter,
+          } = require("../dist/health/infrastructure/database.adapter");
+          const { MfaPort } = require("../dist/identity/application/mfa.port");
+          const {
+            IdentityPort,
+          } = require("../dist/identity/application/identity.port");
+          const {
+            CarrierPort,
+          } = require("../dist/carrier/application/carrier.port");
+          const {
+            UserManagementPort,
+          } = require("../dist/identity/application/user-management.port");
+          const {
+            CarrierLifecycleAdapter,
+          } = require("../dist/carrier/infrastructure/carrier-lifecycle.adapter");
+          const shared = app.get(RuntimeDatabase).client;
+          for (const token of [
+            DatabaseAdapter,
+            MfaPort,
+            IdentityPort,
+            CarrierPort,
+            UserManagementPort,
+            CarrierLifecycleAdapter,
+          ]) {
+            assert.equal(app.get(token).client, shared);
+            await app.get(token).onApplicationShutdown();
+            assert.equal(
+              (await shared.$queryRaw`SELECT 1 AS value`)[0].value,
+              1,
+            );
+          }
+          const {
+            deleteExpiredSessionBatch,
+          } = require("../dist/identity/infrastructure/session-maintenance");
+          const tables = [
+            "users",
+            "user_credentials",
+            "user_mfa",
+            "mfa_recovery_codes",
+            "mfa_challenges",
+            "operator_setup_tokens",
+            "carrier_connections",
+            "carrier_connection_secrets",
+            "carrier_user_states",
+            "security_audit_events",
+            "stored_files",
+          ];
+          const snapshot = () =>
+            Promise.all(
+              tables.map((table) =>
+                db.$queryRawUnsafe(
+                  `SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) AS rows FROM ${table} t`,
+                ),
+              ),
+            );
+          const before = await snapshot();
+          const activeBefore = await shared.session.findMany({
+            orderBy: { id: "asc" },
+          });
+          const ids = [];
+          for (const offset of [-3600, -1, 0, 3600]) {
+            const id = randomUUID();
+            ids.push(id);
+            await db.$executeRaw`INSERT INTO sessions(id,user_id,token_hash,expires_at) VALUES (${id}::uuid,${a.id}::uuid,${randomBytes(32).toString("hex")},statement_timestamp() + ${offset} * interval '1 second')`;
+          }
+          assert.equal(await deleteExpiredSessionBatch(shared, 2), 2);
+          assert.equal(await deleteExpiredSessionBatch(shared, 2), 1);
+          assert.equal(await deleteExpiredSessionBatch(shared, 2), 0);
+          assert.equal(
+            await shared.session.count({ where: { id: ids[3] } }),
+            1,
+          );
+          assert.equal(
+            await shared.session.count({
+              where: { id: { in: ids.slice(0, 3) } },
+            }),
+            0,
+          );
+          await shared.session.deleteMany({ where: { id: ids[3] } });
+          assert.deepEqual(
+            await shared.session.findMany({ orderBy: { id: "asc" } }),
+            activeBefore,
+          );
+          assert.deepEqual(await snapshot(), before);
+          const standalone = new RuntimeDatabase(applicationUrl);
+          try {
+            assert.notEqual(standalone.client, shared);
+            assert.equal(
+              (
+                await standalone.client.$queryRaw`SELECT current_user AS name`
+              )[0].name,
+              "nexora_app",
+            );
+          } finally {
+            await standalone.onApplicationShutdown();
+          }
+          assert.equal((await shared.$queryRaw`SELECT 1 AS value`)[0].value, 1);
+
+          // Hold only an owned expired fixture row using the separate admin client.
+          // The real restricted CLI must stop on its configured lock timeout.
+          const blockedId = randomUUID();
+          await db.$executeRaw`INSERT INTO sessions(id,user_id,token_hash,expires_at) VALUES (${blockedId}::uuid,${a.id}::uuid,${randomBytes(32).toString("hex")},statement_timestamp()-interval '1 second')`;
+          let unlock, rowLocked;
+          const release = new Promise((resolve) => {
+            unlock = resolve;
+          });
+          const acquired = new Promise((resolve) => {
+            rowLocked = resolve;
+          });
+          const holder = db.$transaction(
+            async (tx) => {
+              await tx.$queryRaw`SELECT id FROM sessions WHERE id=${blockedId}::uuid FOR UPDATE`;
+              rowLocked();
+              await release;
+            },
+            { timeout: 15000 },
+          );
+          let cleanup;
+          try {
+            await Promise.race([acquired, holder]);
+            let completed = false;
+            cleanup = promisify(execFile)(
+              process.execPath,
+              [resolve("dist/cli/sessions-cleanup.js")],
+              {
+                env: { ...process.env, DATABASE_URL: applicationUrl },
+                encoding: "utf8",
+                timeout: 8000,
+              },
+            )
+              .then(
+                () => ({ code: 0 }),
+                (error) => ({
+                  code: error.code,
+                  killed: error.killed,
+                  stdout: error.stdout,
+                  stderr: error.stderr,
+                }),
+              )
+              .finally(() => {
+                completed = true;
+              });
+            let observedWaiter = false;
+            for (let i = 0; i < 100 && !completed; i++) {
+              const [activity] = await db.$queryRaw`SELECT EXISTS(
+                SELECT 1 FROM pg_stat_activity WHERE datname=current_database()
+                AND usename='nexora_app' AND wait_event_type='Lock'
+                AND query LIKE 'DELETE FROM sessions%'
+              ) AS waiting`;
+              if (activity.waiting) {
+                observedWaiter = true;
+                break;
+              }
+              await new Promise((resolve) => setTimeout(resolve, 20));
+            }
+            const failure = await cleanup;
+            assert.equal(
+              observedWaiter,
+              true,
+              "restricted CLI actually waited for the owned row lock",
+            );
+            assert.equal(
+              failure.killed,
+              false,
+              "CLI exits on its own DB timeout, not the test kill timeout",
+            );
+            assert.equal(failure.code, 1);
+            assert.equal(failure.stdout, "");
+            assert.equal(failure.stderr.trim(), "SESSION_CLEANUP_FAILED");
+            assert.equal(
+              await shared.session.count({ where: { id: blockedId } }),
+              1,
+            );
+            assert.deepEqual(await snapshot(), before);
+          } finally {
+            await cleanup;
+            unlock();
+            await holder;
+          }
+          assert.equal(await deleteExpiredSessionBatch(shared, 2), 1);
+          assert.deepEqual(
+            await shared.session.findMany({ orderBy: { id: "asc" } }),
+            activeBefore,
+          );
+          const output = execFileSync(
+            process.execPath,
+            [resolve("dist/cli/sessions-cleanup.js")],
+            {
+              env: { ...process.env, DATABASE_URL: applicationUrl },
+              encoding: "utf8",
+              stdio: ["ignore", "pipe", "pipe"],
+              timeout: 15000,
+            },
+          );
+          assert.deepEqual(JSON.parse(output), {
+            event: "expired_sessions_cleanup",
+            deleted: 0,
+            batches: 1,
+            capped: false,
+          });
+          assert.deepEqual(await snapshot(), before);
+
+          await db.$executeRaw`INSERT INTO sessions(id,user_id,token_hash,expires_at)
+          SELECT gen_random_uuid(),${a.id}::uuid,md5(n::text)||md5(n::text),statement_timestamp()-interval '1 second'
+          FROM generate_series(1,10001) n`;
+          const runCleanup = () =>
+            JSON.parse(
+              execFileSync(
+                process.execPath,
+                [resolve("dist/cli/sessions-cleanup.js")],
+                {
+                  env: { ...process.env, DATABASE_URL: applicationUrl },
+                  encoding: "utf8",
+                  stdio: ["ignore", "pipe", "pipe"],
+                  timeout: 30000,
+                },
+              ),
+            );
+          assert.deepEqual(runCleanup(), {
+            event: "expired_sessions_cleanup",
+            deleted: 10000,
+            batches: 20,
+            capped: true,
+          });
+          assert.deepEqual(runCleanup(), {
+            event: "expired_sessions_cleanup",
+            deleted: 1,
+            batches: 1,
+            capped: false,
+          });
+          assert.deepEqual(
+            await shared.session.findMany({ orderBy: { id: "asc" } }),
+            activeBefore,
+          );
+          assert.deepEqual(await snapshot(), before);
+          await assert.rejects(
+            deleteExpiredSessionBatch(shared, 0),
+            /INVALID_SESSION_BATCH_SIZE/,
+          );
+        },
+      );
       const base = await app.getUrl(),
         origin = loadConfig(process.env).trustedOrigins[0];
       const request = async (

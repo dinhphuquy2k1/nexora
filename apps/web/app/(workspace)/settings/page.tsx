@@ -1,3 +1,4 @@
+import { deploymentPresentation } from "../../../lib/auth/deployment-presentation.ts";
 import { cookies } from "next/headers";
 import { Panel } from "@nexora/ui";
 import { FOUNDATION_VERSION } from "@nexora/shared";
@@ -25,7 +26,7 @@ export default async function Settings() {
           <dt>Ngôn ngữ</dt>
           <dd>Tiếng Việt</dd>
           <dt>Chế độ</dt>
-          <dd>Cục bộ, một máy</dd>
+          <dd>{deploymentPresentation().badge}, một máy</dd>
         </dl>
       </Panel>
       <Panel title="Tính năng sẽ bổ sung">
@@ -34,12 +35,13 @@ export default async function Settings() {
           chuyển: <strong>Chưa triển khai</strong>.
         </p>
         <p>
-          Khóa kết nối và phiên làm việc sẽ được quản lý an toàn phía server.
-          Không có kết nối đối tác không chặn trạng thái sẵn sàng.
+          Khóa kết nối và phiên làm việc được quản lý an toàn phía server. Không
+          có kết nối đối tác không chặn trạng thái sẵn sàng.
         </p>
       </Panel>
       <div className="notice">
-        Chưa có đăng nhập hay phân quyền. Không đưa bản này lên Internet.
+        Đăng nhập Nexora độc lập với tài khoản vận chuyển. Quản trị viên cần xác
+        thực hai bước.
       </div>
     </>
   );

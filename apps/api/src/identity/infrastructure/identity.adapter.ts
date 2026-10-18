@@ -1,3 +1,5 @@
+import { deleteExpiredSessionBatch } from "./session-maintenance";
+import type { RuntimeDatabase } from "../../common/infrastructure/runtime-database";
 import { PrismaClient, createDatabase, verifyPassword } from "@nexora/database";
 import { AuthLevel } from "../domain/session-assurance";
 import { UserStatus, UserRole } from "../domain/user-policy";
@@ -11,10 +13,13 @@ import type {
 export class IdentityDatabaseAdapter implements IdentityPort {
   private instance?: PrismaClient;
 
-  constructor(private readonly url: string) {}
+  constructor(
+    private readonly url: string,
+    private readonly runtime?: RuntimeDatabase,
+  ) {}
 
   get client(): PrismaClient {
-    return (this.instance ??= createDatabase(this.url));
+    return this.runtime?.client ?? (this.instance ??= createDatabase(this.url));
   }
 
   async findUserByUsername(username: string): Promise<LocalLoginRecord | null> {
@@ -130,14 +135,7 @@ export class IdentityDatabaseAdapter implements IdentityPort {
   }
 
   async deleteExpiredSessions(): Promise<number> {
-    const result = await this.client.session.deleteMany({
-      where: {
-        expiresAt: {
-          lt: new Date(),
-        },
-      },
-    });
-    return result.count;
+    return deleteExpiredSessionBatch(this.client);
   }
 
   async verifyPassword(

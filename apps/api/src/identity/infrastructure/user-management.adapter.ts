@@ -1,3 +1,4 @@
+import type { RuntimeDatabase } from "../../common/infrastructure/runtime-database";
 import { ConnectionStatus } from "../../carrier/domain/carrier";
 import {
   createDatabase,
@@ -20,9 +21,12 @@ type LockedUser = {
 };
 export class UserManagementAdapter implements UserManagementPort {
   private instance?: PrismaClient;
-  constructor(private readonly url: string) {}
+  constructor(
+    private readonly url: string,
+    private readonly runtime?: RuntimeDatabase,
+  ) {}
   get client(): PrismaClient {
-    return (this.instance ??= createDatabase(this.url));
+    return this.runtime?.client ?? (this.instance ??= createDatabase(this.url));
   }
   hashPassword(password: string) {
     return hashPassword(password);

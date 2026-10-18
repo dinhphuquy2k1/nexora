@@ -38,12 +38,15 @@ export async function verifyServerSession(
     };
   }
 
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch(`${apiUrl}/api/auth/session`, {
       headers: {
         cookie: `nexora_session=${cookieValue}`,
       },
       cache: "no-store",
+      signal: controller.signal,
     });
 
     if (res.status === 200) {
@@ -85,6 +88,8 @@ export async function verifyServerSession(
       reason:
         err instanceof Error ? err.message : "Network or DNS connection failed",
     };
+  } finally {
+    clearTimeout(deadline);
   }
 }
 

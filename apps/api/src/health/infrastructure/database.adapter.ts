@@ -1,3 +1,4 @@
+import type { RuntimeDatabase } from "../../common/infrastructure/runtime-database";
 import { PrismaClient, createDatabase } from "@nexora/database";
 import type {
   StoredBlob,
@@ -5,9 +6,12 @@ import type {
 } from "../../storage/application/file-storage.port";
 export class DatabaseAdapter implements FileCatalog {
   private instance?: PrismaClient;
-  constructor(private readonly url: string) {}
+  constructor(
+    private readonly url: string,
+    private readonly runtime?: RuntimeDatabase,
+  ) {}
   get client(): PrismaClient {
-    return (this.instance ??= createDatabase(this.url));
+    return this.runtime?.client ?? (this.instance ??= createDatabase(this.url));
   }
   async isReady(): Promise<boolean> {
     try {

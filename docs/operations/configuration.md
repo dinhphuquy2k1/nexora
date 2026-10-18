@@ -1,5 +1,9 @@
 # Configuration
 
+## Current fixed resource limits — NEXORA-025
+
+SSR internal session verification has a fixed five-second abort deadline including response-body read; no new environment variable or endpoint. Timeout is unavailable service and never authenticates or clears a session. API DI shares one lazy restricted Prisma/pg pool (driver default max10), with separate migration/provisioning/CLI processes and no credential sharing. Session maintenance has fixed500-row batches and20-batch invocation cap, with database-clock expiry and finite statement/lock/transaction deadlines; no scheduler/config framework. LOCAL remains default and PUBLIC_HTTPS cannot downgrade. No keys/grants or public-release gate changes.
+
 Compose supplies defaults and two idempotently generated local database credentials, stored in separate dedicated volumes. Never print its contents or commit it. These credentials authenticate only to the private PostgreSQL service; PUBLIC_HTTPS exposes ingress, never PostgreSQL. Upgrades retain both files and passwords.
 
 | Variable                | Owner / contract                                                                                                                                                                                                                                                                                                                                                                                      |

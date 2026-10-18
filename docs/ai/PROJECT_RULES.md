@@ -50,3 +50,9 @@ A task classified as `REQUIRED` cannot be completed while its canonical document
 
 - Never claim workflow or verification success from a YAML file, open port, process ID, or source inspection alone.
 - Verification requires executed command output, runtime HTTP probes, or test results recorded with exact timestamps and PASS/FAIL outcomes.
+
+### Owner-approved local execution alternative — 2026-10-18
+
+When hosted runners are unavailable, full canonical Docker verification on a local Linux host is an accepted PR verification path. This changes execution location, not acceptance criteria. Require the exact review commit, clean worktree before/after, pinned frozen dependencies, genuine Prisma/PostgreSQL/browser, all five canonical scripts without skipped assertions, disposable owned resources, and safe artifacts recording SHA/environment/start/end/timezone/commands/exit codes/log checksums. Targeted tests or preflight alone are insufficient. Distinguish LOCAL verification PASS from GitHub Actions SUCCESS; never fabricate a hosted check. Checksums detect artifact changes, not independent execution attestation. User-supplied evidence must be identified separately from agent-observed execution.
+
+Record final-head evidence in the PR description after committing necessary source/docs/scripts. Any subsequent change requires new full verification. Preserve historical FAIL/NOT RUN and production gates. Ready for review requires full accepted-path verification; COMPLETED still requires every task criterion. GitHub required checks/merge permissions remain separate: inspect read-only where authorized, never delete/bypass/fake checks, change runner criteria or merge automatically. See [Testing](../operations/testing.md#owner-approved-local-docker-verification--2026-10-18).

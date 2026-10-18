@@ -1,5 +1,31 @@
 # Setup
 
+## Local PR verification on Linux/Ubuntu WSL2 — owner decision 2026-10-18
+
+Full local canonical Docker verification is an accepted alternative to unavailable hosted Actions; it does not weaken checks or imply public production readiness. Prepare the tool/network/port/subnet prerequisites in [Testing](testing.md#owner-approved-local-docker-verification--2026-10-18). On Windows use Ubuntu WSL2 with Docker Desktop integration enabled and a Linux-filesystem checkout; this is guidance, not executed Windows/WSL2 evidence. Do not auto-install system tools or change host configuration through the verifier. Close your own conflicting test service deliberately; the verifier will not stop an unrelated Nexora installation.
+
+One reproducible invocation (replace the SHA with the exact current PR21 head from its description; keep the checkout clean):
+
+```sh
+git fetch origin fix/auth-session-review
+git switch --detach <exact-full-PR-head-SHA>
+sh scripts/verify-local.sh --sha <exact-full-PR-head-SHA>
+```
+
+The command prints the new private evidence directory. Provide only its summary.json, \*.log and SHA256SUMS for review, distinguishing owner-run evidence from agent-observed results. The runner uses an isolated clone, fixture-only configuration and owned disposable Docker resources; never copy production .env/keys or run cleanup against user data. A BLOCKED preflight or missing tool/network permission is not full-suite PASS. Resolve the named prerequisite on the local test host and run again at the same clean SHA; no hosted-budget purchase is necessary. If this managed agent environment still blocks binaries.prisma.sh, use a local host with permitted genuine engine/checksum access or the supported reviewed network-configuration workflow, never an unapproved mirror or disabled TLS/checksum.
+
+## Current session maintenance — NEXORA-025
+
+IMPLEMENTED: matching API images contain an explicit session-only cleanup CLI. In an authorized private terminal use the existing restricted runtime entrypoint (never admin credentials):
+
+```sh
+docker compose exec -T api sh /scripts/api-entrypoint.sh node dist/cli/sessions-cleanup.js
+```
+
+For PUBLIC_HTTPS use the same approved project/environment and `-f compose.yml -f compose.public.yml` options as deployment. No additional service/scheduler/port is installed. The CLI accepts no arguments, logs only event/deleted/batches/capped and exits nonzero with a fixed safe error on failure; always closes its own client. Each short transaction deletes only sessions with expires_at at or before DB statement time, up to500 rows, at most20 batches per invocation (10000 deletions). A capped result can mean more rows remain: rerun explicitly after checking output; concurrent runs may delete fewer candidates. Statement/lock/transaction timeouts bound contention; a failed later batch does not undo earlier committed batches. No active session, MFA/challenge/recovery/setup token, Carrier, audit, user or file is removed. This is storage maintenance, not logout or revocation of active sessions. No cleanup was run on user data during development; genuine tests use owned disposable databases.
+
+Optional authorized runtime SQL `SELECT count(*) FROM sessions WHERE expires_at <= statement_timestamp();` before/after can check remaining expired rows without exposing tokens. Do not grant new privileges or mount admin credentials if maintenance fails. No password format/cost migration, MFA reset or key rotation is needed for this release. PUBLIC_HTTPS production acceptance remains separately gated by NEXORA-024.
+
 ## Supported Runtime Modes
 
 Nexora operates under three distinct runtime topologies:
