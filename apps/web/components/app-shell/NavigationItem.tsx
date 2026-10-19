@@ -1,3 +1,4 @@
+import { useShippingScope } from "../../features/shipping-scope/ShippingScopeProvider.tsx";
 import Link from "next/link";
 import { type NavItem } from "../../lib/navigation/nav-config.ts";
 import { getNavIcon } from "../../lib/icons.ts";
@@ -14,13 +15,14 @@ export function NavigationItem({
   isActive,
   isCollapsed,
 }: NavigationItemProps) {
+  const { shippingHref } = useShippingScope();
   const IconComponent = getNavIcon(item.iconKey);
 
   if (item.status === "available" && item.href) {
     return (
       <div className={styles.navItemContainer}>
         <Link
-          href={item.href}
+          href={item.id === "retail" ? shippingHref : item.href}
           className={`${styles.navItemLink} ${isActive ? styles.navItemActive : ""} ${
             isCollapsed ? styles.itemCentered : ""
           }`}

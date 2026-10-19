@@ -1,0 +1,24 @@
+{
+  "fonts": [
+    {
+      "familyName": "Inter Variable",
+      "postScriptName": "InterVariable",
+      "isCustomFont": true,
+      "glyphCount": 7
+    }
+  ],
+  "loaded": [
+    {
+      "url": "http://127.0.0.1:3096/_next/static/media/0336a89fb4e7fc1d-s.p.woff2",
+      "bytes": 352540
+    }
+  ],
+  "loginFont": "inter, \"inter Fallback\", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+  "dialogFont": "inter, \"inter Fallback\", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+  "controlledFonts": [
+    "inter, \"inter Fallback\", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
+  ],
+  "fontHttpStatus": 200,
+  "servedFontBytes": 352240,
+  "servedFontMatchesSource": true
+}

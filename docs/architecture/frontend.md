@@ -2,7 +2,7 @@
 
 ## Current identity and deployment profiles
 
-Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. LOCAL remains the default loopback profile. NEXORA-024 adds the explicit PUBLIC_HTTPS application/ingress profile; real production activation still requires DNS/TLS/firewall/host NTP evidence. Carrier UI and shipment sync remain PLANNED. Executed full canonical verification is recorded in completed NEXORA-022; PR19 records the final exact-head CI.
+Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. LOCAL remains the default loopback profile. NEXORA-024 adds the explicit PUBLIC_HTTPS application/ingress profile; real production activation still requires DNS/TLS/firewall/host NTP evidence. Carrier connection mutation forms and shipment sync remain PLANNED; NEXORA-026 adds metadata scope selection and retail presentation only. Executed full canonical verification is recorded in completed NEXORA-022; PR19 records the final exact-head CI.
 
 `/login` renders one Nexora form for both roles. Legacy provider/admin mode selection is removed; password visibility, loading/errors, server session redirects, sanitized `from`, logout and HttpOnly cookies remain. `/setup` reads only the token fragment client-side, clears URL history, retains it in memory, validates password/confirmation and posts only the JSON body. It returns to `/login` after success without issuing a session. The page uses no-store/no-referrer and existing local assets; no token enters SSR HTML or browser storage. Query-string tokens are rejected.
 
@@ -36,7 +36,7 @@ Components dedicated to Nexora's application shell, layout frame, and cross-rout
 
 ### Tier C: Feature-Level Components (`apps/web/features/<feature>/`)
 
-Future feature-specific modules (e.g., `ShipmentTable`, `TrackingTimeline`, `CustomerForm`):
+Feature-specific modules (current shipping scope and retail presentation; future `TrackingTimeline`/`CustomerForm`):
 
 - Kept strictly local to the feature directory.
 - Reuses Tier A shared UI primitives and Tier B layout slots.
@@ -144,3 +144,32 @@ Cancel calls the Origin-protected pending-challenge revocation endpoint before r
 PUBLIC_HTTPS Web uses the same pure profile/authority policy as API, with explicit exact Host authorities and no implicit loopback allowlist. Host rejection occurs in middleware before /api rewrites; forwarded Host is not accepted as authority. Public redirects use configured PUBLIC_ORIGIN, not request/forwarding values. Existing LOCAL loopback/custom-host behavior is retained with strict malformed authority rejection. Next16 middleware compatibility remains; no unrelated proxy-convention migration.
 
 Login/MFA/setup/AccountMenu continue same-origin browser requests and generated SDK. Public Secure cookies are HttpOnly and keep existing paths/SameSite; frontend receives no keys or pending token. Canonical HTTPS fragment setup, history clearing/memory-only token/no-auto-login remain. Public network publishing belongs solely to approved Nginx, not Web. HTTPS test evidence is distinct from actual production DNS/TLS/firewall/NTP readiness.
+
+## Multi-carrier retail presentation — NEXORA-026
+
+The protected `/shipments/retail` route adds a **presentation-only** Kiện lẻ workspace. This supersedes the earlier statement that all Carrier UI is planned: metadata scope selection is implemented; connection creation/reconnect forms and Shipment business operations remain planned. Navigation still comes exclusively from nav-config, with a separate approved test contract and existing breadcrumb resolver. No batch-shipment, sourcing or financial capability is activated.
+
+Ownership:
+
+| Owner                                               | Responsibility and reused components                                                                                                              |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `features/shipping-scope/model.ts`                  | Minimal all/provider/connection identifiers, strict URL parsing, current metadata resolution and grouping; SDK-derived DTO types                  |
+| `features/shipping-scope/ShippingScopeProvider.tsx` | Workspace-only metadata request pair through SDK, cancellation, atomic readiness/error, tab-local URL scope and shipping links                    |
+| `features/shipping-scope/ShippingScopeSelector.tsx` | Hierarchical provider/account search, separate selection/expansion, problem status mapping; existing useDismissable                               |
+| `components/app-shell/Header.tsx`                   | Integration slot before existing AccountMenu; no shipment query ownership                                                                         |
+| `features/shipments/retail/`                        | Container, filter drafts/chips, column disclosure, table states, pagination presentation and unsupported detail dialog; local model/configuration |
+| `packages/ui`                                       | Existing business-agnostic Panel/StatusBadge retained; no domain code or speculative table framework added                                        |
+
+Provider wraps ShellClient's workspace children, never public login/setup. `GET /api/carriers` and `GET /api/carrier-connections` run once per workspace mount or explicit refresh/retry, not on dropdown opening or scope change. One AbortController covers both requests; old/unmounted attempts cannot publish. Only allowlisted provider/id/displayName/status metadata is retained. Status derives from the generated contract; disconnected/problem accounts remain selectable as data scope, with an explicit problem indicator. Scope does not authorize access or invoke a provider.
+
+`provider` and `connection` query parameters encode scope. Absence of both means all; duplicates, blank values, connection without provider, unknown/deleted/mismatched IDs produce an invalid selection requiring explicit re-selection. Metadata failure is never rendered as no connections. Labels derive from current metadata. User scope/search/page-size changes push history and clear `page`, retaining unrelated query parameters and the current fragment. Next useSearchParams responds to Back/Forward/refresh. No localStorage/sessionStorage/cookie is used for scope. Workspace memory retains the last shipping query for shipping navigation links; settings/system remain unfiltered. Opening Kiện lẻ in a new tab uses its own URL; no cross-tab synchronization.
+
+Search is an explicit submitted draft, and advanced conditions are labelled local drafts; no Shipment request is issued. Column preferences are component-local, with tracking always required and basic/all/default presets. Status labels reproduce the reference inventory as disabled design references, **not** an approved backend vocabulary. Counts and pagination totals remain `—`; create/export are disabled with an explanatory title and visible unsupported-state explanation. Detail/history explicitly reports its missing endpoint; no fabricated timeline, record or success message exists. The empty presentation state is distinct from unsupported/error/loading/invalid; production currently selects unsupported only after valid metadata. The table scrolls within its own region.
+
+### Local Inter typography
+
+Root layout loads the unmodified upstream Inter4.1 normal variable WOFF2 with `next/font/local` once on html. `--font-inter` is generated by Next; `--font-sans` consumes it with a system fallback (no self-reference). Source/license live in `apps/web/app/fonts/`; weights400/500/600/700 and Vietnamese glyphs are included. No Google Fonts runtime or build network request and no new font dependency. Body, inherited controls, shared primitives and body-descendant/native-dialog portals use the same font; application numeric presentation uses tabular numbers. OS/browser-owned native chrome remains outside this guarantee.
+
+The isolated `scripts/retail-ui-smoke.mjs` starts a real Next production server and Chromium against an explicitly fake loopback metadata/session backend. It is frontend interaction/font/layout evidence only. Genuine Nest/PostgreSQL auth/MFA and Docker checks remain separate; fixture sessions do not establish backend security or provider readiness.
+
+At viewport widths up to600px, the existing sidebar becomes an overlay drawer with a close button/backdrop and Header toggle focus restoration, preserving desktop collapse behavior. This keeps the new fixed-width selector and retail controls within the viewport; the table owns horizontal scrolling.

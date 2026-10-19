@@ -15,3 +15,5 @@ PLANNED: Customer management, shipment tracking & status history, weights/estima
 No application imports another application. Future capabilities get domain/application/infrastructure/presentation separation only when actual code exists. No Redis, queues, MinIO, Kubernetes or additional backend in Next.
 
 Architectural lint reads TypeScript import/export, require and dynamic-import literals, including relative workspace paths. Only API infrastructure consumes database code. Frontend never imports database code. SDK never imports backend runtime code.
+
+NEXORA-026 adds protected retail presentation (`/shipments/retail`), metadata-only multi-carrier scope in the existing header, and bundled Inter typography. Shipment business APIs/persistence/sync remain PLANNED; no prototype records are exposed. Scope is a Web presentation filter model, not a new authorization boundary. See [Frontend](frontend.md#multi-carrier-retail-presentation--nexora-026).

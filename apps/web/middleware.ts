@@ -1,3 +1,4 @@
+import { RETAIL_ROUTE } from "./lib/navigation/nav-config.ts";
 import { loadDeploymentPolicy } from "@nexora/shared";
 import { NextResponse, type NextRequest } from "next/server.js";
 import { isAllowedHost } from "./lib/auth/host.ts";
@@ -12,7 +13,13 @@ export function middleware(request: NextRequest) {
   const sessionToken = request.cookies.get("nexora_session")?.value;
 
   // Protect workspace routes: redirect to /login if no session cookie
-  if (pathname === "/" || pathname === "/system" || pathname === "/settings") {
+  if (
+    pathname === "/" ||
+    pathname === "/system" ||
+    pathname === "/settings" ||
+    pathname === RETAIL_ROUTE ||
+    pathname.startsWith(`${RETAIL_ROUTE}/`)
+  ) {
     if (!sessionToken) {
       const loginUrl = new URL(
         "/login",

@@ -26,3 +26,23 @@
     padding: 16px 16px 32px;
   }
 }
+
+.mobileBackdrop {
+  display: none;
+}
+@media (max-width: 600px) {
+  .mobileBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    background: rgb(0 0 0 / 30%);
+    border-radius: 0;
+  }
+  .mobileBackdrop:hover {
+    background: rgb(0 0 0 / 30%);
+  }
+  .mainWrapper {
+    width: 100%;
+  }
+}

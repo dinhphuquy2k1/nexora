@@ -30,6 +30,12 @@ export const APPROVED_NAVIGATION_CONTRACT = [
     group: "Workspace",
   },
   {
+    id: "retail",
+    href: "/shipments/retail",
+    status: "available",
+    group: "Workspace",
+  },
+  {
     id: "customers",
     href: null,
     status: "planned",
@@ -268,4 +274,13 @@ test("resolveBreadcrumbs builds accurate breadcrumb trails", () => {
   assert.equal(unknownCrumbs[0].isCurrent, false);
   assert.equal(unknownCrumbs[1].label, "Không xác định");
   assert.equal(unknownCrumbs[1].isCurrent, true);
+});
+
+test("retail route and nested breadcrumb use the independent contract", () => {
+  assert.equal(resolveActiveItem("/shipments/retail/")?.id, "retail");
+  assert.equal(
+    resolveBreadcrumbs("/shipments/retail").at(-1)?.label,
+    "Kiện lẻ",
+  );
+  assert.equal(resolveActiveItem("/shipments/batches"), null);
 });

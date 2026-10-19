@@ -195,3 +195,23 @@
     padding: 0 16px;
   }
 }
+
+@media (max-width: 600px) {
+  .header {
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .leftSection {
+    gap: 6px;
+  }
+  .breadcrumbGroup,
+  .breadcrumbSeparator {
+    display: none;
+  }
+  .breadcrumb {
+    font-size: 11px;
+  }
+  .rightSection {
+    gap: 4px;
+  }
+}

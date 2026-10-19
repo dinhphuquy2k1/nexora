@@ -1,5 +1,6 @@
 "use client";
 
+import { X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PRODUCT_NAME } from "@nexora/shared";
@@ -14,11 +15,12 @@ import styles from "./Sidebar.module.css";
 
 interface SidebarProps {
   isCollapsed: boolean;
+  onClose: () => void;
 }
 
 const GROUPS: readonly NavGroup[] = ["Workspace", "System"] as const;
 
-export function Sidebar({ isCollapsed }: SidebarProps) {
+export function Sidebar({ isCollapsed, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -43,6 +45,14 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
             </div>
           )}
         </Link>
+        <button
+          type="button"
+          className={styles.mobileClose}
+          aria-label="Đóng menu di động"
+          onClick={onClose}
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
       </div>
 
       {/* Navigation Groups */}

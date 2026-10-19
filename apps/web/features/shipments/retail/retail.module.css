@@ -1,0 +1,368 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+  color: var(--color-primary);
+}
+.deck,
+.tablePanel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+.titleRow {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.title h1 {
+  font-size: 20px;
+  margin: 0;
+}
+.title p {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 3px 0 0;
+}
+.titleIcon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--color-accent-light);
+  color: var(--color-accent-text);
+  flex-shrink: 0;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.page button {
+  font-size: 12px;
+  padding: 8px 12px;
+}
+.page button:disabled {
+  cursor: not-allowed;
+}
+.page .secondary {
+  background: var(--color-surface-muted);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border-subtle);
+}
+.page .secondary:hover {
+  background: var(--color-surface-subtle);
+}
+.statusBar {
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  padding: 0 12px;
+  gap: 2px;
+}
+.statusBar button {
+  flex: 1 0 auto;
+  border-radius: 0;
+  white-space: nowrap;
+  padding: 13px 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  opacity: 1;
+  background: transparent;
+  color: var(--color-text-muted);
+}
+.statusBar .statusActive {
+  color: var(--color-primary);
+  border-color: var(--color-accent);
+  font-weight: 700;
+}
+.dot {
+  width: 5px;
+  height: 5px;
+  background: var(--color-border-subtle);
+  border-radius: 50%;
+}
+.count {
+  border-radius: var(--radius-full);
+  padding: 0 5px;
+  background: var(--color-border);
+  font-variant-numeric: tabular-nums;
+}
+.toolbar {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.search {
+  flex: 1 1 300px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--color-text-muted);
+}
+.search input {
+  width: 100%;
+  min-width: 0;
+}
+.search button {
+  flex-shrink: 0;
+}
+.scopeNote {
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  overflow-wrap: anywhere;
+}
+.queryChip {
+  background: var(--color-accent-light);
+  color: var(--color-accent-text);
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+}
+.disclosure {
+  position: relative;
+}
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+}
+.filterPopover {
+  right: auto;
+  left: 0;
+}
+.popover h2 {
+  font-size: 13px;
+}
+.popover p {
+  color: var(--color-text-muted);
+}
+.popover input:not([type="checkbox"]) {
+  width: 100%;
+}
+.popover > label {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.presets {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.presets button {
+  background: var(--color-surface-muted);
+  color: var(--color-primary);
+}
+.checklist {
+  max-height: min(280px, 40dvh);
+  overflow-y: auto;
+  margin: 12px 0;
+}
+.checklist label {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  gap: 8px;
+}
+.checklist small {
+  margin-left: auto;
+  color: var(--color-text-muted);
+}
+.checklist input {
+  accent-color: var(--color-primary);
+}
+.chips {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  order: 5;
+  font-size: 11px;
+}
+.chips > span {
+  display: flex;
+  align-items: center;
+  background: var(--color-accent-light);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+.chips button {
+  padding: 3px;
+  background: transparent;
+  color: var(--color-accent-text);
+}
+.tablePanel {
+  overflow: hidden;
+}
+.tableScroll {
+  overflow: auto;
+  max-width: 100%;
+  overscroll-behavior: contain;
+}
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.table th {
+  background: var(--color-primary);
+  color: var(--color-surface);
+  padding: 12px;
+  text-transform: uppercase;
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  border-right: 1px solid var(--color-primary-hover);
+}
+.stateCell {
+  height: 310px;
+  padding: 0;
+  vertical-align: top;
+}
+/* Sticky state stays within the viewport even when the wide header scrolls. */
+.state {
+  position: sticky;
+  left: 0;
+  width: min(680px, 65vw);
+  max-width: calc(100vw - 100px);
+  padding: 60px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.state > svg {
+  color: var(--color-text-muted);
+}
+.state h2 {
+  font-size: 15px;
+  margin: 0;
+}
+.state p {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  margin: 0;
+  max-width: 560px;
+}
+.pagination {
+  background: var(--color-surface-muted);
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.pagination > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pagination label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.separator {
+  color: var(--color-border-subtle);
+}
+.footnote {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.page .textButton {
+  background: transparent;
+  color: var(--color-accent-text);
+  padding: 0;
+}
+.dialog {
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+.dialog::backdrop {
+  background: rgb(0 0 0 / 35%);
+}
+.dialog p {
+  font-size: 13px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .titleRow {
+    padding: 14px;
+  }
+  .title p {
+    font-size: 11px;
+  }
+  .toolbar {
+    padding: 12px;
+  }
+  .state {
+    width: calc(100vw - 110px);
+    padding: 40px 16px;
+  }
+  .popover {
+    position: fixed;
+    top: 20dvh;
+    left: 16px;
+    right: auto;
+  }
+}
