@@ -6,7 +6,7 @@ PLANNED: Not implemented in foundation v0.1.0. Foundation provides infrastructur
 
 ## Planned capabilities
 
-- **Customer management**: Basic customer profiles, sender/receiver contact information.
+- **Customer frontend**: PLANNED. [Customer Backend V1](customers.md) independently owns customer profiles and multiple recipient addresses; it does not implement Shipment CRUD or sender/receiver shipment snapshots.
 - **Shipment entity**: Tracking number, sender/recipient addresses, weights, parcel dimensions, declared value, estimated shipping fees, and lifecycle state (created, in transit, delivered, exception).
 - **Tracking history**: Ordered timestamped events and carrier status updates.
 - **Ingestion methods**: Manual operator entry via UI, authorized batch Excel (XLSX) imports via local file storage.

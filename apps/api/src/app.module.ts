@@ -1,3 +1,7 @@
+import { CustomerController } from "./customer/presentation/customer.controller";
+import { CustomerService } from "./customer/application/customer.service";
+import { CustomerPort } from "./customer/application/customer.port";
+import { CustomerAdapter } from "./customer/infrastructure/customer.adapter";
 import { MfaPort } from "./identity/application/mfa.port";
 import { MfaService } from "./identity/application/mfa.service";
 import { IdentityMfaAdapter } from "./identity/infrastructure/mfa.adapter";
@@ -43,6 +47,7 @@ export const CONFIG = "CONFIG";
 
 @Module({
   controllers: [
+    CustomerController,
     CarrierController,
     CarrierLifecycleController,
     HealthController,
@@ -51,6 +56,17 @@ export const CONFIG = "CONFIG";
     SetupPasswordController,
   ],
   providers: [
+    {
+      provide: CustomerPort,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) =>
+        new CustomerAdapter(c.DATABASE_URL),
+    },
+    {
+      provide: CustomerService,
+      inject: [CustomerPort],
+      useFactory: (port: CustomerPort) => new CustomerService(port),
+    },
     {
       provide: CarrierLifecycleAdapter,
       inject: [CONFIG],

@@ -13,7 +13,7 @@ export default ts.config(
     ],
   },
   {
-    files: ["apps/api/src/{identity,carrier}/**/*.ts"],
+    files: ["apps/api/src/{identity,carrier,customer}/**/*.ts"],
     ignores: [
       "**/test/**",
       "**/tests/**",

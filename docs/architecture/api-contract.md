@@ -121,3 +121,34 @@ All /api/admin/... APIs require active ADMIN role plus persisted session.auth_le
 No endpoint/DTO/SDK shape changes. Default LOCAL retains existing loopback cookie behavior; PUBLIC_HTTPS makes every session/pending set and clear Secure using explicit trusted profile config. Paths, HttpOnly, SameSite, TTL, assurance and separate logout/cancel contracts remain unchanged. Browser mutations still require exact trusted Origin; public policy requires explicit HTTPS origins and cannot fall back to local defaults. Public setupUrl always uses configured canonical HTTPS origin, including when a different approved request Origin is used. Host/forwarded authority cannot select the link origin.
 
 Owner-approved Nginx adds safe no-store ingress429 for sensitive auth/admin mutation bursts, with code/message/requestId and X-Nexora-Ingress-Rate-Limit:1; existing application admission/errors remain. No direct public API listener, wildcard CORS, enrollment/reset endpoint or password-only ADMIN capability. Public startup verifies runtime enforcement/enrollment/key readiness; it is not a public endpoint and returns no enrollment inventory. Logical PR7 application/ingress implementation is separate from actual production public release gates; no domain/host has been selected. Earlier deferred public-profile statements describe the pre-PR7 baseline.
+
+## Customer Backend V1 — NEXORA-027
+
+Exactly eight owner-scoped endpoints; both roles require existing valid ACTIVE session, no ADMIN cross-owner bypass. Every mutation requires existing exact OriginGuard. Global no-store/requestId/error envelope is unchanged. Malformed UUID/strict input/query400 VALIDATION_ERROR; missing/expired/revoked/disabled session401 UNAUTHORIZED; mutation bad/missing Origin403 FORBIDDEN; nonexistent and foreign customer/address have the same404 NOT_FOUND; owner-phone conflict409 CUSTOMER_PHONE_EXISTS; unexpected database fault safe500 INTERNAL_ERROR. Errors remain exactly `{code,message,requestId}`, never a conflicting customer's ID/PII. Client can follow409 with its own exact normalized phone lookup.
+
+| Method/path                                    | Request                                                                | Response                                                                        |
+| ---------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| GET /api/customers                             | page(default1), pageSize(default20,max100), q(max200), status?, phone? | 200 `{customers:CustomerSummary[],pagination:{page,pageSize,total,totalPages}}` |
+| POST /api/customers                            | name, phone, email?, note?, address?                                   | 201 `{customer:CustomerDetail}`                                                 |
+| GET /api/customers/:id                         | UUID                                                                   | 200 `{customer:CustomerDetail}`                                                 |
+| PATCH /api/customers/:id                       | nonempty subset name/phone/email/note/status                           | 200 `{customer:CustomerDetail}`                                                 |
+| POST /api/customers/:id/addresses              | addressText, label?, recipientName?, recipientPhone?, countryCode?     | 201 `{address:CustomerAddress}`                                                 |
+| PATCH /api/customers/:id/addresses/:addressId  | nonempty subset of the five address fields                             | 200 `{address:CustomerAddress}`                                                 |
+| DELETE /api/customers/:id/addresses/:addressId | UUIDs                                                                  | 200 `{success:true}`                                                            |
+| PUT /api/customers/:id/default-address         | `{addressId:UUID}` only                                                | 200 `{address:CustomerAddress}`                                                 |
+
+CustomerSummary contains exactly id/code/name/phone/email/note/status/createdAt/updatedAt. CustomerDetail adds addresses; address DTO contains id/label/recipientName/recipientPhone/countryCode/addressText/isDefault/createdAt/updatedAt. Dates serialize ISO8601; nullable fields explicitly return null. No owner/creator user metadata, credential or Carrier fields. List sorting is createdAt DESC,id DESC, addresses default first then createdAt ASC,id ASC. Empty list totalPages=0. Pagination accepts canonical positive decimal integers; max page2147483647 and max offset2147483647, rejecting out-of-bounds/repeated/array/unknown fields. q searches case-insensitive literal substrings of name/code/normalized phone and, if q is a valid phone, its normalized equivalent. phone is exact after normalization. Every filter/count/page query includes backend owner predicate.
+
+Example creation (documentation only, no production fixture):
+
+```json
+{
+  "name": "Nguyễn An",
+  "phone": "0912345678",
+  "address": { "addressText": "Địa chỉ nhận hàng đầy đủ" }
+}
+```
+
+Returns201 with server-generated id/code and phone+84912345678; initial recipient name/phone fall back to Customer, country VN, isDefault true. POST accepts no status/code/owner/audit fields. PATCH `{ "email": null, "note": null, "status": "INACTIVE" }` clears nullable values without removing addresses. Default `{ "addressId": "11111111-1111-4111-8111-111111111111" }` must refer to this customer's address and is idempotent. Unknown fields are rejected, never silently ignored. Required text cannot be null/blank. Full bounds/phone/ISO/default rules are owned by [Customer domain](../domains/customers.md).
+
+Customer controller/DTOs are included in the documentation-only OpenAPI module with a service placeholder; contract generation never connects to a database. Nullable text schemas explicitly use string/null, and generated SDK is produced by contracts:generate. Customer frontend and Shipment CRUD/export/sync are not implemented by the existence of these SDK contracts.

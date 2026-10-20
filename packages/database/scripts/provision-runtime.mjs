@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 export const RUNTIME_ROLE = "nexora_app";
 export const RUNTIME_GRANTS = {
+  customers: ["SELECT", "INSERT", "UPDATE"],
+  customer_addresses: ["SELECT", "INSERT", "UPDATE", "DELETE"],
   users: ["SELECT", "INSERT", "UPDATE"],
   user_credentials: ["SELECT", "INSERT"],
   user_mfa: ["SELECT", "INSERT"],
@@ -98,6 +100,9 @@ export async function provisionRuntime(adminUrl, password) {
       await db.query(
         `GRANT ${grants.join(",")} ON TABLE public.${identifier(table)} TO nexora_app`,
       );
+    await db.query(
+      "GRANT USAGE ON SEQUENCE public.customer_code_seq TO nexora_app; REVOKE ALL ON FUNCTION public.next_customer_code() FROM PUBLIC,nexora_app; GRANT EXECUTE ON FUNCTION public.next_customer_code() TO nexora_app",
+    );
     await db.query(
       "GRANT UPDATE(last_used_step) ON user_mfa TO nexora_app; GRANT UPDATE(consumed_at) ON mfa_challenges TO nexora_app; GRANT UPDATE(used_at) ON mfa_recovery_codes TO nexora_app",
     );

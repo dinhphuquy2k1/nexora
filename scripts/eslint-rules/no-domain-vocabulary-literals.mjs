@@ -21,8 +21,9 @@ const fields = {
     UNAVAILABLE: "CarrierAuditReason.UNAVAILABLE",
   },
   status: {
-    ACTIVE: "UserStatus.ACTIVE",
+    ACTIVE: "UserStatus.ACTIVE or CustomerStatus.ACTIVE",
     DISABLED: "UserStatus.DISABLED",
+    INACTIVE: "CustomerStatus.INACTIVE",
     CONNECTED: "ConnectionStatus.CONNECTED",
     REAUTH_REQUIRED: "ConnectionStatus.REAUTH_REQUIRED",
     ERROR: "ConnectionStatus.ERROR",

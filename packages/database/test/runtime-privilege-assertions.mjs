@@ -32,6 +32,15 @@ export async function assertRuntimePrivileges(adminUrl, password) {
       ).rows[0].count,
       0,
     );
+    const customerGrants = (
+      await db.query(
+        "SELECT has_table_privilege(current_user,'customers','SELECT,INSERT,UPDATE') AS customer,has_table_privilege(current_user,'customers','DELETE') AS del,has_sequence_privilege(current_user,'customer_code_seq','USAGE') AS seq,has_sequence_privilege(current_user,'customer_code_seq','SELECT,UPDATE') AS broad",
+      )
+    ).rows[0];
+    assert.equal(customerGrants.customer, true);
+    assert.equal(customerGrants.del, false);
+    assert.equal(customerGrants.seq, true);
+    assert.equal(customerGrants.broad, false);
     const event = (
       await db.query(
         "INSERT INTO security_audit_events(event_type,outcome,reason,provider,correlation_id) VALUES ('CONNECT','SUCCESS','VERIFIED','uniship',$1::uuid) RETURNING id",
@@ -76,6 +85,8 @@ export async function assertRuntimePrivileges(adminUrl, password) {
       "CREATE ROLE forbidden_role",
       "SELECT reason FROM security_audit_events",
       "SELECT * FROM _prisma_migrations",
+      "DELETE FROM customers",
+      "SELECT setval('customer_code_seq',1)",
     ];
     for (const sql of denied)
       await assert.rejects(

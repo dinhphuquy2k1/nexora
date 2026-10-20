@@ -11,7 +11,8 @@
     "test": "node --test test/password.test.mjs",
     "generate": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",
-    "test:migrations": "node test/migration.mjs"
+    "test:migrations": "node test/migration.mjs",
+    "test:customer:sql": "node --test test/customer-sql.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",

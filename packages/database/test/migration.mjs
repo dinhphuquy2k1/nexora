@@ -573,6 +573,37 @@ try {
     db.$executeRawUnsafe("UPDATE sessions SET auth_level='UNTRUSTED'"),
   );
 
+  step = "CUSTOMER_UPGRADE";
+  const customerBaselineTables = [
+    ...baselineTables,
+    "user_mfa",
+    "mfa_challenges",
+    "mfa_recovery_codes",
+  ];
+  const customerBaseline = {};
+  for (const table of customerBaselineTables)
+    customerBaseline[table] = await db.$queryRawUnsafe(
+      `SELECT * FROM ${table} ORDER BY 1`,
+    );
+  const customerMigration = "20261020010000_customers";
+  await cp(
+    resolve("prisma/migrations", customerMigration),
+    join(work, "prisma/migrations", customerMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  for (const table of customerBaselineTables)
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`),
+      customerBaseline[table],
+    );
+  assert.equal(await db.customer.count(), 0);
+  assert.equal(await db.customerAddress.count(), 0);
+  const [partial] = await db.$queryRawUnsafe(
+    "SELECT indexdef FROM pg_indexes WHERE indexname='uq_customer_addresses_default'",
+  );
+  assert.match(partial.indexdef, /UNIQUE.*WHERE.*is_default/);
+
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },

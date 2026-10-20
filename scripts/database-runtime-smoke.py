@@ -47,7 +47,7 @@ const db=createDatabase(process.env.DATABASE_URL);
  const [role]=await db.$queryRawUnsafe('SELECT current_user,session_user,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=current_user');
  assert.deepEqual(role,{current_user:'nexora_app',session_user:'nexora_app',rolsuper:false,rolcreatedb:false,rolcreaterole:false,rolreplication:false,rolbypassrls:false});
  await runtime.connect();
- for(const sql of ['SET ROLE nexora','ALTER TABLE security_audit_events DISABLE TRIGGER security_audit_append_only','TRUNCATE security_audit_events','CREATE TEMP TABLE runtime_forbidden(id int)']) await assert.rejects(runtime.query(sql),e=>e.code==='42501');
+ for(const sql of ['SET ROLE nexora','ALTER TABLE security_audit_events DISABLE TRIGGER security_audit_append_only','TRUNCATE security_audit_events','CREATE TEMP TABLE runtime_forbidden(id int)','DELETE FROM customers',"SELECT setval('customer_code_seq',1)"]) await assert.rejects(runtime.query(sql),e=>e.code==='42501');
 } finally {await db.$disconnect();await runtime.end();}})().catch(()=>process.exit(1));
 """])
 run(compose + ['run', '--rm', '--no-deps', '-T', 'migrate', 'node', '-e', """

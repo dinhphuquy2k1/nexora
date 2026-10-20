@@ -17,6 +17,8 @@ For AI-assisted development, start at the mandatory entry point [`docs/ai/README
 
 ### Domains
 
+- [Customers domain](domains/customers.md): Owner-scoped Customer Backend V1, recipient addresses and default-address rules; frontend remains planned.
+
 - [Shipments domain](domains/shipments.md): Core shipment entities, parcel attributes, tracking events, and lifecycle invariants.
 
 ### Operations

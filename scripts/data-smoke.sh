@@ -39,6 +39,8 @@ file_id=$(docker run --rm -v "$work_mount:/evidence:ro" nexora-tools:0.1.0 node 
 # Owned persistence fixtures only: no usable login/password or provider credentials.
 compose exec -T postgres psql -U nexora -d nexora -v ON_ERROR_STOP=1 >/dev/null <<'SQL'
 WITH u AS (INSERT INTO users(id,username,role,status,updated_at) VALUES(gen_random_uuid(),'persistence-fixture','ADMIN','ACTIVE',now()) RETURNING id),
+customer_fixture AS (INSERT INTO customers(owner_user_id,created_by_user_id,name,phone_normalized) SELECT id,id,'Persistence customer','+84912345678' FROM u RETURNING id),
+address_fixture AS (INSERT INTO customer_addresses(customer_id,recipient_name,recipient_phone,address_text,is_default) SELECT id,'Persistence receiver','+84912345678','Disposable address',true FROM customer_fixture),
 c AS (INSERT INTO carrier_connections(user_id,provider,external_account_id,login_identifier,display_name,status) SELECT id,'uniship','persistence-fixture','fixture','Fixture','CONNECTED' FROM u RETURNING id,user_id),
 cred AS (INSERT INTO user_credentials SELECT id,'non-authenticating persistence fixture' FROM u),
 s AS (INSERT INTO sessions(id,token_hash,user_id,expires_at) SELECT gen_random_uuid(),md5(random()::text)||md5(random()::text),id,now()+interval '1 day' FROM u),
@@ -51,9 +53,10 @@ a AS (INSERT INTO security_audit_events(event_type,outcome,reason,user_id,connec
 INSERT INTO carrier_connection_secrets(connection_id,secret_type,ciphertext,nonce,auth_tag,key_version) SELECT id,'PASSWORD','opaque-persistence-fixture','opaque-nonce','opaque-tag',1 FROM c;
 SQL
 snapshot(){
- for table in user_mfa mfa_challenges mfa_recovery_codes users user_credentials sessions operator_setup_tokens stored_files carrier_connections carrier_connection_secrets carrier_user_states security_audit_events; do
+ for table in customers customer_addresses user_mfa mfa_challenges mfa_recovery_codes users user_credentials sessions operator_setup_tokens stored_files carrier_connections carrier_connection_secrets carrier_user_states security_audit_events; do
   compose exec -T postgres psql -U nexora -d nexora -Atc "SELECT jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text) FROM $table t;"
  done
+ compose exec -T postgres psql -U nexora -d nexora -Atc "SELECT last_value,is_called FROM customer_code_seq;"
  compose exec -T postgres sha256sum /config/postgres_password
  compose exec -T api sha256sum /runtime-config/postgres_app_password
 }

@@ -6,17 +6,18 @@ The human-oriented documentation categories and canonical ownership map live in 
 
 ## 1. Task reading routes
 
-| Work area                   | Read first                                                           | Then consult                                                                                              |
-| :-------------------------- | :------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------- |
-| **Governance / Workflow**   | [Project rules](PROJECT_RULES.md), [Task workflow](TASK_WORKFLOW.md) | [Reference architecture ADR](../decisions/reference-architecture-policy.md)                               |
-| **Architecture / Monorepo** | [Architecture overview](../architecture/overview.md)                 | [Runtime architecture](../architecture/runtime.md), [Setup](../operations/setup.md)                       |
-| **Docker / CI**             | [Runtime architecture](../architecture/runtime.md)                   | [Setup](../operations/setup.md), [Testing](../operations/testing.md)                                      |
-| **Database & Migrations**   | [Database architecture](../architecture/database.md)                 | [Storage ADR](../decisions/storage.md)                                                                    |
-| **API & Backend**           | [Backend architecture](../architecture/backend.md)                   | [API contract](../architecture/api-contract.md), [Contract ownership](../decisions/contract-ownership.md) |
-| **Frontend & UI**           | [Frontend architecture](../architecture/frontend.md)                 | [API contract](../architecture/api-contract.md), [Overview](../architecture/overview.md)                  |
-| **Shipments Domain**        | [Shipments domain](../domains/shipments.md)                          | [Product scope ADR](../decisions/product-scope.md)                                                        |
-| **Security & Secrets**      | [Authentication ADR](../decisions/authentication.md)                 | [Configuration](../operations/configuration.md), [Runtime](../architecture/runtime.md)                    |
-| **Testing & Quality**       | [Testing operations](../operations/testing.md)                       | [Implementation workflow](IMPLEMENTATION_WORKFLOW.md)                                                     |
+| Work area                   | Read first                                                           | Then consult                                                                                                                                                         |
+| :-------------------------- | :------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Governance / Workflow**   | [Project rules](PROJECT_RULES.md), [Task workflow](TASK_WORKFLOW.md) | [Reference architecture ADR](../decisions/reference-architecture-policy.md)                                                                                          |
+| **Architecture / Monorepo** | [Architecture overview](../architecture/overview.md)                 | [Runtime architecture](../architecture/runtime.md), [Setup](../operations/setup.md)                                                                                  |
+| **Docker / CI**             | [Runtime architecture](../architecture/runtime.md)                   | [Setup](../operations/setup.md), [Testing](../operations/testing.md)                                                                                                 |
+| **Database & Migrations**   | [Database architecture](../architecture/database.md)                 | [Storage ADR](../decisions/storage.md)                                                                                                                               |
+| **API & Backend**           | [Backend architecture](../architecture/backend.md)                   | [API contract](../architecture/api-contract.md), [Contract ownership](../decisions/contract-ownership.md)                                                            |
+| **Frontend & UI**           | [Frontend architecture](../architecture/frontend.md)                 | [API contract](../architecture/api-contract.md), [Overview](../architecture/overview.md)                                                                             |
+| **Customers Domain**        | [Customers domain](../domains/customers.md)                          | [Backend](../architecture/backend.md), [Database](../architecture/database.md), [API contract](../architecture/api-contract.md), [Testing](../operations/testing.md) |
+| **Shipments Domain**        | [Shipments domain](../domains/shipments.md)                          | [Product scope ADR](../decisions/product-scope.md)                                                                                                                   |
+| **Security & Secrets**      | [Authentication ADR](../decisions/authentication.md)                 | [Configuration](../operations/configuration.md), [Runtime](../architecture/runtime.md)                                                                               |
+| **Testing & Quality**       | [Testing operations](../operations/testing.md)                       | [Implementation workflow](IMPLEMENTATION_WORKFLOW.md)                                                                                                                |
 
 Always inspect the active task specification under [`../tasks/active/`](../tasks/active/) when one exists.
 
