@@ -45,7 +45,7 @@ export class CreateCustomerDto {
   email?: string | null;
   @ApiPropertyOptional({ type: String, nullable: true, maxLength: 5000 })
   note?: string | null;
-  @ApiPropertyOptional({ type: AddressInputDto }) address?: AddressInputDto;
+  @ApiProperty({ type: AddressInputDto }) address!: AddressInputDto;
 }
 export class PatchCustomerDto extends PartialType(
   OmitType(CreateCustomerDto, ["address"] as const),

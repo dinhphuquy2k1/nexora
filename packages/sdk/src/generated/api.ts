@@ -395,7 +395,7 @@ export interface components {
             /** Format: email */
             email?: string | null;
             note?: string | null;
-            address?: components["schemas"]["AddressInputDto"];
+            address: components["schemas"]["AddressInputDto"];
         };
         CustomerAddressDto: {
             /** Format: uuid */
@@ -994,6 +994,15 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description LAST_CUSTOMER_ADDRESS before DEFAULT_ADDRESS_REASSIGN_REQUIRED; reassign default before deletion */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

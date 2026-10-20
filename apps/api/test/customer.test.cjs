@@ -32,12 +32,20 @@ test("strict customer validation, nullable PATCH and canonical status", () => {
       phone: "0912345678",
       email: " lan@example.com ",
       note: " note ",
+      address: { addressText: "Hanoi" },
     }),
     {
       name: "Lan",
       phone: "+84912345678",
       email: "lan@example.com",
       note: "note",
+      address: {
+        label: null,
+        recipientName: "Lan",
+        recipientPhone: "+84912345678",
+        countryCode: "VN",
+        addressText: "Hanoi",
+      },
     },
   );
   assert.deepEqual(
@@ -69,6 +77,7 @@ test("strict customer validation, nullable PATCH and canonical status", () => {
       name: "a",
       phone: "0912345678",
       status: CustomerStatus.ACTIVE,
+      address: { addressText: "Valid" },
     }),
   );
 });
@@ -172,7 +181,12 @@ test("service derives owner from actor and rejects mass assignment before port u
   await assert.rejects(
     service.create(
       { id: "actor" },
-      { name: "Lan", phone: "0912345678", ownerUserId: "foreign" },
+      {
+        name: "Lan",
+        phone: "0912345678",
+        address: { addressText: "Valid" },
+        ownerUserId: "foreign",
+      },
     ),
     (e) => e.getStatus() === 400 && e.getResponse().code === "VALIDATION_ERROR",
   );
@@ -243,4 +257,112 @@ test("only exact owner-phone unique failures become domain duplicates", () => {
     { code: "P2010", meta: { target: "uq_customers_owner_phone" } },
   ])
     assert.equal(isOwnerPhoneConflict(e), false);
+});
+
+test("create requires a valid initial address before any port call; PATCH remains independent", async () => {
+  const {
+    CustomerService,
+  } = require("../dist/customer/application/customer.service");
+  let calls = 0;
+  const service = new CustomerService({
+    create: async () => {
+      calls++;
+      return {};
+    },
+  });
+  const base = { name: " Lan ", phone: "0912345678" };
+  for (const input of [
+    base,
+    ...[
+      null,
+      {},
+      [],
+      { addressText: "" },
+      { addressText: "  " },
+      { addressText: "valid", isDefault: true },
+    ].map((address) => ({ ...base, address })),
+  ]) {
+    assert.throws(
+      () => customerInput(input),
+      (e) => e.code === "VALIDATION_ERROR",
+    );
+    await assert.rejects(
+      service.create({ id: "actor" }, input),
+      (e) =>
+        e.getStatus() === 400 && e.getResponse().code === "VALIDATION_ERROR",
+    );
+  }
+  assert.equal(calls, 0);
+  const normalized = customerInput({
+    ...base,
+    address: { addressText: " Hanoi " },
+  });
+  assert.equal(normalized.address.recipientName, "Lan");
+  assert.equal(normalized.address.recipientPhone, "+84912345678");
+  assert.equal(normalized.address.countryCode, "VN");
+  assert.deepEqual(customerInput({ name: " Patched " }, true), {
+    name: "Patched",
+  });
+  assert.throws(() =>
+    customerInput({ address: { addressText: "not patchable" } }, true),
+  );
+});
+test("address deletion policy preserves last/default priority and service409 messages", async () => {
+  const {
+    assertAddressDeletion,
+    CustomerError,
+  } = require("../dist/customer/domain/customer");
+  const {
+    CustomerService,
+  } = require("../dist/customer/application/customer.service");
+  for (const isDefault of [false, true])
+    assert.throws(
+      () => assertAddressDeletion(1, isDefault),
+      (e) => e.code === "LAST_CUSTOMER_ADDRESS",
+    );
+  assert.throws(
+    () => assertAddressDeletion(2, true),
+    (e) => e.code === "DEFAULT_ADDRESS_REASSIGN_REQUIRED",
+  );
+  assert.doesNotThrow(() => assertAddressDeletion(2, false));
+  const id = "11111111-1111-4111-8111-111111111111";
+  for (const code of [
+    "LAST_CUSTOMER_ADDRESS",
+    "DEFAULT_ADDRESS_REASSIGN_REQUIRED",
+  ]) {
+    const service = new CustomerService({
+      removeAddress: async () => {
+        throw new CustomerError(code);
+      },
+    });
+    await assert.rejects(
+      service.removeAddress({ id: "actor" }, id, id),
+      (e) =>
+        e.getStatus() === 409 &&
+        e.getResponse().code === code &&
+        (code !== "LAST_CUSTOMER_ADDRESS" ||
+          e.getResponse().message ===
+            "Không thể xóa địa chỉ cuối cùng của khách hàng."),
+    );
+  }
+});
+
+test("generated contract requires initial address, leaves PATCH independent and documents delete409", () => {
+  const document = require("../openapi/openapi.json");
+  const schemas = document.components.schemas;
+  assert.ok(schemas.CreateCustomerDto.required.includes("address"));
+  assert.ok(!schemas.AddressInputDto.required.includes("recipientName"));
+  assert.ok(!schemas.AddressInputDto.required.includes("recipientPhone"));
+  assert.equal(schemas.PatchCustomerDto.properties.address, undefined);
+  const conflict =
+    document.paths["/api/customers/{id}/addresses/{addressId}"].delete
+      .responses["409"];
+  assert.match(
+    conflict.description,
+    /LAST_CUSTOMER_ADDRESS.*DEFAULT_ADDRESS_REASSIGN_REQUIRED/,
+  );
+  assert.equal(
+    conflict.content["application/json"].schema.$ref,
+    "#/components/schemas/ApiErrorDto",
+  );
 });

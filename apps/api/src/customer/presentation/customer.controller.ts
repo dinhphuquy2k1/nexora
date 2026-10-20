@@ -102,6 +102,12 @@ export class CustomerController {
     return this.service.updateAddress(req.user, id, addressId, body);
   }
   @Delete(":id/addresses/:addressId")
+  @ApiResponse({
+    status: 409,
+    type: ApiErrorDto,
+    description:
+      "LAST_CUSTOMER_ADDRESS before DEFAULT_ADDRESS_REASSIGN_REQUIRED; reassign default before deletion",
+  })
   @ApiResponse({ status: 404, type: ApiErrorDto })
   @ApiResponse({ status: 403, type: ApiErrorDto })
   @UseGuards(OriginGuard)

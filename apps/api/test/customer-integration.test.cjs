@@ -125,6 +125,23 @@ test(
           ]);
           assert.equal(result.requestId, response.headers.get("x-request-id"));
         }
+        if (response.ok && method !== "GET") {
+          const customerId = result.customer?.id ?? path.split("/")[1];
+          const addresses = await db.customerAddress.findMany({
+            where: { customerId },
+          });
+          assert.ok(
+            addresses.length >= 1,
+            "successful API mutation preserves at least one address",
+          );
+          const defaults = addresses.filter((a) => a.isDefault);
+          assert.equal(
+            defaults.length,
+            1,
+            "successful API mutation preserves exactly one default",
+          );
+          assert.equal(defaults[0].customerId, customerId);
+        }
         return { status: response.status, body: result };
       }
       const error = (r, status, code) => {
@@ -132,6 +149,44 @@ test(
         assert.equal(r.body.code, code);
       };
       error(await request("", "GET", undefined, null), 401, "UNAUTHORIZED");
+      const otherRecipient = await request("", "POST", {
+        name: "Independent customer",
+        phone: "+12025550197",
+        address: {
+          addressText: "Valid full address",
+          recipientName: "Independent receiver",
+          recipientPhone: "+442079460018",
+        },
+      });
+      assert.equal(otherRecipient.status, 201);
+      assert.equal(
+        otherRecipient.body.customer.addresses[0].recipientName,
+        "Independent receiver",
+      );
+      assert.equal(
+        otherRecipient.body.customer.addresses[0].recipientPhone,
+        "+442079460018",
+      );
+      const baseCreate = {
+        name: "Invalid initial address",
+        phone: "0988123456",
+      };
+      for (const body of [
+        baseCreate,
+        ...[
+          null,
+          {},
+          [],
+          { addressText: "" },
+          { addressText: "  " },
+          { addressText: "valid", isDefault: true },
+        ].map((address) => ({ ...baseCreate, address })),
+      ])
+        error(await request("", "POST", body), 400, "VALIDATION_ERROR");
+      assert.equal(
+        (await request("?phone=0988123456")).body.pagination.total,
+        0,
+      );
       const create = await request("", "POST", {
         name: "PII-Customer-Secret",
         phone: "0912345678",
@@ -231,6 +286,7 @@ test(
       ])
         error(
           await request("", "POST", {
+            address: { addressText: "Fixture initial address" },
             name: "a",
             phone: "0987654321",
             [field]: "x",
@@ -238,7 +294,9 @@ test(
           400,
           "VALIDATION_ERROR",
         );
-      for (const payload of [{ name: "a", phone: "0987654321" }])
+      for (const payload of [
+        { name: "a", phone: "0987654321", address: { addressText: "Valid" } },
+      ])
         for (const requestOrigin of [null, "https://untrusted.invalid"])
           error(
             await request("", "POST", payload, tokens[0], requestOrigin),
@@ -246,7 +304,11 @@ test(
             "FORBIDDEN",
           );
       error(
-        await request("", "POST", { name: "duplicate", phone: "+84912345678" }),
+        await request("", "POST", {
+          address: { addressText: "Fixture initial address" },
+          name: "duplicate",
+          phone: "+84912345678",
+        }),
         409,
         "CUSTOMER_PHONE_EXISTS",
       );
@@ -255,7 +317,11 @@ test(
           await request(
             "",
             "POST",
-            { name: "other owner", phone: "0912345678" },
+            {
+              address: { addressText: "Fixture initial address" },
+              name: "other owner",
+              phone: "0912345678",
+            },
             tokens[1],
           )
         ).status,
@@ -273,6 +339,7 @@ test(
       assert.equal(
         (
           await request("", "POST", {
+            address: { addressText: "Fixture initial address" },
             name: "100%_literal",
             phone: "+442079460018",
           })
@@ -302,11 +369,13 @@ test(
           status,
         );
       const empty = await request("", "POST", {
-        name: "No address",
+        address: { addressText: "Fixture initial address" },
+        name: "Second customer",
         phone: "0987654321",
       });
       assert.equal(empty.status, 201);
-      assert.deepEqual(empty.body.customer.addresses, []);
+      assert.equal(empty.body.customer.addresses.length, 1);
+      assert.equal(empty.body.customer.addresses[0].isDefault, true);
       error(
         await request("/" + empty.body.customer.id, "PATCH", {
           phone: "0912345678",
@@ -315,13 +384,22 @@ test(
         "CUSTOMER_PHONE_EXISTS",
       );
       const pair = await Promise.all([
-        request("", "POST", { name: "race1", phone: "0901234567" }),
-        request("", "POST", { name: "race2", phone: "+84901234567" }),
+        request("", "POST", {
+          address: { addressText: "Fixture initial address" },
+          name: "race1",
+          phone: "0901234567",
+        }),
+        request("", "POST", {
+          address: { addressText: "Fixture initial address" },
+          name: "race2",
+          phone: "+84901234567",
+        }),
       ]);
       assert.deepEqual(pair.map((x) => x.status).sort(), [201, 409]);
       const generated = await Promise.all(
         Array.from({ length: 8 }, (_, i) =>
           request("", "POST", {
+            address: { addressText: "Fixture initial address" },
             name: "code race",
             phone: "+120255501" + String(i).padStart(2, "0"),
           }),
@@ -340,6 +418,20 @@ test(
         next.body.customers.every(
           (x) => !page.body.customers.some((y) => x.id === y.id),
         ),
+      );
+      const lastDelete = await request(
+        "/" + id + "/addresses/" + first.id,
+        "DELETE",
+      );
+      error(lastDelete, 409, "LAST_CUSTOMER_ADDRESS");
+      assert.equal(
+        lastDelete.body.message,
+        "Không thể xóa địa chỉ cuối cùng của khách hàng.",
+      );
+      error(
+        await request("/" + id + "/addresses/" + randomUUID(), "DELETE"),
+        404,
+        "NOT_FOUND",
       );
       const add = await request("/" + id + "/addresses", "POST", {
         addressText: "PII-SECOND",
@@ -415,6 +507,19 @@ test(
         ).body.address.label,
         "Updated",
       );
+      error(
+        await request("/" + id + "/addresses/" + second.id, "DELETE"),
+        409,
+        "DEFAULT_ADDRESS_REASSIGN_REQUIRED",
+      );
+      assert.equal(
+        (
+          await request("/" + id + "/default-address", "PUT", {
+            addressId: first.id,
+          })
+        ).status,
+        200,
+      );
       assert.equal(
         (await request("/" + id + "/addresses/" + second.id, "DELETE")).body
           .success,
@@ -424,17 +529,18 @@ test(
         (await request("/" + id)).body.customer.addresses.filter(
           (x) => x.isDefault,
         ).length,
-        0,
+        1,
       );
       const afterDelete = await request("/" + id + "/addresses", "POST", {
         addressText: "new default",
       });
-      assert.equal(afterDelete.body.address.isDefault, true);
+      assert.equal(afterDelete.body.address.isDefault, false);
       const emptyAdd = await request("/" + another + "/addresses", "POST", {
         addressText: "first",
       });
-      assert.equal(emptyAdd.body.address.isDefault, true);
+      assert.equal(emptyAdd.body.address.isDefault, false);
       const emptyRace = await request("", "POST", {
+        address: { addressText: "Fixture initial address" },
         name: "Concurrent addresses",
         phone: "+12025550199",
       });
@@ -453,6 +559,99 @@ test(
           (a) => a.isDefault,
         ).length,
         1,
+      );
+      // Both delete orders retain the last default; foreign/missing precedence stays404.
+      const raceAddresses = (await request("/" + raceId)).body.customer
+        .addresses;
+      const raceDefault = raceAddresses.find((a) => a.isDefault),
+        aux = raceAddresses.filter((a) => !a.isDefault);
+      const deleteAux = await Promise.all(
+        aux.map((a) => request("/" + raceId + "/addresses/" + a.id, "DELETE")),
+      );
+      assert.ok(deleteAux.every((r) => r.status === 200));
+      error(
+        await request("/" + raceId + "/addresses/" + raceDefault.id, "DELETE"),
+        409,
+        "LAST_CUSTOMER_ADDRESS",
+      );
+      const candidate = (
+        await request("/" + raceId + "/addresses", "POST", {
+          addressText: "Replacement candidate",
+        })
+      ).body.address;
+      const deleteBoth = await Promise.all([
+        request("/" + raceId + "/addresses/" + raceDefault.id, "DELETE"),
+        request("/" + raceId + "/addresses/" + candidate.id, "DELETE"),
+      ]);
+      assert.equal(deleteBoth[0].status, 409);
+      assert.ok(
+        ["LAST_CUSTOMER_ADDRESS", "DEFAULT_ADDRESS_REASSIGN_REQUIRED"].includes(
+          deleteBoth[0].body.code,
+        ),
+      );
+      assert.equal(deleteBoth[1].status, 200);
+      const target = (
+        await request("/" + raceId + "/addresses", "POST", {
+          addressText: "Switch candidate",
+        })
+      ).body.address;
+      const deleteVsDefault = await Promise.all([
+        request("/" + raceId + "/addresses/" + raceDefault.id, "DELETE"),
+        request("/" + raceId + "/default-address", "PUT", {
+          addressId: target.id,
+        }),
+      ]);
+      assert.ok([200, 409].includes(deleteVsDefault[0].status));
+      if (deleteVsDefault[0].status === 409)
+        assert.equal(
+          deleteVsDefault[0].body.code,
+          "DEFAULT_ADDRESS_REASSIGN_REQUIRED",
+        );
+      assert.equal(deleteVsDefault[1].status, 200);
+      const secondary = (
+        await request("/" + raceId + "/addresses", "POST", {
+          addressText: "Delete while adding",
+        })
+      ).body.address;
+      const addVsDelete = await Promise.all([
+        request("/" + raceId + "/addresses", "POST", {
+          addressText: "Concurrent real address",
+        }),
+        request("/" + raceId + "/addresses/" + secondary.id, "DELETE"),
+      ]);
+      assert.equal(addVsDelete[0].status, 201);
+      assert.equal(addVsDelete[1].status, 200);
+      // Explicit legacy fixtures bypass the API to exercise controlled recovery, never fake shipping data.
+      const legacy = await db.customer.create({
+        data: {
+          ownerUserId: users[0].id,
+          createdByUserId: users[0].id,
+          name: "Legacy repair",
+          phone: "+12025550198",
+          status: "ACTIVE",
+        },
+      });
+      assert.equal(
+        (await request("/" + legacy.id)).body.customer.addresses.length,
+        0,
+      );
+      const repaired = (
+        await request("/" + legacy.id + "/addresses", "POST", {
+          addressText: "Owner supplied real repair address",
+        })
+      ).body.address;
+      assert.equal(repaired.isDefault, true);
+      await db.customerAddress.updateMany({
+        where: { customerId: legacy.id },
+        data: { isDefault: false },
+      });
+      assert.equal(
+        (
+          await request("/" + legacy.id + "/default-address", "PUT", {
+            addressId: repaired.id,
+          })
+        ).body.address.isDefault,
+        true,
       );
       // A transaction failure after customer INSERT must roll the entire initial-address operation back.
       await db.$executeRawUnsafe(

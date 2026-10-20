@@ -14,7 +14,9 @@ export class CustomerError extends Error {
       | "VALIDATION_ERROR"
       | "UNAUTHORIZED"
       | "NOT_FOUND"
-      | "CUSTOMER_PHONE_EXISTS",
+      | "CUSTOMER_PHONE_EXISTS"
+      | "LAST_CUSTOMER_ADDRESS"
+      | "DEFAULT_ADDRESS_REASSIGN_REQUIRED",
   ) {
     super(code);
   }
@@ -76,7 +78,13 @@ export interface CustomerFields {
 export type CustomerPatch = Partial<CustomerFields> & {
   status?: CustomerStatus;
 };
-export function customerInput(input: unknown, patch = false): CustomerPatch {
+export type CustomerCreate = CustomerFields & { address: AddressCreate };
+export function customerInput(input: unknown, patch?: false): CustomerCreate;
+export function customerInput(input: unknown, patch: true): CustomerPatch;
+export function customerInput(
+  input: unknown,
+  patch = false,
+): CustomerCreate | CustomerPatch {
   const body = record(
     input,
     patch
@@ -85,7 +93,10 @@ export function customerInput(input: unknown, patch = false): CustomerPatch {
   );
   if (
     !Object.keys(body).length ||
-    (!patch && (!Object.hasOwn(body, "name") || !Object.hasOwn(body, "phone")))
+    (!patch &&
+      (!Object.hasOwn(body, "name") ||
+        !Object.hasOwn(body, "phone") ||
+        !Object.hasOwn(body, "address")))
   )
     invalid();
   const out: CustomerPatch = {};
@@ -102,7 +113,13 @@ export function customerInput(input: unknown, patch = false): CustomerPatch {
       invalid();
     out.status = body.status as CustomerStatus;
   }
-  return out;
+  if (patch) return out;
+  const fields = out as CustomerFields;
+  return { ...fields, address: addressInput(body.address, fields) };
+}
+export function assertAddressDeletion(count: number, isDefault: boolean): void {
+  if (count <= 1) throw new CustomerError("LAST_CUSTOMER_ADDRESS");
+  if (isDefault) throw new CustomerError("DEFAULT_ADDRESS_REASSIGN_REQUIRED");
 }
 export interface AddressFields {
   label: string | null;
@@ -116,6 +133,16 @@ export type AddressCreate = Pick<
   "label" | "countryCode" | "addressText"
 > &
   Partial<Pick<AddressFields, "recipientName" | "recipientPhone">>;
+export function addressInput(
+  input: unknown,
+  fallback?: Pick<CustomerFields, "name" | "phone">,
+  patch?: false,
+): AddressCreate;
+export function addressInput(
+  input: unknown,
+  fallback: undefined,
+  patch: true,
+): Partial<AddressFields>;
 export function addressInput(
   input: unknown,
   fallback?: Pick<CustomerFields, "name" | "phone">,

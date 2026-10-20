@@ -8,6 +8,7 @@ import { UserStatus } from "../../identity/domain/user-policy";
 import { CustomerPort } from "../application/customer.port";
 import {
   CustomerError,
+  assertAddressDeletion,
   CustomerStatus,
   type CustomerQuery,
   type CustomerFields,
@@ -156,7 +157,7 @@ export class CustomerAdapter implements CustomerPort {
       };
     });
   }
-  create(owner: string, input: CustomerFields, address?: AddressCreate) {
+  create(owner: string, input: CustomerFields, address: AddressCreate) {
     return this.transaction(owner, async (tx) => {
       const row = await tx.customer.create({
         data: {
@@ -167,17 +168,16 @@ export class CustomerAdapter implements CustomerPort {
         },
         select: { id: true },
       });
-      if (address)
-        await tx.customerAddress.create({
-          data: {
-            ...address,
-            recipientName: address.recipientName ?? input.name,
-            recipientPhone: address.recipientPhone ?? input.phone,
-            customerId: row.id,
-            isDefault: true,
-          },
-          select: { id: true },
-        });
+      await tx.customerAddress.create({
+        data: {
+          ...address,
+          recipientName: address.recipientName ?? input.name,
+          recipientPhone: address.recipientPhone ?? input.phone,
+          customerId: row.id,
+          isDefault: true,
+        },
+        select: { id: true },
+      });
       return this.detail(tx, owner, row.id);
     });
   }
@@ -234,6 +234,11 @@ export class CustomerAdapter implements CustomerPort {
   async removeAddress(owner: string, id: string, addressId: string) {
     await this.transaction(owner, async (tx) => {
       await this.lockCustomer(tx, owner, id);
+      const address = await this.address(tx, owner, id, addressId);
+      const count = await tx.customerAddress.count({
+        where: this.addressWhere(owner, id),
+      });
+      assertAddressDeletion(count, address.isDefault);
       const result = await tx.customerAddress.deleteMany({
         where: this.addressWhere(owner, id, addressId),
       });

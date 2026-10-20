@@ -13,7 +13,7 @@ export abstract class CustomerPort {
   abstract create(
     owner: string,
     input: CustomerFields,
-    address?: AddressCreate,
+    address: AddressCreate,
   ): Promise<CustomerDetail>;
   abstract get(owner: string, id: string): Promise<CustomerDetail>;
   abstract update(

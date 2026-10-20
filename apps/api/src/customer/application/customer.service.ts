@@ -8,8 +8,6 @@ import {
   uuid,
   record,
   CustomerError,
-  type AddressCreate,
-  type CustomerFields,
 } from "../domain/customer";
 @Injectable()
 export class CustomerService {
@@ -27,9 +25,19 @@ export class CustomerService {
         UNAUTHORIZED: 401,
         NOT_FOUND: 404,
         CUSTOMER_PHONE_EXISTS: 409,
+        LAST_CUSTOMER_ADDRESS: 409,
+        DEFAULT_ADDRESS_REASSIGN_REQUIRED: 409,
       };
       throw new HttpException(
-        { code: e.code, message: "Không thể thực hiện yêu cầu" },
+        {
+          code: e.code,
+          message:
+            e.code === "LAST_CUSTOMER_ADDRESS"
+              ? "Không thể xóa địa chỉ cuối cùng của khách hàng."
+              : e.code === "DEFAULT_ADDRESS_REASSIGN_REQUIRED"
+                ? "Cần chuyển địa chỉ mặc định trước khi xóa."
+                : "Không thể thực hiện yêu cầu",
+        },
         statuses[e.code],
       );
     }
@@ -39,11 +47,7 @@ export class CustomerService {
   }
   create(actor: { id: string }, input: unknown) {
     return this.run(actor, async (owner) => {
-      const fields = customerInput(input) as CustomerFields;
-      const body = input as Record<string, unknown>;
-      const address = Object.hasOwn(body, "address")
-        ? (addressInput(body.address, fields) as AddressCreate)
-        : undefined;
+      const { address, ...fields } = customerInput(input);
       return { customer: await this.port.create(owner, fields, address) };
     });
   }
@@ -63,11 +67,7 @@ export class CustomerService {
   }
   addAddress(actor: { id: string }, id: string, input: unknown) {
     return this.run(actor, async (owner) => ({
-      address: await this.port.addAddress(
-        owner,
-        uuid(id),
-        addressInput(input) as AddressCreate,
-      ),
+      address: await this.port.addAddress(owner, uuid(id), addressInput(input)),
     }));
   }
   updateAddress(

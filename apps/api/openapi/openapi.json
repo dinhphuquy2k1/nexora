@@ -610,6 +610,16 @@
               }
             }
           },
+          "409": {
+            "description": "LAST_CUSTOMER_ADDRESS before DEFAULT_ADDRESS_REASSIGN_REQUIRED; reassign default before deletion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
           "500": {
             "description": "",
             "content": {
@@ -1936,7 +1946,8 @@
         },
         "required": [
           "name",
-          "phone"
+          "phone",
+          "address"
         ]
       },
       "CustomerAddressDto": {
