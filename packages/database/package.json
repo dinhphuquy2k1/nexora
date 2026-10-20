@@ -12,7 +12,8 @@
     "generate": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",
     "test:migrations": "node test/migration.mjs",
-    "test:customer:sql": "node --test test/customer-sql.mjs"
+    "test:customer:sql": "node --test test/customer-sql.mjs",
+    "test:provision:cluster": "python3 ../../scripts/provision-cluster-smoke.py"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",

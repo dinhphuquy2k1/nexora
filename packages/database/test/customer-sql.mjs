@@ -104,7 +104,17 @@ test("real PostgreSQL customer upgrade, constraints, sequence and restricted run
       ).rows.map((x) => x.tablename),
       [...tables, "customers", "customer_addresses"].sort(),
     );
-    const password = randomBytes(32).toString("hex");
+    const password = await (async () => {
+      try {
+        return (
+          await readFile("/runtime-config/postgres_app_password", "utf8")
+        ).trim();
+      } catch {
+        return (
+          process.env.TEST_RUNTIME_PASSWORD || randomBytes(32).toString("hex")
+        );
+      }
+    })();
     await provisionRuntime(url.toString(), password);
     runtime = new Client({
       connectionString: runtimeUrl(url.toString(), password),

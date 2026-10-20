@@ -234,3 +234,41 @@ SIGNIFICANT; Documentation Impact: REQUIRED; canonical owners updated: `docs/arc
 | GitHub Actions Foundation CI                                    | Hosted workflow execution blocked by GitHub account billing/spending limit (Run 39435250386)        | -         | BLOCKED (ADMIN ACTION)   |
 
 Task status remains VERIFICATION PENDING until hosted CI runs on the GitHub Linux runner and repository owner resolves the Operator Data Audit gate adoption (Option B).
+
+### PR #23 PostgreSQL Test Isolation, Provisioning Safety & Merge Readiness — 2026-10-21
+
+SIGNIFICANT; Documentation Impact: REQUIRED; canonical owners updated: `docs/architecture/database.md`, `docs/operations/testing.md`, and this task record.
+
+#### 1. Defect Analysis & Architectural Solution
+
+- **Defect**: `packages/database/test/provision-runtime.test.mjs` executed role mutations (`ALTER ROLE nexora_app PASSWORD ...`) directly against whatever `DATABASE_URL` was configured. Because PostgreSQL roles are cluster-global while databases are database-local, running this on a shared or development cluster mutates the `nexora_app` password across all databases, breaking active services and other suites.
+- **Execution Contract & Isolation Separation**:
+  - **Pure Unit Tests** (`packages/database/test/provision-runtime.test.mjs`): Retained in `pnpm test` and `pnpm quality`. Evaluates `isRetryableProvisionError` exact classification, fail-closed validation (`maxAttempts`, `lockTimeout`, `statementTimeout`), and credential non-leakage in-memory without database access.
+  - **Cluster-Isolated Integration** (`packages/database/test/provision-cluster.mjs`): Dedicated regression suite executed via `scripts/provision-cluster-smoke.py` (`pnpm --filter @nexora/database test:provision:cluster`). Requires an owned disposable PostgreSQL 17.11 container with an auto-allocated loopback port, lifecycle-managed by the launcher.
+  - **Fail-Closed Cluster Ownership Verification**: Requires `DISPOSABLE_CLUSTER_ADMIN_URL` and `DISPOSABLE_CLUSTER_TOKEN`. Verifies the cluster signature (`COMMENT ON DATABASE nexora IS '<TOKEN>'`) and checks for absence of persistent databases before proceeding. Fails closed with exit code 1 if unverified.
+  - **Deterministic Concurrency**: Both concurrent provisioners on the same disposable cluster use identical runtime secrets, matching canonical multi-container deployments and eliminating assumptions about `Promise.all` completion order.
+  - **Guaranteed Cleanup**: Lock-holding transactions and clients are wrapped in `try / finally` blocks to ensure rollback and disconnection even upon assertion failure. Launcher removes only its owned container and port bindings on exit.
+  - **Fail-Closed Validation**: `maxAttempts` strictly enforces finite positive integers `1..20` (rejects 0, negative values, fractions, NaN, Infinity, and strings). `lockTimeout` and `statementTimeout` enforce positive bounded values.
+  - **Credential Hygiene**: Sanitizes thrown error causes and stacks, verified across connection failure, lock timeout, and permission denial error paths on live PostgreSQL.
+
+#### 2. Verification Execution Ledger
+
+| Claim                                                | Evidence                                                                                                                                                  | Date       | Result                 |
+| :--------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :--------------------- |
+| Runtime provisioning options & retry validation      | `node --test packages/database/test/provision-runtime.test.mjs` (in-memory unit tests for `maxAttempts`, timeouts, secret rejection)                      | 2026-10-21 | PASS                   |
+| Fail-closed disposable cluster ownership guard       | `node packages/database/test/provision-cluster.mjs` invoked without launcher descriptors exits 1 with `DISPOSABLE_CLUSTER_REQUIRED`                       | 2026-10-21 | PASS                   |
+| Disposable PostgreSQL cluster concurrency & recovery | `python3 scripts/provision-cluster-smoke.py` (`pnpm --filter @nexora/database test:provision:cluster`) on owned ephemeral PostgreSQL 17.11                | 2026-10-21 | PASS                   |
+| Credential non-leakage across error paths            | `provision-cluster.mjs` asserts no password leakage in message, stack or cause across 55P03 lock timeout, 42501 permission denial, and connection failure | 2026-10-21 | PASS                   |
+| Canonical quality in Docker                          | `sh scripts/quality-docker.sh` (build, db-runtime smoke, quality, 64/64 integration tests, migrations, provision-cluster-smoke, dev-cleanup-smoke)        | 2026-10-21 | PASS                   |
+| Customer, address & sequence data persistence        | `scripts/data-smoke.sh` with custom loopback port verifying down-up and restart persistence                                                               | 2026-10-21 | PASS                   |
+| Development HMR and dependency drift smoke           | `scripts/dev-smoke.sh` after stopping running dev containers; full HMR, workspace propagation, and frozen drift PASS                                      | 2026-10-21 | PASS                   |
+| Development containers restoration                   | `docker compose -f compose.yml -f compose.dev.yml up -d --wait` restored all services to healthy state                                                    | 2026-10-21 | PASS                   |
+| Prettier formatting & ESLint boundaries              | `pnpm format:check` && `pnpm lint` && `pnpm test:lint` (52 tests)                                                                                         | 2026-10-21 | PASS                   |
+| Documentation entry points & operations tests        | `pnpm docs:check` && `pnpm test:docs` && `pnpm test:operations` (5 tests)                                                                                 | 2026-10-21 | PASS                   |
+| OpenAPI & SDK contract reproducibility               | `pnpm contracts:check` verifying zero drift in generated schemas and SDK                                                                                  | 2026-10-21 | PASS                   |
+| Full workspace TypeScript typecheck                  | `pnpm typecheck` (10 tasks across 6 packages)                                                                                                             | 2026-10-21 | PASS                   |
+| Host Linux TTY smoke (`runtime-smoke.sh`)            | Requires Linux environment with pseudo-terminal (`pty`/`termios`) support                                                                                 | 2026-10-21 | NOT RUN (HOST ENV)     |
+| Public HTTPS ingress smoke (`public-https-smoke.sh`) | Requires Linux environment with pseudo-terminal and Chromium headless support                                                                             | 2026-10-21 | NOT RUN (HOST ENV)     |
+| Hosted Foundation CI run                             | GitHub Actions blocked by account billing/spending limit (Run 39460868662)                                                                                | 2026-10-21 | BLOCKED (ADMIN ACTION) |
+
+Task status remains `VERIFICATION PENDING` pending hosted CI execution on GitHub Linux runners and product owner approval of Option B for the Operator Data Audit gate.

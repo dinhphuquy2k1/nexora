@@ -1,13 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Client } from "pg";
-import { readdir, readFile } from "node:fs/promises";
-import { randomUUID, randomBytes } from "node:crypto";
 import {
   provisionRuntime,
   isRetryableProvisionError,
 } from "../scripts/provision-runtime.mjs";
-import { assertRuntimePrivileges } from "./runtime-privilege-assertions.mjs";
 
 test("isRetryableProvisionError correctly classifies retryable and permanent errors", () => {
   // 55P03 = lock_not_available (e.g. lock_timeout elapsed waiting for concurrent provisioner)
@@ -83,143 +79,94 @@ test("provisionRuntime rejects invalid password secret format and invalid timeou
     (err) => err.message === "INVALID_RUNTIME_SECRET",
   );
   await assert.rejects(
+    provisionRuntime("postgresql://invalid", ""),
+    (err) => err.message === "INVALID_RUNTIME_SECRET",
+  );
+  for (const invalidTimeout of [
+    "invalid;injection",
+    "0s",
+    "0ms",
+    "0",
+    "-1s",
+    "100000s",
+    123,
+    null,
+  ]) {
+    await assert.rejects(
+      provisionRuntime("postgresql://invalid", "a".repeat(64), {
+        lockTimeout: invalidTimeout,
+      }),
+      (err) => err.message === "INVALID_TIMEOUT_FORMAT",
+      `Expected lockTimeout ${invalidTimeout} to throw INVALID_TIMEOUT_FORMAT`,
+    );
+    await assert.rejects(
+      provisionRuntime("postgresql://invalid", "a".repeat(64), {
+        statementTimeout: invalidTimeout,
+      }),
+      (err) => err.message === "INVALID_TIMEOUT_FORMAT",
+      `Expected statementTimeout ${invalidTimeout} to throw INVALID_TIMEOUT_FORMAT`,
+    );
+  }
+});
+
+test("provisionRuntime validates maxAttempts fail-closed", async () => {
+  for (const invalid of [
+    0,
+    -1,
+    -5,
+    1.5,
+    NaN,
+    Infinity,
+    -Infinity,
+    "5",
+    null,
+    {},
+    [],
+  ]) {
+    await assert.rejects(
+      provisionRuntime("postgresql://invalid", "a".repeat(64), {
+        maxAttempts: invalid,
+      }),
+      (err) => err.message === "INVALID_RETRY_CONFIG",
+      `Expected maxAttempts=${invalid} to throw INVALID_RETRY_CONFIG`,
+    );
+  }
+  // Unreasonably large retry count
+  await assert.rejects(
     provisionRuntime("postgresql://invalid", "a".repeat(64), {
-      lockTimeout: "invalid;injection",
+      maxAttempts: 25,
     }),
-    (err) => err.message === "INVALID_TIMEOUT_FORMAT",
+    (err) => err.message === "INVALID_RETRY_CONFIG",
   );
 });
 
-test("provisionRuntime does not leak secret password in error output", async () => {
-  const secret = "f".repeat(64);
+test("provisionRuntime does not leak secret password or admin credentials in error output", async () => {
+  const runtimeSecret = "f".repeat(64);
+  const adminSecret = "super_admin_secret_marker_789xyz";
+  const adminUrl = `postgresql://nexora:${adminSecret}@127.0.0.1:59999/nexora`;
   try {
-    // Non-existent host/port fails closed immediately
-    await provisionRuntime(
-      "postgresql://nexora:nonexistent@127.0.0.1:59999/nexora",
-      secret,
-      { maxAttempts: 1 },
-    );
+    // Non-existent port fails closed immediately
+    await provisionRuntime(adminUrl, runtimeSecret, { maxAttempts: 1 });
     assert.fail("should have thrown");
   } catch (err) {
     assert.equal(err.message, "DATABASE_RUNTIME_PROVISION_FAILED");
-    const errorStr =
-      JSON.stringify(err) + " " + err.message + " " + String(err);
-    assert.ok(
-      !errorStr.includes(secret),
-      "Error output must never leak the runtime secret password",
-    );
-  }
-});
-
-test("concurrent database runtime provisioning and bounded timeout recovery", async (t) => {
-  if (!process.env.DATABASE_URL) {
-    t.skip("isolated admin DATABASE_URL required for real PostgreSQL tests");
-    return;
-  }
-
-  const admin = new Client({ connectionString: process.env.DATABASE_URL });
-  await admin.connect();
-
-  const nameA = "nexora_prov_test_a_" + randomUUID().replaceAll("-", "");
-  const nameB = "nexora_prov_test_b_" + randomUUID().replaceAll("-", "");
-  const nameTimeout =
-    "nexora_prov_test_timeout_" + randomUUID().replaceAll("-", "");
-  const ownedDbs = [nameA, nameB, nameTimeout];
-
-  const root = new URL("../prisma/migrations/", import.meta.url);
-  const migrationEntries = (await readdir(root))
-    .sort()
-    .filter((e) => /^\d/.test(e));
-
-  async function setupDb(dbName) {
-    await admin.query(`CREATE DATABASE "${dbName}"`);
-    const url = new URL(process.env.DATABASE_URL);
-    url.pathname = "/" + dbName;
-    const db = new Client({ connectionString: url.toString() });
-    await db.connect();
-    try {
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS _prisma_migrations (
-          id VARCHAR(36) PRIMARY KEY,
-          checksum VARCHAR(64) NOT NULL,
-          finished_at TIMESTAMPTZ,
-          migration_name VARCHAR(255) NOT NULL,
-          logs TEXT,
-          rolled_back_at TIMESTAMPTZ,
-          started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-          applied_steps_count INTEGER NOT NULL DEFAULT 0
-        )
-      `);
-      for (const entry of migrationEntries) {
-        const sql = await readFile(
-          new URL(entry + "/migration.sql", root),
-          "utf8",
-        );
-        await db.query(sql);
-      }
-    } finally {
-      await db.end();
+    const errorStrings = [
+      err.message,
+      err.stack || "",
+      String(err),
+      err.cause?.message || "",
+      err.cause?.stack || "",
+      JSON.stringify(err),
+    ];
+    for (const str of errorStrings) {
+      assert.ok(
+        !str.includes(runtimeSecret),
+        "Error output must never leak the runtime secret password",
+      );
+      assert.ok(
+        !str.includes(adminSecret),
+        "Error output must never leak the administrative password",
+      );
     }
-    return url.toString();
-  }
-
-  try {
-    // Setup databases sequentially on admin connection to avoid concurrent queries on single client
-    const urlA = await setupDb(nameA);
-    const urlB = await setupDb(nameB);
-    const urlTimeout = await setupDb(nameTimeout);
-
-    const secretA = randomBytes(32).toString("hex");
-    const secretB = randomBytes(32).toString("hex");
-
-    // 1. Concurrent provisioning test: Run two provisioners concurrently on separate databases
-    // Must succeed without tuple concurrently updated error
-    await Promise.all([
-      provisionRuntime(urlA, secretA),
-      provisionRuntime(urlB, secretB),
-    ]);
-
-    // 2. Validate runtime privileges on both databases
-    // (Note: secretB was set last, so nexora_app has password secretB across the cluster)
-    await assertRuntimePrivileges(urlA, secretB);
-    await assertRuntimePrivileges(urlB, secretB);
-
-    // 3. Bounded lock waiting and failure recovery test
-    // Hold an exclusive lock on pg_authid in a separate connection
-    const lockHolder = new Client({
-      connectionString: process.env.DATABASE_URL,
-    });
-    await lockHolder.connect();
-    await lockHolder.query("BEGIN");
-    await lockHolder.query("LOCK TABLE pg_authid IN EXCLUSIVE MODE");
-
-    const secretTimeout = randomBytes(32).toString("hex");
-
-    // Attempt provisionRuntime with a tight 500ms lock timeout
-    // Must fail bounded with 55P03 lock timeout, not hang indefinitely
-    await assert.rejects(
-      provisionRuntime(urlTimeout, secretTimeout, {
-        lockTimeout: "500ms",
-        maxAttempts: 1,
-      }),
-      (err) => {
-        assert.equal(err.message, "DATABASE_RUNTIME_PROVISION_FAILED");
-        assert.equal(err.cause?.code, "55P03");
-        return true;
-      },
-    );
-
-    // Release the blocker
-    await lockHolder.query("ROLLBACK");
-    await lockHolder.end();
-
-    // Now provisionRuntime must succeed after blocker is released
-    await provisionRuntime(urlTimeout, secretTimeout);
-    await assertRuntimePrivileges(urlTimeout, secretTimeout);
-  } finally {
-    for (const dbName of ownedDbs) {
-      await admin.query(`DROP DATABASE IF EXISTS "${dbName}"`).catch(() => {});
-    }
-    await admin.end();
   }
 });

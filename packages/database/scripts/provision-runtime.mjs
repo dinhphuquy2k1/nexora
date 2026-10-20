@@ -45,16 +45,59 @@ export function isRetryableProvisionError(err) {
   }
   return false;
 }
+function validateTimeout(val, maxMs, defaultVal) {
+  const timeoutStr = val === undefined ? defaultVal : val;
+  if (typeof timeoutStr !== "string") throw Error("INVALID_TIMEOUT_FORMAT");
+  const match = timeoutStr.match(/^(\d+)(ms|s|min)?$/);
+  if (!match) throw Error("INVALID_TIMEOUT_FORMAT");
+  const num = Number(match[1]);
+  if (!Number.isFinite(num) || num <= 0) throw Error("INVALID_TIMEOUT_FORMAT");
+  const unit = match[2] || "ms";
+  const factor = unit === "min" ? 60000 : unit === "s" ? 1000 : 1;
+  const ms = num * factor;
+  if (ms > maxMs) throw Error("INVALID_TIMEOUT_FORMAT");
+  return timeoutStr;
+}
+function sanitizeError(err, secrets) {
+  if (!err) return err;
+  for (const secret of secrets) {
+    if (!secret || typeof secret !== "string" || secret.length < 4) continue;
+    for (const prop of [
+      "message",
+      "stack",
+      "detail",
+      "internalQuery",
+      "where",
+      "hint",
+    ]) {
+      if (typeof err[prop] === "string" && err[prop].includes(secret)) {
+        err[prop] = err[prop].replaceAll(secret, "[REDACTED]");
+      }
+    }
+  }
+  return err;
+}
 /** Trusted one-shot provisioning only. Never imported into API runtime. */
 export async function provisionRuntime(adminUrl, password, options = {}) {
   if (!/^[a-f0-9]{64}$/.test(password)) throw Error("INVALID_RUNTIME_SECRET");
-  const lockTimeout = options.lockTimeout || "10s";
-  const statementTimeout = options.statementTimeout || "30s";
-  if (!/^\d+(?:ms|s|min)?$/.test(lockTimeout))
-    throw Error("INVALID_TIMEOUT_FORMAT");
-  if (!/^\d+(?:ms|s|min)?$/.test(statementTimeout))
-    throw Error("INVALID_TIMEOUT_FORMAT");
-  const maxAttempts = options.maxAttempts ?? 5;
+  const lockTimeout = validateTimeout(options.lockTimeout, 60000, "10s");
+  const statementTimeout = validateTimeout(
+    options.statementTimeout,
+    300000,
+    "30s",
+  );
+  let maxAttempts = 5;
+  if (options.maxAttempts !== undefined) {
+    if (
+      typeof options.maxAttempts !== "number" ||
+      !Number.isInteger(options.maxAttempts) ||
+      options.maxAttempts < 1 ||
+      options.maxAttempts > 20
+    ) {
+      throw Error("INVALID_RETRY_CONFIG");
+    }
+    maxAttempts = options.maxAttempts;
+  }
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const db = new Client({
       connectionString: adminUrl,
@@ -174,6 +217,15 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
       return;
     } catch (err) {
       await db.query("ROLLBACK").catch(() => {});
+      const secrets = [password];
+      try {
+        const parsed = new URL(adminUrl);
+        if (parsed.password) secrets.push(parsed.password);
+        secrets.push(parsed.toString());
+      } catch {
+        // Suppress URL parse errors on non-URL adminUrl fixtures
+      }
+      sanitizeError(err, secrets);
       if (attempt < maxAttempts - 1 && isRetryableProvisionError(err)) {
         await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
         continue;
