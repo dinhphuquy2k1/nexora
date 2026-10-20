@@ -82,6 +82,10 @@ export async function runDrawerRegression({
     deviceScaleFactor: 1,
     mobile: false,
   });
+  // Wait for the responsive React state as well as CSS before pointer coordinates.
+  await wait(
+    `!${sidebar}.inert && !document.querySelector('main').parentElement.inert && ${sidebar}.getBoundingClientRect().width<100`,
+  );
   await pointer(toggle);
   await wait(`${sidebar}.getBoundingClientRect().width>200`);
   await pointer('aside nav a[href="/settings"]');
