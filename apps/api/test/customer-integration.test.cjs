@@ -682,7 +682,10 @@ test(
       // Authenticated runtime authority, not merely grant-text inspection.
       await assert.rejects(
         store.client.$executeRawUnsafe("DELETE FROM customers"),
-        (e) => e.code === "P2010" && e.meta?.code === "42501",
+        (e) =>
+          e.code === "P2010" &&
+          (e.meta?.code === "42501" ||
+            e.meta?.driverAdapterError?.cause?.code === "42501"),
       );
       for (const sql of [
         "CREATE TABLE forbidden(id int)",
