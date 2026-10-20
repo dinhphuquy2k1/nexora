@@ -134,3 +134,32 @@ export function filterGroups(
         `${g.displayName} ${g.provider}`.toLocaleLowerCase("vi").includes(q),
     );
 }
+
+/** Keep the current metadata-backed option visible alongside matching search results. */
+export function visibleScopeGroups(
+  groups: readonly CarrierGroup[],
+  query: string,
+  scope: ParsedScope,
+): CarrierGroup[] {
+  const matched = filterGroups(groups, query);
+  if (
+    scope.type === "all" ||
+    scope.type === "invalid" ||
+    !resolveScope(scope, groups).valid
+  )
+    return matched;
+  const source = groups.find((group) => group.provider === scope.provider)!;
+  const selected =
+    scope.type === "connection"
+      ? source.connections.find((connection) => connection.id === scope.id)
+      : undefined;
+  const target = matched.find((group) => group.provider === scope.provider);
+  if (!target)
+    matched.push({ ...source, connections: selected ? [selected] : [] });
+  else if (
+    selected &&
+    !target.connections.some((connection) => connection.id === selected.id)
+  )
+    target.connections = [...target.connections, selected];
+  return matched;
+}

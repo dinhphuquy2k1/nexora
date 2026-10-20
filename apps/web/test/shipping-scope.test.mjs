@@ -99,3 +99,46 @@ test("metadata keeps only allowlisted fields and rejects malformed/ambiguous res
   ])
     assert.throws(() => groupMetadata(carriers, malformed));
 });
+
+test("search retains matching accounts and current metadata selection without broadening invalid scope", async () => {
+  const { visibleScopeGroups } = await import(
+    "../features/shipping-scope/model.ts"
+  );
+  const groups = [
+    {
+      provider: "uniship",
+      displayName: "Uniship",
+      connections: [
+        {
+          id: "a",
+          provider: "uniship",
+          displayName: "Primary",
+          status: "CONNECTED",
+        },
+        { id: "b", provider: "uniship", displayName: "Other", status: "ERROR" },
+      ],
+    },
+  ];
+  const before = globalThis.structuredClone(groups);
+  assert.deepEqual(
+    visibleScopeGroups(groups, "primary", {
+      type: "connection",
+      provider: "uniship",
+      id: "b",
+    })[0].connections.map((c) => c.id),
+    ["a", "b"],
+  );
+  assert.equal(
+    visibleScopeGroups(groups, "no match", {
+      type: "connection",
+      provider: "uniship",
+      id: "deleted",
+    }).length,
+    0,
+  );
+  assert.equal(
+    visibleScopeGroups(groups, "no match", { type: "invalid" }).length,
+    0,
+  );
+  assert.deepEqual(groups, before);
+});

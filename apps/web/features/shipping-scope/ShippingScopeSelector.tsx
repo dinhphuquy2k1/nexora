@@ -11,7 +11,11 @@ import {
   UserRound,
 } from "lucide-react";
 import { useDismissable } from "../../lib/hooks/use-dismissable.ts";
-import { filterGroups, CONNECTION_PRESENTATION, type Scope } from "./model.ts";
+import {
+  visibleScopeGroups,
+  CONNECTION_PRESENTATION,
+  type Scope,
+} from "./model.ts";
 import { useShippingScope } from "./ShippingScopeProvider.tsx";
 import styles from "./scope.module.css";
 
@@ -22,6 +26,8 @@ export function ShippingScopeSelector() {
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const optionsRef = useRef<HTMLDivElement>(null);
+  const pendingReveal = useRef(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const id = useId();
   useDismissable({
@@ -33,6 +39,48 @@ export function ShippingScopeSelector() {
   useEffect(() => {
     if (open) searchRef.current?.focus();
   }, [open]);
+  const scopeKey =
+    scope.type === "connection"
+      ? `connection:${scope.provider}:${scope.id}`
+      : scope.type === "provider"
+        ? `provider:${scope.provider}`
+        : scope.type;
+  const selectedProvider =
+    valid && (scope.type === "provider" || scope.type === "connection")
+      ? scope.provider
+      : undefined;
+  useEffect(() => {
+    if (!open) return;
+    pendingReveal.current = valid;
+    setCollapsed((old) =>
+      old.filter((provider) => provider !== selectedProvider),
+    );
+  }, [open, scopeKey, selectedProvider, valid]);
+  useEffect(() => {
+    if (!query.trim() || metadata.status !== "ready") return;
+    const matching = visibleScopeGroups(metadata.groups, query, scope).map(
+      (group) => group.provider,
+    );
+    setCollapsed((old) =>
+      old.filter((provider) => !matching.some((value) => value === provider)),
+    );
+  }, [query, metadata]);
+  useEffect(() => {
+    if (!open || !pendingReveal.current) return;
+    const options = optionsRef.current;
+    const selected = options?.querySelector<HTMLElement>(
+      '[data-option][aria-pressed="true"]',
+    );
+    if (!options || !selected) return;
+    const row = selected.getBoundingClientRect(),
+      viewport = options.getBoundingClientRect();
+    // Nearest edge within this list only: scrollIntoView could scroll the page behind it.
+    if (row.top < viewport.top) options.scrollTop += row.top - viewport.top;
+    else if (row.bottom > viewport.bottom)
+      options.scrollTop += row.bottom - viewport.bottom;
+    pendingReveal.current = false;
+  }, [open, scopeKey, collapsed]);
+
   function select(next: Scope) {
     choose(next);
     setOpen(false);
@@ -63,7 +111,9 @@ export function ShippingScopeSelector() {
     options[next]?.focus();
   }
   const groups =
-    metadata.status === "ready" ? filterGroups(metadata.groups, query) : [];
+    metadata.status === "ready"
+      ? visibleScopeGroups(metadata.groups, query, scope)
+      : [];
   return (
     <div className={styles.wrapper}>
       <button
@@ -104,7 +154,7 @@ export function ShippingScopeSelector() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
-          <div className={styles.options}>
+          <div ref={optionsRef} className={styles.options}>
             {metadata.status === "loading" && (
               <p role="status">Đang tải kết nối…</p>
             )}
@@ -141,8 +191,7 @@ export function ShippingScopeSelector() {
                   <p>Chưa có kết nối tài khoản.</p>
                 )}
                 {groups.map((group) => {
-                  const expanded =
-                    query.trim() !== "" || !collapsed.includes(group.provider);
+                  const expanded = !collapsed.includes(group.provider);
                   const selected =
                     scope.type === "provider" &&
                     scope.provider === group.provider;
@@ -171,7 +220,14 @@ export function ShippingScopeSelector() {
                           <span className={styles.ellipsis}>
                             {group.displayName}
                           </span>
-                          <small>{group.connections.length} tài khoản</small>
+                          <small>
+                            {metadata.status === "ready"
+                              ? metadata.groups.find(
+                                  (value) => value.provider === group.provider,
+                                )?.connections.length
+                              : 0}{" "}
+                            tài khoản
+                          </small>
                           {selected && <Check size={16} aria-hidden="true" />}
                         </button>
                         <button

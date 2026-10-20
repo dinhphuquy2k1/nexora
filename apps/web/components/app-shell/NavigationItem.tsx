@@ -8,12 +8,14 @@ interface NavigationItemProps {
   item: NavItem;
   isActive: boolean;
   isCollapsed: boolean;
+  onNavigate: (href: string) => void;
 }
 
 export function NavigationItem({
   item,
   isActive,
   isCollapsed,
+  onNavigate,
 }: NavigationItemProps) {
   const { shippingHref } = useShippingScope();
   const IconComponent = getNavIcon(item.iconKey);
@@ -23,6 +25,9 @@ export function NavigationItem({
       <div className={styles.navItemContainer}>
         <Link
           href={item.id === "retail" ? shippingHref : item.href}
+          onNavigate={() =>
+            onNavigate(item.id === "retail" ? shippingHref : item.href!)
+          }
           className={`${styles.navItemLink} ${isActive ? styles.navItemActive : ""} ${
             isCollapsed ? styles.itemCentered : ""
           }`}

@@ -1,5 +1,10 @@
 // Isolated frontend fixture smoke. This is NOT Nest/PostgreSQL auth or carrier evidence.
 // Build first with API_INTERNAL_URL=http://127.0.0.1:4096, then run this script.
+import {
+  runDrawerRegression,
+  runSelectorRegression,
+  runRetailReturnRegression,
+} from "./retail-review-regressions.mjs";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
@@ -9,6 +14,23 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
+const startedAt = new Date().toISOString();
+function gitValue(args) {
+  const result = spawnSync("git", args, { encoding: "utf8" });
+  assert.equal(
+    result.status,
+    0,
+    "verification source Git metadata unavailable",
+  );
+  return result.stdout.trim();
+}
+const sourceHead = gitValue(["rev-parse", "HEAD"]);
+const sourceDirtyBefore = gitValue(["status", "--porcelain"]) !== "";
+const browserVersion = spawnSync(
+  process.env.CHROME_BIN ?? "chromium",
+  ["--version"],
+  { encoding: "utf8" },
+).stdout?.trim();
 const output = resolve(
   process.argv[2] ?? `/tmp/nexora-retail-evidence-${randomUUID()}`,
 );
@@ -26,7 +48,8 @@ const longName = "Tài khoản vận chuyển miền Bắc — tên dài trùng 
 let mode = "ready",
   removed = false,
   calls = 0,
-  logouts = 0;
+  logouts = 0,
+  extraAccounts = 0;
 const sockets = new Set();
 const api = createServer((req, res) => {
   res.setHeader("Content-Type", "application/json");
@@ -73,6 +96,12 @@ const api = createServer((req, res) => {
                   displayName: longName,
                   status: "CONNECTED",
                 },
+                ...Array.from({ length: extraAccounts }, (_, n) => ({
+                  id: `33333333-3333-4333-8333-${String(n).padStart(12, "0")}`,
+                  provider: "uniship",
+                  displayName: `Tài khoản bổ sung ${n}`,
+                  status: "CONNECTED",
+                })),
                 ...(removed
                   ? []
                   : [
@@ -261,6 +290,23 @@ try {
       `(()=>{const el=[...document.querySelectorAll('button,a')].find(e=>e.textContent.trim()===${JSON.stringify(text)});if(!el)throw Error('missing control');el.click();})()`,
     );
   }
+  async function pointer(selector) {
+    const point = await evaluate(
+      `(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('missing pointer target');const r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;if(!r.width||!r.height||!e.contains(document.elementFromPoint(x,y)))throw Error('pointer target is hidden or blocked');return {x,y};})()`,
+    );
+    await cdp("Input.dispatchMouseEvent", {
+      type: "mousePressed",
+      ...point,
+      button: "left",
+      clickCount: 1,
+    });
+    await cdp("Input.dispatchMouseEvent", {
+      type: "mouseReleased",
+      ...point,
+      button: "left",
+      clickCount: 1,
+    });
+  }
   async function screenshot(name) {
     const result = await cdp("Page.captureScreenshot", {
       format: "png",
@@ -271,13 +317,17 @@ try {
       Buffer.from(result.data, "base64"),
     );
   }
-  async function key(key, code = key) {
+  async function key(key, code = key, modifiers = 0) {
     await cdp("Input.dispatchKeyEvent", {
       type: "keyDown",
       key,
       code,
+      modifiers,
       text: key === "Enter" ? "\r" : undefined,
       windowsVirtualKeyCode: {
+        Tab: 9,
+        Backspace: 8,
+        a: 65,
         Enter: 13,
         Escape: 27,
         ArrowDown: 40,
@@ -288,7 +338,11 @@ try {
       type: "keyUp",
       key,
       code,
+      modifiers,
       windowsVirtualKeyCode: {
+        Tab: 9,
+        Backspace: 8,
+        a: 65,
         Enter: 13,
         Escape: 27,
         ArrowDown: 40,
@@ -649,6 +703,45 @@ try {
   checks.push(
     "Existing AccountMenu POST logout navigation (fixture backend only)",
   );
+  const reviewCase = process.env.NEXORA_RETAIL_REVIEW_CASE ?? "all";
+  assert.ok(["all", "drawer", "selector", "return"].includes(reviewCase));
+  mode = "ready";
+  removed = false;
+  await cdp("Network.setCookie", {
+    name: "nexora_session",
+    value: "fixture",
+    url: base,
+    httpOnly: true,
+    sameSite: "Lax",
+  });
+  if (reviewCase === "all" || reviewCase === "drawer") {
+    await runDrawerRegression({ cdp, evaluate, wait, key, navigate, pointer });
+    checks.push(
+      "PR22 native mobile navigation/current-page/Escape/focus trap/hidden focus; desktop state; query-only persistence",
+    );
+  }
+  if (reviewCase === "all" || reviewCase === "selector") {
+    extraAccounts = 30;
+    await runSelectorRegression({
+      cdp,
+      evaluate,
+      wait,
+      key,
+      navigate,
+      pointer,
+      accountA,
+      accountB,
+    });
+    checks.push(
+      "PR22 selected group reopen/history/nearest list-only scrolling; search focus/results and manual collapse",
+    );
+  }
+  if (reviewCase === "all" || reviewCase === "return") {
+    await runRetailReturnRegression({ base });
+    checks.push(
+      "PR22 scoped retail login return query preserved for missing and rejected session cookie (fixture backend)",
+    );
+  }
 } finally {
   socket?.close();
   if (chrome && chrome.exitCode === null) {
@@ -670,6 +763,19 @@ try {
   await rm(profile, { recursive: true, force: true });
 }
 
+const sourceHeadAfter = gitValue(["rev-parse", "HEAD"]);
+const sourceDirtyAfter = gitValue(["status", "--porcelain"]) !== "";
+assert.equal(
+  sourceHeadAfter,
+  sourceHead,
+  "verification source head changed during execution",
+);
+if (!sourceDirtyBefore)
+  assert.equal(
+    sourceDirtyAfter,
+    false,
+    "clean source changed during verification",
+  );
 await writeFile(
   join(output, "summary.json"),
   JSON.stringify(
@@ -679,6 +785,19 @@ await writeFile(
       runtime,
       time: new Date().toISOString(),
       cleanup: "PASS",
+      startedAt,
+      source: {
+        head: sourceHead,
+        headAfter: sourceHeadAfter,
+        dirtyBefore: sourceDirtyBefore,
+        dirtyAfter: sourceDirtyAfter,
+      },
+      environment: {
+        node: process.version,
+        platform: process.platform,
+        browser: browserVersion,
+      },
+      reviewCase: process.env.NEXORA_RETAIL_REVIEW_CASE ?? "all",
       checks,
     },
     null,
