@@ -191,34 +191,46 @@ Harness assessment: one scenario means later assertions stop after the first fai
 
 New canonical diagnostic/handoff procedure is in docs/operations/testing.md. No application/test/workflow/dependency source is changed. Implementation remains IMPLEMENTED, task VERIFICATION PENDING; no acceptance criterion is promoted from inspection. Operator dataset audit NOT RUN, with scope PLAN ISSUE retained separately. Final head checks/CI will be captured in PR metadata without a SHA-only commit loop.
 
-### Final local verification execution — 2026-10-20
+### Database runtime provisioning reliability & final verification — 2026-10-20
 
-Executed on 2026-10-20 on local Docker verification environment. Prisma Client v7.10.0 generated cleanly inside the container without external network dependencies.
+SIGNIFICANT; Documentation Impact: REQUIRED; canonical owners updated: `docs/architecture/database.md`, `docs/architecture/runtime.md`, `docs/operations/testing.md`, and this task record.
 
-| Command / Suite                                  | Scope & Coverage                                                                                    | Exit Code | Result                   |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------- | --------- | ------------------------ |
-| `pnpm --filter @nexora/database generate`        | Prisma Client 7.10.0 generation                                                                     | 0         | PASS                     |
-| `pnpm format:check`                              | Prettier code style verification                                                                    | 0         | PASS                     |
-| `pnpm lint` && `pnpm test:lint`                  | Boundaries, ESLint rules, domain vocabulary                                                         | 0         | PASS                     |
-| `pnpm docs:check` && `pnpm test:docs`            | Documentation links, governance, routing, metadata                                                  | 0         | PASS                     |
-| `pnpm typecheck`                                 | Turbo workspace TypeScript typecheck (6 packages)                                                   | 0         | PASS                     |
-| `pnpm test`                                      | Unit tests across all packages (145 API unit tests, Customer 12/12)                                 | 0         | PASS                     |
-| `pnpm test:operations`                           | Smoke diagnostic format, Host-negative ingress                                                      | 0         | PASS                     |
-| `pnpm contracts:check`                           | OpenAPI specification & SDK regeneration drift                                                      | 0         | PASS                     |
-| `pnpm build`                                     | Full workspace build (Next.js web & NestJS API)                                                     | 0         | PASS                     |
-| `sh scripts/quality-docker.sh`                   | Canonical Docker image build, database runtime smoke, quality, integration, migrations, dev cleanup | 0         | PASS                     |
-| `pnpm test:integration`                          | All 8 integration test suites (64/64 tests) on real PostgreSQL with restricted runtime role         | 0         | PASS                     |
-| `pnpm --filter @nexora/database test:migrations` | Migration history, legacy preservation, cutover, idempotency, drift                                 | 0         | PASS                     |
-| `sh scripts/data-smoke.sh`                       | Customer, address, sequence and audit data persistence across restart/down-up                       | 0         | PASS                     |
-| `sh scripts/dev-smoke.sh`                        | Dev HMR, workspace propagation, frozen lockfile drift block                                         | 0         | PASS                     |
-| `sh scripts/runtime-smoke.sh`                    | Host TTY smoke (`pty`/`termios`) restricted on Windows; requires Linux CI runner                    | -         | NOT RUN (HOST ENV)       |
-| `sh scripts/public-https-smoke.sh`               | Host TTY smoke (`pty`/`termios`) restricted on Windows; requires Linux CI runner                    | -         | NOT RUN (HOST ENV)       |
-| `audit-customer-addresses.sql`                   | Operator dataset audit (Plan Issue: Option A PR gate vs Option B Deployment gate)                   | -         | NOT RUN (NO DEPLOY DATA) |
-| GitHub Actions Foundation CI                     | Hosted workflow execution blocked by GitHub account billing/spending limit (Run 39398432598)        | -         | BLOCKED (ADMIN ACTION)   |
+#### 1. Concurrency Root Cause & Options Evaluation
 
-Two targeted runtime adaptations were applied with evidence:
+- **Issue**: Parallel execution of integration suites (`test:integration`) each provision disposable databases while sharing the cluster-global role `nexora_app`. Concurrently executing `ALTER ROLE nexora_app PASSWORD '...'` caused catalog update races (`tuple concurrently updated`, PostgreSQL `XX000` from `simple_heap_update`).
+- **Advisory Lock Scope**: `pg_advisory_xact_lock(hashtext('...'))` in PostgreSQL incorporates `MyDatabaseId` in its lock tag and does not serialize operations across different databases in the same cluster.
+- **Option Evaluation**:
+  - **Option A (Chosen & Refined)**: Serialize role DDL cluster-wide using `LOCK TABLE pg_authid IN EXCLUSIVE MODE`. `EXCLUSIVE MODE` conflicts with `RowExclusiveLock` (DDL role mutations) and other `EXCLUSIVE` locks, but does NOT conflict with `AccessShareLock` (used for client connection authentication and reading `pg_roles`). Trusted migration/provisioning connects as superuser `nexora` possessing required table lock privileges. Bounded waiting is strictly enforced via `SET LOCAL lock_timeout = '10s'` and `statement_timeout = '30s'`.
+  - **Option B (Coordination)**: PostgreSQL provides no cross-database advisory lock SQL function (all pass `MyDatabaseId`). External coordination brokers (Redis/queues) violate KISS/YAGNI architecture rules.
+  - **Option C (Test-only isolation)**: Would require complex inter-process test harness synchronization across independent `node:test` worker processes, leaving production/staging multi-container provisioning vulnerable.
+- **Refinements Implemented**:
+  1. `SET LOCAL lock_timeout = '10s'; SET LOCAL statement_timeout = '30s'` prevents indefinite hangs if another transaction holds catalog locks.
+  2. `isRetryableProvisionError(err)` accurately identifies transient recoverable errors: `55P03` (`lock_not_available` from lock timeout) and `XX000` with `simple_heap_update` or message `tuple concurrently updated`. Permanent errors (`42501`, `28P01`, invalid credentials, unsafe roles, syntax/schema errors) fail closed immediately without retry.
+  3. Strict secret hygiene: Password parameters and connection strings are never included in thrown errors, error causes, or CLI log output.
+  4. Added `packages/database/test/provision-runtime.test.mjs` verifying concurrent provisioning across multiple databases, timeout recovery, error classification, and secret non-leakage.
 
-1. `apps/api/test/customer-integration.test.cjs`: Updated PostgreSQL 42501 error assertion to support Prisma 7 driver adapter (`@prisma/adapter-pg`) error structure (`e.meta?.driverAdapterError?.cause?.code === "42501"`).
-2. `packages/database/scripts/provision-runtime.mjs`: Added `LOCK TABLE pg_authid IN EXCLUSIVE MODE` and retry handling on `tuple concurrently updated` to prevent race condition during parallel execution of integration test databases.
+#### 2. Verification Execution Ledger
+
+| Command / Suite                                                 | Scope & Coverage                                                                                    | Exit Code | Result                   |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------- | ------------------------ |
+| `pnpm --filter @nexora/database generate`                       | Prisma Client 7.10.0 generation                                                                     | 0         | PASS                     |
+| `pnpm format:check`                                             | Prettier code style verification                                                                    | 0         | PASS                     |
+| `pnpm lint` && `pnpm test:lint`                                 | Boundaries, ESLint rules (52 tests), domain vocabulary                                              | 0         | PASS                     |
+| `pnpm docs:check` && `pnpm test:docs`                           | Documentation links, governance, routing, metadata                                                  | 0         | PASS                     |
+| `pnpm test:operations`                                          | Smoke diagnostic format, Host-negative ingress (5 tests)                                            | 0         | PASS                     |
+| `pnpm contracts:check`                                          | OpenAPI specification & SDK regeneration drift                                                      | 0         | PASS                     |
+| `pnpm typecheck`                                                | Turbo workspace TypeScript typecheck (6 packages)                                                   | 0         | PASS                     |
+| `pnpm test`                                                     | Unit tests across all packages (including Customer 12/12 & provision-runtime)                       | 0         | PASS                     |
+| `pnpm build`                                                    | Full workspace build (Next.js web & NestJS API)                                                     | 0         | PASS                     |
+| `node --test packages/database/test/provision-runtime.test.mjs` | Concurrent provisioning, lock timeout, recovery, error classification                               | 0         | PASS                     |
+| `sh scripts/quality-docker.sh`                                  | Canonical Docker image build, database runtime smoke, quality, integration, migrations, dev cleanup | 0         | PASS                     |
+| `pnpm test:integration`                                         | All 8 integration test suites (64/64 tests) on real PostgreSQL with restricted runtime role         | 0         | PASS                     |
+| `pnpm --filter @nexora/database test:migrations`                | Migration history, legacy preservation, cutover, idempotency, drift                                 | 0         | PASS                     |
+| `sh scripts/data-smoke.sh`                                      | Customer, address, sequence and audit data persistence across restart/down-up                       | 0         | PASS                     |
+| `sh scripts/dev-smoke.sh`                                       | Dev HMR, workspace propagation, frozen lockfile drift block                                         | 0         | PASS                     |
+| `sh scripts/runtime-smoke.sh`                                   | Host TTY smoke (`pty`/`termios`) restricted on Windows; requires Linux CI runner                    | -         | NOT RUN (HOST ENV)       |
+| `sh scripts/public-https-smoke.sh`                              | Host TTY smoke (`pty`/`termios`) restricted on Windows; requires Linux CI runner                    | -         | NOT RUN (HOST ENV)       |
+| `audit-customer-addresses.sql`                                  | Operator dataset audit (Plan Issue: Option A PR gate vs Option B Deployment gate)                   | -         | NOT RUN (NO DEPLOY DATA) |
+| GitHub Actions Foundation CI                                    | Hosted workflow execution blocked by GitHub account billing/spending limit (Run 39435250386)        | -         | BLOCKED (ADMIN ACTION)   |
 
 Task status remains VERIFICATION PENDING until hosted CI runs on the GitHub Linux runner and repository owner resolves the Operator Data Audit gate adoption (Option B).

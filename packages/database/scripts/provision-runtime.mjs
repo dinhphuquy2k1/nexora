@@ -34,10 +34,28 @@ function restricted(role) {
     !role.rolbypassrls
   );
 }
+export function isRetryableProvisionError(err) {
+  if (err?.code === "55P03") return true;
+  if (
+    err?.code === "XX000" &&
+    (err?.routine === "simple_heap_update" ||
+      err?.message?.includes("concurrently updated"))
+  ) {
+    return true;
+  }
+  return false;
+}
 /** Trusted one-shot provisioning only. Never imported into API runtime. */
-export async function provisionRuntime(adminUrl, password) {
+export async function provisionRuntime(adminUrl, password, options = {}) {
   if (!/^[a-f0-9]{64}$/.test(password)) throw Error("INVALID_RUNTIME_SECRET");
-  for (let attempt = 0; attempt < 5; attempt++) {
+  const lockTimeout = options.lockTimeout || "10s";
+  const statementTimeout = options.statementTimeout || "30s";
+  if (!/^\d+(?:ms|s|min)?$/.test(lockTimeout))
+    throw Error("INVALID_TIMEOUT_FORMAT");
+  if (!/^\d+(?:ms|s|min)?$/.test(statementTimeout))
+    throw Error("INVALID_TIMEOUT_FORMAT");
+  const maxAttempts = options.maxAttempts ?? 5;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const db = new Client({
       connectionString: adminUrl,
       connectionTimeoutMillis: 5000,
@@ -49,7 +67,7 @@ export async function provisionRuntime(adminUrl, password) {
       // Password DDL is constructed only in memory. Suppress session SQL/error logging
       // before sending it; never print driver exceptions, SQL, URLs or parameters.
       await db.query(
-        "SET LOCAL log_statement='none'; SET LOCAL log_min_duration_statement=-1; SET LOCAL log_min_error_statement='panic'; SET LOCAL log_parameter_max_length_on_error=0",
+        `SET LOCAL lock_timeout='${lockTimeout}'; SET LOCAL statement_timeout='${statementTimeout}'; SET LOCAL log_statement='none'; SET LOCAL log_min_duration_statement=-1; SET LOCAL log_min_error_statement='panic'; SET LOCAL log_parameter_max_length_on_error=0`,
       );
       await db.query(
         "SELECT pg_advisory_xact_lock(hashtext('nexora_runtime_role_provision'))",
@@ -156,7 +174,7 @@ export async function provisionRuntime(adminUrl, password) {
       return;
     } catch (err) {
       await db.query("ROLLBACK").catch(() => {});
-      if (attempt < 4 && err?.message?.includes("concurrently updated")) {
+      if (attempt < maxAttempts - 1 && isRetryableProvisionError(err)) {
         await new Promise((r) => setTimeout(r, 100 * (attempt + 1)));
         continue;
       }
