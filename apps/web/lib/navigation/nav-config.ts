@@ -18,6 +18,8 @@ export interface NavItem {
   readonly iconKey: NavIconKey;
 }
 
+export const RETAIL_ROUTE = "/shipments/retail";
+
 export const NAVIGATION_ITEMS: readonly NavItem[] = [
   {
     id: "overview",
@@ -32,6 +34,14 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     label: "Vận đơn",
     href: null,
     status: "planned",
+    group: "Workspace",
+    iconKey: "shipment",
+  },
+  {
+    id: "retail",
+    label: "Kiện lẻ",
+    href: RETAIL_ROUTE,
+    status: "available",
     group: "Workspace",
     iconKey: "shipment",
   },

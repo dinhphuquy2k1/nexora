@@ -1,5 +1,7 @@
 "use client";
 
+import type { RefObject } from "react";
+import { X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PRODUCT_NAME } from "@nexora/shared";
@@ -14,15 +16,29 @@ import styles from "./Sidebar.module.css";
 
 interface SidebarProps {
   isCollapsed: boolean;
+  onClose: () => void;
+  onNavigate: (href: string) => void;
+  isMobile: boolean;
+  sidebarRef: RefObject<HTMLElement | null>;
 }
 
 const GROUPS: readonly NavGroup[] = ["Workspace", "System"] as const;
 
-export function Sidebar({ isCollapsed }: SidebarProps) {
+export function Sidebar({
+  isCollapsed,
+  onClose,
+  onNavigate,
+  isMobile,
+  sidebarRef,
+}: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside
+      ref={sidebarRef}
+      inert={isMobile && isCollapsed}
+      role={isMobile && !isCollapsed ? "dialog" : undefined}
+      aria-modal={isMobile && !isCollapsed ? true : undefined}
       className={`${styles.sidebar} ${
         isCollapsed ? styles.collapsed : styles.expanded
       }`}
@@ -30,7 +46,12 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
     >
       {/* Brand Header */}
       <div className={styles.brand}>
-        <Link href="/" className={styles.brandLink} title="Về trang tổng quan">
+        <Link
+          href="/"
+          onNavigate={() => onNavigate("/")}
+          className={styles.brandLink}
+          title="Về trang tổng quan"
+        >
           <div className={styles.logoMonogram} aria-hidden="true">
             <span className={styles.logoLetter}>N</span>
             <span className={styles.logoDot} />
@@ -43,6 +64,14 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
             </div>
           )}
         </Link>
+        <button
+          type="button"
+          className={styles.mobileClose}
+          aria-label="Đóng menu di động"
+          onClick={onClose}
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
       </div>
 
       {/* Navigation Groups */}
@@ -64,6 +93,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
                   item={item}
                   isActive={isItemActive(item, pathname)}
                   isCollapsed={isCollapsed}
+                  onNavigate={onNavigate}
                 />
               ))}
             </div>

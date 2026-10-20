@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "kind": "FRONTEND_FIXTURE_ONLY",
+  "runtime": "docker",
+  "time": "2026-10-19T09:57:42.301Z",
+  "cleanup": "PASS",
+  "checks": [
+    "Public login: no carrier dependency; computed Inter on input",
+    "Real Next URL push/back/forward/refresh; query/hash retained; page reset; settings unfiltered; shipping link restores scope",
+    "Second browser tab uses its own scope URL; first tab selection remains unchanged",
+    "Two accounts/duplicate long labels, search, keyboard selection, Escape/focus and outside dismissal",
+    "Column presets/required tracking, draft filters/chips, native dialog Inter; no fake Shipment records or success",
+    "Actual rendered custom Inter + local WOFF2 requests, Vietnamese heading and controls; 1440/1280/390 expanded/collapsed containment",
+    "Mobile drawer closes through native pointer with focus restoration; selector fits viewport",
+    "Deleted scope stays invalid without widening; actual metadata loading/error/retry/empty are distinct",
+    "Existing AccountMenu POST logout navigation (fixture backend only)"
+  ]
+}

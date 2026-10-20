@@ -258,3 +258,34 @@
   opacity: 1;
   visibility: visible;
 }
+
+.mobileClose {
+  display: none;
+}
+@media (max-width: 600px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    height: 100dvh;
+    width: min(280px, calc(100vw - 48px));
+  }
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+    visibility: hidden;
+  }
+  .brandLink {
+    flex: 1;
+    min-width: 0;
+  }
+  .brand {
+    gap: 8px;
+  }
+  .mobileClose {
+    display: inline-flex;
+    padding: 6px;
+    background: transparent;
+    color: var(--color-surface);
+  }
+}
