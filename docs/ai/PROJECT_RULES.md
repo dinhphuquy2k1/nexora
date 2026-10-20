@@ -21,6 +21,13 @@
 
 See [Architecture overview](../architecture/overview.md), [Backend](../architecture/backend.md), and [Database](../architecture/database.md).
 
+### Readable control flow and error mapping
+
+- Do not nest ternary expressions; use explicit branches or a lookup when multiple cases are involved. ESLint `no-nested-ternary: error` currently enforces this for Customer production TypeScript; extend scope deliberately without unrelated refactors.
+- Keep each feature's domain-to-HTTP mapping in one feature-local application mapper, separate from business operations, following `mapIdentityError()`. Store status and safe message together in one entry per code; never maintain parallel tables or duplicate mapping branches.
+- For closed domain error unions, require an exhaustive `Record<DomainError["code"], Mapping>` (or `satisfies` equivalent). Services catch only their domain errors and delegate; unexpected errors propagate to the existing global ErrorFilter. Preserve the `{code, message, requestId}` envelope and agreed statuses/security behavior.
+- Reuse genuinely repeated validation or control-flow policies within their owning feature. Do not introduce a generic framework or merge checks with different authorization, transaction or validation semantics merely because their syntax resembles one another.
+
 ## 3. Domain & business invariants
 
 - **Shipment domain ownership**: Nexora owns the Shipment business domain (tracking numbers, parcel dimensions/weights, fee estimates, status history).

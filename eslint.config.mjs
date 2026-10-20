@@ -27,6 +27,10 @@ export default ts.config(
     },
     rules: { "nexora/no-domain-vocabulary-literals": "error" },
   },
+  {
+    files: ["apps/api/src/customer/**/*.ts"],
+    rules: { "no-nested-ternary": "error" },
+  },
   js.configs.recommended,
   ...ts.configs.recommended,
   {

@@ -79,6 +79,11 @@ export type CustomerPatch = Partial<CustomerFields> & {
   status?: CustomerStatus;
 };
 export type CustomerCreate = CustomerFields & { address: AddressCreate };
+function customerStatus(value: unknown): CustomerStatus {
+  if (!Object.values(CustomerStatus).includes(value as CustomerStatus))
+    invalid();
+  return value as CustomerStatus;
+}
 export function customerInput(input: unknown, patch?: false): CustomerCreate;
 export function customerInput(input: unknown, patch: true): CustomerPatch;
 export function customerInput(
@@ -108,11 +113,7 @@ export function customerInput(
       invalid();
   }
   if (Object.hasOwn(body, "note")) out.note = nullable(body.note, 5000);
-  if (Object.hasOwn(body, "status")) {
-    if (!Object.values(CustomerStatus).includes(body.status as CustomerStatus))
-      invalid();
-    out.status = body.status as CustomerStatus;
-  }
+  if (Object.hasOwn(body, "status")) out.status = customerStatus(body.status);
   if (patch) return out;
   const fields = out as CustomerFields;
   return { ...fields, address: addressInput(body.address, fields) };
@@ -214,11 +215,7 @@ export function listQuery(input: unknown): CustomerQuery {
     }
   }
   if (Object.hasOwn(query, "phone")) out.phone = normalizePhone(query.phone);
-  if (Object.hasOwn(query, "status")) {
-    if (!Object.values(CustomerStatus).includes(query.status as CustomerStatus))
-      invalid();
-    out.status = query.status as CustomerStatus;
-  }
+  if (Object.hasOwn(query, "status")) out.status = customerStatus(query.status);
   return out;
 }
 export interface CustomerSummary extends CustomerFields {

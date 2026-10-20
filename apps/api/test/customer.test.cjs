@@ -366,3 +366,96 @@ test("generated contract requires initial address, leaves PATCH independent and 
     "#/components/schemas/ApiErrorDto",
   );
 });
+
+test("central Customer mapper preserves every code/status/message without leaking domain details", async () => {
+  const { CustomerError } = require("../dist/customer/domain/customer");
+  const {
+    mapCustomerError,
+    CUSTOMER_ERROR_MAP,
+  } = require("../dist/customer/application/customer-error");
+  const {
+    CustomerService,
+  } = require("../dist/customer/application/customer.service");
+  const expected = [
+    ["VALIDATION_ERROR", 400, "Không thể thực hiện yêu cầu"],
+    ["UNAUTHORIZED", 401, "Không thể thực hiện yêu cầu"],
+    ["NOT_FOUND", 404, "Không thể thực hiện yêu cầu"],
+    ["CUSTOMER_PHONE_EXISTS", 409, "Không thể thực hiện yêu cầu"],
+    [
+      "LAST_CUSTOMER_ADDRESS",
+      409,
+      "Không thể xóa địa chỉ cuối cùng của khách hàng.",
+    ],
+    [
+      "DEFAULT_ADDRESS_REASSIGN_REQUIRED",
+      409,
+      "Cần chuyển địa chỉ mặc định trước khi xóa.",
+    ],
+  ];
+  assert.deepEqual(
+    Object.keys(CUSTOMER_ERROR_MAP).sort(),
+    expected.map(([code]) => code).sort(),
+  );
+  for (const [code, status, message] of expected) {
+    const error = new CustomerError(code);
+    error.message = "private database information";
+    const mapped = mapCustomerError(error);
+    assert.equal(mapped.getStatus(), status);
+    assert.deepEqual(mapped.getResponse(), { code, message });
+    const service = new CustomerService({
+      list: async () => {
+        throw error;
+      },
+    });
+    await assert.rejects(service.list({ id: "actor" }, {}), (e) => {
+      assert.equal(e.getStatus(), status);
+      assert.deepEqual(e.getResponse(), { code, message });
+      return true;
+    });
+  }
+});
+
+test("adding a CustomerError code without a mapping fails TypeScript exhaustiveness", () => {
+  const ts = require("typescript");
+  const path = require("node:path");
+  const configPath = path.resolve(__dirname, "../tsconfig.customer-tests.json");
+  const config = ts.readConfigFile(configPath, ts.sys.readFile);
+  assert.equal(config.error, undefined);
+  const parsed = ts.parseJsonConfigFileContent(
+    config.config,
+    ts.sys,
+    path.dirname(configPath),
+  );
+  const host = ts.createCompilerHost(parsed.options);
+  const original = host.getSourceFile.bind(host);
+  host.getSourceFile = (filename, languageVersion, ...rest) => {
+    const source = original(filename, languageVersion, ...rest);
+    if (source && filename.endsWith("/customer/domain/customer.ts")) {
+      return ts.createSourceFile(
+        filename,
+        source.text.replace(
+          '| "VALIDATION_ERROR"',
+          '| "UNMAPPED_CUSTOMER_ERROR" | "VALIDATION_ERROR"',
+        ),
+        languageVersion,
+        true,
+      );
+    }
+    return source;
+  };
+  const program = ts.createProgram(
+    parsed.fileNames,
+    { ...parsed.options, noEmit: true },
+    host,
+  );
+  const diagnostics = program.getSemanticDiagnostics();
+  assert.ok(
+    diagnostics.some(
+      (d) =>
+        d.file?.fileName.endsWith("/customer/application/customer-error.ts") &&
+        ts
+          .flattenDiagnosticMessageText(d.messageText, " ")
+          .includes("UNMAPPED_CUSTOMER_ERROR"),
+    ),
+  );
+});

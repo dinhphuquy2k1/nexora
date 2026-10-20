@@ -1,4 +1,5 @@
-import { Injectable, HttpException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
+import { mapCustomerError } from "./customer-error";
 import { CustomerPort } from "./customer.port";
 import { resolveCustomerOwner } from "./customer-owner";
 import {
@@ -20,26 +21,7 @@ export class CustomerService {
       return await action(resolveCustomerOwner(actor));
     } catch (e) {
       if (!(e instanceof CustomerError)) throw e;
-      const statuses = {
-        VALIDATION_ERROR: 400,
-        UNAUTHORIZED: 401,
-        NOT_FOUND: 404,
-        CUSTOMER_PHONE_EXISTS: 409,
-        LAST_CUSTOMER_ADDRESS: 409,
-        DEFAULT_ADDRESS_REASSIGN_REQUIRED: 409,
-      };
-      throw new HttpException(
-        {
-          code: e.code,
-          message:
-            e.code === "LAST_CUSTOMER_ADDRESS"
-              ? "Không thể xóa địa chỉ cuối cùng của khách hàng."
-              : e.code === "DEFAULT_ADDRESS_REASSIGN_REQUIRED"
-                ? "Cần chuyển địa chỉ mặc định trước khi xóa."
-                : "Không thể thực hiện yêu cầu",
-        },
-        statuses[e.code],
-      );
+      throw mapCustomerError(e);
     }
   }
   list(actor: { id: string }, query: unknown) {
