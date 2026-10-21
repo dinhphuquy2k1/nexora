@@ -20,5 +20,6 @@ trap restart EXIT HUP INT TERM
 compose stop api web
 # run invokes mapped-user entrypoint; exec bypasses that mapping.
 compose run --rm --no-deps -T quality sh -c 'NODE_ENV=production API_INTERNAL_URL=http://api:4000 pnpm quality && NODE_ENV=test pnpm test:integration && pnpm --filter @nexora/database test:migrations'
+python3 scripts/provision-cluster-smoke.test.py
 python3 scripts/provision-cluster-smoke.py
 python3 scripts/dev-cleanup-smoke.py
