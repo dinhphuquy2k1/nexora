@@ -45,6 +45,8 @@ Customer backend ownership/schema/sequence/grants,8 HTTP contracts, normalizatio
 
 ### Canonical owners
 
+- docs/decisions/tactical-ddd.md and decisions/README.md
+- docs/ai/PROJECT_RULES.md, IMPLEMENTATION_WORKFLOW.md, DOCUMENT_ROUTER.md, PROJECT_CONTEXT.md
 - docs/architecture/database.md
 - docs/architecture/backend.md
 - docs/architecture/api-contract.md
@@ -366,3 +368,49 @@ One independent format/lint invocation encountered ENOSPC while disposable Docke
 Baseline hosted run39523798982 job118973638654 currently reports FAILURE, runner_id0 and no steps. This session has not read a latest annotation; no current billing/quota root cause is asserted. Operator Data Audit Gate remains pending owner decision as previously recorded. Task remains VERIFICATION PENDING and no merge is authorized.
 
 Final controlled suite now has14 tests, including unresolved-create recovery and unowned-name refusal, adding a diagnostic regression that retains suite exit/exception category/SQLSTATE while rejecting SQL/password disclosure. Failed suite stdout/stderr is reduced to that safe diagnostic; successful synthetic test output still records actual SQL suite PASS. No raw statement or secret is added to reports.
+
+## Owner-approved scope amendment — Customer Tactical DDD & Mandatory Future Domain Rules
+
+SIGNIFICANT; Documentation Impact: REQUIRED. Owner's final instruction supersedes the earlier stacked-PR proposal: implement directly in PR23 on feat/customer-management-backend-v1, baseline e141700d37f2f845b3c4dcdf76b6e4c111ec217b. No new task/PR. An unused clean worktree/branch from the superseded prompt has no new commits/changes and is preserved without further use. The owner explicitly chooses Modular Monolith + Clean Architecture + Tactical DDD + Ports & Adapters before Customer merge. This is approved architecture direction, not runtime verification.
+
+### Domain Modeling Preflight
+
+- Ownership/language: Customer profile and recipient CustomerAddress belong to the authenticated local user; neither is Identity login or Carrier account. No ADMIN bypass or new cross-domain writes. Existing Identity supplies trusted actor and ACTIVE fence only.
+- Aggregate boundary: CustomerAggregate owns profile and Address collection; CustomerAddressEntity has optional pending identity until database insertion and a stable persisted identity afterward. No Address repository or generic save/framework.
+- Value Objects: immutable PhoneNumber and CountryCode own existing pinned normalization/validation; ordinary text/email/nullability policies use small pure domain functions. Canonical CustomerStatus/Error remain in domain/customer.ts to avoid vocabulary duplication and preserve exhaustive error mapping.
+- Domain API: create(fields, initialAddress), rehydrate(persisted snapshot), updateProfile, addAddress, updateAddress, removeAddress, setDefaultAddress. Expose copied snapshots and typed per-operation write data only; no mutable aggregate/entity/date references or ownership/code setters. Database owns UUID/code/timestamps. Draft create/add state has no fake/generated identity.
+- Input boundary: strict records/allowlists/UUID/query pagination move to application/customer.input.ts; existing validation semantics retained through the same domain value validators, no alternate phone/country implementations. Request-shape checks remain before port calls. Input helper compatibility tests move imports rather than deleting assertions.
+- Port/transactions: retain small use-case CustomerPort and Nest wiring. Adapter locks/rechecks ACTIVE actor, locks existing owner-scoped Customer, hydrates consistent complete aggregate under those locks, invokes domain transition, then persists only affected profile/address/default fields in that transaction. List/detail reads retain projections and order. No hydration outside a write transaction, bulk address rewrite, network I/O or lock substitution.
+- Creation: aggregate validates required initial address/fallback/default; infrastructure persists domain draft Customer+Address atomically and uses database-generated UUID/code/timestamps. Add Address returns a pending insertion intent with fallback/default selected by the aggregate; infrastructure inserts it and returns DB projection.
+- Legacy decision: rehydrate copies persisted state without enforcing new-creation cardinality, renormalizing data, fabricating addresses or choosing defaults. Existing zero/no-default states remain readable; owner-directed Add Address (first/no-default becomes default) or explicit Set Default repairs them. Profile/address updates do not silently repair unrelated state. Multiple-default/schema corruption remains the existing runbook incident, not automatic repair.
+- Deletion/default: membership first NOT_FOUND, then LAST, then DEFAULT conflict; default selection idempotent and never rewrites recipient fields. DB partial unique index and existing actor→Customer lock order remain authoritative for concurrent persistence.
+- Compatibility matrix:8 endpoints/DTO/status/messages/envelope/guards/no-store/query/null/date ordering identical; zero OpenAPI/SDK/schema/migration/grant/provisioning/launcher drift. No Identity/Carrier refactor or Shipment implementation.
+
+### Implementation milestones and verification
+
+1. Add isolated aggregate/VO behavior tests (RED), preserve existing application/validation/error regressions. Cover creation/fallback, independent recipient, encapsulation including Date copies, nullable updates/status, membership/LAST/DEFAULT priority, idempotence and legacy repair.
+2. Implement domain model and separate application parsing; one source for every value policy. Domain imports no Nest/Prisma/HTTP/application/infrastructure. Adapt service/port imports without changing transport.
+3. Add infrastructure mapper and hydrate only after existing locks; execute domain transitions and scoped minimal SQL writes. Keep real integration race/rollback/owner/Origin/session/log assertions and extend only for refactor compatibility. Native SQL untouched.
+4. Record accepted ADR008 (after checking IDs); synchronize mandatory future-domain rules, Modeling Preflight, router, backend/customer docs and indexes. Exceptions require explicit reviewed rationale; existing Identity/Carrier/Health/Storage grandfathered.
+5. Run targeted aggregate/application tests and actual disposable SQL cluster, contracts/boundaries/docs, full typecheck/test/integration/build, canonical quality and required runtime suites as prerequisites allow. Record new source/time/exit/results; no historical evidence transfers to DDD. Engine/network/hosted blockers remain independent, no bypass. Keep VERIFICATION PENDING while mandatory gates fail/unrun.
+
+Acceptance: real aggregate behavior/encapsulation, domain purity, safe locked hydration/minimal persistence, unchanged8 API/database contracts, legacy recovery, all prior assertions retained, required governance adopted, fresh genuine runtime/CI verification before readiness. Main risks are default uniqueness write ordering, stale-state hydration, accidental timestamp/idempotence drift, stricter legacy construction and duplicated validation; tests and scoped transaction design above address them. No unresolved ownership/schema issue authorizes a migration or extra framework.
+
+### DDD implementation and precommit evidence
+
+At source e141700d37f2f845b3c4dcdf76b6e4c111ec217b with this task's dirty changes, new isolated tests first fail for missing customer.aggregate module (RED). Domain implementation then passes9 aggregate/VO/hydration groups plus all12 pre-existing Customer groups; an added eight-operation service orchestration regression brings targeted total22. No old assertions are removed: parsing tests import the new application boundary; canonical status/error/policy/exhaustiveness remain in domain/customer.ts. The genuine Customer HTTP scenario is retained and extended with profile-update/independent-recipient/id/timestamp projection compatibility; new assertions are written, not claimed executed.
+
+Model: private aggregate identity/profile/status/child collection; immutable child replacement and copied snapshots/dates; pending identities without generated domain UUIDs; create/profile/add/update/remove/default transitions own policy. PhoneNumber/CountryCode and shared value functions are the only normalization/validation implementations, used defensively at input and transition boundaries. Rehydration preserves legacy cardinality/scalars exactly, only explicit operations repair. Creation/addition/default/deletion decisions no longer live in adapter queries. Adapter hydrates after actor→Customer locks, uses per-operation write data, clears then sets defaults in the same transaction, returns fresh DB projections and retains scoped persistence-level NOT_FOUND checks and narrow phone-constraint classification. Read models remain projections. AppModule/DTO/controller/mapper statuses/messages/guards and all schema/migration/grant/provisioning/test-infrastructure files remain unchanged.
+
+Governance: accepted ADR008 records explicit owner direction (not runtime acceptance); Project Rules/Workflow/Router/Backend/Customer/docs indexes/context/overview describe adoption and existing-module grandfathering. No new task or PR. Boundary AST negatives reject domain Nest/HTTP/outward-layer imports, application outward layers and presentation adapter access; positive existing conventions and all existing modules lint without refactors. No generic DDD framework or new dependency.
+
+| Claim                                                   | Evidence                                                                                                  | Date       | Result |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| New aggregate behavior API absent before implementation | pnpm --filter @nexora/api test:customer with new aggregate tests, missing module RED                      | 2026-10-21 | FAIL   |
+| Aggregate/application/input/error compatibility         | same command after implementation;22 groups, genuine subset TypeScript compilation, no Prisma replacement | 2026-10-21 | PASS   |
+| Pure mapper and snapshot encapsulation                  | targeted tests include metadata/date copying, legacy hydration, domain transitions and persistence mapper | 2026-10-21 | PASS   |
+| Domain/application/controller architecture guards       | pnpm lint; AST negatives plus complete repository imports/ESLint                                          | 2026-10-21 | PASS   |
+| Public OpenAPI/SDK compatibility                        | pnpm contracts:check; regenerate and zero byte/file-set drift                                             | 2026-10-21 | PASS   |
+| Documentation governance and links                      | pnpm docs:check after ADR/rules/index/domain synchronization                                              | 2026-10-21 | PASS   |
+
+Remaining verification is independent of these precommit results: fresh frozen installation, current-head genuine Prisma/full API build/typecheck and real Nest/PG races, native isolated cluster, canonical quality, LOCAL/HTTPS/data/dev smoke and hosted Foundation must be recorded with actual exits/timestamps. No prior PR23 PASS transfers to DDD. Operator Data Audit gate remains pending the previously recorded owner decision; architecture approval does not approve data inspection or waive release/merge gates. Task remains VERIFICATION PENDING. Final source/check evidence belongs in PR metadata after commit, not a self-referencing documentation loop.

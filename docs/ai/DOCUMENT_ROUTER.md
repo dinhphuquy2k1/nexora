@@ -21,6 +21,10 @@ The human-oriented documentation categories and canonical ownership map live in 
 
 Always inspect the active task specification under [`../tasks/active/`](../tasks/active/) when one exists.
 
+## Tactical DDD reading route
+
+For a new business domain or significant domain expansion, read [mandatory DDD ADR](../decisions/tactical-ddd.md), [Backend architecture](../architecture/backend.md), the relevant domain document, [Customer reference model](../domains/customers.md) and [Testing](../operations/testing.md). Inspect Customer domain/application/adapter code for concrete locked-hydration and transition mapping; do not copy Customer business rules into other domains. Project Rules own enforcement; ADR owns rationale; domain docs own business semantics. Canonical document ownership remains defined in docs/README.md.
+
 ## 2. Documentation Impact review routes
 
 Use this table as a review guide after classifying Documentation Impact:

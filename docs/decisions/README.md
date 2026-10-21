@@ -12,6 +12,7 @@ This directory contains Architecture Decision Records (ADRs) for Nexora. Durable
 | [ADR-004](per-app-docker-architecture.md)    | Per-application Docker architecture & shared BuildKit dependency foundation | 2026-10-10 | Accepted |
 | [ADR-006](scope-reduction-backup-restore.md) | Removal of custom Backup/Restore subsystem & test simplification            | 2026-10-13 | Accepted |
 | [ADR-007](multi-carrier-architecture.md)     | Multi-Carrier Management, Security Architecture & Independent Identity      | 2026-10-14 | Accepted |
+| [ADR-008](tactical-ddd.md)                   | Tactical DDD for Nexora Business Domains                                    | 2026-10-21 | Accepted |
 
 ## Foundational architectural topics
 

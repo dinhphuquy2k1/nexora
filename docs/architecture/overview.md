@@ -12,6 +12,8 @@ PLANNED: Customer frontend, shipment tracking & status history, weights/estimate
 | packages/ui       | Panel and status badge used by web                                                                                              |
 | packages/shared   | Product name and foundation version consumed by web                                                                             |
 
+Business domains follow [ADR-008](../decisions/tactical-ddd.md): Modular Monolith + Clean Architecture + Tactical DDD + Ports & Adapters. Customer is the code reference; existing Identity/Carrier modules are grandfathered.
+
 No application imports another application. Future capabilities get domain/application/infrastructure/presentation separation only when actual code exists. No Redis, queues, MinIO, Kubernetes or additional backend in Next.
 
 Architectural lint reads TypeScript import/export, require and dynamic-import literals, including relative workspace paths. Only API infrastructure consumes database code. Frontend never imports database code. SDK never imports backend runtime code.

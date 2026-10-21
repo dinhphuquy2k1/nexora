@@ -28,6 +28,16 @@ See [Architecture overview](../architecture/overview.md), [Backend](../architect
 - For closed domain error unions, require an exhaustive `Record<DomainError["code"], Mapping>` (or `satisfies` equivalent). Services catch only their domain errors and delegate; unexpected errors propagate to the existing global ErrorFilter. Preserve the `{code, message, requestId}` envelope and agreed statuses/security behavior.
 - Reuse genuinely repeated validation or control-flow policies within their owning feature. Do not introduce a generic framework or merge checks with different authorization, transaction or validation semantics merely because their syntax resembles one another.
 
+### Mandatory Tactical DDD for business domains
+
+Nexora adopts Modular Monolith, Clean Architecture, Ports & Adapters and Tactical DDD for new business domains and the Customer reference migration. Before implementation, record ownership/language/context, aggregate consistency boundary, entity lifecycle, meaningful Value Objects/invariants, commands/use cases, persistence ports/adapters, cross-domain dependencies and concurrency/test strategy. Resolve ownership/boundary PLAN ISSUES before business writes. [ADR-008](../decisions/tactical-ddd.md) owns rationale and rollout.
+
+- Business decisions belong to aggregates/domain policies; application orchestrates trusted actors/commands/ports. Infrastructure supplies locked facts and persists transitions; it retains authorization rechecks, DB constraints and technical error classification. No domain NestJS/Prisma/HTTP or outward layer imports; no application Prisma or controller adapter access.
+- Encapsulate aggregates/child entities; copy snapshots including Date/collection references. No generic write bypass, mutable ownership/code setters or aggregate-as-DTO. Hydrate mutable state only under its transaction/locks; never bulk-delete/reinsert children to save an aggregate or substitute in-memory locks for PostgreSQL consistency.
+- Use Value Objects for actual invariants, not all primitives. Read models may use scoped projections without aggregate hydration. Aggregate omissions for pure queries/stateless/supporting/infrastructure capabilities need explicit reviewed plan rationale. No silent exception.
+- Customer is the reference; future Shipment/Tracking/Freight Fee domains must follow this preflight without being implemented by this policy. Identity/Carrier/Health/Storage remain grandfathered; substantial extensions require a scoped adoption assessment, not wholesale refactoring.
+- Keep KISS/YAGNI: no generic DDD bases/repository/Unit of Work, event bus, CQRS, Event Sourcing, shared kernel, microservices or new dependencies without a concrete need and accepted decision. Boundary lint enforces domain purity/controller separation, while reviewers verify invariants, hydration and transaction semantics.
+
 ## 3. Domain & business invariants
 
 - **Shipment domain ownership**: Nexora owns the Shipment business domain (tracking numbers, parcel dimensions/weights, fee estimates, status history).

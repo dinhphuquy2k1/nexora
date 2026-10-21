@@ -17,6 +17,8 @@ Nexora is **not** Lyra's carrier invoice freight reconciliation system and **not
 
 ## 2. Architecture & technology baseline
 
+Business-domain architecture: Modular Monolith + Clean Architecture + Tactical DDD + Ports & Adapters, per [ADR-008](../decisions/tactical-ddd.md). Customer is the reference migration; new domains require modeling preflight. Existing Identity/Carrier/Health/Storage are grandfathered.
+
 Nexora is structured as a pnpm workspace and Turborepo modular monolith:
 
 | Component           | Technology                        | Responsibility                                                                |
