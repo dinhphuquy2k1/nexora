@@ -1,6 +1,8 @@
-# Backend TypeScript Instructions
+---
+applyTo: "apps/api/src/**/*.ts"
+---
 
-Target paths: `apps/api/src/**/*.ts`
+# Backend TypeScript Instructions
 
 When editing API production TypeScript files:
 

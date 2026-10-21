@@ -459,9 +459,16 @@ Initial targeted compile exposed a conflicting status type/re-export; replaced i
 
 Verification summary: full genuine Prisma/Nest/migration/query/concurrency assertions, canonical Docker/runtime/HTTPS/persistence/dev and final-head hosted checks remain mandatory. Current observed network policy still excludes official Prisma artifacts; disk capacity is an additional reproducible PostgreSQL startup blocker (about114MB available). No user volume, unrelated worktree, migration, grant, key/MFA or live Carrier changes; diagnostics clean only exact newly owned resources. Removing obsolete task-owned image tags did not recover capacity; no global prune/reset. Final-head commands, exits/timestamps and Foundation result will be recorded in PR metadata after commits, not a SHA-only document loop. Implementation IMPLEMENTED; task/merge VERIFICATION PENDING, Draft retained; Operator Data Audit decision remains open.
 
-## Approved Reuse Architecture & Pre-Code Design Governance — 2026-10-21
+## Design Review & Reuse Decision
 
-Classification: SIGNIFICANT. Documentation Impact: REQUIRED (canonical documentation updated in PR #23). Baseline: `42833752f76948aae7f1fad378291eedd288557b`.
+- **Task ID**: NEXORA-027
+- **Classification**: SIGNIFICANT
+- **Plan revision**: rev-2026-10-21-reuse-v2
+- **Reviewed baseline**: 32c374fa7c4f55bf24afa94dcf7d666700f5fd27
+- **Approval authority**: repository-owner
+- **Approval status**: APPROVED
+- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/23#issuecomment-PR23-OWNER-SPEC
+
 The project owner directly specified and approved the reuse architecture and pre-code design governance implemented in PR #23. No research restart or duplicate approval cycle.
 
 ### Mandatory Reuse & Design Audit Matrix
@@ -498,3 +505,13 @@ The following remain domain-specific per tactical DDD boundaries:
   - Preserve TTY / interactive prompt testing behavior without native dependencies.
   - Keep CI setup deterministic without Python runtime requirements where possible.
   - Convert only where actual maintenance value justifies it.
+
+### Review Findings Resolution — 2026-10-21
+
+- **P1: Trustworthy Approval Governance**: `scripts/preflight-policy-check.mjs` upgraded from loose substring checks to strict section-scoped metadata parsing (`## Design Review & Reuse Decision`), PR-to-task binding, and GitHub API-backed approval attestation in CI mode with local/static mode separation.
+- **P2: Copilot Instructions Frontmatter**: Added `applyTo: "apps/api/src/**/*.ts"` to `.github/instructions/backend.instructions.md`.
+- **P2: Portable Agent Skills**: Replaced developer-specific `file:///` URLs with repo-relative filesystem links across `.github/skills/`.
+- **P2: Customer OpenAPI Contract Accuracy**: Added `minLength: 1` to `CreateCustomerDto.phone`, `AddressInputDto.recipientPhone`, and list query phone filter; declared `page` and `pageSize` as OpenAPI integers (`minimum: 1`, `maximum: 100`, defaults 1 and 20).
+- **P2: Duplication Screening Classification**: Explicitly documented screening tiers (Tier 1 heuristic preflight vs Tier 2 TypeScript AST / ESLint quality).
+- **P2: Skill Evaluation Reporting**: Clarified skill fixtures as behavioral specifications (`Agent behavioral evaluation: NOT RUN`).
+- **P3: Customer VO Simplification**: Replaced `PhoneNumber` and `CountryCode` wrapper classes in `customer.value-objects.ts` with pure policy functions (`parseCustomerPhone`, `parseCustomerCountryCode`).

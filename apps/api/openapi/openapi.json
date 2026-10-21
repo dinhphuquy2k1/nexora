@@ -12,7 +12,7 @@
             "schema": {
               "minimum": 1,
               "default": 1,
-              "type": "number"
+              "type": "integer"
             }
           },
           {
@@ -23,7 +23,7 @@
               "minimum": 1,
               "maximum": 100,
               "default": 20,
-              "type": "number"
+              "type": "integer"
             }
           },
           {
@@ -53,6 +53,7 @@
             "in": "query",
             "description": "Exact match after phone normalization",
             "schema": {
+              "minLength": 1,
               "maxLength": 64,
               "type": "string"
             }
@@ -1901,6 +1902,7 @@
           },
           "recipientPhone": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 64,
             "description": "Validated phone; defaults to customer phone on create"
           },
@@ -1931,6 +1933,7 @@
           },
           "phone": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 64,
             "description": "Valid national VN or international phone; stored E.164"
           },
@@ -2089,6 +2092,7 @@
           },
           "phone": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 64,
             "description": "Valid national VN or international phone; stored E.164"
           },
@@ -2139,6 +2143,7 @@
           },
           "recipientPhone": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 64,
             "description": "Validated phone; defaults to customer phone on create"
           },

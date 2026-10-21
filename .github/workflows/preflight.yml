@@ -5,6 +5,7 @@ on:
     branches: [main]
 permissions:
   contents: read
+  pull-requests: read
 jobs:
   preflight-governance:
     name: Preflight Governance & Duplication Check
@@ -18,5 +19,7 @@ jobs:
           node-version: 24.19.0
       - name: Run deterministic preflight policy check
         run: node scripts/preflight-policy-check.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run preflight policy check tests
         run: node --test scripts/preflight-policy-check.test.mjs

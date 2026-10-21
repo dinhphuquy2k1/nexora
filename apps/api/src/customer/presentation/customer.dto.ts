@@ -15,6 +15,7 @@ export class AddressInputDto {
   })
   recipientName?: string;
   @ApiPropertyOptional({
+    minLength: 1,
     maxLength: 64,
     description: "Validated phone; defaults to customer phone on create",
   })
@@ -32,6 +33,7 @@ export class AddressPatchDto extends PartialType(AddressInputDto) {}
 export class CreateCustomerDto {
   @ApiProperty({ minLength: 1, maxLength: 200 }) name!: string;
   @ApiProperty({
+    minLength: 1,
     maxLength: 64,
     description: "Valid national VN or international phone; stored E.164",
   })
@@ -102,13 +104,20 @@ export class CustomersResponseDto {
   pagination!: CustomerPaginationDto;
 }
 export class CustomerListQueryDto {
-  @ApiPropertyOptional({ type: Number, minimum: 1, default: 1 }) page?: string;
-  @ApiPropertyOptional({ type: Number, minimum: 1, maximum: 100, default: 20 })
+  @ApiPropertyOptional({ type: "integer", minimum: 1, default: 1 })
+  page?: string;
+  @ApiPropertyOptional({
+    type: "integer",
+    minimum: 1,
+    maximum: 100,
+    default: 20,
+  })
   pageSize?: string;
   @ApiPropertyOptional({ maxLength: 200 }) q?: string;
   @ApiPropertyOptional({ enum: Object.values(CustomerStatus) })
   status?: CustomerStatusCode;
   @ApiPropertyOptional({
+    minLength: 1,
     maxLength: 64,
     description: "Exact match after phone normalization",
   })

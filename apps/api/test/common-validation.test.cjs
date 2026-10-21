@@ -174,3 +174,113 @@ test("CountryCode: validates ISO 3166-1 alpha-2, uppercases, excludes XK", () =>
     );
   }
 });
+
+const {
+  parseCustomerPhone,
+  parseCustomerCountryCode,
+} = require("../dist/customer/domain/customer.value-objects");
+
+test("Customer pure VO policy functions: parseCustomerPhone and parseCustomerCountryCode", () => {
+  // Valid VN phone via pure domain function
+  const phoneVn = parseCustomerPhone("0912345678");
+  assert.equal(phoneVn.value, "+84912345678");
+
+  // Valid international phone
+  const phoneIntl = parseCustomerPhone("+1 202 555 0123");
+  assert.equal(phoneIntl.value, "+12025550123");
+
+  // CountryCode normalization via pure domain function
+  const codeVn = parseCustomerCountryCode("vn");
+  assert.equal(codeVn.value, "VN");
+  const codeUs = parseCustomerCountryCode(" US ");
+  assert.equal(codeUs.value, "US");
+
+  // Rejections map directly to CustomerError("VALIDATION_ERROR")
+  const invalidPhones = [
+    "",
+    "   ",
+    null,
+    undefined,
+    12345,
+    "not-a-phone",
+    "x".repeat(65), // exceeds Customer raw max length of 64
+    "0912345678 ext 123", // extension rejected
+  ];
+  for (const p of invalidPhones) {
+    assert.throws(
+      () => parseCustomerPhone(p),
+      (err) => err instanceof CustomerError && err.code === "VALIDATION_ERROR",
+      `Expected CustomerError("VALIDATION_ERROR") for phone: ${p}`,
+    );
+  }
+
+  const invalidCodes = [
+    "",
+    "   ",
+    null,
+    undefined,
+    "XK", // XK excluded
+    "USA", // 3 chars
+    "ZZ", // invalid ISO
+    12,
+  ];
+  for (const c of invalidCodes) {
+    assert.throws(
+      () => parseCustomerCountryCode(c),
+      (err) => err instanceof CustomerError && err.code === "VALIDATION_ERROR",
+      `Expected CustomerError("VALIDATION_ERROR") for country: ${c}`,
+    );
+  }
+});
+
+const fs = require("node:fs");
+const path = require("node:path");
+
+test("OpenAPI schema: Customer pagination parameters are integer and phone fields have minLength 1", () => {
+  const openApiContent = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, "../openapi/openapi.json"), "utf8"),
+  );
+
+  // Check /api/customers GET parameters
+  const listParams = openApiContent.paths["/api/customers"].get.parameters;
+  const pageParam = listParams.find((p) => p.name === "page");
+  const pageSizeParam = listParams.find((p) => p.name === "pageSize");
+  const phoneParam = listParams.find((p) => p.name === "phone");
+
+  assert.ok(pageParam, "Query parameter 'page' must exist");
+  assert.equal(pageParam.schema.type, "integer");
+  assert.equal(pageParam.schema.minimum, 1);
+  assert.equal(pageParam.schema.default, 1);
+
+  assert.ok(pageSizeParam, "Query parameter 'pageSize' must exist");
+  assert.equal(pageSizeParam.schema.type, "integer");
+  assert.equal(pageSizeParam.schema.minimum, 1);
+  assert.equal(pageSizeParam.schema.maximum, 100);
+  assert.equal(pageSizeParam.schema.default, 20);
+
+  assert.ok(phoneParam, "Query parameter 'phone' must exist");
+  assert.equal(phoneParam.schema.minLength, 1);
+  assert.equal(phoneParam.schema.maxLength, 64);
+
+  // No duplicate query parameters
+  const paramNames = listParams.map((p) => p.name);
+  assert.equal(
+    new Set(paramNames).size,
+    paramNames.length,
+    "Query parameters must have unique names",
+  );
+
+  // Check CreateCustomerDto
+  const createSchema = openApiContent.components.schemas.CreateCustomerDto;
+  assert.equal(createSchema.properties.phone.minLength, 1);
+  assert.equal(createSchema.properties.phone.maxLength, 64);
+
+  // Check AddressInputDto
+  const addressSchema = openApiContent.components.schemas.AddressInputDto;
+  assert.equal(addressSchema.properties.recipientPhone.minLength, 1);
+  assert.equal(addressSchema.properties.recipientPhone.maxLength, 64);
+
+  // Check PatchCustomerDto inherits minLength: 1
+  const patchSchema = openApiContent.components.schemas.PatchCustomerDto;
+  assert.equal(patchSchema.properties.phone.minLength, 1);
+});

@@ -7,7 +7,7 @@ description: Conducts post-implementation code review, auditing git diffs agains
 
 ## Purpose & Scope
 
-This skill performs rigorous post-implementation code review for Nexora, ensuring pull requests comply with approved designs, maintain tactical DDD boundaries, avoid unintended duplication, and preserve database transaction integrity per [ADR-008](file:///d:/work/nexora/docs/decisions/tactical-ddd.md) and [ADR-009](file:///d:/work/nexora/docs/decisions/mandatory-pre-code-design-review.md).
+This skill performs rigorous post-implementation code review for Nexora, ensuring pull requests comply with approved designs, maintain tactical DDD boundaries, avoid unintended duplication, and preserve database transaction integrity per [ADR-008](../../../docs/decisions/tactical-ddd.md) and [ADR-009](../../../docs/decisions/mandatory-pre-code-design-review.md).
 
 ## Review Checklist
 
@@ -25,7 +25,7 @@ This skill performs rigorous post-implementation code review for Nexora, ensurin
   - Direct telephone parsing outside `apps/api/src/common/value-objects/phone-number.ts`.
   - Direct country code validation outside `apps/api/src/common/value-objects/country-code.ts`.
   - Hardcoded generic error strings outside `apps/api/src/common/http/error-messages.ts`.
-- Consult [Reusable Components Registry](file:///d:/work/nexora/docs/architecture/reusable-components.md).
+- Consult [Reusable Components Registry](../../../docs/architecture/reusable-components.md).
 
 ### 3. Boundary & Layer Purity
 

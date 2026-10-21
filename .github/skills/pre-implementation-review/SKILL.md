@@ -7,7 +7,7 @@ description: Conducts mandatory pre-code design reviews, read-only repository in
 
 ## Purpose & Scope
 
-This skill enforces Nexora's pre-code design governance mandated by [ADR-009](file:///d:/work/nexora/docs/decisions/mandatory-pre-code-design-review.md) and [Implementation Workflow](file:///d:/work/nexora/docs/ai/IMPLEMENTATION_WORKFLOW.md). It triggers before writing any implementation code, test-code modifications, database schema changes, scaffolding, or dependency additions.
+This skill enforces Nexora's pre-code design governance mandated by [ADR-009](../../../docs/decisions/mandatory-pre-code-design-review.md) and [Implementation Workflow](../../../docs/ai/IMPLEMENTATION_WORKFLOW.md). It triggers before writing any implementation code, test-code modifications, database schema changes, scaffolding, or dependency additions.
 
 ## Workflow Instructions
 
@@ -23,7 +23,7 @@ Determine the task classification:
 
 Before proposing changes:
 
-- Search existing code for related symbols, classes, and patterns. Consult [Reusable Components Registry](file:///d:/work/nexora/docs/architecture/reusable-components.md).
+- Search existing code for related symbols, classes, and patterns. Consult [Reusable Components Registry](../../../docs/architecture/reusable-components.md).
 - Inspect layer boundaries and current test fixtures.
 - Record any architectural contradiction as a concrete `PLAN ISSUE` rather than overriding repository rules.
 
@@ -44,7 +44,7 @@ A claim of "no reusable code found" is invalid without describing the search sco
 
 ### 4. Tactical DDD Ownership Preflight
 
-For new business domains or SIGNIFICANT domain features, verify [ADR-008](file:///d:/work/nexora/docs/decisions/tactical-ddd.md):
+For new business domains or SIGNIFICANT domain features, verify [ADR-008](../../../docs/decisions/tactical-ddd.md):
 
 - Ubiquitous language and domain boundaries.
 - Aggregate Root and encapsulated child entities.
@@ -54,7 +54,7 @@ For new business domains or SIGNIFICANT domain features, verify [ADR-008](file:/
 
 ### 5. Review Artifact Generation
 
-Generate the review document using the template at [pre-implementation-review.md](file:///d:/work/nexora/docs/ai/templates/pre-implementation-review.md) and attach it to the active task record.
+Generate the review document using the template at [pre-implementation-review.md](../../../docs/ai/templates/pre-implementation-review.md) and attach it to the active task record.
 
 ### 6. Approval Check — Mandatory Stop
 

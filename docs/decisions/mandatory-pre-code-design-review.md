@@ -117,8 +117,10 @@ Engineering governance is sustained through:
    - `pre-implementation-review`: Enforces read-only inspection, reuse matrix preparation, and stops before code editing if approval is missing.
    - `implementation-code-review`: Audits implemented diffs against approved designs, detects duplicate patterns, and issues structured P1/P2/P3 findings.
 2. **Instruction Routing**: Root `AGENTS.md`, `.github/copilot-instructions.md`, and `.github/instructions/backend.instructions.md`.
-3. **Static Preflight Checker (`scripts/preflight-policy-check.mjs`)**: Verifies task references, design reviews, and reuse documentation on pull requests.
-4. **AST Duplication Guards**: Static tests rejecting the reintroduction of duplicate regexes or direct phone/country parsing outside canonical modules.
+3. **Static Preflight Checker (`scripts/preflight-policy-check.mjs`)**: Verifies task references, structured design reviews, and reuse documentation on pull requests.
+4. **Duplication Screening & Enforcement**:
+   - **Tier 1 (Heuristic Screening)**: Fast dependency-free preflight scanner (`scripts/preflight-policy-check.mjs`) screening for known duplicate regex declarations and direct third-party imports outside canonical modules. (Explicit limitation: heuristic scanner flags known patterns; does not prove repository-wide absence of arbitrary clones).
+   - **Tier 2 (Syntactic & AST Enforcement)**: Pinned TypeScript compiler and ESLint rules enforcing boundaries, domain vocabulary constants, and prohibited syntax across production code.
 5. **Lightweight CI Preflight Job (`.github/workflows/preflight.yml`)**: Fast, least-privilege metadata validation without requiring database or Docker overhead.
 
 ## Consequences & Trade-offs

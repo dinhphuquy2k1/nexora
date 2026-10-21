@@ -25,38 +25,35 @@ export function text(value: unknown, max: number): string {
 function nullable(value: unknown, max: number): string | null {
   return value === null ? null : text(value, max);
 }
-export class PhoneNumber {
-  private constructor(readonly value: string) {
-    Object.freeze(this);
-  }
-  static create(value: unknown): CommonPhoneNumber {
-    const input = text(value, 64);
-    try {
-      return CommonPhoneNumber.parse(input, "VN");
-    } catch {
-      return invalid();
-    }
+export function parseCustomerPhone(value: unknown): CommonPhoneNumber {
+  const input = text(value, 64);
+  try {
+    return CommonPhoneNumber.parse(input, "VN");
+  } catch {
+    return invalid();
   }
 }
-export class CountryCode {
-  private constructor(readonly value: string) {
-    Object.freeze(this);
-  }
-  static create(value: unknown): CommonCountryCode {
-    const code = text(value, 2);
-    try {
-      return CommonCountryCode.parse(code);
-    } catch {
-      return invalid();
-    }
+
+export function parseCustomerCountryCode(value: unknown): CommonCountryCode {
+  const code = text(value, 2);
+  try {
+    return CommonCountryCode.parse(code);
+  } catch {
+    return invalid();
   }
 }
+
+/** Backward compatibility alias */
+export const PhoneNumber = { create: parseCustomerPhone };
+/** Backward compatibility alias */
+export const CountryCode = { create: parseCustomerCountryCode };
+
 export function normalizeProfilePatch(input: CustomerPatch): CustomerPatch {
   customerRecord(input, CUSTOMER_PATCH_FIELDS);
   const out: CustomerPatch = {};
   if (Object.hasOwn(input, "name")) out.name = text(input.name, 200);
   if (Object.hasOwn(input, "phone"))
-    out.phone = PhoneNumber.create(input.phone).value;
+    out.phone = parseCustomerPhone(input.phone).value;
   if (Object.hasOwn(input, "email")) {
     out.email = nullable(input.email, 254);
     if (out.email !== null && !z.email().safeParse(out.email).success)
@@ -87,9 +84,9 @@ export function normalizeAddressPatch(
   if (Object.hasOwn(input, "recipientName"))
     out.recipientName = text(input.recipientName, 200);
   if (Object.hasOwn(input, "recipientPhone"))
-    out.recipientPhone = PhoneNumber.create(input.recipientPhone).value;
+    out.recipientPhone = parseCustomerPhone(input.recipientPhone).value;
   if (Object.hasOwn(input, "countryCode"))
-    out.countryCode = CountryCode.create(input.countryCode).value;
+    out.countryCode = parseCustomerCountryCode(input.countryCode).value;
   if (Object.hasOwn(input, "addressText"))
     out.addressText = text(input.addressText, 2000);
   if (!Object.keys(out).length) invalid();

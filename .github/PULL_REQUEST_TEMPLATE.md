@@ -1,9 +1,11 @@
 ## Pull Request Preflight
 
-- **Task Reference**: `<e.g. docs/tasks/active/NEXORA-027-customer-management-backend.md>`
-- **Design Review & Reuse Audit**: `<Path to review artifact or task section>`
-- **Approval Evidence**: `<Decision reference, owner comment/PR review, or directive>`
+- **Task ID**: `<e.g. NEXORA-027>`
+- **Task Reference**: `docs/tasks/active/<task-file>.md`
 - **Task Classification**: `[ ] BOUNDED  [ ] SIGNIFICANT  [ ] SPIKE`
+- **Plan revision**: `<e.g. rev-2026-10-21-reuse-v2>`
+- **Design Review & Reuse Audit**: `<Path to task section or review artifact>`
+- **Approval provenance**: `<Link to owner approval comment, review, or directive>`
 
 ---
 
@@ -28,17 +30,18 @@
 
 ## Documentation Impact
 
-<!-- Declare exactly one of REQUIRED or NONE -->
+<!-- Select exactly one option matching the actual change scope: -->
 
-Documentation Impact: REQUIRED
+- [ ] Documentation Impact: REQUIRED
+- [ ] Documentation Impact: NONE
 
 ### Changed facts
 
-- `<Summary of changed facts>`
+- `<Summary of changed facts (if REQUIRED)>`
 
 ### Canonical owners updated
 
-- `<Paths to updated canonical docs>`
+- `<Paths to updated canonical docs (if REQUIRED)>`
 
 ### Documentation verification
 

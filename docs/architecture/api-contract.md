@@ -160,3 +160,8 @@ PR23 revised contract: CreateCustomerDto.address is required in OpenAPI/SDK; rec
 CustomerSummary and inherited CustomerDetail include required non-null statusLabel:string, derived by Presentation from canonical shared CustomerStatusLabelsVi: ACTIVE → Đang hoạt động, INACTIVE → Ngừng hoạt động. status remains the unchanged ACTIVE|INACTIVE primitive union. List/Create/Get/Patch Customer responses all use this contract; no extra Customer wrapper on Address operations and no statusLabel on Address responses. Status labels are not persisted, accepted in CREATE/PATCH/query, or used for filtering. Unknown input still rejects400; no metadata endpoint is added.
 
 OpenAPI/SDK generation is canonical (contracts:generate/check); the only approved response diff is this field in Summary/Detail. Frontend uses generated SDK types and shared runtime codes/labels from the same monorepo revision. Separately deployed old/new clients/servers need deliberate compatibility review; shared source does not synchronize runtime versions. Ownership, sorting, ISO dates/nulls, error envelope/statuses and all8 endpoints stay unchanged.
+
+### OpenAPI Contract Inaccuracies Resolution — 2026-10-21
+
+- **Pagination Integer Types**: `page` (default 1, minimum 1) and `pageSize` (default 20, minimum 1, maximum 100) are explicitly defined as OpenAPI `type: integer` rather than general numbers, matching the canonical positive integer parsing of `listQuery()`.
+- **Non-Empty Phone Constraints**: `minLength: 1` is declared on `CreateCustomerDto.phone`, `AddressInputDto.recipientPhone`, and list query `phone` filter (inherited by `PatchCustomerDto`), aligning OpenAPI schema validation with domain phone normalization which rejects empty strings.
