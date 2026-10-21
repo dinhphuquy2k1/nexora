@@ -60,10 +60,88 @@ export function checkFileImports(p, content) {
       !p.includes("/infrastructure/")
     )
       throw Error(`Prisma boundary: ${p}`);
+    const apiDomain = /^apps\/api\/src\/[^/]+\/domain\//.test(p);
+    const targetLayer =
+      target &&
+      /\/apps\/api\/src\/[^/]+\/(application|infrastructure|presentation)(?:\/|$)/.test(
+        target,
+      );
+    if (
+      apiDomain &&
+      (/^@nestjs\/|^(?:@types\/)?express(?:\/|$)|^(?:node:)?https?$/.test(
+        spec,
+      ) ||
+        targetLayer)
+    )
+      throw Error(`Domain purity boundary: ${p}`);
+    if (
+      /^apps\/api\/src\/[^/]+\/application\//.test(p) &&
+      target &&
+      /\/apps\/api\/src\/[^/]+\/(infrastructure|presentation)(?:\/|$)/.test(
+        target,
+      )
+    )
+      throw Error(`Application dependency boundary: ${p}`);
+    if (
+      /^apps\/api\/src\/[^/]+\/presentation\//.test(p) &&
+      target &&
+      /\/apps\/api\/src\/[^/]+\/infrastructure(?:\/|$)/.test(target)
+    )
+      throw Error(`Controller adapter boundary: ${p}`);
   }
 }
 
 export function runNegativeTests() {
+  for (const layer of [
+    "infrastructure/customer.adapter",
+    "presentation/customer.dto",
+  ])
+    assert.throws(
+      () =>
+        checkFileImports(
+          "apps/api/src/customer/application/example.ts",
+          `import '../${layer}';`,
+        ),
+      /Application dependency boundary/,
+    );
+  for (const spec of [
+    "@nestjs/common",
+    "express",
+    "node:http",
+    "../application/customer.input",
+    "../infrastructure/customer.adapter",
+    "../presentation/customer.dto",
+    "../../identity/application/auth.service",
+  ]) {
+    assert.throws(
+      () =>
+        checkFileImports(
+          "apps/api/src/customer/domain/example.ts",
+          `import '${spec}';`,
+        ),
+      /Domain purity boundary/,
+    );
+  }
+  assert.throws(
+    () =>
+      checkFileImports(
+        "apps/api/src/customer/presentation/example.ts",
+        "import '../infrastructure/customer.adapter';",
+      ),
+    /Controller adapter boundary/,
+  );
+  checkFileImports(
+    "apps/api/src/customer/domain/example.ts",
+    "import './customer'; import 'libphonenumber-js/max';",
+  );
+  checkFileImports(
+    "apps/api/src/customer/application/example.ts",
+    "import '@nestjs/common'; import '../domain/customer';",
+  );
+  checkFileImports(
+    "apps/api/src/customer/infrastructure/example.ts",
+    "import '@nexora/database'; import '../application/customer.port';",
+  );
   assert.throws(
     () => checkFileImports("apps/web/test.ts", "import '@nexora/database';"),
     /Web boundary/,

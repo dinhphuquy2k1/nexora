@@ -8,8 +8,8 @@ import {
   listQuery,
   uuid,
   record,
-  CustomerError,
-} from "../domain/customer";
+} from "./customer.input";
+import { CustomerError } from "../domain/customer";
 @Injectable()
 export class CustomerService {
   constructor(private readonly port: CustomerPort) {}

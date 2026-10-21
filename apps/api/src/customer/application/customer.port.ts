@@ -4,10 +4,9 @@ import type {
   CustomerAddress,
   CustomerDetail,
   CustomerFields,
-  CustomerPage,
   CustomerPatch,
-  CustomerQuery,
 } from "../domain/customer";
+import type { CustomerPage, CustomerQuery } from "./customer.input";
 export abstract class CustomerPort {
   abstract list(owner: string, query: CustomerQuery): Promise<CustomerPage>;
   abstract create(

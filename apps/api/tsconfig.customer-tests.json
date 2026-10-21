@@ -3,6 +3,7 @@
   "include": [
     "src/customer/domain/**/*.ts",
     "src/customer/application/**/*.ts",
-    "src/customer/infrastructure/customer-db-error.ts"
+    "src/customer/infrastructure/customer-db-error.ts",
+    "src/customer/infrastructure/customer.mapper.ts"
   ]
 }

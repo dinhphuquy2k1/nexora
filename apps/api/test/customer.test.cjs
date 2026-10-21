@@ -6,8 +6,8 @@ const {
   addressInput,
   listQuery,
   uuid,
-  CustomerStatus,
-} = require("../dist/customer/domain/customer");
+} = require("../dist/customer/application/customer.input");
+const { CustomerStatus } = require("../dist/customer/domain/customer");
 const {
   resolveCustomerOwner,
 } = require("../dist/customer/application/customer-owner");
@@ -458,4 +458,72 @@ test("adding a CustomerError code without a mapping fails TypeScript exhaustiven
           .includes("UNMAPPED_CUSTOMER_ERROR"),
     ),
   );
+});
+
+test("all eight service operations retain owner-scoped port orchestration and normalized command primitives", async () => {
+  const {
+    CustomerService,
+  } = require("../dist/customer/application/customer.service");
+  const id = "11111111-1111-4111-8111-111111111111",
+    child = "22222222-2222-4222-8222-222222222222";
+  const calls = [];
+  const port = Object.fromEntries(
+    [
+      "list",
+      "create",
+      "get",
+      "update",
+      "addAddress",
+      "updateAddress",
+      "removeAddress",
+      "setDefault",
+    ].map((method) => [
+      method,
+      async (...args) => {
+        calls.push([method, ...args]);
+        return { id };
+      },
+    ]),
+  );
+  const service = new CustomerService(port),
+    actor = { id: "trusted", role: "ADMIN", ownerUserId: "foreign" };
+  await service.list(actor, {});
+  await service.create(actor, {
+    name: " Lan ",
+    phone: "0912345678",
+    address: { addressText: " Hanoi " },
+  });
+  await service.get(actor, id);
+  await service.update(actor, id, {
+    email: null,
+    status: CustomerStatus.INACTIVE,
+  });
+  await service.addAddress(actor, id, { addressText: " Other " });
+  await service.updateAddress(actor, id, child, { label: null });
+  assert.deepEqual(await service.removeAddress(actor, id, child), {
+    success: true,
+  });
+  await service.setDefault(actor, id, { addressId: child });
+  assert.ok(calls.every(([, owner]) => owner === "trusted"));
+  assert.deepEqual(calls[1].slice(2), [
+    { name: "Lan", phone: "+84912345678" },
+    {
+      label: null,
+      countryCode: "VN",
+      addressText: "Hanoi",
+      recipientName: "Lan",
+      recipientPhone: "+84912345678",
+    },
+  ]);
+  assert.deepEqual(calls[3].slice(2), [
+    id,
+    { email: null, status: CustomerStatus.INACTIVE },
+  ]);
+  assert.deepEqual(calls[4].slice(2), [
+    id,
+    { label: null, countryCode: "VN", addressText: "Other" },
+  ]);
+  assert.deepEqual(calls[5].slice(2), [id, child, { label: null }]);
+  assert.deepEqual(calls[6].slice(2), [id, child]);
+  assert.deepEqual(calls[7].slice(2), [id, child]);
 });

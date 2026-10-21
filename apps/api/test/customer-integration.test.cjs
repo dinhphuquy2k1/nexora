@@ -621,6 +621,64 @@ test(
       ]);
       assert.equal(addVsDelete[0].status, 201);
       assert.equal(addVsDelete[1].status, 200);
+      // DDD refactor compatibility: profile writes must not rewrite child rows or leak identity metadata.
+      const reference = await request("", "POST", {
+        name: "DDD profile before",
+        phone: "+12025550195",
+        address: { addressText: "DDD initial address" },
+      });
+      assert.equal(reference.status, 201);
+      const referenceCustomer = reference.body.customer;
+      assert.deepEqual(
+        Object.keys(referenceCustomer).sort(),
+        [
+          "id",
+          "code",
+          "name",
+          "phone",
+          "email",
+          "note",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "addresses",
+        ].sort(),
+      );
+      const originalAddresses = referenceCustomer.addresses;
+      const changedProfile = await request(
+        "/" + referenceCustomer.id,
+        "PATCH",
+        {
+          name: "DDD profile after",
+          phone: "+12025550194",
+          status: "INACTIVE",
+          email: null,
+          note: null,
+        },
+      );
+      assert.equal(changedProfile.status, 200);
+      assert.deepEqual(
+        changedProfile.body.customer.addresses,
+        originalAddresses,
+      );
+      assert.equal(changedProfile.body.customer.status, "INACTIVE");
+      const newRecipient = await request(
+        "/" + referenceCustomer.id + "/addresses",
+        "POST",
+        { addressText: "DDD next address" },
+      );
+      assert.equal(newRecipient.status, 201);
+      assert.equal(
+        newRecipient.body.address.recipientName,
+        "DDD profile after",
+      );
+      assert.equal(newRecipient.body.address.recipientPhone, "+12025550194");
+      assert.equal(newRecipient.body.address.isDefault, false);
+      assert.equal(
+        (await request("/" + referenceCustomer.id)).body.customer.addresses[0]
+          .id,
+        originalAddresses[0].id,
+      );
       // Explicit legacy fixtures bypass the API to exercise controlled recovery, never fake shipping data.
       const legacy = await db.customer.create({
         data: {

@@ -1,3 +1,6 @@
+import { CustomerAggregate } from "../domain/customer.aggregate";
+import { hydrateCustomer } from "./customer.mapper";
+import type { CustomerQuery } from "../application/customer.input";
 import { isOwnerPhoneConflict } from "./customer-db-error";
 import {
   createDatabase,
@@ -8,9 +11,7 @@ import { UserStatus } from "../../identity/domain/user-policy";
 import { CustomerPort } from "../application/customer.port";
 import {
   CustomerError,
-  assertAddressDeletion,
   CustomerStatus,
-  type CustomerQuery,
   type CustomerFields,
   type CustomerPatch,
   type AddressCreate,
@@ -73,10 +74,9 @@ export class CustomerAdapter implements CustomerPort {
     id: string,
   ) {
     const rows = await tx.$queryRaw<
-      Array<{ id: string; name: string; phone: string }>
-    >`SELECT id,name,phone_normalized AS phone FROM customers WHERE id=${id}::uuid AND owner_user_id=${owner}::uuid FOR UPDATE`;
+      Array<{ id: string }>
+    >`SELECT id FROM customers WHERE id=${id}::uuid AND owner_user_id=${owner}::uuid FOR UPDATE`;
     if (!rows.length) throw new CustomerError("NOT_FOUND");
-    return rows[0];
   }
   private async detail(
     tx: Prisma.TransactionClient,
@@ -159,22 +159,21 @@ export class CustomerAdapter implements CustomerPort {
   }
   create(owner: string, input: CustomerFields, address: AddressCreate) {
     return this.transaction(owner, async (tx) => {
+      const draft = CustomerAggregate.create(input, address).creation();
       const row = await tx.customer.create({
         data: {
-          ...input,
+          ...draft.fields,
           ownerUserId: owner,
           createdByUserId: owner,
-          status: CustomerStatus.ACTIVE,
+          status: draft.status,
         },
         select: { id: true },
       });
       await tx.customerAddress.create({
         data: {
-          ...address,
-          recipientName: address.recipientName ?? input.name,
-          recipientPhone: address.recipientPhone ?? input.phone,
+          ...draft.address,
           customerId: row.id,
-          isDefault: true,
+          isDefault: draft.isDefault,
         },
         select: { id: true },
       });
@@ -184,12 +183,32 @@ export class CustomerAdapter implements CustomerPort {
   get(owner: string, id: string) {
     return this.transaction(owner, (tx) => this.detail(tx, owner, id));
   }
+  private async aggregate(
+    tx: Prisma.TransactionClient,
+    owner: string,
+    id: string,
+  ) {
+    // Actor lock is already held by transaction(); hydrate only after parent lock.
+    await this.lockCustomer(tx, owner, id);
+    const row = await tx.customer.findFirst({
+      where: { id, ownerUserId: owner },
+      select: {
+        ...summary,
+        ownerUserId: true,
+        createdByUserId: true,
+        addresses: { select: addressFields },
+      },
+    });
+    if (!row) throw new CustomerError("NOT_FOUND");
+    return hydrateCustomer(row);
+  }
   update(owner: string, id: string, input: CustomerPatch) {
     return this.transaction(owner, async (tx) => {
-      await this.lockCustomer(tx, owner, id);
+      const customer = await this.aggregate(tx, owner, id);
+      const patch = customer.updateProfile(input);
       const result = await tx.customer.updateMany({
         where: { id, ownerUserId: owner },
-        data: input,
+        data: patch,
       });
       if (result.count !== 1) throw new CustomerError("NOT_FOUND");
       return this.detail(tx, owner, id);
@@ -197,19 +216,10 @@ export class CustomerAdapter implements CustomerPort {
   }
   addAddress(owner: string, id: string, input: AddressCreate) {
     return this.transaction(owner, async (tx) => {
-      const parent = await this.lockCustomer(tx, owner, id);
-      const existingDefault = await tx.customerAddress.findFirst({
-        where: { ...this.addressWhere(owner, id), isDefault: true },
-        select: { id: true },
-      });
+      const customer = await this.aggregate(tx, owner, id);
+      const insertion = customer.addAddress(input);
       const row = await tx.customerAddress.create({
-        data: {
-          ...input,
-          recipientName: input.recipientName ?? parent.name,
-          recipientPhone: input.recipientPhone ?? parent.phone,
-          customerId: id,
-          isDefault: !existingDefault,
-        },
+        data: { ...insertion, customerId: id },
         select: { id: true },
       });
       return this.address(tx, owner, id, row.id);
@@ -222,10 +232,11 @@ export class CustomerAdapter implements CustomerPort {
     input: Partial<AddressFields>,
   ) {
     return this.transaction(owner, async (tx) => {
-      await this.lockCustomer(tx, owner, id);
+      const customer = await this.aggregate(tx, owner, id);
+      const patch = customer.updateAddress(addressId, input);
       const result = await tx.customerAddress.updateMany({
         where: this.addressWhere(owner, id, addressId),
-        data: input,
+        data: patch,
       });
       if (result.count !== 1) throw new CustomerError("NOT_FOUND");
       return this.address(tx, owner, id, addressId);
@@ -233,12 +244,8 @@ export class CustomerAdapter implements CustomerPort {
   }
   async removeAddress(owner: string, id: string, addressId: string) {
     await this.transaction(owner, async (tx) => {
-      await this.lockCustomer(tx, owner, id);
-      const address = await this.address(tx, owner, id, addressId);
-      const count = await tx.customerAddress.count({
-        where: this.addressWhere(owner, id),
-      });
-      assertAddressDeletion(count, address.isDefault);
+      const customer = await this.aggregate(tx, owner, id);
+      customer.removeAddress(addressId);
       const result = await tx.customerAddress.deleteMany({
         where: this.addressWhere(owner, id, addressId),
       });
@@ -247,9 +254,10 @@ export class CustomerAdapter implements CustomerPort {
   }
   setDefault(owner: string, id: string, addressId: string) {
     return this.transaction(owner, async (tx) => {
-      await this.lockCustomer(tx, owner, id);
-      const selected = await this.address(tx, owner, id, addressId);
-      if (selected.isDefault) return selected;
+      const customer = await this.aggregate(tx, owner, id);
+      if (!customer.setDefaultAddress(addressId))
+        return this.address(tx, owner, id, addressId);
+      // Technical write ordering preserves the existing partial unique index.
       await tx.customerAddress.updateMany({
         where: { ...this.addressWhere(owner, id), isDefault: true },
         data: { isDefault: false },
