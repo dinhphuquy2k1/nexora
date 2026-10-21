@@ -41,3 +41,5 @@ Use this table as a review guide after classifying Documentation Impact:
 | Shipment domain logic                 | `docs/domains/shipments.md`, `docs/decisions/product-scope.md` |
 | Architectural decisions               | New or superseding ADR under `docs/decisions/`                 |
 | Contributor governance                | `docs/ai/PROJECT_RULES.md`, `docs/ai/TASK_WORKFLOW.md`         |
+
+For shared vocabulary/status changes, inspect packages/shared exports and canonical code/label leaves, then read [API/SDK contract](../architecture/api-contract.md), [Backend Domain boundaries](../architecture/backend.md), [Frontend presentation](../architecture/frontend.md) and the dated [ADR-008 amendment](../decisions/tactical-ddd.md). Verify both runtime consumers and generated SDK agreement; do not move Domain models into shared.

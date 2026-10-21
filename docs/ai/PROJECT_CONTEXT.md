@@ -28,7 +28,7 @@ Nexora is structured as a pnpm workspace and Turborepo modular monolith:
 | `packages/database` | Prisma 7.10, PostgreSQL 17.11     | Database client, schema, explicit migrations (infrastructure-only)            |
 | `packages/sdk`      | TypeScript, OpenAPI fetch         | Deterministic committed SDK client generated from Swagger contract            |
 | `packages/ui`       | TypeScript, Vanilla CSS           | Shared presentation tokens and components for Web                             |
-| `packages/shared`   | TypeScript                        | Minimal cross-package constants (product name, version)                       |
+| `packages/shared`   | TypeScript                        | Pure shared constants/policy and approved Customer status codes/labels        |
 
 ## 3. Provenance & references
 

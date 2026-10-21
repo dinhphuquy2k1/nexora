@@ -41,14 +41,14 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
-Customer backend ownership/schema/sequence/grants,8 HTTP contracts, normalization/default-address rules and new tests; no frontend or shipment implementation.
+Customer backend ownership/schema/sequence/grants,8 HTTP contracts, normalization/default-address rules and tests; DDD reference plus shared status/VO/labels, strict commands, additive statusLabel responses, operation-scoped profile policy and mandatory governance. No Customer frontend or shipment implementation.
 
 ### Canonical owners
 
 - docs/decisions/tactical-ddd.md and decisions/README.md
 - docs/ai/PROJECT_RULES.md, IMPLEMENTATION_WORKFLOW.md, DOCUMENT_ROUTER.md, PROJECT_CONTEXT.md
 - docs/architecture/database.md
-- docs/architecture/backend.md
+- docs/architecture/backend.md and frontend.md
 - docs/architecture/api-contract.md
 - docs/architecture/overview.md
 - docs/domains/customers.md and shipments.md
@@ -414,3 +414,47 @@ Governance: accepted ADR008 records explicit owner direction (not runtime accept
 | Documentation governance and links                      | pnpm docs:check after ADR/rules/index/domain synchronization                                              | 2026-10-21 | PASS   |
 
 Remaining verification is independent of these precommit results: fresh frozen installation, current-head genuine Prisma/full API build/typecheck and real Nest/PG races, native isolated cluster, canonical quality, LOCAL/HTTPS/data/dev smoke and hosted Foundation must be recorded with actual exits/timestamps. No prior PR23 PASS transfers to DDD. Operator Data Audit gate remains pending the previously recorded owner decision; architecture approval does not approve data inspection or waive release/merge gates. Task remains VERIFICATION PENDING. Final source/check evidence belongs in PR metadata after commit, not a self-referencing documentation loop.
+
+## Owner-approved vocabulary, status VO and API amendment — 2026-10-21
+
+Classification: SIGNIFICANT. Documentation Impact: REQUIRED (existing canonical section applies). Baseline ccfdd5ebb34919207c3681180ce8eeace1391df6, existing feat/customer-management-backend-v1 / PR23. The owner approves this additive contract and architecture refinement; no new task/PR or database change.
+
+### Interface and modeling preflight
+
+- Shared owns the single CustomerStatus as-const codes and derived CustomerStatusCode plus exhaustive Vietnamese presentation labels, using existing root exports. This is an explicit API/Web cross-package contract preparing Customer frontend, not authorization to build that frontend or migrate other vocabularies. SDK retains generated HTTP types; same-revision monorepo deployment is the compatibility assumption.
+- Customer Domain owns immutable CustomerStatusVO (from unknown, initial, equals, primitive value); factory uses ACTIVE, hydration rejects corrupt status instead of fallback, PATCH allows either current code without new lifecycle restrictions. Domain imports the pure codes leaf, never labels. Phone/country algorithms stay canonical.
+- **API contract amendment:** required non-null statusLabel:string on CustomerSummary/Detail for List/Create/Get/Patch, derived once in Presentation from shared labels. Requests and Address responses do not gain the field; unknown input remains invalid. Generate OpenAPI/SDK; compare against baseline allowing only this response addition.
+- Domain command allowlists reject unknown/ownership/default/identity fields, including mixed valid+forbidden, empty PATCH and invalid runtime shapes. Reuse one feature-local strict record helper for domain and application shapes; do not duplicate scalar algorithms.
+- Generic safe HTTP message is one common API constant. Customer retains its exhaustive feature-local status/message map; Identity/Carrier changes are exact literal substitution only. Global ErrorFilter remains unchanged.
+- Profile query investigation: current update hydrates all addresses then reads them again for response (two child projections proportional to address count). V1 profile/status transition depends on no child state. Adopt a narrow pure domain profile-change policy shared with Aggregate: validate persisted status and normalize strict patch, under existing actor→owner-scoped Customer locks. Select only status for decision; no fake partial Aggregate. Full ordered Detail response still loads addresses once; list projection unchanged. Address operations retain full locked aggregate hydration. No legacy repair, new ownership or concurrency policy.
+- Boundary guards cover pure shared imports vs forbidden labels in Domain, shared app/server imports, Web→API and application→Prisma; catalog discovery follows shared canonical declaration. Add SDK/OpenAPI/shared type/value agreement and browser consumer checks, no new framework/dependency.
+
+### Implementation and verification plan
+
+1. Add failing status/strictness/presenter/contract regression tests before implementation; preserve existing tests and independently distinguish unrun HTTP assertions.
+2. Move codes/labels to shared, add VO and strict command policies, presentation mapper/DTO wiring and regenerate contracts. Consolidate only exact error literals.
+3. Apply narrow profile policy under existing locks; retain scoped minimal writes, default/cardinality repair and DB-owned IDs/code/timestamps. Add query-shape coverage without treating a test double as genuine PostgreSQL evidence; extend genuine HTTP assertions.
+4. Synchronize ADR008 amendment, rules/workflow/router, backend/frontend/API/customer docs and indexes/context where facts changed. Preserve historical FAILs and the one Documentation Impact heading.
+5. Run frozen install/shared build/typecheck/SDK/Web checks, targeted Customer tests, native SQL, format/lint/boundaries/docs/contracts, full typecheck/test/integration/build and canonical Docker as prerequisites permit. Record exact source/time/exit PASS/FAIL rows; NOT RUN gates separately. No artifact/TLS bypass, user-volume reset or live Carrier.
+6. Review complete diff, commit/push focused commits on existing branch, inspect final-head Foundation and update PR metadata with final-head evidence. Keep VERIFICATION PENDING/Draft while mandatory gates or Operator Data Audit decision are unresolved.
+
+### Vocabulary/status amendment implementation and precommit evidence
+
+Shared owns one runtime CustomerStatus declaration plus CustomerStatusCode and exhaustive CustomerStatusLabelsVi; root CJS/ESM consumers and a pure code subpath with TypeScript resolution are supported. CustomerStatusVO is immutable and rejects corrupt persisted status. Aggregate stores the VO internally; snapshots/database retain primitive codes. Domain/application use canonical strict command allowlists/scalar policies, rejecting mixed forbidden fields before state mutation. Presentation alone adds statusLabel on all4 Customer-returning handlers; Address responses and requests stay unchanged. Generic HTTP text is centralized; Customer/Identity/Carrier replacements preserve codes/statuses/text, without ErrorFilter or authentication changes.
+
+Profile investigation found two ORM child projections on update (hydration then response), each proportional to unlimited address cardinality. V1 profile policy has no child dependency. The narrow adapter path keeps ACTIVE actor→owner-scoped Customer locks, selects status, calls changeCustomerProfile shared with Aggregate, applies scoped minimal update and projects full ordered Detail once. Child operations retain full locked hydration; no fake partial aggregate, legacy repair or lock-policy change. Genuine Prisma query-extension assertions are written, NOT RUN; no runtime latency/concurrency improvement is claimed from source inspection.
+
+| Claim                                                             | Evidence                                                                                                                                                                    | Date       | Result |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Test-first baseline reproduces missing features/strictness defect | node --test apps/api/test/customer-aggregate.test.cjs against prior emitted baseline;13 tests,9 pass/4 fail including mixed forbidden fields silently accepted              | 2026-10-21 | FAIL   |
+| Shared/SDK/Web compilation and Customer regression                | ccfdd5e + task dirty source,08:57:58Z–08:58:16Z; frozen install/shared build, shared/SDK/Web typecheck, Customer29 tests; exit0                                             | 2026-10-21 | PASS   |
+| Unchanged Identity/Carrier mapping behavior                       | same dirty source node --test identity-error-mapping, carrier-connect-contract and carrier-lifecycle;47 tests;08:58:15Z–08:58:16Z; exit0                                    | 2026-10-21 | PASS   |
+| Independent source/docs/static checks                             | same dirty source format/lint/test:lint52/boundaries/docs/test:docs6/test:operations5/diff;08:58:16Z–08:58:34Z; exit0; boundary guard strengthened afterward and rerun PASS | 2026-10-21 | PASS   |
+| Approved transport addition only                                  | actual contracts:generate; structural OpenAPI and exact SDK baseline comparison after removing only required statusLabel additions in Summary/Detail; exit0                 | 2026-10-21 | PASS   |
+| Shared browser packaging                                          | Web ESM/API CommonJS import test plus real Next bundled-webpack target:web build executed in a VM without Node globals;2 tests, exit0; no frontend page                     | 2026-10-21 | PASS   |
+| Fresh native SQL attempt                                          | ccfdd5e + dirty task source, pnpm --filter @nexora/database test:cluster,08:59:10Z–08:59:13Z; exit1 POSTGRES_STARTUP_FAILED before SQL assertions                           | 2026-10-21 | FAIL   |
+| PostgreSQL startup diagnostic                                     | separate owned postgres17.11 container/volume; initdb could not create pg_wal: No space left on device; container+volume cleanup exit0                                      | 2026-10-21 | FAIL   |
+
+Initial targeted compile exposed a conflicting status type/re-export; replaced it with shared CustomerStatusCode. Initial lint caught an undeclared structuredClone test global; corrected the fixture without changing lint rules. A new contract assertion initially assumed query DTO was an emitted schema; corrected it to inspect actual inline OpenAPI query parameters. These diagnostic FAILs are not runtime evidence. Existing historical evidence above is retained.
+
+Verification summary: full genuine Prisma/Nest/migration/query/concurrency assertions, canonical Docker/runtime/HTTPS/persistence/dev and final-head hosted checks remain mandatory. Current observed network policy still excludes official Prisma artifacts; disk capacity is an additional reproducible PostgreSQL startup blocker (about114MB available). No user volume, unrelated worktree, migration, grant, key/MFA or live Carrier changes; diagnostics clean only exact newly owned resources. Removing obsolete task-owned image tags did not recover capacity; no global prune/reset. Final-head commands, exits/timestamps and Foundation result will be recorded in PR metadata after commits, not a SHA-only document loop. Implementation IMPLEMENTED; task/merge VERIFICATION PENDING, Draft retained; Operator Data Audit decision remains open.

@@ -24,6 +24,8 @@ Inspect relevant instructions, git status, existing tests, and architecture boun
 
 For every new business domain and SIGNIFICANT domain feature, follow [ADR-008](../decisions/tactical-ddd.md) before code. Record domain ownership/responsibility and ubiquitous language; bounded context/module; Aggregate Root/consistency boundary (or reviewed omission rationale); entities and identity/lifecycle; meaningful Value Objects; invariants; commands/use cases; application ports/infrastructure adapters; transport contracts; cross-domain dependencies; transaction/locking/concurrency strategy; and isolated domain plus genuine integration tests. If ownership or aggregate consistency is unresolved, record and resolve PLAN ISSUE before implementing business operations.
 
+Preflight also records vocabulary ownership/cross-package consumers, status VO policy, label/localization ownership, HTTP/SDK contract implications, runtime unknown-field policy and operation-specific hydration/consistency strategy. Distinguish approved shared codes from feature Domain behavior and presentation labels.
+
 Start domain-invariant TDD before persistence adaptation, then verify locked hydration/minimal writes and API compatibility. Pure-query/stateless/infrastructure/supporting exceptions must be explicit and reviewed. Existing modules are not automatically refactor targets. Infrastructure changes still use verification-first; accepted architecture is not evidence of runtime success.
 
 ## 2. Assess Documentation Impact

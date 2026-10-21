@@ -10,7 +10,7 @@ PLANNED: Customer frontend, shipment tracking & status history, weights/estimate
 | packages/database | Prisma client/schema/explicit migrations; infrastructure only                                                                   |
 | packages/sdk      | OpenAPI-generated types and typed fetch client                                                                                  |
 | packages/ui       | Panel and status badge used by web                                                                                              |
-| packages/shared   | Product name and foundation version consumed by web                                                                             |
+| packages/shared   | Product/version, pure deployment policy and approved Customer status codes/labels for API/Web                                   |
 
 Business domains follow [ADR-008](../decisions/tactical-ddd.md): Modular Monolith + Clean Architecture + Tactical DDD + Ports & Adapters. Customer is the code reference; existing Identity/Carrier modules are grandfathered.
 
