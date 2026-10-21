@@ -467,7 +467,7 @@ Verification summary: full genuine Prisma/Nest/migration/query/concurrency asser
 - **Reviewed baseline**: 32c374fa7c4f55bf24afa94dcf7d666700f5fd27
 - **Approval authority**: repository-owner
 - **Approval status**: APPROVED
-- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/23#issuecomment-PR23-OWNER-SPEC
+- **Approval evidence**: Owner architectural specification directive for PR #23 (GitHub attestation pending maintainer comment)
 
 The project owner directly specified and approved the reuse architecture and pre-code design governance implemented in PR #23. No research restart or duplicate approval cycle.
 
@@ -509,9 +509,14 @@ The following remain domain-specific per tactical DDD boundaries:
 ### Review Findings Resolution — 2026-10-21
 
 - **P1: Trustworthy Approval Governance**: `scripts/preflight-policy-check.mjs` upgraded from loose substring checks to strict section-scoped metadata parsing (`## Design Review & Reuse Decision`), PR-to-task binding, and GitHub API-backed approval attestation in CI mode with local/static mode separation.
+- **P1: Independent Source Evaluation & Machine-Readable Approval**: Added independent checks for GitHub Reviews and Owner Comments. Reviews require explicit design decision declaration matching Task ID and Plan revision; comments require strict machine-readable decision block (`NEXORA DESIGN APPROVAL`). Filtered bots and unauthorized users; handled pagination, revocation/supersession, and fail-closed error handling.
+- **P1: Truthful CI Evidence & Removed False Verified Paths**: Removed false `verified: true` bypasses for PR #23 when credentials or attestations are absent.
+- **P1: CI Execution Context Isolation**: Deterministic detection of `pull_request` (fails closed on missing payload/body/approval without falling back), `push` (runs static checks on main), and local modes.
+- **P2: Strict PR–Task–Plan Revision Binding**: Enforced exact equality between PR preflight metadata block, filename, and task design record, rejecting path traversal and ambiguous references.
+- **P2: Removed Grandfathering Bypass**: Eliminated arbitrary task ID `< 27` exemption; active tasks referenced by PRs must comply with ADR-009 while historical completed tasks remain exempt.
 - **P2: Copilot Instructions Frontmatter**: Added `applyTo: "apps/api/src/**/*.ts"` to `.github/instructions/backend.instructions.md`.
 - **P2: Portable Agent Skills**: Replaced developer-specific `file:///` URLs with repo-relative filesystem links across `.github/skills/`.
-- **P2: Customer OpenAPI Contract Accuracy**: Added `minLength: 1` to `CreateCustomerDto.phone`, `AddressInputDto.recipientPhone`, and list query phone filter; declared `page` and `pageSize` as OpenAPI integers (`minimum: 1`, `maximum: 100`, defaults 1 and 20).
+- **P2: Customer OpenAPI Contract Accuracy & Review Resolution**: Added `minLength: 1` to `CreateCustomerDto.phone`, `AddressInputDto.recipientPhone`, and list query phone filter; declared `page` and `pageSize` as OpenAPI integers (`minimum: 1`, `maximum: 100`, defaults 1 and 20). Verified zero contract drift (`pnpm contracts:check`). Posted verification replies and resolved both Codex review threads on GitHub PR #23.
 - **P2: Duplication Screening Classification**: Explicitly documented screening tiers (Tier 1 heuristic preflight vs Tier 2 TypeScript AST / ESLint quality).
 - **P2: Skill Evaluation Reporting**: Clarified skill fixtures as behavioral specifications (`Agent behavioral evaluation: NOT RUN`).
 - **P3: Customer VO Simplification**: Replaced `PhoneNumber` and `CountryCode` wrapper classes in `customer.value-objects.ts` with pure policy functions (`parseCustomerPhone`, `parseCustomerCountryCode`).

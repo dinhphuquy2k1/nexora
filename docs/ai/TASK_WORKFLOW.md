@@ -52,13 +52,17 @@ Values like `Done`, `Finished`, `Partial`, or `PASS` are invalid task-level veri
 Design approval must be tracked distinctly without introducing a fictitious fifth task lifecycle status:
 
 - The 4-stage Task Lifecycle (`PLANNED → IN PROGRESS → VERIFICATION PENDING → COMPLETED`) remains strictly unaltered; `DESIGN_APPROVED` is an invalid task status.
-- Tasks requiring pre-code governance record their design review decision in a dedicated `## Design Review & Reuse Decision` section or reference an associated review artifact (`docs/ai/templates/pre-implementation-review.md`).
-- The record must state:
-  - **Design / Plan revision**: Specific plan section, revision timestamp, or instruction baseline.
-  - **Review depth**: `BOUNDED`, `SIGNIFICANT`, or `SPIKE`.
-  - **Approval authority**: Repository owner or authorized independent reviewer.
-  - **Approval evidence**: Decision reference, PR review link, or documented directive.
+- Tasks requiring pre-code governance record their design review decision in a dedicated `## Design Review & Reuse Decision` section.
+- The record must define exact canonical fields:
+  - **Task ID**: Matching the task filename prefix (e.g. `NEXORA-027`).
+  - **Classification**: `BOUNDED`, `SIGNIFICANT`, or `SPIKE`.
+  - **Plan revision**: Specific plan identifier or timestamp (e.g. `rev-2026-10-21-reuse-v2`).
+  - **Reviewed baseline**: Git commit hash inspected.
+  - **Approval authority**: `repository-owner` or authorized reviewer (`dinhphuquy2k1`).
   - **Approval status**: `APPROVED`, `PENDING_REVIEW`, or `REVISION_REQUIRED`.
+  - **Approval evidence**: Decision reference, directive, or link.
+- **PR Binding**: On pull requests, the PR metadata (`Task ID`, `Task Reference`, `Plan revision`) must match the task file, filename, and design review record exactly.
+- **Approval Provenance Separation**: The task record stores the declared local decision; GitHub CI independently verifies authenticated approval through GitHub REST API checks (approved review with design declaration or owner comment with `NEXORA DESIGN APPROVAL`).
 - Self-approval by an agent is strictly invalid.
 - A material design amendment requires renewed review of the delta, recorded in the active task record.
 
@@ -121,3 +125,5 @@ Documentation Impact: NONE
 ## 4. Historical task compatibility
 
 Tasks completed before NEXORA-003 (`NEXORA-001`, `NEXORA-002`) retain their historical record format in `docs/tasks/completed/`. They are recognized as historical task records; their original commands, dates, and claims are preserved without retroactive rewrites.
+
+Completed historical tasks are exempt from retroactive ADR-009 design review enforcement. For active tasks, any new implementation scope or material design change must comply with the current pre-code design review policy and provide an approved design decision for the applicable plan revision, regardless of historical task numbering.

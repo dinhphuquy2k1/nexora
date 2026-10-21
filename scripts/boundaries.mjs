@@ -4,7 +4,11 @@ import { resolve, dirname } from "node:path";
 import assert from "node:assert/strict";
 import ts from "typescript";
 
-const under = (path, root) => path === root || path.startsWith(root + "/");
+const under = (path, root) => {
+  const normPath = path.replace(/\\/g, "/");
+  const normRoot = root.replace(/\\/g, "/");
+  return normPath === normRoot || normPath.startsWith(normRoot + "/");
+};
 
 function imports(path, text) {
   const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
@@ -34,7 +38,9 @@ function imports(path, text) {
 
 export function checkFileImports(p, content) {
   for (const spec of imports(p, content)) {
-    const target = spec.startsWith(".") ? resolve(dirname(p), spec) : null;
+    const target = spec.startsWith(".")
+      ? resolve(dirname(p), spec).replace(/\\/g, "/")
+      : null;
     if (
       p.startsWith("packages/sdk/") &&
       (spec === "@nexora/api" ||

@@ -57,9 +57,26 @@ Design approval is an independent governance decision:
 - It is strictly separate from Task Lifecycle (`PLANNED → IN PROGRESS → VERIFICATION PENDING → COMPLETED`).
 - It is strictly separate from Code Review, Test PASS, and Merge Readiness.
 - A coding agent must never approve its own design on behalf of the owner.
-- Approval must reference a concrete plan revision or documented decision.
+- Approval must reference a concrete plan revision and Task ID.
 - A material design amendment requires renewed review of the delta, not an automatic restart of the entire task.
-- For PR #23, the owner-selected architecture in this specification serves as the approved design.
+- For PR #23, the owner-selected architecture in this specification serves as the accepted implementation directive, while authenticated GitHub attestation is tracked independently.
+
+### Verifiable Approval Sources in GitHub CI
+
+In pull request CI, approval provenance is verified through GitHub REST API checks against authorized repository authorities (`repository-owner`, `dinhphuquy2k1`):
+
+1. **Source A (Authorized Approving Review)**: A GitHub PR review in `APPROVED` state by an authorized authority containing an explicit design approval block matching the exact Task ID and Plan revision. Generic approvals without design declarations do not qualify.
+2. **Source B (Authorized Owner Comment)**: A GitHub issue comment by an authorized repository owner containing a strict machine-readable decision block:
+   ```text
+   NEXORA DESIGN APPROVAL
+   Task: <Task-ID>
+   Plan revision: <Plan-revision>
+   Decision: APPROVED
+   ```
+   Prose mentions, blockquotes, bot comments, and unauthorized users are strictly rejected.
+3. **Revocation & Chronology**: Decisions are evaluated chronologically. A subsequent `REVISION_REQUIRED`, `CHANGES_REQUESTED`, or revocation supersedes an earlier approval.
+4. **Historical Compatibility**: Completed historical tasks (`docs/tasks/completed/`) are exempt from retrospective review requirements. Any active task referenced by a PR for new work must comply with ADR-009; arbitrary task ID numbers do not grant policy exemptions.
+5. **Fail-Closed Execution**: PR CI mode fails closed if tokens are missing, event payloads are malformed, or API calls fail. Local and push-to-main static runs validate structural conformance without claiming authenticated GitHub approval.
 
 ## Technical Validation & Reuse Ownership
 

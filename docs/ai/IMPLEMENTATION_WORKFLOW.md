@@ -58,7 +58,7 @@ Approval semantics:
 - A coding agent must never approve its own design on behalf of the owner.
 - Approval must reference an identifiable plan revision or decision.
 - A material design amendment requires renewed review of the delta.
-- For existing approved designs (such as PR #23 / NEXORA-027), the agent records the approved decision without restarting discovery.
+- For existing approved designs (such as PR #23 / NEXORA-027), the agent implements the approved architecture directive directly without restarting discovery, while authenticated GitHub attestation is tracked independently.
 
 ## 5. Assess Documentation Impact
 

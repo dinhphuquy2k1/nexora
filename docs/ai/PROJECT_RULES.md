@@ -106,5 +106,6 @@ No agent or contributor may begin writing implementation code, test-code modific
   - Do not create a `DESIGN_APPROVED` task lifecycle status. Record design approval in the task's design review decision record.
   - An agent must never approve its own design on behalf of the owner. Approval must reference an identifiable decision, PR review, or instruction revision.
   - Material design amendments require renewed review of the delta.
+  - On pull requests, PR metadata must match the active task, filename, and plan revision exactly. GitHub CI independently verifies approval provenance through authorized reviews or owner comments; local runs validate structural conformance without claiming authenticated GitHub approval.
 - **Mandatory Reuse Audit Matrix**:
   - Every review artifact must include a structured component reuse matrix documenting: Component, Existing Implementations, Domain Owner, Reuse Alternatives, Selected Approach, Rationale, Risks, and Verification. Blank or unevidenced "no reusable code found" claims are rejected.
