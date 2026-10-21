@@ -1,3 +1,4 @@
+import { isUuid } from "../../common/validation/uuid";
 import { CustomerStatusVO } from "../domain/customer-status.vo";
 import {
   customerRecord,
@@ -44,13 +45,7 @@ export const normalizePhone = (value: unknown): string =>
   PhoneNumber.create(value).value;
 export const record = customerRecord;
 export function uuid(value: unknown): string {
-  if (
-    typeof value !== "string" ||
-    !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
-      value,
-    )
-  )
-    invalid();
+  if (!isUuid(value)) invalid();
   return value.toLowerCase();
 }
 export function customerInput(input: unknown, patch?: false): CustomerCreate;

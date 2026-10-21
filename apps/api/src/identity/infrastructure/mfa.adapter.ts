@@ -7,6 +7,7 @@ import {
   SecretCipher,
   type EncryptedSecret,
 } from "../../common/crypto/secret-cipher";
+import { isLowercaseHex64 } from "../../common/validation/hex";
 import { MfaPort, type MfaInput } from "../application/mfa.port";
 import { AuthLevel } from "../domain/session-assurance";
 import { UserRole, UserStatus } from "../domain/user-policy";
@@ -256,7 +257,7 @@ export class IdentityMfaAdapter implements MfaPort {
     if (
       recoveryHashes.length !== 10 ||
       new Set(recoveryHashes).size !== 10 ||
-      recoveryHashes.some((hash) => !/^[a-f0-9]{64}$/.test(hash))
+      recoveryHashes.some((hash) => !isLowercaseHex64(hash))
     )
       throw new Error("MFA_ENROLLMENT_FAILED");
     await this.client.$transaction(async (tx) => {

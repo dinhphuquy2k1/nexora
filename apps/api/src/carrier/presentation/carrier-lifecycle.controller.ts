@@ -1,4 +1,5 @@
 import { GENERIC_ERROR_MESSAGE } from "../../common/http/error-messages";
+import { isUuid } from "../../common/validation/uuid";
 import {
   Body,
   Controller,
@@ -150,12 +151,7 @@ export class CarrierLifecycleController {
     @Res({ passthrough: true }) res: Response,
   ) {
     res.setHeader("Cache-Control", "no-store");
-    if (
-      !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
-        id,
-      )
-    )
-      invalid();
+    if (!isUuid(id)) invalid();
     const data = payload(body, ["password"]),
       password = text(data.password, 1024, false);
     return {

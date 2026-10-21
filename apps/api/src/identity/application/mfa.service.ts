@@ -1,3 +1,4 @@
+import { isLowercaseHex64 } from "../../common/validation/hex";
 import { HttpException } from "@nestjs/common";
 import { createHash, randomBytes } from "node:crypto";
 import { AuthService } from "./auth.service";
@@ -46,7 +47,7 @@ export class MfaService {
         { code: "VALIDATION_ERROR", message: "Mã xác thực không hợp lệ" },
         400,
       );
-    if (!token || !/^[a-f0-9]{64}$/.test(token)) this.denied();
+    if (!isLowercaseHex64(token)) this.denied();
     const hash = mfaHash(token);
     const owner = await this.port.challengeOwner(hash);
     if (!owner) this.denied();
@@ -64,7 +65,6 @@ export class MfaService {
     });
   }
   async cancel(token: string | null) {
-    if (token && /^[a-f0-9]{64}$/.test(token))
-      await this.port.cancel(mfaHash(token));
+    if (isLowercaseHex64(token)) await this.port.cancel(mfaHash(token));
   }
 }

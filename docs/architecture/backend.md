@@ -6,6 +6,23 @@ Nexora uses **Modular Monolith + Clean Architecture + Tactical DDD + Ports & Ada
 
 Customer is the code reference: domain/customer.aggregate.ts owns profile/address transitions, customer-address.entity.ts encapsulates children, and customer.value-objects.ts supplies canonical phone/country/value validation. domain/customer.ts retains errors/pure snapshot types and deletion policy, re-exporting the shared status codes without redeclaration. customer-status.vo.ts owns immutable validated status semantics. Application/customer.input.ts owns strict request/UUID/query parsing and read-model types; service/port remain use-case-oriented. Infrastructure/customer.mapper.ts hydrates consistent persisted primitives under the adapter's existing actor→Customer locks. Domain decisions return copied per-operation write data; adapter applies only those scoped fields. Add/create drafts have pending identity; DB still generates UUID/code/timestamps. No save-all, child delete/reinsert, new schema or event infrastructure.
 
+## Neutral Common Validation & Value Objects
+
+In accordance with [ADR-009](../decisions/mandatory-pre-code-design-review.md), domain-agnostic technical validation and value objects used across multiple domains live in `apps/api/src/common/`:
+
+- `validation/uuid.ts`: Canonical `isUuid(value: unknown): value is string` predicate enforcing standard 8-4-4-4-12 hexadecimal groups without case sensitivity, version/variant restrictions, or implicit trimming.
+- `validation/hex.ts`: Canonical `isLowercaseHex64(value: unknown): value is string` predicate validating exact 64-character lowercase hexadecimal format (e.g. SHA-256 tokens, digests, hashes).
+- `value-objects/phone-number.ts`: Domain-neutral `PhoneNumber` Value Object encapsulating immutable E.164 normalization via pinned `libphonenumber-js/max`, telephone validity, extension rejection, value equality, and an explicit country context parameter. Throws `InvalidPhoneNumberError`.
+- `value-objects/country-code.ts`: Domain-neutral `CountryCode` Value Object encapsulating ISO 3166-1 alpha-2 validation via `i18n-iso-countries`, trim/uppercase normalization, XK exclusion, and value equality. Throws `InvalidCountryCodeError`.
+- `http/error-messages.ts`: Canonical `GENERIC_ERROR_MESSAGE` constant (`"Không thể thực hiện yêu cầu"`).
+
+### Ownership and Dependency Rules:
+
+1. **Framework Independence**: Common modules have zero dependencies on NestJS, Prisma, or `@nexora/database`.
+2. **Domain Isolation**: Common modules never import Customer, Identity, Carrier, or future Shipment domains, and never throw domain-specific errors (`CustomerError`, `CarrierError`, `IdentityError`).
+3. **Domain Policy Retention**: Business domains remain strictly responsible for their business-specific invariants (e.g. Customer raw length limit 64, default national parsing context `"VN"`, address fallback, per-owner phone uniqueness, and translation to domain errors).
+4. **No Cross-Package Leakage**: Backend-only validation remains in `apps/api/src/common/`; `@nexora/shared` is reserved for true browser-safe API/Web contracts.
+
 List/detail use owner-scoped projections; child-dependent mutations hydrate full address state after locks; profile PATCH uses the shared Domain profile-change policy with locked status facts. Default persistence clears flags before setting the chosen address in the same transaction. Domain snapshots clone Date/array/object references and are never HTTP DTOs. Legacy cardinality is hydrated unchanged for explicit repair. See [Customer](../domains/customers.md) for business semantics and [Testing](../operations/testing.md) for verification limits. Identity/Carrier/Health/Storage are not declared DDD-converted and are not refactored by this policy.
 
 `HealthController` maps HTTP to `HealthService`; the application service consumes database/storage health ports. DatabaseAdapter is infrastructure and lazily constructs Prisma so liveness remains available when database operations fail. DB URLs use a 3-second connect timeout in Compose. No AI dependency is required for readiness.

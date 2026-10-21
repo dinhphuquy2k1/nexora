@@ -46,6 +46,23 @@ Nexora adopts Modular Monolith, Clean Architecture, Ports & Adapters and Tactica
 - Scope hydration to actual invariants. Profile-only policies may omit child loading when explicitly modeled under unchanged transaction/authorization locks; never pretend incomplete data is a complete Aggregate. Child-dependent mutations still hydrate under locks. Verify query shape and genuine concurrency separately.
 - Feature-local error maps keep code/status/safe-message together and exhaustively checked. Reuse exact generic HTTP messages via common HTTP constants; preserve specific messages and unknown-error propagation. No generic Domain error hierarchy/mapper or duplicated mapping branches.
 
+### Neutral API Common validation and reuse ownership
+
+- Shared technical validation and value objects used across multiple API domains live in neutral common modules (`apps/api/src/common/`):
+  - `validation/uuid.ts`: Canonical `isUuid` predicate (8-4-4-4-12 hex groups, case-insensitive, no variant/version restrictions, no implicit trimming).
+  - `validation/hex.ts`: Canonical `isLowercaseHex64` format predicate.
+  - `value-objects/phone-number.ts`: Domain-neutral `PhoneNumber` VO (immutable E.164 normalization via pinned `libphonenumber-js/max`, extension rejection, explicit country context).
+  - `value-objects/country-code.ts`: Domain-neutral `CountryCode` VO (immutable ISO 3166-1 alpha-2 validation via `i18n-iso-countries`, XK exclusion).
+  - `http/error-messages.ts`: Canonical generic safe HTTP error message constant (`"Không thể thực hiện yêu cầu"`).
+- Common modules must:
+  - Be framework-independent where possible.
+  - Have zero dependencies on Customer, Identity, Carrier, or future Shipment domains.
+  - Never import NestJS, Prisma, or `@nexora/database`.
+  - Never throw domain-specific errors (`CustomerError`, `CarrierError`, `IdentityError`); throw domain-neutral errors (`InvalidPhoneNumberError`, `InvalidCountryCodeError`).
+  - Contain no transport DTOs or database models.
+- Business domains remain responsible for their business invariants (e.g. Customer maximum raw length 64, default national context `"VN"`, address fallback, per-owner phone uniqueness, and translation to domain errors).
+- Syntactic similarity is not semantic identity: do not consolidate authorization, locking, transaction boundaries, or different field-length policies across domains.
+
 ## 3. Domain & business invariants
 
 - **Shipment domain ownership**: Nexora owns the Shipment business domain (tracking numbers, parcel dimensions/weights, fee estimates, status history).
@@ -75,3 +92,19 @@ A task classified as `REQUIRED` cannot be completed while its canonical document
 
 - Never claim workflow or verification success from a YAML file, open port, process ID, or source inspection alone.
 - Verification requires executed command output, runtime HTTP probes, or test results recorded with exact timestamps and PASS/FAIL outcomes.
+
+## 6. Mandatory Pre-Code Design Review & Reuse Governance
+
+No agent or contributor may begin writing implementation code, test-code modifications, database schema changes, scaffolding, dependency additions, or CI workflow changes for any new implementation task until a design review and reuse audit have been completed and explicit approval has been obtained. Read-only repository inspection and preparing the review artifact remain permitted. See [ADR-009](../decisions/mandatory-pre-code-design-review.md).
+
+- **Scaled Review Depth**:
+  - **BOUNDED**: Concise review covering existing implementation search, minimal intended change, reuse decisions, contract impact, risk assessment, and approval reference before editing.
+  - **SIGNIFICANT**: Comprehensive review covering scope, existing implementation inventory, repository-wide reuse search matrix, DDD/domain ownership, alternative designs and trade-offs, feasibility, correctness, security/concurrency invariants, performance/query costs, maintainability/YAGNI, compatibility (API/DB/SDK), risk mitigations, verification plan, and approval reference.
+  - **SPIKE**: Formulate an approved investigation question, bounded hypothesis, and evidence procedure. Never disguise a production implementation as a SPIKE.
+- **Approval Separation**:
+  - Design approval is strictly separate from the 4-stage Task Lifecycle (`PLANNED → IN PROGRESS → VERIFICATION PENDING → COMPLETED`), Code Review, Test PASS, and Merge Readiness.
+  - Do not create a `DESIGN_APPROVED` task lifecycle status. Record design approval in the task's design review decision record.
+  - An agent must never approve its own design on behalf of the owner. Approval must reference an identifiable decision, PR review, or instruction revision.
+  - Material design amendments require renewed review of the delta.
+- **Mandatory Reuse Audit Matrix**:
+  - Every review artifact must include a structured component reuse matrix documenting: Component, Existing Implementations, Domain Owner, Reuse Alternatives, Selected Approach, Rationale, Risks, and Verification. Blank or unevidenced "no reusable code found" claims are rejected.

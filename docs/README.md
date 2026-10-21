@@ -11,6 +11,8 @@ For AI-assisted development, start at the mandatory entry point [`docs/ai/README
 - [Architecture overview](architecture/overview.md): Monorepo structure, workspace packaging, and boundary rules.
 - [Runtime topology](architecture/runtime.md): Release and development container runtime, networking, and security.
 - [Tactical DDD decision](decisions/tactical-ddd.md): Mandatory business-domain modeling policy, Customer reference and existing-module exceptions.
+- [Pre-code review decision](decisions/mandatory-pre-code-design-review.md): Mandatory pre-code review gate, reuse audit matrix, and shared validation ownership.
+- [Reusable components](architecture/reusable-components.md): Canonical technical primitives (UUID, PhoneNumber, CountryCode, error messages, shared status).
 - [Backend architecture](architecture/backend.md): NestJS modular monolith, storage adapter, and HTTP contracts.
 - [Frontend architecture](architecture/frontend.md): Next.js App Router, layout, UI packages, and transport.
 - [Database architecture](architecture/database.md): PostgreSQL 17.11, Prisma 7.10, and explicit migration policies.

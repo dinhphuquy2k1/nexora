@@ -1,3 +1,4 @@
+import { isLowercaseHex64 } from "../../common/validation/hex";
 import { loadDeploymentPolicy, type DeploymentPolicy } from "@nexora/shared";
 import { cookieOptions } from "./cookie-policy";
 import {
@@ -233,7 +234,7 @@ export function extractPendingToken(cookie?: string): string | null {
     const value = decodeURIComponent(
       matches[0].slice("nexora_mfa_token=".length),
     );
-    return /^[a-f0-9]{64}$/.test(value) ? value : null;
+    return isLowercaseHex64(value) ? value : null;
   } catch {
     return null;
   }

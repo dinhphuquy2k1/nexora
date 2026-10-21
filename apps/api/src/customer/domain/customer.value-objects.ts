@@ -5,8 +5,8 @@ import {
   CUSTOMER_PATCH_FIELDS,
   CUSTOMER_ADDRESS_FIELDS,
 } from "./customer-command";
-import { parsePhoneNumberWithError } from "libphonenumber-js/max";
-import { isValid as isCountry } from "i18n-iso-countries";
+import { PhoneNumber as CommonPhoneNumber } from "../../common/value-objects/phone-number";
+import { CountryCode as CommonCountryCode } from "../../common/value-objects/country-code";
 import { z } from "zod";
 import {
   invalid,
@@ -29,35 +29,26 @@ export class PhoneNumber {
   private constructor(readonly value: string) {
     Object.freeze(this);
   }
-  static create(value: unknown): PhoneNumber {
+  static create(value: unknown): CommonPhoneNumber {
     const input = text(value, 64);
     try {
-      const phone = parsePhoneNumberWithError(input, {
-        defaultCountry: "VN",
-        extract: false,
-      });
-      if (!phone.isValid() || phone.ext) invalid();
-      return new PhoneNumber(phone.number);
+      return CommonPhoneNumber.parse(input, "VN");
     } catch {
       return invalid();
     }
-  }
-  equals(other: PhoneNumber): boolean {
-    return this.value === other.value;
   }
 }
 export class CountryCode {
   private constructor(readonly value: string) {
     Object.freeze(this);
   }
-  static create(value: unknown): CountryCode {
-    const code = text(value, 2).toUpperCase();
-    if (!/^[A-Z]{2}$/.test(code) || !isCountry(code) || code === "XK")
-      invalid();
-    return new CountryCode(code);
-  }
-  equals(other: CountryCode): boolean {
-    return this.value === other.value;
+  static create(value: unknown): CommonCountryCode {
+    const code = text(value, 2);
+    try {
+      return CommonCountryCode.parse(code);
+    } catch {
+      return invalid();
+    }
   }
 }
 export function normalizeProfilePatch(input: CustomerPatch): CustomerPatch {

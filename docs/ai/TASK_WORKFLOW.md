@@ -47,6 +47,21 @@ Use exactly:
 
 Values like `Done`, `Finished`, `Partial`, or `PASS` are invalid task-level verification values.
 
+### 1.6 Design Review Decision Record
+
+Design approval must be tracked distinctly without introducing a fictitious fifth task lifecycle status:
+
+- The 4-stage Task Lifecycle (`PLANNED → IN PROGRESS → VERIFICATION PENDING → COMPLETED`) remains strictly unaltered; `DESIGN_APPROVED` is an invalid task status.
+- Tasks requiring pre-code governance record their design review decision in a dedicated `## Design Review & Reuse Decision` section or reference an associated review artifact (`docs/ai/templates/pre-implementation-review.md`).
+- The record must state:
+  - **Design / Plan revision**: Specific plan section, revision timestamp, or instruction baseline.
+  - **Review depth**: `BOUNDED`, `SIGNIFICANT`, or `SPIKE`.
+  - **Approval authority**: Repository owner or authorized independent reviewer.
+  - **Approval evidence**: Decision reference, PR review link, or documented directive.
+  - **Approval status**: `APPROVED`, `PENDING_REVIEW`, or `REVISION_REQUIRED`.
+- Self-approval by an agent is strictly invalid.
+- A material design amendment requires renewed review of the delta, recorded in the active task record.
+
 ## 2. Canonical evidence schema
 
 Normal task records document executable verification in an `## Evidence` section:
