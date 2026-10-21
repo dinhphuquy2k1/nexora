@@ -98,7 +98,9 @@ try {
   // Nexora deployment where all containers/services share /runtime-config/postgres_app_password.
   // Serialization must succeed without tuple concurrently updated error and without
   // assuming Promise.all completion order.
-  const sharedRuntimeSecret = randomBytes(32).toString("hex");
+  const sharedRuntimeSecret =
+    process.env.DISPOSABLE_CLUSTER_RUNTIME_PASSWORD ||
+    randomBytes(32).toString("hex");
 
   await Promise.all([
     provisionRuntime(urlA, sharedRuntimeSecret),

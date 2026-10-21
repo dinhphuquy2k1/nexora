@@ -5,22 +5,42 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Client } from "pg";
 import { readdir, readFile } from "node:fs/promises";
-import { randomUUID, randomBytes } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { provisionRuntime, runtimeUrl } from "../scripts/provision-runtime.mjs";
 const migration = new URL(
   "../prisma/migrations/20261020010000_customers/migration.sql",
   import.meta.url,
 );
+
+const adminUrl = process.env.DISPOSABLE_CLUSTER_ADMIN_URL;
+const token = process.env.DISPOSABLE_CLUSTER_TOKEN;
+const syntheticPassword = process.env.DISPOSABLE_CLUSTER_RUNTIME_PASSWORD;
+
+if (!adminUrl || !token || !syntheticPassword) {
+  console.error(
+    "DISPOSABLE_CLUSTER_REQUIRED: Native Customer SQL tests mutate cluster-global roles and must be executed by an authorized disposable cluster launcher.",
+  );
+  process.exit(1);
+}
+
 test("real PostgreSQL customer upgrade, constraints, sequence and restricted runtime (native SQL only)", async () => {
   const sql = await readFile(migration, "utf8");
-  assert.ok(process.env.DATABASE_URL, "isolated admin DATABASE_URL required");
-  const admin = new Client({ connectionString: process.env.DATABASE_URL });
+  assert.ok(adminUrl, "DISPOSABLE_CLUSTER_REQUIRED");
+  const admin = new Client({ connectionString: adminUrl });
   await admin.connect();
+  const tokenCheck = await admin.query(
+    "SELECT description FROM pg_shdescription JOIN pg_database ON objoid=pg_database.oid WHERE datname='nexora'",
+  );
+  assert.equal(
+    tokenCheck.rows[0]?.description,
+    token,
+    "Cluster ownership token mismatch: refusing role mutation on unverified cluster",
+  );
   const name = "nexora_customer_sql_" + randomUUID().replaceAll("-", "");
   let db, runtime;
   try {
     await admin.query(`CREATE DATABASE "${name}"`);
-    const url = new URL(process.env.DATABASE_URL);
+    const url = new URL(adminUrl);
     url.pathname = "/" + name;
     db = new Client({ connectionString: url.toString() });
     await db.connect();
@@ -104,17 +124,7 @@ test("real PostgreSQL customer upgrade, constraints, sequence and restricted run
       ).rows.map((x) => x.tablename),
       [...tables, "customers", "customer_addresses"].sort(),
     );
-    const password = await (async () => {
-      try {
-        return (
-          await readFile("/runtime-config/postgres_app_password", "utf8")
-        ).trim();
-      } catch {
-        return (
-          process.env.TEST_RUNTIME_PASSWORD || randomBytes(32).toString("hex")
-        );
-      }
-    })();
+    const password = syntheticPassword;
     await provisionRuntime(url.toString(), password);
     runtime = new Client({
       connectionString: runtimeUrl(url.toString(), password),
@@ -311,9 +321,13 @@ test("real PostgreSQL customer upgrade, constraints, sequence and restricted run
       0,
     );
   } finally {
-    await runtime?.end();
-    await db?.end();
-    await admin.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
-    await admin.end();
+    await runtime?.end().catch(() => {});
+    await db?.end().catch(() => {});
+    if (admin) {
+      await admin
+        .query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`)
+        .catch(() => {});
+      await admin.end().catch(() => {});
+    }
   }
 });
