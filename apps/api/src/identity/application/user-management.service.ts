@@ -1,3 +1,4 @@
+import { GENERIC_ERROR_MESSAGE } from "../../common/http/error-messages";
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { randomBytes, createHash } from "node:crypto";
 import { UserManagementPort } from "./user-management.port";
@@ -18,11 +19,11 @@ export interface IdentityErrorMapping {
 export const IDENTITY_ERROR_MAP: Record<string, IdentityErrorMapping> = {
   NOT_FOUND: {
     status: HttpStatus.NOT_FOUND,
-    message: "Không thể thực hiện yêu cầu",
+    message: GENERIC_ERROR_MESSAGE,
   },
   FORBIDDEN: {
     status: HttpStatus.FORBIDDEN,
-    message: "Không thể thực hiện yêu cầu",
+    message: GENERIC_ERROR_MESSAGE,
   },
   LAST_ACTIVE_ADMIN: {
     status: HttpStatus.CONFLICT,
@@ -44,7 +45,7 @@ export const IDENTITY_ERROR_MAP: Record<string, IdentityErrorMapping> = {
 
 export const DEFAULT_IDENTITY_ERROR: IdentityErrorMapping = {
   status: HttpStatus.BAD_REQUEST,
-  message: "Không thể thực hiện yêu cầu",
+  message: GENERIC_ERROR_MESSAGE,
 };
 
 export function mapIdentityError(error: IdentityError): HttpException {

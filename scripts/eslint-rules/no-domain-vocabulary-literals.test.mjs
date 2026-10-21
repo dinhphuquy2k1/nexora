@@ -187,7 +187,10 @@ test("guard catalog covers every canonical owning-domain value", async () => {
   const eslint = new ESLint();
   for (const [path, objects] of [
     ["identity/domain/session-assurance.ts", { AuthLevel: "authLevel" }],
-    ["customer/domain/customer.ts", { CustomerStatus: "status" }],
+    [
+      "../../../packages/shared/src/customer-status.ts",
+      { CustomerStatus: "status" },
+    ],
     [
       "identity/domain/user-policy.ts",
       { UserStatus: "status", UserRole: "role" },

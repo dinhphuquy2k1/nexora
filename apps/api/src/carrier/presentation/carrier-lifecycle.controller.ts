@@ -1,3 +1,4 @@
+import { GENERIC_ERROR_MESSAGE } from "../../common/http/error-messages";
 import {
   Body,
   Controller,
@@ -70,7 +71,7 @@ export class CarrierLifecycleController {
         throw new HttpException(
           {
             code: "SERVICE_UNAVAILABLE",
-            message: "Không thể thực hiện yêu cầu",
+            message: GENERIC_ERROR_MESSAGE,
           },
           503,
         );
@@ -108,10 +109,7 @@ export class CarrierLifecycleController {
         status = 429;
         code = "RATE_LIMITED";
       }
-      throw new HttpException(
-        { code, message: "Không thể thực hiện yêu cầu" },
-        status,
-      );
+      throw new HttpException({ code, message: GENERIC_ERROR_MESSAGE }, status);
     }
   }
   @Post()

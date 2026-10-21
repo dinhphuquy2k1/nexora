@@ -527,3 +527,92 @@ test("all eight service operations retain owner-scoped port orchestration and no
   assert.deepEqual(calls[6].slice(2), [id, child]);
   assert.deepEqual(calls[7].slice(2), [id, child]);
 });
+
+test("shared labels and SDK agreement fail compilation when a new status lacks contract updates", () => {
+  const ts = require("typescript"),
+    path = require("node:path");
+  const root = path.resolve(__dirname, "../../..");
+  const files = [
+    path.join(root, "packages/shared/src/customer-status-labels.ts"),
+    path.join(root, "apps/web/test/customer-status-contract.ts"),
+  ];
+  const options = {
+    strict: true,
+    skipLibCheck: true,
+    noEmit: true,
+    target: ts.ScriptTarget.ES2022,
+    module: ts.ModuleKind.CommonJS,
+    moduleResolution: ts.ModuleResolutionKind.Node10,
+    esModuleInterop: true,
+  };
+  function diagnostics(extra) {
+    const host = ts.createCompilerHost(options),
+      original = host.getSourceFile.bind(host);
+    host.getSourceFile = (filename, version, ...rest) => {
+      const source = original(filename, version, ...rest);
+      if (!source || !extra) return source;
+      let text = source.text;
+      if (/customer-status\.(ts|d\.ts)$/.test(filename))
+        text = text
+          .replace(
+            'INACTIVE: "INACTIVE"',
+            'INACTIVE: "INACTIVE", UNMAPPED: "UNMAPPED"',
+          )
+          .replace(
+            'readonly INACTIVE: "INACTIVE";',
+            'readonly INACTIVE: "INACTIVE"; readonly UNMAPPED: "UNMAPPED";',
+          );
+      return ts.createSourceFile(filename, text, version, true);
+    };
+    return ts.getPreEmitDiagnostics(ts.createProgram(files, options, host));
+  }
+  assert.equal(diagnostics(false).length, 0);
+  const failures = diagnostics(true);
+  assert.ok(
+    failures.some(
+      (d) =>
+        d.file?.fileName.endsWith("customer-status-labels.ts") &&
+        ts
+          .flattenDiagnosticMessageText(d.messageText, " ")
+          .includes("UNMAPPED"),
+    ),
+  );
+  assert.ok(
+    failures.some(
+      (d) =>
+        d.file?.fileName.endsWith("customer-status-contract.ts") &&
+        ts.flattenDiagnosticMessageText(d.messageText, " ").includes("false"),
+    ),
+  );
+});
+
+test("mechanical Carrier generic-message reuse preserves 404/401 and unexpected-error propagation", async () => {
+  const {
+    CarrierService,
+  } = require("../dist/carrier/application/carrier.service");
+  const { CarrierError } = require("../dist/carrier/domain/carrier");
+  for (const [code, status] of [
+    ["NOT_FOUND", 404],
+    ["UNAUTHORIZED", 401],
+  ]) {
+    const service = new CarrierService({
+      list: async () => {
+        throw new CarrierError(code);
+      },
+    });
+    await assert.rejects(
+      service.list("owner"),
+      (e) =>
+        e.getStatus() === status &&
+        e.getResponse().code === code &&
+        e.getResponse().message === "Không thể thực hiện yêu cầu",
+    );
+  }
+  const unexpected = new Error("private detail");
+  const service = new CarrierService({
+    list: async () => {
+      throw unexpected;
+    },
+  });
+  await assert.rejects(service.list("owner"), (e) => e === unexpected);
+});

@@ -1,3 +1,4 @@
+import { changeCustomerProfile } from "../domain/customer-profile.policy";
 import { CustomerAggregate } from "../domain/customer.aggregate";
 import { hydrateCustomer } from "./customer.mapper";
 import type { CustomerQuery } from "../application/customer.input";
@@ -11,7 +12,7 @@ import { UserStatus } from "../../identity/domain/user-policy";
 import { CustomerPort } from "../application/customer.port";
 import {
   CustomerError,
-  CustomerStatus,
+  type CustomerStatusCode,
   type CustomerFields,
   type CustomerPatch,
   type AddressCreate,
@@ -94,7 +95,7 @@ export class CustomerAdapter implements CustomerPort {
       },
     });
     if (!row) throw new CustomerError("NOT_FOUND");
-    return { ...row, status: row.status as CustomerStatus };
+    return { ...row, status: row.status as CustomerStatusCode };
   }
   private addressWhere(owner: string, id: string, addressId?: string) {
     return {
@@ -146,7 +147,7 @@ export class CustomerAdapter implements CustomerPort {
       return {
         customers: rows.map((row) => ({
           ...row,
-          status: row.status as CustomerStatus,
+          status: row.status as CustomerStatusCode,
         })),
         pagination: {
           page: query.page,
@@ -204,8 +205,13 @@ export class CustomerAdapter implements CustomerPort {
   }
   update(owner: string, id: string, input: CustomerPatch) {
     return this.transaction(owner, async (tx) => {
-      const customer = await this.aggregate(tx, owner, id);
-      const patch = customer.updateProfile(input);
+      await this.lockCustomer(tx, owner, id);
+      const row = await tx.customer.findFirst({
+        where: { id, ownerUserId: owner },
+        select: { status: true },
+      });
+      if (!row) throw new CustomerError("NOT_FOUND");
+      const patch = changeCustomerProfile(row.status, input);
       const result = await tx.customer.updateMany({
         where: { id, ownerUserId: owner },
         data: patch,

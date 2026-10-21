@@ -1,9 +1,6 @@
-export const CustomerStatus = {
-  ACTIVE: "ACTIVE",
-  INACTIVE: "INACTIVE",
-} as const;
-export type CustomerStatus =
-  (typeof CustomerStatus)[keyof typeof CustomerStatus];
+import type { CustomerStatusCode } from "@nexora/shared/customer-status";
+export { CustomerStatus } from "@nexora/shared/customer-status";
+export type { CustomerStatusCode } from "@nexora/shared/customer-status";
 export class CustomerError extends Error {
   constructor(
     readonly code:
@@ -27,7 +24,7 @@ export interface CustomerFields {
   note?: string | null;
 }
 export type CustomerPatch = Partial<CustomerFields> & {
-  status?: CustomerStatus;
+  status?: CustomerStatusCode;
 };
 export type CustomerCreate = CustomerFields & { address: AddressCreate };
 export interface AddressFields {
@@ -51,7 +48,7 @@ export function assertAddressDeletion(count: number, isDefault: boolean): void {
 export interface CustomerSummary extends CustomerFields {
   id: string;
   code: string;
-  status: CustomerStatus;
+  status: CustomerStatusCode;
   createdAt: Date;
   updatedAt: Date;
   email: string | null;

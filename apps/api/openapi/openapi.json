@@ -1818,6 +1818,10 @@
               "INACTIVE"
             ]
           },
+          "statusLabel": {
+            "type": "string",
+            "description": "Vietnamese display label derived from status"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1835,6 +1839,7 @@
           "email",
           "note",
           "status",
+          "statusLabel",
           "createdAt",
           "updatedAt"
         ]
@@ -2030,6 +2035,10 @@
               "INACTIVE"
             ]
           },
+          "statusLabel": {
+            "type": "string",
+            "description": "Vietnamese display label derived from status"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -2053,6 +2062,7 @@
           "email",
           "note",
           "status",
+          "statusLabel",
           "createdAt",
           "updatedAt",
           "addresses"

@@ -1,9 +1,15 @@
+import { CustomerStatusVO } from "./customer-status.vo";
+import {
+  customerRecord,
+  CUSTOMER_PROFILE_FIELDS,
+  CUSTOMER_PATCH_FIELDS,
+  CUSTOMER_ADDRESS_FIELDS,
+} from "./customer-command";
 import { parsePhoneNumberWithError } from "libphonenumber-js/max";
 import { isValid as isCountry } from "i18n-iso-countries";
 import { z } from "zod";
 import {
   invalid,
-  CustomerStatus,
   type CustomerFields,
   type CustomerPatch,
   type AddressFields,
@@ -18,9 +24,6 @@ export function text(value: unknown, max: number): string {
 }
 function nullable(value: unknown, max: number): string | null {
   return value === null ? null : text(value, max);
-}
-function object(value: unknown): asserts value is object {
-  if (!value || typeof value !== "object" || Array.isArray(value)) invalid();
 }
 export class PhoneNumber {
   private constructor(readonly value: string) {
@@ -57,13 +60,8 @@ export class CountryCode {
     return this.value === other.value;
   }
 }
-export function customerStatus(value: unknown): CustomerStatus {
-  if (!Object.values(CustomerStatus).includes(value as CustomerStatus))
-    invalid();
-  return value as CustomerStatus;
-}
 export function normalizeProfilePatch(input: CustomerPatch): CustomerPatch {
-  object(input);
+  customerRecord(input, CUSTOMER_PATCH_FIELDS);
   const out: CustomerPatch = {};
   if (Object.hasOwn(input, "name")) out.name = text(input.name, 200);
   if (Object.hasOwn(input, "phone"))
@@ -74,12 +72,13 @@ export function normalizeProfilePatch(input: CustomerPatch): CustomerPatch {
       invalid();
   }
   if (Object.hasOwn(input, "note")) out.note = nullable(input.note, 5000);
-  if (Object.hasOwn(input, "status")) out.status = customerStatus(input.status);
+  if (Object.hasOwn(input, "status"))
+    out.status = CustomerStatusVO.from(input.status).value;
   if (!Object.keys(out).length) invalid();
   return out;
 }
 export function normalizeCustomerFields(input: CustomerFields): CustomerFields {
-  object(input);
+  customerRecord(input, CUSTOMER_PROFILE_FIELDS);
   if (
     !Object.hasOwn(input, "name") ||
     !Object.hasOwn(input, "phone") ||
@@ -91,7 +90,7 @@ export function normalizeCustomerFields(input: CustomerFields): CustomerFields {
 export function normalizeAddressPatch(
   input: Partial<AddressFields>,
 ): Partial<AddressFields> {
-  object(input);
+  customerRecord(input, CUSTOMER_ADDRESS_FIELDS);
   const out: Partial<AddressFields> = {};
   if (Object.hasOwn(input, "label")) out.label = nullable(input.label, 100);
   if (Object.hasOwn(input, "recipientName"))
@@ -117,12 +116,12 @@ export function normalizeAddressCreate(
   input: AddressCreate,
   fallback?: Pick<CustomerFields, "name" | "phone">,
 ): AddressCreate {
-  object(input);
+  customerRecord(input, CUSTOMER_ADDRESS_FIELDS);
   if (!Object.hasOwn(input, "addressText")) invalid();
   const out: AddressCreate = {
     label: null,
     countryCode: "VN",
-    addressText: text(input.addressText, 2000),
+    addressText: input.addressText,
   };
   if (fallback) {
     out.recipientName = fallback.name;

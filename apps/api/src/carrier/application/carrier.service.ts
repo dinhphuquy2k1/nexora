@@ -1,3 +1,4 @@
+import { GENERIC_ERROR_MESSAGE } from "../../common/http/error-messages";
 import { Injectable, HttpException } from "@nestjs/common";
 import { CarrierPort } from "./carrier.port";
 import { CarrierProvider, CarrierError } from "../domain/carrier";
@@ -30,7 +31,7 @@ export class CarrierService {
       if (!(e instanceof CarrierError)) throw e;
       const status = e.code === "NOT_FOUND" ? 404 : 401;
       throw new HttpException(
-        { code: e.code, message: "Không thể thực hiện yêu cầu" },
+        { code: e.code, message: GENERIC_ERROR_MESSAGE },
         status,
       );
     }

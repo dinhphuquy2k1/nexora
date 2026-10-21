@@ -1,6 +1,8 @@
+import { CustomerStatusVO } from "./customer-status.vo";
+import { changeCustomerProfile } from "./customer-profile.policy";
 import {
   CustomerError,
-  CustomerStatus,
+  type CustomerStatusCode,
   assertAddressDeletion,
   invalid,
   type CustomerDetail,
@@ -14,10 +16,7 @@ import {
   type CustomerAddressState,
   type AddressWrite,
 } from "./customer-address.entity";
-import {
-  normalizeCustomerFields,
-  normalizeProfilePatch,
-} from "./customer.value-objects";
+import { normalizeCustomerFields } from "./customer.value-objects";
 export type CustomerIdentity = Pick<
   CustomerDetail,
   "id" | "code" | "createdAt" | "updatedAt"
@@ -29,7 +28,7 @@ export type CustomerSnapshot = CustomerDetail & {
 export interface CustomerAggregateState {
   identity: CustomerIdentity | null;
   profile: CustomerFields;
-  status: CustomerStatus;
+  status: CustomerStatusCode;
   addresses: CustomerAddressState[];
 }
 const copyIdentity = (
@@ -43,12 +42,12 @@ const copyIdentity = (
 export class CustomerAggregate {
   readonly #identity: CustomerIdentity | null;
   #profile: CustomerFields;
-  #status: CustomerStatus;
+  #status: CustomerStatusVO;
   #addresses: CustomerAddressEntity[];
   private constructor(
     identity: CustomerIdentity | null,
     profile: CustomerFields,
-    status: CustomerStatus,
+    status: CustomerStatusVO,
     addresses: CustomerAddressEntity[],
   ) {
     this.#identity = copyIdentity(identity);
@@ -63,14 +62,16 @@ export class CustomerAggregate {
     const customer = new CustomerAggregate(
       null,
       normalizeCustomerFields(fields),
-      CustomerStatus.ACTIVE,
+      CustomerStatusVO.initial(),
       [],
     );
     customer.addAddress(initialAddress);
     return customer;
   }
   /** Hydrate historical cardinality as-is. Only explicit operations repair it. */
-  static rehydrate(row: CustomerSnapshot): CustomerAggregate {
+  static rehydrate(
+    row: Omit<CustomerSnapshot, "status"> & { status: unknown },
+  ): CustomerAggregate {
     const {
       id,
       code,
@@ -88,7 +89,7 @@ export class CustomerAggregate {
     return new CustomerAggregate(
       { id, code, ownerUserId, createdByUserId, createdAt, updatedAt },
       { name, phone, email, note },
-      status,
+      CustomerStatusVO.from(status),
       addresses.map((a) => CustomerAddressEntity.rehydrate(a)),
     );
   }
@@ -96,14 +97,14 @@ export class CustomerAggregate {
     return {
       identity: copyIdentity(this.#identity),
       profile: { ...this.#profile },
-      status: this.#status,
+      status: this.#status.value,
       addresses: this.#addresses.map((a) => a.snapshot()),
     };
   }
   creation(): {
     fields: CustomerFields;
     address: AddressFields;
-    status: CustomerStatus;
+    status: CustomerStatusCode;
     isDefault: true;
   } {
     if (
@@ -115,15 +116,15 @@ export class CustomerAggregate {
     return {
       fields: { ...this.#profile },
       address: this.#addresses[0].fields(),
-      status: this.#status,
+      status: this.#status.value,
       isDefault: true,
     };
   }
   updateProfile(input: CustomerPatch): CustomerPatch {
-    const patch = normalizeProfilePatch(input);
+    const patch = changeCustomerProfile(this.#status.value, input);
     const { status, ...fields } = patch;
     this.#profile = { ...this.#profile, ...fields };
-    if (status !== undefined) this.#status = status;
+    if (status !== undefined) this.#status = CustomerStatusVO.from(status);
     return { ...patch };
   }
   addAddress(input: AddressCreate): AddressWrite {

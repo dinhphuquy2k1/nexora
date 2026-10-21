@@ -248,3 +248,189 @@ test("persistence hydration mapper keeps identity, legacy cardinality, nullable 
   assert.equal(aggregate.snapshot().profile.email, null);
   assert.deepEqual(aggregate.snapshot().addresses, []);
 });
+
+test("status VO accepts only shared codes, is immutable and rejects corrupt persisted status", () => {
+  const {
+    CustomerStatusVO,
+  } = require("../dist/customer/domain/customer-status.vo");
+  assert.equal(CustomerStatusVO.initial().value, CustomerStatus.ACTIVE);
+  for (const code of Object.values(CustomerStatus)) {
+    const value = CustomerStatusVO.from(code);
+    assert.equal(value.value, code);
+    assert.ok(value.equals(CustomerStatusVO.from(code)));
+    assert.equal(Reflect.set(value, "value", "bad"), false);
+  }
+  assert.equal(
+    CustomerStatusVO.from(CustomerStatus.ACTIVE).equals(
+      CustomerStatusVO.from(CustomerStatus.INACTIVE),
+    ),
+    false,
+  );
+  for (const bad of [null, undefined, "", "active", "DISABLED", [], {}, 1]) {
+    rejectsCode(() => CustomerStatusVO.from(bad), "VALIDATION_ERROR");
+    rejectsCode(
+      () => hydrateCustomer({ ...persisted(), status: bad }),
+      "VALIDATION_ERROR",
+    );
+  }
+});
+
+test("all public domain command shapes reject mixed forbidden fields without mutating state", () => {
+  const customer = CustomerAggregate.rehydrate(persisted());
+  const before = customer.snapshot();
+  for (const bad of [null, undefined, [], "text", 1, {}]) {
+    rejectsCode(() => customer.updateProfile(bad), "VALIDATION_ERROR");
+    rejectsCode(() => customer.updateAddress("a", bad), "VALIDATION_ERROR");
+    rejectsCode(() => customer.addAddress(bad), "VALIDATION_ERROR");
+    rejectsCode(
+      () => CustomerAggregate.create(bad, address),
+      "VALIDATION_ERROR",
+    );
+  }
+  for (const key of [
+    "ownerUserId",
+    "createdByUserId",
+    "id",
+    "code",
+    "statusLabel",
+    "address",
+    "unknown",
+  ]) {
+    rejectsCode(
+      () => customer.updateProfile({ name: "Valid", [key]: "forged" }),
+      "VALIDATION_ERROR",
+    );
+    rejectsCode(
+      () => CustomerAggregate.create({ ...profile, [key]: "forged" }, address),
+      "VALIDATION_ERROR",
+    );
+  }
+  for (const key of [
+    "customerId",
+    "ownerUserId",
+    "id",
+    "isDefault",
+    "statusLabel",
+    "unknown",
+  ]) {
+    rejectsCode(
+      () => customer.updateAddress("a", { label: "Valid", [key]: true }),
+      "VALIDATION_ERROR",
+    );
+    rejectsCode(
+      () => customer.addAddress({ ...address, [key]: true }),
+      "VALIDATION_ERROR",
+    );
+    rejectsCode(
+      () => CustomerAggregate.create(profile, { ...address, [key]: true }),
+      "VALIDATION_ERROR",
+    );
+  }
+  const symbolic = { name: "Valid", [Symbol("owner")]: "forged" };
+  rejectsCode(() => customer.updateProfile(symbolic), "VALIDATION_ERROR");
+  assert.deepEqual(customer.snapshot(), before);
+  assert.deepEqual(customer.updateProfile({ name: " Updated " }), {
+    name: "Updated",
+  });
+});
+
+test("profile-only policy is shared with aggregate and independent of legacy child cardinality", () => {
+  const {
+    changeCustomerProfile,
+  } = require("../dist/customer/domain/customer-profile.policy");
+  for (const code of Object.values(CustomerStatus)) {
+    const patch = { status: code, email: null, note: null, name: " Updated " };
+    const expected = changeCustomerProfile(CustomerStatus.ACTIVE, patch);
+    for (const ids of [[], ["a"], ["a", "b"]]) {
+      const aggregate = CustomerAggregate.rehydrate(persisted(ids));
+      const before = aggregate.snapshot().addresses;
+      assert.deepEqual(aggregate.updateProfile(patch), expected);
+      assert.deepEqual(aggregate.snapshot().addresses, before);
+    }
+  }
+  rejectsCode(
+    () => changeCustomerProfile("corrupt", { name: "Valid" }),
+    "VALIDATION_ERROR",
+  );
+  rejectsCode(
+    () =>
+      changeCustomerProfile(CustomerStatus.ACTIVE, {
+        name: "Valid",
+        isDefault: true,
+      }),
+    "VALIDATION_ERROR",
+  );
+});
+
+test("presentation adds shared labels, allowlists safe fields and preserves ordered addresses and JSON dates", () => {
+  const {
+    presentCustomer,
+    presentCustomerPage,
+  } = require("../dist/customer/presentation/customer.presenter");
+  const { CustomerStatusLabelsVi } = require("@nexora/shared");
+  const row = persisted();
+  for (const code of Object.values(CustomerStatus)) {
+    row.status = code;
+    const before = persisted();
+    before.status = code;
+    const result = presentCustomer(row);
+    assert.equal(result.statusLabel, CustomerStatusLabelsVi[code]);
+    assert.equal(result.status, code);
+    assert.equal(result.ownerUserId, undefined);
+    assert.equal(result.createdByUserId, undefined);
+    assert.equal(
+      JSON.parse(JSON.stringify(result)).createdAt,
+      row.createdAt.toISOString(),
+    );
+    assert.deepEqual(result.addresses, row.addresses);
+    assert.deepEqual(row, before);
+    assert.equal(
+      presentCustomerPage({
+        customers: [row],
+        pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+      }).customers[0].statusLabel,
+      CustomerStatusLabelsVi[code],
+    );
+  }
+});
+
+test("all four Customer controller handlers present labels once; address handlers remain unchanged", async () => {
+  const {
+    CustomerController,
+  } = require("../dist/customer/presentation/customer.controller");
+  const row = persisted();
+  const page = {
+    customers: [row],
+    pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+  };
+  const actor = { user: { id: "owner" } };
+  const addressResult = { address: row.addresses[0] };
+  const service = {
+    list: async () => page,
+    create: async () => ({ customer: row }),
+    get: async () => ({ customer: row }),
+    update: async () => ({
+      customer: { ...row, status: CustomerStatus.INACTIVE },
+    }),
+    addAddress: async () => addressResult,
+  };
+  const controller = new CustomerController(service);
+  assert.equal(
+    (await controller.list(actor, {})).customers[0].statusLabel,
+    "Đang hoạt động",
+  );
+  assert.equal(
+    (await controller.create(actor, {})).customer.statusLabel,
+    "Đang hoạt động",
+  );
+  assert.equal(
+    (await controller.get(actor, "id")).customer.statusLabel,
+    "Đang hoạt động",
+  );
+  assert.equal(
+    (await controller.update(actor, "id", {})).customer.statusLabel,
+    "Ngừng hoạt động",
+  );
+  assert.equal(await controller.add(actor, "id", {}), addressResult);
+  assert.equal(Object.hasOwn(row, "statusLabel"), false);
+});

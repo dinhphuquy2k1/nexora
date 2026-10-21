@@ -4,7 +4,7 @@ import {
   OmitType,
   PartialType,
 } from "@nestjs/swagger";
-import { CustomerStatus } from "../domain/customer";
+import { CustomerStatus, type CustomerStatusCode } from "@nexora/shared";
 export class AddressInputDto {
   @ApiPropertyOptional({ type: String, nullable: true, maxLength: 100 })
   label?: string | null;
@@ -51,7 +51,7 @@ export class PatchCustomerDto extends PartialType(
   OmitType(CreateCustomerDto, ["address"] as const),
 ) {
   @ApiPropertyOptional({ enum: Object.values(CustomerStatus) })
-  status?: CustomerStatus;
+  status?: CustomerStatusCode;
 }
 export class CustomerSummaryDto {
   @ApiProperty({ format: "uuid" }) id!: string;
@@ -60,7 +60,13 @@ export class CustomerSummaryDto {
   @ApiProperty({ example: "+84912345678" }) phone!: string;
   @ApiProperty({ type: String, nullable: true }) email!: string | null;
   @ApiProperty({ type: String, nullable: true }) note!: string | null;
-  @ApiProperty({ enum: Object.values(CustomerStatus) }) status!: CustomerStatus;
+  @ApiProperty({ enum: Object.values(CustomerStatus) })
+  status!: CustomerStatusCode;
+  @ApiProperty({
+    type: String,
+    description: "Vietnamese display label derived from status",
+  })
+  statusLabel!: string;
   @ApiProperty({ format: "date-time" }) createdAt!: string;
   @ApiProperty({ format: "date-time" }) updatedAt!: string;
 }
@@ -101,7 +107,7 @@ export class CustomerListQueryDto {
   pageSize?: string;
   @ApiPropertyOptional({ maxLength: 200 }) q?: string;
   @ApiPropertyOptional({ enum: Object.values(CustomerStatus) })
-  status?: CustomerStatus;
+  status?: CustomerStatusCode;
   @ApiPropertyOptional({
     maxLength: 64,
     description: "Exact match after phone normalization",

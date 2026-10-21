@@ -1,3 +1,4 @@
+import { presentCustomer, presentCustomerPage } from "./customer.presenter";
 import {
   Body,
   Controller,
@@ -38,8 +39,8 @@ export class CustomerController {
   constructor(private readonly service: CustomerService) {}
   @Get()
   @ApiResponse({ status: 200, type: CustomersResponseDto })
-  list(@Req() req: ActorRequest, @Query() query: CustomerListQueryDto) {
-    return this.service.list(req.user, query);
+  async list(@Req() req: ActorRequest, @Query() query: CustomerListQueryDto) {
+    return presentCustomerPage(await this.service.list(req.user, query));
   }
   @Post()
   @ApiResponse({
@@ -50,14 +51,16 @@ export class CustomerController {
   @ApiResponse({ status: 403, type: ApiErrorDto })
   @UseGuards(OriginGuard)
   @ApiResponse({ status: 201, type: CustomerResponseDto })
-  create(@Req() req: ActorRequest, @Body() body: CreateCustomerDto) {
-    return this.service.create(req.user, body);
+  async create(@Req() req: ActorRequest, @Body() body: CreateCustomerDto) {
+    const result = await this.service.create(req.user, body);
+    return { customer: presentCustomer(result.customer) };
   }
   @Get(":id")
   @ApiResponse({ status: 404, type: ApiErrorDto })
   @ApiResponse({ status: 200, type: CustomerResponseDto })
-  get(@Req() req: ActorRequest, @Param("id") id: string) {
-    return this.service.get(req.user, id);
+  async get(@Req() req: ActorRequest, @Param("id") id: string) {
+    const result = await this.service.get(req.user, id);
+    return { customer: presentCustomer(result.customer) };
   }
   @Patch(":id")
   @ApiResponse({ status: 404, type: ApiErrorDto })
@@ -69,12 +72,13 @@ export class CustomerController {
   @ApiResponse({ status: 403, type: ApiErrorDto })
   @UseGuards(OriginGuard)
   @ApiResponse({ status: 200, type: CustomerResponseDto })
-  update(
+  async update(
     @Req() req: ActorRequest,
     @Param("id") id: string,
     @Body() body: PatchCustomerDto,
   ) {
-    return this.service.update(req.user, id, body);
+    const result = await this.service.update(req.user, id, body);
+    return { customer: presentCustomer(result.customer) };
   }
   @Post(":id/addresses")
   @ApiResponse({ status: 404, type: ApiErrorDto })

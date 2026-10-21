@@ -125,6 +125,20 @@ test(
           ]);
           assert.equal(result.requestId, response.headers.get("x-request-id"));
         }
+        if (response.ok) {
+          const { CustomerStatusLabelsVi } = require("@nexora/shared");
+          for (const customer of result.customers ??
+            (result.customer ? [result.customer] : [])) {
+            assert.equal(
+              customer.statusLabel,
+              CustomerStatusLabelsVi[customer.status],
+            );
+            assert.equal(customer.ownerUserId, undefined);
+            assert.equal(customer.createdByUserId, undefined);
+          }
+          if (result.address)
+            assert.equal(Object.hasOwn(result.address, "statusLabel"), false);
+        }
         if (response.ok && method !== "GET") {
           const customerId = result.customer?.id ?? path.split("/")[1];
           const addresses = await db.customerAddress.findMany({
@@ -213,6 +227,7 @@ test(
           "email",
           "note",
           "status",
+          "statusLabel",
           "createdAt",
           "updatedAt",
           "addresses",
@@ -639,12 +654,27 @@ test(
           "email",
           "note",
           "status",
+          "statusLabel",
           "createdAt",
           "updatedAt",
           "addresses",
         ].sort(),
       );
       const originalAddresses = referenceCustomer.addresses;
+      const {
+        CustomerPort,
+      } = require("../dist/customer/application/customer.port");
+      const apiCustomers = app.get(CustomerPort);
+      const originalClient = apiCustomers.client;
+      const profileQueries = [];
+      apiCustomers.instance = originalClient.$extends({
+        query: {
+          $allOperations: async ({ model, operation, args, query }) => {
+            profileQueries.push({ model, operation, select: args?.select });
+            return query(args);
+          },
+        },
+      });
       const changedProfile = await request(
         "/" + referenceCustomer.id,
         "PATCH",
@@ -656,7 +686,34 @@ test(
           note: null,
         },
       );
+      apiCustomers.instance = originalClient;
       assert.equal(changedProfile.status, 200);
+      assert.deepEqual(
+        profileQueries.map((q) => q.operation),
+        ["$queryRaw", "$queryRaw", "findFirst", "updateMany", "findFirst"],
+      );
+      const selects = profileQueries.filter(
+        (q) => q.model === "Customer" && q.operation === "findFirst",
+      );
+      assert.deepEqual(selects[0].select, { status: true });
+      assert.equal(selects.filter((q) => q.select.addresses).length, 1);
+      assert.equal(changedProfile.body.customer.statusLabel, "Ngừng hoạt động");
+      for (const method of ["POST", "PATCH"]) {
+        error(
+          await request(
+            method === "POST" ? "" : "/" + referenceCustomer.id,
+            method,
+            { name: "Valid", statusLabel: "Đang hoạt động" },
+          ),
+          400,
+          "VALIDATION_ERROR",
+        );
+      }
+      const storedProfile = await db.customer.findUnique({
+        where: { id: referenceCustomer.id },
+      });
+      assert.equal(storedProfile.status, "INACTIVE");
+      assert.equal(Object.hasOwn(storedProfile, "statusLabel"), false);
       assert.deepEqual(
         changedProfile.body.customer.addresses,
         originalAddresses,

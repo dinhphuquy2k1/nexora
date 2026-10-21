@@ -360,6 +360,8 @@ export interface components {
             note: string | null;
             /** @enum {string} */
             status: "ACTIVE" | "INACTIVE";
+            /** @description Vietnamese display label derived from status */
+            statusLabel: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -423,6 +425,8 @@ export interface components {
             note: string | null;
             /** @enum {string} */
             status: "ACTIVE" | "INACTIVE";
+            /** @description Vietnamese display label derived from status */
+            statusLabel: string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */

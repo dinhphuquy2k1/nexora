@@ -1,3 +1,4 @@
+import { GENERIC_ERROR_MESSAGE } from "../../common/http/error-messages";
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { CustomerError } from "../domain/customer";
 
@@ -9,19 +10,19 @@ interface CustomerErrorMapping {
 export const CUSTOMER_ERROR_MAP = {
   VALIDATION_ERROR: {
     status: HttpStatus.BAD_REQUEST,
-    message: "Không thể thực hiện yêu cầu",
+    message: GENERIC_ERROR_MESSAGE,
   },
   UNAUTHORIZED: {
     status: HttpStatus.UNAUTHORIZED,
-    message: "Không thể thực hiện yêu cầu",
+    message: GENERIC_ERROR_MESSAGE,
   },
   NOT_FOUND: {
     status: HttpStatus.NOT_FOUND,
-    message: "Không thể thực hiện yêu cầu",
+    message: GENERIC_ERROR_MESSAGE,
   },
   CUSTOMER_PHONE_EXISTS: {
     status: HttpStatus.CONFLICT,
-    message: "Không thể thực hiện yêu cầu",
+    message: GENERIC_ERROR_MESSAGE,
   },
   LAST_CUSTOMER_ADDRESS: {
     status: HttpStatus.CONFLICT,

@@ -1,3 +1,10 @@
+import { CustomerStatusVO } from "../domain/customer-status.vo";
+import {
+  customerRecord,
+  CUSTOMER_PROFILE_FIELDS,
+  CUSTOMER_PATCH_FIELDS,
+  CUSTOMER_ADDRESS_FIELDS,
+} from "../domain/customer-command";
 import {
   invalid,
   type CustomerCreate,
@@ -5,13 +12,12 @@ import {
   type CustomerPatch,
   type AddressCreate,
   type AddressFields,
-  type CustomerStatus,
+  type CustomerStatusCode,
   type CustomerSummary,
 } from "../domain/customer";
 import {
   PhoneNumber,
   text,
-  customerStatus,
   normalizeCustomerFields,
   normalizeProfilePatch,
   normalizeAddressCreate,
@@ -22,7 +28,7 @@ export interface CustomerQuery {
   pageSize: number;
   q?: string;
   searchPhone?: string;
-  status?: CustomerStatus;
+  status?: CustomerStatusCode;
   phone?: string;
 }
 export interface CustomerPage {
@@ -36,19 +42,7 @@ export interface CustomerPage {
 }
 export const normalizePhone = (value: unknown): string =>
   PhoneNumber.create(value).value;
-export function record(
-  input: unknown,
-  allowed: readonly string[],
-): Record<string, unknown> {
-  if (
-    !input ||
-    typeof input !== "object" ||
-    Array.isArray(input) ||
-    Object.keys(input).some((k) => !allowed.includes(k))
-  )
-    invalid();
-  return input as Record<string, unknown>;
-}
+export const record = customerRecord;
 export function uuid(value: unknown): string {
   if (
     typeof value !== "string" ||
@@ -67,9 +61,7 @@ export function customerInput(
 ): CustomerCreate | CustomerPatch {
   const body = record(
     input,
-    patch
-      ? ["name", "phone", "email", "note", "status"]
-      : ["name", "phone", "email", "note", "address"],
+    patch ? CUSTOMER_PATCH_FIELDS : [...CUSTOMER_PROFILE_FIELDS, "address"],
   );
   if (!Object.keys(body).length) invalid();
   if (patch) return normalizeProfilePatch(body as CustomerPatch);
@@ -93,13 +85,7 @@ export function addressInput(
   fallback?: Pick<CustomerFields, "name" | "phone">,
   patch = false,
 ): Partial<AddressFields> {
-  const body = record(input, [
-    "label",
-    "recipientName",
-    "recipientPhone",
-    "countryCode",
-    "addressText",
-  ]);
+  const body = record(input, CUSTOMER_ADDRESS_FIELDS);
   if (!Object.keys(body).length) invalid();
   if (patch) return normalizeAddressPatch(body as Partial<AddressFields>);
   return normalizeAddressCreate(body as unknown as AddressCreate, fallback);
@@ -126,6 +112,7 @@ export function listQuery(input: unknown): CustomerQuery {
     }
   }
   if (Object.hasOwn(query, "phone")) out.phone = normalizePhone(query.phone);
-  if (Object.hasOwn(query, "status")) out.status = customerStatus(query.status);
+  if (Object.hasOwn(query, "status"))
+    out.status = CustomerStatusVO.from(query.status).value;
   return out;
 }

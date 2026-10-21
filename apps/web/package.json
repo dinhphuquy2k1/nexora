@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "dev": "node scripts/dev.mjs",
     "start": "node scripts/start.mjs",
-    "test": "node --test test/mfa-login.test.mjs test/navigation.test.mjs test/shared-ui.test.mjs test/auth-frontend.test.mjs test/launcher.test.mjs test/setup.test.mjs test/public-host.test.mjs test/public-healthcheck.test.mjs",
+    "test": "node --test test/mfa-login.test.mjs test/navigation.test.mjs test/shared-ui.test.mjs test/auth-frontend.test.mjs test/launcher.test.mjs test/setup.test.mjs test/public-host.test.mjs test/public-healthcheck.test.mjs test/customer-status.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
