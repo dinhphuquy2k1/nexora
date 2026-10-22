@@ -125,5 +125,11 @@ if (a[0] === "start") {
     end(1, "", "controlled removal failure");
   delete s.containers[a.at(-1)];
   end(0, a.at(-1));
-} else if (a[0] === "image" && a[1] === "inspect") end(0, "[]");
-else if (a[0] !== "start") end(2, "", "unexpected fixture command");
+} else if (a[0] === "image" && a[1] === "inspect") {
+  if (mode === "negative-image" || mode === "build-fail")
+    end(1, "", "Error response from daemon: No such image: " + a.at(-1));
+  end(0, "[]");
+} else if (a[0] === "build") {
+  if (mode === "build-fail") end(1, "", "controlled build failure");
+  end(0, "Successfully built nexora-dev:0.1.0\n");
+} else if (a[0] !== "start") end(2, "", "unexpected fixture command");

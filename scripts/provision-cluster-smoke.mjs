@@ -292,12 +292,12 @@ async function runSuites(suite) {
       await command([
         "build",
         "-f",
-        "docker/Dockerfile.tools",
+        resolve(root, "docker/Dockerfile.tools"),
         "--target",
         "dev",
         "-t",
         "nexora-dev:0.1.0",
-        ".",
+        root,
       ])
     ).code !== 0
   )

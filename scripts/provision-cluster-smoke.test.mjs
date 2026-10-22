@@ -2,16 +2,16 @@ import { writeDockerFixtureHelper } from "./fixtures/cluster/private-docker-help
 import { clearTimeout } from "node:timers";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 const source = await readFile(
   new URL("./provision-cluster-smoke.mjs", import.meta.url),
   "utf8",
 );
-async function fixture(mode = "normal", suite, signal) {
+async function fixture(mode = "normal", suite, signal, options = {}) {
   const dir = await mkdtemp(join(tmpdir(), "nexora-cluster-fixture-"));
   try {
     const docker = join(dir, "docker.cjs");
@@ -32,7 +32,9 @@ async function fixture(mode = "normal", suite, signal) {
         socket: 0,
       }),
     );
-    const launcher = join(dir, "launcher.mjs");
+    const scriptsDir = join(dir, "scripts");
+    await mkdir(scriptsDir, { recursive: true });
+    const launcher = join(scriptsDir, "provision-cluster-smoke.mjs");
     await writeFile(
       launcher,
       source
@@ -49,7 +51,7 @@ async function fixture(mode = "normal", suite, signal) {
     const p = spawn(
       process.execPath,
       [launcher, ...(suite ? [`--suite=${suite}`] : [])],
-      { env },
+      { env, cwd: options.cwd },
     );
     let output = "";
     p.stdout.on("data", (c) => (output += c));
@@ -80,7 +82,12 @@ async function fixture(mode = "normal", suite, signal) {
     }
     const result = await done;
     clearTimeout(timer);
-    return { ...result, output, state: JSON.parse(await readFile(state)) };
+    return {
+      ...result,
+      output,
+      state: JSON.parse(await readFile(state)),
+      root: dir,
+    };
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -264,5 +271,42 @@ test("exact absence/idempotence and unverifiable state retain tracking", async (
       assert.ok(!sanitized.includes(secret));
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+test("fallback docker build uses canonical root when image absent from non-root cwd", async () => {
+  const callerDir = await mkdtemp(join(tmpdir(), "nexora-non-root-cwd-"));
+  try {
+    const nonRootCwd = join(callerDir, "packages", "database");
+    await mkdir(nonRootCwd, { recursive: true });
+
+    const r = await fixture("negative-image", undefined, undefined, {
+      cwd: nonRootCwd,
+    });
+    assert.equal(r.code, 0, r.output);
+    assert.match(r.output, /Actual disposable cluster tests PASS/);
+    clean(r.state);
+
+    const buildCall = r.state.calls.find((c) => c[0] === "build");
+    assert.ok(buildCall, "docker build must be invoked when image is absent");
+    assert.deepEqual(buildCall, [
+      "build",
+      "-f",
+      resolve(r.root, "docker/Dockerfile.tools"),
+      "--target",
+      "dev",
+      "-t",
+      "nexora-dev:0.1.0",
+      r.root,
+    ]);
+    assert.notEqual(buildCall[2], "docker/Dockerfile.tools");
+    assert.notEqual(buildCall[7], ".");
+    assert.notEqual(buildCall[7], nonRootCwd);
+
+    const failResult = await fixture("build-fail");
+    assert.notEqual(failResult.code, 0);
+    assert.match(failResult.output, /TOOLING_BUILD_FAILED/);
+    clean(failResult.state);
+  } finally {
+    await rm(callerDir, { recursive: true, force: true });
   }
 });
