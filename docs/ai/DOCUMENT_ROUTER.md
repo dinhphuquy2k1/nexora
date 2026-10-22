@@ -52,3 +52,5 @@ Use this table as a review guide after classifying Documentation Impact:
 | Contributor governance                | `docs/ai/PROJECT_RULES.md`, `docs/ai/TASK_WORKFLOW.md`         |
 
 For shared vocabulary/status changes, inspect packages/shared exports and canonical code/label leaves, then read [API/SDK contract](../architecture/api-contract.md), [Backend Domain boundaries](../architecture/backend.md), [Frontend presentation](../architecture/frontend.md) and the dated [ADR-008 amendment](../decisions/tactical-ddd.md). Verify both runtime consumers and generated SDK agreement; do not move Domain models into shared.
+
+For digest-bound approval hardening, read ADR-009, Task Workflow and scripts/preflight-policy-check.mjs; immutable artifacts are under docs/tasks/design-reviews/, while active task/PR retain execution evidence.

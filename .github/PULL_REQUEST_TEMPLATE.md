@@ -4,6 +4,8 @@
 - **Task Reference**: `docs/tasks/active/<task-file>.md`
 - **Task Classification**: `[ ] BOUNDED  [ ] SIGNIFICANT  [ ] SPIKE`
 - **Plan revision**: `<e.g. rev-2026-10-21-reuse-v2>`
+- **Design Snapshot**: `docs/tasks/design-reviews/<Task-ID>-<revision>.md`
+- **Design SHA-256**: `<actual computed64 lowercase hex>`
 - **Design Review & Reuse Audit**: `<Path to task section or review artifact>`
 - **Approval provenance**: `<Link to owner approval comment, review, or directive>`
 

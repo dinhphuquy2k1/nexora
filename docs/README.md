@@ -40,6 +40,8 @@ For AI-assisted development, start at the mandatory entry point [`docs/ai/README
 - [Active tasks](tasks/active/): Ongoing, planned, or verification-pending work items.
 - [Completed tasks](tasks/completed/): Verified, accepted historical task records.
 
+Versioned [design snapshots](tasks/design-reviews/) own immutable selected-design content/digests for attestation; they are not task lifecycle records. Active task and PR own mutable execution evidence.
+
 Task records own work scope, progress, acceptance criteria, and verification evidence. They do not replace durable architecture or operations documentation.
 
 ### AI contributor documentation

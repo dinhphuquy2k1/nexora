@@ -56,8 +56,8 @@ Approval semantics:
 
 - Design approval is strictly separate from Task Lifecycle, Code Review, Test PASS, and Merge Readiness.
 - A coding agent must never approve its own design on behalf of the owner.
-- Approval must reference an identifiable plan revision or decision.
-- A material design amendment requires renewed review of the delta.
+- Approval binds Task ID and a concrete immutable snapshot/revision with recomputed raw-byte SHA-256, independently matched to authenticated GitHub evidence per ADR-009.
+- A material design amendment requires a new revision/snapshot/digest and renewed approval of the delta; routine execution evidence updates do not require a new design approval.
 - For tasks where an owner-approved implementation specification is provided (such as PR #23 / NEXORA-027), the agent implements the approved architecture directive directly without restarting architectural discovery.
 - Pre-code design review and explicit approval requirements remain fully mandatory for all future implementation tasks.
 - Static or local preflight validation PASS only proves local structural compliance; it does not prove or substitute for authenticated GitHub approval provenance.

@@ -45,8 +45,8 @@ Customer backend ownership/schema/sequence/grants,8 HTTP contracts, normalizatio
 
 ### Canonical owners
 
-- docs/decisions/tactical-ddd.md and decisions/README.md
-- docs/ai/PROJECT_RULES.md, IMPLEMENTATION_WORKFLOW.md, DOCUMENT_ROUTER.md, PROJECT_CONTEXT.md
+- docs/decisions/tactical-ddd.md, mandatory-pre-code-design-review.md and decisions/README.md
+- docs/ai/PROJECT_RULES.md, IMPLEMENTATION_WORKFLOW.md, TASK_WORKFLOW.md, DOCUMENT_ROUTER.md, PROJECT_CONTEXT.md and templates/pre-implementation-review.md
 - docs/architecture/database.md
 - docs/architecture/backend.md and frontend.md
 - docs/architecture/api-contract.md
@@ -464,6 +464,8 @@ Verification summary: full genuine Prisma/Nest/migration/query/concurrency asser
 - **Task ID**: NEXORA-027
 - **Classification**: SIGNIFICANT
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-027-rev-2026-10-21-reuse-v2.md
+- **Design SHA-256**: 50aacd6b4a9e209f1669788a3ca4aef73a6dfd65b32cbb49b2d1f7b4737747d7
 - **Reviewed baseline**: 32c374fa7c4f55bf24afa94dcf7d666700f5fd27
 - **Approval authority**: repository-owner
 - **Approval status**: APPROVED
@@ -528,3 +530,33 @@ The following remain domain-specific per tactical DDD boundaries:
 - **P2: Strict Machine-Readable Approval Parser**: Mandated exact header `NEXORA DESIGN APPROVAL`, single block, unique fields, and supported decisions (`APPROVED`, `REVISION_REQUIRED`, `REVOKED`), rejecting quotes, prose, and fenced code blocks.
 - **P2: Structural Validation vs Implementation Approval Enforcement**: Separated structural mode (allows valid `PENDING_REVIEW` / `REVISION_REQUIRED` tasks during static scans) from PR implementation mode (requires `APPROVED` task and verified GitHub approval).
 - **P2: Restrict Path Traversal Validation to Task Reference**: Replaced whole-body `..` scanning with targeted path validation on the canonical `Task Reference` field, allowing ordinary ellipses `...` and unrelated example text in PR descriptions while strictly enforcing active directory containment.
+
+## Owner-selected governance integrity fix — 2026-10-22
+
+SIGNIFICANT; Documentation Impact REQUIRED under the existing section. Actual baseline4f93a74cfadbb89f71fa0b0feca8f83994f5bd86, no newer remote commits on inspection, clean existing PR23 branch. The owner explicitly authorizes implementation of this fix; no new architecture selection or circular approval stop. Authenticated digest-bound GitHub approval remains PENDING until a real authorized decision exists.
+
+Reuse/design preflight: extend existing preflight-policy-check.mjs parsers/binding/verifier, using Node crypto/fs/path only. Keep duplicate-validation/Agent Skills checks and local/push structural vs PR implementation modes. Hash raw immutable snapshot bytes, not mutable task execution evidence. Bind PR/task/snapshot identity/revision/path/digest to independently authenticated review/comment digest. Replace loose scanning with exactly five contiguous formal lines. Validate physical file provenance with lstat/realpath/relative containment, read only checked paths and pass validated content downstream. Customer/API/DB behavior remains unchanged. No generic framework/dependency/new ADR/task/PR.
+
+Plan: (1) add RED mutation/parser/symlink fixtures in owned temporary roots; (2) capture existing reuse-v2 decisions truthfully in a newly created immutable design snapshot, with current fix constraints, without backdating; (3) implement content binding/strict grammar/edited chronology and checked task/snapshot paths; (4) migrate existing regression fixture metadata while retaining assertions; (5) synchronize ADR009/workflows/template/testing/task/PR metadata; (6) run governance/source/docs/Customer/contracts and applicable genuine quality gates, record actual outcomes, commit/push focused changes and inspect both final-head workflows. No approval/merge or weakening of original runtime/Operator Data Audit gates. Independent human review remains required; this agent's review is not independent approval.
+
+### Integrity fix resolution and precommit evidence — 2026-10-22
+
+P2 content integrity: newly captured immutable reuse-v2 snapshot above hashes raw bytes to the declared Design SHA-256. PR/task/snapshot identity, revision, path and digest agree; approval verification requires an independently authenticated matching digest. No mutable execution evidence is hashed. Original owner direction permits this fix, but authenticated digest attestation is PENDING; no old instruction/comment is relabeled as digest approval.
+
+P2 parsing: strict standalone five-line grammar rejects stitching/prose/fences/quotes/duplicates/missing or malformed fields. Relevant source decisions retain actual review-state/login restrictions, comments use updated_at, invalid/ambiguous ordering fails closed; unrelated code reviews do not revoke design. Truncated approval pagination also fails closed.
+
+P2 file provenance: task/snapshot paths reject symlink files or intermediate directories, URL/absolute/traversal inputs and nonregular files, verify physical realpath containment and read only checked canonical files. Parsed content/computed digest are reused downstream. All filesystem negatives use owned temporary roots; no real task is replaced/deleted for tests.
+
+| Claim                                                        | Evidence                                                                                                                                                                                                    | Date       | Result |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Test-first regressions reproduce baseline defects            | node --test scripts/preflight-policy-check.test.mjs before production edits;21 groups,16 PASS/5 FAIL including absent hash helper, loose parser, symlink and chronology                                     | 2026-10-22 | FAIL   |
+| Baseline mutation characterization                           | isolated copy of git-show4f93a74 checker in /tmp, mutation regression only; unchanged revision + changed snapshot still accepted;1 assertion group fails; no production checker replaced                    | 2026-10-22 | FAIL   |
+| Digest/parser/provenance and existing governance regressions | node --test scripts/preflight-policy-check.test.mjs after fix;28 groups exit0, all original groups/assertions retained with digest-bearing fixture migration                                                | 2026-10-22 | PASS   |
+| Independent structural/doc/contracts checks                  | dirty4f93a74 source, frozen install/preflight/docs/test:docs/format/test:lint/boundaries/shared build/Customer tests/contracts check;01:39:35Z–01:40:25Z recorded command ledger; all listed commands exit0 | 2026-10-22 | PASS   |
+| Initial lint diagnostic                                      | pnpm lint exit1 unused existsSync after replacing lexical path logic; import removed, lint rerun exit0                                                                                                      | 2026-10-22 | FAIL   |
+| API unit prerequisite diagnostic                             | pnpm --filter @nexora/api test exit1,164 pass/1 file-load failure; initially missing genuine database password output                                                                                       | 2026-10-22 | FAIL   |
+| API unit retry after genuine standalone Scrypt compile       | compiled only real packages/database/src/password.ts (exit0, no Prisma client substitute); API suite still exit1/164 pass/1 file-load failure due absent database dist/index.js                             | 2026-10-22 | FAIL   |
+
+Diff review: apps/, packages/, existing workflows and database/schema/grants are unchanged from4f93a74. No new dependency/framework, no fabricated review/comment, no self-approval/merge. Author checklist review completed; it is not independent review. Authorized owner/independent review remains required.
+
+Environment housekeeping: initial full workspace prevented attachment download. Removed only generated Next output from this worktree and three individually identified unused BuildKit cache records from prior task-owned verification (no global prune, no user volumes); about1.2GB recovered. Inherited proxy/CA remain enabled; current observed restricted policy still excludes official Prisma artifacts. Original genuine Prisma/Nest/SQL/Docker/runtime/hosted requirements and Operator Data Audit decision remain open. Final-head exits/timestamps and both workflow results will be recorded in PR metadata after commit to avoid digest/SHA-only loops. Task remains VERIFICATION PENDING; no attestation timing is backdated.

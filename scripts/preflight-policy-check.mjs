@@ -1,6 +1,14 @@
 import { readdir, readFile, access } from "node:fs/promises";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { readFileSync, lstatSync, realpathSync } from "node:fs";
+import { createHash } from "node:crypto";
+import {
+  resolve,
+  dirname,
+  relative,
+  isAbsolute,
+  basename,
+  sep,
+} from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -174,7 +182,10 @@ export function checkDuplicateValidationGuards(filePath, content) {
  */
 export function parseStructuredDesignRecord(content) {
   const sectionHeader = "## Design Review & Reuse Decision";
-  const sectionIndex = content.indexOf(sectionHeader);
+  const sectionMatches = [
+    ...content.matchAll(/^## Design Review & Reuse Decision\r?$/gm),
+  ];
+  const sectionIndex = sectionMatches[0]?.index ?? -1;
   if (sectionIndex === -1) {
     return {
       exists: false,
@@ -201,6 +212,8 @@ export function parseStructuredDesignRecord(content) {
     "task id": "taskId",
     classification: "classification",
     "plan revision": "planRevision",
+    "design snapshot": "designSnapshot",
+    "design sha-256": "designDigest",
     "reviewed baseline": "reviewedBaseline",
     "approval authority": "approvalAuthority",
     "approval status": "approvalStatus",
@@ -212,7 +225,7 @@ export function parseStructuredDesignRecord(content) {
   for (const rawLine of lines) {
     const trimmed = rawLine.trim();
     // Match lines like "- **Key**: Value" or "Key: Value" or "**Key**: Value"
-    const match = trimmed.match(/^(?:-\s*)?\*{0,2}([^:*]+)\*{0,2}:\s*(.+)$/);
+    const match = trimmed.match(/^(?:-\s*)?\*{0,2}([^:*]+)\*{0,2}:\s*(.*)$/);
     if (!match) continue;
 
     const keyLower = match[1].trim().toLowerCase();
@@ -238,6 +251,22 @@ export function parseStructuredDesignRecord(content) {
       "Duplicate Approval status declarations in Design Review section.",
     );
   }
+
+  for (const key of duplicateKeys) {
+    if (key !== "approvalStatus")
+      failures.push(`Duplicate ${key} declarations in Design Review section.`);
+  }
+  if (sectionMatches.length !== 1)
+    failures.push("Duplicate Design Review section.");
+  for (const key of ["designSnapshot", "designDigest"]) {
+    if (fields[key]) fields[key] = fields[key].replace(/^`([^`]+)`$/, "$1");
+  }
+  if (fields.designDigest && !isDesignDigest(fields.designDigest))
+    failures.push("Invalid Design SHA-256 format.");
+  if (Boolean(fields.designSnapshot) !== Boolean(fields.designDigest))
+    failures.push(
+      "Design Snapshot and Design SHA-256 must be declared together.",
+    );
 
   // Required fields
   const required = [
@@ -311,7 +340,7 @@ export function validateTaskDesignGovernance(
   }
 
   // 1. Parse structured section
-  const parsed = parseStructuredDesignRecord(taskContent);
+  const parsed = options.taskRecord ?? parseStructuredDesignRecord(taskContent);
   if (!parsed.exists) {
     failures.push(parsed.error);
     return failures;
@@ -334,6 +363,10 @@ export function validateTaskDesignGovernance(
   // In implementation mode, status MUST be APPROVED (PENDING_REVIEW and REVISION_REQUIRED fail).
   // In structural mode, PENDING_REVIEW and REVISION_REQUIRED are valid task states.
   if (mode === "implementation") {
+    if (!fields.designSnapshot || !isDesignDigest(fields.designDigest))
+      failures.push(
+        "Implementation requires Design Snapshot and valid Design SHA-256.",
+      );
     if (fields.approvalStatus && fields.approvalStatus !== "APPROVED") {
       failures.push(
         `Approval status is '${fields.approvalStatus}'; task cannot proceed until approved.`,
@@ -401,101 +434,23 @@ export function validateTaskDesignGovernance(
  * NEXORA DESIGN APPROVAL
  * Task: <taskId>
  * Plan revision: <planRevision>
+ * Design SHA-256: <computed lowercase digest>
  * Decision: <APPROVED | REVISION_REQUIRED | REVOKED>
  */
 export function parseApprovalDecisionBlock(text) {
-  if (!text || typeof text !== "string") return null;
-
-  // Normalize CRLF to LF
-  const normalized = text.replace(/\r\n/g, "\n");
-
-  // Strip fenced code blocks (``` ... ``` or ~~~ ... ~~~)
-  const withoutCodeBlocks = normalized.replace(
-    /(```[\s\S]*?```|~~~[\s\S]*?~~~)/g,
-    "",
-  );
-
-  // Filter out blockquote lines (starting with '>')
-  const lines = withoutCodeBlocks
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => !l.startsWith(">"));
-
-  const headerRegex = /^\*{0,2}NEXORA\s+DESIGN\s+APPROVAL\*{0,2}$/i;
-  const headerIndices = [];
-  for (let i = 0; i < lines.length; i++) {
-    if (headerRegex.test(lines[i])) {
-      headerIndices.push(i);
-    }
-  }
-
-  // Must contain exactly one formal header
-  if (headerIndices.length !== 1) {
-    return null;
-  }
-
-  const headerIndex = headerIndices[0];
-
-  const taskMatches = [];
-  const planMatches = [];
-  const decMatches = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    const taskMatch = line.match(
-      /^(?:-\s*)?\*{0,2}(?:Task|Task ID)\*{0,2}:\s*`?([A-Za-z0-9_-]+)`?$/i,
+  if (typeof text !== "string") return null;
+  const match = text
+    .replace(/\r\n/g, "\n")
+    .trim()
+    .match(
+      /^NEXORA DESIGN APPROVAL\nTask: ([A-Z]+-\d+)\nPlan revision: ([A-Za-z0-9][A-Za-z0-9_.-]*)\nDesign SHA-256: ([0-9a-f]{64})\nDecision: (APPROVED|REVISION_REQUIRED|REVOKED)$/,
     );
-    if (taskMatch) {
-      taskMatches.push({ index: i, value: taskMatch[1].trim() });
-      continue;
-    }
-
-    const revMatch = line.match(
-      /^(?:-\s*)?\*{0,2}Plan\s+revision\*{0,2}:\s*`?([A-Za-z0-9_.-]+)`?$/i,
-    );
-    if (revMatch) {
-      planMatches.push({ index: i, value: revMatch[1].trim() });
-      continue;
-    }
-
-    const decMatch = line.match(
-      /^(?:-\s*)?\*{0,2}(?:Decision|Approval status)\*{0,2}:\s*`?([A-Za-z_]+)`?$/i,
-    );
-    if (decMatch) {
-      decMatches.push({ index: i, value: decMatch[1].trim().toUpperCase() });
-      continue;
-    }
-  }
-
-  // Must contain exactly one of each field
-  if (
-    taskMatches.length !== 1 ||
-    planMatches.length !== 1 ||
-    decMatches.length !== 1
-  ) {
-    return null;
-  }
-
-  // All fields must appear after the header
-  if (
-    taskMatches[0].index < headerIndex ||
-    planMatches[0].index < headerIndex ||
-    decMatches[0].index < headerIndex
-  ) {
-    return null;
-  }
-
-  const decision = decMatches[0].value;
-  const validDecisions = ["APPROVED", "REVISION_REQUIRED", "REVOKED"];
-  if (!validDecisions.includes(decision)) {
-    return null;
-  }
-
+  if (!match) return null;
   return {
-    taskId: taskMatches[0].value,
-    planRevision: planMatches[0].value,
-    decision,
+    taskId: match[1],
+    planRevision: match[2],
+    designDigest: match[3],
+    decision: match[4],
   };
 }
 
@@ -503,236 +458,190 @@ export function parseApprovalDecisionBlock(text) {
  * Parses the canonical preflight block from a PR description.
  */
 export function parsePrPreflightBlock(prBody) {
-  if (!prBody || typeof prBody !== "string") {
+  if (typeof prBody !== "string" || !prBody.trim())
     return {
       exists: false,
       fields: {},
       failures: ["PR description/body is empty or missing."],
     };
-  }
-
-  const failures = [];
-  const fields = {};
-  const lines = prBody.split("\n");
-
-  for (const rawLine of lines) {
-    const trimmed = rawLine.trim();
-    const match = trimmed.match(/^(?:-\s*)?\*{0,2}([^:*]+)\*{0,2}:\s*(.+)$/);
-    if (!match) continue;
-
-    const keyLower = match[1].trim().toLowerCase();
-    const value = match[2].trim();
-
-    if (keyLower === "task id" || keyLower === "task") {
-      const cleanVal = value.replace(/[`*]/g, "").trim();
-      if (fields.taskId && fields.taskId !== cleanVal) {
-        failures.push(
-          `Conflicting Task ID declarations in PR description: '${fields.taskId}' vs '${cleanVal}'.`,
-        );
-      } else {
-        fields.taskId = cleanVal;
-      }
-    } else if (keyLower === "task reference" || keyLower === "task ref") {
-      // Could be markdown link: [NEXORA-027](docs/tasks/active/...) or path
-      const linkMatch = value.match(/\(([^)]+)\)/);
-      const pathVal = linkMatch
-        ? linkMatch[1]
-        : value.replace(/[`*]/g, "").trim();
-      if (fields.taskReference && fields.taskReference !== pathVal) {
-        failures.push(
-          `Conflicting Task Reference declarations in PR description.`,
-        );
-      } else {
-        fields.taskReference = pathVal;
-      }
-    } else if (keyLower === "plan revision" || keyLower === "plan rev") {
-      const cleanVal = value.replace(/[`*]/g, "").trim();
-      if (fields.planRevision && fields.planRevision !== cleanVal) {
-        failures.push(
-          `Conflicting Plan revision declarations in PR description.`,
-        );
-      } else {
-        fields.planRevision = cleanVal;
-      }
-    }
-  }
-
-  // Fallback: if taskReference was not declared via key-value line, check if a single canonical task link exists
-  if (!fields.taskReference) {
-    const linkMatches = prBody.match(
-      /docs\/tasks\/active\/[A-Za-z0-9_-]+\.md/g,
-    );
-    if (linkMatches && linkMatches.length === 1) {
-      fields.taskReference = linkMatches[0];
-    }
-  }
-
-  return {
-    exists: Boolean(
-      fields.taskId || fields.taskReference || fields.planRevision,
-    ),
-    fields,
-    failures,
+  const fields = {},
+    failures = [];
+  const keys = {
+    "task id": "taskId",
+    task: "taskId",
+    "task reference": "taskReference",
+    "task ref": "taskReference",
+    "plan revision": "planRevision",
+    "plan rev": "planRevision",
+    "design snapshot": "designSnapshot",
+    "design sha-256": "designDigest",
   };
+  for (const line of prBody.split(/\r?\n/)) {
+    const match = line
+      .trim()
+      .match(/^(?:-\s*)?\*{0,2}([^:*]+)\*{0,2}:\s*(.*)$/);
+    if (!match) continue;
+    const name = match[1].trim(),
+      key = keys[name.toLowerCase()];
+    if (!key) continue;
+    let value = match[2].trim().replace(/^`([^`]+)`$/, "$1");
+    if (["taskReference", "designSnapshot"].includes(key)) {
+      const link = value.match(/^\[[^\]]+\]\(([^)]+)\)$/);
+      if (link) value = link[1];
+    }
+    if (Object.hasOwn(fields, key))
+      failures.push(
+        `Conflicting ${name} declarations in PR description (duplicate metadata).`,
+      );
+    else fields[key] = value;
+  }
+  return { exists: Object.keys(fields).length > 0, fields, failures };
 }
 
-/**
- * Validates PR body binding to active task reference, plan revision, and filename matching.
- */
+const isDesignDigest = (value) =>
+  typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
+export function computeDesignDigest(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+/** Checked repository files only; reject symlinks before reading through canonical paths. */
+function readGovernedMarkdown(rootDir, ref, directory) {
+  if (typeof ref !== "string" || !ref)
+    throw Error("Missing governed Markdown path.");
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(ref))
+    throw Error(`Reference must be in '${directory}/', not a URL: '${ref}'.`);
+  if (
+    isAbsolute(ref) ||
+    ref.includes("\\") ||
+    ref.split("/").some((part) => part === ".." || part === "." || !part)
+  )
+    throw Error(`Illegal path traversal in reference: '${ref}'.`);
+  if (
+    !ref.startsWith(directory + "/") ||
+    ref.slice(directory.length + 1).includes("/")
+  )
+    throw Error(`Reference must be in '${directory}/': '${ref}'.`);
+  if (!/^[A-Z]+-\d+-[A-Za-z0-9_.-]+\.md$/.test(basename(ref)))
+    throw Error(`Invalid task/snapshot filename: '${ref}'.`);
+  const root = realpathSync(rootDir);
+  let path = root;
+  for (const component of ref.split("/")) {
+    path = resolve(path, component);
+    const stat = lstatSync(path);
+    if (stat.isSymbolicLink())
+      throw Error(`Symlink in governed path: '${ref}'.`);
+    if (path !== resolve(root, ref) && !stat.isDirectory())
+      throw Error(`Non-directory path component: '${ref}'.`);
+  }
+  if (!lstatSync(path).isFile())
+    throw Error(`Reference must be a regular Markdown file: '${ref}'.`);
+  const physical = realpathSync(path),
+    approved = realpathSync(resolve(root, directory));
+  const rel = relative(approved, physical);
+  if (!rel || rel === ".." || rel.startsWith(".." + sep) || isAbsolute(rel))
+    throw Error(`Physical target outside '${directory}': '${ref}'.`);
+  return { fullPath: physical, bytes: readFileSync(physical) };
+}
+
+function bindSnapshot(rootDir, fields, prFields) {
+  const snapshot = readGovernedMarkdown(
+    rootDir,
+    fields.designSnapshot,
+    "docs/tasks/design-reviews",
+  );
+  const computed = computeDesignDigest(snapshot.bytes);
+  if (!isDesignDigest(fields.designDigest) || fields.designDigest !== computed)
+    throw Error("Task Design SHA-256 mismatch or invalid format.");
+  if (
+    prFields.designSnapshot !== fields.designSnapshot ||
+    prFields.designDigest !== computed
+  )
+    throw Error("PR Design Snapshot / Design SHA-256 mismatch.");
+  const metadata = parsePrPreflightBlock(snapshot.bytes.toString("utf8"));
+  if (
+    metadata.failures.length ||
+    metadata.fields.taskId !== fields.taskId ||
+    metadata.fields.planRevision !== fields.planRevision
+  )
+    throw Error(
+      "Snapshot Task ID / Plan revision mismatch or duplicate metadata.",
+    );
+  if (
+    basename(fields.designSnapshot).match(/^([A-Z]+-\d+)-/)?.[1] !==
+    fields.taskId
+  )
+    throw Error("Snapshot filename Task ID mismatch.");
+  return computed;
+}
+
 export function validatePrTaskBinding(prBody, rootDir) {
-  const failures = [];
-  if (!prBody || typeof prBody !== "string" || !prBody.trim()) {
-    return {
-      valid: false,
-      failures: ["PR description/body is empty or missing."],
-      tasks: [],
-    };
+  const parsed = parsePrPreflightBlock(prBody),
+    failures = [...parsed.failures],
+    tasks = [];
+  for (const [key, label] of [
+    ["taskId", "Task ID"],
+    ["taskReference", "Task Reference"],
+    ["planRevision", "Plan revision"],
+    ["designSnapshot", "Design Snapshot"],
+    ["designDigest", "Design SHA-256"],
+  ]) {
+    if (!parsed.fields[key])
+      failures.push(`PR description is missing required '${label}'.`);
+    else if (isPlaceholderValue(parsed.fields[key]))
+      failures.push(`Invalid placeholder '${label}'.`);
   }
-
-  const parsed = parsePrPreflightBlock(prBody);
-  failures.push(...parsed.failures);
-
-  // 1. Task ID must be present and not a placeholder
-  if (!parsed.fields.taskId) {
-    failures.push("PR description is missing required 'Task ID'.");
-  } else if (isPlaceholderValue(parsed.fields.taskId)) {
-    failures.push(
-      `Task ID contains invalid placeholder value: '${parsed.fields.taskId}'.`,
-    );
-  }
-
-  // 2. Task Reference must be present and canonical
-  if (!parsed.fields.taskReference) {
-    failures.push(
-      "PR description must reference an active task file in 'docs/tasks/active/'.",
-    );
-  } else {
-    const relPath = parsed.fields.taskReference;
-    if (relPath.includes("://")) {
-      failures.push(
-        `Task reference cannot be a URL, must be in 'docs/tasks/active/', got: '${relPath}'.`,
+  if (parsed.fields.taskId && !/^[A-Z]+-\d+$/.test(parsed.fields.taskId))
+    failures.push("Invalid Task ID format.");
+  if (
+    parsed.fields.planRevision &&
+    !/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(parsed.fields.planRevision)
+  )
+    failures.push("Invalid Plan revision format.");
+  if (parsed.fields.taskReference) {
+    try {
+      const file = readGovernedMarkdown(
+        rootDir,
+        parsed.fields.taskReference,
+        "docs/tasks/active",
       );
-    } else if (
-      relPath.includes("..") ||
-      relPath.startsWith("/") ||
-      relPath.startsWith("\\") ||
-      /^[A-Za-z]:/.test(relPath)
-    ) {
-      failures.push(`Illegal path traversal in task reference: '${relPath}'.`);
-    } else if (!relPath.startsWith("docs/tasks/active/")) {
-      failures.push(
-        `Task reference must be in 'docs/tasks/active/', got: '${relPath}'.`,
+      const filenameTask = basename(parsed.fields.taskReference).match(
+        /^([A-Z]+-\d+)-/,
+      )?.[1];
+      if (filenameTask !== parsed.fields.taskId)
+        failures.push("PR Task ID mismatch with filename.");
+      const taskContent = file.bytes.toString("utf8"),
+        taskRecord = parseStructuredDesignRecord(taskContent);
+      failures.push(...taskRecord.failures);
+      if (taskRecord.fields.taskId !== parsed.fields.taskId)
+        failures.push("Task ID mismatch with task design record.");
+      if (taskRecord.fields.planRevision !== parsed.fields.planRevision)
+        failures.push("Plan revision mismatch with task design record.");
+      const designDigest = bindSnapshot(
+        rootDir,
+        taskRecord.fields,
+        parsed.fields,
       );
-    } else if (!relPath.endsWith(".md")) {
+      tasks.push({
+        relPath: parsed.fields.taskReference,
+        fullPath: file.fullPath,
+        taskId: parsed.fields.taskId,
+        planRevision: parsed.fields.planRevision,
+        taskContent,
+        taskRecord,
+        designDigest,
+      });
+    } catch (error) {
       failures.push(
-        `Task reference must be a markdown file, got: '${relPath}'.`,
+        error.code === "ENOENT"
+          ? `Referenced task/snapshot file does not exist: ${error.path}`
+          : error.message,
       );
-    } else if (isPlaceholderValue(relPath)) {
-      failures.push(
-        `Task reference contains invalid placeholder value: '${relPath}'.`,
-      );
-    } else {
-      const fullPath = resolve(rootDir, relPath);
-      const activeDir = resolve(rootDir, "docs/tasks/active");
-      const normFullPath = fullPath.replace(/\\/g, "/");
-      const normActiveDir = activeDir.replace(/\\/g, "/");
-
-      if (
-        !normFullPath.startsWith(normActiveDir + "/") &&
-        normFullPath !== normActiveDir
-      ) {
-        failures.push(
-          `Illegal path traversal outside active tasks directory: '${relPath}'.`,
-        );
-      } else if (!existsSync(fullPath)) {
-        failures.push(`Referenced task file does not exist: '${relPath}'.`);
-      } else {
-        // Match filename task ID
-        const fileMatch = relPath.match(/(NEXORA-\d+)/);
-        const fileTaskId = fileMatch ? fileMatch[1] : null;
-        if (
-          fileTaskId &&
-          parsed.fields.taskId &&
-          fileTaskId !== parsed.fields.taskId
-        ) {
-          failures.push(
-            `PR Task ID mismatch: PR specifies '${parsed.fields.taskId}' but filename indicates '${fileTaskId}'.`,
-          );
-        }
-
-        // Verify task file content
-        try {
-          const taskContent = readFileSync(fullPath, "utf8");
-          const designRecord = parseStructuredDesignRecord(taskContent);
-          if (!designRecord.exists) {
-            failures.push(
-              `Referenced task '${relPath}' is missing required '## Design Review & Reuse Decision' section.`,
-            );
-          } else {
-            if (
-              designRecord.fields.taskId &&
-              parsed.fields.taskId &&
-              designRecord.fields.taskId !== parsed.fields.taskId
-            ) {
-              failures.push(
-                `Task ID mismatch: PR specifies '${parsed.fields.taskId}' but task design record specifies '${designRecord.fields.taskId}'.`,
-              );
-            }
-            if (parsed.fields.planRevision) {
-              if (
-                designRecord.fields.planRevision &&
-                parsed.fields.planRevision !== designRecord.fields.planRevision
-              ) {
-                failures.push(
-                  `Plan revision mismatch: PR specifies '${parsed.fields.planRevision}' but task design record specifies '${designRecord.fields.planRevision}'.`,
-                );
-              }
-            }
-          }
-        } catch (e) {
-          failures.push(
-            `Failed to read referenced task file '${relPath}': ${e.message}`,
-          );
-        }
-      }
     }
   }
-
-  // 3. Plan revision must be present and not a placeholder
-  if (!parsed.fields.planRevision) {
-    failures.push("PR description is missing required 'Plan revision'.");
-  } else if (isPlaceholderValue(parsed.fields.planRevision)) {
-    failures.push(
-      `Plan revision contains invalid placeholder value: '${parsed.fields.planRevision}'.`,
-    );
-  }
-
-  // 4. Reject ambiguous conflicting task references in PR body
-  const allTaskMatches =
-    prBody.match(/docs\/tasks\/[A-Za-z0-9_/.-]+\.md/g) || [];
-  const uniqueTaskPaths = [...new Set(allTaskMatches)];
-  if (uniqueTaskPaths.length > 1) {
-    failures.push(
-      `Multiple conflicting task references detected in PR description: ${uniqueTaskPaths.join(", ")}.`,
-    );
-  }
-
-  const tasks =
-    failures.length === 0 && parsed.fields.taskReference
-      ? [
-          {
-            relPath: parsed.fields.taskReference,
-            fullPath: resolve(rootDir, parsed.fields.taskReference),
-            taskId: parsed.fields.taskId,
-            planRevision: parsed.fields.planRevision,
-          },
-        ]
-      : [];
-
   return {
-    valid: failures.length === 0 && tasks.length > 0,
+    valid: failures.length === 0 && tasks.length === 1,
     failures,
-    tasks,
+    tasks: failures.length ? [] : tasks,
     prFields: parsed.fields,
   };
 }
@@ -745,6 +654,7 @@ export async function verifyGitHubApprovalEvidence({
   repoOwner = "dinhphuquy2k1",
   repoName = "nexora",
   taskRecord,
+  designDigest,
   githubToken = process.env.GITHUB_TOKEN,
   isCi = false,
   fetchFn = fetch,
@@ -790,6 +700,20 @@ export async function verifyGitHubApprovalEvidence({
     };
   }
 
+  if (
+    !isDesignDigest(designDigest) ||
+    taskRecord?.fields?.designDigest !== designDigest
+  ) {
+    return {
+      designDecisionRecorded,
+      approvalVerified: false,
+      verified: false,
+      verificationMode: "github_ci",
+      policyExceptionGranted: false,
+      message: "Missing or mismatched computed Design SHA-256.",
+    };
+  }
+
   const headers = {
     Authorization: `Bearer ${githubToken}`,
     Accept: "application/vnd.github+json",
@@ -827,6 +751,8 @@ export async function verifyGitHubApprovalEvidence({
         if (data.length < 100) break;
         page++;
       }
+      if (page > maxPages)
+        throw new Error("GitHub approval pagination exceeded safe limit.");
       return items;
     }
 
@@ -838,105 +764,61 @@ export async function verifyGitHubApprovalEvidence({
     const formalDecisions = [];
 
     function parseTimestamp(rawDate, context) {
-      if (!rawDate) {
-        throw new Error(`Missing timestamp on ${context}.`);
-      }
-      const ts = new Date(rawDate).getTime();
-      if (isNaN(ts) || ts <= 0) {
-        throw new Error(
-          `Invalid or unparseable timestamp '${rawDate}' on ${context}.`,
-        );
-      }
+      if (
+        typeof rawDate !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(rawDate)
+      )
+        throw Error(`Missing or invalid timestamp on ${context}.`);
+      const ts = Date.parse(rawDate);
+      if (
+        !Number.isFinite(ts) ||
+        new Date(ts).toISOString().slice(0, 19) !== rawDate.slice(0, 19)
+      )
+        throw Error(`Invalid timestamp on ${context}.`);
       return ts;
     }
-
-    // 1. Process Source A: GitHub Reviews
-    for (const review of reviews) {
+    function addDecision(item, source) {
       if (
-        !review.user ||
-        !AUTHORIZED_APPROVAL_AUTHORITIES.includes(review.user.login)
-      ) {
-        continue;
-      }
-      if (review.user.type === "Bot" || review.user.login.endsWith("[bot]")) {
-        continue;
-      }
+        !AUTHORIZED_APPROVAL_AUTHORITIES.includes(item.user?.login) ||
+        item.user?.type !== "User" ||
+        item.user.login.endsWith("[bot]")
+      )
+        return;
       if (
-        review.state === "DISMISSED" ||
-        review.state === "PENDING" ||
-        review.state === "COMMENTED"
-      ) {
-        continue;
-      }
-
-      if (review.state === "CHANGES_REQUESTED") {
-        formalDecisions.push({
-          source: "review",
-          author: review.user.login,
-          submittedAt: parseTimestamp(
-            review.submitted_at,
-            `review by @${review.user.login}`,
-          ),
-          decision: "REVISION_REQUIRED",
-          state: review.state,
-        });
-        continue;
-      }
-
-      if (review.state === "APPROVED") {
-        const decisionBlock = parseApprovalDecisionBlock(review.body);
-        if (decisionBlock) {
-          if (
-            decisionBlock.taskId === taskId &&
-            decisionBlock.planRevision === planRevision
-          ) {
-            formalDecisions.push({
-              source: "review",
-              author: review.user.login,
-              submittedAt: parseTimestamp(
-                review.submitted_at,
-                `review by @${review.user.login}`,
-              ),
-              decision: decisionBlock.decision,
-              state: review.state,
-            });
-          }
-        }
-        // Generic code review APPROVED without matching formal design decision does not grant approval
-      }
+        source === "review" &&
+        !["APPROVED", "CHANGES_REQUESTED"].includes(item.state)
+      )
+        return;
+      const block = parseApprovalDecisionBlock(item.body);
+      if (
+        !block ||
+        block.taskId !== taskId ||
+        block.planRevision !== planRevision ||
+        block.designDigest !== designDigest
+      )
+        return;
+      const created = parseTimestamp(
+        source === "comment" ? item.created_at : item.submitted_at,
+        source,
+      );
+      const updated =
+        item.updated_at === undefined
+          ? created
+          : parseTimestamp(item.updated_at, source + " edit");
+      if (updated < created)
+        throw Error("Invalid timestamp ordering: edit precedes creation.");
+      formalDecisions.push({
+        source,
+        author: item.user.login,
+        submittedAt: updated,
+        decision:
+          source === "review" && item.state === "CHANGES_REQUESTED"
+            ? "REVISION_REQUIRED"
+            : block.decision,
+      });
     }
-
-    // 2. Process Source B: Owner Comments
-    for (const comment of comments) {
-      if (
-        !comment.user ||
-        !AUTHORIZED_APPROVAL_AUTHORITIES.includes(comment.user.login)
-      ) {
-        continue;
-      }
-      if (comment.user.type === "Bot" || comment.user.login.endsWith("[bot]")) {
-        continue;
-      }
-
-      const decisionBlock = parseApprovalDecisionBlock(comment.body);
-      if (decisionBlock) {
-        if (
-          decisionBlock.taskId === taskId &&
-          decisionBlock.planRevision === planRevision
-        ) {
-          formalDecisions.push({
-            source: "comment",
-            author: comment.user.login,
-            submittedAt: parseTimestamp(
-              comment.created_at,
-              `comment by @${comment.user.login}`,
-            ),
-            decision: decisionBlock.decision,
-            state: "COMMENT",
-          });
-        }
-      }
-    }
+    for (const review of reviews) addDecision(review, "review");
+    for (const comment of comments) addDecision(comment, "comment");
 
     if (formalDecisions.length === 0) {
       return {
@@ -953,6 +835,11 @@ export async function verifyGitHubApprovalEvidence({
     formalDecisions.sort((a, b) => a.submittedAt - b.submittedAt);
     const latestDecision = formalDecisions[formalDecisions.length - 1];
 
+    const latestTies = formalDecisions.filter(
+      (item) => item.submittedAt === latestDecision.submittedAt,
+    );
+    if (new Set(latestTies.map((item) => item.decision)).size > 1)
+      throw Error("Ambiguous timestamp ordering of latest design decisions.");
     if (latestDecision.decision !== "APPROVED") {
       return {
         designDecisionRecorded,
@@ -1170,6 +1057,24 @@ export async function scanDuplicateGuards(rootDir) {
 /**
  * Main execution runner.
  */
+function validateStructuralTaskFile(rootDir, ref) {
+  const file = readGovernedMarkdown(rootDir, ref, "docs/tasks/active");
+  const content = file.bytes.toString("utf8"),
+    record = parseStructuredDesignRecord(content);
+  const failures = validateTaskDesignGovernance(content, ref, {
+    mode: "structural",
+    taskRecord: record,
+  });
+  if (record.fields.designSnapshot) {
+    try {
+      bindSnapshot(rootDir, record.fields, record.fields);
+    } catch (error) {
+      failures.push(error.message);
+    }
+  }
+  return failures;
+}
+
 export async function runPreflightCheck(rootDir, options = {}) {
   console.log(
     "Running Nexora Preflight Policy, Governance & Duplication Check...\n",
@@ -1254,21 +1159,26 @@ export async function runPreflightCheck(rootDir, options = {}) {
         } else {
           for (const task of binding.tasks) {
             try {
-              const content = await readFile(task.fullPath, "utf8");
+              const content = task.taskContent;
               const govFailures = validateTaskDesignGovernance(
                 content,
                 task.relPath,
-                { mode: "implementation", isPrBinding: true },
+                {
+                  mode: "implementation",
+                  isPrBinding: true,
+                  taskRecord: task.taskRecord,
+                },
               );
               for (const gf of govFailures) {
                 taskFailures.push(`${task.relPath}: ${gf}`);
               }
 
               if (govFailures.length === 0) {
-                const parsed = parseStructuredDesignRecord(content);
+                const parsed = task.taskRecord;
                 const approvalCheck = await verifyGitHubApprovalEvidence({
                   prNumber,
                   taskRecord: parsed,
+                  designDigest: task.designDigest,
                   isCi: true,
                   fetchFn: options.fetchFn,
                   githubToken: options.githubToken,
@@ -1298,12 +1208,10 @@ export async function runPreflightCheck(rootDir, options = {}) {
       const entries = await readdir(activeTasksDir, { withFileTypes: true });
       for (const entry of entries) {
         if (entry.isFile() && entry.name.endsWith(".md")) {
-          const fullPath = resolve(activeTasksDir, entry.name);
-          const content = await readFile(fullPath, "utf8");
-          const failures = validateTaskDesignGovernance(content, fullPath, {
-            mode: "structural",
-            isPrBinding: false,
-          });
+          const failures = validateStructuralTaskFile(
+            rootDir,
+            "docs/tasks/active/" + entry.name,
+          );
           for (const f of failures) {
             taskFailures.push(`${entry.name}: ${f}`);
           }
@@ -1326,11 +1234,11 @@ export async function runPreflightCheck(rootDir, options = {}) {
       } else {
         for (const task of binding.tasks) {
           try {
-            const content = await readFile(task.fullPath, "utf8");
+            const content = task.taskContent;
             const govFailures = validateTaskDesignGovernance(
               content,
               task.relPath,
-              { mode: "implementation", isPrBinding: true },
+              { mode: "structural", taskRecord: task.taskRecord },
             );
             for (const gf of govFailures) {
               taskFailures.push(`${task.relPath}: ${gf}`);
@@ -1354,12 +1262,10 @@ export async function runPreflightCheck(rootDir, options = {}) {
         const entries = await readdir(activeTasksDir, { withFileTypes: true });
         for (const entry of entries) {
           if (entry.isFile() && entry.name.endsWith(".md")) {
-            const fullPath = resolve(activeTasksDir, entry.name);
-            const content = await readFile(fullPath, "utf8");
-            const failures = validateTaskDesignGovernance(content, fullPath, {
-              mode: "structural",
-              isPrBinding: false,
-            });
+            const failures = validateStructuralTaskFile(
+              rootDir,
+              "docs/tasks/active/" + entry.name,
+            );
             for (const f of failures) {
               taskFailures.push(`${entry.name}: ${f}`);
             }

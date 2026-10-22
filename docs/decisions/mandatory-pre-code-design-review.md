@@ -65,16 +65,17 @@ Design approval is an independent governance decision:
 
 In pull request CI, approval provenance is verified through GitHub REST API checks against authorized repository logins (`dinhphuquy2k1`). Conceptual role names like `repository-owner` are never accepted as GitHub logins.
 
-1. **Source A (Authorized Approving Review)**: A GitHub PR review strictly in `APPROVED` state by an authorized login (`dinhphuquy2k1`) containing an explicit design approval block matching the exact Task ID and Plan revision. Reviews in `COMMENTED`, `DISMISSED`, `PENDING`, or `CHANGES_REQUESTED` state cannot grant approval under any circumstances. Generic code-review approvals without formal design declarations do not qualify.
+1. **Source A (Authorized Approving Review)**: A GitHub PR review strictly in `APPROVED` state by an authorized login (`dinhphuquy2k1`) containing an explicit design approval block matching the exact Task ID, Plan revision and recomputed Design SHA-256. Reviews in `COMMENTED`, `DISMISSED`, `PENDING`, or `CHANGES_REQUESTED` state cannot grant approval under any circumstances. Generic code-review approvals without formal design declarations do not qualify.
 2. **Source B (Authorized Owner Comment)**: A GitHub issue comment by an authorized repository login (`dinhphuquy2k1`) containing a strict machine-readable decision block:
    ```text
    NEXORA DESIGN APPROVAL
    Task: <Task-ID>
    Plan revision: <Plan-revision>
+   Design SHA-256: <64-lowercase-hex>
    Decision: APPROVED
    ```
-   The header `NEXORA DESIGN APPROVAL` is mandatory. The comment must contain exactly one Task, one Plan revision, and one Decision (`APPROVED`, `REVISION_REQUIRED`, `REVOKED`). Prose mentions, blockquotes, fenced code blocks/examples, bot comments, and unauthorized users are strictly rejected. Comments with multiple competing formal blocks fail closed.
-3. **Revocation & Chronology**: Decisions from both sources are evaluated chronologically based on verified timestamps (missing or unparseable timestamps fail closed). A subsequent authoritative `REVISION_REQUIRED`, `CHANGES_REQUESTED`, or revocation supersedes an earlier approval. A subsequent authorized `APPROVED` decision can restore approval.
+   The header `NEXORA DESIGN APPROVAL` is mandatory. The comment must contain only five contiguous lines in that order: header, Task, Plan revision, Design SHA-256 and Decision (`APPROVED`, `REVISION_REQUIRED`, `REVOKED`). Prose mentions, blockquotes, fenced code blocks/examples, bot comments, and unauthorized users are strictly rejected. Comments with multiple competing formal blocks fail closed.
+3. **Revocation & Chronology**: Only matching formal design decisions from both sources are evaluated chronologically based on verified submission/creation timestamps and updated_at when present (missing or unparseable timestamps fail closed). A subsequent relevant formal REVISION_REQUIRED/REVOKED or CHANGES_REQUESTED review with a matching design block supersedes an earlier approval; unrelated code review discussion does not decide design approval. A subsequent authorized `APPROVED` decision can restore approval.
 4. **Historical Compatibility**: Completed historical tasks (`docs/tasks/completed/`) are exempt from retrospective review requirements. Any active task referenced by a PR for new implementation work must comply with ADR-009; arbitrary task ID numbers do not grant policy exemptions.
 5. **Structural Validation vs Implementation Enforcement**:
    - **Structural Mode** (local static checks and push-to-main CI): Validates document structure, required fields, and the reuse matrix. All three lifecycle statuses (`APPROVED`, `PENDING_REVIEW`, `REVISION_REQUIRED`) are structurally valid. A pending task in the repository does not fail repository-wide static checks.
@@ -148,3 +149,15 @@ Engineering governance is sustained through:
 - **Benefits**: Early defect discovery, prevention of redundant implementations, clean DDD boundaries, consistent API contracts, auditable review decisions.
 - **Costs**: Contributors must conduct explicit read-only preflights and document reuse decisions before modifying files.
 - **Mitigation**: Scaled review depths prevent disproportionate overhead for bounded tasks. Templates and automated checkers guide compliance.
+
+## Content-bound approval integrity amendment — 2026-10-22
+
+Approval binds to a versioned immutable Design Snapshot under docs/tasks/design-reviews/, not mutable active-task/PR execution text. Compute SHA-256 over raw UTF-8 bytes using Node crypto; require64 lowercase hexadecimal characters. PR/task reference the same snapshot and computed digest; snapshot metadata Task ID/revision and task filename/record must agree. Agent-controlled matching declarations alone are insufficient: independently authenticated GitHub formal decision must contain that recomputed digest. Missing/malformed/conflicting metadata or changed snapshot invalidates approval. Read checked canonical files once and pass validated data to approval verification.
+
+Each approved revision has one canonical snapshot. Material decision changes require a new revision, new snapshot/digest and renewed authorized attestation. Do not rewrite an approved snapshot while retaining approval. Progress/tests/CI/code-review/evidence updates stay in task/PR and do not invalidate the snapshot approval. No approval database/document framework/dependency is added.
+
+The decision comment must be standalone: LF/CRLF and outer whitespace allowed, no Markdown fences/quotes, prose, blank lines between fields, extra/duplicate/reordered fields or multiple blocks. Old digest-less comments cannot approve the new binding. Positive review still requires actual APPROVED state; authorized owner issue comments independently qualify. Relevant negative formal decisions preserve revocation/reapproval semantics. Use updated_at for edits, reject invalid edit-before-creation dates, conflicting latest timestamp ties, API errors or truncated pagination. General code review remains distinct.
+
+Task Reference and Design Snapshot are repository-relative regular Markdown files directly under docs/tasks/active/ and docs/tasks/design-reviews/ respectively. Reject absolute paths, schemes, traversal segments and symlinks at every component; resolve physical destinations and verify containment with path.relative. Unrelated ../ or ellipses in PR prose are not path input. This is repository provenance validation, not a general sandbox filesystem API.
+
+PR23 migration is truthful: its owner-selected scope predates digest enforcement; the reuse-v2 snapshot is newly captured on2026-10-22 from existing decisions and the explicit fix directive. Existing chat/specification direction authorizes implementing this fix, but does not establish authenticated GitHub digest approval or prove it preceded implementation. That attestation stays PENDING until a real authorized GitHub decision matches. No transition bypass may report approvalVerified=true. See Task Workflow for required structured fields and mode distinctions.

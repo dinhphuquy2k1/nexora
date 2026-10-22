@@ -58,14 +58,19 @@ Design approval must be tracked distinctly without introducing a fictitious fift
   - **Classification**: `BOUNDED`, `SIGNIFICANT`, or `SPIKE`.
   - **Plan revision**: Specific plan identifier or timestamp (e.g. `rev-2026-10-21-reuse-v2`).
   - **Reviewed baseline**: Git commit hash inspected.
+  - **Design Snapshot**: Versioned immutable Markdown under docs/tasks/design-reviews/.
+  - **Design SHA-256**: SHA-256 of raw snapshot UTF-8 bytes, exactly64 lowercase hex characters.
   - **Approval authority**: `repository-owner` (logical role) or authorized login (`dinhphuquy2k1`).
   - **Approval status**: `APPROVED`, `PENDING_REVIEW`, or `REVISION_REQUIRED`.
   - **Approval evidence**: Decision reference, directive, or link.
 - **Structural Validity vs Implementation Enforcement**:
   - In structural validation mode (offline static scans and push to main CI), all three design decision statuses (`APPROVED`, `PENDING_REVIEW`, `REVISION_REQUIRED`) are structurally valid. A pending task does not fail repository-wide static verification.
   - In implementation mode (pull request CI gate), `APPROVED` is strictly required. Tasks in `PENDING_REVIEW` or `REVISION_REQUIRED` fail the implementation gate.
-- **PR Binding**: On pull requests, the PR metadata (`Task ID`, `Task Reference`, `Plan revision`) must match the task file, filename, and design review record exactly. Traversal paths, URL schemes, and ambiguous references fail closed.
-- **Approval Provenance Separation**: The task record stores the declared local design record; GitHub CI independently verifies authenticated approval through GitHub REST API checks (review in `APPROVED` state with matching formal declaration or owner comment with `NEXORA DESIGN APPROVAL`). Local static PASS never claims authenticated GitHub approval.
+- **PR Binding**: On pull requests, the PR metadata (`Task ID`, `Task Reference`, `Plan revision`, `Design Snapshot`, `Design SHA-256`) must match the task file, filename, snapshot task/revision and recomputed digest exactly. Traversal paths, URL schemes, and ambiguous references fail closed.
+- **Approval Provenance Separation**: The task record stores the declared local design record; GitHub CI independently verifies authenticated approval through GitHub REST API checks (review in `APPROVED` state with matching task/revision/digest formal declaration or owner comment with `NEXORA DESIGN APPROVAL`). Local static PASS never claims authenticated GitHub approval.
+- Snapshot/digest may be absent together on a pending structural record; if either is declared both must be well formed, and static file scans recompute declared snapshots. Structural mode never requires authenticated approval. Explicit PR binding (including local provided PR metadata) validates referenced snapshot/files, but local binding uses structural status validation and never authenticates GitHub.
+- PR implementation mode requires both snapshot/digest, declared APPROVED and actual independent digest-bound GitHub approval. The declared owner directive and authenticated GitHub attestation are distinct; PR23's existing directive does not backdate the new digest approval.
+- Material design changes require a new revision/snapshot and new attestation. Mutable execution/test/CI evidence does not belong in the snapshot and does not invalidate approval.
 - Self-approval by an agent is strictly invalid.
 - A material design amendment requires renewed review of the delta, recorded in the active task record.
 

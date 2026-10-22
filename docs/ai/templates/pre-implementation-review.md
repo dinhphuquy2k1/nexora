@@ -11,6 +11,9 @@ Use this template to document the pre-code design review for all implementation 
 - **Classification**: `<BOUNDED | SIGNIFICANT | SPIKE>`
 - **Documentation Impact**: `<REQUIRED | NONE>`
 - **Target Branch & PR**: `<e.g. feat/shipment-management / PR #24>`
+- **Plan revision**: `<versioned-revision>`
+- **Design Snapshot**: `docs/tasks/design-reviews/<Task-ID>-<revision>.md`
+- **Design SHA-256**: `<computed64-lowercase-hex>`
 - **Reviewed Baseline HEAD**: `<git commit SHA>`
 
 ---
@@ -118,3 +121,9 @@ Use this template to document the pre-code design review for all implementation 
 ## 12. Unresolved PLAN ISSUES
 
 - `<List any concrete architectural conflicts or unresolved questions. If none, state NONE.>`
+
+## Snapshot pinning and approval
+
+Before attestation, capture the selected design (identity/revision, baseline, objectives, scope/reuse/ownership/alternatives, non-goals, security/compatibility, risks and acceptance/test strategy) in the versioned snapshot. Do not include mutable execution/test/CI/review logs. Compute actual raw UTF-8 SHA-256 with Node crypto or computeDesignDigest from scripts/preflight-policy-check.mjs; never hash the mutable task or a digest-containing section. Put the same path/digest in task and PR metadata, then run structural binding validation.
+
+The authorized owner/reviewer posts a standalone five-line decision: NEXORA DESIGN APPROVAL; Task; Plan revision; Design SHA-256; Decision (each on its own line, no prose/fence). Positive review requires GitHub APPROVED state; owner issue-comment authority is independent. Do not post/fabricate approval as the coding agent. Structural PASS is not authenticated approval. Material changes create a new version/snapshot and new attestation; update execution evidence separately without modifying approved design content. Record actual capture/attestation timing truthfully during migrations such as PR23.

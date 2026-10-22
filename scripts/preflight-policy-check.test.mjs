@@ -21,6 +21,11 @@ import {
 } from "./preflight-policy-check.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const TEST_SNAPSHOT =
+  "docs/tasks/design-reviews/NEXORA-027-rev-2026-10-21-reuse-v2.md";
+const TEST_DIGEST = createHash("sha256")
+  .update(readFileSync(resolve(root, TEST_SNAPSHOT)))
+  .digest("hex");
 
 function createMockFetch({ reviews = [], comments = [], status = 200 } = {}) {
   return async (url) => {
@@ -133,6 +138,8 @@ test("structured design record parser: accurately extracts fields and rejects ma
 - **Task ID**: NEXORA-027
 - **Classification**: SIGNIFICANT
 - **Plan revision**: rev-2026-10-21-v1
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
 - **Reviewed baseline**: 42833752f76948aae7f1fad378291eedd288557b
 - **Approval authority**: repository-owner
 - **Approval status**: APPROVED
@@ -152,6 +159,8 @@ test("structured design record parser: accurately extracts fields and rejects ma
 - **Task ID**: NEXORA-027
 - **Classification**: SIGNIFICANT
 - **Plan revision**: rev-1
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
 - **Reviewed baseline**: 42833752f76948aae7f1fad378291eedd288557b
 - **Approval authority**: repository-owner
 - **Approval status**: PENDING_REVIEW
@@ -168,6 +177,8 @@ test("structured design record parser: accurately extracts fields and rejects ma
 - **Task ID**: NEXORA-027
 - **Classification**: SIGNIFICANT
 - **Plan revision**: TODO
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
 - **Reviewed baseline**: <sha>
 - **Approval authority**: TBD
 - **Approval status**: APPROVED
@@ -196,6 +207,8 @@ Documentation Impact: REQUIRED
 - **Task ID**: NEXORA-027
 - **Classification**: BOUNDED
 - **Plan revision**: rev-1
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
 - **Reviewed baseline**: 42833752f76948aae7f1fad378291eedd288557b
 - **Approval authority**: repository-owner
 - **Approval status**: PENDING_REVIEW
@@ -278,6 +291,8 @@ Documentation Impact: REQUIRED
 - **Task ID**: NEXORA-027
 - **Classification**: BOUNDED
 - **Plan revision**: rev-1
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
 - **Reviewed baseline**: 42833752f76948aae7f1fad378291eedd288557b
 - **Approval authority**: repository-owner
 - **Approval status**: APPROVED
@@ -348,6 +363,8 @@ Documentation Impact: REQUIRED
 - **Task ID**: NEXORA-012
 - **Classification**: BOUNDED
 - **Plan revision**: rev-new
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
 - **Reviewed baseline**: abc
 - **Approval authority**: repository-owner
 - **Approval status**: PENDING_REVIEW
@@ -388,21 +405,23 @@ test("parseApprovalDecisionBlock: strictly enforces mandatory header, single blo
 NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: APPROVED
   `;
   const parsed = parseApprovalDecisionBlock(block);
   assert.deepEqual(parsed, {
     taskId: "NEXORA-027",
     planRevision: "rev-2026-10-21-reuse-v2",
+    designDigest: TEST_DIGEST,
     decision: "APPROVED",
   });
 
   // 2. Valid CRLF formatting
-  const crlfBlock =
-    "NEXORA DESIGN APPROVAL\r\nTask: NEXORA-027\r\nPlan revision: rev-2026-10-21-reuse-v2\r\nDecision: APPROVED\r\n";
+  const crlfBlock = `NEXORA DESIGN APPROVAL\r\nTask: NEXORA-027\r\nPlan revision: rev-2026-10-21-reuse-v2\r\nDesign SHA-256: ${TEST_DIGEST}\nDecision: APPROVED\r\n`;
   assert.deepEqual(parseApprovalDecisionBlock(crlfBlock), {
     taskId: "NEXORA-027",
     planRevision: "rev-2026-10-21-reuse-v2",
+    designDigest: TEST_DIGEST,
     decision: "APPROVED",
   });
 
@@ -411,6 +430,7 @@ Decision: APPROVED
 NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: REVISION_REQUIRED
   `;
   assert.equal(
@@ -422,6 +442,7 @@ Decision: REVISION_REQUIRED
 NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: REVOKED
   `;
   assert.equal(parseApprovalDecisionBlock(revokedBlock)?.decision, "REVOKED");
@@ -430,6 +451,7 @@ Decision: REVOKED
   const missingHeader = `
 Task: NEXORA-027
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: APPROVED
   `;
   assert.equal(parseApprovalDecisionBlock(missingHeader), null);
@@ -439,6 +461,7 @@ Decision: APPROVED
 DESIGN APPROVAL
 Task: NEXORA-027
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: APPROVED
   `;
   assert.equal(parseApprovalDecisionBlock(wrongHeader), null);
@@ -447,6 +470,7 @@ Decision: APPROVED
   const missingTask = `
 NEXORA DESIGN APPROVAL
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: APPROVED
   `;
   assert.equal(parseApprovalDecisionBlock(missingTask), null);
@@ -464,6 +488,7 @@ Decision: APPROVED
 NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
   `;
   assert.equal(parseApprovalDecisionBlock(missingDecision), null);
 
@@ -473,6 +498,7 @@ NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Task: NEXORA-028
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: APPROVED
   `;
   assert.equal(parseApprovalDecisionBlock(duplicateTask), null);
@@ -482,7 +508,9 @@ Decision: APPROVED
 NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Plan revision: rev-1
+Design SHA-256: ${TEST_DIGEST}
 Plan revision: rev-2
+Design SHA-256: ${TEST_DIGEST}
 Decision: APPROVED
   `;
   assert.equal(parseApprovalDecisionBlock(duplicatePlan), null);
@@ -492,6 +520,7 @@ Decision: APPROVED
 NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: APPROVED
 Decision: REVISION_REQUIRED
   `;
@@ -502,6 +531,7 @@ Decision: REVISION_REQUIRED
 NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: MAYBE_APPROVED
   `;
   assert.equal(parseApprovalDecisionBlock(unknownDecision), null);
@@ -523,6 +553,7 @@ Here is an example:
 NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: APPROVED
 \`\`\`
   `;
@@ -538,11 +569,13 @@ Decision: APPROVED
 NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: APPROVED
 
 NEXORA DESIGN APPROVAL
 Task: NEXORA-028
 Plan revision: rev-2026-10-21-reuse-v2
+Design SHA-256: ${TEST_DIGEST}
 Decision: REVISION_REQUIRED
   `;
   assert.equal(parseApprovalDecisionBlock(multipleBlocks), null);
@@ -555,6 +588,8 @@ test("parsePrPreflightBlock: parses canonical PR fields and validates authorized
 - **Task ID**: NEXORA-027
 - **Task Reference**: [NEXORA-027](docs/tasks/active/NEXORA-027-customer-management-backend.md)
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
   `;
   const parsed = parsePrPreflightBlock(prBody);
   assert.equal(parsed.exists, true);
@@ -585,6 +620,8 @@ test("PR-to-task binding: validates canonical metadata block, allows ellipses in
 - **Task ID**: NEXORA-027
 - **Task Reference**: docs/tasks/active/NEXORA-027-customer-management-backend.md
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
 
 ### Description
 This PR addresses several key improvements...
@@ -614,6 +651,8 @@ Referencing previous changes at ../../docs/other.md for context.
   const noTaskIdPr = `
 - **Task Reference**: docs/tasks/active/NEXORA-027-customer-management-backend.md
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
   `;
   const noTaskIdBinding = validatePrTaskBinding(noTaskIdPr, root);
   assert.equal(noTaskIdBinding.valid, false);
@@ -641,6 +680,8 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Task ID**: NEXORA-099
 - **Task Reference**: docs/tasks/active/NEXORA-027-customer-management-backend.md
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
   `;
   const filenameMismatchBinding = validatePrTaskBinding(
     filenameMismatchPr,
@@ -658,6 +699,8 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Task ID**: NEXORA-027
 - **Task Reference**: docs/tasks/active/NEXORA-027-customer-management-backend.md
 - **Plan revision**: rev-nonexistent-revision
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
   `;
   const planMismatchBinding = validatePrTaskBinding(planMismatchPr, root);
   assert.equal(planMismatchBinding.valid, false);
@@ -673,6 +716,8 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Task ID**: NEXORA-027
 - **Task Reference**: docs/tasks/active/../../etc/passwd.md
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
     `,
     root,
   );
@@ -687,6 +732,8 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Task ID**: NEXORA-027
 - **Task Reference**: /docs/tasks/active/NEXORA-027-customer-management-backend.md
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
     `,
     root,
   );
@@ -699,6 +746,8 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Task ID**: NEXORA-027
 - **Task Reference**: https://example.com/fake-task.md
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
     `,
     root,
   );
@@ -715,6 +764,8 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Task ID**: NEXORA-001
 - **Task Reference**: docs/tasks/completed/NEXORA-001-foundation.md
 - **Plan revision**: rev-1
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
     `,
     root,
   );
@@ -731,6 +782,8 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Task ID**: NEXORA-999
 - **Task Reference**: docs/tasks/active/NEXORA-999-ghost.md
 - **Plan revision**: rev-1
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
     `,
     root,
   );
@@ -745,6 +798,8 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Task ID**: NEXORA-027
 - **Task Reference**: docs/tasks/active/NEXORA-027-customer-management-backend.md
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
 - **Task Reference**: docs/tasks/active/NEXORA-003-engineering-workflow.md
     `,
     root,
@@ -762,6 +817,8 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Task ID**: NEXORA-027
 - **Task Reference**: [NEXORA-027](docs/tasks/active/NEXORA-027-customer-management-backend.md)
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
     `,
     root,
   );
@@ -783,15 +840,17 @@ test("verifyGitHubApprovalEvidence: enforces authorized real GitHub logins and r
       taskId: "NEXORA-027",
       planRevision: "rev-2026-10-21-reuse-v2",
       approvalStatus: "APPROVED",
+      designDigest: TEST_DIGEST,
     },
   };
 
-  const validCommentBody = `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`;
+  const validCommentBody = `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDesign SHA-256: ${TEST_DIGEST}\nDecision: APPROVED`;
 
   // 1. dinhphuquy2k1 + valid owner approval -> PASS
   const validResult = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -815,6 +874,7 @@ test("verifyGitHubApprovalEvidence: enforces authorized real GitHub logins and r
   const roleNameResult = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -834,6 +894,7 @@ test("verifyGitHubApprovalEvidence: enforces authorized real GitHub logins and r
   const unknownUserResult = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -853,6 +914,7 @@ test("verifyGitHubApprovalEvidence: enforces authorized real GitHub logins and r
   const botResult = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -872,6 +934,7 @@ test("verifyGitHubApprovalEvidence: enforces authorized real GitHub logins and r
   const unauthorizedReviewerResult = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -895,15 +958,17 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
       taskId: "NEXORA-027",
       planRevision: "rev-2026-10-21-reuse-v2",
       approvalStatus: "APPROVED",
+      designDigest: TEST_DIGEST,
     },
   };
 
-  const validBody = `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`;
+  const validBody = `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDesign SHA-256: ${TEST_DIGEST}\nDecision: APPROVED`;
 
   // 1. Authorized review with state APPROVED -> PASS
   const passReview = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -925,6 +990,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
   const failCommented = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -945,6 +1011,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
   const failChangesReq = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -965,6 +1032,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
   const failDismissed = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -985,6 +1053,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
   const failPending = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -1005,6 +1074,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
   const failGeneric = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -1025,6 +1095,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
   const passOwnerComment = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -1045,6 +1116,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
   const failSuperseded = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -1058,7 +1130,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
         {
           user: { login: "dinhphuquy2k1", type: "User" },
           created_at: "2026-10-21T14:00:00Z",
-          body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: REVISION_REQUIRED`,
+          body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDesign SHA-256: ${TEST_DIGEST}\nDecision: REVISION_REQUIRED`,
         },
       ],
     }),
@@ -1070,6 +1142,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
   const passRestored = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -1083,7 +1156,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
         {
           user: { login: "dinhphuquy2k1", type: "User" },
           created_at: "2026-10-21T12:00:00Z",
-          body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: REVISION_REQUIRED`,
+          body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDesign SHA-256: ${TEST_DIGEST}\nDecision: REVISION_REQUIRED`,
         },
         {
           user: { login: "dinhphuquy2k1", type: "User" },
@@ -1099,6 +1172,7 @@ test("verifyGitHubApprovalEvidence: enforces actual review state and chronologic
   const failInvalidTimestamp = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
+    designDigest: TEST_DIGEST,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
@@ -1193,7 +1267,7 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
       {
         user: { login: "dinhphuquy2k1", type: "User" },
         created_at: "2026-10-21T12:00:00Z",
-        body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`,
+        body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDesign SHA-256: ${TEST_DIGEST}\nDecision: APPROVED`,
       },
     ],
   });
@@ -1208,6 +1282,8 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
 - **Task ID**: NEXORA-027
 - **Task Reference**: docs/tasks/active/NEXORA-027-customer-management-backend.md
 - **Plan revision**: rev-2026-10-21-reuse-v2
+- **Design Snapshot**: ${TEST_SNAPSHOT}
+- **Design SHA-256**: ${TEST_DIGEST}
         `,
       },
       repository: { full_name: "dinhphuquy2k1/nexora" },
@@ -1256,4 +1332,424 @@ test("skill scenario fixtures validate expected decisions", () => {
   assert.equal(EXPECTED_SKILL_SCENARIOS.length, 10);
   const ids = EXPECTED_SKILL_SCENARIOS.map((s) => s.id);
   assert.equal(new Set(ids).size, 10);
+});
+
+// Digest/path regressions use only their own disposable filesystem roots.
+import * as preflight from "./preflight-policy-check.mjs";
+import { createHash } from "node:crypto";
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  unlinkSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+const digestOf = (bytes) => createHash("sha256").update(bytes).digest("hex");
+function integrityFixture(t) {
+  const dir = mkdtempSync(resolve(tmpdir(), "nexora-design-integrity-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const taskPath = "docs/tasks/active/NEXORA-027-fixture.md";
+  const snapshotPath = "docs/tasks/design-reviews/NEXORA-027-rev-1.md";
+  mkdirSync(resolve(dir, "docs/tasks/active"), { recursive: true });
+  mkdirSync(resolve(dir, "docs/tasks/design-reviews"), { recursive: true });
+  const snapshot =
+    "# Design snapshot\nTask ID: NEXORA-027\nPlan revision: rev-1\n\nSelected immutable decisions.\n";
+  const digest = digestOf(Buffer.from(snapshot));
+  writeFileSync(resolve(dir, snapshotPath), snapshot);
+  const task = `# Task\nDocumentation Impact: REQUIRED\n## Design Review & Reuse Decision\nTask ID: NEXORA-027\nClassification: BOUNDED\nPlan revision: rev-1\nReviewed baseline: 4f93a74cfadbb89f71fa0b0feca8f83994f5bd86\nDesign Snapshot: ${snapshotPath}\nDesign SHA-256: ${digest}\nApproval authority: repository-owner\nApproval status: APPROVED\nApproval evidence: Existing owner directive; GitHub digest approval pending\n\ncomponent existing implementations domain owner reuse alternatives selected approach rationale risks verification\n`;
+  writeFileSync(resolve(dir, taskPath), task);
+  const pr = `Task ID: NEXORA-027\nTask Reference: ${taskPath}\nPlan revision: rev-1\nDesign Snapshot: ${snapshotPath}\nDesign SHA-256: ${digest}\n`;
+  return { dir, taskPath, snapshotPath, snapshot, digest, task, pr };
+}
+function formalDecision(digest, decision = "APPROVED", revision = "rev-1") {
+  return `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: ${revision}\nDesign SHA-256: ${digest}\nDecision: ${decision}`;
+}
+function verifyFixture(f, comments, reviews = []) {
+  return verifyGitHubApprovalEvidence({
+    prNumber: 23,
+    taskRecord: parseStructuredDesignRecord(f.task),
+    designDigest: f.digest,
+    isCi: true,
+    githubToken: "fixture-only-token",
+    fetchFn: createMockFetch({ comments, reviews }),
+  });
+}
+const ownerDecision = (
+  body,
+  created_at = "2026-10-21T10:00:00Z",
+  updated_at = created_at,
+) => ({
+  user: { login: "dinhphuquy2k1", type: "User" },
+  body,
+  created_at,
+  updated_at,
+});
+
+test("integrity: hashes raw bytes and binds immutable content, not mutable execution evidence", (t) => {
+  const f = integrityFixture(t);
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, true);
+  writeFileSync(
+    resolve(f.dir, f.taskPath),
+    f.task + "\n## Evidence\nUnrelated new execution report\n",
+  );
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, true);
+  writeFileSync(
+    resolve(f.dir, f.snapshotPath),
+    f.snapshot + "material changed decision",
+  );
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
+  assert.equal(
+    preflight.computeDesignDigest(Buffer.from(f.snapshot)),
+    f.digest,
+  );
+  assert.notEqual(
+    preflight.computeDesignDigest(
+      Buffer.from(f.snapshot.replaceAll("\n", "\r\n")),
+    ),
+    f.digest,
+  );
+});
+
+test("integrity: missing/malformed/mismatched digest, identity, revision and snapshot fail closed", (t) => {
+  const f = integrityFixture(t);
+  for (const pr of [
+    f.pr.replace(`Design SHA-256: ${f.digest}\n`, ""),
+    f.pr.replace(f.digest, "A".repeat(64)),
+    f.pr.replace(f.digest, "g".repeat(64)),
+    f.pr.replace(f.digest, "a".repeat(63)),
+    f.pr.replace(f.digest, "b".repeat(64)),
+    f.pr.replace(f.snapshotPath, "docs/tasks/design-reviews/missing.md"),
+    f.pr + "Design Snapshot: docs/tasks/design-reviews/other.md\n",
+    f.pr + "Design SHA-256: " + "b".repeat(64),
+  ])
+    assert.equal(validatePrTaskBinding(pr, f.dir).valid, false, pr);
+  writeFileSync(
+    resolve(f.dir, f.taskPath),
+    f.task.replace(f.digest, "b".repeat(64)),
+  );
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
+  writeFileSync(resolve(f.dir, f.taskPath), f.task);
+  for (const bad of [
+    f.snapshot.replace("NEXORA-027", "NEXORA-999"),
+    f.snapshot.replace("rev-1", "rev-other"),
+  ]) {
+    writeFileSync(resolve(f.dir, f.snapshotPath), bad);
+    const changedDigest = digestOf(bad);
+    writeFileSync(
+      resolve(f.dir, f.taskPath),
+      f.task.replaceAll(f.digest, changedDigest),
+    );
+    assert.equal(
+      validatePrTaskBinding(f.pr.replaceAll(f.digest, changedDigest), f.dir)
+        .valid,
+      false,
+    );
+  }
+});
+
+test("parser: exact contiguous standalone grammar rejects field stitching, old blocks and examples", () => {
+  const digest = "a".repeat(64),
+    good = formalDecision(digest);
+  assert.equal(parseApprovalDecisionBlock(good)?.designDigest, digest);
+  assert.equal(
+    parseApprovalDecisionBlock("\n  " + good.replaceAll("\n", "\r\n") + "\n")
+      ?.decision,
+    "APPROVED",
+  );
+  for (const bad of [
+    good.replace("NEXORA DESIGN APPROVAL\n", ""),
+    good.replace(`Design SHA-256: ${digest}\n`, ""),
+    good.replace("Plan revision:", "Some explanation\nPlan revision:"),
+    good.replace("Decision:", "Some explanation\nDecision:"),
+    good.replace("Plan revision:", "\nPlan revision:"),
+    good + "\nTask: NEXORA-027",
+    good + "\n" + good,
+    "```text\n" + good + "\n```",
+    good.replaceAll(/^/gm, "> "),
+    "Prose before\n" + good,
+    good + "\nprose after",
+    good.replace("APPROVED", "UNKNOWN"),
+    good.replace("rev-1", "rev bad"),
+    good.replace(digest, digest.toUpperCase()),
+    good.replace("NEXORA-027", "bad-task"),
+  ])
+    assert.equal(parseApprovalDecisionBlock(bad), null, bad);
+  for (const decision of ["REVOKED", "REVISION_REQUIRED"])
+    assert.equal(
+      parseApprovalDecisionBlock(formalDecision(digest, decision))?.decision,
+      decision,
+    );
+});
+
+test("provenance: task/snapshot paths require regular canonical files without symlink components", (t) => {
+  const f = integrityFixture(t);
+  assert.equal(
+    validatePrTaskBinding(f.pr + "\nUnrelated prose ... ../example.md", f.dir)
+      .valid,
+    true,
+  );
+  for (const path of [
+    "../outside.md",
+    "/docs/tasks/active/NEXORA-027-fixture.md",
+    "https://example.test/task.md",
+    "docs/tasks/active/not-a-task.md",
+    "docs/tasks/active/NEXORA-027-sub/NEXORA-027-fixture.md",
+  ])
+    assert.equal(
+      validatePrTaskBinding(f.pr.replace(f.taskPath, path), f.dir).valid,
+      false,
+    );
+  const outside = resolve(f.dir, "outside.md");
+  writeFileSync(outside, f.task);
+  unlinkSync(resolve(f.dir, f.taskPath));
+  symlinkSync(outside, resolve(f.dir, f.taskPath));
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
+  unlinkSync(resolve(f.dir, f.taskPath));
+  mkdirSync(resolve(f.dir, f.taskPath));
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
+  rmSync(resolve(f.dir, f.taskPath), { recursive: true });
+  writeFileSync(resolve(f.dir, f.taskPath), f.task);
+  unlinkSync(resolve(f.dir, f.snapshotPath));
+  writeFileSync(outside, f.snapshot);
+  symlinkSync(outside, resolve(f.dir, f.snapshotPath));
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
+  unlinkSync(resolve(f.dir, f.snapshotPath));
+  writeFileSync(resolve(f.dir, f.snapshotPath), f.snapshot);
+  const realActive = resolve(f.dir, "active-physical");
+  fixtureRenameSync(resolve(f.dir, "docs/tasks/active"), realActive);
+  symlinkSync(realActive, resolve(f.dir, "docs/tasks/active"));
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
+});
+import { renameSync as fixtureRenameSync } from "node:fs";
+
+test("approval: authenticated decisions must match recomputed digest and exact revision", async (t) => {
+  const f = integrityFixture(t);
+  assert.equal(
+    (await verifyFixture(f, [ownerDecision(formalDecision(f.digest))]))
+      .approvalVerified,
+    true,
+  );
+  for (const body of [
+    formalDecision("b".repeat(64)),
+    formalDecision(f.digest, "APPROVED", "rev-old"),
+    formalDecision(f.digest).replace(`Design SHA-256: ${f.digest}\n`, ""),
+  ])
+    assert.equal(
+      (await verifyFixture(f, [ownerDecision(body)])).approvalVerified,
+      false,
+    );
+  const newDigest = digestOf(f.snapshot + " changed");
+  assert.equal(
+    (
+      await verifyFixture(
+        {
+          ...f,
+          digest: newDigest,
+          task: f.task.replaceAll(f.digest, newDigest),
+        },
+        [ownerDecision(formalDecision(f.digest))],
+      )
+    ).approvalVerified,
+    false,
+  );
+});
+
+test("chronology: edited decisions use updated_at; unrelated review cannot grant or revoke; ties fail closed", async (t) => {
+  const f = integrityFixture(t);
+  const oldEditedRevocation = ownerDecision(
+    formalDecision(f.digest, "REVOKED"),
+    "2026-10-21T09:00:00Z",
+    "2026-10-21T12:00:00Z",
+  );
+  assert.equal(
+    (
+      await verifyFixture(f, [
+        oldEditedRevocation,
+        ownerDecision(formalDecision(f.digest), "2026-10-21T11:00:00Z"),
+      ])
+    ).approvalVerified,
+    false,
+  );
+  const unrelated = {
+    user: { login: "dinhphuquy2k1", type: "User" },
+    state: "CHANGES_REQUESTED",
+    submitted_at: "2026-10-21T15:00:00Z",
+    body: "Unrelated code review discussion",
+  };
+  assert.equal(
+    (
+      await verifyFixture(
+        f,
+        [ownerDecision(formalDecision(f.digest))],
+        [unrelated],
+      )
+    ).approvalVerified,
+    true,
+  );
+  for (const edit of ["bad", "2026-10-20T09:00:00Z"])
+    assert.equal(
+      (
+        await verifyFixture(f, [
+          ownerDecision(formalDecision(f.digest), "2026-10-21T10:00:00Z", edit),
+        ])
+      ).approvalVerified,
+      false,
+    );
+  assert.equal(
+    (
+      await verifyFixture(f, [
+        ownerDecision(formalDecision(f.digest)),
+        ownerDecision(formalDecision(f.digest, "REVOKED")),
+      ])
+    ).approvalVerified,
+    false,
+  );
+});
+
+test("provenance: task links to another regular active file and intermediate snapshot symlinks are rejected", (t) => {
+  const f = integrityFixture(t);
+  const sibling = resolve(f.dir, "docs/tasks/active/NEXORA-027-other.md");
+  writeFileSync(sibling, f.task);
+  unlinkSync(resolve(f.dir, f.taskPath));
+  symlinkSync(sibling, resolve(f.dir, f.taskPath));
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
+  unlinkSync(resolve(f.dir, f.taskPath));
+  writeFileSync(resolve(f.dir, f.taskPath), f.task);
+  fixtureRenameSync(
+    resolve(f.dir, "docs/tasks/design-reviews"),
+    resolve(f.dir, "snapshot-physical"),
+  );
+  symlinkSync(
+    resolve(f.dir, "snapshot-physical"),
+    resolve(f.dir, "docs/tasks/design-reviews"),
+  );
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
+});
+
+test("integrity: new revision/digest cannot inherit authenticated approval; task duplicates are rejected", async (t) => {
+  const f = integrityFixture(t);
+  const old = ownerDecision(formalDecision(f.digest));
+  const nextSnapshot = f.snapshot.replace("rev-1", "rev-2"),
+    nextDigest = digestOf(nextSnapshot);
+  const nextPath = f.snapshotPath.replace("rev-1", "rev-2");
+  writeFileSync(resolve(f.dir, nextPath), nextSnapshot);
+  const nextTask = f.task
+    .replaceAll("rev-1", "rev-2")
+    .replaceAll(f.digest, nextDigest);
+  writeFileSync(resolve(f.dir, f.taskPath), nextTask);
+  const nextPr = f.pr
+    .replaceAll("rev-1", "rev-2")
+    .replaceAll(f.digest, nextDigest);
+  assert.equal(validatePrTaskBinding(nextPr, f.dir).valid, true);
+  assert.equal(
+    (await verifyFixture({ ...f, task: nextTask, digest: nextDigest }, [old]))
+      .approvalVerified,
+    false,
+  );
+  writeFileSync(
+    resolve(f.dir, f.taskPath),
+    f.task + `\nDesign SHA-256: ${f.digest}\n`,
+  );
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
+});
+
+test("integrity: missing snapshot/digest at task level and snapshot traversal remain invalid", (t) => {
+  const f = integrityFixture(t);
+  for (const key of ["Design Snapshot", "Design SHA-256"]) {
+    writeFileSync(
+      resolve(f.dir, f.taskPath),
+      f.task.replace(new RegExp(`^${key}:.*\\n`, "m"), ""),
+    );
+    assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
+  }
+  writeFileSync(resolve(f.dir, f.taskPath), f.task);
+  for (const path of [
+    "docs/tasks/active/NEXORA-027-rev-1.md",
+    "docs/tasks/design-reviews/../NEXORA-027-rev-1.md",
+    "/tmp/NEXORA-027-rev-1.md",
+    "file:outside.md",
+  ]) {
+    writeFileSync(
+      resolve(f.dir, f.taskPath),
+      f.task.replace(f.snapshotPath, path),
+    );
+    assert.equal(
+      validatePrTaskBinding(f.pr.replace(f.snapshotPath, path), f.dir).valid,
+      false,
+    );
+  }
+});
+
+test("approval: unrelated timestamp errors are ignored but relevant invalid dates and ambiguous review/comment ties fail closed", async (t) => {
+  const f = integrityFixture(t);
+  const good = ownerDecision(formalDecision(f.digest));
+  assert.equal(
+    (await verifyFixture(f, [good, ownerDecision("unrelated prose", "bad")]))
+      .approvalVerified,
+    true,
+  );
+  for (const date of [undefined, "2026-02-30T10:00:00Z", "not-a-date"])
+    assert.equal(
+      (await verifyFixture(f, [{ ...good, created_at: date }]))
+        .approvalVerified,
+      false,
+    );
+  const review = {
+    user: good.user,
+    state: "APPROVED",
+    submitted_at: good.created_at,
+    body: formalDecision(f.digest, "REVOKED"),
+  };
+  assert.equal(
+    (await verifyFixture(f, [good], [review])).approvalVerified,
+    false,
+  );
+});
+
+test("approval: truncated API pagination cannot certify an older approval", async (t) => {
+  const f = integrityFixture(t);
+  const result = await verifyGitHubApprovalEvidence({
+    prNumber: 23,
+    taskRecord: parseStructuredDesignRecord(f.task),
+    designDigest: f.digest,
+    isCi: true,
+    githubToken: "fixture-only",
+    fetchFn: async () => ({
+      ok: true,
+      json: async () =>
+        Array.from({ length: 100 }, () =>
+          ownerDecision(formalDecision(f.digest)),
+        ),
+    }),
+  });
+  assert.equal(result.approvalVerified, false);
+  assert.match(result.message, /pagination/);
+});
+
+test("structural mode: pending task without snapshot remains representable, but implementation fails", (t) => {
+  const f = integrityFixture(t);
+  const pending = f.task
+    .replace(/^Design (?:Snapshot|SHA-256):.*\n/gm, "")
+    .replace("Approval status: APPROVED", "Approval status: PENDING_REVIEW");
+  assert.deepEqual(
+    validateTaskDesignGovernance(pending, f.taskPath, { mode: "structural" }),
+    [],
+  );
+  assert.ok(
+    validateTaskDesignGovernance(pending, f.taskPath, {
+      mode: "implementation",
+    }).length > 0,
+  );
+});
+
+test("integrity: empty duplicate metadata cannot be hidden before a valid task field", (t) => {
+  const f = integrityFixture(t);
+  writeFileSync(
+    resolve(f.dir, f.taskPath),
+    f.task.replace("Task ID: NEXORA-027", "Task ID: \nTask ID: NEXORA-027"),
+  );
+  assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
 });
