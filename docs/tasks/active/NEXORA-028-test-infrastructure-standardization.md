@@ -1,7 +1,7 @@
 # NEXORA-028 — Test Infrastructure & Node.js Test Orchestration
 
-Task: PLANNED
-Implementation: PLANNED
+Task: VERIFICATION PENDING
+Implementation: IMPLEMENTED
 Verification: NOT VERIFIED
 Classification: SIGNIFICANT
 
@@ -14,8 +14,8 @@ Classification: SIGNIFICANT
 - **Design Snapshot**: docs/tasks/design-reviews/NEXORA-028-rev-2026-10-22-test-infrastructure-v1.md
 - **Design SHA-256**: f06b36049a7b822946074a36402ceaddff44c554181b4a295d785ef30b10f375
 - **Approval authority**: dinhphuquy2k1
-- **Approval status**: PENDING_REVIEW
-- **Approval evidence**: Awaiting authenticated digest-bound owner GitHub decision on the docs-only planning PR; this request authorizes planning only.
+- **Approval status**: APPROVED
+- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/24#issuecomment-6335739471 — authenticated owner comment created/updated2026-10-22T07:56:28Z; existing ADR009 verifier matched raw-byte digest/revision/task and found no later revocation.
 
 ## 1. Task metadata, scope and prescribed review
 
@@ -216,3 +216,29 @@ node scripts/docs-check.mjs, node scripts/preflight-policy-check.mjs (structural
 | Native nested glob behavior        | Node24.19.0 CLI node --test 'test/\*_/_.test.cjs' in owned temporary tree:1 nested suite executes, helper and sibling integration throwing sentinels excluded; exit0; temporary tree removed | 2026-10-22 | PASS   |
 
 This evidence demonstrates read-only planning observations only. No implementation, test source, package/workflow or dependency file has been modified. No authenticated approval, genuine SQL/runtime/hosted final-head result or completion is asserted.
+
+## Approved implementation execution
+
+Owner attestation verified before code/test edits using existing validatePrTaskBinding and verifyGitHubApprovalEvidence with actual connector-authenticated GitHub comment/review payloads. Raw snapshot SHA256 remains f06b36049a7b822946074a36402ceaddff44c554181b4a295d785ef30b10f375.
+
+Implementation clarification: prose Markdown escaping in the immutable snapshot is not literal command syntax. Actual patterns use `test/**/*.test.cjs`, `integration/**/*.test.cjs`, `scripts/**/*.test.mjs`, quoted with double quotes in package scripts for Windows CMD compatibility. This preserves selected native glob architecture; snapshot unchanged. Empty glob and assertion failures must return nonzero, verified explicitly.
+
+### M1–M4 implementation and pre-push evidence
+
+Implemented native glob commands with CMD-safe double quotes and a small nonempty/overlap discovery precheck, not a replacement test runner. Characterization found native Node24 unmatched/malformed glob returns exit0/tests0, so precheck is necessary. Baseline inventory fixture covers26 ordinary API,8 integration,9 Web,2 DB,1 UI and6 original tooling files; membership checks permit future added files without editing the baseline. Eight integration files moved to sibling directory, only six relative MFA helper imports changed; no assertions/fixtures/timeouts removed. Root tooling now joins pnpm test, quality duplicate calls removed. test:customer alias removed; tsconfig retained because existing compile-negative Customer regression still uses it.
+
+Node ports implemented for custody, cluster lifecycle/controlled fixture and guarded dev-cleanup; HTTPS snippets use Node builtins. Narrow shared docker-command helper only bounds subprocess lifecycle; no generic framework/dependency. Python originals temporarily retained, not invoked by switched callers, until genuine hosted equivalence passes; two PTY harnesses remain unchanged permanently for this scope. Pinned host Node setup precedes quality. Canonical Testing/Setup/Database/Runtime/AI rules and PR example synchronized. Approved snapshot bytes unchanged.
+
+| Claim                                             | Evidence                                                                                                                                                                                  | Date       | Result |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Python launcher behavior before caller transition | python3 scripts/provision-cluster-smoke.test.py:14/14 PASS, exit0; controlled fixtures only                                                                                               | 2026-10-22 | PASS   |
+| Test-first discovery regression                   | Added test before guard implementation: expected valid discovery fails (missing guard), exit1; native missing-glob characterization independently shows exit0/tests0                      | 2026-10-22 | FAIL   |
+| Discovery/command/governance/docs regressions     | node --test discovery, docker-command, cluster, docs and preflight:45/45 PASS, zero skipped, exit0 before additional maintenance groups                                                   | 2026-10-22 | PASS   |
+| Cluster controlled equivalence                    | node --test scripts/provision-cluster-smoke.test.mjs:6 grouped scenarios PASS, selectors/TCP/partial/ownership/suite vs container status/removal/inspect/signals/redaction; exit0         | 2026-10-22 | PASS   |
+| Maintenance-specific safety regression            | node --test dev-cleanup-smoke.test.mjs docker-command.test.mjs:4 groups PASS, positive/partial-create/timeout/SQL failure, SIGINT/SIGTERM and failed/unverifiable cleanup; exit0          | 2026-10-22 | PASS   |
+| Frozen dependencies                               | pnpm10.34.6 install --frozen-lockfile --offline exit0, genuine cached packages; no fake Prisma/client artifacts                                                                           | 2026-10-22 | PASS   |
+| Initial lint                                      | pnpm lint exit1: Node globals imports, no-empty, preserve-caught-error and no-unsafe-finally; corrected without rule changes                                                              | 2026-10-22 | FAIL   |
+| Lint retry                                        | pnpm lint exit0; existing boundaries and rules preserved                                                                                                                                  | 2026-10-22 | PASS   |
+| Local root test                                   | pnpm test with configured API_INTERNAL_URL exit1: genuine database build cannot obtain Prisma artifact checksum, EAI_AGAIN binaries.prisma.sh; workspace suites blocked behind real build | 2026-10-22 | FAIL   |
+
+Independent reviewer initially flagged P2 missing dev-cleanup-specific lifecycle coverage; dedicated positive/negative/signal cases added, re-review pending. Genuine Docker/PostgreSQL/runtime/final-head hosted evidence remains pending. No mocked Docker result is claimed as SQL PASS. Task remains active/VERIFICATION PENDING; no approval/merge. Final-head evidence belongs in PR metadata to avoid SHA-only commits.

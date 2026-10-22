@@ -1,4 +1,4 @@
-const { loginWithMfa } = require("./helpers/mfa-fixture.cjs");
+const { loginWithMfa } = require("../test/helpers/mfa-fixture.cjs");
 require("reflect-metadata");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");

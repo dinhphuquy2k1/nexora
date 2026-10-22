@@ -7,8 +7,8 @@ project="nexora-https-$$"
 export COMPOSE_PROJECT_NAME="$project"
 work=$(mktemp -d)
 export PUBLIC_FQDN=nexora.example.test
-https_port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')
-http_port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')
+https_port=$(node --input-type=module -e 'import {createServer} from "node:net"; const server=createServer(); server.on("error",()=>process.exitCode=1); server.listen(0,"127.0.0.1",()=>{console.log(server.address().port);server.close();});' )
+http_port=$(node --input-type=module -e 'import {createServer} from "node:net"; const server=createServer(); server.on("error",()=>process.exitCode=1); server.listen(0,"127.0.0.1",()=>{console.log(server.address().port);server.close();});' )
 export PUBLIC_ORIGIN="https://$PUBLIC_FQDN:$https_port"
 export ALLOWED_HOSTS="$PUBLIC_FQDN:$https_port" ALLOWED_ORIGINS="$PUBLIC_ORIGIN"
 IDENTITY_KEYRING_JSON=$(node -e 'console.log(JSON.stringify({1:require("node:crypto").randomBytes(32).toString("base64")}))')
@@ -18,12 +18,12 @@ export CARRIER_KEYRING_JSON CARRIER_ACTIVE_KEY_VERSION=1
 local_compose(){ docker compose -f compose.yml "$@"; }
 public_compose(){ docker compose -f compose.yml -f compose.public.yml -f "$work/https.yml" "$@"; }
 gate_diagnostic(){
-  python3 - "$1" <<'PYCODE'
-import pathlib,sys
-text=pathlib.Path(sys.argv[1]).read_text(errors='replace').lower()
-patterns=[('read-only file system','READ_ONLY_MOUNT'),('address already in use','ADDRESS_IN_USE'),('address is already in use','ADDRESS_IN_USE'),('invalid pool','NETWORK_POOL'),('manifest unknown','IMAGE_MISSING'),('toomanyrequests','IMAGE_PULL_LIMIT'),('pull access denied','IMAGE_PULL_DENIED'),('cannot find module','MODULE_LOAD'),('invalid runtime credential','RUNTIME_CREDENTIAL'),('startup_failed','APPLICATION_GATE')]
-print('One-off diagnostic: '+next((name for pattern,name in patterns if pattern in text),'UNCLASSIFIED'))
-PYCODE
+  node --input-type=module - "$1" <<'JS'
+import {readFile} from 'node:fs/promises';
+const text=(await readFile(process.argv[2],'utf8')).toLowerCase();
+const patterns=[['read-only file system','READ_ONLY_MOUNT'],['address already in use','ADDRESS_IN_USE'],['address is already in use','ADDRESS_IN_USE'],['invalid pool','NETWORK_POOL'],['manifest unknown','IMAGE_MISSING'],['toomanyrequests','IMAGE_PULL_LIMIT'],['pull access denied','IMAGE_PULL_DENIED'],['cannot find module','MODULE_LOAD'],['invalid runtime credential','RUNTIME_CREDENTIAL'],['startup_failed','APPLICATION_GATE']];
+console.log('One-off diagnostic: '+(patterns.find(([pattern])=>text.includes(pattern))?.[1]??'UNCLASSIFIED'));
+JS
 }
 assert_public_startup_rejected(){
   gate_log=$1; shift
@@ -37,11 +37,12 @@ cleanup(){
   # Fixed safe app logs only; no config/env or certificate/fixture output.
   if [ "$status" -ne 0 ]; then public_compose logs --no-color --tail 40 api web ingress >&2 || true; fi
   public_compose down -v --remove-orphans >/dev/null 2>&1 || local_compose down -v --remove-orphans >/dev/null 2>&1 || true
-  python3 - "$work" <<'PY'
-import pathlib,sys,shutil
-p=pathlib.Path(sys.argv[1])
-if p.parent==pathlib.Path('/tmp') and p.name.startswith('tmp.'):shutil.rmtree(p)
-PY
+  node --input-type=module - "$work" <<'JS'
+import {realpath,rm,lstat} from 'node:fs/promises';import {dirname,basename} from 'node:path';
+const path=process.argv[2];const canonical=await realpath(path);
+if(!(await lstat(path)).isSymbolicLink()&&canonical===path&&dirname(canonical)==='/tmp'&&basename(canonical).startsWith('tmp.'))await rm(canonical,{recursive:true});
+else {console.error('Temporary cleanup ownership unverified');process.exitCode=1;}
+JS
   exit "$status"
 }
 trap cleanup EXIT HUP INT TERM

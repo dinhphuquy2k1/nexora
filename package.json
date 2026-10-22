@@ -14,7 +14,7 @@
     "lint": "node scripts/boundaries.mjs && eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "turbo run test",
+    "test": "node scripts/check-test-discovery.mjs \"scripts/**/*.test.mjs\" && node --test \"scripts/**/*.test.mjs\" && turbo run test",
     "test:integration": "pnpm --filter @nexora/api test:integration",
     "mfa:enroll": "node scripts/mfa-enroll.mjs",
     "user:create": "node scripts/user-create.mjs",
@@ -25,7 +25,7 @@
     "test:preflight": "node --test scripts/preflight-policy-check.test.mjs",
     "test:operations": "node --test scripts/smoke-checks.test.mjs scripts/public-authority.test.mjs",
     "test:docs": "node --test scripts/docs-check.test.mjs",
-    "quality": "pnpm format:check && pnpm lint && pnpm test:lint && pnpm preflight:check && pnpm test:preflight && pnpm docs:check && pnpm typecheck && pnpm test && pnpm test:docs && pnpm test:operations && pnpm contracts:check && pnpm build",
+    "quality": "pnpm format:check && pnpm lint && pnpm preflight:check && pnpm docs:check && pnpm typecheck && pnpm test && pnpm contracts:check && pnpm build",
     "test:lint": "node --test scripts/eslint-rules/*.test.mjs"
   },
   "devDependencies": {

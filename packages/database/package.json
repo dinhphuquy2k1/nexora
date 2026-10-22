@@ -8,13 +8,13 @@
     "build": "prisma generate && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsc -p tsconfig.json --watch",
-    "test": "node --test test/password.test.mjs test/provision-runtime.test.mjs",
+    "test": "node ../../scripts/check-test-discovery.mjs \"test/**/*.test.mjs\" && node --test \"test/**/*.test.mjs\"",
     "generate": "prisma generate",
     "migrate:deploy": "prisma migrate deploy",
     "test:migrations": "node test/migration.mjs",
-    "test:customer:sql": "python3 ../../scripts/provision-cluster-smoke.py --suite=customer-sql",
-    "test:provision:cluster": "python3 ../../scripts/provision-cluster-smoke.py --suite=provision",
-    "test:cluster": "python3 ../../scripts/provision-cluster-smoke.py"
+    "test:customer:sql": "node ../../scripts/provision-cluster-smoke.mjs --suite=customer-sql",
+    "test:provision:cluster": "node ../../scripts/provision-cluster-smoke.mjs --suite=provision",
+    "test:cluster": "node ../../scripts/provision-cluster-smoke.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",

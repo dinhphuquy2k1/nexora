@@ -1,0 +1,64 @@
+{
+  "apps/api/package.json": [
+    "test/unit.test.cjs",
+    "test/common-validation.test.cjs",
+    "test/auth.test.cjs",
+    "test/http.test.cjs",
+    "test/admission.test.cjs",
+    "test/cli.test.cjs",
+    "test/auth-http.test.cjs",
+    "test/infrastructure/identity.test.cjs",
+    "test/carrier-connect-contract.test.cjs",
+    "test/carrier-uniship.test.cjs",
+    "test/uniship-verify.test.cjs",
+    "test/carrier-budget.test.cjs",
+    "test/carrier-lifecycle.test.cjs",
+    "test/carrier-vault.test.cjs",
+    "test/local-identity.test.cjs",
+    "test/onboarding.test.cjs",
+    "test/identity-error-mapping.test.cjs",
+    "test/carrier-crypto.test.cjs",
+    "test/mfa-totp.test.cjs",
+    "test/mfa-crypto.test.cjs",
+    "test/mfa-auth.test.cjs",
+    "test/mfa-cli.test.cjs",
+    "test/public-profile.test.cjs",
+    "test/public-startup.test.cjs",
+    "test/customer.test.cjs",
+    "test/customer-aggregate.test.cjs"
+  ],
+  "apps/web/package.json": [
+    "test/mfa-login.test.mjs",
+    "test/navigation.test.mjs",
+    "test/shared-ui.test.mjs",
+    "test/auth-frontend.test.mjs",
+    "test/launcher.test.mjs",
+    "test/setup.test.mjs",
+    "test/public-host.test.mjs",
+    "test/public-healthcheck.test.mjs",
+    "test/customer-status.test.mjs"
+  ],
+  "packages/database/package.json": [
+    "test/password.test.mjs",
+    "test/provision-runtime.test.mjs"
+  ],
+  "packages/ui/package.json": ["test/status-tone.test.mjs"],
+  "apiIntegration": [
+    "test/integration.test.cjs",
+    "test/identity-concurrency.test.cjs",
+    "test/user-status-http.test.cjs",
+    "test/legacy-session-cutover.test.cjs",
+    "test/carrier-foundation.test.cjs",
+    "test/carrier-lifecycle-integration.test.cjs",
+    "test/mfa-integration.test.cjs",
+    "test/customer-integration.test.cjs"
+  ],
+  "rootTooling": [
+    "scripts/docs-check.test.mjs",
+    "scripts/eslint-rules/no-domain-vocabulary-literals.test.mjs",
+    "scripts/eslint-rules/no-nested-ternary.test.mjs",
+    "scripts/preflight-policy-check.test.mjs",
+    "scripts/public-authority.test.mjs",
+    "scripts/smoke-checks.test.mjs"
+  ]
+}
