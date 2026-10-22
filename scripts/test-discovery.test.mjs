@@ -33,6 +33,7 @@ test("discovery rejects empty/malformed patterns and propagates assertions; nest
       join(dir, "test/nested/new.test.cjs"),
       "require('node:test')('discovered sentinel',()=>{});",
     );
+    assert.notEqual(run([guard, "test/**/*"]).status, 0);
     assert.equal(run([guard, "test/**/*.test.cjs"]).status, 0);
     assert.notEqual(
       run([guard, "test/**/*.test.cjs", "test/**/*.test.cjs"]).status,

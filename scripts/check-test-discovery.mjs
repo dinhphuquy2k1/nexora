@@ -8,7 +8,7 @@ try {
     let count = 0;
     for await (const file of glob(pattern)) {
       if (!(await stat(file)).isFile() || !/\.test\.(cjs|mjs)$/.test(file))
-        continue;
+        throw Error(`Discovery pattern matched a non-suite path: ${file}`);
       if (files.has(file)) throw Error("Overlapping test discovery patterns");
       files.add(file);
       count++;
