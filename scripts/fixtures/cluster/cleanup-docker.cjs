@@ -32,6 +32,18 @@ if (a[0] === "create") {
     if (mode === "absence-unverified") end(1, "", "daemon unavailable");
     else end(1, "", "Error: No such object: " + a.at(-1));
   }
+  if (mode === "id-mismatch")
+    end(
+      0,
+      JSON.stringify([
+        {
+          ...s.container,
+          Id: "b".repeat(64),
+        },
+      ]),
+    );
+  if (mode === "malformed-inspect") end(0, "not json");
+  if (mode === "empty-inspect") end(0, "[]");
   end(0, JSON.stringify([s.container]));
 } else if (a[0] === "rm") {
   if (mode === "rm-fail") end(1, "", "controlled rm failed");

@@ -759,12 +759,33 @@ try {
   process.exitCode = 1;
 } finally {
   socket?.close();
-  if (chrome) {
+  if (chrome && chrome.exitCode === null) {
     chrome.kill("SIGTERM");
-    await new Promise((resolve) => {
-      if (chrome.exitCode !== null) resolve();
-      else chrome.once("exit", resolve);
-    });
+    const exited = await Promise.race([
+      new Promise((resolve) => chrome.once("exit", () => resolve(true))),
+      delay(3000).then(() => false),
+    ]);
+    if (!exited && chrome.exitCode === null) {
+      chrome.kill("SIGKILL");
+      await new Promise((resolve) => {
+        if (chrome.exitCode !== null) resolve();
+        else chrome.once("exit", resolve);
+      });
+    }
   }
-  await rm(profile, { recursive: true, force: true });
+  let cleanupError;
+  try {
+    await rm(profile, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 100,
+    });
+  } catch (err) {
+    cleanupError = err;
+    console.error("BROWSER_PROFILE_CLEANUP_FAILED:", err.message);
+  }
+  if (cleanupError && !process.exitCode) {
+    process.exitCode = 1;
+  }
 }

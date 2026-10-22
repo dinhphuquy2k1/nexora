@@ -73,8 +73,16 @@ async function cleanupSql(overrides = {}) {
 async function ownedState(identity) {
   const r = await command(["inspect", identity], { timeout: 5000 });
   if (r.code !== 0) throw Error("OWNERSHIP_UNVERIFIED");
-  const s = JSON.parse(r.stdout)[0];
+  let s;
+  try {
+    const arr = JSON.parse(r.stdout);
+    if (!Array.isArray(arr) || arr.length !== 1 || !arr[0]) throw Error();
+    s = arr[0];
+  } catch {
+    throw Error("OWNERSHIP_UNVERIFIED");
+  }
   if (
+    s.Id !== identity ||
     s.Config?.Labels?.["nexora.cleanup-test"] !== run ||
     s.Name !== `/${name}` ||
     !/^[a-f0-9]{64}$/.test(s.Id)
@@ -87,7 +95,14 @@ async function cleanupOwned() {
   if (!id) {
     const r = await command(["inspect", name], { timeout: 5000 });
     if (r.code === 0) {
-      const s = JSON.parse(r.stdout)[0];
+      let s;
+      try {
+        const arr = JSON.parse(r.stdout);
+        if (!Array.isArray(arr) || arr.length !== 1 || !arr[0]) throw Error();
+        s = arr[0];
+      } catch {
+        throw Error("UNVERIFIABLE_CREATION");
+      }
       await ownedState(s.Id);
       id = s.Id;
     } else if (

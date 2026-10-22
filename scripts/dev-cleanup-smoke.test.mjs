@@ -101,3 +101,12 @@ test("maintenance SIGINT/SIGTERM and cleanup unverifiability cannot PASS", async
       assert.ok(r.state.calls.every((c) => c[0] !== "rm"));
   }
 });
+test("maintenance container identity mismatch and malformed/empty inspect fail closed without deletion", async () => {
+  for (const mode of ["id-mismatch", "malformed-inspect", "empty-inspect"]) {
+    const r = await fixture(mode);
+    assert.notEqual(r.code, 0);
+    assert.match(r.output, /DEV_CLEANUP_TEST_FAILED/);
+    assert.doesNotMatch(r.output, /Actual psql cleanup.*PASS/);
+    assert.ok(r.state.calls.every((c) => c[0] !== "rm"));
+  }
+});
