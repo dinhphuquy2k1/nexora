@@ -63,20 +63,23 @@ Design approval is an independent governance decision:
 
 ### Verifiable Approval Sources in GitHub CI
 
-In pull request CI, approval provenance is verified through GitHub REST API checks against authorized repository authorities (`repository-owner`, `dinhphuquy2k1`):
+In pull request CI, approval provenance is verified through GitHub REST API checks against authorized repository logins (`dinhphuquy2k1`). Conceptual role names like `repository-owner` are never accepted as GitHub logins.
 
-1. **Source A (Authorized Approving Review)**: A GitHub PR review in `APPROVED` state by an authorized authority containing an explicit design approval block matching the exact Task ID and Plan revision. Generic approvals without design declarations do not qualify.
-2. **Source B (Authorized Owner Comment)**: A GitHub issue comment by an authorized repository owner containing a strict machine-readable decision block:
+1. **Source A (Authorized Approving Review)**: A GitHub PR review strictly in `APPROVED` state by an authorized login (`dinhphuquy2k1`) containing an explicit design approval block matching the exact Task ID and Plan revision. Reviews in `COMMENTED`, `DISMISSED`, `PENDING`, or `CHANGES_REQUESTED` state cannot grant approval under any circumstances. Generic code-review approvals without formal design declarations do not qualify.
+2. **Source B (Authorized Owner Comment)**: A GitHub issue comment by an authorized repository login (`dinhphuquy2k1`) containing a strict machine-readable decision block:
    ```text
    NEXORA DESIGN APPROVAL
    Task: <Task-ID>
    Plan revision: <Plan-revision>
    Decision: APPROVED
    ```
-   Prose mentions, blockquotes, bot comments, and unauthorized users are strictly rejected.
-3. **Revocation & Chronology**: Decisions are evaluated chronologically. A subsequent `REVISION_REQUIRED`, `CHANGES_REQUESTED`, or revocation supersedes an earlier approval.
-4. **Historical Compatibility**: Completed historical tasks (`docs/tasks/completed/`) are exempt from retrospective review requirements. Any active task referenced by a PR for new work must comply with ADR-009; arbitrary task ID numbers do not grant policy exemptions.
-5. **Fail-Closed Execution**: PR CI mode fails closed if tokens are missing, event payloads are malformed, or API calls fail. Local and push-to-main static runs validate structural conformance without claiming authenticated GitHub approval.
+   The header `NEXORA DESIGN APPROVAL` is mandatory. The comment must contain exactly one Task, one Plan revision, and one Decision (`APPROVED`, `REVISION_REQUIRED`, `REVOKED`). Prose mentions, blockquotes, fenced code blocks/examples, bot comments, and unauthorized users are strictly rejected. Comments with multiple competing formal blocks fail closed.
+3. **Revocation & Chronology**: Decisions from both sources are evaluated chronologically based on verified timestamps (missing or unparseable timestamps fail closed). A subsequent authoritative `REVISION_REQUIRED`, `CHANGES_REQUESTED`, or revocation supersedes an earlier approval. A subsequent authorized `APPROVED` decision can restore approval.
+4. **Historical Compatibility**: Completed historical tasks (`docs/tasks/completed/`) are exempt from retrospective review requirements. Any active task referenced by a PR for new implementation work must comply with ADR-009; arbitrary task ID numbers do not grant policy exemptions.
+5. **Structural Validation vs Implementation Enforcement**:
+   - **Structural Mode** (local static checks and push-to-main CI): Validates document structure, required fields, and the reuse matrix. All three lifecycle statuses (`APPROVED`, `PENDING_REVIEW`, `REVISION_REQUIRED`) are structurally valid. A pending task in the repository does not fail repository-wide static checks.
+   - **Implementation Mode** (pull request CI gate): Requires valid PR-to-task-revision binding, markdown task status `APPROVED`, and authenticated GitHub approval provenance. `PENDING_REVIEW` and `REVISION_REQUIRED` fail closed in implementation mode.
+6. **Fail-Closed Execution**: PR CI mode fails closed if tokens are missing, event payloads are malformed, or API calls fail. Local and push-to-main static runs validate structural conformance without claiming authenticated GitHub approval.
 
 ## Technical Validation & Reuse Ownership
 

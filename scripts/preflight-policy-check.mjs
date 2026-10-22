@@ -18,10 +18,7 @@ const UUID_PATTERN_REGEX =
   /\[[0-9a-fA-F-]+\]\{8\}-\[[0-9a-fA-F-]+\]\{4\}-\[[0-9a-fA-F-]+\]\{4\}/;
 const HEX64_PATTERN_REGEX = /\[[0-9a-fA-F-]+\]\{64\}/;
 
-export const AUTHORIZED_APPROVAL_AUTHORITIES = [
-  "repository-owner",
-  "dinhphuquy2k1",
-];
+export const AUTHORIZED_APPROVAL_AUTHORITIES = ["dinhphuquy2k1"];
 
 export const EXPECTED_SKILL_SCENARIOS = [
   {
@@ -301,12 +298,13 @@ export function validateTaskDesignGovernance(
     return failures;
   }
 
-  const isPrBinding = Boolean(options.isPrBinding);
+  const mode =
+    options.mode || (options.isPrBinding ? "implementation" : "structural");
 
-  // If running in unrelated static scan mode (not PR binding), and the task has no design record section,
+  // If running in structural mode, and the task has no design record section,
   // it is an untouched historical task predating ADR-009 and is not retroactively invalidated.
   if (
-    !isPrBinding &&
+    mode === "structural" &&
     !taskContent.includes("## Design Review & Reuse Decision")
   ) {
     return failures;
@@ -332,11 +330,15 @@ export function validateTaskDesignGovernance(
     failures.push(`Invalid Task Classification: '${fields.classification}'.`);
   }
 
-  // 3. Validate status is APPROVED (PENDING_REVIEW and REVISION_REQUIRED must fail governance check)
-  if (fields.approvalStatus && fields.approvalStatus !== "APPROVED") {
-    failures.push(
-      `Approval status is '${fields.approvalStatus}'; task cannot proceed until approved.`,
-    );
+  // 3. Status validation:
+  // In implementation mode, status MUST be APPROVED (PENDING_REVIEW and REVISION_REQUIRED fail).
+  // In structural mode, PENDING_REVIEW and REVISION_REQUIRED are valid task states.
+  if (mode === "implementation") {
+    if (fields.approvalStatus && fields.approvalStatus !== "APPROVED") {
+      failures.push(
+        `Approval status is '${fields.approvalStatus}'; task cannot proceed until approved.`,
+      );
+    }
   }
 
   // 4. Validate Documentation Impact declaration
@@ -396,7 +398,7 @@ export function validateTaskDesignGovernance(
  * Parses an explicit machine-readable design approval decision block from a review or comment body.
  *
  * Recognized format:
- * NEXORA DESIGN APPROVAL (optional header)
+ * NEXORA DESIGN APPROVAL
  * Task: <taskId>
  * Plan revision: <planRevision>
  * Decision: <APPROVED | REVISION_REQUIRED | REVOKED>
@@ -404,22 +406,48 @@ export function validateTaskDesignGovernance(
 export function parseApprovalDecisionBlock(text) {
   if (!text || typeof text !== "string") return null;
 
-  // Filter out blockquote lines (starting with '>') so quoted messages are ignored
-  const nonQuotedLines = text
+  // Normalize CRLF to LF
+  const normalized = text.replace(/\r\n/g, "\n");
+
+  // Strip fenced code blocks (``` ... ``` or ~~~ ... ~~~)
+  const withoutCodeBlocks = normalized.replace(
+    /(```[\s\S]*?```|~~~[\s\S]*?~~~)/g,
+    "",
+  );
+
+  // Filter out blockquote lines (starting with '>')
+  const lines = withoutCodeBlocks
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => !l.startsWith(">"));
 
-  let taskId = null;
-  let planRevision = null;
-  let decision = null;
+  const headerRegex = /^\*{0,2}NEXORA\s+DESIGN\s+APPROVAL\*{0,2}$/i;
+  const headerIndices = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (headerRegex.test(lines[i])) {
+      headerIndices.push(i);
+    }
+  }
 
-  for (const line of nonQuotedLines) {
+  // Must contain exactly one formal header
+  if (headerIndices.length !== 1) {
+    return null;
+  }
+
+  const headerIndex = headerIndices[0];
+
+  const taskMatches = [];
+  const planMatches = [];
+  const decMatches = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
     const taskMatch = line.match(
       /^(?:-\s*)?\*{0,2}(?:Task|Task ID)\*{0,2}:\s*`?([A-Za-z0-9_-]+)`?$/i,
     );
     if (taskMatch) {
-      taskId = taskMatch[1].trim();
+      taskMatches.push({ index: i, value: taskMatch[1].trim() });
       continue;
     }
 
@@ -427,7 +455,7 @@ export function parseApprovalDecisionBlock(text) {
       /^(?:-\s*)?\*{0,2}Plan\s+revision\*{0,2}:\s*`?([A-Za-z0-9_.-]+)`?$/i,
     );
     if (revMatch) {
-      planRevision = revMatch[1].trim();
+      planMatches.push({ index: i, value: revMatch[1].trim() });
       continue;
     }
 
@@ -435,15 +463,40 @@ export function parseApprovalDecisionBlock(text) {
       /^(?:-\s*)?\*{0,2}(?:Decision|Approval status)\*{0,2}:\s*`?([A-Za-z_]+)`?$/i,
     );
     if (decMatch) {
-      decision = decMatch[1].trim().toUpperCase();
+      decMatches.push({ index: i, value: decMatch[1].trim().toUpperCase() });
       continue;
     }
   }
 
-  if (taskId && planRevision && decision) {
-    return { taskId, planRevision, decision };
+  // Must contain exactly one of each field
+  if (
+    taskMatches.length !== 1 ||
+    planMatches.length !== 1 ||
+    decMatches.length !== 1
+  ) {
+    return null;
   }
-  return null;
+
+  // All fields must appear after the header
+  if (
+    taskMatches[0].index < headerIndex ||
+    planMatches[0].index < headerIndex ||
+    decMatches[0].index < headerIndex
+  ) {
+    return null;
+  }
+
+  const decision = decMatches[0].value;
+  const validDecisions = ["APPROVED", "REVISION_REQUIRED", "REVOKED"];
+  if (!validDecisions.includes(decision)) {
+    return null;
+  }
+
+  return {
+    taskId: taskMatches[0].value,
+    planRevision: planMatches[0].value,
+    decision,
+  };
 }
 
 /**
@@ -536,15 +589,6 @@ export function validatePrTaskBinding(prBody, rootDir) {
     };
   }
 
-  // Check for path traversal attempts anywhere in the PR body
-  if (prBody.includes("..")) {
-    return {
-      valid: false,
-      failures: ["Illegal path traversal in task reference."],
-      tasks: [],
-    };
-  }
-
   const parsed = parsePrPreflightBlock(prBody);
   failures.push(...parsed.failures);
 
@@ -564,10 +608,15 @@ export function validatePrTaskBinding(prBody, rootDir) {
     );
   } else {
     const relPath = parsed.fields.taskReference;
-    if (
+    if (relPath.includes("://")) {
+      failures.push(
+        `Task reference cannot be a URL, must be in 'docs/tasks/active/', got: '${relPath}'.`,
+      );
+    } else if (
       relPath.includes("..") ||
       relPath.startsWith("/") ||
-      relPath.startsWith("\\")
+      relPath.startsWith("\\") ||
+      /^[A-Za-z]:/.test(relPath)
     ) {
       failures.push(`Illegal path traversal in task reference: '${relPath}'.`);
     } else if (!relPath.startsWith("docs/tasks/active/")) {
@@ -584,7 +633,18 @@ export function validatePrTaskBinding(prBody, rootDir) {
       );
     } else {
       const fullPath = resolve(rootDir, relPath);
-      if (!existsSync(fullPath)) {
+      const activeDir = resolve(rootDir, "docs/tasks/active");
+      const normFullPath = fullPath.replace(/\\/g, "/");
+      const normActiveDir = activeDir.replace(/\\/g, "/");
+
+      if (
+        !normFullPath.startsWith(normActiveDir + "/") &&
+        normFullPath !== normActiveDir
+      ) {
+        failures.push(
+          `Illegal path traversal outside active tasks directory: '${relPath}'.`,
+        );
+      } else if (!existsSync(fullPath)) {
         failures.push(`Referenced task file does not exist: '${relPath}'.`);
       } else {
         // Match filename task ID
@@ -777,6 +837,19 @@ export async function verifyGitHubApprovalEvidence({
 
     const formalDecisions = [];
 
+    function parseTimestamp(rawDate, context) {
+      if (!rawDate) {
+        throw new Error(`Missing timestamp on ${context}.`);
+      }
+      const ts = new Date(rawDate).getTime();
+      if (isNaN(ts) || ts <= 0) {
+        throw new Error(
+          `Invalid or unparseable timestamp '${rawDate}' on ${context}.`,
+        );
+      }
+      return ts;
+    }
+
     // 1. Process Source A: GitHub Reviews
     for (const review of reviews) {
       if (
@@ -788,36 +861,48 @@ export async function verifyGitHubApprovalEvidence({
       if (review.user.type === "Bot" || review.user.login.endsWith("[bot]")) {
         continue;
       }
-      if (review.state === "DISMISSED") {
+      if (
+        review.state === "DISMISSED" ||
+        review.state === "PENDING" ||
+        review.state === "COMMENTED"
+      ) {
         continue;
       }
 
-      const decisionBlock = parseApprovalDecisionBlock(review.body);
-      if (decisionBlock) {
-        if (
-          decisionBlock.taskId === taskId &&
-          decisionBlock.planRevision === planRevision
-        ) {
-          formalDecisions.push({
-            source: "review",
-            author: review.user.login,
-            submittedAt: review.submitted_at
-              ? new Date(review.submitted_at).getTime()
-              : 0,
-            decision: decisionBlock.decision,
-            state: review.state,
-          });
-        }
-      } else if (review.state === "CHANGES_REQUESTED") {
+      if (review.state === "CHANGES_REQUESTED") {
         formalDecisions.push({
           source: "review",
           author: review.user.login,
-          submittedAt: review.submitted_at
-            ? new Date(review.submitted_at).getTime()
-            : 0,
+          submittedAt: parseTimestamp(
+            review.submitted_at,
+            `review by @${review.user.login}`,
+          ),
           decision: "REVISION_REQUIRED",
           state: review.state,
         });
+        continue;
+      }
+
+      if (review.state === "APPROVED") {
+        const decisionBlock = parseApprovalDecisionBlock(review.body);
+        if (decisionBlock) {
+          if (
+            decisionBlock.taskId === taskId &&
+            decisionBlock.planRevision === planRevision
+          ) {
+            formalDecisions.push({
+              source: "review",
+              author: review.user.login,
+              submittedAt: parseTimestamp(
+                review.submitted_at,
+                `review by @${review.user.login}`,
+              ),
+              decision: decisionBlock.decision,
+              state: review.state,
+            });
+          }
+        }
+        // Generic code review APPROVED without matching formal design decision does not grant approval
       }
     }
 
@@ -842,9 +927,10 @@ export async function verifyGitHubApprovalEvidence({
           formalDecisions.push({
             source: "comment",
             author: comment.user.login,
-            submittedAt: comment.created_at
-              ? new Date(comment.created_at).getTime()
-              : 0,
+            submittedAt: parseTimestamp(
+              comment.created_at,
+              `comment by @${comment.user.login}`,
+            ),
             decision: decisionBlock.decision,
             state: "COMMENT",
           });
@@ -1172,7 +1258,7 @@ export async function runPreflightCheck(rootDir, options = {}) {
               const govFailures = validateTaskDesignGovernance(
                 content,
                 task.relPath,
-                { isPrBinding: true },
+                { mode: "implementation", isPrBinding: true },
               );
               for (const gf of govFailures) {
                 taskFailures.push(`${task.relPath}: ${gf}`);
@@ -1215,6 +1301,7 @@ export async function runPreflightCheck(rootDir, options = {}) {
           const fullPath = resolve(activeTasksDir, entry.name);
           const content = await readFile(fullPath, "utf8");
           const failures = validateTaskDesignGovernance(content, fullPath, {
+            mode: "structural",
             isPrBinding: false,
           });
           for (const f of failures) {
@@ -1243,7 +1330,7 @@ export async function runPreflightCheck(rootDir, options = {}) {
             const govFailures = validateTaskDesignGovernance(
               content,
               task.relPath,
-              { isPrBinding: true },
+              { mode: "implementation", isPrBinding: true },
             );
             for (const gf of govFailures) {
               taskFailures.push(`${task.relPath}: ${gf}`);
@@ -1270,6 +1357,7 @@ export async function runPreflightCheck(rootDir, options = {}) {
             const fullPath = resolve(activeTasksDir, entry.name);
             const content = await readFile(fullPath, "utf8");
             const failures = validateTaskDesignGovernance(content, fullPath, {
+              mode: "structural",
               isPrBinding: false,
             });
             for (const f of failures) {

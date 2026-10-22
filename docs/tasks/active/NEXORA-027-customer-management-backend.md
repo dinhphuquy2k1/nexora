@@ -520,3 +520,11 @@ The following remain domain-specific per tactical DDD boundaries:
 - **P2: Duplication Screening Classification**: Explicitly documented screening tiers (Tier 1 heuristic preflight vs Tier 2 TypeScript AST / ESLint quality).
 - **P2: Skill Evaluation Reporting**: Clarified skill fixtures as behavioral specifications (`Agent behavioral evaluation: NOT RUN`).
 - **P3: Customer VO Simplification**: Replaced `PhoneNumber` and `CountryCode` wrapper classes in `customer.value-objects.ts` with pure policy functions (`parseCustomerPhone`, `parseCustomerCountryCode`).
+
+### Review Findings Resolution — 2026-10-22
+
+- **P1: Approval Authority Identity Validation**: Restricted authorized approvers strictly to verified GitHub logins (`dinhphuquy2k1`), rejecting conceptual role names like `repository-owner` as account logins and ignoring unapproved author associations.
+- **P1: Enforced Actual GitHub Review State**: Reviews only grant positive approval when `review.state === "APPROVED"`; reviews in `COMMENTED`, `DISMISSED`, `PENDING`, or `CHANGES_REQUESTED` state cannot grant approval under any circumstances. CHANGES_REQUESTED is treated as an authoritative revision request.
+- **P2: Strict Machine-Readable Approval Parser**: Mandated exact header `NEXORA DESIGN APPROVAL`, single block, unique fields, and supported decisions (`APPROVED`, `REVISION_REQUIRED`, `REVOKED`), rejecting quotes, prose, and fenced code blocks.
+- **P2: Structural Validation vs Implementation Approval Enforcement**: Separated structural mode (allows valid `PENDING_REVIEW` / `REVISION_REQUIRED` tasks during static scans) from PR implementation mode (requires `APPROVED` task and verified GitHub approval).
+- **P2: Restrict Path Traversal Validation to Task Reference**: Replaced whole-body `..` scanning with targeted path validation on the canonical `Task Reference` field, allowing ordinary ellipses `...` and unrelated example text in PR descriptions while strictly enforcing active directory containment.

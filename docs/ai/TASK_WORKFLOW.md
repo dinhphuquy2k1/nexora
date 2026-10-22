@@ -58,11 +58,14 @@ Design approval must be tracked distinctly without introducing a fictitious fift
   - **Classification**: `BOUNDED`, `SIGNIFICANT`, or `SPIKE`.
   - **Plan revision**: Specific plan identifier or timestamp (e.g. `rev-2026-10-21-reuse-v2`).
   - **Reviewed baseline**: Git commit hash inspected.
-  - **Approval authority**: `repository-owner` or authorized reviewer (`dinhphuquy2k1`).
+  - **Approval authority**: `repository-owner` (logical role) or authorized login (`dinhphuquy2k1`).
   - **Approval status**: `APPROVED`, `PENDING_REVIEW`, or `REVISION_REQUIRED`.
   - **Approval evidence**: Decision reference, directive, or link.
-- **PR Binding**: On pull requests, the PR metadata (`Task ID`, `Task Reference`, `Plan revision`) must match the task file, filename, and design review record exactly.
-- **Approval Provenance Separation**: The task record stores the declared local decision; GitHub CI independently verifies authenticated approval through GitHub REST API checks (approved review with design declaration or owner comment with `NEXORA DESIGN APPROVAL`).
+- **Structural Validity vs Implementation Enforcement**:
+  - In structural validation mode (offline static scans and push to main CI), all three design decision statuses (`APPROVED`, `PENDING_REVIEW`, `REVISION_REQUIRED`) are structurally valid. A pending task does not fail repository-wide static verification.
+  - In implementation mode (pull request CI gate), `APPROVED` is strictly required. Tasks in `PENDING_REVIEW` or `REVISION_REQUIRED` fail the implementation gate.
+- **PR Binding**: On pull requests, the PR metadata (`Task ID`, `Task Reference`, `Plan revision`) must match the task file, filename, and design review record exactly. Traversal paths, URL schemes, and ambiguous references fail closed.
+- **Approval Provenance Separation**: The task record stores the declared local design record; GitHub CI independently verifies authenticated approval through GitHub REST API checks (review in `APPROVED` state with matching formal declaration or owner comment with `NEXORA DESIGN APPROVAL`). Local static PASS never claims authenticated GitHub approval.
 - Self-approval by an agent is strictly invalid.
 - A material design amendment requires renewed review of the delta, recorded in the active task record.
 

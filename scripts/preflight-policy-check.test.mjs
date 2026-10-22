@@ -180,10 +180,10 @@ test("structured design record parser: accurately extracts fields and rejects ma
 });
 
 // ============================================================================
-// Task Design Governance & Grandfathering
+// Task Design Governance: Structural vs Implementation Modes
 // ============================================================================
 
-test("task governance: rejects PENDING_REVIEW, REVISION_REQUIRED, and loose Approved outside section", () => {
+test("task governance: distinguishes structural validation from implementation approval enforcement", () => {
   const validReuseMatrix = `
 | Component | Existing implementations | Domain owner | Reuse alternatives | Selected approach | Rationale | Risks | Verification |
 | isUuid | customer.input.ts | Common | Extract | Extract | Simplicity | None | Unit tests |
@@ -202,57 +202,75 @@ Documentation Impact: REQUIRED
 - **Approval evidence**: Direct directive
 ${validReuseMatrix}
   `;
-  const pendingFailures = validateTaskDesignGovernance(
+
+  // 1. Structural mode: PENDING_REVIEW passes if structurally sound
+  const structuralPending = validateTaskDesignGovernance(
     pendingTask,
     "docs/tasks/active/NEXORA-027-test.md",
-    { isPrBinding: true },
+    { mode: "structural" },
   );
-  assert.ok(
-    pendingFailures.some((f) =>
-      f.includes("Approval status is 'PENDING_REVIEW'"),
-    ),
+  assert.equal(
+    structuralPending.length,
+    0,
+    `Expected PENDING_REVIEW to pass structural validation, got: ${structuralPending.join(", ")}`,
   );
 
+  // 2. Structural mode: REVISION_REQUIRED passes if structurally sound
   const revisionTask = pendingTask.replace(
     "PENDING_REVIEW",
     "REVISION_REQUIRED",
   );
-  const revisionFailures = validateTaskDesignGovernance(
+  const structuralRevision = validateTaskDesignGovernance(
     revisionTask,
     "docs/tasks/active/NEXORA-027-test.md",
-    { isPrBinding: true },
+    { mode: "structural" },
+  );
+  assert.equal(
+    structuralRevision.length,
+    0,
+    `Expected REVISION_REQUIRED to pass structural validation, got: ${structuralRevision.join(", ")}`,
+  );
+
+  // 3. Structural mode: APPROVED passes
+  const approvedTask = pendingTask.replace("PENDING_REVIEW", "APPROVED");
+  const structuralApproved = validateTaskDesignGovernance(
+    approvedTask,
+    "docs/tasks/active/NEXORA-027-test.md",
+    { mode: "structural" },
+  );
+  assert.equal(structuralApproved.length, 0);
+
+  // 4. Implementation mode: PENDING_REVIEW must FAIL
+  const implPending = validateTaskDesignGovernance(
+    pendingTask,
+    "docs/tasks/active/NEXORA-027-test.md",
+    { mode: "implementation" },
   );
   assert.ok(
-    revisionFailures.some((f) =>
+    implPending.some((f) => f.includes("Approval status is 'PENDING_REVIEW'")),
+  );
+
+  // 5. Implementation mode: REVISION_REQUIRED must FAIL
+  const implRevision = validateTaskDesignGovernance(
+    revisionTask,
+    "docs/tasks/active/NEXORA-027-test.md",
+    { mode: "implementation" },
+  );
+  assert.ok(
+    implRevision.some((f) =>
       f.includes("Approval status is 'REVISION_REQUIRED'"),
     ),
   );
 
-  const trickTask = `
-# Task
-Documentation Impact: REQUIRED
-The design is Approved by the team.
-## Design Review & Reuse Decision
-- **Task ID**: NEXORA-027
-- **Classification**: BOUNDED
-- **Plan revision**: rev-1
-- **Reviewed baseline**: 42833752f76948aae7f1fad378291eedd288557b
-- **Approval authority**: repository-owner
-- **Approval status**: PENDING_REVIEW
-- **Approval evidence**: Direct directive
-${validReuseMatrix}
-  `;
-  const trickFailures = validateTaskDesignGovernance(
-    trickTask,
+  // 6. Implementation mode: APPROVED passes task governance
+  const implApproved = validateTaskDesignGovernance(
+    approvedTask,
     "docs/tasks/active/NEXORA-027-test.md",
-    { isPrBinding: true },
+    { mode: "implementation" },
   );
-  assert.ok(
-    trickFailures.some((f) =>
-      f.includes("Approval status is 'PENDING_REVIEW'"),
-    ),
-  );
+  assert.equal(implApproved.length, 0);
 
+  // 7. Structural failure (e.g. missing matrix) fails in both modes
   const missingMatrixTask = `
 # Task
 Documentation Impact: REQUIRED
@@ -266,13 +284,23 @@ Documentation Impact: REQUIRED
 - **Approval evidence**: Direct directive
 Reuse alternatives were considered.
   `;
-  const matrixFailures = validateTaskDesignGovernance(
+  const structMatrixFail = validateTaskDesignGovernance(
     missingMatrixTask,
     "docs/tasks/active/NEXORA-027-test.md",
-    { isPrBinding: true },
+    { mode: "structural" },
   );
   assert.ok(
-    matrixFailures.some((f) =>
+    structMatrixFail.some((f) =>
+      f.includes("Incomplete Reuse & Design Audit Matrix"),
+    ),
+  );
+  const implMatrixFail = validateTaskDesignGovernance(
+    missingMatrixTask,
+    "docs/tasks/active/NEXORA-027-test.md",
+    { mode: "implementation" },
+  );
+  assert.ok(
+    implMatrixFail.some((f) =>
       f.includes("Incomplete Reuse & Design Audit Matrix"),
     ),
   );
@@ -290,7 +318,7 @@ test("task governance grandfathering: completed tasks exempt, old active task wi
   const untouchedOldTaskFailures = validateTaskDesignGovernance(
     "# Old Active Task\nDocumentation Impact: NONE\nNo design section",
     "docs/tasks/active/NEXORA-003-engineering-workflow.md",
-    { isPrBinding: false },
+    { mode: "structural" },
   );
   assert.equal(untouchedOldTaskFailures.length, 0);
 
@@ -298,7 +326,7 @@ test("task governance grandfathering: completed tasks exempt, old active task wi
   const prBoundOldTaskFailures = validateTaskDesignGovernance(
     "# Old Active Task\nDocumentation Impact: NONE\nNo design section",
     "docs/tasks/active/NEXORA-003-engineering-workflow.md",
-    { isPrBinding: true },
+    { mode: "implementation" },
   );
   assert.ok(
     prBoundOldTaskFailures.some((f) =>
@@ -308,7 +336,7 @@ test("task governance grandfathering: completed tasks exempt, old active task wi
     ),
   );
 
-  // 4. Old active task with unapproved PENDING_REVIEW amendment fails
+  // 4. Old active task with unapproved PENDING_REVIEW amendment fails in implementation mode
   const validReuseMatrix = `
 | Component | Existing implementations | Domain owner | Reuse alternatives | Selected approach | Rationale | Risks | Verification |
 | isUuid | customer.input.ts | Common | Extract | Extract | Simplicity | None | Unit tests |
@@ -329,7 +357,7 @@ ${validReuseMatrix}
   const unapprovedFailures = validateTaskDesignGovernance(
     unapprovedOldAmendment,
     "docs/tasks/active/NEXORA-012-admin-staff-management.md",
-    { isPrBinding: true },
+    { mode: "implementation" },
   );
   assert.ok(
     unapprovedFailures.some((f) =>
@@ -345,7 +373,7 @@ ${validReuseMatrix}
   const approvedFailures = validateTaskDesignGovernance(
     approvedOldAmendment,
     "docs/tasks/active/NEXORA-012-admin-staff-management.md",
-    { isPrBinding: true },
+    { mode: "implementation" },
   );
   assert.equal(approvedFailures.length, 0);
 });
@@ -354,7 +382,8 @@ ${validReuseMatrix}
 // Machine-readable Approval Decision Block Parser
 // ============================================================================
 
-test("parseApprovalDecisionBlock: parses machine-readable decision block and rejects prose or quotes", () => {
+test("parseApprovalDecisionBlock: strictly enforces mandatory header, single block, unique fields, and rejects prose/quotes/code blocks", () => {
+  // 1. Valid canonical block
   const block = `
 NEXORA DESIGN APPROVAL
 Task: NEXORA-027
@@ -368,49 +397,158 @@ Decision: APPROVED
     decision: "APPROVED",
   });
 
-  // Markdown bullet format
-  const bulletBlock = `
-- **Task ID**: NEXORA-027
-- **Plan revision**: rev-2026-10-21-reuse-v2
-- **Decision**: APPROVED
-  `;
-  assert.deepEqual(parseApprovalDecisionBlock(bulletBlock), {
+  // 2. Valid CRLF formatting
+  const crlfBlock =
+    "NEXORA DESIGN APPROVAL\r\nTask: NEXORA-027\r\nPlan revision: rev-2026-10-21-reuse-v2\r\nDecision: APPROVED\r\n";
+  assert.deepEqual(parseApprovalDecisionBlock(crlfBlock), {
     taskId: "NEXORA-027",
     planRevision: "rev-2026-10-21-reuse-v2",
     decision: "APPROVED",
   });
 
-  // Quoted comment rejected
-  const quoted = `
-> NEXORA DESIGN APPROVAL
-> Task: NEXORA-027
-> Plan revision: rev-2026-10-21-reuse-v2
-> Decision: APPROVED
-This is not ready yet.
+  // 3. Valid REVISION_REQUIRED and REVOKED
+  const revReqBlock = `
+NEXORA DESIGN APPROVAL
+Task: NEXORA-027
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: REVISION_REQUIRED
   `;
-  assert.equal(parseApprovalDecisionBlock(quoted), null);
+  assert.equal(
+    parseApprovalDecisionBlock(revReqBlock)?.decision,
+    "REVISION_REQUIRED",
+  );
 
-  // Prose only rejected
-  const prose =
-    "This task NEXORA-027 is approved for revision rev-2026-10-21-reuse-v2.";
-  assert.equal(parseApprovalDecisionBlock(prose), null);
+  const revokedBlock = `
+NEXORA DESIGN APPROVAL
+Task: NEXORA-027
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: REVOKED
+  `;
+  assert.equal(parseApprovalDecisionBlock(revokedBlock)?.decision, "REVOKED");
 
-  // Missing plan revision rejected
+  // 4. Missing header -> FAIL
+  const missingHeader = `
+Task: NEXORA-027
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: APPROVED
+  `;
+  assert.equal(parseApprovalDecisionBlock(missingHeader), null);
+
+  // 5. Wrong header -> FAIL
+  const wrongHeader = `
+DESIGN APPROVAL
+Task: NEXORA-027
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: APPROVED
+  `;
+  assert.equal(parseApprovalDecisionBlock(wrongHeader), null);
+
+  // 6. Missing Task -> FAIL
+  const missingTask = `
+NEXORA DESIGN APPROVAL
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: APPROVED
+  `;
+  assert.equal(parseApprovalDecisionBlock(missingTask), null);
+
+  // 7. Missing Plan revision -> FAIL
   const missingPlan = `
+NEXORA DESIGN APPROVAL
 Task: NEXORA-027
 Decision: APPROVED
   `;
   assert.equal(parseApprovalDecisionBlock(missingPlan), null);
 
-  // Missing decision rejected
+  // 8. Missing Decision -> FAIL
   const missingDecision = `
+NEXORA DESIGN APPROVAL
 Task: NEXORA-027
-Plan revision: rev-1
+Plan revision: rev-2026-10-21-reuse-v2
   `;
   assert.equal(parseApprovalDecisionBlock(missingDecision), null);
+
+  // 9. Duplicate Task declaration -> FAIL
+  const duplicateTask = `
+NEXORA DESIGN APPROVAL
+Task: NEXORA-027
+Task: NEXORA-028
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: APPROVED
+  `;
+  assert.equal(parseApprovalDecisionBlock(duplicateTask), null);
+
+  // 10. Duplicate Plan revision -> FAIL
+  const duplicatePlan = `
+NEXORA DESIGN APPROVAL
+Task: NEXORA-027
+Plan revision: rev-1
+Plan revision: rev-2
+Decision: APPROVED
+  `;
+  assert.equal(parseApprovalDecisionBlock(duplicatePlan), null);
+
+  // 11. Duplicate or conflicting Decision -> FAIL
+  const duplicateDecision = `
+NEXORA DESIGN APPROVAL
+Task: NEXORA-027
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: APPROVED
+Decision: REVISION_REQUIRED
+  `;
+  assert.equal(parseApprovalDecisionBlock(duplicateDecision), null);
+
+  // 12. Unknown Decision value -> FAIL
+  const unknownDecision = `
+NEXORA DESIGN APPROVAL
+Task: NEXORA-027
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: MAYBE_APPROVED
+  `;
+  assert.equal(parseApprovalDecisionBlock(unknownDecision), null);
+
+  // 13. Quoted comment (lines starting with '>') -> FAIL
+  const quoted = `
+> NEXORA DESIGN APPROVAL
+> Task: NEXORA-027
+> Plan revision: rev-2026-10-21-reuse-v2
+> Decision: APPROVED
+This is not approved yet.
+  `;
+  assert.equal(parseApprovalDecisionBlock(quoted), null);
+
+  // 14. Fenced code block (``` or ~~~) -> FAIL
+  const fencedCode = `
+Here is an example:
+\`\`\`text
+NEXORA DESIGN APPROVAL
+Task: NEXORA-027
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: APPROVED
+\`\`\`
+  `;
+  assert.equal(parseApprovalDecisionBlock(fencedCode), null);
+
+  // 15. Prose only -> FAIL
+  const prose =
+    "NEXORA DESIGN APPROVAL: Task NEXORA-027 plan revision rev-2026-10-21-reuse-v2 decision APPROVED.";
+  assert.equal(parseApprovalDecisionBlock(prose), null);
+
+  // 16. Multiple formal decision blocks -> FAIL
+  const multipleBlocks = `
+NEXORA DESIGN APPROVAL
+Task: NEXORA-027
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: APPROVED
+
+NEXORA DESIGN APPROVAL
+Task: NEXORA-028
+Plan revision: rev-2026-10-21-reuse-v2
+Decision: REVISION_REQUIRED
+  `;
+  assert.equal(parseApprovalDecisionBlock(multipleBlocks), null);
 });
 
-test("parsePrPreflightBlock: parses canonical PR fields and validates authorities", () => {
+test("parsePrPreflightBlock: parses canonical PR fields and validates authorized logins", () => {
   const prBody = `
 ## Pull Request Preflight
 
@@ -427,24 +565,38 @@ test("parsePrPreflightBlock: parses canonical PR fields and validates authoritie
   );
   assert.equal(parsed.fields.planRevision, "rev-2026-10-21-reuse-v2");
 
+  // Authorized approvers must only contain real verified GitHub logins
   assert.ok(AUTHORIZED_APPROVAL_AUTHORITIES.includes("dinhphuquy2k1"));
-  assert.ok(AUTHORIZED_APPROVAL_AUTHORITIES.includes("repository-owner"));
+  // repository-owner is a conceptual role, not a GitHub login
+  assert.equal(
+    AUTHORIZED_APPROVAL_AUTHORITIES.includes("repository-owner"),
+    false,
+  );
 });
 
 // ============================================================================
 // PR-to-Task & Plan Revision Binding
 // ============================================================================
 
-test("PR-to-task binding: validates canonical metadata block and rejects mismatches/traversals", () => {
+test("PR-to-task binding: validates canonical metadata block, allows ellipses in PR body, and restricts traversal checks to taskReference", () => {
   const validPrBody = `
 ## Pull Request Preflight
 
 - **Task ID**: NEXORA-027
 - **Task Reference**: docs/tasks/active/NEXORA-027-customer-management-backend.md
 - **Plan revision**: rev-2026-10-21-reuse-v2
+
+### Description
+This PR addresses several key improvements...
+More details follow below.
+Referencing previous changes at ../../docs/other.md for context.
   `;
   const validBinding = validatePrTaskBinding(validPrBody, root);
-  assert.equal(validBinding.valid, true);
+  assert.equal(
+    validBinding.valid,
+    true,
+    `Expected valid PR binding even with ellipses or unrelated ../ in prose, got: ${validBinding.failures.join(", ")}`,
+  );
   assert.equal(validBinding.tasks.length, 1);
   assert.equal(
     validBinding.tasks[0].relPath,
@@ -515,14 +667,46 @@ test("PR-to-task binding: validates canonical metadata block and rejects mismatc
     ),
   );
 
-  // Path traversal rejected
+  // Task reference containing path traversal rejected
   const traversalBinding = validatePrTaskBinding(
-    "docs/tasks/active/../../etc/passwd.md",
+    `
+- **Task ID**: NEXORA-027
+- **Task Reference**: docs/tasks/active/../../etc/passwd.md
+- **Plan revision**: rev-2026-10-21-reuse-v2
+    `,
     root,
   );
   assert.equal(traversalBinding.valid, false);
   assert.ok(
     traversalBinding.failures.some((f) => f.includes("path traversal")),
+  );
+
+  // Absolute path in task reference rejected
+  const absoluteBinding = validatePrTaskBinding(
+    `
+- **Task ID**: NEXORA-027
+- **Task Reference**: /docs/tasks/active/NEXORA-027-customer-management-backend.md
+- **Plan revision**: rev-2026-10-21-reuse-v2
+    `,
+    root,
+  );
+  assert.equal(absoluteBinding.valid, false);
+  assert.ok(absoluteBinding.failures.some((f) => f.includes("path traversal")));
+
+  // External URL in task reference rejected
+  const urlBinding = validatePrTaskBinding(
+    `
+- **Task ID**: NEXORA-027
+- **Task Reference**: https://example.com/fake-task.md
+- **Plan revision**: rev-2026-10-21-reuse-v2
+    `,
+    root,
+  );
+  assert.equal(urlBinding.valid, false);
+  assert.ok(
+    urlBinding.failures.some((f) =>
+      f.includes("must be in 'docs/tasks/active/'"),
+    ),
   );
 
   // Pointing to completed directory rejected
@@ -561,23 +745,39 @@ test("PR-to-task binding: validates canonical metadata block and rejects mismatc
 - **Task ID**: NEXORA-027
 - **Task Reference**: docs/tasks/active/NEXORA-027-customer-management-backend.md
 - **Plan revision**: rev-2026-10-21-reuse-v2
-Also see docs/tasks/active/NEXORA-003-engineering-workflow.md
+- **Task Reference**: docs/tasks/active/NEXORA-003-engineering-workflow.md
     `,
     root,
   );
   assert.equal(conflictingBinding.valid, false);
   assert.ok(
     conflictingBinding.failures.some((f) =>
-      f.includes("Multiple conflicting task references detected"),
+      f.includes("Conflicting Task Reference declarations"),
     ),
+  );
+
+  // Valid Markdown link pointing to canonical task passes
+  const markdownLinkBinding = validatePrTaskBinding(
+    `
+- **Task ID**: NEXORA-027
+- **Task Reference**: [NEXORA-027](docs/tasks/active/NEXORA-027-customer-management-backend.md)
+- **Plan revision**: rev-2026-10-21-reuse-v2
+    `,
+    root,
+  );
+  assert.equal(markdownLinkBinding.valid, true);
+  assert.equal(markdownLinkBinding.tasks.length, 1);
+  assert.equal(
+    markdownLinkBinding.tasks[0].relPath,
+    "docs/tasks/active/NEXORA-027-customer-management-backend.md",
   );
 });
 
 // ============================================================================
-// GitHub CI Approval Verification
+// GitHub CI Approval Verification: Identity & Review States
 // ============================================================================
 
-test("verifyGitHubApprovalEvidence: independently checks reviews and comments, enforces decision block and authority", async () => {
+test("verifyGitHubApprovalEvidence: enforces authorized real GitHub logins and rejects role names", async () => {
   const taskRecord = {
     fields: {
       taskId: "NEXORA-027",
@@ -586,276 +786,341 @@ test("verifyGitHubApprovalEvidence: independently checks reviews and comments, e
     },
   };
 
-  // 1. Reviews API HTTP 200 with empty list, but valid owner comment -> PASS
-  const mockOwnerComment = [
-    {
-      user: { login: "dinhphuquy2k1", type: "User" },
-      created_at: "2026-10-21T12:00:00Z",
-      body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`,
-    },
-  ];
-  const passCommentResult = await verifyGitHubApprovalEvidence({
-    prNumber: 23,
-    taskRecord,
-    isCi: true,
-    githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: [], comments: mockOwnerComment }),
-  });
-  assert.equal(passCommentResult.approvalVerified, true);
-  assert.equal(passCommentResult.verified, true);
-  assert.match(
-    passCommentResult.message,
-    /Verified design approval by @dinhphuquy2k1/,
-  );
+  const validCommentBody = `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`;
 
-  // 2. Reviews API HTTP 200 with empty list, and no owner comment -> FAIL
-  const noApprovalResult = await verifyGitHubApprovalEvidence({
-    prNumber: 23,
-    taskRecord,
-    isCi: true,
-    githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: [], comments: [] }),
-  });
-  assert.equal(noApprovalResult.approvalVerified, false);
-  assert.equal(noApprovalResult.verified, false);
-  assert.match(noApprovalResult.message, /No authorized design approval found/);
-
-  // 3. Approved review with explicit matching design decision -> PASS
-  const mockApprovedReview = [
-    {
-      user: { login: "repository-owner", type: "User" },
-      state: "APPROVED",
-      submitted_at: "2026-10-21T12:00:00Z",
-      body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`,
-    },
-  ];
-  const passReviewResult = await verifyGitHubApprovalEvidence({
-    prNumber: 23,
-    taskRecord,
-    isCi: true,
-    githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: mockApprovedReview, comments: [] }),
-  });
-  assert.equal(passReviewResult.approvalVerified, true);
-
-  // 4. Generic approved code review without plan reference ("LGTM") -> FAIL as design evidence
-  const mockGenericReview = [
-    {
-      user: { login: "repository-owner", type: "User" },
-      state: "APPROVED",
-      submitted_at: "2026-10-21T12:00:00Z",
-      body: "LGTM, looks good to merge!",
-    },
-  ];
-  const failGenericResult = await verifyGitHubApprovalEvidence({
-    prNumber: 23,
-    taskRecord,
-    isCi: true,
-    githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: mockGenericReview, comments: [] }),
-  });
-  assert.equal(failGenericResult.approvalVerified, false);
-
-  // 5. Comment by unauthorized account -> FAIL
-  const mockUnauthorizedComment = [
-    {
-      user: { login: "random-user", type: "User" },
-      created_at: "2026-10-21T12:00:00Z",
-      body: `Task: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`,
-    },
-  ];
-  const failUnauthorizedResult = await verifyGitHubApprovalEvidence({
+  // 1. dinhphuquy2k1 + valid owner approval -> PASS
+  const validResult = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
     isCi: true,
     githubToken: "mock-token",
     fetchFn: createMockFetch({
       reviews: [],
-      comments: mockUnauthorizedComment,
+      comments: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          created_at: "2026-10-21T12:00:00Z",
+          body: validCommentBody,
+        },
+      ],
     }),
   });
-  assert.equal(failUnauthorizedResult.approvalVerified, false);
+  assert.equal(validResult.approvalVerified, true);
+  assert.match(
+    validResult.message,
+    /Verified design approval by @dinhphuquy2k1/,
+  );
 
-  // 6. Bot comment mentioning approval -> FAIL
-  const mockBotComment = [
-    {
-      user: { login: "github-actions[bot]", type: "Bot" },
-      created_at: "2026-10-21T12:00:00Z",
-      body: `Task: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`,
-    },
-  ];
-  const failBotResult = await verifyGitHubApprovalEvidence({
+  // 2. Username "repository-owner" + valid block -> FAIL (role name is not an account)
+  const roleNameResult = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
     isCi: true,
     githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: [], comments: mockBotComment }),
+    fetchFn: createMockFetch({
+      reviews: [],
+      comments: [
+        {
+          user: { login: "repository-owner", type: "User" },
+          created_at: "2026-10-21T12:00:00Z",
+          body: validCommentBody,
+        },
+      ],
+    }),
   });
-  assert.equal(failBotResult.approvalVerified, false);
+  assert.equal(roleNameResult.approvalVerified, false);
 
-  // 7. Owner comment mentioning only Task ID -> FAIL
-  const mockTaskOnlyComment = [
-    {
-      user: { login: "dinhphuquy2k1", type: "User" },
-      created_at: "2026-10-21T12:00:00Z",
-      body: `Task: NEXORA-027\nDecision: APPROVED`,
-    },
-  ];
-  const failTaskOnly = await verifyGitHubApprovalEvidence({
+  // 3. Unknown GitHub username -> FAIL
+  const unknownUserResult = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
     isCi: true,
     githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: [], comments: mockTaskOnlyComment }),
+    fetchFn: createMockFetch({
+      reviews: [],
+      comments: [
+        {
+          user: { login: "random-unauthorized-user", type: "User" },
+          created_at: "2026-10-21T12:00:00Z",
+          body: validCommentBody,
+        },
+      ],
+    }),
   });
-  assert.equal(failTaskOnly.approvalVerified, false);
+  assert.equal(unknownUserResult.approvalVerified, false);
 
-  // 8. Owner comment mentioning only Plan revision -> FAIL
-  const mockRevOnlyComment = [
-    {
-      user: { login: "dinhphuquy2k1", type: "User" },
-      created_at: "2026-10-21T12:00:00Z",
-      body: `Plan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`,
-    },
-  ];
-  const failRevOnly = await verifyGitHubApprovalEvidence({
+  // 4. Bot username -> FAIL
+  const botResult = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
     isCi: true,
     githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: [], comments: mockRevOnlyComment }),
+    fetchFn: createMockFetch({
+      reviews: [],
+      comments: [
+        {
+          user: { login: "dinhphuquy2k1[bot]", type: "Bot" },
+          created_at: "2026-10-21T12:00:00Z",
+          body: validCommentBody,
+        },
+      ],
+    }),
   });
-  assert.equal(failRevOnly.approvalVerified, false);
+  assert.equal(botResult.approvalVerified, false);
 
-  // 9. Owner comment without explicit APPROVED decision (e.g. REVISION_REQUIRED) -> FAIL
-  const mockRevisionReqComment = [
-    {
-      user: { login: "dinhphuquy2k1", type: "User" },
-      created_at: "2026-10-21T12:00:00Z",
-      body: `Task: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: REVISION_REQUIRED`,
-    },
-  ];
-  const failRevisionReq = await verifyGitHubApprovalEvidence({
+  // 5. Unauthorized reviewer with state APPROVED -> FAIL
+  const unauthorizedReviewerResult = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
     isCi: true,
     githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: [], comments: mockRevisionReqComment }),
+    fetchFn: createMockFetch({
+      reviews: [
+        {
+          user: { login: "unauthorized-contributor", type: "User" },
+          state: "APPROVED",
+          submitted_at: "2026-10-21T12:00:00Z",
+          body: validCommentBody,
+        },
+      ],
+      comments: [],
+    }),
   });
-  assert.equal(failRevisionReq.approvalVerified, false);
-  assert.match(failRevisionReq.message, /REVISION_REQUIRED/);
+  assert.equal(unauthorizedReviewerResult.approvalVerified, false);
+});
 
-  // 10. Approval for another Task ID -> FAIL
-  const mockOtherTaskComment = [
-    {
-      user: { login: "dinhphuquy2k1", type: "User" },
-      created_at: "2026-10-21T12:00:00Z",
-      body: `Task: NEXORA-099\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`,
+test("verifyGitHubApprovalEvidence: enforces actual review state and chronological decision evaluation", async () => {
+  const taskRecord = {
+    fields: {
+      taskId: "NEXORA-027",
+      planRevision: "rev-2026-10-21-reuse-v2",
+      approvalStatus: "APPROVED",
     },
-  ];
-  const failOtherTask = await verifyGitHubApprovalEvidence({
+  };
+
+  const validBody = `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`;
+
+  // 1. Authorized review with state APPROVED -> PASS
+  const passReview = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
     isCi: true,
     githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: [], comments: mockOtherTaskComment }),
+    fetchFn: createMockFetch({
+      reviews: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          state: "APPROVED",
+          submitted_at: "2026-10-21T12:00:00Z",
+          body: validBody,
+        },
+      ],
+      comments: [],
+    }),
   });
-  assert.equal(failOtherTask.approvalVerified, false);
+  assert.equal(passReview.approvalVerified, true);
+  assert.match(passReview.message, /via review/);
 
-  // 11. Approval for another Plan revision -> FAIL
-  const mockOtherRevComment = [
-    {
-      user: { login: "dinhphuquy2k1", type: "User" },
-      created_at: "2026-10-21T12:00:00Z",
-      body: `Task: NEXORA-027\nPlan revision: rev-older-revision\nDecision: APPROVED`,
-    },
-  ];
-  const failOtherRev = await verifyGitHubApprovalEvidence({
+  // 2. Review with state COMMENTED + body Decision: APPROVED -> FAIL (COMMENTED cannot grant approval)
+  const failCommented = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
     isCi: true,
     githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: [], comments: mockOtherRevComment }),
+    fetchFn: createMockFetch({
+      reviews: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          state: "COMMENTED",
+          submitted_at: "2026-10-21T12:00:00Z",
+          body: validBody,
+        },
+      ],
+      comments: [],
+    }),
   });
-  assert.equal(failOtherRev.approvalVerified, false);
+  assert.equal(failCommented.approvalVerified, false);
 
-  // 12. Later authoritative REVISION_REQUIRED supersedes older APPROVED -> FAIL
-  const mockSuperseded = [
-    {
-      user: { login: "dinhphuquy2k1", type: "User" },
-      created_at: "2026-10-21T10:00:00Z",
-      body: `Task: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`,
-    },
-    {
-      user: { login: "dinhphuquy2k1", type: "User" },
-      created_at: "2026-10-21T14:00:00Z",
-      body: `Task: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: REVISION_REQUIRED`,
-    },
-  ];
-  const failSuperseded = await verifyGitHubApprovalEvidence({
+  // 3. Review with state CHANGES_REQUESTED + body Decision: APPROVED -> FAIL
+  const failChangesReq = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
     isCi: true,
     githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: [], comments: mockSuperseded }),
+    fetchFn: createMockFetch({
+      reviews: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          state: "CHANGES_REQUESTED",
+          submitted_at: "2026-10-21T12:00:00Z",
+          body: validBody,
+        },
+      ],
+      comments: [],
+    }),
   });
-  assert.equal(failSuperseded.approvalVerified, false);
-  assert.match(failSuperseded.message, /REVISION_REQUIRED/);
+  assert.equal(failChangesReq.approvalVerified, false);
 
-  // 13. Dismissed review is not valid evidence -> FAIL
-  const mockDismissedReview = [
-    {
-      user: { login: "dinhphuquy2k1", type: "User" },
-      state: "DISMISSED",
-      submitted_at: "2026-10-21T12:00:00Z",
-      body: `Task: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: APPROVED`,
-    },
-  ];
+  // 4. Review with state DISMISSED -> FAIL
   const failDismissed = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
     isCi: true,
     githubToken: "mock-token",
-    fetchFn: createMockFetch({ reviews: mockDismissedReview, comments: [] }),
+    fetchFn: createMockFetch({
+      reviews: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          state: "DISMISSED",
+          submitted_at: "2026-10-21T12:00:00Z",
+          body: validBody,
+        },
+      ],
+      comments: [],
+    }),
   });
   assert.equal(failDismissed.approvalVerified, false);
 
-  // 14. Missing token in PR CI -> FAIL
-  const failNoToken = await verifyGitHubApprovalEvidence({
-    prNumber: 23,
-    taskRecord,
-    isCi: true,
-    githubToken: "",
-  });
-  assert.equal(failNoToken.approvalVerified, false);
-  assert.match(failNoToken.message, /requires GITHUB_TOKEN/);
-
-  // 15. GitHub API 500 error fails closed -> FAIL
-  const failApiError = await verifyGitHubApprovalEvidence({
+  // 5. Review with state PENDING -> FAIL
+  const failPending = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
     isCi: true,
     githubToken: "mock-token",
-    fetchFn: createMockFetch({ status: 500 }),
+    fetchFn: createMockFetch({
+      reviews: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          state: "PENDING",
+          submitted_at: "2026-10-21T12:00:00Z",
+          body: validBody,
+        },
+      ],
+      comments: [],
+    }),
   });
-  assert.equal(failApiError.approvalVerified, false);
-  assert.match(failApiError.message, /fail closed/);
+  assert.equal(failPending.approvalVerified, false);
 
-  // 16. Local mode returns approvalVerified: false without claiming approval
-  const localModeResult = await verifyGitHubApprovalEvidence({
+  // 6. Generic APPROVED code review without formal block ("LGTM") -> FAIL as design evidence
+  const failGeneric = await verifyGitHubApprovalEvidence({
     prNumber: 23,
     taskRecord,
-    isCi: false,
+    isCi: true,
+    githubToken: "mock-token",
+    fetchFn: createMockFetch({
+      reviews: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          state: "APPROVED",
+          submitted_at: "2026-10-21T12:00:00Z",
+          body: "LGTM! Approved to merge.",
+        },
+      ],
+      comments: [],
+    }),
   });
-  assert.equal(localModeResult.approvalVerified, false);
-  assert.equal(localModeResult.verificationMode, "local_static");
+  assert.equal(failGeneric.approvalVerified, false);
+
+  // 7. Empty reviews + valid owner issue comment -> PASS
+  const passOwnerComment = await verifyGitHubApprovalEvidence({
+    prNumber: 23,
+    taskRecord,
+    isCi: true,
+    githubToken: "mock-token",
+    fetchFn: createMockFetch({
+      reviews: [],
+      comments: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          created_at: "2026-10-21T12:00:00Z",
+          body: validBody,
+        },
+      ],
+    }),
+  });
+  assert.equal(passOwnerComment.approvalVerified, true);
+  assert.match(passOwnerComment.message, /via comment/);
+
+  // 8. Older APPROVED + later authoritative REVISION_REQUIRED -> FAIL
+  const failSuperseded = await verifyGitHubApprovalEvidence({
+    prNumber: 23,
+    taskRecord,
+    isCi: true,
+    githubToken: "mock-token",
+    fetchFn: createMockFetch({
+      reviews: [],
+      comments: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          created_at: "2026-10-21T10:00:00Z",
+          body: validBody,
+        },
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          created_at: "2026-10-21T14:00:00Z",
+          body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: REVISION_REQUIRED`,
+        },
+      ],
+    }),
+  });
+  assert.equal(failSuperseded.approvalVerified, false);
+  assert.match(failSuperseded.message, /REVISION_REQUIRED/);
+
+  // 9. Later authorized APPROVED restores approval -> PASS
+  const passRestored = await verifyGitHubApprovalEvidence({
+    prNumber: 23,
+    taskRecord,
+    isCi: true,
+    githubToken: "mock-token",
+    fetchFn: createMockFetch({
+      reviews: [],
+      comments: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          created_at: "2026-10-21T10:00:00Z",
+          body: validBody,
+        },
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          created_at: "2026-10-21T12:00:00Z",
+          body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDecision: REVISION_REQUIRED`,
+        },
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          created_at: "2026-10-21T16:00:00Z",
+          body: validBody,
+        },
+      ],
+    }),
+  });
+  assert.equal(passRestored.approvalVerified, true);
+
+  // 10. Missing / invalid timestamp fails closed
+  const failInvalidTimestamp = await verifyGitHubApprovalEvidence({
+    prNumber: 23,
+    taskRecord,
+    isCi: true,
+    githubToken: "mock-token",
+    fetchFn: createMockFetch({
+      reviews: [],
+      comments: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          created_at: "invalid-date",
+          body: validBody,
+        },
+      ],
+    }),
+  });
+  assert.equal(failInvalidTimestamp.approvalVerified, false);
+  assert.match(failInvalidTimestamp.message, /timestamp/i);
 });
 
 // ============================================================================
 // Execution Context & CI Event Isolation (runPreflightCheck)
 // ============================================================================
 
-test("runPreflightCheck: PR CI mode fails closed on missing body, missing payload, or wrong repo", async () => {
+test("runPreflightCheck: PR CI mode fails closed on missing body, missing payload, or wrong repo; push and local modes use structural validation", async () => {
   // 1. Missing PR body in pull_request CI mode fails
   const missingBodyResult = await runPreflightCheck(root, {
     isCi: true,
