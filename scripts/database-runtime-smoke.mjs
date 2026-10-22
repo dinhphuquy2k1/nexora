@@ -54,43 +54,30 @@ try {
       service + " writable secret mount",
     );
   }
+  const entrypoint = development
+    ? "/workspace/scripts/api-entrypoint.sh"
+    : "/scripts/api-entrypoint.sh";
   await run([
     ...compose,
-    ...[
-      "exec",
-      "-T",
-      "api",
-      "sh",
-      "__ENTRYPOINT__",
-      "node",
-      "-e",
-      "\nconst assert=require('node:assert/strict'), fs=require('node:fs');\nconst databasePath=require.resolve('@nexora/database',{paths:[process.cwd()+'/apps/api',process.cwd()]});\nconst {createDatabase}=require(databasePath);\nconst {Client}=require('node:module').createRequire(databasePath)('pg');\nconst runtime=new Client({connectionString:process.env.DATABASE_URL});\nassert.equal(fs.existsSync('/config/postgres_password'),false);\nassert.match(new URL(process.env.DATABASE_URL).username,/^nexora_app$/);\nconst db=createDatabase(process.env.DATABASE_URL);\n(async()=>{try {\n const [role]=await db.$queryRawUnsafe('SELECT current_user,session_user,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=current_user');\n assert.deepEqual(role,{current_user:'nexora_app',session_user:'nexora_app',rolsuper:false,rolcreatedb:false,rolcreaterole:false,rolreplication:false,rolbypassrls:false});\n await runtime.connect();\n for(const sql of ['SET ROLE nexora','ALTER TABLE security_audit_events DISABLE TRIGGER security_audit_append_only','TRUNCATE security_audit_events','CREATE TEMP TABLE runtime_forbidden(id int)','DELETE FROM customers',\"SELECT setval('customer_code_seq',1)\"]) await assert.rejects(runtime.query(sql),e=>e.code==='42501');\n} finally {await db.$disconnect();await runtime.end();}})().catch(()=>process.exit(1));\n",
-    ].map((v) =>
-      v === "__ENTRYPOINT__"
-        ? development
-          ? "/workspace/scripts/api-entrypoint.sh"
-          : "/scripts/api-entrypoint.sh"
-        : v,
-    ),
+    "exec",
+    "-T",
+    "api",
+    "sh",
+    entrypoint,
+    "node",
+    "-e",
+    "\nconst assert=require('node:assert/strict'), fs=require('node:fs');\nconst databasePath=require.resolve('@nexora/database',{paths:[process.cwd()+'/apps/api',process.cwd()]});\nconst {createDatabase}=require(databasePath);\nconst {Client}=require('node:module').createRequire(databasePath)('pg');\nconst runtime=new Client({connectionString:process.env.DATABASE_URL});\nassert.equal(fs.existsSync('/config/postgres_password'),false);\nassert.match(new URL(process.env.DATABASE_URL).username,/^nexora_app$/);\nconst db=createDatabase(process.env.DATABASE_URL);\n(async()=>{try {\n const [role]=await db.$queryRawUnsafe('SELECT current_user,session_user,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=current_user');\n assert.deepEqual(role,{current_user:'nexora_app',session_user:'nexora_app',rolsuper:false,rolcreatedb:false,rolcreaterole:false,rolreplication:false,rolbypassrls:false});\n await runtime.connect();\n for(const sql of ['SET ROLE nexora','ALTER TABLE security_audit_events DISABLE TRIGGER security_audit_append_only','TRUNCATE security_audit_events','CREATE TEMP TABLE runtime_forbidden(id int)','DELETE FROM customers',\"SELECT setval('customer_code_seq',1)\"]) await assert.rejects(runtime.query(sql),e=>e.code==='42501');\n} finally {await db.$disconnect();await runtime.end();}})().catch(()=>process.exit(1));\n",
   ]);
   await run([
     ...compose,
-    ...[
-      "run",
-      "--rm",
-      "--no-deps",
-      "-T",
-      "migrate",
-      "node",
-      "-e",
-      "\nconst {Client}=require('pg');const db=new Client({connectionString:process.env.DATABASE_URL});\n(async()=>{try{await db.connect();const r=await db.query('SELECT current_user,rolsuper FROM pg_roles WHERE rolname=current_user');if(r.rows[0].current_user!=='nexora'||!r.rows[0].rolsuper)throw Error();}finally{await db.end();}})().catch(()=>process.exit(1));\n",
-    ].map((v) =>
-      v === "__ENTRYPOINT__"
-        ? development
-          ? "/workspace/scripts/api-entrypoint.sh"
-          : "/scripts/api-entrypoint.sh"
-        : v,
-    ),
+    "run",
+    "--rm",
+    "--no-deps",
+    "-T",
+    "migrate",
+    "node",
+    "-e",
+    "\nconst {Client}=require('pg');const db=new Client({connectionString:process.env.DATABASE_URL});\n(async()=>{try{await db.connect();const r=await db.query('SELECT current_user,rolsuper FROM pg_roles WHERE rolname=current_user');if(r.rows[0].current_user!=='nexora'||!r.rows[0].rolsuper)throw Error();}finally{await db.end();}})().catch(()=>process.exit(1));\n",
   ]);
   await run([...compose, "run", "--rm", "--no-deps", "-T", "db-runtime"]);
   console.log(

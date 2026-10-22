@@ -44,12 +44,12 @@ function command(args, options = {}) {
     interrupted: () => (options.interruptible ? interrupted : undefined),
   });
 }
-async function inspect(kind, identity) {
+async function inspect(kind, identity, timeout = 5000) {
   const r = await command(
     kind === "container"
       ? ["inspect", "--type", "container", identity]
       : ["network", "inspect", identity],
-    { timeout: 5000 },
+    { timeout },
   );
   if (r.code === 0) {
     try {
@@ -186,9 +186,15 @@ async function waitTcp(id) {
     const remaining = deadline - performance.now();
     let state, r;
     try {
-      state = await inspect("container", id);
+      state = await inspect(
+        "container",
+        id,
+        Math.min(5000, Math.max(1, remaining)),
+      );
       if (!state?.State?.Running) throw Error("POSTGRES_STARTUP_FAILED");
-      r = await psql(id, "SELECT 1;", Math.min(5000, remaining));
+      const queryRemaining = deadline - performance.now();
+      if (queryRemaining <= 0) break;
+      r = await psql(id, "SELECT 1;", Math.min(5000, queryRemaining));
     } catch (e) {
       if (e.message === "DOCKER_COMMAND_TIMEOUT")
         throw Error("TCP_READINESS_TIMEOUT", { cause: e });

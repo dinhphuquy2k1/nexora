@@ -1,9 +1,10 @@
+import { writeDockerFixtureHelper } from "./fixtures/cluster/private-docker-helper.mjs";
 import { clearTimeout } from "node:timers";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile, readFile, chmod, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve, delimiter } from "node:path";
+import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 async function fixture(mode, signal) {
   const dir = await mkdtemp(join(tmpdir(), "nexora-maintenance-fixture-"));
@@ -19,18 +20,12 @@ async function fixture(mode, signal) {
     );
     await writeFile(join(dir, "launcher.mjs"), source);
     await writeFile(
-      join(dir, "docker-command.mjs"),
-      (
-        await readFile(new URL("./docker-command.mjs", import.meta.url), "utf8")
-      ).replace("timeout = 120000", "timeout = 1000"),
-    );
-    await writeFile(
-      join(dir, "docker"),
+      join(dir, "docker.cjs"),
       await readFile(
         new URL("./fixtures/cluster/cleanup-docker.cjs", import.meta.url),
       ),
     );
-    await chmod(join(dir, "docker"), 0o755);
+    await writeDockerFixtureHelper(dir, join(dir, "docker.cjs"), 1000);
     const state = join(dir, "state");
     await writeFile(
       state,
@@ -39,7 +34,6 @@ async function fixture(mode, signal) {
     const p = spawn(process.execPath, [join(dir, "launcher.mjs")], {
       env: {
         ...process.env,
-        PATH: dir + delimiter + process.env.PATH,
         FIXTURE_STATE: state,
         FIXTURE_MODE: mode,
       },

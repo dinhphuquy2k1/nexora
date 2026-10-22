@@ -1,9 +1,10 @@
+import { writeDockerFixtureHelper } from "./fixtures/cluster/private-docker-helper.mjs";
 import { clearTimeout } from "node:timers";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile, readFile, chmod, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, delimiter } from "node:path";
+import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 const source = await readFile(
@@ -13,12 +14,12 @@ const source = await readFile(
 async function fixture(mode = "normal", suite, signal) {
   const dir = await mkdtemp(join(tmpdir(), "nexora-cluster-fixture-"));
   try {
-    const docker = join(dir, "docker");
+    const docker = join(dir, "docker.cjs");
     await writeFile(
       docker,
       await readFile(new URL("./fixtures/cluster/docker.cjs", import.meta.url)),
     );
-    await chmod(docker, 0o755);
+    const helper = await writeDockerFixtureHelper(dir, docker);
     const state = join(dir, "state.json");
     await writeFile(
       state,
@@ -35,16 +36,12 @@ async function fixture(mode = "normal", suite, signal) {
     await writeFile(
       launcher,
       source
-        .replace(
-          "./docker-command.mjs",
-          new URL("./docker-command.mjs", import.meta.url).href,
-        )
+        .replace("./docker-command.mjs", pathToFileURL(helper).href)
         .replace("performance.now() + 30000", "performance.now() + 1000")
         .replace("Math.min(200,", "Math.min(10,"),
     );
     const env = {
       ...process.env,
-      PATH: dir + delimiter + process.env.PATH,
       FIXTURE_STATE: state,
       FIXTURE_MODE: mode,
     };
@@ -175,9 +172,9 @@ test("exact absence/idempotence and unverifiable state retain tracking", async (
       file,
       source.replace(
         "./docker-command.mjs",
-        new URL("./docker-command.mjs", import.meta.url).href,
+        new URL("./fixtures/cluster/no-docker.mjs", import.meta.url).href,
       ) +
-        "\nexport {owned,pending,remove,cleanup,suiteFailure}; export function setCommand(fn){command=fn;}\n",
+        "\nexport {owned,pending,remove,cleanup,suiteFailure,safe,handlers,adminPass,runtimePass,token}; export function signalState(){return interrupted;} export function setCommand(fn){command=fn;}\n",
     );
     const m = await import(pathToFileURL(file));
     const id = "a".repeat(64);
@@ -228,6 +225,15 @@ test("exact absence/idempotence and unverifiable state retain tracking", async (
     }));
     assert.deepEqual(await m.cleanup(), []);
     assert.equal(m.pending.length, 0);
+    m.owned.container.add(id);
+    let timeoutCalls = 0;
+    m.setCommand(async () => {
+      if (++timeoutCalls === 1) return { code: 0 };
+      throw Error("DOCKER_COMMAND_TIMEOUT");
+    });
+    assert.match(await m.remove("container", id), /unable-to-verify/);
+    assert.ok(m.owned.container.has(id));
+    m.owned.container.clear();
     const e = m.suiteFailure("customer-sql", {
       code: 17,
       stdout: "AssertionError SELECT password FROM users",
@@ -237,6 +243,25 @@ test("exact absence/idempotence and unverifiable state retain tracking", async (
     assert.match(e.message, /AssertionError/);
     assert.match(e.message, /42501/);
     assert.doesNotMatch(e.message, /SELECT password|secret/);
+    let handlerCalls = 0;
+    m.setCommand(async () => {
+      handlerCalls++;
+      throw Error("Unexpected cleanup in signal handler");
+    });
+    m.handlers.get("SIGINT")();
+    m.handlers.get("SIGTERM")();
+    assert.equal(m.signalState(), 2);
+    assert.equal(handlerCalls, 0);
+    const sanitized = m.safe(
+      [
+        m.adminPass,
+        m.runtimePass,
+        m.token,
+        "postgresql://user:password@db/database",
+      ].join(" "),
+    );
+    for (const secret of [m.adminPass, m.runtimePass, m.token, "user:password"])
+      assert.ok(!sanitized.includes(secret));
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

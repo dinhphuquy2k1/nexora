@@ -34,6 +34,10 @@ test("discovery rejects empty/malformed patterns and propagates assertions; nest
       "require('node:test')('discovered sentinel',()=>{});",
     );
     assert.equal(run([guard, "test/**/*.test.cjs"]).status, 0);
+    assert.notEqual(
+      run([guard, "test/**/*.test.cjs", "test/**/*.test.cjs"]).status,
+      0,
+    );
     const pass = run(["--test", "test/**/*.test.cjs"]);
     assert.equal(pass.status, 0, pass.stderr);
     assert.equal((pass.stdout.match(/discovered sentinel/g) || []).length, 1);

@@ -2,7 +2,7 @@
 
 Task: VERIFICATION PENDING
 Implementation: IMPLEMENTED
-Verification: NOT VERIFIED
+Verification: PARTIALLY VERIFIED
 Classification: SIGNIFICANT
 
 ## Design Review & Reuse Decision
@@ -182,11 +182,11 @@ Verification after approval: pinned frozen install; pnpm test/test:integration/l
 
 ## 11. Approval Evidence & Governance
 
-Approval PENDING_REVIEW. No matching NEXORA028 revision/digest GitHub approval yet; PR23 approval cannot authorize this plan. Plan files may be committed/pushed to a draft docs-only planning PR. No implementation/test/script/workflow/dependency modifications before authenticated approval of the exact snapshot. Owner posts the formal five-line block on that PR; later validate authenticity/digest through existing checker, update mutable approval metadata, then implement. Agent does not post the owner comment, approve or merge.
+Approval APPROVED by authenticated owner comment6335739471, verified before implementation. PR23 approval does not authorize this plan; the matching NEXORA028 attestation does. The remaining procedure below records the approved transition, not a current missing-approval blocker. Plan files may be committed/pushed to a draft docs-only planning PR. No implementation/test/script/workflow/dependency modifications before authenticated approval of the exact snapshot. Owner posts the formal five-line block on that PR; later validate authenticity/digest through existing checker, update mutable approval metadata, then implement. Agent does not post the owner comment, approve or merge.
 
 ## 12. Unresolved PLAN ISSUES
 
-PLAN ISSUE — planning PR gate semantics: preflight.yml uses PR implementation enforcement even for docs-only planning and requires APPROVED plus authenticated digest evidence. Therefore a draft planning PR at PENDING_REVIEW is expected to fail Preflight. There is no accepted automatic planning-mode bypass in current checker. Selected safe procedure is draft planning PR plus owner attestation; disclose red gate while pending, never weaken it. After authentic approval, record approval metadata and verify the existing gate. Owner may review/approve this design despite expected pending gate; do not claim readiness to merge planning or implementation before required checks.
+RESOLVED PLAN ISSUE — planning PR gate semantics: preflight.yml uses PR implementation enforcement even for docs-only planning and requires APPROVED plus authenticated digest evidence. Therefore a draft planning PR at PENDING_REVIEW is expected to fail Preflight. There is no accepted automatic planning-mode bypass in current checker. Selected safe procedure is draft planning PR plus owner attestation; disclose red gate while pending, never weaken it. After authentic approval, record approval metadata and verify the existing gate. Owner may review/approve this design despite expected pending gate; do not claim readiness to merge planning or implementation before required checks.
 
 Environment limitation: current enforced managed HTTP policy omits official Prisma artifact host and disk space is low. No full runtime verification is claimed for planning. Later implementation requires genuine capable disposable/hosted environment and must preserve blockers if unavailable. Browser/dev reliability observations from earlier PR23 attempts are historical risks, not proven regressions in this task and not automatic scope expansion.
 
@@ -215,7 +215,7 @@ node scripts/docs-check.mjs, node scripts/preflight-policy-check.mjs (structural
 | Initial planning schema diagnostic | docs-check rejected missing Canonical owners subsection; added required Documentation Impact subsections and reran successfully                                                              | 2026-10-22 | FAIL   |
 | Native nested glob behavior        | Node24.19.0 CLI node --test 'test/\*_/_.test.cjs' in owned temporary tree:1 nested suite executes, helper and sibling integration throwing sentinels excluded; exit0; temporary tree removed | 2026-10-22 | PASS   |
 
-This evidence demonstrates read-only planning observations only. No implementation, test source, package/workflow or dependency file has been modified. No authenticated approval, genuine SQL/runtime/hosted final-head result or completion is asserted.
+The initial evidence above records the planning-only phase. Approval and subsequent implementation evidence are recorded below; planning observations are not relabeled as implementation/runtime success.
 
 ## Approved implementation execution
 
@@ -241,4 +241,24 @@ Node ports implemented for custody, cluster lifecycle/controlled fixture and gua
 | Lint retry                                        | pnpm lint exit0; existing boundaries and rules preserved                                                                                                                                  | 2026-10-22 | PASS   |
 | Local root test                                   | pnpm test with configured API_INTERNAL_URL exit1: genuine database build cannot obtain Prisma artifact checksum, EAI_AGAIN binaries.prisma.sh; workspace suites blocked behind real build | 2026-10-22 | FAIL   |
 
-Independent reviewer initially flagged P2 missing dev-cleanup-specific lifecycle coverage; dedicated positive/negative/signal cases added, re-review pending. Genuine Docker/PostgreSQL/runtime/final-head hosted evidence remains pending. No mocked Docker result is claimed as SQL PASS. Task remains active/VERIFICATION PENDING; no approval/merge. Final-head evidence belongs in PR metadata to avoid SHA-only commits.
+Independent reviewer initially flagged P2 missing dev-cleanup-specific lifecycle coverage; dedicated positive/negative/signal cases added. Reviewer independently ran4/4 PASS and resolved the P2; follow-up TCP/overlap/custody simplifications also reviewed without findings. Genuine Docker/PostgreSQL/runtime/final-head hosted evidence remains pending. No mocked Docker result is claimed as SQL PASS. Task remains active/VERIFICATION PENDING; no approval/merge. Final-head evidence belongs in PR metadata to avoid SHA-only commits.
+
+### Genuine port equivalence and final cleanup — 2026-10-22
+
+At33c3927b9a11a69d1afe344f7d174c29815fb14d, hosted Foundation39746478082 ran the actual switched Node callers. Docker quality/migrated integration, Node development/release custody, real isolated provisioning/Customer SQL and real guarded cleanup SQL passed in all3 attempts; retained real PTY/MFA suites passed in LOCAL. Attempt3 additionally passed disposable HTTPS and DB/storage persistence. These directly exercised all migrated orchestration and callers; therefore the four obsolete Python originals are now removed. Only provisioning-tty-smoke.py and mfa-enrollment-tty-smoke.py remain, unchanged. This component equivalence is not a claim that the entire Foundation workflow passed.
+
+The immutable snapshot is unchanged. Final follow-ups preserve remaining TCP deadline budget, simplify custody argv without changing either SQL payload, explicitly reject overlapping discovery, and complete all14 original Python controlled cases within6 Node groups. Test-only private Docker helpers now invoke fixture JS through process.execPath; they cannot fall through to installed Docker via PATH/shebang differences. No production injection hooks are added. Classification copies default to a throwing no-Docker fixture unless explicitly mocked. Commands use double-quoted native globs; Windows native execution is NOT RUN here, and real signal/PTY behavior is verified in canonical POSIX environments.
+
+| Claim                                      | Evidence                                                                                                                                                                                                                          | Date       | Result |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| First implementation hosted Preflight      | run39746478064, job119716064572: authenticated owner approval and29/29 governance tests PASS; actual checkout synthetic60bb2ef containing33c3927 into99a2886                                                                      | 2026-10-22 | PASS   |
+| Real Node port execution                   | Foundation39746478082 jobs119716064377/119718968172/119722892739: actual custody, isolated cluster assertions and guarded cleanup SQL PASS; full migrated integration64/64; API169/169, Web46/46, DB6/6, UI1/1 and tooling104/104 | 2026-10-22 | PASS   |
+| Runtime/PTY/persistence component evidence | Same33c3927: LOCAL and real PTY/MFA PASS; attempt3 HTTPS/backup-restore and persistence PASS                                                                                                                                      | 2026-10-22 | PASS   |
+| Foundation attempts1 and2                  | HTTPS ADMIN_BROWSER_INTERACTIVE_LOGIN REQUEST_TIMEOUT after healthy services; later persistence/dev SKIPPED; cleanup PASS; no new browser assertion/deadline change                                                               | 2026-10-22 | FAIL   |
+| Foundation attempt3                        | HTTPS/persistence PASS; development smoke FAIL with Web→API ECONNREFUSED after dependency rebuild; cleanup PASS; overall workflow FAILURE                                                                                         | 2026-10-22 | FAIL   |
+| Additional local checks                    | pnpm test:lint, test:preflight, test:docs and contracts:check exit0                                                                                                                                                               | 2026-10-22 | PASS   |
+| Full local prerequisite failures           | pnpm typecheck and quality exit1 at genuine Prisma artifact EAI_AGAIN; no fake artifact or checksum/TLS bypass                                                                                                                    | 2026-10-22 | FAIL   |
+| Controlled port/private-fixture safety     | Node cluster/maintenance/process regressions10 grouped tests PASS, zero skipped; complete14-case mapping reviewed independently                                                                                                   | 2026-10-22 | PASS   |
+| Independent review                         | Distinct reviewer reports no remaining confirmed P1/P2/P3 after resolving missing maintenance lifecycle coverage; TCP/overlap/custody follow-ups reviewed                                                                         | 2026-10-22 | PASS   |
+
+Current blocker is final-head canonical Foundation completion, especially HTTPS/development startup reliability. Existing shared browser/development behavior was not changed or weakened; no source causal link to Node ports has been established. Final cleanup changes the HEAD, so above CI remains prior-head component evidence and does not certify the final commit. Final-head hosted runs and detailed results will be recorded in PR metadata. Keep PR Draft and task VERIFICATION PENDING while mandatory checks fail or have not executed; do not approve/merge. No local Docker/PG/runtime suites were run in the low-capacity managed workspace; genuine hosted execution is distinguished above. No production/shared data was accessed.
