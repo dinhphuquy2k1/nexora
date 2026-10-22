@@ -17,10 +17,10 @@ Mandatory pre-code stop condition: This task is SIGNIFICANT. Implementation, cod
 ## Plan and contracts before implementation
 
 1. **M0 — Inventory, Architecture & Approval Gate (Current Milestone)**:
-   - Complete comprehensive ZIP component and interaction inventory covering all 30 source files and 48 discrete user interactions across 5 delivery classifications.
+   - Complete comprehensive ZIP component and interaction inventory covering all 30 source files and 77 discrete user interactions across 5 delivery classifications (64 `ZIP_SOURCE`, 7 `NEXORA_EXISTING`, 6 `NEXORA_ADAPTATION`).
    - Establish migration coverage matrix distinguishing supported features, real backend integrations, honest planned/empty states, and out-of-scope capabilities.
    - Establish ADR-009 component reuse matrix across Tier A (`packages/ui/`), Tier B (`apps/web/components/app-shell/`), and Tier C (`apps/web/features/`).
-   - Draft and pin immutable design review snapshot `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v4.md` with SHA-256 digest `6034be45c2c5d1748163a26f9a7755917f6c28b1fd58a8fb2591bcee7ef6904f`.
+   - Draft and pin immutable design review snapshot `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v5.md` with SHA-256 digest `6210584000a36bce279abc0f39e7b910a173ac6d1a39b501ff12eed7a93699b8`.
    - **STOP BEFORE IMPLEMENTATION** until authentic owner approval is verified.
 
 2. **M1 — Foundation UI, Design System & Application Shell**:
@@ -102,15 +102,15 @@ pnpm docs:check, pnpm format:check, pnpm contracts:check, and preflight policy v
 | Clean worktree on latest main       | `git log -n 1 --oneline`: `c14dada Merge pull request #24...`; clean working tree                                                                                 | 2026-10-22 | PASS   |
 | Next unused task ID                 | Inspection of `docs/tasks/active/` and `completed/`; 027 and 028 exist, 029 is next available                                                                     | 2026-10-22 | PASS   |
 | Reference ZIP presence & extraction | Extracted `nexora-logistics-management (1).zip` to scratch directory; inspected all 30 source files under `src/`                                                  | 2026-10-22 | PASS   |
-| Immutable design review snapshot    | Created `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v4.md`, digest `6034be45c2c5d1748163a26f9a7755917f6c28b1fd58a8fb2591bcee7ef6904f` | 2026-10-22 | PASS   |
+| Immutable design review snapshot    | Created `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v5.md`, digest `6210584000a36bce279abc0f39e7b910a173ac6d1a39b501ff12eed7a93699b8` | 2026-10-22 | PASS   |
 
 ## Design Review & Reuse Decision
 
 - **Task ID**: NEXORA-029
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-22-frontend-migration-v4
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v4.md
-- **Design SHA-256**: 6034be45c2c5d1748163a26f9a7755917f6c28b1fd58a8fb2591bcee7ef6904f
+- **Plan revision**: rev-2026-10-22-frontend-migration-v5
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v5.md
+- **Design SHA-256**: 6210584000a36bce279abc0f39e7b910a173ac6d1a39b501ff12eed7a93699b8
 - **Reviewed baseline**: c14dada3fcfa9466e74b3353ae4b77f8846338e5
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: PENDING_REVIEW
