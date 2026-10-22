@@ -8,7 +8,7 @@ Documentation Impact: REQUIRED
 
 ## Baseline and interface preflight
 
-2026-10-22: origin/main `c14dada3fcfa9466e74b3353ae4b77f8846338e5`, dedicated migration branch `feat/full-frontend-migration`. Clean working tree. PR #23 (NEXORA-027 Customer Backend V1) and PR #24 (NEXORA-028 Test Infrastructure Standardization) are merged into main. Inspected open PRs: PR #14 (logistics parcel list UI), PR #21 (auth/session review), PR #22 (carrier scope and retail UI). Extracted reference archive `nexora-logistics-management (1).zip` into scratch directory and thoroughly inspected all 23 source files, components, data fixtures, CSS, and manifest.
+2026-10-22: origin/main `c14dada3fcfa9466e74b3353ae4b77f8846338e5`, dedicated migration branch `feat/full-frontend-migration`. Clean working tree. PR #23 (NEXORA-027 Customer Backend V1) and PR #24 (NEXORA-028 Test Infrastructure Standardization) are merged into main. Inspected open PRs: PR #14 (logistics parcel list UI), PR #21 (auth/session review), PR #22 (carrier scope and retail UI). Extracted reference archive `nexora-logistics-management (1).zip` into scratch directory and thoroughly inspected all 30 source files under `src/` (21 `.tsx`, 8 `.ts`, 1 `.css`), components, data fixtures, CSS, and manifest.
 
 Governing rules: AGENTS.md, apps/web/AGENTS.md, docs/ai/PROJECT_RULES.md, ADR-009 (Mandatory Pre-Code Design Review), ADR-008 (Tactical DDD), ADR-002 (Product Scope), docs/architecture/frontend.md, docs/architecture/reusable-components.md, and docs/domains/customers.md.
 
@@ -17,10 +17,10 @@ Mandatory pre-code stop condition: This task is SIGNIFICANT. Implementation, cod
 ## Plan and contracts before implementation
 
 1. **M0 — Inventory, Architecture & Approval Gate (Current Milestone)**:
-   - Complete comprehensive ZIP component and interaction inventory.
+   - Complete comprehensive ZIP component and interaction inventory covering all 30 source files and 29 distinct UI interactions.
    - Establish migration coverage matrix distinguishing supported features, real backend integrations, honest planned/empty states, and out-of-scope capabilities.
    - Establish ADR-009 component reuse matrix across Tier A (`packages/ui/`), Tier B (`apps/web/components/app-shell/`), and Tier C (`apps/web/features/`).
-   - Draft and pin immutable design review snapshot `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v1.md` with SHA-256 digest `31a8797f54275fe878f4a5ce961409689ccb8553f51c465f171dd9bc1c9567be`.
+   - Draft and pin immutable design review snapshot `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v2.md` with SHA-256 digest `cef5035394f9606e071c16410c9fe9ef3195afbca3f4a3bbe73fd1999e3fe0a9`.
    - **STOP BEFORE IMPLEMENTATION** until authentic owner approval is verified.
 
 2. **M1 — Foundation UI, Design System & Application Shell**:
@@ -35,14 +35,14 @@ Mandatory pre-code stop condition: This task is SIGNIFICANT. Implementation, cod
    - Implement `CustomerTable`, `CustomerFilters` (All/Active/Inactive tabs, search input), and `CustomerStatsBar`.
    - Implement `CreateCustomerDrawer` (atomic customer + required initial recipient address), `EditCustomerDrawer`, and `AddressDrawer`.
    - Implement `DeleteAddressModal` enforcing Nexora business invariants: reject deleting last address (`LAST_CUSTOMER_ADDRESS`), require explicit default reassignment before deleting default address (`DEFAULT_ADDRESS_REASSIGN_REQUIRED`).
-   - Integrate 8 real endpoints from `@nexora/sdk` (`CustomerController_list`, `create`, `get`, `update`, `add`, `remove`, `updateAddress`, `setDefault`).
-   - Zero mock customer data (`INITIAL_CUSTOMERS`) in production; handle loading, error, empty, and retry states. Truthful total customer count derived from paginated API response; zero invented status counts.
+   - Integrate 8 real endpoints from `@nexora/sdk` (`CustomerController_list`, `create`, `get`, `update`, `add`, `remove`, `updateAddress`, `setDefault`). Canonical query parameters: `page` (int >= 1), `pageSize` (int 1..100), `q` (string <= 200), `status` ("ACTIVE" | "INACTIVE"), `phone` (string <= 64). Reject `limit` or `search`.
+   - Zero mock customer data (`INITIAL_CUSTOMERS`) in production; handle loading, error, empty, and retry states. Filter tabs display count only for selected filter (`pagination.total`). Address count column omitted from summary table to avoid N+1 queries. Customer Excel export rendered as disabled action with planned notice.
 
 4. **M3 — Retail Packages Modular Refactoring (Honest Planned Presentation)**:
-   - Refactor 2,320-line `RetailPackagesView.tsx` into 10 focused components in `apps/web/features/retail-packages/`.
+   - Refactor 2,320-line `RetailPackagesView.tsx` into 10 focused components in `apps/web/features/retail-packages/`. Canonical route `/shipments/retail` with server redirect from `/logistics/parcels` preserving query parameters.
    - Implement `PackageToolbar`, `PackageStatusTabs` (7 tabs), `PackageFilters` (advanced condition builder), `ActiveFilterChips`, `PackageTable` (sticky header, 20 configurable columns), `PackageMobileCard`, and `PackageDetailDrawer` (timeline and parcel specs).
    - Implement `usePackageFilters` with URL query sync and `usePackageColumns` with local storage persistence.
-   - Truthful state modeling: Shipment Backend V1 is not yet implemented in Nexora; render honest empty state and mark package creation/export as planned features ("Tính năng đang được phát triển"). Zero fake persistent packages, mock tracking events, or fabricated pricing algorithms.
+   - Truthful state modeling: Shipment Backend V1 is not yet implemented in Nexora; render honest empty state and mark package creation/export as planned features ("Tính năng đang được phát triển"). Zero fake persistent packages, mock tracking events, or fabricated pricing algorithms (unsupported rates displayed explicitly as "Chưa có báo giá").
 
 5. **M4 — Carrier Connections & Shipping Scope (Real API Integration)**:
    - Implement `CarrierConnectionsPage` on route `/settings/carrier-connections`.
@@ -101,16 +101,16 @@ pnpm docs:check, pnpm format:check, pnpm contracts:check, and preflight policy v
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
 | Clean worktree on latest main       | `git log -n 1 --oneline`: `c14dada Merge pull request #24...`; clean working tree                                                                                 | 2026-10-22 | PASS   |
 | Next unused task ID                 | Inspection of `docs/tasks/active/` and `completed/`; 027 and 028 exist, 029 is next available                                                                     | 2026-10-22 | PASS   |
-| Reference ZIP presence & extraction | Extracted `nexora-logistics-management (1).zip` to scratch directory; inspected 23 source files                                                                   | 2026-10-22 | PASS   |
-| Immutable design review snapshot    | Created `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v1.md`, digest `31a8797f54275fe878f4a5ce961409689ccb8553f51c465f171dd9bc1c9567be` | 2026-10-22 | PASS   |
+| Reference ZIP presence & extraction | Extracted `nexora-logistics-management (1).zip` to scratch directory; inspected all 30 source files under `src/`                                                  | 2026-10-22 | PASS   |
+| Immutable design review snapshot    | Created `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v2.md`, digest `cef5035394f9606e071c16410c9fe9ef3195afbca3f4a3bbe73fd1999e3fe0a9` | 2026-10-22 | PASS   |
 
 ## Design Review & Reuse Decision
 
 - **Task ID**: NEXORA-029
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-22-frontend-migration-v1
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v1.md
-- **Design SHA-256**: 31a8797f54275fe878f4a5ce961409689ccb8553f51c465f171dd9bc1c9567be
+- **Plan revision**: rev-2026-10-22-frontend-migration-v2
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v2.md
+- **Design SHA-256**: cef5035394f9606e071c16410c9fe9ef3195afbca3f4a3bbe73fd1999e3fe0a9
 - **Reviewed baseline**: c14dada3fcfa9466e74b3353ae4b77f8846338e5
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: PENDING_REVIEW
@@ -138,11 +138,11 @@ pnpm docs:check, pnpm format:check, pnpm contracts:check, and preflight policy v
    - Customer cannot delete their last address (`409 LAST_CUSTOMER_ADDRESS`).
    - Deleting default address when alternative addresses exist requires explicit reassignment first (`409 DEFAULT_ADDRESS_REASSIGN_REQUIRED`).
    - Phone numbers are E.164 normalized; customer codes are sequence-generated (`KH000001`).
-   - Status transitions: `ACTIVE` and `INACTIVE` (`CustomerStatusLabelsVi`: "Đang hoạt động" / "Ngưng hoạt động").
+   - Status transitions: `ACTIVE` and `INACTIVE` (`CustomerStatusLabelsVi`: "Đang hoạt động" / "Ngừng hoạt động").
 2. **Shipment Boundaries**:
    - Shipment Backend V1 is not implemented.
    - Retail packages UI must display an honest empty state with informative notices.
-   - No mock tracking events, fake persistent packages, or fabricated pricing algorithms.
+   - No mock tracking events, fake persistent packages, or fabricated pricing algorithms ("Chưa có báo giá").
 3. **Identity & Security Boundaries**:
    - Real session authentication via `POST /api/auth/login` and HttpOnly cookies.
    - Real TOTP MFA challenge verification for ADMIN role via `POST /api/auth/mfa/verify`.
@@ -155,4 +155,4 @@ pnpm docs:check, pnpm format:check, pnpm contracts:check, and preflight policy v
   - In Nexora's approved product scope ([ADR-002](../../decisions/product-scope.md)), Nexora is an enterprise logistics and shipment hub, not a China sourcing agent or Taobao/1688 proxy buyer. Furthermore, live scraping violates third-party ToS, and bundling `@google/genai` on the client violates Nexora's secure server-proxy architecture.
   - **Option A (Recommended)**: Migrate visual presentation into an isolated feature module `apps/web/features/sourcing/` on route `/sourcing` with clear "Bản thử nghiệm giao diện / Chưa tích hợp API" notices on search execution and image upload. Zero scraping, zero `@google/genai` dependency. Preserves 100% visual/interaction coverage.
   - **Option B**: Formally exclude sourcing views from Nexora production code per ADR-002 (`INTENTIONALLY_EXCLUDED_APPROVED`). Route `/` remains the Operational Overview & Dashboard.
-  - Decision request: The repository owner is requested to confirm Option A (Recommended) or Option B in their approval directive.
+  - **Approval Sequencing**: The repository owner must make this product-scope decision explicitly (Option A or Option B) prior to final ADR-009 design approval. Once decided, the design will be finalized for that single option, the digest recomputed, and formal approval executed via the strict 5-line approval comment.
