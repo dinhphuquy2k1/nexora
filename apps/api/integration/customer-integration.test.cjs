@@ -18,7 +18,7 @@ const {
 const {
   IdentityDatabaseAdapter,
 } = require("../dist/identity/infrastructure/identity.adapter");
-const { loginWithMfa } = require("./helpers/mfa-fixture.cjs");
+const { loginWithMfa } = require("../test/helpers/mfa-fixture.cjs");
 test(
   "Customer real Nest/PostgreSQL owner security, transactions, concurrency and runtime authority",
   { timeout: 180000 },

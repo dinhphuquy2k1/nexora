@@ -1,4 +1,8 @@
 import { waitForInteractiveLogin } from "./browser-login-ready.mjs";
+import {
+  terminateChildProcess,
+  cleanupBrowserProfile,
+} from "./browser-teardown.mjs";
 import { connect as http2Connect } from "node:http2";
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { clearTimeout, setTimeout } from "node:timers";
@@ -6,7 +10,7 @@ const WebSocket = globalThis.WebSocket;
 import assert from "node:assert/strict";
 import { request as httpsRequest } from "node:https";
 import { request as httpRequest } from "node:http";
-import { readFile, writeFile, mkdtemp, rm } from "node:fs/promises";
+import { readFile, writeFile, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
@@ -759,12 +763,27 @@ try {
   process.exitCode = 1;
 } finally {
   socket?.close();
-  if (chrome) {
-    chrome.kill("SIGTERM");
-    await new Promise((resolve) => {
-      if (chrome.exitCode !== null) resolve();
-      else chrome.once("exit", resolve);
+  let terminationError;
+  try {
+    await terminateChildProcess(chrome, {
+      gracefulTimeoutMs: 3000,
+      forceTimeoutMs: 2000,
     });
+  } catch (err) {
+    terminationError = err;
+    console.error("BROWSER_PROCESS_CLEANUP_FAILED:", err.message);
   }
-  await rm(profile, { recursive: true, force: true });
+  let cleanupError;
+  try {
+    await cleanupBrowserProfile(profile, {
+      maxRetries: 10,
+      retryDelay: 100,
+    });
+  } catch (err) {
+    cleanupError = err;
+    console.error("BROWSER_PROFILE_CLEANUP_FAILED:", err.message);
+  }
+  if ((terminationError || cleanupError) && !process.exitCode) {
+    process.exitCode = 1;
+  }
 }

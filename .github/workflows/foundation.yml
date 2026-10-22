@@ -13,14 +13,14 @@ jobs:
       COMPOSE_PROJECT_NAME: nexora-ci
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Docker quality and migrated integration
-        run: sh scripts/quality-docker.sh
-      - name: Stop development before runtime smoke
-        run: docker compose -f compose.yml -f compose.dev.yml down
       - name: Select pinned host Node for smoke harnesses
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
+      - name: Docker quality and migrated integration
+        run: sh scripts/quality-docker.sh
+      - name: Stop development before runtime smoke
+        run: docker compose -f compose.yml -f compose.dev.yml down
       - name: Local release runtime, provisioning, TTY and browser smoke
         run: sh scripts/runtime-smoke.sh
       - name: Disposable public HTTPS, ingress and remote onboarding

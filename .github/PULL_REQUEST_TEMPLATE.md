@@ -24,9 +24,9 @@
 
 ## Verification Evidence
 
-| Claim         | Executed Command                                            | Result |
-| :------------ | :---------------------------------------------------------- | :----- |
-| `<Assertion>` | `<e.g. pnpm test, pnpm --filter @nexora/api test:customer>` | `PASS` |
+| Claim         | Executed Command                          | Result |
+| :------------ | :---------------------------------------- | :----- |
+| `<Assertion>` | `<e.g. pnpm test, pnpm test:integration>` | `PASS` |
 
 ---
 

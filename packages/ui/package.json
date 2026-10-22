@@ -6,7 +6,7 @@
   "main": "src/index.tsx",
   "types": "src/index.tsx",
   "scripts": {
-    "test": "node --test test/status-tone.test.mjs",
+    "test": "node ../../scripts/check-test-discovery.mjs \"test/**/*.test.mjs\" && node --test \"test/**/*.test.mjs\"",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {

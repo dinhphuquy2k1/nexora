@@ -118,3 +118,7 @@ Explicit profile/Host/Origin/canonical URL and narrow proxy config are mandatory
 See [Deployment](../operations/deployment.md) for stop-writers/private CLI/bootstrap/upgrade/backup/rollback and [Configuration](../operations/configuration.md) for exact networks/variables. Real production DNS/certificate/firewall/host NTP remain NOT VERIFIED because no actual host/domain exists. Public CI uses a fresh owned project, loopback-only published test ports and disposable CA/leaf; it does not activate a public server.
 
 Public Web's container healthcheck uses node:http to send the canonical public Host over its private loopback listener. Node24 fetch rewrites Host overrides and therefore cannot probe this policy correctly. This does not add loopback to the public allowlist; the real HTTP request passes the same middleware validation as ingress traffic. The helper lives in Web's existing lib runtime artifacts and reports failure on non200/network errors.
+
+## Test infrastructure orchestration
+
+NEXORA028 uses Node24 host orchestration for Docker custody, disposable cluster lifecycle and guarded development-cleanup smoke, preserving existing Compose service/custody/topology and SQL assertions. Foundation selects its pinned Node runtime before Docker quality; no new service or production port/volume is added. Two POSIX Python PTY harnesses remain for real provisioning/MFA terminal security; all LOCAL/HTTPS/persistence/development checks remain required. See [Testing](../operations/testing.md) for command/discovery ownership.

@@ -13,7 +13,11 @@ cleanup(){
 trap cleanup EXIT HUP INT TERM
 compose(){ docker compose -f compose.yml -f compose.dev.yml "$@"; }
 compose up -d --no-build --wait --wait-timeout 180
+# Rebuilding shared dist with live watchers races the one-shot security assertion.
+# Match quality-docker: stop writers before rebuilding, then require fresh health.
+compose stop api web
 compose run --rm --no-deps -T dependencies dependencies
+compose up -d --no-build --wait --wait-timeout 180
 printf '%s' 'DevSmokePass123!' | compose exec -T api sh /workspace/scripts/api-entrypoint.sh node scripts/user-create.mjs --username dev_smoke_user --password-stdin
 # Explicit new security assertion: trusted provisioning alone never enables ADMIN login.
 compose exec -T web node <<'JS'
