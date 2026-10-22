@@ -1,4 +1,4 @@
-// Tooling vocabulary catalog; canonical runtime definitions stay in their domains.
+// Tooling vocabulary catalog; canonical runtime definitions stay with their domain/shared owners.
 const fields = {
   authLevel: { PASSWORD: "AuthLevel.PASSWORD", MFA: "AuthLevel.MFA" },
   eventType: {
@@ -21,8 +21,9 @@ const fields = {
     UNAVAILABLE: "CarrierAuditReason.UNAVAILABLE",
   },
   status: {
-    ACTIVE: "UserStatus.ACTIVE",
+    ACTIVE: "UserStatus.ACTIVE or CustomerStatus.ACTIVE",
     DISABLED: "UserStatus.DISABLED",
+    INACTIVE: "CustomerStatus.INACTIVE",
     CONNECTED: "ConnectionStatus.CONNECTED",
     REAUTH_REQUIRED: "ConnectionStatus.REAUTH_REQUIRED",
     ERROR: "ConnectionStatus.ERROR",

@@ -13,7 +13,7 @@ export default ts.config(
     ],
   },
   {
-    files: ["apps/api/src/{identity,carrier}/**/*.ts"],
+    files: ["apps/api/src/{identity,carrier,customer}/**/*.ts"],
     ignores: [
       "**/test/**",
       "**/tests/**",
@@ -26,6 +26,10 @@ export default ts.config(
       nexora: { rules: { "no-domain-vocabulary-literals": domainVocabulary } },
     },
     rules: { "nexora/no-domain-vocabulary-literals": "error" },
+  },
+  {
+    files: ["apps/api/src/customer/**/*.ts"],
+    rules: { "no-nested-ternary": "error" },
   },
   js.configs.recommended,
   ...ts.configs.recommended,

@@ -1,9 +1,14 @@
+import { builtinModules } from "node:module";
 import { readdir, readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import assert from "node:assert/strict";
 import ts from "typescript";
 
-const under = (path, root) => path === root || path.startsWith(root + "/");
+const under = (path, root) => {
+  const normPath = path.replace(/\\/g, "/");
+  const normRoot = root.replace(/\\/g, "/");
+  return normPath === normRoot || normPath.startsWith(normRoot + "/");
+};
 
 function imports(path, text) {
   const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true);
@@ -33,7 +38,9 @@ function imports(path, text) {
 
 export function checkFileImports(p, content) {
   for (const spec of imports(p, content)) {
-    const target = spec.startsWith(".") ? resolve(dirname(p), spec) : null;
+    const target = spec.startsWith(".")
+      ? resolve(dirname(p), spec).replace(/\\/g, "/")
+      : null;
     if (
       p.startsWith("packages/sdk/") &&
       (spec === "@nexora/api" ||
@@ -60,10 +67,150 @@ export function checkFileImports(p, content) {
       !p.includes("/infrastructure/")
     )
       throw Error(`Prisma boundary: ${p}`);
+    if (
+      p.startsWith("packages/shared/") &&
+      (builtinModules.includes(spec) ||
+        /^(?:node:|@nestjs\/|@prisma\/|@nexora\/(?:database|sdk)(?:\/|$))/.test(
+          spec,
+        ) ||
+        (target && under(target, resolve("packages/database"))))
+    )
+      throw Error(`Shared browser boundary: ${p}`);
+    const apiDomain = /^apps\/api\/src\/[^/]+\/domain\//.test(p);
+    const targetLayer =
+      target &&
+      /\/apps\/api\/src\/[^/]+\/(application|infrastructure|presentation)(?:\/|$)/.test(
+        target,
+      );
+    if (
+      apiDomain &&
+      (/^@nestjs\/|^(?:@types\/)?express(?:\/|$)|^(?:node:)?https?$/.test(
+        spec,
+      ) ||
+        targetLayer ||
+        spec === "@nexora/shared" ||
+        spec.includes("customer-status-labels") ||
+        (target &&
+          under(target, resolve("packages/shared")) &&
+          !target.endsWith("/customer-status")))
+    )
+      throw Error(`Domain purity boundary: ${p}`);
+    if (
+      /^apps\/api\/src\/[^/]+\/application\//.test(p) &&
+      target &&
+      /\/apps\/api\/src\/[^/]+\/(infrastructure|presentation)(?:\/|$)/.test(
+        target,
+      )
+    )
+      throw Error(`Application dependency boundary: ${p}`);
+    if (
+      /^apps\/api\/src\/[^/]+\/presentation\//.test(p) &&
+      target &&
+      /\/apps\/api\/src\/[^/]+\/infrastructure(?:\/|$)/.test(target)
+    )
+      throw Error(`Controller adapter boundary: ${p}`);
   }
 }
 
 export function runNegativeTests() {
+  checkFileImports(
+    "apps/web/test.ts",
+    "import { CustomerStatus } from '@nexora/shared';",
+  );
+  checkFileImports(
+    "apps/api/src/customer/domain/example.ts",
+    "import { CustomerStatus } from '@nexora/shared/customer-status';",
+  );
+  for (const spec of [
+    "@nexora/shared",
+    "@nexora/shared/customer-status-labels",
+    "../../../../../packages/shared/src/customer-status-labels",
+  ])
+    assert.throws(
+      () =>
+        checkFileImports(
+          "apps/api/src/customer/domain/example.ts",
+          `import '${spec}';`,
+        ),
+      /Domain purity boundary/,
+    );
+  assert.throws(
+    () =>
+      checkFileImports(
+        "apps/web/test.ts",
+        "import '../api/src/customer/domain/customer';",
+      ),
+    /App import/,
+  );
+  for (const spec of [
+    "@nestjs/common",
+    "@prisma/client",
+    "@nexora/database",
+    "node:crypto",
+  ])
+    assert.throws(
+      () =>
+        checkFileImports("packages/shared/src/test.ts", `import '${spec}';`),
+      /Shared browser boundary/,
+    );
+  assert.throws(
+    () =>
+      checkFileImports(
+        "packages/shared/src/test.ts",
+        "import '../../../apps/api/src/customer/domain/customer';",
+      ),
+    /App import/,
+  );
+  for (const layer of [
+    "infrastructure/customer.adapter",
+    "presentation/customer.dto",
+  ])
+    assert.throws(
+      () =>
+        checkFileImports(
+          "apps/api/src/customer/application/example.ts",
+          `import '../${layer}';`,
+        ),
+      /Application dependency boundary/,
+    );
+  for (const spec of [
+    "@nestjs/common",
+    "express",
+    "node:http",
+    "../application/customer.input",
+    "../infrastructure/customer.adapter",
+    "../presentation/customer.dto",
+    "../../identity/application/auth.service",
+  ]) {
+    assert.throws(
+      () =>
+        checkFileImports(
+          "apps/api/src/customer/domain/example.ts",
+          `import '${spec}';`,
+        ),
+      /Domain purity boundary/,
+    );
+  }
+  assert.throws(
+    () =>
+      checkFileImports(
+        "apps/api/src/customer/presentation/example.ts",
+        "import '../infrastructure/customer.adapter';",
+      ),
+    /Controller adapter boundary/,
+  );
+  checkFileImports(
+    "apps/api/src/customer/domain/example.ts",
+    "import './customer'; import 'libphonenumber-js/max';",
+  );
+  checkFileImports(
+    "apps/api/src/customer/application/example.ts",
+    "import '@nestjs/common'; import '../domain/customer';",
+  );
+  checkFileImports(
+    "apps/api/src/customer/infrastructure/example.ts",
+    "import '@nexora/database'; import '../application/customer.port';",
+  );
   assert.throws(
     () => checkFileImports("apps/web/test.ts", "import '@nexora/database';"),
     /Web boundary/,
@@ -112,6 +259,38 @@ export function runNegativeTests() {
   );
 }
 
+const sharedGraph = new Map();
+const customerStatusDeclarations = [];
+export function assertAcyclic(graph) {
+  const visiting = new Set(),
+    visited = new Set();
+  function visit(node) {
+    if (visiting.has(node)) throw Error(`Shared dependency cycle: ${node}`);
+    if (visited.has(node)) return;
+    visiting.add(node);
+    for (const dependency of graph.get(node) ?? []) visit(dependency);
+    visiting.delete(node);
+    visited.add(node);
+  }
+  for (const node of graph.keys()) visit(node);
+}
+assert.throws(
+  () =>
+    assertAcyclic(
+      new Map([
+        ["a", ["b"]],
+        ["b", ["a"]],
+      ]),
+    ),
+  /Shared dependency cycle/,
+);
+assertAcyclic(
+  new Map([
+    ["labels", ["codes"]],
+    ["codes", []],
+  ]),
+);
+
 async function walk(dir) {
   for (const e of await readdir(dir, { withFileTypes: true })) {
     if (
@@ -121,7 +300,28 @@ async function walk(dir) {
     const p = `${dir}/${e.name}`;
     if (e.isDirectory()) await walk(p);
     else if (/\.(ts|tsx)$/.test(p)) {
-      checkFileImports(p, await readFile(p, "utf8"));
+      const content = await readFile(p, "utf8");
+      if (content.includes("CustomerStatus")) {
+        const source = ts.createSourceFile(
+          p,
+          content,
+          ts.ScriptTarget.Latest,
+          true,
+        );
+        for (const statement of source.statements)
+          if (ts.isVariableStatement(statement))
+            for (const declaration of statement.declarationList.declarations)
+              if (declaration.name.getText(source) === "CustomerStatus")
+                customerStatusDeclarations.push(p);
+      }
+      checkFileImports(p, content);
+      if (p.startsWith("packages/shared/src/"))
+        sharedGraph.set(
+          resolve(p).replace(/\.tsx?$/, ""),
+          imports(p, content)
+            .filter((spec) => spec.startsWith("."))
+            .map((spec) => resolve(dirname(p), spec).replace(/\.tsx?$/, "")),
+        );
     }
   }
 }
@@ -225,4 +425,10 @@ runNegativeTests();
 await checkDockerManifestDeclarations();
 await walk("apps");
 await walk("packages");
+assertAcyclic(sharedGraph);
+assert.deepEqual(
+  customerStatusDeclarations,
+  ["packages/shared/src/customer-status.ts"],
+  "CustomerStatus must have exactly one canonical runtime declaration",
+);
 console.log("Workspace boundaries PASS");

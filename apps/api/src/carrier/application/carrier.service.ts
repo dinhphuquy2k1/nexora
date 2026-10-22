@@ -1,3 +1,5 @@
+import { GENERIC_ERROR_MESSAGE } from "../../common/http/error-messages";
+import { isUuid } from "../../common/validation/uuid";
 import { Injectable, HttpException } from "@nestjs/common";
 import { CarrierPort } from "./carrier.port";
 import { CarrierProvider, CarrierError } from "../domain/carrier";
@@ -10,12 +12,7 @@ export class CarrierService {
     };
   }
   private validateId(id: string) {
-    if (
-      !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
-        id,
-      )
-    )
-      this.invalid();
+    if (!isUuid(id)) this.invalid();
   }
   private invalid(): never {
     throw new HttpException(
@@ -30,7 +27,7 @@ export class CarrierService {
       if (!(e instanceof CarrierError)) throw e;
       const status = e.code === "NOT_FOUND" ? 404 : 401;
       throw new HttpException(
-        { code: e.code, message: "Không thể thực hiện yêu cầu" },
+        { code: e.code, message: GENERIC_ERROR_MESSAGE },
         status,
       );
     }

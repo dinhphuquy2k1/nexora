@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/customer/domain/**/*.ts",
+    "src/customer/application/**/*.ts",
+    "src/customer/infrastructure/customer-db-error.ts",
+    "src/customer/infrastructure/customer.mapper.ts",
+    "src/customer/presentation/customer.presenter.ts",
+    "src/identity/application/user-management.service.ts",
+    "src/carrier/application/carrier.service.ts",
+    "src/carrier/presentation/carrier-lifecycle.controller.ts",
+    "src/customer/presentation/customer.controller.ts"
+  ]
+}

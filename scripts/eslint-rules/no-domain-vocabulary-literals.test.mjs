@@ -7,7 +7,15 @@ import { writeFile, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 import rule from "./no-domain-vocabulary-literals.mjs";
 const filename = resolve("apps/api/src/carrier/application/lint-example.ts");
-const message = (constant) => ({ messageId: "canonical", data: { constant } });
+const message = (constant) => ({
+  messageId: "canonical",
+  data: {
+    constant:
+      constant === "UserStatus.ACTIVE"
+        ? "UserStatus.ACTIVE or CustomerStatus.ACTIVE"
+        : constant,
+  },
+});
 RuleTester.describe = describe;
 RuleTester.it = it;
 new RuleTester({ languageOptions: { parser: ts.parser } }).run(
@@ -109,12 +117,13 @@ new RuleTester({ languageOptions: { parser: ts.parser } }).run(
     })),
   },
 );
-test("actual ESLint config enables error guard only on production Identity/Carrier", async () => {
+test("actual ESLint config enables error guard only on production Identity/Carrier/Customer", async () => {
   const eslint = new ESLint();
   const code = 'export const data={status:"ACTIVE"};';
   for (const filePath of [
     "apps/api/src/identity/infrastructure/probe.ts",
     "apps/api/src/carrier/application/probe.ts",
+    "apps/api/src/customer/infrastructure/probe.ts",
   ]) {
     const [r] = await eslint.lintText(code, { filePath });
     const errors = r.messages.filter(
@@ -178,6 +187,10 @@ test("guard catalog covers every canonical owning-domain value", async () => {
   const eslint = new ESLint();
   for (const [path, objects] of [
     ["identity/domain/session-assurance.ts", { AuthLevel: "authLevel" }],
+    [
+      "../../../packages/shared/src/customer-status.ts",
+      { CustomerStatus: "status" },
+    ],
     [
       "identity/domain/user-policy.ts",
       { UserStatus: "status", UserRole: "role" },

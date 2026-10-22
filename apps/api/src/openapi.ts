@@ -1,3 +1,5 @@
+import { CustomerController } from "./customer/presentation/customer.controller";
+import { CustomerService } from "./customer/application/customer.service";
 import { CarrierLifecycleController } from "./carrier/presentation/carrier-lifecycle.controller";
 import { CarrierConnectionLifecycleService } from "./carrier/application/carrier-connection-lifecycle.service";
 import { CarrierController } from "./carrier/presentation/carrier.controller";
@@ -22,6 +24,7 @@ import { AuthService } from "./identity/application/auth.service";
 // Documentation-only module: no listener, database, storage or operational endpoint.
 @Module({
   controllers: [
+    CustomerController,
     CarrierController,
     CarrierLifecycleController,
     HealthController,
@@ -30,6 +33,7 @@ import { AuthService } from "./identity/application/auth.service";
     SetupPasswordController,
   ],
   providers: [
+    { provide: CustomerService, useValue: {} },
     { provide: CarrierConnectionLifecycleService, useValue: {} },
     { provide: CarrierService, useValue: {} },
     { provide: IdentityPort, useValue: {} },

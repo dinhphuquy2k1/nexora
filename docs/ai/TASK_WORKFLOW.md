@@ -47,6 +47,33 @@ Use exactly:
 
 Values like `Done`, `Finished`, `Partial`, or `PASS` are invalid task-level verification values.
 
+### 1.6 Design Review Decision Record
+
+Design approval must be tracked distinctly without introducing a fictitious fifth task lifecycle status:
+
+- The 4-stage Task Lifecycle (`PLANNED → IN PROGRESS → VERIFICATION PENDING → COMPLETED`) remains strictly unaltered; `DESIGN_APPROVED` is an invalid task status.
+- Tasks requiring pre-code governance record their design review decision in a dedicated `## Design Review & Reuse Decision` section.
+- The record must define exact canonical fields:
+  - **Task ID**: Matching the task filename prefix (e.g. `NEXORA-027`).
+  - **Classification**: `BOUNDED`, `SIGNIFICANT`, or `SPIKE`.
+  - **Plan revision**: Specific plan identifier or timestamp (e.g. `rev-2026-10-21-reuse-v2`).
+  - **Reviewed baseline**: Git commit hash inspected.
+  - **Design Snapshot**: Versioned immutable Markdown under docs/tasks/design-reviews/.
+  - **Design SHA-256**: SHA-256 of raw snapshot UTF-8 bytes, exactly64 lowercase hex characters.
+  - **Approval authority**: `repository-owner` (logical role) or authorized login (`dinhphuquy2k1`).
+  - **Approval status**: `APPROVED`, `PENDING_REVIEW`, or `REVISION_REQUIRED`.
+  - **Approval evidence**: Decision reference, directive, or link.
+- **Structural Validity vs Implementation Enforcement**:
+  - In structural validation mode (offline static scans and push to main CI), all three design decision statuses (`APPROVED`, `PENDING_REVIEW`, `REVISION_REQUIRED`) are structurally valid. A pending task does not fail repository-wide static verification.
+  - In implementation mode (pull request CI gate), `APPROVED` is strictly required. Tasks in `PENDING_REVIEW` or `REVISION_REQUIRED` fail the implementation gate.
+- **PR Binding**: On pull requests, the PR metadata (`Task ID`, `Task Reference`, `Plan revision`, `Design Snapshot`, `Design SHA-256`) must match the task file, filename, snapshot task/revision and recomputed digest exactly. Traversal paths, URL schemes, and ambiguous references fail closed.
+- **Approval Provenance Separation**: The task record stores the declared local design record; GitHub CI independently verifies authenticated approval through GitHub REST API checks (review in `APPROVED` state with matching task/revision/digest formal declaration or owner comment with `NEXORA DESIGN APPROVAL`). Local static PASS never claims authenticated GitHub approval.
+- Snapshot/digest may be absent together on a pending structural record; if either is declared both must be well formed, and static file scans recompute declared snapshots. Structural mode never requires authenticated approval. Explicit PR binding (including local provided PR metadata) validates referenced snapshot/files, but local binding uses structural status validation and never authenticates GitHub.
+- PR implementation mode requires both snapshot/digest, declared APPROVED and actual independent digest-bound GitHub approval. The declared owner directive and authenticated GitHub attestation are distinct; PR23's existing directive does not backdate the new digest approval.
+- Material design changes require a new revision/snapshot and new attestation. Mutable execution/test/CI evidence does not belong in the snapshot and does not invalidate approval.
+- Self-approval by an agent is strictly invalid.
+- A material design amendment requires renewed review of the delta, recorded in the active task record.
+
 ## 2. Canonical evidence schema
 
 Normal task records document executable verification in an `## Evidence` section:
@@ -106,3 +133,5 @@ Documentation Impact: NONE
 ## 4. Historical task compatibility
 
 Tasks completed before NEXORA-003 (`NEXORA-001`, `NEXORA-002`) retain their historical record format in `docs/tasks/completed/`. They are recognized as historical task records; their original commands, dates, and claims are preserved without retroactive rewrites.
+
+Completed historical tasks are exempt from retroactive ADR-009 design review enforcement. For active tasks, any new implementation scope or material design change must comply with the current pre-code design review policy and provide an approved design decision for the applicable plan revision, regardless of historical task numbering.

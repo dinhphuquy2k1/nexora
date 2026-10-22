@@ -22,6 +22,8 @@ model User {
   status     String          @default("ACTIVE") @db.VarChar(16)
   createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  ownedCustomers Customer[] @relation("customer_owner")
+  createdCustomers Customer[] @relation("customer_creator")
   credential UserCredential?
   carrierConnections CarrierConnection[]
   carrierState CarrierUserState?
@@ -159,4 +161,41 @@ model MfaRecoveryCode {
   mfa UserMfa @relation(fields:[userId],references:[userId],onDelete:Cascade)
   @@unique([userId,codeHash])
   @@map("mfa_recovery_codes")
+}
+
+model Customer {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ ownerUserId String @map("owner_user_id") @db.Uuid
+ code String @unique(map:"uq_customers_code") @default(dbgenerated("next_customer_code()")) @db.VarChar(32)
+ name String @db.VarChar(200)
+ phone String @map("phone_normalized") @db.VarChar(16)
+ email String? @db.VarChar(254)
+ note String? @db.Text
+ status String @default("ACTIVE") @db.VarChar(16)
+ createdByUserId String @map("created_by_user_id") @db.Uuid
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+ owner User @relation("customer_owner",fields:[ownerUserId],references:[id],onDelete:Restrict)
+ creator User @relation("customer_creator",fields:[createdByUserId],references:[id],onDelete:Restrict)
+ addresses CustomerAddress[]
+ @@unique([ownerUserId,phone],map:"uq_customers_owner_phone")
+ @@index([ownerUserId,createdAt(sort:Desc),id(sort:Desc)],map:"idx_customers_owner_created")
+ @@index([ownerUserId,status,createdAt(sort:Desc),id(sort:Desc)],map:"idx_customers_owner_status_created")
+ @@map("customers")
+}
+model CustomerAddress {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ customerId String @map("customer_id") @db.Uuid
+ label String? @db.VarChar(100)
+ recipientName String @map("recipient_name") @db.VarChar(200)
+ recipientPhone String @map("recipient_phone") @db.VarChar(16)
+ countryCode String @default("VN") @map("country_code") @db.VarChar(2)
+ addressText String @map("address_text") @db.Text
+ isDefault Boolean @default(false) @map("is_default")
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+ updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+ customer Customer @relation(fields:[customerId],references:[id],onDelete:Cascade)
+ // Partial unique index uq_customer_addresses_default is owned by SQL migration.
+ @@index([customerId,createdAt,id],map:"idx_customer_addresses_customer_created")
+ @@map("customer_addresses")
 }

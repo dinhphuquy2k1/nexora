@@ -9,5 +9,22 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "tsc -p tsconfig.json --watch"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./customer-status": {
+      "types": "./dist/customer-status.d.ts",
+      "default": "./dist/customer-status.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "customer-status": [
+        "dist/customer-status.d.ts"
+      ]
+    }
+  }
 }

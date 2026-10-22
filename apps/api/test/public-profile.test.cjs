@@ -1,9 +1,15 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
+const path = require("node:path");
+const os = require("node:os");
 const { loadConfig } = require("../dist/config");
+const tmpRoot =
+  process.platform === "win32"
+    ? path.resolve(os.tmpdir(), "nexora-public-test")
+    : "/tmp/nexora-public-test";
 const base = {
   DATABASE_URL: "postgresql://fixture:fixture@localhost:5432/fixture",
-  STORAGE_ROOT: "/tmp/nexora-public-test",
+  STORAGE_ROOT: tmpRoot,
 };
 const publicEnv = {
   ...base,

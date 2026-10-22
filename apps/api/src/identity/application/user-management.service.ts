@@ -1,3 +1,6 @@
+import { GENERIC_ERROR_MESSAGE } from "../../common/http/error-messages";
+import { isUuid } from "../../common/validation/uuid";
+import { isLowercaseHex64 } from "../../common/validation/hex";
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { randomBytes, createHash } from "node:crypto";
 import { UserManagementPort } from "./user-management.port";
@@ -8,7 +11,6 @@ import { UserStatus } from "../domain/user-policy";
 
 const hashToken = (token: string) =>
   createHash("sha256").update(token).digest("hex");
-const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
 export interface IdentityErrorMapping {
   readonly status: HttpStatus;
@@ -18,11 +20,11 @@ export interface IdentityErrorMapping {
 export const IDENTITY_ERROR_MAP: Record<string, IdentityErrorMapping> = {
   NOT_FOUND: {
     status: HttpStatus.NOT_FOUND,
-    message: "Không thể thực hiện yêu cầu",
+    message: GENERIC_ERROR_MESSAGE,
   },
   FORBIDDEN: {
     status: HttpStatus.FORBIDDEN,
-    message: "Không thể thực hiện yêu cầu",
+    message: GENERIC_ERROR_MESSAGE,
   },
   LAST_ACTIVE_ADMIN: {
     status: HttpStatus.CONFLICT,
@@ -44,7 +46,7 @@ export const IDENTITY_ERROR_MAP: Record<string, IdentityErrorMapping> = {
 
 export const DEFAULT_IDENTITY_ERROR: IdentityErrorMapping = {
   status: HttpStatus.BAD_REQUEST,
-  message: "Không thể thực hiện yêu cầu",
+  message: GENERIC_ERROR_MESSAGE,
 };
 
 export function mapIdentityError(error: IdentityError): HttpException {
@@ -119,7 +121,7 @@ export class UserManagementService {
     return { user, setupUrl: link.setupUrl, expiresAt: link.expiresAt };
   }
   async reissue(actorId: string, id: string, origin: string) {
-    if (!uuid.test(id)) this.validation();
+    if (!isUuid(id)) this.validation();
     const link = this.link(origin);
     await this.mapped(() =>
       this.port.reissue(actorId, id, link.tokenHash, link.expiresAt),
@@ -139,8 +141,7 @@ export class UserManagementService {
       password?: unknown;
     };
     if (
-      typeof token !== "string" ||
-      !/^[a-f0-9]{64}$/.test(token) ||
+      !isLowercaseHex64(token) ||
       !isLoginPassword(password) ||
       password.length < 8
     )
@@ -155,7 +156,7 @@ export class UserManagementService {
   }
   async setStatus(actorId: string, id: string, input: unknown) {
     if (
-      !uuid.test(id) ||
+      !isUuid(id) ||
       !input ||
       typeof input !== "object" ||
       Array.isArray(input) ||
