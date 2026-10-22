@@ -1753,3 +1753,83 @@ test("integrity: empty duplicate metadata cannot be hidden before a valid task f
   );
   assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
 });
+
+test("runPreflightCheck: explicit event inputs override isolated environment fallback", async () => {
+  const dir = mkdtempSync(resolve(tmpdir(), "nexora-event-input-"));
+  const hadPath = Object.hasOwn(process.env, "GITHUB_EVENT_PATH");
+  const originalPath = process.env.GITHUB_EVENT_PATH;
+  const eventPath = resolve(dir, "event.json");
+  const event = {
+    repository: { full_name: "dinhphuquy2k1/nexora" },
+    pull_request: {
+      number: 23,
+      body: `- **Task ID**: NEXORA-027\n- **Task Reference**: docs/tasks/active/NEXORA-027-customer-management-backend.md\n- **Plan revision**: rev-2026-10-21-reuse-v2\n- **Design Snapshot**: ${TEST_SNAPSHOT}\n- **Design SHA-256**: ${TEST_DIGEST}`,
+    },
+  };
+  const options = {
+    isCi: true,
+    eventName: "pull_request",
+    githubToken: "mock-token",
+    fetchFn: createMockFetch({
+      comments: [
+        {
+          user: { login: "dinhphuquy2k1", type: "User" },
+          created_at: "2026-10-22T00:00:00Z",
+          body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDesign SHA-256: ${TEST_DIGEST}\nDecision: APPROVED`,
+        },
+      ],
+    }),
+  };
+  try {
+    writeFileSync(eventPath, JSON.stringify(event));
+    process.env.GITHUB_EVENT_PATH = eventPath;
+    for (const eventPayload of [null, undefined]) {
+      const result = await runPreflightCheck(root, {
+        ...options,
+        eventPayload,
+      });
+      assert.equal(result.success, false);
+      assert.ok(
+        result.failures.some((f) => f.includes("Missing GitHub event payload")),
+      );
+    }
+    const fallback = await runPreflightCheck(root, options);
+    assert.equal(fallback.success, true, fallback.failures.join("\n"));
+    const explicit = await runPreflightCheck(root, {
+      ...options,
+      eventPayload: {
+        ...event,
+        repository: { full_name: "attacker/wrong-repo" },
+      },
+    });
+    assert.equal(explicit.success, false);
+    assert.ok(
+      explicit.failures.some((f) => f.includes("Event repository mismatch")),
+    );
+    for (const invalidPath of [
+      resolve(dir, "missing.json"),
+      eventPath,
+      undefined,
+    ]) {
+      if (invalidPath === eventPath) writeFileSync(eventPath, "{corrupt");
+      if (invalidPath === undefined) delete process.env.GITHUB_EVENT_PATH;
+      else process.env.GITHUB_EVENT_PATH = invalidPath;
+      const result = await runPreflightCheck(root, options);
+      assert.equal(result.success, false);
+      assert.ok(
+        result.failures.some((f) => f.includes("Missing GitHub event payload")),
+      );
+      if (invalidPath !== undefined) {
+        assert.ok(
+          result.failures.some((f) =>
+            f.includes("Missing or invalid GITHUB_EVENT_PATH payload"),
+          ),
+        );
+      }
+    }
+  } finally {
+    if (hadPath) process.env.GITHUB_EVENT_PATH = originalPath;
+    else delete process.env.GITHUB_EVENT_PATH;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

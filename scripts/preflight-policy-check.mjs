@@ -1105,8 +1105,9 @@ export async function runPreflightCheck(rootDir, options = {}) {
       "GitHub pull_request CI mode: verifying PR event and task binding...",
     );
 
-    let event = options.eventPayload;
-    if (!event && process.env.GITHUB_EVENT_PATH) {
+    const hasExplicitEventPayload = Object.hasOwn(options, "eventPayload");
+    let event = hasExplicitEventPayload ? options.eventPayload : undefined;
+    if (!hasExplicitEventPayload && process.env.GITHUB_EVENT_PATH) {
       try {
         const raw = await readFile(process.env.GITHUB_EVENT_PATH, "utf8");
         event = JSON.parse(raw);
