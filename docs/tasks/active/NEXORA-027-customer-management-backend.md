@@ -5,6 +5,8 @@ Implementation: IMPLEMENTED
 Verification: PARTIALLY VERIFIED
 Classification: SIGNIFICANT
 
+Current merge policy: the [owner cleanup decision](#owner-decision--customer-v1-operator-audit-scope-cleanup--2026-10-22) below supersedes all earlier Customer Operator Data Audit blockers and Option A/B proposals. No audit or replacement deployment-audit gate is required. Final-head CI, tests, review and applicable branch protection remain mandatory.
+
 Current contract: the PR23 revised address contract below requires an initial default address and forbids last/default deletion. Earlier optional-create and deletion passages are historical plans/evidence, superseded by the owner's revised request.
 
 ## Baseline and interface preflight
@@ -560,3 +562,15 @@ P2 file provenance: task/snapshot paths reject symlink files or intermediate dir
 Diff review: apps/, packages/, existing workflows and database/schema/grants are unchanged from4f93a74. No new dependency/framework, no fabricated review/comment, no self-approval/merge. Author checklist review completed; it is not independent review. Authorized owner/independent review remains required.
 
 Environment housekeeping: initial full workspace prevented attachment download. Removed only generated Next output from this worktree and three individually identified unused BuildKit cache records from prior task-owned verification (no global prune, no user volumes); about1.2GB recovered. Inherited proxy/CA remain enabled; current observed restricted policy still excludes official Prisma artifacts. Original genuine Prisma/Nest/SQL/Docker/runtime/hosted requirements and Operator Data Audit decision remain open. Final-head exits/timestamps and both workflow results will be recorded in PR metadata after commit to avoid digest/SHA-only loops. Task remains VERIFICATION PENDING; no attestation timing is backdated.
+
+## Owner Decision — Customer V1 Operator Audit Scope Cleanup — 2026-10-22
+
+The owner explicitly withdraws Customer Operator Data Audit as a PR23 merge gate and removes the standalone audit-customer-addresses.sql, its audit-only test code and customer-address-repair.md operational runbook from V1. This is a BOUNDED scope reduction under the existing approved architecture, not a new architecture decision. No replacement mandatory deployment audit gate is introduced. Future operator-data auditing needs an actual dataset and concrete separately scoped requirement.
+
+This decision supersedes all earlier open Option A / Option B discussions and audit-related blocker statements above, including the immutable snapshot's historical reference to a separate audit decision. The immutable snapshot, revision and digest remain unchanged; the owner has resolved that previously separate decision here. Earlier execution logs/results remain historical evidence, not current instructions to execute deleted files. No production data was accessed or certified.
+
+Documentation Impact: REQUIRED for this cleanup; the existing canonical Documentation Impact section remains authoritative. Updated canonical owners: Customers domain, Database architecture and Testing. Removed obsolete audit runbook and SQL; removed only audit loader/helper/assertions from customer-sql. Physical duplicate-default23505, FK/cascade, owner-phone/code/sequence, CHECK, timestamps, runtime grants/denials and repeat provisioning tests remain intact. No schema/migration/grant, Customer runtime, API/SDK or Identity/Carrier security changes.
+
+Current merge requirements: valid authenticated ADR009 approval; final-head Preflight and Foundation; Customer unit/domain, genuine Prisma/Nest/PostgreSQL ownership/security, transaction/concurrency/default/rollback, migration preservation/repeat/drift, physical constraints/restricted privileges, contracts and docs; independent code review or required owner review with no blocking findings; applicable GitHub branch protection. Customer Operator Data Audit is NOT REQUIRED FOR PR23 MERGE.
+
+Implementation remains IMPLEMENTED; task remains VERIFICATION PENDING until final-head execution and review evidence satisfy remaining requirements. Earlier79fcef19 hosted Preflight39722063286 and Foundation39722063196 SUCCESS are historical evidence, not certification of this cleanup's new HEAD. Final-head evidence is recorded in PR metadata to avoid SHA-only documentation commits. Production readiness remains separate and unverified; this cleanup authorizes no rollout, repair or operator database access.

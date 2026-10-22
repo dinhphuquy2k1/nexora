@@ -134,16 +134,6 @@ test("real PostgreSQL customer upgrade, constraints, sequence and restricted run
       (await runtime.query("SELECT current_user")).rows[0].current_user,
       "nexora_app",
     );
-    const auditSql = await readFile(
-      new URL("../scripts/audit-customer-addresses.sql", import.meta.url),
-      "utf8",
-    );
-    async function audit() {
-      const results = await db.query(auditSql);
-      return results.find(
-        (result) => result.rows?.[0]?.zero_address_customers !== undefined,
-      ).rows[0];
-    }
     const create = async (owner, phone, client = runtime) =>
       (
         await client.query(
@@ -242,11 +232,7 @@ test("real PostgreSQL customer upgrade, constraints, sequence and restricted run
     ]) {
       await assert.rejects(runtime.query(statement), (e) => e.code === "42501");
     }
-    assert.ok(
-      (await audit()).zero_address_customers > 0,
-      "audit detects deliberate raw legacy zero-address fixtures",
-    );
-    assert.equal((await audit()).multiple_default_customers, 0);
+    // Raw SQL fixtures exercise physical constraints, not valid API creation.
     const address = (
       await runtime.query(
         "INSERT INTO customer_addresses(customer_id,recipient_name,recipient_phone,country_code,address_text,is_default) VALUES($1,'Receiver','+84912345678','VN','Fixture address',true) RETURNING id",
@@ -270,11 +256,6 @@ test("real PostgreSQL customer upgrade, constraints, sequence and restricted run
     await runtime.query(
       "INSERT INTO customer_addresses(customer_id,recipient_name,recipient_phone,address_text) VALUES($1,'Preserved receiver','+84912345678','Preserved address')",
       [one.id],
-    );
-    assert.equal(
-      (await audit()).customers_without_default,
-      1,
-      "audit detects the deliberate non-default raw address; no automatic repair",
     );
     const preservedAddresses = (
       await db.query("SELECT * FROM customer_addresses ORDER BY id")
