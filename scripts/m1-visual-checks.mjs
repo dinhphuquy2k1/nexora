@@ -57,7 +57,9 @@ export async function verifyM1Visuals({
     );
     const shot = await send("Page.captureScreenshot", {
       format: "png",
-      captureBeyondViewport: true,
+      // Evidence is of the specified viewport, not a full-page resize. A capture
+      // must not trigger responsive media-query changes between interactions.
+      captureBeyondViewport: false,
     });
     const name = `${prefix}-${phase}-${viewport.width}x${viewport.height}-${state}.png`;
     const bytes = Buffer.from(shot.data, "base64");
