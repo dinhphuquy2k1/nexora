@@ -6,71 +6,105 @@ Verification: NOT VERIFIED
 Classification: SIGNIFICANT
 Documentation Impact: REQUIRED
 
+## Design Review & Reuse Decision
+
+- **Task ID**: NEXORA-029
+- **Classification**: SIGNIFICANT
+- **Plan revision**: rev-2026-10-23-frontend-migration-v8
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-029-rev-2026-10-23-frontend-migration-v8.md
+- **Design SHA-256**: a0d30e9f339c48d949c9d201683eb771ae9d9219953e8b31beb58b83ead07cb6
+- **Reviewed baseline**: c14dada506d73b991924edb57faae44cf42f66a8
+- **Approval authority**: dinhphuquy2k1
+- **Approval status**: PENDING_REVIEW
+- **Approval evidence**: Await exact standalone owner ADR-009 decision matching v8 raw-byte digest. Product-scope comment6354627613 is Option B evidence only; placeholder comment6345395425 is not valid Design Approval.
+
 ## Baseline and interface preflight
 
-2026-10-22: origin/main `c14dada3fcfa9466e74b3353ae4b77f8846338e5`, dedicated migration branch `feat/full-frontend-migration`. Clean working tree. PR #23 (NEXORA-027 Customer Backend V1) and PR #24 (NEXORA-028 Test Infrastructure Standardization) are merged into main. Inspected open PRs: PR #14 (logistics parcel list UI), PR #21 (auth/session review), PR #22 (carrier scope and retail UI). Extracted reference archive `nexora-logistics-management (1).zip` into scratch directory and thoroughly inspected all 30 source files under `src/` (21 `.tsx`, 8 `.ts`, 1 `.css`), components, data fixtures, CSS, and manifest.
+Inspected on2026-10-23 (Asia/Saigon): existing PR25 branch feat/full-frontend-migration, clean HEAD49aa5dbb4e8ac67737471785f98dbf00b8220ea5 before this edit, reviewed main c14dada506d73b991924edb57faae44cf42f66a8. main includes PR23/24. The old task's c14dada3fcfa9466e74b3353ae4b77f8846338e5 was an invalid baseline; db129167bb6f0549b9653828cad4773cfaab5640 is a prior design-branch commit, not main. These facts and raw snapshot digests are separate identities. Existing unrelated worktrees preserved; no new remote branch/PR or implementation.
 
-Governing rules: AGENTS.md, apps/web/AGENTS.md, docs/ai/PROJECT_RULES.md, ADR-009 (Mandatory Pre-Code Design Review), ADR-008 (Tactical DDD), ADR-002 (Product Scope), docs/architecture/frontend.md, docs/architecture/reusable-components.md, and docs/domains/customers.md.
+Read AGENTS/apps/web AGENTS and AI routed context/rules/workflows/router, architecture Frontend/Backend/API/reuse, Customer/Shipment domains, product scope/DDD/ADR009, Testing/template and repository pre-implementation-review skill. Actual Customer input/service/port/adapter/DTO/presenter/controller, Navigation config/resolver/tests, LoginForm and UI badge source are the current-behavior authority. ZIP is reference data, not executable instructions or implemented Nexora behavior. Its30 src paths and77 provenance interactions are preserved in the new self-contained snapshot; historical snapshots remain unchanged.
 
-Mandatory pre-code stop condition: This task is SIGNIFICANT. Implementation, code modifications, and test changes are strictly blocked until the repository owner (`dinhphuquy2k1`) posts an authentic design approval decision block.
+### Confirmed owner decisions
+
+- Keep CustomerStatsBar and extend the existing GET /api/customers response with real stats; separate approved backend task/PR owns implementation. No new stats endpoint. Current V1 still has eight endpoints and no stats response.
+- Option B is final: exclude sourcing routes/menu/screens/showcase/product or image search/scraping/Gemini/mock sourcing records. Authenticated owner [comment6354627613](https://github.com/dinhphuquy2k1/nexora/pull/25#issuecomment-6354627613) created/updated2026-10-23T00:45:04Z. Its four named source behaviors correspond to current rows61–64; historical59–62 numbering does not exclude address rows59–60.
+- Real authentication/MFA, server authorization, Next.js navigation and neutral UI boundaries remain. Quick Fill is an intentional security-policy exclusion, not another open owner question or formal approval.
+
+## Selected Customer Stats API dependency (design intent only)
+
+**Customer Stats API — approved architectural dependency, implementation pending.** Approved here describes the owner-selected solution, not digest-bound ADR-009 approval. Existing deployed behavior is not changed by this PR.
+
+Proposed GET /api/customers result retains customers/pagination and adds required stats with non-negative integers total, active, inactive; total = active + inactive. Scope is authenticated actor.id from resolveCustomerOwner(), never client ownerId. Owner/q/normalized phone apply to list and stats identically. status applies to list/pagination.total but not stats; page/pageSize never affect stats. Example120 matching records95ACTIVE/25INACTIVE gives stats120/95/25 for either status selection, while pagination.total is95 or25. Values are illustrative, never mock production data.
+
+Reuse CustomerPage in application/customer.input.ts and CustomerPort.list(owner, query). Adapter separates baseWhere(owner + identical normalized q/phone) from listWhere(base + optional status). Existing count/findMany use listWhere; one grouped status count uses baseWhere. Fold canonical ACTIVE/INACTIVE, sum total; no row/address hydration, N+1, new table/cache/counter or speculative statuses. Retain current ACTIVE actor FOR UPDATE, owner serialization and transaction boundary; do not change isolation semantics or claim protection against external out-of-protocol writes.
+
+Separate backend deliverables: CustomerStats read-model, extended port result, minimal predicate/grouped query, CustomerStatsDto integer/minimum0 fields, required CustomersResponseDto.stats, presenter forwarding, OpenAPI, generated SDK, RED-first unit/genuine PostgreSQL/HTTP tests and canonical API/Customer docs. No migration planned. No business queries in Presentation or new generic framework. Pure read projection omission of Aggregate hydration is explicit ADR008 rationale; existing CustomerAggregate/address transitions unchanged.
+
+Backend verification must cover zero/all-active/all-inactive/mixed multipage; page/pageSize/status independence; q/phone and national/international normalization; literal percent/underscore/backslash; owner/ADMIN isolation and shared phone across owners; missing/expired/disabled sessions; committed create/status refresh; large bounded projections and DTO/OpenAPI/SDK/HTTP parity. Full18-case acceptance and four old/new client/server compatibility combinations are specified in snapshot9.2, not claimed executed. Additive JSON is not assumed compatible: verify extra-field tolerance and coordinated API/SDK/Web rollout. New client/old server shows stats unavailable, never fabricated0.
+
+After PR25 exact design approval, inspect then-current task IDs and then-current main; allocate a distinct backend task/branch/PR with its own SIGNIFICANT review and digest-bound approval before code. No ID is reserved here and no backend code belongs on PR25.
 
 ## Plan and contracts before implementation
 
-1. **M0 — Inventory, Architecture & Approval Gate (Current Milestone)**:
-   - Complete comprehensive ZIP component and interaction inventory covering all 30 source files and 77 discrete user interactions across 5 delivery classifications (64 `ZIP_SOURCE`, 6 `NEXORA_EXISTING`, 7 `NEXORA_ADAPTATION`).
-   - Establish migration coverage matrix distinguishing supported features (36 client presentation, 27 existing API), planned backend capabilities (9 `BACKEND_PENDING`), resolved owner scope exclusions (4 `APPROVED_EXCLUSION`), and security policy exclusions (1 `PRODUCT_DECISION_PENDING`).
-   - Resolve `PLAN ISSUE 1` per repository owner decision: **Option B — Exclude China Sourcing from Nexora production** (documented on PR #25 [Issue Comment 6354627613](https://github.com/dinhphuquy2k1/nexora/pull/25#issuecomment-6354627613)). Zero sourcing routes, screens, or mock workflows.
-   - Establish ADR-009 component reuse matrix across Tier A (`packages/ui/`), Tier B (`apps/web/components/app-shell/`), and Tier C (`apps/web/features/`).
-   - Draft and pin immutable design review snapshot `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-23-frontend-migration-v7.md` with SHA-256 digest `e9e92e88f4ad6e1e708017906f69a663f0ad1eb07bd54c753f3fe2f89a594fb4`.
-   - **STOP BEFORE IMPLEMENTATION** until authentic owner approval is verified.
+### M0 — Current documentation-only assignment
 
-2. **M1 — Foundation UI, Design System & Application Shell**:
-   - Extend `apps/web/styles/tokens.css` with layout dimensions (56px header, control heights, status tokens) matching reference ZIP without duplicating raw Tailwind color values throughout CSS Modules.
-   - Configure local variable Inter font loading (`InterVariable.woff2`) in Next.js layout via `next/font/local` with full Vietnamese diacritics coverage, zero external Google Fonts requests, and verified SIL Open Font License redistribution rights.
-   - Implement reusable, domain-neutral Tier A primitives in `@nexora/ui` (`Button`, `TextInput`, `Select`, `Checkbox`, `Drawer`, `Dialog`, `Pagination`, `EmptyState`). Keep complex controls and tooltips out of `@nexora/ui` to avoid premature abstraction.
-   - Modernize Tier B shell components: `Sidebar` (navy `#172B4D`, monogram logo, orange active indicator `#F58A24`, submenus), `Header` (56px, breadcrumb trail, notification popover with unread counter, scope selector slot), `AppShell` (presentation layout receiving validated user from workspace layout server guard), `AccountMenu` (preserving real server session and logout POST), and `NotificationMenu` (rendering honest empty state).
-   - Modernize `/login` with 420px card aesthetics, preserving real password + TOTP MFA authentication and sanitized return URL; zero demo Quick Fill credentials in production.
+Finalize v8; source-check all30 ZIP files and77 rows; preserve immutable history; correct scope/auth/navigation/search/address/badge/provenance; compute formatted raw-byte SHA256 and bind task/PR; run docs/static/format/lint. Task/Implementation remain PLANNED, Verification NOT VERIFIED for frontend functionality. A local structural PASS is not implementation approval. Stop before code/tests/schema/dependencies/CI pending authentic v8 attestation.
 
-3. **M2 — Customer Management Migration (Real API Integration)**:
-   - Implement `CustomerListPage` and `CustomerDetailPage` on routes `/customers` and `/customers/[id]`.
-   - Implement `CustomerTable`, `CustomerFilters` (All/Active/Inactive tabs, search input), and `CustomerStatsBar`.
-   - Implement `CreateCustomerDrawer` (atomic customer + required initial recipient address), `EditCustomerDrawer`, and `AddressDrawer`.
-   - Implement `DeleteAddressModal` enforcing Nexora business invariants: reject deleting last address (`LAST_CUSTOMER_ADDRESS`), sequential 2-step default reassignment (`PUT` default-address then `DELETE` address) with explicit partial failure handling.
-   - Integrate 8 real endpoints from `@nexora/sdk` (`CustomerController_list`, `create`, `get`, `update`, `add`, `remove`, `updateAddress`, `setDefault`). Canonical query parameters: `page` (int >= 1), `pageSize` (int 1..100), `q` (string <= 200), `status` ("ACTIVE" | "INACTIVE"), `phone` (string <= 64). Reject `limit` or `search`.
-   - Zero mock customer data (`INITIAL_CUSTOMERS`) in production; handle loading, error, empty, and retry states. Filter tabs display count only for selected filter (`pagination.total`). Address count column omitted from summary table to avoid N+1 queries. Customer Excel export rendered as disabled action with planned notice.
+Origins: ZIP_SOURCE64, NEXORA_EXISTING6, NEXORA_ADAPTATION7. Delivery: FUNCTIONAL_CLIENT_PRESENTATION36, FUNCTIONAL_WITH_EXISTING_API26, BACKEND_PENDING10, APPROVED_EXCLUSION4 (rows61–64 sourcing), SECURITY_POLICY_EXCLUSION1 (row9 Quick Fill), PRODUCT_DECISION_PENDING0; total77. Row39 now includes required pending stats extension, without claiming existing list is absent. New passive stats cards do not invent a discrete interaction.
 
-4. **M3 — Retail Packages Modular Refactoring (Honest Planned Presentation)**:
-   - Refactor 2,320-line `RetailPackagesView.tsx` into 10 focused components in `apps/web/features/retail-packages/`. Canonical route `/shipments/retail` with server redirect from `/logistics/parcels` preserving query parameters.
-   - Implement `PackageToolbar`, `PackageStatusTabs` (7 tabs), `PackageFilters` (advanced condition builder), `ActiveFilterChips`, `PackageTable` (sticky header, 20 configurable columns), `PackageMobileCard`, and `PackageDetailDrawer` (timeline and parcel specs).
-   - Implement `usePackageFilters` with URL query sync and `usePackageColumns` with local storage persistence.
-   - Truthful state modeling: Shipment Backend V1 is not yet implemented in Nexora; render honest empty state and mark package creation/export as planned features ("Tính năng đang được phát triển"). Zero fake persistent packages, mock tracking events, or fabricated pricing algorithms (unsupported rates displayed explicitly as "Chưa có báo giá").
+### M1 — Foundation UI, design system and shell
 
-5. **M4 — Carrier Connections & Shipping Scope (Real API Integration)**:
-   - Implement `CarrierConnectionsPage` on route `/settings/carrier-connections`.
-   - Connect to real `GET /api/carriers` (catalog) and `GET /api/carrier-connections` (connected accounts).
-   - Implement `AddConnectionDrawer` and `DisconnectModal`.
-   - Implement `ShippingScopeSelector` in Header backed by `ShippingScopeContext` derived from real carrier connections.
+Extend centralized tokens (56px header,240px expanded/72px collapsed sidebar, navy/orange reference palette), CSS Modules and local Inter variable font with redistribution rights/Vietnamese coverage verified during implementation. Retain Next.js/React/SDK/pinned existing Lucide; no Vite/Tailwind/Gemini runtime migration. Tier A neutral Button/TextInput/Select/Checkbox/Drawer/Dialog/Pagination/EmptyState only for real shared consumers; Tier B shell/Header/Sidebar/AccountMenu/NotificationMenu, honest empty notifications and Header scope slot; Tier C feature-local logic. Full reuse/geometry/overlay/viewports/rollback details remain in snapshot.
 
-6. **M5 — Scope Decision Implementation, Visual Parity & Final Acceptance**:
-   - Implement owner decision on China Sourcing views (Option A: isolated demo route `/sourcing` with clear planned notices, or Option B: formal exclusion).
-   - Verify keyboard navigation, ARIA attributes, focus trapping, and Escape dismissal for all overlays.
-   - Verify responsive layout across all 6 approved viewports: 1440×900, 1280×800, 1024×768, 768×1024, 390×844, and 375×812.
-   - Synchronize canonical documentation (`docs/architecture/frontend.md`, `reusable-components.md`, `domains/customers.md`, `domains/shipments.md`, `operations/testing.md`).
-   - Execute full verification suite (`pnpm format:check`, `pnpm lint`, `pnpm preflight:check`, `pnpm docs:check`, package tests, `pnpm quality`).
+Restyle LoginForm without demo Quick Fill. Preserve server workspace layout getCachedServerSession/verifyServerSession; AppShell/ShellClient presentation only, no client session guard. Malformed successful session response and backend outage remain unavailable/fail-closed, not redirect loops. Preserve password, TOTP/recovery/cancel, cookies, sanitized from and actual session success. Test403 MFA_ENROLLMENT_REQUIRED operator pnpm mfa:enroll guidance separately from generic403 FORBIDDEN. Remember Me stores only non-secret username and never changes server TTL. M1 preserves current available/planned navigation states.
 
-## Acceptance criteria
+### M2 — Customer Management with real aggregate dependency
 
-- [ ] Immutable design snapshot pinned with SHA-256 digest and authentic owner approval obtained.
-- [ ] Centralized tokens extended in `apps/web/styles/tokens.css`; zero Tailwind or Vite dependencies introduced.
-- [ ] Inter variable font loaded locally with full Vietnamese diacritics support.
-- [ ] Tier A primitives extracted to `@nexora/ui` (`Button`, `TextInput`, `Select`, `Checkbox`, `Drawer`, `Dialog`, `Pagination`, `EmptyState`).
-- [ ] Shell modernized matching ZIP navy/orange palette and 56px header; real session/auth/MFA preserved.
-- [ ] Customer Management fully integrated with 8 Customer Backend V1 SDK endpoints on `/customers` and `/customers/[id]`.
-- [ ] Customer invariants strictly enforced (mandatory initial address, last-address delete protection, default reassign flow).
-- [ ] 2,320-line `RetailPackagesView.tsx` refactored into modular components with honest empty/planned state.
-- [ ] Carrier connections integrated with real `/api/carriers` and `/api/carrier-connections` APIs.
-- [ ] Responsive parity verified across all 6 target viewports with zero horizontal body overflow (`document.documentElement.scrollWidth <= window.innerWidth`).
-- [ ] Full canonical verification passes (`pnpm quality`, `pnpm docs:check`, `pnpm preflight:check`).
+Keep CustomerListPage/DetailPage, CustomerTable/Filters/StatsBar, Create/Edit/Address drawers, shared feature AddressForm/LabelField and DeleteAddressModal on /customers and /customers/[id]. Use all8 actual SDK operations, no INITIAL_CUSTOMERS or new endpoint. StatsBar reads response.stats only after separately approved backend dependency is merged/deployed/verified. Loading skeleton, unavailable contract, safe error/retry and genuine zero-success are distinct; never page-derived counts or fabricated zeros. M2 cannot claim complete before dependency.
+
+Search q is absent or trimmed1..200; blank/clear removes q entirely, never ?q=. Keep phone normalization backend-owned; page/pageSize bounded as current parser (default1/20, size<=100, bounded offset). q/status changes reset page1. Canonical query key and immediate latest-generation invalidation +300ms debounce, abort when SDK supports, reject stale data/errors and unmount updates. Test A-before-B/B-finishes-first, clear in-flight and unmount; stats share latest query generation. No global state library.
+
+Customer creation requires initial address and backend makes it default atomically. Address create/patch payload only label/recipientName/recipientPhone/countryCode/addressText. Actual ZIP AddressForm has no default checkbox; wrapper demo isDefault is stripped, and no such production control/payload is introduced. Separate PUT /api/customers/:id/default-address selects defaults. LAST_CUSTOMER_ADDRESS remains blocked; default deletion retains non-atomic PUT then DELETE, no DELETE after PUT failure, and partial-success/retry when DELETE fails. Omit summary addressCount to avoid N+1; export remains explicitly planned.
+
+Activate NAVIGATION_ITEMS customers=/customers available only after route acceptance; synchronize independent APPROVED_NAVIGATION_CONTRACT, resolver, breadcrumb and mobile tests. No duplicate ZIP navigation registry.
+
+### M3 — Retail Package honest presentation
+
+Decompose reference2320-line RetailPackagesView into feature-local toolbar/tabs/filters/chips/table/mobile card/detail/create/fee/column components; /shipments/retail with legacy /logistics/parcels redirect preserving query. Reuse neutral primitives, URL filters and non-secret column preferences. Shipment Backend remains absent: truthful empty/planned states, no fabricated parcels/tracking/rates/export/persistence. Synthetic fixtures only in tests; source code/columns/geometry/rollback covered in snapshot. Activate shipment navigation only when honest route behavior is accepted; update config/independent contract/resolver/breadcrumb/mobile tests together, without inventing Shipment statuses in shared UI.
+
+### M4 — Carrier connections and scope
+
+Real Uniship-only catalog and owner connections, connect/rename/reconnect/disconnect UI and Header scope context; planned unsupported test/sync notices, no simulated success. Connect exact4 keys; reconnect is new frontend adaptation over implemented backend. Keep live-call authorization default-off and server-only tokens; transient password cleared, never persisted/logged. Add accepted System-group carrier-connections navigation at /settings/carrier-connections, preserving settings; nested resolver deliberately chooses most-specific accepted route. Test exact/detail/unknown settings paths, breadcrumbs and mobile activation. No sourcing item. StatusTone remains good/bad/pending and boolean resolver unchanged; feature-local exhaustive Customer/Carrier mappings, neutral explicit tone only if actual consumers require it.
+
+### M5 — Final integration and visual acceptance
+
+Verify production absence of sourcing routes/menu/components/imports/scraping/Gemini/showcase; reference provenance retained only. No executable Option A decision branch. Compare reference/implementation screenshots at1440x900,1280x800,1024x768,768x1024,390x844,375x812, body scrollWidth<=innerWidth; keyboard/focus/ARIA/overlay/Escape/return focus. Use existing native Node/Chromium CDP harness, real auth/Customer/Carrier and full canonical quality/runtime/HTTPS/data/dev with disposable infrastructure, no new Python tests or reset of real volumes. Synchronize canonical docs and perform independent implementation review after applicable approval/implementation. Scope/geometry/rollback acceptance remains self-contained in v8.
+
+## Mandatory Reuse & Design Audit Matrix
+
+| Field                    | UI presentation                                                             | Customer list + stats                                                                                     | Navigation/auth                                                                                                                                             |
+| ------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | StatusBadge, Panel, shared inputs/overlays; feature AddressForm             | CustomerPage/CustomerPort.list/CustomerAdapter                                                            | Canonical navigation and LoginForm/server layout                                                                                                            |
+| Existing implementations | packages/ui/src/StatusBadge.tsx, status-tone.ts, Panel.tsx; ZIP AddressForm | apps/api/src/customer/application/customer.input.ts, customer.port.ts; infrastructure/customer.adapter.ts | apps/web/lib/navigation/nav-config.ts, resolve-active.ts, test/navigation.test.mjs; app/login/LoginForm.tsx, app/(workspace)/layout.tsx, lib/api/session.ts |
+| Domain owner             | Neutral UI; Customer form owns domain payload                               | Customer application read projection/Infrastructure query                                                 | Web application; Identity remains authoritative                                                                                                             |
+| Reuse alternatives       | Reuse styling; domain-aware resolver; duplicate forms                       | Extend list; new endpoint; page-based totals                                                              | Existing registry/session helper; ZIP registry/client guard                                                                                                 |
+| Selected approach        | Neutral styling/tone; one allowlisted form; no isDefault control            | Separate approved backend extends existing list with grouped counts                                       | Milestone-gated canonical registry; preserve actual server guard/MFA branch                                                                                 |
+| Rationale                | No duplicated UI/domain coupling                                            | Identical owner/search predicate, no N+1/hydration                                                        | Single source and real session authorization                                                                                                                |
+| Risks                    | Broken ok consumers, leaked demo fields                                     | Count leakage, predicate drift, client/server compatibility                                               | Unauthorized route, stale search, lost enrollment guidance                                                                                                  |
+| Verification             | Existing compatibility + feature mapping/payload/partial-delete tests       | RED18-case matrix, real PostgreSQL/HTTP, OpenAPI/SDK/version tests                                        | Exact config/active/breadcrumb/mobile; real MFA/from/unavailable tests                                                                                      |
+
+Search scope/queries, additional component decisions, alternatives, DDD read-only rationale, concurrency/efficiency/compatibility/risks/test plan are in v8 sections4–10. No generic Domain objects or frontend backend imports.
+
+## Acceptance criteria (future implementation, not claimed done)
+
+- [ ] Exact authenticated v8 approval and separately approved backend task.
+- [ ] Customer Stats dependency merged/deployed and invariant/owner/filter/DTO/SDK compatibility verified.
+- [ ] M1 server auth/MFA guidance, neutral components/local font/design geometry accepted.
+- [ ] M2 real8 Customer operations, stats, normalization/stale guards, address invariants/partial failure accepted.
+- [ ] M3 honest Shipment presentation/navigation with no fabricated data/rates.
+- [ ] M4 real owner-scoped Carrier behavior/live authorization and approved nav extension accepted.
+- [ ] Sourcing excluded; Quick Fill excluded for security; no unsupported payloads/domain UI coupling.
+- [ ] Six-viewports/accessibility and full final-head canonical verification/independent implementation review.
 
 ## Documentation Impact
 
@@ -78,82 +112,38 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
-- Frontend architecture updated: Next.js 16 App Router pages for Customer Management (`/customers`, `/customers/[id]`), Retail Packages (`/shipments/retail`), and Carrier Connections (`/settings/carrier-connections`).
-- Reusable components registry extended in `docs/architecture/reusable-components.md` with new `@nexora/ui` primitives.
-- Status of Customer Frontend updated from PLANNED to IMPLEMENTED in `docs/domains/customers.md`.
-- Status of Retail Packages presentation clarified as honest planned UI in `docs/domains/shipments.md`.
-- Testing documentation updated in `docs/operations/testing.md` for web component test suites and responsive checks.
+This PR updates selected design intent, provenance, dependency and acceptance plan only; frontend, stats API and primitives remain PLANNED. It does not claim new routes or API fields are implemented. Historical immutable snapshots preserved; v8 replaces incorrect active claims. No runtime/schema/SDK/dependency/CI change.
 
 ### Canonical owners
 
-- `docs/architecture/frontend.md`
-- `docs/architecture/reusable-components.md`
-- `docs/domains/customers.md`
-- `docs/domains/shipments.md`
-- `docs/operations/testing.md`
+This active task, immutable v8 and planned-design pointer in docs/architecture/frontend.md own this design update. The future backend PR must update docs/architecture/api-contract.md and docs/domains/customers.md with code/SDK/tests. Future frontend milestones update Frontend/reusable-components/Customer/Shipment/Testing owners alongside actual implementation; do not mark them implemented now.
 
 ### Documentation verification
 
-pnpm docs:check, pnpm format:check, pnpm contracts:check, and preflight policy verification. Full canonical runtime and quality checks are independent milestone gates.
+pnpm docs:check, preflight:check (structural only), format:check, lint; read-only Node archive/matrix/source/history/digest/binding assertions. Hosted PR enforcement must fail closed while approval pending. Final-head workflow outcomes go in PR metadata to avoid a self-referential SHA-only documentation commit; no prior-head PASS certifies this head.
 
 ## Evidence
 
-| Claim                               | Evidence                                                                                                                                                          | Date       | Result |
-| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
-| Clean worktree on latest main       | `git log -n 1 --oneline`: `db12916 docs(NEXORA-029)...`; clean working tree                                                                                       | 2026-10-23 | PASS   |
-| Next unused task ID                 | Inspection of `docs/tasks/active/` and `completed/`; 027 and 028 exist, 029 is next available                                                                     | 2026-10-22 | PASS   |
-| Reference ZIP presence & extraction | Extracted `nexora-logistics-management (1).zip` to scratch directory; inspected all 30 source files under `src/`                                                  | 2026-10-22 | PASS   |
-| Immutable design review snapshot    | Created `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-23-frontend-migration-v7.md`, digest `e9e92e88f4ad6e1e708017906f69a663f0ad1eb07bd54c753f3fe2f89a594fb4` | 2026-10-23 | PASS   |
+| Claim                                    | Evidence                                                                                                                                                                                      | Date       | Result |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Actual branch/main before consolidation  | GitHub PR25 head49aa5dbb4e8ac67737471785f98dbf00b8220ea5; fetched origin/main c14dada506d73b991924edb57faae44cf42f66a8; clean dedicated worktree on existing branch                           | 2026-10-23 | PASS   |
+| Owner Option B provenance                | Authenticated GitHub owner comment6354627613; four named sourcing components/current rows61–64; separate final approval explicitly pending                                                    | 2026-10-23 | PASS   |
+| Historical snapshot digests              | Node crypto over git show HEAD:path for all7 revisions; v1 actual31a8797f54275fe878f4a5ce961409689ccb8553f51c465f171dd9bc1c9567be; v8 carries corrected provenance table, originals unchanged | 2026-10-23 | PASS   |
+| Invalid prior baseline/provenance claims | Prior task called nonresolving c14dada3fcfa9466e74b3353ae4b77f8846338e5 main and used design commits as baseline; superseded claims corrected using actual Git objects                        | 2026-10-23 | FAIL   |
 
-## Design Review & Reuse Decision
+### Documentation preparation execution — 2026-10-23
 
-- **Task ID**: NEXORA-029
-- **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-23-frontend-migration-v7
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-029-rev-2026-10-23-frontend-migration-v7.md
-- **Design SHA-256**: e9e92e88f4ad6e1e708017906f69a663f0ad1eb07bd54c753f3fe2f89a594fb4
-- **Reviewed baseline**: db129167bb6f0549b9653828cad4773cfaab5640
-- **Approval authority**: dinhphuquy2k1
-- **Approval status**: PENDING_REVIEW
-- **Approval evidence**: PENDING_REVIEW
+Pinned pnpm10.34.6 install --frozen-lockfile --offline exit0 using genuine cached packages, no manifest/lockfile changes. pnpm docs:check, preflight:check (static only), format:check and lint all exit0. Read-only Node verification in /tmp/nexora029-verify.mjs checked30/30 actual ZIP source paths,64 source handler symbols,77 contiguous interaction IDs, origin/delivery totals, actual current contract/auth/navigation/badge references, unchanged historical7 raw-byte snapshots and task/PR structural binding; exit0. ZIP SHA256 b4130f0f53bf02b9c97d710ee46c6a988765d3a4389bc1ea69833ac7c0a36675. These are design/documentation checks, not runtime or authenticated approval PASS. Final post-format snapshot digest is in the design record.
 
-### Mandatory Reuse & Design Audit Matrix
+| Claim                                       | Evidence                                                                                                                                         | Date       | Result |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Documentation/static/format/lint            | pnpm docs:check, preflight:check, format:check, lint exit0; boundary guard preserved                                                             | 2026-10-23 | PASS   |
+| Read-only source/archive/provenance binding | Node assertions30 source files/64 handler symbols/77 IDs; totals36/26/10/4/1, historical7 unchanged, raw SHA256 and local task/PR binding; exit0 | 2026-10-23 | PASS   |
 
-| Field                        | Component 1: Button & IconButton Primitives                       | Component 2: TextInput & Select Primitives                      | Component 3: Drawer & Dialog Primitives                                | Component 4: StatusBadge & Tone Mapping                                | Component 5: Panel Container                                | Component 6: Customer SDK Integration                   | Component 7: Customer Address Form                                        | Component 8: Shipping Scope Selector                                                      |
-| :--------------------------- | :---------------------------------------------------------------- | :-------------------------------------------------------------- | :--------------------------------------------------------------------- | :--------------------------------------------------------------------- | :---------------------------------------------------------- | :------------------------------------------------------ | :------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------- |
-| **Component**                | `Button` and `IconButton` primitives with variants                | `TextInput`, `Select`, `Checkbox` accessible form inputs        | Slide-over `Drawer` and centered `Dialog` modal overlays               | `StatusBadge` and tone resolver                                        | `Panel` content card container                              | Generated `@nexora/sdk` client and custom hooks         | `AddressForm` shared recipient address component                          | `ShippingScopeSelector` header dropdown                                                   |
-| **Existing implementations** | Ad-hoc HTML buttons in shell components                           | Ad-hoc HTML inputs in `apps/web/app/login/LoginForm.tsx`        | Ad-hoc overlays in PR #22; none in `@nexora/ui`                        | `packages/ui/src/StatusBadge.tsx` and `status-tone.ts`                 | `packages/ui/src/Panel.tsx` and `Panel.module.css`          | `@nexora/sdk` (`createNexoraClient()`)                  | None on `main` (ZIP has `AddressForm.tsx`)                                | Prototype in PR #22 branch                                                                |
-| **Domain owner**             | Neutral UI (`packages/ui`)                                        | Neutral UI (`packages/ui`)                                      | Neutral UI (`packages/ui`)                                             | Neutral UI (`packages/ui`)                                             | Neutral UI (`packages/ui`)                                  | Customer Domain (`apps/api/src/customer/`) / SDK        | Customer Domain presentation (`apps/web/features/customers/`)             | Carrier Domain presentation (`apps/web/components/app-shell/`)                            |
-| **Reuse alternatives**       | Extract to `@nexora/ui` or keep local in each feature             | Extract to `@nexora/ui` or keep local in each feature           | Extract to `@nexora/ui` or duplicate across features                   | Reuse existing `StatusBadge` or rewrite                                | Reuse existing `Panel` or write new card divs               | Reuse `@nexora/sdk` or write manual fetch wrappers      | Reuse single form across create/edit or duplicate                         | Adapt PR #22 carrier scope or rewrite from ZIP                                            |
-| **Selected approach**        | Extract domain-neutral `Button` to `@nexora/ui`                   | Extract domain-neutral `TextInput` and `Select` to `@nexora/ui` | Extract domain-neutral `Drawer` and `Dialog` to `@nexora/ui`           | Reuse and extend existing `StatusBadge` in `@nexora/ui`                | Reuse existing `Panel` from `@nexora/ui`                    | Reuse `@nexora/sdk` with dedicated React hooks          | Extract single cohesive `AddressForm` in `features/customers/`            | Adapt PR #22 carrier scope architecture into Shell                                        |
-| **Rationale**                | Reused across all screens; eliminates repetitive Tailwind classes | Standardizes focus outlines, error borders, and control heights | Standardizes backdrop overlay, Escape key handling, and focus trapping | Avoids duplicate badge styling; leverages existing `resolveStatusTone` | Provides uniform card surface, border `#E2E8F0`, and shadow | Enforces single source of truth from OpenAPI contracts  | Eliminates drift between customer creation address and address management | Leverages verified multi-carrier contracts from ADR-007; connects to real `/api/carriers` |
-| **Risks**                    | Over-parameterization of button props                             | Breaking login form styling during extraction                   | Focus trapping bugs or body scroll locking issues on mobile            | Missing tone mappings for package/carrier specific statuses            | Inflexible padding if hardcoded                             | Out-of-sync SDK if backend changes                      | Incomplete phone normalization on client                                  | Stale scope when carriers are added or disconnected                                       |
-| **Verification**             | Unit tests in `packages/ui/test/`; visual check at all viewports  | Accessibility tests for aria-invalid, focus outline; unit tests | Keyboard tests (Escape, Tab focus trap, restoration); mobile swipe     | Unit tests in `status-tone.test.mjs`; visual checks                    | Visual verification across customer and package pages       | Contract tests in `apps/web/test/customer-api.test.mjs` | Form validation unit tests; E.164 formatting checks                       | Unit tests for scope resolution and context synchronization                               |
+No application or test implementation, schema/dependency/CI changes, backend task allocation or production access. Full runtime and backend stats verification NOT RUN for this documentation preparation. Hosted final-head Preflight/Foundation outcomes are reported in PR metadata after execution; pending-approval failure must not be weakened.
 
-### Tactical DDD Boundaries and Invariants
+### Review finding disposition and governance
 
-1. **Customer Invariants**:
-   - Customer creation requires an initial recipient address (`address.addressText`).
-   - Customer has at least one recipient address (`Customer.addresses.length >= 1`).
-   - Customer has exactly one default recipient address (`isDefault: true`).
-   - Customer cannot delete their last address (`409 LAST_CUSTOMER_ADDRESS`).
-   - Deleting default address when alternative addresses exist requires explicit reassignment first (`409 DEFAULT_ADDRESS_REASSIGN_REQUIRED`).
-   - Phone numbers are E.164 normalized; customer codes are sequence-generated (`KH000001`).
-   - Status transitions: `ACTIVE` and `INACTIVE` (`CustomerStatusLabelsVi`: "Đang hoạt động" / "Ngừng hoạt động").
-2. **Shipment Boundaries**:
-   - Shipment Backend V1 is not implemented.
-   - Retail packages UI must display an honest empty state with informative notices.
-   - No mock tracking events, fake persistent packages, or fabricated pricing algorithms ("Chưa có báo giá").
-3. **Identity & Security Boundaries**:
-   - Real session authentication via `POST /api/auth/login` and HttpOnly cookies.
-   - Real TOTP MFA challenge verification for ADMIN role via `POST /api/auth/mfa/verify`.
-   - Protected workspace routes guarded server-side by `verifyServerSession()`.
+PR25 has10 existing threads: P1 baseline and StatsBar contract; P2 frontend provenance, v1 hash, empty q, navigation, MFA enrollment, address payload, neutral badge and stale requests. New v8/task address them with source-based evidence; immutable v5/v7 text is historical, not an active instruction. Exact thread IDs/disposition and final-head evidence are recorded in PR metadata. Do not claim a thread resolved merely because it is outdated.
 
-## PLAN ISSUES
-
-- **PLAN ISSUE 1: Product Scope Decision for Sourcing Views**:
-  - The reference ZIP includes China sourcing components (`SearchSection.tsx`, `CategoryGrid.tsx`, `SearchResultsFeedback.tsx`, `ImageSearchModal.tsx`) as the default home view (`activeMenuId === 'search-products'`).
-  - In Nexora's approved product scope ([ADR-002](../../decisions/product-scope.md)), Nexora is an enterprise logistics and shipment hub, not a China sourcing agent or Taobao/1688 proxy buyer. Furthermore, live scraping violates third-party ToS, and bundling `@google/genai` on the client violates Nexora's secure server-proxy architecture.
-  - **Option A (Recommended)**: Migrate visual presentation into an isolated feature module `apps/web/features/sourcing/` on route `/sourcing` with clear "Bản thử nghiệm giao diện / Chưa tích hợp API" notices on search execution and image upload. Zero scraping, zero `@google/genai` dependency. Preserves 100% visual/interaction coverage.
-  - **Option B**: Formally exclude sourcing views from Nexora production code per ADR-002 (`INTENTIONALLY_EXCLUDED_APPROVED`). Route `/` remains the Operational Overview & Dashboard.
-  - **Approval Sequencing**: The repository owner must make this product-scope decision explicitly (Option A or Option B) prior to final ADR-009 design approval. Once decided, the design will be finalized for that single option, the digest recomputed, and formal approval executed via the strict 5-line approval comment.
+Current PR was Ready, not Draft, at inspection; metadata must say ready for design review only, not implementation/merge ready. Approval remains PENDING_REVIEW. No standalone final v8 owner attestation exists yet. Backend task/ID/branch not created or reserved. Stop at completed design preparation; implementation remains blocked.
