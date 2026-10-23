@@ -98,7 +98,13 @@ export class CustomerPaginationDto {
   @ApiProperty() total!: number;
   @ApiProperty() totalPages!: number;
 }
+export class CustomerStatsDto {
+  @ApiProperty({ type: "integer", minimum: 0 }) total!: number;
+  @ApiProperty({ type: "integer", minimum: 0 }) active!: number;
+  @ApiProperty({ type: "integer", minimum: 0 }) inactive!: number;
+}
 export class CustomersResponseDto {
+  @ApiProperty({ type: CustomerStatsDto }) stats!: CustomerStatsDto;
   @ApiProperty({ type: [CustomerSummaryDto] }) customers!: CustomerSummaryDto[];
   @ApiProperty({ type: CustomerPaginationDto })
   pagination!: CustomerPaginationDto;
