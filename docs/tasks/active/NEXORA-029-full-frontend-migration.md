@@ -16,7 +16,7 @@ Documentation Impact: REQUIRED
 - **Reviewed baseline**: c14dada506d73b991924edb57faae44cf42f66a8
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: APPROVED
-- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/25#issuecomment-6355371808
+- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/25#issuecomment-6356392948
 
 ## Baseline and interface preflight
 
@@ -48,7 +48,7 @@ After PR25 exact design approval, inspect then-current task IDs and then-current
 
 ### M0 — Current documentation-only assignment
 
-Finalize v8; source-check all30 ZIP files and77 rows; preserve immutable history; correct scope/auth/navigation/search/address/badge/provenance; compute formatted raw-byte SHA256 and bind task/PR; run docs/static/format/lint. Task/Implementation remain PLANNED, Verification NOT VERIFIED for frontend functionality. A local structural PASS is not implementation approval. Authentic v8 attestation is recorded via owner comment6355371808; this metadata correction does not start code/tests/schema/dependencies/CI implementation.
+Finalize v8; source-check all30 ZIP files and77 rows; preserve immutable history; correct scope/auth/navigation/search/address/badge/provenance; compute formatted raw-byte SHA256 and bind task/PR; run docs/static/format/lint. Task/Implementation remain PLANNED, Verification NOT VERIFIED for frontend functionality. A local structural PASS is not implementation approval. Authentic v8 attestation is recorded via owner comment6356392948; this metadata correction does not start code/tests/schema/dependencies/CI implementation.
 
 Origins: ZIP_SOURCE64, NEXORA_EXISTING6, NEXORA_ADAPTATION7. Delivery: FUNCTIONAL_CLIENT_PRESENTATION36, FUNCTIONAL_WITH_EXISTING_API26, BACKEND_PENDING10, APPROVED_EXCLUSION4 (rows61–64 sourcing), SECURITY_POLICY_EXCLUSION1 (row9 Quick Fill), PRODUCT_DECISION_PENDING0; total77. Row39 now includes required pending stats extension, without claiming existing list is absent. New passive stats cards do not invent a discrete interaction.
 
@@ -127,7 +127,7 @@ pnpm docs:check, preflight:check (structural only), format:check, lint; read-onl
 | Claim                                    | Evidence                                                                                                                                                                                      | Date       | Result |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Actual branch/main before consolidation  | GitHub PR25 head49aa5dbb4e8ac67737471785f98dbf00b8220ea5; fetched origin/main c14dada506d73b991924edb57faae44cf42f66a8; clean dedicated worktree on existing branch                           | 2026-10-23 | PASS   |
-| Owner Option B provenance                | Authenticated GitHub owner comment6354627613; four named sourcing components/current rows61–64; scope decision is separate from final v8 approval, now verified via owner comment6355371808   | 2026-10-23 | PASS   |
+| Owner Option B provenance                | Authenticated GitHub owner comment6354627613; four named sourcing components/current rows61–64; scope decision is separate from final v8 approval, now verified via owner comment6356392948   | 2026-10-23 | PASS   |
 | Historical snapshot digests              | Node crypto over git show HEAD:path for all7 revisions; v1 actual31a8797f54275fe878f4a5ce961409689ccb8553f51c465f171dd9bc1c9567be; v8 carries corrected provenance table, originals unchanged | 2026-10-23 | PASS   |
 | Invalid prior baseline/provenance claims | Prior task called nonresolving c14dada3fcfa9466e74b3353ae4b77f8846338e5 main and used design commits as baseline; superseded claims corrected using actual Git objects                        | 2026-10-23 | FAIL   |
 
@@ -146,4 +146,4 @@ No application or test implementation, schema/dependency/CI changes, backend tas
 
 PR25 has10 existing threads: P1 baseline and StatsBar contract; P2 frontend provenance, v1 hash, empty q, navigation, MFA enrollment, address payload, neutral badge and stale requests. New v8/task address them with source-based evidence; immutable v5/v7 text is historical, not an active instruction. Exact thread IDs/disposition and final-head evidence are recorded in PR metadata. Do not claim a thread resolved merely because it is outdated.
 
-PR remains Ready, not Draft; design-document merge eligibility depends on required final-head checks, not on frontend implementation completion. Design Approval is APPROVED, verified against https://github.com/dinhphuquy2k1/nexora/pull/25#issuecomment-6355371808 (authenticated owner User; created/updated2026-10-23T01:44:00Z; exact task/revision/raw-byte digest; no later valid revocation). Later prose-wrapped comment6355586299 is not used as approval evidence. Backend task/ID/branch not created or reserved. Task/Implementation remain PLANNED and frontend/runtime Verification NOT VERIFIED; this metadata fix does not begin M1 or backend implementation.
+PR remains Ready, not Draft; design-document merge eligibility depends on required final-head checks, not on frontend implementation completion. Design Approval is APPROVED, verified against https://github.com/dinhphuquy2k1/nexora/pull/25#issuecomment-6356392948 (authenticated owner User; created/updated2026-10-23T03:05:52Z; exact task/revision/raw-byte digest; no later valid revocation). Earlier reference6355371808 is no longer retrievable and is historical evidence only. Later prose-wrapped comment6355586299 is not used as approval evidence. Backend task/ID/branch not created or reserved. Task/Implementation remain PLANNED and frontend/runtime Verification NOT VERIFIED; this metadata fix does not begin M1 or backend implementation.
