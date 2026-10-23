@@ -15,8 +15,8 @@ Documentation Impact: REQUIRED
 - **Design SHA-256**: 0874328bc72217515c268a684e66c6286578ec34b73cb640e2382414048e475f
 - **Reviewed baseline**: ee8391212b2f1e8fe406d287ef0e7cc11fad79d7
 - **Approval authority**: dinhphuquy2k1
-- **Approval status**: PENDING_REVIEW
-- **Approval evidence**: NONE — NEXORA-031 requires its own authenticated digest-bound approval and explicit owner continuation.
+- **Approval status**: APPROVED
+- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/27#issuecomment-6360485845
 
 ## Baseline and interface preflight
 
@@ -149,3 +149,7 @@ Executed against baseline ee83912 plus the two new planning documents:
 - Final diff/scope review: only task031 and new immutable031 snapshot; no code/test/CI/manifest/lockfile/backend or approved historical snapshot change.
 
 These planning checks do not verify frontend implementation. M1–M5/visual/build/genuine runtime/independent implementation review are NOT RUN. Task/Implementation PLANNED; Verification NOT VERIFIED; approval PENDING_REVIEW. Final pushed-head CI and Draft PR URL belong in PR metadata to avoid self-referential SHA evidence commits. No owner approval posted by agent.
+
+## M1 authorization checkpoint — 2026-10-23
+
+Exact owner comment6360485845 fetched through authenticated GitHub connector: dinhphuquy2k1/User/OWNER, PR27, created=updated2026-10-23T08:10:10Z, standalone five-line decision. Existing ADR009 digest/verifier accepts actual complete comments/reviews, matching raw snapshot0874328b…; no later revocation. Owner explicitly authorizes M1 only, then review checkpoint; M2–M5 remain NOT STARTED. Immutable snapshot unchanged. Historical M0 pending-approval language above is superseded here. Hosted approval checkpoint results belong in PR metadata after push.
