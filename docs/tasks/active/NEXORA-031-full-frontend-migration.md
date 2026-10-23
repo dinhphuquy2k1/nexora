@@ -59,13 +59,13 @@ Every milestone stays on this branch and PR. After verified approval and explici
 - [x] Inspect current main, unused task ID, ZIP and PR14/21/22 source candidates.
 - [x] Select v8-compatible M1–M5 design/reuse/alternatives/security/test strategy and capture immutable snapshot.
 - [x] Prepare documents/PR metadata and run docs/static/format/lint/binding checks; exact commit/push/Draft PR outcome is recorded in PR metadata after execution.
-- [ ] Obtain independent authenticated NEXORA-031 approval and explicit continuation before code/tests/scaffolding/CI/dependencies.
+- [x] Obtain independent authenticated NEXORA-031 approval and explicit continuation before code/tests/scaffolding/CI/dependencies.
 
 ### M1 — Design System, AppShell, Login/MFA, responsive
 
-- [ ] Tokens navy/orange, header56px, sidebar240/72px, licensed local Inter/Vietnamese, shared real-consumer primitives/accessible overlays.
-- [ ] Restyle main shell/login preserving server guard, setup fragment, MFA/recovery/cancel/enrollment guidance/session/Origin/Host and username-only Remember Me.
-- [ ] Preserve available/planned navigation states; truthful empty notifications and profile presentation.
+- [x] Tokens navy/orange, header56px, sidebar240/72px, licensed local Inter/Vietnamese, shared real-consumer primitives/accessible overlays.
+- [x] Restyle main shell/login preserving server guard, setup fragment, MFA/recovery/cancel/enrollment guidance/session/Origin/Host and username-only Remember Me.
+- [x] Preserve available/planned navigation states; truthful empty notifications and profile presentation.
 - [ ] Targeted native/auth + genuine CDP keyboard/six-viewports; sync canonical frontend/Testing and milestone evidence, review diff, commit/push/report.
 
 ### M2 — Customer Management and CustomerStatsBar
@@ -177,3 +177,22 @@ Extended the existing Login CDP session with a dedicated M1 verifier, not a para
 Foundation39928608443 at bd69661 failed during ADMIN_MFA_PENDING after all six MFA screenshots, before the platform-font proof JSON was written; login proof passed. The original probe was appended below a full-height form and queried without a paint boundary. Verification now places its nonsecret Vietnamese glyph sample inside the viewport and waits two animation frames before querying actual custom-font glyph use; the assertion remains mandatory. This diagnosis is a verification hypothesis until the new real run completes; historical failure remains FAIL.
 
 Independent review identified a P2 verification gap for overlay lifecycle cleanup. Added real CDP assertions for body scroll lock/restoration, viewport transition while the navigation modal is open, and actual help-overlay unmount during the existing password-to-MFA transition. The latter is a controlled React lifecycle race using the existing submit operation, not a normal pointer interaction; no credential-filled screenshots are captured. No auth backend or security gate changed. Final genuine execution and independent re-review remain pending.
+
+### M1 review checkpoint — implementation and local evidence
+
+M1 capability: IMPLEMENTED. Overall task remains IN PROGRESS; M2–M5 NOT STARTED and overall verification NOT VERIFIED until all approved milestones are accepted. The remaining M1 checklist item requires actual hosted runtime/visual results; final exact-head results and artifact links are recorded on PR27 without a self-referential evidence commit loop.
+
+| Check                                                      | Executed result                      | Scope / limitation                                                                                                                                          |
+| ---------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UI tests / typecheck                                       | PASS 1/1 / exit0                     | Neutral controls plus existing status resolver; no browser proof                                                                                            |
+| Web tests / typecheck                                      | PASS 51/51 / exit0                   | Includes auth/session/outcome/security contracts and new M1 cases                                                                                           |
+| Root discovered Node tests                                 | PASS119/119,0 skipped                | 12 discovered suites; includes discovery, docs, governance and M1 privacy guards                                                                            |
+| Focused helper/docs/governance                             | PASS38/38                            | Actual execution, controlled helper checks separated from real CDP                                                                                          |
+| format:check, lint/boundaries, docs:check, local preflight | PASS exit0                           | Pinned Node24.19.0 and corepack pnpm10.34.6; static preflight does not authenticate approval                                                                |
+| Local production quality                                   | FAIL / BLOCKED at Prisma download    | binaries.prisma.sh EAI_AGAIN; earlier format/lint/preflight/docs stages passed. No synthetic engine or weakened check                                       |
+| Local quality-docker/runtime                               | NOT RUN                              | Existing Docker VFS layers and ~132MiB free make a genuine disposable build unsafe; unrelated volumes/caches preserved. Hosted canonical execution required |
+| Independent implementation re-review421d011                | PASS, no remaining P1/P2/P3 findings | Prior P2 lifecycle coverage fixed; focused8/8 and complete diff check PASS; source review is not runtime PASS                                               |
+
+Implementation commits: ea7f8d6 authorization, e8458d9 M1.1, c31b85d M1.2,7d84b6d M1.3, bd69661 M1.4 harness,421d011 lifecycle/font-proof correction. Selected reuse remains the PR22 unmodified licensed font and PR21 pure deployment text helper, existing server authorization/SDK/navigation/notification/account modules and neutral UI package; no whole PR import. Actual font source bytes and immutable design digest remain unchanged.
+
+No new unresolved architecture issue or production auth finding. Stop at M1; Draft retained while final runtime/visual verification is pending and later milestones await owner continuation. No merge, live Carrier calls, public deployment, key/MFA reset or user-volume deletion.
