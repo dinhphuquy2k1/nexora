@@ -1,8 +1,13 @@
 "use client";
 
+import { Button, TextInput, Checkbox, Overlay } from "@nexora/ui";
+import {
+  readRememberedUsername,
+  writeRememberedUsername,
+} from "../../lib/auth/remember-username.ts";
 import { createNexoraClient } from "@nexora/sdk";
 import { loginOutcome } from "../../lib/auth/login-outcome.ts";
-import { useState, useId, type FormEvent } from "react";
+import { useState, useId, useEffect, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { User, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
@@ -14,6 +19,13 @@ export function LoginForm() {
   const returnUrl = sanitizeReturnUrl(rawFrom);
 
   const [username, setUsername] = useState("");
+  const [rememberUsername, setRememberUsername] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  useEffect(() => {
+    const saved = readRememberedUsername(() => window.localStorage);
+    setUsername(saved);
+    setRememberUsername(Boolean(saved));
+  }, []);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,6 +33,7 @@ export function LoginForm() {
 
   const usernameId = useId();
   const passwordId = useId();
+  const errorId = useId();
 
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mode, setMode] = useState<"totp" | "recovery">("totp");
@@ -90,6 +103,11 @@ export function LoginForm() {
       return;
     }
 
+    writeRememberedUsername(
+      () => window.localStorage,
+      username,
+      rememberUsername,
+    );
     setIsLoading(true);
     setErrorMessage(null);
 
@@ -149,7 +167,7 @@ export function LoginForm() {
       >
         <p>Xác thực hai bước để hoàn tất đăng nhập.</p>
         {errorMessage && (
-          <div className={styles.errorBanner} role="alert">
+          <div id={errorId} className={styles.errorBanner} role="alert">
             {errorMessage}
           </div>
         )}
@@ -157,7 +175,7 @@ export function LoginForm() {
           <label htmlFor={codeId} className={styles.label}>
             {mode === "totp" ? "Mã xác thực 6 chữ số" : "Mã khôi phục một lần"}
           </label>
-          <input
+          <TextInput
             key={mode}
             id={codeId}
             name="mfa-code"
@@ -172,7 +190,7 @@ export function LoginForm() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             disabled={isLoading}
-            aria-describedby={`${codeId}-help`}
+            aria-describedby={`${codeId}-help${errorMessage ? " " + errorId : ""}`}
           />
           <p id={`${codeId}-help`}>
             {mode === "totp"
@@ -180,9 +198,9 @@ export function LoginForm() {
               : "Mỗi mã khôi phục chỉ sử dụng được một lần."}
           </p>
         </div>
-        <button type="submit" className={styles.submitBtn} disabled={isLoading}>
+        <Button type="submit" className={styles.submitBtn} disabled={isLoading}>
           {isLoading ? "Đang xác thực..." : "Xác thực"}
-        </button>
+        </Button>
         <button
           type="button"
           className={styles.modeToggleLink}
@@ -210,7 +228,12 @@ export function LoginForm() {
     <>
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         {errorMessage && (
-          <div className={styles.errorBanner} role="alert" aria-live="polite">
+          <div
+            id={errorId}
+            className={styles.errorBanner}
+            role="alert"
+            aria-live="polite"
+          >
             {errorMessage}
           </div>
         )}
@@ -223,8 +246,10 @@ export function LoginForm() {
             <span className={styles.inputIcon} aria-hidden="true">
               <User size={18} />
             </span>
-            <input
+            <TextInput
               id={usernameId}
+              aria-describedby={errorMessage ? errorId : undefined}
+              aria-invalid={Boolean(errorMessage) && !username.trim()}
               name="username"
               type="text"
               required
@@ -247,8 +272,10 @@ export function LoginForm() {
             <span className={styles.inputIcon} aria-hidden="true">
               <Lock size={18} />
             </span>
-            <input
+            <TextInput
               id={passwordId}
+              aria-describedby={errorMessage ? errorId : undefined}
+              aria-invalid={Boolean(errorMessage) && !password}
               name="password"
               type={showPassword ? "text" : "password"}
               required
@@ -272,7 +299,24 @@ export function LoginForm() {
           </div>
         </div>
 
-        <button type="submit" className={styles.submitBtn} disabled={isLoading}>
+        <div className={styles.preferenceRow}>
+          <Checkbox
+            name="remember-username"
+            checked={rememberUsername}
+            disabled={isLoading}
+            onChange={(e) => setRememberUsername(e.target.checked)}
+          >
+            Ghi nhớ tên đăng nhập
+          </Checkbox>
+          <button
+            type="button"
+            className={styles.helpLink}
+            onClick={() => setHelpOpen(true)}
+          >
+            Quên mật khẩu?
+          </button>
+        </div>
+        <Button type="submit" className={styles.submitBtn} disabled={isLoading}>
           {isLoading ? (
             "Đang xử lý..."
           ) : (
@@ -280,8 +324,20 @@ export function LoginForm() {
               Đăng nhập <ArrowRight size={16} aria-hidden="true" />
             </>
           )}
-        </button>
+        </Button>
       </form>
+      <Overlay
+        open={helpOpen}
+        onDismiss={() => setHelpOpen(false)}
+        label="Hỗ trợ đăng nhập"
+      >
+        <h2>Hỗ trợ đăng nhập</h2>
+        <p>
+          Liên hệ người quản trị Nexora để được hỗ trợ tài khoản. Không gửi mật
+          khẩu hoặc mã xác thực cho người khác.
+        </p>
+        <Button onClick={() => setHelpOpen(false)}>Đóng</Button>
+      </Overlay>
     </>
   );
 }
