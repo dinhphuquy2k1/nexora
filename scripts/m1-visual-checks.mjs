@@ -55,12 +55,29 @@ export async function verifyM1Visuals({
     await evaluate(
       "new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true))))",
     );
+    const geometry = () =>
+      evaluate(
+        `({width:innerWidth,asideWidth:document.querySelector("aside")?.getBoundingClientRect().width,expanded:document.querySelector("header button[aria-expanded]")?.getAttribute("aria-expanded"),openDialogs:document.querySelectorAll("dialog[open]").length})`,
+      );
+    const before = phase === "shell" ? await geometry() : null;
     const shot = await send("Page.captureScreenshot", {
       format: "png",
       // Evidence is of the specified viewport, not a full-page resize. A capture
       // must not trigger responsive media-query changes between interactions.
       captureBeyondViewport: false,
     });
+    if (phase === "shell") {
+      const after = await geometry();
+      console.log(
+        `M1 ${prefix} shell capture ${state}`,
+        JSON.stringify({ before, after }),
+      );
+      assert.deepEqual(
+        after,
+        before,
+        "Screenshot must preserve settled shell state and geometry",
+      );
+    }
     const name = `${prefix}-${phase}-${viewport.width}x${viewport.height}-${state}.png`;
     const bytes = Buffer.from(shot.data, "base64");
     await writeFile(join(root, name), bytes);
