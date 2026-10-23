@@ -1,3 +1,4 @@
+import { browserStartupSummary } from "./browser-startup-diagnostics.mjs";
 import { verifyM1Visuals } from "./m1-visual-checks.mjs";
 import { createHmac } from "node:crypto";
 import { URLSearchParams } from "node:url";
@@ -63,8 +64,14 @@ const child = spawn(
     `--user-data-dir=${profile}`,
     "about:blank",
   ],
-  { stdio: "ignore" },
+  { stdio: ["ignore", "ignore", "pipe"] },
 );
+let startupStderr = "";
+let collectingStartup = true;
+child.stderr.on("data", (chunk) => {
+  if (collectingStartup)
+    startupStderr = (startupStderr + chunk.toString("utf8")).slice(-16384);
+});
 const exited = new Promise((resolve) => {
   child.once("exit", resolve);
   child.once("error", resolve);
@@ -84,6 +91,14 @@ try {
       await delay(100);
     }
   }
+  collectingStartup = false;
+  if (!port) {
+    console.error(
+      "BROWSER_STARTUP_DIAGNOSTIC",
+      JSON.stringify(browserStartupSummary(startupStderr, child)),
+    );
+  }
+  startupStderr = "";
   assert.ok(port, "Browser did not start");
   checks.step("CDP_CONNECTION");
   const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(
