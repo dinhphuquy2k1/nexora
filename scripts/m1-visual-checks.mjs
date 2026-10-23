@@ -79,6 +79,7 @@ export async function verifyM1Visuals({
           await until(
             '!!document.querySelector("button[aria-label=\\"Mở menu di động\\"]")',
           );
+          const overflowBefore = await evaluate("document.body.style.overflow");
           await capture(viewport, "closed");
           await evaluate(
             'document.querySelector("button[aria-label=\\"Mở menu di động\\"]").click()',
@@ -111,6 +112,10 @@ export async function verifyM1Visuals({
               "modal focus containment",
             );
           }
+          assert.equal(
+            await evaluate("document.body.style.overflow"),
+            "hidden",
+          );
           await capture(viewport, "navigation");
           await send("Input.dispatchKeyEvent", {
             type: "keyDown",
@@ -125,6 +130,10 @@ export async function verifyM1Visuals({
             windowsVirtualKeyCode: 27,
           });
           await until('!document.querySelector("dialog[open]")');
+          assert.equal(
+            await evaluate("document.body.style.overflow"),
+            overflowBefore,
+          );
           assert.equal(
             await evaluate('document.activeElement.getAttribute("aria-label")'),
             "Mở menu di động",
@@ -148,6 +157,35 @@ export async function verifyM1Visuals({
             clickCount: 1,
           });
           await until('!document.querySelector("dialog[open]")');
+          assert.equal(
+            await evaluate("document.body.style.overflow"),
+            overflowBefore,
+          );
+          await evaluate(
+            'document.querySelector("button[aria-label=\\"Mở menu di động\\"]").click()',
+          );
+          await until('!!document.querySelector("dialog[open]")');
+          await send("Emulation.setDeviceMetricsOverride", {
+            width: 1440,
+            height: 900,
+            deviceScaleFactor: 1,
+            mobile: false,
+          });
+          await until(
+            '!document.querySelector("dialog[open]") && document.body.style.overflow!=="hidden"',
+          );
+          assert.equal(
+            await evaluate("document.body.style.overflow"),
+            overflowBefore,
+          );
+          await send("Emulation.setDeviceMetricsOverride", {
+            ...viewport,
+            deviceScaleFactor: 1,
+            mobile: true,
+          });
+          await until(
+            '!!document.querySelector("button[aria-label=\\"Mở menu di động\\"]")',
+          );
         } else {
           const expected = viewport.width <= 1100 ? 72 : 240;
           await until(
@@ -232,7 +270,7 @@ export async function verifyM1Visuals({
     await send("DOM.enable");
     await send("CSS.enable");
     await evaluate(
-      'document.fonts.ready.then(()=>{const p=document.createElement("span");p.dataset.m1FontProof="true";p.textContent="Tiếng Việt — Đặng Thị Ánh Ắ Ằ Ặ Ễ Ự";document.body.append(p);return true;})',
+      'document.fonts.ready.then(()=>{const p=document.createElement("span");p.dataset.m1FontProof="true";p.textContent="Tiếng Việt — Đặng Thị Ánh Ắ Ằ Ặ Ễ Ự";p.style.cssText="position:fixed;top:0;left:0;z-index:2147483647;background:white;color:black;font-size:16px";document.body.append(p);return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(p.getBoundingClientRect().width>0))));})',
     );
     const { root: doc } = await send("DOM.getDocument");
     const { nodeId } = await send("DOM.querySelector", {
@@ -245,7 +283,7 @@ export async function verifyM1Visuals({
         (f) =>
           f.isCustomFont && /inter/i.test(f.familyName) && f.glyphCount > 0,
       ),
-      "actual local Inter rendering",
+      `actual local Inter rendering: ${JSON.stringify(fonts)}`,
     );
     await writeFile(
       join(root, `${prefix}-${phase}.json`),

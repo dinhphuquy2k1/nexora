@@ -270,6 +270,28 @@ try {
   await send("Input.insertText", { text: username });
   await evaluate('document.querySelector("input[name=password]").focus()');
   await send("Input.insertText", { text: password });
+  let m1OverflowBefore;
+  if (process.env.M1_EVIDENCE_DIR && mfaSetupKey) {
+    // Controlled real-React unmount race: leave help modal open during the
+    // existing real password submit, then MFA replaces the password subtree.
+    // No screenshots are taken while credential inputs contain values.
+    m1OverflowBefore = await evaluate("document.body.style.overflow");
+    await evaluate(
+      'Array.from(document.querySelectorAll("button")).find(e=>e.textContent.includes("Quên mật khẩu")).click()',
+    );
+    let open = false;
+    for (let i = 0; i < 100; i++) {
+      open = await evaluate(
+        '!!document.querySelector("dialog[open]") && document.body.style.overflow==="hidden"',
+      );
+      if (open) break;
+      await delay(100);
+    }
+    assert.ok(
+      open,
+      "M1 help modal must be mounted before the unmount regression",
+    );
+  }
   loginStatus = undefined;
   loginUrl = undefined;
   await evaluate('document.querySelector("button[type=submit]").click()');
@@ -284,6 +306,26 @@ try {
       await delay(100);
     }
     assert.ok(ready, "MFA step missing");
+    if (m1OverflowBefore !== undefined) {
+      for (let i = 0; i < 100; i++) {
+        if (
+          await evaluate(
+            '!document.querySelector("dialog[open]") && document.body.style.overflow!=="hidden"',
+          )
+        )
+          break;
+        await delay(100);
+      }
+      assert.equal(
+        await evaluate("document.body.style.overflow"),
+        m1OverflowBefore,
+        "MFA transition unmount restores body scroll",
+      );
+      assert.equal(
+        await evaluate('!!document.querySelector("dialog[open]")'),
+        false,
+      );
+    }
     await verifyM1Visuals({ send, evaluate, phase: "mfa", prefix: "admin" });
     assert.equal(await evaluate("location.pathname"), "/login");
     assert.equal(
