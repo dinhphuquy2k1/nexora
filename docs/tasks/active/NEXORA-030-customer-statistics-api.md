@@ -15,8 +15,8 @@ Documentation Impact: REQUIRED
 - **Design SHA-256**: 521ac0a733d0f1afc9be3ffe5ad0d50b1612eea8c612b07defe28b3277bbceea
 - **Reviewed baseline**: b9d02f05c979affa5e0a416ea120efd80c6df0e6
 - **Approval authority**: dinhphuquy2k1
-- **Approval status**: PENDING_REVIEW
-- **Approval evidence**: NONE — separate NEXORA-030 attestation required; NEXORA-029 approval is not reused.
+- **Approval status**: APPROVED
+- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/26#issuecomment-6357379099
 
 ## Baseline and interface preflight
 
@@ -109,3 +109,7 @@ Final commit SHA, Draft PR URL and hosted workflow evidence belong in PR metadat
 ## PLAN ISSUES
 
 NONE identified in read-only inspection. Real generated types/query measurements/compatibility/full runtime evidence remain future gates. Stop before code/tests until separate approval and explicit continuation; material contradictions require a revised immutable snapshot and approval. No production deployment, live Carrier, schema/migration/grant/key/MFA changes or volume deletion.
+
+## Verified authorization — 2026-10-23
+
+Retrieved exact comment6357379099 and complete PR26 comments/reviews through authenticated GitHub connector. Author dinhphuquy2k1/User/OWNER, issue_url PR26, created_at=updated_at2026-10-23T04:27:35Z, exact standalone five-line decision matching task/revision/raw-byte digest. One comment, zero reviews, no later relevant revocation. Existing parseApprovalDecisionBlock/computeDesignDigest/verifyGitHubApprovalEvidence accepted the real fetched payloads through a connector response adapter; this is not hosted CI or a second parser. Owner explicitly authorizes implementation continuation on existing PR26/branch. Snapshot unchanged. Earlier pending-approval statements above describe the historical design stage and are superseded by this verified authorization. Hosted authenticated Preflight result will be recorded in PR after metadata push. Task/Implementation remain PLANNED until actual implementation/testing starts.
