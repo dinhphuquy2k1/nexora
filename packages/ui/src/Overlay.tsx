@@ -41,12 +41,20 @@ export function Overlay({
           e.currentTarget.querySelectorAll<HTMLElement>(
             "a[href],button,input,select,textarea,[tabindex]",
           ),
-        ).filter(
-          (node) =>
-            node.tabIndex >= 0 &&
-            !node.matches(":disabled") &&
-            node.getClientRects().length > 0,
-        );
+        )
+          .filter(
+            (node) =>
+              node.tabIndex >= 0 &&
+              !node.matches(":disabled") &&
+              !node.closest("[inert]") &&
+              node.getClientRects().length > 0 &&
+              getComputedStyle(node).visibility === "visible",
+          )
+          .sort((a, b) => {
+            if (a.tabIndex === 0) return b.tabIndex === 0 ? 0 : 1;
+            if (b.tabIndex === 0) return -1;
+            return a.tabIndex - b.tabIndex;
+          });
         const first = stops[0];
         const last = stops.at(-1);
         if (!first || !last) {

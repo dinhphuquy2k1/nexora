@@ -131,35 +131,60 @@ export async function verifyM1Visuals({
             await evaluate('!!document.activeElement.closest("dialog[open]")'),
             true,
           );
-          for (let i = 0; i < 12; i++) {
-            await send("Input.dispatchKeyEvent", {
-              type: "keyDown",
-              key: "Tab",
-              code: "Tab",
-              windowsVirtualKeyCode: 9,
-            });
-            await send("Input.dispatchKeyEvent", {
-              type: "keyUp",
-              key: "Tab",
-              code: "Tab",
-              windowsVirtualKeyCode: 9,
-            });
-            console.log(
-              "M1 modal Tab focus",
-              i,
-              JSON.stringify(
-                await evaluate(
-                  '({inDialog:!!document.activeElement.closest("dialog[open]"),tag:document.activeElement.tagName,focused:document.hasFocus()})',
-                ),
-              ),
-            );
-            assert.equal(
+          for (const modifiers of [0, 8]) {
+            if (modifiers === 8) {
               await evaluate(
-                '!!document.activeElement.closest("dialog[open]")',
-              ),
-              true,
-              "modal focus containment",
-            );
+                'document.querySelector("dialog[open] button").focus()',
+              );
+              await send("Input.dispatchKeyEvent", {
+                type: "keyDown",
+                key: "Shift",
+                code: "ShiftLeft",
+                windowsVirtualKeyCode: 16,
+                modifiers: 8,
+              });
+            }
+            for (let i = 0; i < 12; i++) {
+              await send("Input.dispatchKeyEvent", {
+                type: "keyDown",
+                key: "Tab",
+                code: "Tab",
+                windowsVirtualKeyCode: 9,
+                modifiers,
+              });
+              await send("Input.dispatchKeyEvent", {
+                type: "keyUp",
+                key: "Tab",
+                code: "Tab",
+                windowsVirtualKeyCode: 9,
+                modifiers,
+              });
+              console.log(
+                "M1 modal Tab focus",
+                modifiers,
+                i,
+                JSON.stringify(
+                  await evaluate(
+                    '({inDialog:!!document.activeElement.closest("dialog[open]"),tag:document.activeElement.tagName,focused:document.hasFocus()})',
+                  ),
+                ),
+              );
+              assert.equal(
+                await evaluate(
+                  '!!document.activeElement.closest("dialog[open]")',
+                ),
+                true,
+                "modal focus containment",
+              );
+            }
+            if (modifiers === 8)
+              await send("Input.dispatchKeyEvent", {
+                type: "keyUp",
+                key: "Shift",
+                code: "ShiftLeft",
+                windowsVirtualKeyCode: 16,
+                modifiers: 0,
+              });
           }
           assert.equal(
             await evaluate("document.body.style.overflow"),
