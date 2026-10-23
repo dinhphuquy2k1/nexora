@@ -196,3 +196,7 @@ M1 capability: IMPLEMENTED. Overall task remains IN PROGRESS; M2–M5 NOT STARTE
 Implementation commits: ea7f8d6 authorization, e8458d9 M1.1, c31b85d M1.2,7d84b6d M1.3, bd69661 M1.4 harness,421d011 lifecycle/font-proof correction. Selected reuse remains the PR22 unmodified licensed font and PR21 pure deployment text helper, existing server authorization/SDK/navigation/notification/account modules and neutral UI package; no whole PR import. Actual font source bytes and immutable design digest remain unchanged.
 
 No new unresolved architecture issue or production auth finding. Stop at M1; Draft retained while final runtime/visual verification is pending and later milestones await owner continuation. No merge, live Carrier calls, public deployment, key/MFA reset or user-volume deletion.
+
+### M1 real lifecycle regression found during verification
+
+Foundation39929948220/421d011: six-viewport Login and MFA font/geometry proof PASS; later ADMIN_MFA_SUCCESS FAIL (no HTTP status observed). The newly exercised help-open→MFA→cancel sequence exposed retained helpOpen state: unmount restored scroll correctly, but returning to the password branch rendered the old help modal open again, intercepting subsequent browser input. Reset help presentation state when the real login outcome enters MFA, with an explicit real CDP regression assertion after cancellation. This changes only presentation lifecycle, not MFA outcome/cookie/challenge/auth behavior. Both historical failures remain FAIL; new hosted results required.

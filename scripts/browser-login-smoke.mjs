@@ -594,6 +594,11 @@ try {
       ).cookies.some((c) => c.name === "nexora_mfa_token"),
       false,
     );
+    assert.equal(
+      await evaluate('!!document.querySelector("dialog[open]")'),
+      false,
+      "Returning from MFA must not reopen the previous help overlay",
+    );
     // Returning to password form only after the real scoped cookie was sent and revoked.
     await send("Fetch.enable", {
       patterns: [

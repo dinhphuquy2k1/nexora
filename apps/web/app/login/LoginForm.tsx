@@ -120,6 +120,7 @@ export function LoginForm() {
         setPassword("");
         setShowPassword(false);
         if (outcome === "mfa") {
+          setHelpOpen(false);
           setMfaRequired(true);
           setCode("");
           setMode("totp");
