@@ -28,6 +28,10 @@ export async function verifyM1Visuals({
   const records = [];
   const desktopState = (width) =>
     `document.querySelector('header button[aria-expanded]').getAttribute('aria-expanded')==='${width === 240}' && Math.round(document.querySelector('aside').getBoundingClientRect().width)===${width}`;
+  const shellGeometry = () =>
+    evaluate(
+      `({width:innerWidth,asideWidth:Math.round(document.querySelector("aside")?.getBoundingClientRect().width??0),expanded:document.querySelector("header button[aria-expanded]")?.getAttribute("aria-expanded"),openDialogs:document.querySelectorAll("dialog[open]").length})`,
+    );
   async function until(expression) {
     for (let i = 0; i < 100; i++) {
       if (await evaluate(expression)) return;
@@ -36,11 +40,7 @@ export async function verifyM1Visuals({
     console.error(`M1 ${prefix} ${phase} condition timed out: ${expression}`);
     console.error(
       "M1 geometry diagnostic",
-      JSON.stringify(
-        await evaluate(
-          `({width:innerWidth,asideWidth:document.querySelector("aside")?.getBoundingClientRect().width,expanded:document.querySelector("header button[aria-expanded]")?.getAttribute("aria-expanded"),openDialogs:document.querySelectorAll("dialog[open]").length})`,
-        ),
-      ),
+      JSON.stringify(await shellGeometry()),
     );
     throw Error("M1 visual condition timeout");
   }
@@ -55,11 +55,7 @@ export async function verifyM1Visuals({
     await evaluate(
       "new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true))))",
     );
-    const geometry = () =>
-      evaluate(
-        `({width:innerWidth,asideWidth:document.querySelector("aside")?.getBoundingClientRect().width,expanded:document.querySelector("header button[aria-expanded]")?.getAttribute("aria-expanded"),openDialogs:document.querySelectorAll("dialog[open]").length})`,
-      );
-    const before = phase === "shell" ? await geometry() : null;
+    const before = phase === "shell" ? await shellGeometry() : null;
     const shot = await send("Page.captureScreenshot", {
       format: "png",
       // Evidence is of the specified viewport, not a full-page resize. A capture
@@ -67,7 +63,7 @@ export async function verifyM1Visuals({
       captureBeyondViewport: false,
     });
     if (phase === "shell") {
-      const after = await geometry();
+      const after = await shellGeometry();
       console.log(
         `M1 ${prefix} shell capture ${state}`,
         JSON.stringify({ before, after }),
