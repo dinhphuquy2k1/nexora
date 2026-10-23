@@ -11,6 +11,7 @@ jobs:
     timeout-minutes: 45
     env:
       COMPOSE_PROJECT_NAME: nexora-ci
+      M1_EVIDENCE_DIR: artifacts/m1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Select pinned host Node for smoke harnesses
@@ -29,6 +30,14 @@ jobs:
         run: sh scripts/data-smoke.sh
       - name: Development HMR and dependency drift smoke
         run: sh scripts/dev-smoke.sh
+      - name: Preserve M1 browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: m1-browser-evidence
+          path: artifacts/m1
+          if-no-files-found: warn
+          retention-days: 14
       - name: Diagnostics
         if: failure()
         run: |

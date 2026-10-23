@@ -12,3 +12,6 @@ backups/
 apps/web/next-env.d.ts
 
 !.env.public.example
+
+# Owned browser verification output (published as CI artifacts).
+/artifacts/

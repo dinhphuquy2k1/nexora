@@ -1,3 +1,4 @@
+import { verifyM1Visuals } from "./m1-visual-checks.mjs";
 import { createHmac } from "node:crypto";
 import { URLSearchParams } from "node:url";
 // One dependency-free Chromium DevTools test for the real browser Login form.
@@ -224,6 +225,12 @@ try {
     "Login page must not render authenticated AppShell",
   );
 
+  await verifyM1Visuals({
+    send,
+    evaluate,
+    phase: "login",
+    prefix: mfaSetupKey ? "admin" : "operator",
+  });
   checks.step("UNIFIED_LOCAL_FORM");
   assert.equal(
     await evaluate("!!document.querySelector(\"a[href*='mode=admin']\")"),
@@ -277,6 +284,7 @@ try {
       await delay(100);
     }
     assert.ok(ready, "MFA step missing");
+    await verifyM1Visuals({ send, evaluate, phase: "mfa", prefix: "admin" });
     assert.equal(await evaluate("location.pathname"), "/login");
     assert.equal(
       (await send("Network.getCookies", { urls: [baseUrl] })).cookies.some(
@@ -599,6 +607,12 @@ try {
     shellPresent,
     "Protected workspace must render AppShell for authenticated session",
   );
+  await verifyM1Visuals({
+    send,
+    evaluate,
+    phase: "shell",
+    prefix: mfaSetupKey ? "admin" : "operator",
+  });
   checks.step("SESSION_COOKIE");
   const cookies = (await send("Network.getCookies", { urls: [baseUrl] }))
     .cookies;
