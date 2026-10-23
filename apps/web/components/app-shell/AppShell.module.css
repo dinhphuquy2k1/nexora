@@ -26,3 +26,35 @@
     padding: 16px 16px 32px;
   }
 }
+.desktopSidebar {
+  flex-shrink: 0;
+}
+.mobileNavigation {
+  background: var(--color-primary);
+  min-height: 100dvh;
+  color: var(--color-surface);
+}
+.mobileNavigation aside {
+  position: relative;
+  height: auto;
+  min-height: calc(100dvh - 56px);
+  border: 0;
+}
+.closeNavigation {
+  margin: var(--space-2);
+  min-height: 40px;
+}
+@media (max-width: 900px) {
+  .desktopSidebar {
+    display: none;
+  }
+  .contentArea {
+    padding: var(--space-4);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .container * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

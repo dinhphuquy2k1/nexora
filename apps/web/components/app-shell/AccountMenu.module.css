@@ -173,3 +173,16 @@
   color: #dc2626;
   line-height: 1.4;
 }
+@media (max-width: 600px) {
+  .accountButton {
+    max-width: 140px;
+  }
+  .accountButton span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dropdownPanel {
+    max-width: calc(100vw - 24px);
+  }
+}

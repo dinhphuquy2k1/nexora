@@ -195,3 +195,21 @@
     padding: 0 16px;
   }
 }
+.dropdownMenu {
+  width: min(280px, calc(100vw - 32px));
+}
+@media (max-width: 600px) {
+  .header {
+    padding: 0 var(--space-3);
+  }
+  .leftSection {
+    gap: var(--space-2);
+  }
+  .breadcrumbGroup,
+  .breadcrumbSeparator {
+    display: none;
+  }
+  .rightSection {
+    gap: var(--space-1);
+  }
+}
