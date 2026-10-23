@@ -31,6 +31,7 @@ export async function verifyM1Visuals({
       if (await evaluate(expression)) return;
       await delay(100);
     }
+    console.error(`M1 ${prefix} ${phase} condition timed out: ${expression}`);
     throw Error("M1 visual condition timeout");
   }
   async function capture(viewport, state) {
@@ -40,6 +41,9 @@ export async function verifyM1Visuals({
         'Array.from(document.querySelectorAll("input[name=password],input[name=mfa-code]")).some(e=>e.value.length>0)',
       ),
       false,
+    );
+    await evaluate(
+      "new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true))))",
     );
     const shot = await send("Page.captureScreenshot", {
       format: "png",
@@ -59,6 +63,9 @@ export async function verifyM1Visuals({
   try {
     if (phase === "login") await waitForInteractiveLogin({ until, evaluate });
     for (const viewport of M1_VIEWPORTS) {
+      console.log(
+        `M1 ${prefix} ${phase} viewport ${viewport.width}x${viewport.height}`,
+      );
       await send("Emulation.setDeviceMetricsOverride", {
         ...viewport,
         deviceScaleFactor: 1,
@@ -189,6 +196,9 @@ export async function verifyM1Visuals({
         } else {
           const expected = viewport.width <= 1100 ? 72 : 240;
           await until(
+            `document.querySelector("header button[aria-expanded]").getAttribute("aria-expanded")==="${expected === 240}"`,
+          );
+          await until(
             `Math.round(document.querySelector("aside").getBoundingClientRect().width)===${expected}`,
           );
           await capture(viewport, expected === 72 ? "collapsed" : "expanded");
@@ -201,6 +211,13 @@ export async function verifyM1Visuals({
           await capture(viewport, expected === 72 ? "expanded" : "collapsed");
           await evaluate(
             'document.querySelector("header button[aria-expanded]").click()',
+          );
+        }
+        // Wait for the restored shell state before the next independent interaction.
+        if (!mobile) {
+          const expected = viewport.width <= 1100 ? 72 : 240;
+          await until(
+            `Math.round(document.querySelector("aside").getBoundingClientRect().width)===${expected}`,
           );
         }
         // Nonmodal popovers must fit even at375px and dismiss by Escape.
