@@ -22,7 +22,7 @@ const { loginWithMfa } = require("../test/helpers/mfa-fixture.cjs");
 test(
   "Customer real Nest/PostgreSQL owner security, transactions, concurrency and runtime authority",
   { timeout: 180000 },
-  async () => {
+  async (t) => {
     assert.ok(process.env.DATABASE_URL);
     const saved = { ...process.env },
       admin = createDatabase(process.env.DATABASE_URL),
@@ -825,6 +825,361 @@ test(
         db.user.delete({ where: { id: users[0].id } }),
         (e) => e.code === "P2003",
       );
+      // NEXORA-030: real HTTP + existing migrated, restricted runtime fixtures.
+      // ADMIN starts with no customers; other owners already have independent data.
+      const statsPrefix = "Stats030";
+      const statsPath = (query = {}) =>
+        "?" + new URLSearchParams({ q: statsPrefix, ...query });
+      const expectStats = (result, stats) => {
+        assert.equal(result.status, 200);
+        assert.deepEqual(result.body.stats, stats);
+        assert.deepEqual(Object.keys(result.body.stats).sort(), [
+          "active",
+          "inactive",
+          "total",
+        ]);
+        for (const value of Object.values(result.body.stats))
+          assert.ok(Number.isSafeInteger(value) && value >= 0);
+        assert.equal(stats.total, stats.active + stats.inactive);
+      };
+      const adminRequest = (query = {}) =>
+        request(statsPath(query), "GET", undefined, tokens[2]);
+      await t.test(
+        "stats empty ADMIN population does not infer other owners",
+        async () => {
+          expectStats(await request("", "GET", undefined, tokens[2]), {
+            total: 0,
+            active: 0,
+            inactive: 0,
+          });
+        },
+      );
+      const statCustomers = [];
+      for (const [i, phone] of [
+        "+14155552671",
+        "+442079460099",
+        "+84987654321",
+      ].entries()) {
+        const created = await request(
+          "",
+          "POST",
+          {
+            name: statsPrefix + [" Alpha%_\\literal", " Beta", " Gamma"][i],
+            phone,
+            address: { addressText: "Statistics fixture" },
+          },
+          tokens[2],
+        );
+        assert.equal(created.status, 201);
+        statCustomers.push(created.body.customer);
+      }
+      await t.test("all ACTIVE and committed create refresh", async () => {
+        expectStats(await adminRequest(), { total: 3, active: 3, inactive: 0 });
+      });
+      for (const row of statCustomers) {
+        const changed = await request(
+          "/" + row.id,
+          "PATCH",
+          { status: "INACTIVE" },
+          tokens[2],
+        );
+        assert.equal(changed.status, 200);
+      }
+      await t.test("all INACTIVE and missing ACTIVE group", async () => {
+        expectStats(await adminRequest(), { total: 3, active: 0, inactive: 3 });
+      });
+      assert.equal(
+        (
+          await request(
+            "/" + statCustomers[0].id,
+            "PATCH",
+            { status: "ACTIVE" },
+            tokens[2],
+          )
+        ).status,
+        200,
+      );
+      const mixedStats = { total: 3, active: 1, inactive: 2 };
+      await t.test("mixed statuses and sum invariant", async () => {
+        expectStats(await adminRequest(), mixedStats);
+      });
+      for (const [status, total] of [
+        ["ACTIVE", 1],
+        ["INACTIVE", 2],
+      ])
+        await t.test(
+          "selected " + status + " affects pagination only",
+          async () => {
+            const result = await adminRequest({ status });
+            expectStats(result, mixedStats);
+            assert.equal(result.body.pagination.total, total);
+            assert.ok(
+              result.body.customers.every((row) => row.status === status),
+            );
+          },
+        );
+      for (const query of [
+        { page: "2", pageSize: "1" },
+        { pageSize: "2" },
+        { page: "2147483647", pageSize: "1" },
+      ])
+        await t.test(
+          "pagination-independent stats " + JSON.stringify(query),
+          async () => {
+            const result = await adminRequest(query);
+            expectStats(result, mixedStats);
+            assert.equal(result.body.pagination.total, 3);
+          },
+        );
+      await t.test(
+        "q scopes keyword/code/literal wildcard search identically",
+        async () => {
+          for (const q of [
+            statsPrefix + " Alpha",
+            "%_",
+            "\\literal",
+            statCustomers[0].code,
+          ]) {
+            const result = await request(
+              "?" + new URLSearchParams({ q }),
+              "GET",
+              undefined,
+              tokens[2],
+            );
+            expectStats(result, { total: 1, active: 1, inactive: 0 });
+            assert.equal(result.body.pagination.total, 1);
+            assert.equal(result.body.customers[0].id, statCustomers[0].id);
+          }
+        },
+      );
+      await t.test(
+        "exact and searchPhone national/international filters share population",
+        async () => {
+          for (const query of [
+            { phone: "0987654321" },
+            { phone: "+84987654321" },
+            { q: "0987654321" },
+            { q: "+84987654321" },
+          ]) {
+            const result = await adminRequest(query);
+            expectStats(result, { total: 1, active: 0, inactive: 1 });
+            assert.equal(result.body.customers[0].id, statCustomers[2].id);
+            assert.equal(result.body.pagination.total, 1);
+          }
+          expectStats(
+            await adminRequest({
+              phone: "+14155552671",
+              q: statsPrefix + " Beta",
+            }),
+            { total: 0, active: 0, inactive: 0 },
+          );
+        },
+      );
+      await t.test(
+        "same normalized phone under OPERATOR and ADMIN stays owner-scoped",
+        async () => {
+          for (const token of [tokens[0], tokens[1]]) {
+            const created = await request(
+              "",
+              "POST",
+              {
+                name: statsPrefix + " Other owner",
+                phone: "+14155552671",
+                address: { addressText: "Independent fixture" },
+              },
+              token,
+            );
+            assert.equal(created.status, 201);
+            expectStats(await request(statsPath(), "GET", undefined, token), {
+              total: 1,
+              active: 1,
+              inactive: 0,
+            });
+          }
+          expectStats(await adminRequest(), mixedStats);
+          for (const token of tokens)
+            expectStats(
+              await request(
+                statsPath({ phone: "+14155552671" }),
+                "GET",
+                undefined,
+                token,
+              ),
+              { total: 1, active: 1, inactive: 0 },
+            );
+        },
+      );
+      await t.test(
+        "invalid queries retain safe400 and cannot override owner",
+        async () => {
+          for (const query of [
+            "?q=",
+            "?ownerId=x",
+            "?status=UNKNOWN",
+            "?q=x&q=y",
+            "?page=01",
+          ])
+            error(await request(query), 400, "VALIDATION_ERROR");
+        },
+      );
+      await t.test(
+        "reversed groups preserve counts; unexpected group fails safe500",
+        async () => {
+          apiCustomers.instance = originalClient.$extends({
+            query: {
+              customer: {
+                groupBy: async ({ args, query }) =>
+                  (await query(args)).reverse(),
+              },
+            },
+          });
+          try {
+            expectStats(await adminRequest(), mixedStats);
+          } finally {
+            apiCustomers.instance = originalClient;
+          }
+          // Controlled malformed result AFTER the real DB query, without altering schema/CHECK/data.
+          apiCustomers.instance = originalClient.$extends({
+            query: {
+              customer: {
+                groupBy: async ({ args, query }) => [
+                  ...(await query(args)),
+                  { status: "CORRUPT-PII-DO-NOT-LOG", _count: { _all: 1 } },
+                ],
+              },
+            },
+          });
+          try {
+            const result = await adminRequest();
+            error(result, 500, "INTERNAL_ERROR");
+            assert.ok(!JSON.stringify(result.body).includes("CORRUPT"));
+            assert.ok(logs.every((line) => !line.includes("CORRUPT")));
+          } finally {
+            apiCustomers.instance = originalClient;
+          }
+        },
+      );
+      await t.test(
+        "large multipage population uses one group and bounded summary, no addresses",
+        async () => {
+          // Valid owned synthetic fixture in this suite's disposable DB; no production data.
+          await originalClient.$transaction(async (tx) => {
+            await tx.$queryRaw`SELECT id FROM users WHERE id=${users[2].id}::uuid FOR UPDATE`;
+            const rows = await tx.customer.createManyAndReturn({
+              data: Array.from({ length: 105 }, (_, i) => ({
+                ownerUserId: users[2].id,
+                createdByUserId: users[2].id,
+                name: statsPrefix + " Bulk",
+                phone: "+1202555" + (1000 + i),
+                status: i % 2 ? "INACTIVE" : "ACTIVE",
+              })),
+              select: { id: true, phone: true },
+            });
+            await tx.customerAddress.createMany({
+              data: rows.map((row) => ({
+                customerId: row.id,
+                recipientName: "Bulk receiver",
+                recipientPhone: row.phone,
+                countryCode: "VN",
+                addressText: "Bulk fixture",
+                isDefault: true,
+              })),
+            });
+          });
+          const queries = [];
+          apiCustomers.instance = originalClient.$extends({
+            query: {
+              $allOperations: async ({ model, operation, args, query }) => {
+                queries.push({ model, operation, args });
+                return query(args);
+              },
+            },
+          });
+          try {
+            const result = await adminRequest({
+              page: "2",
+              pageSize: "2",
+              status: "ACTIVE",
+            });
+            expectStats(result, { total: 108, active: 54, inactive: 54 });
+            assert.equal(result.body.customers.length, 2);
+            assert.equal(result.body.pagination.total, 54);
+            assert.deepEqual(
+              queries.map((row) => row.operation),
+              ["$queryRaw", "count", "findMany", "groupBy"],
+            );
+            const count = queries.find((row) => row.operation === "count").args;
+            const page = queries.find(
+              (row) => row.operation === "findMany",
+            ).args;
+            const grouped = queries.find(
+              (row) => row.operation === "groupBy",
+            ).args;
+            assert.deepEqual(page.where, count.where);
+            const { status, ...baseWhere } = count.where;
+            assert.equal(status, "ACTIVE");
+            assert.deepEqual(grouped.where, baseWhere);
+            assert.equal(grouped.where.ownerUserId, users[2].id);
+            assert.deepEqual(grouped.by, ["status"]);
+            assert.deepEqual(grouped._count, { _all: true });
+            assert.equal(page.skip, 2);
+            assert.equal(page.take, 2);
+            assert.equal(page.select.addresses, undefined);
+            assert.deepEqual(page.orderBy, [
+              { createdAt: "desc" },
+              { id: "desc" },
+            ]);
+          } finally {
+            apiCustomers.instance = originalClient;
+          }
+        },
+      );
+      await t.test(
+        "read waits for owner commit while another owner remains independent",
+        async () => {
+          let release, locked;
+          const hold = new Promise((r) => (release = r));
+          const acquired = new Promise((r) => (locked = r));
+          const writing = db.$transaction(async (tx) => {
+            await tx.$queryRaw`SELECT id FROM users WHERE id=${users[2].id}::uuid FOR UPDATE`;
+            await tx.customer.update({
+              where: { id: statCustomers[0].id },
+              data: { status: "INACTIVE" },
+            });
+            locked();
+            await hold;
+          });
+          await acquired;
+          let result,
+            waiting = false;
+          const read = adminRequest().then((value) => (result = value));
+          try {
+            for (let i = 0; i < 80; i++) {
+              const [row] = await db.$queryRawUnsafe(
+                "SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND usename='nexora_app' AND wait_event_type='Lock') AS waiting",
+              );
+              if (row.waiting) {
+                waiting = true;
+                break;
+              }
+              await new Promise((r) => setTimeout(r, 25));
+            }
+            assert.equal(waiting, true);
+            assert.equal(result, undefined);
+            expectStats(await request(statsPath()), {
+              total: 1,
+              active: 1,
+              inactive: 0,
+            });
+          } finally {
+            release();
+            await writing;
+            await read;
+          }
+          expectStats(result, { total: 108, active: 53, inactive: 55 });
+        },
+      );
+
       const expired = (
         await loginWithMfa(identity, users[1].username, "CustomerTestPass123!")
       ).token;
@@ -857,6 +1212,10 @@ test(
         });
       });
       await acquired;
+      const pendingRead = assert.rejects(
+        store.list(users[0].id, { page: 1, pageSize: 20 }),
+        (e) => e.code === "UNAUTHORIZED",
+      );
       const pending = assert.rejects(
         store.update(users[0].id, id, { name: "must not commit" }),
         (e) => e.code === "UNAUTHORIZED",
@@ -876,6 +1235,7 @@ test(
       await disabling;
       assert.equal(waiting, true);
       await pending;
+      await pendingRead;
       assert.equal(
         (await db.customer.findUnique({ where: { id } })).name,
         "PII-Customer-Secret",

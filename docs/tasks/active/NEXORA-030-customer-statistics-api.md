@@ -1,6 +1,6 @@
 # NEXORA-030 — Customer Statistics API
 
-Task: PLANNED
+Task: IN PROGRESS
 Implementation: PLANNED
 Verification: NOT VERIFIED
 Classification: SIGNIFICANT
