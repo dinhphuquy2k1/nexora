@@ -17,24 +17,24 @@ Mandatory pre-code stop condition: This task is SIGNIFICANT. Implementation, cod
 ## Plan and contracts before implementation
 
 1. **M0 — Inventory, Architecture & Approval Gate (Current Milestone)**:
-   - Complete comprehensive ZIP component and interaction inventory covering all 30 source files and 77 discrete user interactions across 5 delivery classifications (64 `ZIP_SOURCE`, 7 `NEXORA_EXISTING`, 6 `NEXORA_ADAPTATION`).
+   - Complete comprehensive ZIP component and interaction inventory covering all 30 source files and 77 discrete user interactions across 5 delivery classifications (64 `ZIP_SOURCE`, 6 `NEXORA_EXISTING`, 7 `NEXORA_ADAPTATION`).
    - Establish migration coverage matrix distinguishing supported features, real backend integrations, honest planned/empty states, and out-of-scope capabilities.
    - Establish ADR-009 component reuse matrix across Tier A (`packages/ui/`), Tier B (`apps/web/components/app-shell/`), and Tier C (`apps/web/features/`).
-   - Draft and pin immutable design review snapshot `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v5.md` with SHA-256 digest `6210584000a36bce279abc0f39e7b910a173ac6d1a39b501ff12eed7a93699b8`.
+   - Draft and pin immutable design review snapshot `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-23-frontend-migration-v6.md` with SHA-256 digest `a3a004941f9126d10c77afb2f214b3b22cbff539dbdcda8bd4cf5d15c0abf164`.
    - **STOP BEFORE IMPLEMENTATION** until authentic owner approval is verified.
 
 2. **M1 — Foundation UI, Design System & Application Shell**:
    - Extend `apps/web/styles/tokens.css` with layout dimensions (56px header, control heights, status tokens) matching reference ZIP without duplicating raw Tailwind color values throughout CSS Modules.
    - Configure local variable Inter font loading (`InterVariable.woff2`) in Next.js layout via `next/font/local` with full Vietnamese diacritics coverage, zero external Google Fonts requests, and verified SIL Open Font License redistribution rights.
    - Implement reusable, domain-neutral Tier A primitives in `@nexora/ui` (`Button`, `TextInput`, `Select`, `Checkbox`, `Drawer`, `Dialog`, `Pagination`, `EmptyState`). Keep complex controls and tooltips out of `@nexora/ui` to avoid premature abstraction.
-   - Modernize Tier B shell components: `Sidebar` (navy `#172B4D`, monogram logo, orange active indicator `#F58A24`, submenus), `Header` (56px, breadcrumb trail, notification popover with unread counter, scope selector slot), `AppShell`, `AccountMenu` (preserving real server session and logout POST), and `NotificationMenu` (rendering honest empty state).
-   - Modernize `/login` with 420px card aesthetics, preserving real password + TOTP MFA authentication and sanitized return URL.
+   - Modernize Tier B shell components: `Sidebar` (navy `#172B4D`, monogram logo, orange active indicator `#F58A24`, submenus), `Header` (56px, breadcrumb trail, notification popover with unread counter, scope selector slot), `AppShell` (presentation layout receiving validated user from workspace layout server guard), `AccountMenu` (preserving real server session and logout POST), and `NotificationMenu` (rendering honest empty state).
+   - Modernize `/login` with 420px card aesthetics, preserving real password + TOTP MFA authentication and sanitized return URL; zero demo Quick Fill credentials in production.
 
 3. **M2 — Customer Management Migration (Real API Integration)**:
    - Implement `CustomerListPage` and `CustomerDetailPage` on routes `/customers` and `/customers/[id]`.
    - Implement `CustomerTable`, `CustomerFilters` (All/Active/Inactive tabs, search input), and `CustomerStatsBar`.
    - Implement `CreateCustomerDrawer` (atomic customer + required initial recipient address), `EditCustomerDrawer`, and `AddressDrawer`.
-   - Implement `DeleteAddressModal` enforcing Nexora business invariants: reject deleting last address (`LAST_CUSTOMER_ADDRESS`), require explicit default reassignment before deleting default address (`DEFAULT_ADDRESS_REASSIGN_REQUIRED`).
+   - Implement `DeleteAddressModal` enforcing Nexora business invariants: reject deleting last address (`LAST_CUSTOMER_ADDRESS`), sequential 2-step default reassignment (`PUT` default-address then `DELETE` address) with explicit partial failure handling.
    - Integrate 8 real endpoints from `@nexora/sdk` (`CustomerController_list`, `create`, `get`, `update`, `add`, `remove`, `updateAddress`, `setDefault`). Canonical query parameters: `page` (int >= 1), `pageSize` (int 1..100), `q` (string <= 200), `status` ("ACTIVE" | "INACTIVE"), `phone` (string <= 64). Reject `limit` or `search`.
    - Zero mock customer data (`INITIAL_CUSTOMERS`) in production; handle loading, error, empty, and retry states. Filter tabs display count only for selected filter (`pagination.total`). Address count column omitted from summary table to avoid N+1 queries. Customer Excel export rendered as disabled action with planned notice.
 
@@ -99,19 +99,19 @@ pnpm docs:check, pnpm format:check, pnpm contracts:check, and preflight policy v
 
 | Claim                               | Evidence                                                                                                                                                          | Date       | Result |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
-| Clean worktree on latest main       | `git log -n 1 --oneline`: `c14dada Merge pull request #24...`; clean working tree                                                                                 | 2026-10-22 | PASS   |
+| Clean worktree on latest main       | `git log -n 1 --oneline`: `f4a5447 docs(NEXORA-029)...`; clean working tree                                                                                       | 2026-10-23 | PASS   |
 | Next unused task ID                 | Inspection of `docs/tasks/active/` and `completed/`; 027 and 028 exist, 029 is next available                                                                     | 2026-10-22 | PASS   |
 | Reference ZIP presence & extraction | Extracted `nexora-logistics-management (1).zip` to scratch directory; inspected all 30 source files under `src/`                                                  | 2026-10-22 | PASS   |
-| Immutable design review snapshot    | Created `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v5.md`, digest `6210584000a36bce279abc0f39e7b910a173ac6d1a39b501ff12eed7a93699b8` | 2026-10-22 | PASS   |
+| Immutable design review snapshot    | Created `docs/tasks/design-reviews/NEXORA-029-rev-2026-10-23-frontend-migration-v6.md`, digest `a3a004941f9126d10c77afb2f214b3b22cbff539dbdcda8bd4cf5d15c0abf164` | 2026-10-23 | PASS   |
 
 ## Design Review & Reuse Decision
 
 - **Task ID**: NEXORA-029
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-22-frontend-migration-v5
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-029-rev-2026-10-22-frontend-migration-v5.md
-- **Design SHA-256**: 6210584000a36bce279abc0f39e7b910a173ac6d1a39b501ff12eed7a93699b8
-- **Reviewed baseline**: c14dada3fcfa9466e74b3353ae4b77f8846338e5
+- **Plan revision**: rev-2026-10-23-frontend-migration-v6
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-029-rev-2026-10-23-frontend-migration-v6.md
+- **Design SHA-256**: a3a004941f9126d10c77afb2f214b3b22cbff539dbdcda8bd4cf5d15c0abf164
+- **Reviewed baseline**: f4a5447ccf6efa4b770ced32940c7c30e3c9d270
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: PENDING_REVIEW
 - **Approval evidence**: PENDING_REVIEW
