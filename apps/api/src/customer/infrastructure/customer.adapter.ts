@@ -1,7 +1,10 @@
 import { changeCustomerProfile } from "../domain/customer-profile.policy";
 import { CustomerAggregate } from "../domain/customer.aggregate";
 import { hydrateCustomer } from "./customer.mapper";
-import type { CustomerQuery } from "../application/customer.input";
+import type {
+  CustomerQuery,
+  CustomerPage,
+} from "../application/customer.input";
 import { isOwnerPhoneConflict } from "./customer-db-error";
 import {
   createDatabase,
@@ -12,6 +15,7 @@ import { UserStatus } from "../../identity/domain/user-policy";
 import { CustomerPort } from "../application/customer.port";
 import {
   CustomerError,
+  CustomerStatus,
   type CustomerStatusCode,
   type CustomerFields,
   type CustomerPatch,
@@ -117,12 +121,11 @@ export class CustomerAdapter implements CustomerPort {
     if (!row) throw new CustomerError("NOT_FOUND");
     return row;
   }
-  list(owner: string, query: CustomerQuery) {
+  list(owner: string, query: CustomerQuery): Promise<CustomerPage> {
     const search = query.q?.replace(/[\\%_]/g, "\\$&");
     return this.transaction(owner, async (tx) => {
-      const where: Prisma.CustomerWhereInput = {
+      const baseWhere: Prisma.CustomerWhereInput = {
         ownerUserId: owner,
-        ...(query.status ? { status: query.status } : {}),
         ...(query.phone ? { phone: query.phone } : {}),
         ...(query.q
           ? {
@@ -135,16 +138,40 @@ export class CustomerAdapter implements CustomerPort {
             }
           : {}),
       };
-      // Actor lock serializes all application writes for this owner; count/list share that transaction.
-      const total = await tx.customer.count({ where });
+      const listWhere: Prisma.CustomerWhereInput = {
+        ...baseWhere,
+        ...(query.status ? { status: query.status } : {}),
+      };
+      // Actor lock serializes all application writes for this owner; count/list/stats share that transaction.
+      const total = await tx.customer.count({ where: listWhere });
       const rows = await tx.customer.findMany({
-        where,
+        where: listWhere,
         select: summary,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
       });
+      const groups = await tx.customer.groupBy({
+        by: ["status"],
+        where: baseWhere,
+        _count: { _all: true },
+      });
+      const stats = { total: 0, active: 0, inactive: 0 };
+      for (const group of groups) {
+        switch (group.status) {
+          case CustomerStatus.ACTIVE:
+            stats.active = group._count._all;
+            break;
+          case CustomerStatus.INACTIVE:
+            stats.inactive = group._count._all;
+            break;
+          default:
+            throw new Error("Unexpected customer status");
+        }
+      }
+      stats.total = stats.active + stats.inactive;
       return {
+        stats,
         customers: rows.map((row) => ({
           ...row,
           status: row.status as CustomerStatusCode,

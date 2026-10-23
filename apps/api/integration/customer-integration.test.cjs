@@ -6,6 +6,7 @@ const { randomUUID, createHash } = require("node:crypto");
 const { execFileSync } = require("node:child_process");
 const { mkdtemp, rm, readFile } = require("node:fs/promises");
 const { tmpdir } = require("node:os");
+const { URLSearchParams } = require("node:url");
 const { join, resolve } = require("node:path");
 const { createDatabase, hashPassword } = require("@nexora/database");
 const { NestFactory } = require("@nestjs/core");
@@ -1177,6 +1178,60 @@ test(
             await read;
           }
           expectStats(result, { total: 108, active: 53, inactive: 55 });
+        },
+      );
+
+      await t.test(
+        "read-first blocks writer and returns coherent pre-write stats",
+        async () => {
+          let release, locked;
+          const hold = new Promise((r) => (release = r));
+          const acquired = new Promise((r) => (locked = r));
+          apiCustomers.instance = originalClient.$extends({
+            query: {
+              customer: {
+                groupBy: async ({ args, query }) => {
+                  locked();
+                  await hold;
+                  return query(args);
+                },
+              },
+            },
+          });
+          const read = adminRequest();
+          await acquired;
+          let changed = false,
+            waiting = false;
+          const write = store
+            .update(users[2].id, statCustomers[0].id, { status: "ACTIVE" })
+            .then(() => {
+              changed = true;
+            });
+          try {
+            for (let i = 0; i < 80; i++) {
+              const [row] = await db.$queryRawUnsafe(
+                "SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND usename='nexora_app' AND wait_event_type='Lock') AS waiting",
+              );
+              if (row.waiting) {
+                waiting = true;
+                break;
+              }
+              await new Promise((r) => setTimeout(r, 25));
+            }
+            assert.equal(waiting, true);
+            assert.equal(changed, false);
+          } finally {
+            release();
+            apiCustomers.instance = originalClient;
+            await read;
+            await write;
+          }
+          expectStats(await read, { total: 108, active: 53, inactive: 55 });
+          expectStats(await adminRequest(), {
+            total: 108,
+            active: 54,
+            inactive: 54,
+          });
         },
       );
 

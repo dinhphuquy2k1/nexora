@@ -32,7 +32,13 @@ export interface CustomerQuery {
   status?: CustomerStatusCode;
   phone?: string;
 }
+export interface CustomerStats {
+  total: number;
+  active: number;
+  inactive: number;
+}
 export interface CustomerPage {
+  stats: CustomerStats;
   customers: CustomerSummary[];
   pagination: {
     page: number;

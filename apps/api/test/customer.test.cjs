@@ -616,3 +616,66 @@ test("mechanical Carrier generic-message reuse preserves 404/401 and unexpected-
   });
   await assert.rejects(service.list("owner"), (e) => e === unexpected);
 });
+
+test("Customer list service preserves stats and presenter forwards values without recomputing", async () => {
+  const {
+    CustomerService,
+  } = require("../dist/customer/application/customer.service");
+  const {
+    presentCustomerPage,
+  } = require("../dist/customer/presentation/customer.presenter");
+  const createdAt = new Date("2026-10-23T00:00:00Z");
+  const row = {
+    id: "11111111-1111-4111-8111-111111111111",
+    code: "KH000001",
+    name: "Customer",
+    phone: "+84912345678",
+    email: null,
+    note: null,
+    status: CustomerStatus.ACTIVE,
+    createdAt,
+    updatedAt: createdAt,
+  };
+  const page = {
+    customers: [row],
+    pagination: { page: 2, pageSize: 1, total: 7, totalPages: 7 },
+    stats: { total: 12, active: 7, inactive: 5 },
+  };
+  let called = 0;
+  const service = new CustomerService({
+    list: async (owner, query) => {
+      called++;
+      assert.equal(owner, "actor");
+      assert.deepEqual(query, {
+        page: 2,
+        pageSize: 1,
+        status: CustomerStatus.ACTIVE,
+        phone: "+84912345678",
+      });
+      return page;
+    },
+  });
+  const result = await service.list(
+    { id: "actor", role: "ADMIN", ownerId: "foreign" },
+    {
+      page: "2",
+      pageSize: "1",
+      status: "ACTIVE",
+      phone: "0912345678",
+    },
+  );
+  assert.equal(result, page);
+  assert.equal(called, 1);
+  const presented = presentCustomerPage(result);
+  assert.equal(presented.stats, page.stats);
+  assert.equal(presented.pagination, page.pagination);
+  assert.equal(presented.customers[0].statusLabel, "Đang hoạt động");
+  assert.equal(presented.customers[0].email, null);
+  assert.equal(presented.customers[0].note, null);
+  assert.equal(presented.customers[0].createdAt, createdAt);
+  assert.equal(
+    JSON.parse(JSON.stringify(presented)).customers[0].createdAt,
+    createdAt.toISOString(),
+  );
+  assert.equal(Object.hasOwn(presented.customers[0], "stats"), false);
+});

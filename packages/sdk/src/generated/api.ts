@@ -348,6 +348,11 @@ export interface components {
             message: string;
             requestId: string;
         };
+        CustomerStatsDto: {
+            total: number;
+            active: number;
+            inactive: number;
+        };
         CustomerSummaryDto: {
             /** Format: uuid */
             id: string;
@@ -374,6 +379,7 @@ export interface components {
             totalPages: number;
         };
         CustomersResponseDto: {
+            stats: components["schemas"]["CustomerStatsDto"];
             customers: components["schemas"]["CustomerSummaryDto"][];
             pagination: components["schemas"]["CustomerPaginationDto"];
         };

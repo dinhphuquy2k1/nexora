@@ -1786,6 +1786,28 @@
           "requestId"
         ]
       },
+      "CustomerStatsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "active": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "inactive": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "total",
+          "active",
+          "inactive"
+        ]
+      },
       "CustomerSummaryDto": {
         "type": "object",
         "properties": {
@@ -1871,6 +1893,9 @@
       "CustomersResponseDto": {
         "type": "object",
         "properties": {
+          "stats": {
+            "$ref": "#/components/schemas/CustomerStatsDto"
+          },
           "customers": {
             "type": "array",
             "items": {
@@ -1882,6 +1907,7 @@
           }
         },
         "required": [
+          "stats",
           "customers",
           "pagination"
         ]
