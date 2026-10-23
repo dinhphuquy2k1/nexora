@@ -1,0 +1,54 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-weight: 600;
+  background: var(--color-accent);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.button:hover {
+  background: var(--color-accent-hover);
+}
+.button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font: inherit;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.input[aria-invalid="true"] {
+  border-color: var(--color-status-error-text);
+}
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: inherit;
+  cursor: pointer;
+  min-height: 44px;
+}
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}
+.button:focus-visible,
+.input:focus-visible,
+.checkbox input:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 3px;
+}

@@ -212,7 +212,14 @@ test("CSS custom properties: lightweight token reference validation", () => {
   }
 
   // Explicit allowlist for intentionally external properties
-  const allowlist = new Set();
+  // next/font/local generates this property on the root element, outside source CSS.
+  const rootLayout = fs.readFileSync(
+    path.join(webRoot, "app/layout.tsx"),
+    "utf8",
+  );
+  assert.match(rootLayout, /variable:\s*"--font-inter"/);
+  assert.match(rootLayout, /className=\{inter.variable\}/);
+  const allowlist = new Set(["--font-inter"]);
   const missingTokens = [];
 
   for (const [filePath, content] of fileContents.entries()) {

@@ -1,4 +1,11 @@
 import "./styles.css";
+import localFont from "next/font/local";
+const inter = localFont({
+  src: "./fonts/InterVariable.woff2",
+  variable: "--font-inter",
+  display: "swap",
+  weight: "100 900",
+});
 import type { ReactNode } from "react";
 import { PRODUCT_NAME } from "@nexora/shared";
 
@@ -9,7 +16,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="vi">
+    <html lang="vi" className={inter.variable}>
       <body>{children}</body>
     </html>
   );

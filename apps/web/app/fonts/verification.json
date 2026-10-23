@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "447c304e0d2579d3327f6e53f8404203db4f5575",
+  "sha256": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+  "license": "SIL OFL 1.1",
+  "vietnameseCodepointsCovered": 90,
+  "additionalCodepoints": ["U+0110", "U+0111"],
+  "weightMin": 100.0,
+  "weightMax": 900.0,
+  "method": "actual WOFF2 cmap/fvar via fontTools4.61.1 and native Node Brotli, also independently readable by fc-scan; unmodified source bytes"
+}

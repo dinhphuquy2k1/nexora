@@ -1,6 +1,6 @@
 # NEXORA-031 — Full Frontend Migration (M1–M5)
 
-Task: PLANNED
+Task: IN PROGRESS
 Implementation: PLANNED
 Verification: NOT VERIFIED
 Classification: SIGNIFICANT
@@ -153,3 +153,9 @@ These planning checks do not verify frontend implementation. M1–M5/visual/buil
 ## M1 authorization checkpoint — 2026-10-23
 
 Exact owner comment6360485845 fetched through authenticated GitHub connector: dinhphuquy2k1/User/OWNER, PR27, created=updated2026-10-23T08:10:10Z, standalone five-line decision. Existing ADR009 digest/verifier accepts actual complete comments/reviews, matching raw snapshot0874328b…; no later revocation. Owner explicitly authorizes M1 only, then review checkpoint; M2–M5 remain NOT STARTED. Immutable snapshot unchanged. Historical M0 pending-approval language above is superseded here. Hosted approval checkpoint results belong in PR metadata after push.
+
+### M1.1 — tokens, local font and neutral primitives
+
+Behavioral RED: m1-foundation.test.mjs2/2 failed on old64px header and missing exports before code. Implemented56px token, licensed unmodified PR22 Inter with actual cmap coverage U+1EA0..1EF9 plus Đ/đ and fvar100..900 inspection; manifest pins source SHA. Host fontTools lacked Brotli extension; used native Node Brotli for read-only font table inspection, independently readable with fc-scan; no dependency/Python test added. Neutral Button/TextInput/Checkbox/Overlay intended for actual M1 Login/MFA/help/mobile-nav consumers; no unused Select/form framework. Native dialog provides modal focus/inert/top-layer behavior for browser acceptance. Existing Panel/StatusBadge unchanged.
+
+GREEN targeted foundation2/2 and UI resolver1/1; UI typecheck PASS. Initial Web test caught generated --font-inter as undeclared source CSS; narrow external-property allowance now also asserts actual next/font variable/root binding, preserving token checks. Hosted Preflight39926637345 authenticates owner approval on metadata head ea7f8d6. Full browser/visual behavior remains pending.
