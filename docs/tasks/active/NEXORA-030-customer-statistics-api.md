@@ -2,7 +2,7 @@
 
 Task: VERIFICATION PENDING
 Implementation: IMPLEMENTED
-Verification: NOT VERIFIED
+Verification: PARTIALLY VERIFIED
 Classification: SIGNIFICANT
 Documentation Impact: REQUIRED
 
@@ -139,3 +139,21 @@ Local Docker daemon responds28.4.0, but filesystem has about160MiB free and exis
 - Initial pnpm quality: FAIL at new-test lint; retry passed format/lint/static/docs then failed typecheck prerequisite because API_INTERNAL_URL was absent. Retried documented production/upstream environment separately; final outcome recorded in PR, not inferred. Full root test/build/runtime checks remain pending hosted execution.
 
 The owned local environment is not suitable for canonical Docker clusters at current disk capacity. No checksum/TLS bypass, counterfeit generated client, shared database, destructive volume reset or unrelated cleanup used. Independent review P2 lock-direction coverage was fixed in source; execution and final independent review determine readiness.
+
+## Genuine implementation evidence and independent review — 2026-10-23
+
+Evidence source is implementation/documentation head76dc91cd0c6ac16de592fe6135542b40db9b353f, tested as PR merge ref b0a09a0 against baseline b9d02f0. These results are not claimed for a later documentation commit. The source implementation is unchanged by this evidence update. Final-head workflow outcomes belong in PR26 metadata after push to avoid SHA-only document loops.
+
+| Claim                                                      | Evidence                                                                                                                                                                                         | Date       | Result |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Authenticated final implementation approval gate           | Preflight39901832158/job120244920712: actual owner approval verification and29 governance tests; raw snapshot digest unchanged                                                                   | 2026-10-23 | PASS   |
+| Genuine Prisma7.10, full build/typecheck/quality/contracts | Foundation39901832143 attempt1/job120244920480 Docker quality step; genuine generated client, API172/172, root116, Web46, Database6, UI1 and reproducible contracts                              | 2026-10-23 | PASS   |
+| Migrated restricted PostgreSQL/Nest and owner concurrency  | Same actual log: integration81/81, all17 new named stats subtests including observed read-first/writer-first waits; existing session/revoke/disable/Origin/error/constraints assertions retained | 2026-10-23 | PASS   |
+| Migration, cluster isolation and cleanup                   | Same quality step: migration test and Actual disposable cluster tests PASS, all requested suites and cleanup verified                                                                            | 2026-10-23 | PASS   |
+| LOCAL runtime and real TTY/MFA/browser                     | Same run: compiled provisioning pseudo-TTY and MFA TTY rollback/commit, custody/runtime denial, proxy/session/browser/outage and Runtime smoke PASS                                              | 2026-10-23 | PASS   |
+| First HTTPS smoke                                          | Same run attempt1: ADMIN_BROWSER_PENDING_MFA / REQUEST_TIMEOUT; data/development steps skipped after failure, never reported PASS                                                                | 2026-10-23 | FAIL   |
+| Independent implementation review                          | Separate reviewer at76dc91c: no confirmed P1/P2/P3; priorP2 read-first lock coverage resolved; independently executed contract/SDK2/2 and diff check PASS                                        | 2026-10-23 | PASS   |
+
+Same-head bounded failed-job rerun attempt2 was requested without code/timeout/assertion/security changes. Before this evidence capture it passed quality/integration, LOCAL runtime, HTTPS/onboarding and persistence steps; development smoke was still running, so whole Foundation success is not claimed here. Historical metadata-only checkpoint b9ad13b had the same HTTPS browser-MFA timeout; this is evidence of a pre-implementation occurrence, not proof of its root cause. Attempt1 failure remains historical even if rerun succeeds.
+
+Task stays VERIFICATION PENDING; capability IMPLEMENTED; Verification PARTIALLY VERIFIED now reflects genuine backend invariant evidence. Consumer UI loading/unavailable/error and deployed API/SDK/Web version-boundary behavior remain unverified NEXORA-029 M2 work, not implemented here or fabricated as0. Full required final-head CI must still pass before merge readiness; see PR26 for live final-head outcomes. No production deployment/TLS/DNS/backup certification is implied. No new code-review findings remain; owner PR review and branch requirements remain separate.
