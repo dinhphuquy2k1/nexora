@@ -119,6 +119,14 @@ export async function verifyM1Visuals({
           await until(
             '!!document.querySelector("dialog[open][aria-label=\\"Điều hướng di động\\"]")',
           );
+          console.log(
+            "M1 modal initial focus",
+            JSON.stringify(
+              await evaluate(
+                '({inDialog:!!document.activeElement.closest("dialog[open]"),tag:document.activeElement.tagName,focused:document.hasFocus()})',
+              ),
+            ),
+          );
           assert.equal(
             await evaluate('!!document.activeElement.closest("dialog[open]")'),
             true,
@@ -136,6 +144,15 @@ export async function verifyM1Visuals({
               code: "Tab",
               windowsVirtualKeyCode: 9,
             });
+            console.log(
+              "M1 modal Tab focus",
+              i,
+              JSON.stringify(
+                await evaluate(
+                  '({inDialog:!!document.activeElement.closest("dialog[open]"),tag:document.activeElement.tagName,focused:document.hasFocus()})',
+                ),
+              ),
+            );
             assert.equal(
               await evaluate(
                 '!!document.activeElement.closest("dialog[open]")',

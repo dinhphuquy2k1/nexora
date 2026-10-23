@@ -35,6 +35,36 @@ export function Overlay({
       aria-label={label}
       aria-modal="true"
       className={`${styles.overlay} ${side ? styles.side : ""}`}
+      onKeyDown={(e) => {
+        if (e.key !== "Tab") return;
+        const stops = Array.from(
+          e.currentTarget.querySelectorAll<HTMLElement>(
+            "a[href],button,input,select,textarea,[tabindex]",
+          ),
+        ).filter(
+          (node) =>
+            node.tabIndex >= 0 &&
+            !node.matches(":disabled") &&
+            node.getClientRects().length > 0,
+        );
+        const first = stops[0];
+        const last = stops.at(-1);
+        if (!first || !last) {
+          e.preventDefault();
+          return;
+        }
+        const active = document.activeElement;
+        if (e.shiftKey && (active === first || active === e.currentTarget)) {
+          e.preventDefault();
+          last.focus();
+        } else if (
+          !e.shiftKey &&
+          (active === last || active === e.currentTarget)
+        ) {
+          e.preventDefault();
+          first.focus();
+        }
+      }}
       onCancel={(e) => {
         e.preventDefault();
         onDismiss();
