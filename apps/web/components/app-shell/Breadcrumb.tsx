@@ -21,7 +21,8 @@ export function Breadcrumb() {
               className={styles.breadcrumbCurrent}
               aria-current="page"
             >
-              {segment.label}
+              <span>{segment.label}</span>
+              <span className={styles.breadcrumbDot} aria-hidden="true" />
             </span>
           );
         }

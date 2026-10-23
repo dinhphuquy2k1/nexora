@@ -28,8 +28,12 @@ export function Header({
   deployment,
 }: HeaderProps) {
   let toggleLabel = "Thu gọn thanh điều hướng";
-  if (isMobile) toggleLabel = "Mở menu di động";
-  else if (isSidebarCollapsed) toggleLabel = "Mở rộng thanh điều hướng";
+  if (isMobile) {
+    toggleLabel = mobileOpen ? "Đóng menu di động" : "Mở menu di động";
+  } else if (isSidebarCollapsed) {
+    toggleLabel = "Mở rộng thanh điều hướng";
+  }
+
   return (
     <header className={styles.header} aria-label="Thanh công cụ đầu trang">
       {/* Left section: Sidebar Toggle & Breadcrumbs */}
@@ -45,6 +49,16 @@ export function Header({
         >
           <Menu size={18} aria-hidden="true" />
         </button>
+
+        {isSidebarCollapsed && !isMobile && (
+          <div className={styles.collapsedBrand} aria-hidden="true">
+            <div className={styles.collapsedLogo}>
+              <span className={styles.collapsedLogoLetter}>N</span>
+              <span className={styles.collapsedLogoDot} />
+            </div>
+            <span className={styles.collapsedBrandName}>NEXORA</span>
+          </div>
+        )}
 
         <Breadcrumb />
       </div>

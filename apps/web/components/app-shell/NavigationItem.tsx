@@ -25,7 +25,7 @@ export function NavigationItem({
             isCollapsed ? styles.itemCentered : ""
           }`}
           aria-current={isActive ? "page" : undefined}
-          aria-label={isCollapsed ? item.label : undefined}
+          aria-label={item.label}
           title={isCollapsed ? item.label : undefined}
         >
           {isActive && (
@@ -37,19 +37,15 @@ export function NavigationItem({
           >
             <IconComponent size={18} />
           </span>
-          {!isCollapsed && (
-            <span className={styles.itemLabel}>{item.label}</span>
-          )}
+          <span className={styles.itemLabel}>{item.label}</span>
         </Link>
-        {isCollapsed && (
-          <div
-            className={styles.collapsedTooltip}
-            role="tooltip"
-            aria-hidden="true"
-          >
-            {item.label}
-          </div>
-        )}
+        <div
+          className={styles.collapsedTooltip}
+          role="tooltip"
+          aria-hidden="true"
+        >
+          {item.label}
+        </div>
       </div>
     );
   }
@@ -61,7 +57,7 @@ export function NavigationItem({
         type="button"
         disabled
         aria-disabled="true"
-        aria-label={isCollapsed ? `${item.label} (Chưa triển khai)` : undefined}
+        aria-label={`${item.label} (Chưa triển khai)`}
         className={`${styles.navItemDisabled} ${
           isCollapsed ? styles.itemCentered : ""
         }`}
@@ -70,22 +66,16 @@ export function NavigationItem({
         <span className={styles.itemIcon} aria-hidden="true">
           <IconComponent size={18} />
         </span>
-        {!isCollapsed && (
-          <>
-            <span className={styles.itemLabel}>{item.label}</span>
-            <span className={styles.plannedBadge}>Chưa triển khai</span>
-          </>
-        )}
+        <span className={styles.itemLabel}>{item.label}</span>
+        <span className={styles.plannedBadge}>Chưa triển khai</span>
       </button>
-      {isCollapsed && (
-        <div
-          className={styles.collapsedTooltip}
-          role="tooltip"
-          aria-hidden="true"
-        >
-          {item.label} (Chưa triển khai)
-        </div>
-      )}
+      <div
+        className={styles.collapsedTooltip}
+        role="tooltip"
+        aria-hidden="true"
+      >
+        {item.label} (Chưa triển khai)
+      </div>
     </div>
   );
 }

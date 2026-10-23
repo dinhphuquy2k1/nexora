@@ -7,9 +7,15 @@ const inter = localFont({
   weight: "100 900",
 });
 import type { ReactNode } from "react";
+import type { Metadata, Viewport } from "next";
 import { PRODUCT_NAME } from "@nexora/shared";
 
-export const metadata = {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
+export const metadata: Metadata = {
   title: `${PRODUCT_NAME} · Quản lý vận đơn`,
   description: "Nền tảng quản lý vận đơn độc lập",
 };

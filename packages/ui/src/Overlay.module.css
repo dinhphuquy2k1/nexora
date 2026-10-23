@@ -21,5 +21,6 @@
   max-width: calc(100vw - 48px);
   height: 100dvh;
   max-height: 100dvh;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }

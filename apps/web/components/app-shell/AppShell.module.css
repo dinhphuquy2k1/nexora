@@ -30,12 +30,14 @@
   flex-shrink: 0;
 }
 .mobileNavigation {
+  position: relative;
   background: var(--color-primary);
   display: flex;
   flex-direction: column;
   height: 100dvh;
   min-height: 0;
   color: var(--color-surface);
+  overflow-x: hidden;
 }
 .mobileNavigation aside {
   position: relative;
@@ -45,11 +47,31 @@
   min-height: 0;
   border: 0;
 }
-.closeNavigation {
-  align-self: flex-start;
-  flex-shrink: 0;
-  margin: var(--space-2);
-  min-height: 40px;
+.mobileCloseButton {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 40;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+.mobileCloseButton:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+.mobileCloseButton:focus-visible {
+  outline: 2px solid var(--focus-ring-on-dark);
+  outline-offset: 2px;
 }
 @media (max-width: 900px) {
   .desktopSidebar {

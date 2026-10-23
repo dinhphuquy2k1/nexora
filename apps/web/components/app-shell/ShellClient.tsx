@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Button, Overlay } from "@nexora/ui";
+import { Overlay } from "@nexora/ui";
+import { X } from "lucide-react";
 import { Sidebar } from "./Sidebar.tsx";
 import { Header } from "./Header.tsx";
 import type { DeploymentPresentation } from "../../lib/auth/deployment-presentation.ts";
@@ -12,7 +13,8 @@ interface ShellClientProps {
   deployment: DeploymentPresentation;
 }
 export function ShellClient({ children, user, deployment }: ShellClientProps) {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [userOverride, setUserOverride] = useState<boolean | null>(null);
+  const [isCompact, setIsCompact] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -22,15 +24,21 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
     const compact = window.matchMedia("(max-width: 1100px)");
     const update = () => {
       setIsMobile(mobile.matches);
-      setIsSidebarCollapsed(compact.matches);
+      setIsCompact(compact.matches);
       setMobileOpen(false);
     };
+
     update();
-    mobile.addEventListener("change", update);
-    compact.addEventListener("change", update);
+
+    const handleBoundaryChange = () => {
+      setUserOverride(null);
+      update();
+    };
+    mobile.addEventListener("change", handleBoundaryChange);
+    compact.addEventListener("change", handleBoundaryChange);
     return () => {
-      mobile.removeEventListener("change", update);
-      compact.removeEventListener("change", update);
+      mobile.removeEventListener("change", handleBoundaryChange);
+      compact.removeEventListener("change", handleBoundaryChange);
     };
   }, []);
   useEffect(() => {
@@ -40,10 +48,15 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
     setMobileOpen(false);
     toggleRef.current?.focus();
   }
+  const isEffectiveCollapsed = userOverride !== null ? userOverride : isCompact;
+  const isResponsive = userOverride === null;
   return (
     <div className={styles.container}>
       <div className={styles.desktopSidebar}>
-        <Sidebar isCollapsed={isSidebarCollapsed} />
+        <Sidebar
+          isCollapsed={isEffectiveCollapsed}
+          isResponsive={isResponsive}
+        />
       </div>
       <Overlay
         open={isMobile && mobileOpen}
@@ -57,15 +70,21 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
             if ((e.target as HTMLElement).closest("a[href]")) dismiss();
           }}
         >
-          <Button className={styles.closeNavigation} onClick={dismiss}>
-            Đóng menu di động
-          </Button>
-          <Sidebar isCollapsed={false} />
+          <button
+            type="button"
+            className={styles.mobileCloseButton}
+            onClick={dismiss}
+            aria-label="Đóng menu di động"
+            title="Đóng menu di động"
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+          <Sidebar isCollapsed={false} isResponsive={false} />
         </div>
       </Overlay>
       <div className={styles.mainWrapper}>
         <Header
-          isSidebarCollapsed={isSidebarCollapsed}
+          isSidebarCollapsed={isEffectiveCollapsed}
           isMobile={isMobile}
           mobileOpen={mobileOpen}
           toggleRef={toggleRef}
@@ -73,11 +92,14 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
             if (isMobile) {
               toggleRef.current?.focus();
               setMobileOpen((v) => !v);
-            } else setIsSidebarCollapsed((v) => !v);
+            } else {
+              setUserOverride((prev) => (prev !== null ? !prev : !isCompact));
+            }
           }}
           user={user}
           deployment={deployment}
         />
+
         <main
           className={styles.contentArea}
           id="workspace-content"

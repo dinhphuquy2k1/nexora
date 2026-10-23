@@ -246,6 +246,47 @@ M1 capability: IMPLEMENTED. M1 verification: VERIFIED on implementation source5d
 | Independent implementation review        | PASS                   | Separate reviewer through5d3254d, no remaining confirmed P1/P2/P3; actual syntax/diff checks and focused4/4. Earlier confirmed lifecycle/keyboard/responsive and verifier review findings addressed; review does not substitute for runtime                                                                                                                                                                                                                                                       |
 | Local full quality / local Docker        | FAIL/BLOCKED / NOT RUN | Prisma artifact download EAI_AGAIN / unsafe disk capacity; full real hosted canonical Foundation above supplies the executed environment evidence, no local PASS inferred                                                                                                                                                                                                                                                                                                                         |
 
-Public browser input/tab readiness changes now pass genuine execution, but do not prove the root cause of the earlier c82 HTTPS timeout. Baseline and later same-source launch outcomes establish intermittency only; bounded startup diagnostic vocabulary has not established an environmental root cause. Historical FAILs above remain FAIL. No assertion/timeout/security policy was removed or weakened.
+### M1.5 Review Findings & Visual Fidelity Fixes (2026-10-23)
+
+Addressing the two unresolved P2 review findings on PR #27 and aligning M1 visual fidelity directly with the reference ZIP (`C:\Users\wayyk\Downloads\nexora-logistics-management (1).zip`):
+
+1. **P2-1 (Sidebar first-paint layout shift on hard reload at 901–1100px)**:
+   - **Root Cause**: `ShellClient.tsx` previously relied on client hydration to read `window.matchMedia("(max-width: 1100px)")` and collapse the sidebar. On SSR first paint, it rendered expanded at 240px and collapsed to 72px after hydration, causing a visible layout shift and reflow.
+   - **Fix**: Implemented CSS-first responsive compact desktop presentation in `Sidebar.module.css`. A `.responsive` class applies `@media (min-width: 901px) and (max-width: 1100px) { width: var(--sidebar-collapsed-width); }` (72px) with centered icon buttons directly at initial layout calculation before JS hydration runs. User manual toggle overrides are preserved separately in `userOverride: boolean | null`. Verified at 901px, 1024px, and 1100px with 72px DOMContentLoaded first paint and layout shift <= 0.00096.
+
+2. **P2-2 (Mobile drawer toggle accessible name and state)**:
+   - **Root Cause**: `Header.tsx` toggle button did not differentiate between desktop and mobile toggle semantics or communicate drawer state.
+   - **Fix**: Header toggle button derives its accessible label from mobile drawer state:
+     - Closed drawer: `aria-expanded="false"`, `aria-label="Mở menu di động"`, `title="Mở menu di động"`.
+     - Open drawer: `aria-expanded="true"`, `aria-label="Đóng menu di động"`, `title="Đóng menu di động"`.
+     - Maintained full keyboard navigation, Escape dismissal, and focus restoration to the toggle button upon dismissal.
+
+3. **Visual Fidelity Alignments with Reference ZIP**:
+   - **Sidebar**:
+     - Brand subtitle updated from `"QUẢN LÝ VẬN ĐƠN"` to `"Logistics Hub"` matching ZIP branding.
+     - Monogram updated to 34×34px navy rounded mark with 16px white "N" and 6px orange accent dot.
+     - Active item indicator is a 4px rounded-r-full `#F58A24` bar on `#1E3A5F` active background.
+   - **Header**:
+     - Borderless toggle button matching ZIP (`p-2 text-[#64748B]`).
+     - Active breadcrumb title decorated with signature `#F58A24` orange indicator dot.
+     - Account trigger displays user avatar circle with initials ("OP") + username + deployment role.
+   - **Mobile Drawer & Overflow**:
+     - Removed large orange "Đóng menu di động" button above the logo. Replaced with compact 34×34px icon button `<X size={18} />` at `top: 10px; right: 12px;` aligned with the 56px header line without altering layout hierarchy.
+     - Exported `viewport: Viewport = { width: "device-width", initialScale: 1 }` in `apps/web/app/layout.tsx`, fixing mobile Chromium zoom-out and virtual 980px viewport issue.
+     - Tooltips set to `display: none;` by default (only `display: block` when collapsed or compact desktop), eliminating scrollable area contribution. Set `overflow-x: hidden;` on `.mobileNavigation` and `.side`. Verified `scrollWidth <= clientWidth` (zero horizontal overflow) across 768px, 390px, and 375px viewports.
+   - **Login / MFA Page**:
+     - Card width aligned to 420px max-width, `border-radius: 16px` (`rounded-2xl`).
+     - Inputs height 44px, radius 12px, background `#F8FAFC`, border `#CBD5E1`.
+     - Submit button text color set to pure white `#FFFFFF` with `#F58A24` background and hover `#E07716`.
+     - Help link styled in `#F58A24` with hover `#E07716`.
+     - Preserved authentic Nexora TOTP, recovery code, session, and server authorization logic (no mock / quick-fill).
+
+4. **Executed Verification Evidence**:
+   - `scripts/m1-p2-regression.mjs`: ALL PASSED across 901px, 1024px, 1100px, 1101px, 1280px, 1440px, 768px, 390px, 375px viewports and Login page.
+   - `apps/web/test/m1-shell.test.mjs`: 4/4 PASSED.
+   - `docker exec nexora-web-1 env -u PORT pnpm --filter @nexora/web test`: 54/54 PASSED.
+   - `pnpm --filter @nexora/ui test`: 1/1 PASSED.
+   - `pnpm format:check`, `pnpm lint`, `pnpm docs:check`, `pnpm preflight:check`: ALL PASSED.
+   - Visual artifacts captured and inspected in `scratch/screenshots/`: `expanded_1440x900_desktop.png`, `expanded_1280x800_desktop.png`, `compact_1024x768_first_paint.png`, `tablet_768x1024_closed.png`, `tablet_768x1024_open.png`, `mobile_390x844_closed.png`, `mobile_390x844_open.png`, `mobile_375x812_closed.png`, `mobile_375x812_open.png`, `login_page_desktop.png`.
 
 This evidence commit changes documentation only. Exact final documentation-head Preflight/Foundation results and tested merge lineage are recorded in PR27 metadata after execution, avoiding a SHA-only documentation loop. Until those checks finish, final-head readiness is VERIFICATION PENDING. The implementation-source PASS above must not be relabeled as the new commit's PASS. No claim of production DNS/certificate/firewall/NTP/key custody/backup deployment verification; CI uses owned disposable resources only. Immutable design snapshot unchanged; Documentation Impact REQUIRED, canonical frontend/testing documentation synchronized.

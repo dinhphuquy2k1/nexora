@@ -8,6 +8,12 @@ const apiInternalUrl = resolveApiInternalUrl(process.env.API_INTERNAL_URL);
 const config: NextConfig = {
   transpilePackages: ["@nexora/sdk", "@nexora/ui", "@nexora/shared"],
   poweredByHeader: false,
+  allowedDevOrigins: [
+    "127.0.0.1",
+    "127.0.0.1:3001",
+    "localhost",
+    "localhost:3001",
+  ],
   experimental: { cpus: 2 },
   async headers() {
     return [
