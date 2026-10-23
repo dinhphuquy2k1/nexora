@@ -1,7 +1,7 @@
 /** Observe a real client interaction before native credential input into SSR markup. */
 export async function waitForInteractiveLogin({ until, evaluate }) {
   await until(
-    'document.readyState === "complete" && !!document.querySelector("input[name=password]:not(:disabled)")',
+    'document.readyState === "complete" && document.hasFocus() && !!document.querySelector("input[name=password]:not(:disabled)")',
   );
   // The server-rendered input exists before React attaches handlers. Only its native
   // visibility button can produce this transition; no credentials or form submit are retried.

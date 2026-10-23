@@ -220,6 +220,7 @@ try {
     ).result.value;
   checks.step("LOGIN_PAGE_RENDER");
   await send("Network.enable");
+  await send("Page.bringToFront");
   await send("Page.navigate", { url: `${baseUrl}/login?from=%2Fsettings` });
   let ready = false;
   for (let i = 0; i < 100; i++) {

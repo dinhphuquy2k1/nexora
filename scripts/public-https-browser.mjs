@@ -404,9 +404,17 @@ try {
   const type = async (name, value) => {
     await evaluate(`document.querySelector('input[name="${name}"]').focus()`);
     await send("Input.insertText", { text: value });
+    assert.equal(
+      await evaluate(
+        `document.querySelector('input[name="${name}"]').value===${JSON.stringify(value)}`,
+      ),
+      true,
+      "Native input must reach the focused field",
+    );
   };
   await send("Network.enable");
   await send("Page.enable");
+  await send("Page.bringToFront");
   await send("Page.navigate", { url: origin + "/login" });
   checks.step("ADMIN_BROWSER_INTERACTIVE_LOGIN");
   await waitForInteractiveLogin({ until, evaluate });
@@ -415,9 +423,21 @@ try {
   await type("password", f.password);
   await evaluate('document.querySelector("button[type=submit]").click()');
   checks.step("ADMIN_BROWSER_PENDING_MFA");
-  await until(
-    '!!document.querySelector("input[name=mfa-code]:not(:disabled)")',
-  );
+  try {
+    await until(
+      '!!document.querySelector("input[name=mfa-code]:not(:disabled)")',
+    );
+  } catch (error) {
+    console.error(
+      "PUBLIC_LOGIN_FORM_DIAGNOSTIC",
+      JSON.stringify(
+        await evaluate(
+          '({focused:document.hasFocus(),usernamePresent:!!document.querySelector("input[name=username]")?.value,passwordPresent:!!document.querySelector("input[name=password]")?.value,alertPresent:!!document.querySelector("[role=alert]")})',
+        ),
+      ),
+    );
+    throw error;
+  }
   assert.equal(await evaluate("location.pathname"), "/login");
   let cookies = (
     await send("Network.getCookies", {
