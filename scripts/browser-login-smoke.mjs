@@ -814,18 +814,21 @@ try {
   );
   checks.step("OPERATOR_ACCOUNT_MENU_LOGOUT");
   await send("Page.navigate", { url: baseUrl + "/settings" });
+  let accountReady = false;
   for (let i = 0; i < 100; i++) {
-    if (
-      await evaluate(
-        `!!document.querySelector('button[aria-label^="Tài khoản người dùng"]')`,
-      )
-    )
-      break;
+    accountReady = await evaluate(`(() => {
+      if (document.readyState !== "complete") return false;
+      const trigger = document.querySelector('button[aria-label^="Tài khoản người dùng"]');
+      const logout = document.querySelector('button[aria-label="Đăng xuất khỏi hệ thống"]');
+      if (trigger?.getAttribute("aria-expanded") === "true" && logout && !logout.disabled) return true;
+      // Only a harmless menu toggle is probed; logout is submitted once below.
+      if (trigger?.getAttribute("aria-expanded") !== "true") trigger?.click();
+      return false;
+    })()`);
+    if (accountReady) break;
     await delay(100);
   }
-  await evaluate(
-    `document.querySelector('button[aria-label^="Tài khoản người dùng"]').click()`,
-  );
+  assert.equal(accountReady, true, "Account menu did not become interactive");
   await evaluate(
     `document.querySelector('button[aria-label="Đăng xuất khỏi hệ thống"]').click()`,
   );
