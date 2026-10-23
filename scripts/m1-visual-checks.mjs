@@ -26,12 +26,22 @@ export async function verifyM1Visuals({
   const root = resolve(directory);
   await mkdir(root, { recursive: true });
   const records = [];
+  const desktopState = (width) =>
+    `document.querySelector('header button[aria-expanded]').getAttribute('aria-expanded')==='${width === 240}' && Math.round(document.querySelector('aside').getBoundingClientRect().width)===${width}`;
   async function until(expression) {
     for (let i = 0; i < 100; i++) {
       if (await evaluate(expression)) return;
       await delay(100);
     }
     console.error(`M1 ${prefix} ${phase} condition timed out: ${expression}`);
+    console.error(
+      "M1 geometry diagnostic",
+      JSON.stringify(
+        await evaluate(
+          `({width:innerWidth,asideWidth:document.querySelector("aside")?.getBoundingClientRect().width,expanded:document.querySelector("header button[aria-expanded]")?.getAttribute("aria-expanded"),openDialogs:document.querySelectorAll("dialog[open]").length})`,
+        ),
+      ),
+    );
     throw Error("M1 visual condition timeout");
   }
   async function capture(viewport, state) {
@@ -195,19 +205,12 @@ export async function verifyM1Visuals({
           );
         } else {
           const expected = viewport.width <= 1100 ? 72 : 240;
-          await until(
-            `document.querySelector("header button[aria-expanded]").getAttribute("aria-expanded")==="${expected === 240}"`,
-          );
-          await until(
-            `Math.round(document.querySelector("aside").getBoundingClientRect().width)===${expected}`,
-          );
+          await until(desktopState(expected));
           await capture(viewport, expected === 72 ? "collapsed" : "expanded");
           await evaluate(
             'document.querySelector("header button[aria-expanded]").click()',
           );
-          await until(
-            `Math.round(document.querySelector("aside").getBoundingClientRect().width)===${expected === 72 ? 240 : 72}`,
-          );
+          await until(desktopState(expected === 72 ? 240 : 72));
           await capture(viewport, expected === 72 ? "expanded" : "collapsed");
           await evaluate(
             'document.querySelector("header button[aria-expanded]").click()',
@@ -216,9 +219,7 @@ export async function verifyM1Visuals({
         // Wait for the restored shell state before the next independent interaction.
         if (!mobile) {
           const expected = viewport.width <= 1100 ? 72 : 240;
-          await until(
-            `Math.round(document.querySelector("aside").getBoundingClientRect().width)===${expected}`,
-          );
+          await until(desktopState(expected));
         }
         // Nonmodal popovers must fit even at375px and dismiss by Escape.
         await evaluate(
