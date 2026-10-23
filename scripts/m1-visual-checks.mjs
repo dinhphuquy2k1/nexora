@@ -190,6 +190,13 @@ export async function verifyM1Visuals({
             await evaluate("document.body.style.overflow"),
             "hidden",
           );
+          assert.equal(
+            await evaluate(
+              '(() => {const d=document.querySelector("dialog[open]");return d.scrollWidth<=d.clientWidth;})()',
+            ),
+            true,
+            "Mobile navigation must not scroll horizontally",
+          );
           await capture(viewport, "navigation");
           await send("Input.dispatchKeyEvent", {
             type: "keyDown",
