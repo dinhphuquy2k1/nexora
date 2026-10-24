@@ -53,10 +53,10 @@
   right: 12px;
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--radius-md, 8px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   background-color: rgba(255, 255, 255, 0.05);
-  color: #cbd5e1;
+  color: var(--color-border-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -67,7 +67,7 @@
 }
 .mobileCloseButton:hover {
   background-color: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+  color: var(--color-surface);
 }
 .mobileCloseButton:focus-visible {
   outline: 2px solid var(--focus-ring-on-dark);

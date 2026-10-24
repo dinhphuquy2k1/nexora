@@ -116,3 +116,24 @@ Design approval integrity follows [ADR-009](../decisions/mandatory-pre-code-desi
 Use native Node Test Runner suffix discovery under the established ordinary roots; put external-service API tests under apps/api/integration and helpers/fixtures under non-test-suffixed paths. New nested ordinary tests must need no package filename-list edits. Preserve nonempty discovery checks and before/after baseline membership; never let unmatched globs silently pass with zero tests. Double-quote package-script globs for Windows CMD and Node expansion. Turbo owns existing build prerequisites; environment-safe assertions do not waive genuine builds. Root tooling tests join pnpm test and quality must not duplicate those runs.
 
 Prefer Node built-ins for test orchestration; preserve exact ownership, timeout/signal/failure cleanup and redaction contracts. The two existing Python standard-library PTY harnesses are a justified exception until equivalent real terminal behavior is independently proven without new native dependencies. Do not replace PTY with stdin mocks or broaden ordinary tests to destructive/shared database harnesses. Canonical commands and category details belong in [Testing](../operations/testing.md).
+
+## 7. Mandatory UI Design System & Component Reuse Rule
+
+### NEXORA UI TOKEN & COMPONENT REUSE RULE
+
+- **Reuse semantic CSS tokens**: Reuse an existing semantic CSS token instead of replacing it with an equivalent hardcoded value.
+- **Central definition**: New reusable visual constants must be defined centrally in `apps/web/styles/tokens.css` before being consumed across components.
+- **Canonical state and sizing contract**: All standard form controls must share one canonical state and sizing contract (height 44px, radius 12px, hover, focus, disabled, readonly, aria-invalid, placeholder).
+- **Shared primitive reuse**: Feature components must reuse shared primitives from `packages/ui` rather than duplicate their styling.
+- **Layout vs defaults**: Feature-specific CSS may control layout and genuine exceptions (e.g. inner icon padding, layout width) but must not redefine shared control defaults.
+- **CSS Modules scoping**: Component styling must remain in CSS Modules; avoid broad global selectors.
+- **No !important**: Do not use `!important` to override shared component styling unless independently justified.
+- **Documented exceptions**: Any intentional visual exception must document its reason, scope, and compatibility impact.
+- **Regression tests**: Changes to shared tokens/components must include regression tests for existing consumers.
+- **Demonstrated need**: Do not create unused generic components or introduce new UI frameworks without demonstrated need.
+
+Canonical ownership:
+
+- [Engineering Policy](PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule): Mandatory engineering policy and governance.
+- [Frontend Architecture](../architecture/frontend.md): Token ownership, 2-tier CSS token hierarchy, and canonical form control styling contract.
+- [Reusable Components Registry](../architecture/reusable-components.md): Canonical shared control registry and component ownership.

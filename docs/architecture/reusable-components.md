@@ -135,3 +135,55 @@ This registry catalogues canonical, reusable technical components and shared voc
 - **Dependency Restrictions**: Zero dependencies. Browser-safe ESM and CommonJS exports.
 - **When to Reuse**: Whenever API Presentation or Web frontend needs customer status codes or their display labels.
 - **When NOT to Reuse**: Do not use in Domain business logic for display strings; Domain only uses codes.
+
+---
+
+## 7. Canonical Form Control Primitives
+
+- **Owner Path**:
+  - Components: `packages/ui/src/Controls.tsx`
+  - Styling: `packages/ui/src/Controls.module.css`
+  - Barrel: `packages/ui/src/index.tsx`
+- **Exported Contract**:
+  - `export function Button(props: ButtonHTMLAttributes<HTMLButtonElement>): JSX.Element`
+  - `export function TextInput(props: InputHTMLAttributes<HTMLInputElement>): JSX.Element`
+  - `export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>): JSX.Element`
+  - `export function Checkbox(props: CheckboxProps): JSX.Element`
+- **Intended Consumers**:
+  - Login (`LoginForm`), Setup (`SetupForm`), modal dialogs, and future feature forms (Customer, Settings).
+- **Supported Behavior**:
+  - **Canonical Sizing**: Standard 44px height (`--control-height: 44px;`), 12px radius (`--control-radius: var(--radius-lg, 12px);`), and `box-sizing: border-box`.
+  - **State Parity**: Complete contract covering default, hover, focus/focus-visible, disabled, readonly, invalid (`aria-invalid="true"`), and placeholder.
+  - **State Precedence**: Focus and invalid states strictly override hover styling.
+  - **Button Contrast (WCAG AA)**: Standardized to navy `var(--brand-navy, #172b4d)` text on orange `var(--color-accent, #f58a24)` background (5.74:1 contrast ratio, exceeding WCAG AA 4.5:1 requirement).
+  - **Textarea Parity**: Reuses identical colors, borders, radius, and focus rings with 88px min-height.
+  - **Self-Contained Styling**: Owns all default control appearance in `Controls.module.css` using semantic design tokens with fallbacks.
+- **Explicit Non-Goals**:
+  - Does not manage form submission, data-binding, or validation logic. Consuming feature components handle validation.
+  - Does not use `!important` or broad global selectors.
+- **Deferred Select Specification**:
+  - Standard established: 44px height, identical borders, radius, background, and focus ring matching `TextInput`.
+  - Component implementation is deferred to M2's first consumer per YAGNI and [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule).
+- **When to Reuse**:
+  - Whenever rendering standard text inputs, textareas, primary buttons, or checkboxes across web features.
+- **When NOT to Reuse**:
+  - Do not create duplicate local control styles or custom `<input>` styling in feature CSS Modules.
+
+---
+
+## 8. Modal Dialog & Overlay Primitive
+
+- **Owner Path**:
+  - Component: `packages/ui/src/Overlay.tsx`
+  - Styling: `packages/ui/src/Overlay.module.css`
+  - Barrel: `packages/ui/src/index.tsx`
+- **Exported Contract**:
+  - `export function Overlay(props: OverlayProps): JSX.Element`
+- **Intended Consumers**:
+  - Mobile navigation drawer (`ShellClient`), Login help dialog (`LoginForm`), and future feature confirmation/modal dialogs.
+- **Supported Behavior**:
+  - Native HTML `<dialog>` with top-layer placement, background inerting, keyboard focus trapping, Escape key closing, backdrop click dismissal, and body overflow restoration on unmount.
+- **Explicit Non-Goals**:
+  - Does not replace lightweight popovers; popovers use `useDismissable` hook.
+- **When to Reuse**:
+  - Whenever modal dialogs, drawers, or alert overlays are required.

@@ -55,7 +55,39 @@ test("Sidebar and ShellClient implement CSS-first responsive compact desktop pre
   );
 });
 
-test("Visual fidelity matches ZIP reference for Sidebar, Header, Login and Mobile Drawer", () => {
+test("Header implements CSS-first responsive collapsed brand presentation for first-paint parity with Sidebar", () => {
+  const headerCss = source("../components/app-shell/Header.module.css");
+  assert.match(
+    headerCss,
+    /\.responsiveBrand\s*\{[^}]*display:\s*none/s,
+    "Header CSS must hide responsive brand mark by default on wide desktop",
+  );
+  assert.match(
+    headerCss,
+    /@media\s*\(min-width:\s*901px\)\s*and\s*\(max-width:\s*1100px\)\s*\{[^}]*\.responsiveBrand\s*\{[^}]*display:\s*flex/s,
+    "Header CSS must display responsive brand mark at 901-1100px on first paint",
+  );
+  assert.match(
+    headerCss,
+    /@media\s*\(max-width:\s*900px\)\s*\{[^}]*\.responsiveBrand/s,
+    "Header CSS must hide responsive brand mark on mobile viewports",
+  );
+
+  const header = source("../components/app-shell/Header.tsx");
+  assert.match(
+    header,
+    /responsiveBrand/,
+    "Header must render responsiveBrand when isResponsive is true",
+  );
+  const shell = source("../components/app-shell/ShellClient.tsx");
+  assert.match(
+    shell,
+    /isResponsive=\{isResponsive\}/,
+    "ShellClient must pass isResponsive to Header",
+  );
+});
+
+test("Visual fidelity and token reuse for Sidebar, Header, Login and Mobile Drawer", () => {
   // Mobile drawer uses compact icon button instead of giant orange button
   const shell = source("../components/app-shell/ShellClient.tsx");
   assert.match(shell, /mobileCloseButton/);
@@ -76,12 +108,26 @@ test("Visual fidelity matches ZIP reference for Sidebar, Header, Login and Mobil
   const breadcrumb = source("../components/app-shell/Breadcrumb.tsx");
   assert.match(breadcrumb, /breadcrumbDot/);
 
-  // Login styling aligns with ZIP reference
+  // Login styling aligns with ZIP reference and design tokens
   const loginCss = source("../app/login/login.module.css");
-  assert.match(loginCss, /\.card\s*\{[^}]*border-radius:\s*16px/s);
-  assert.match(loginCss, /\.input\s*\{[^}]*background-color:\s*#f8fafc/s);
-  assert.match(
+  assert.match(loginCss, /\.card\s*\{[^}]*border-radius:\s*var\(--radius-xl/s);
+  assert.doesNotMatch(
     loginCss,
-    /\.form button\[type=["']submit["']\]\s*\{[^}]*color:\s*#ffffff/s,
+    /\.form button\[type=["']submit["']\]/s,
+    "login.module.css must not use broad form submit button selector",
+  );
+  assert.doesNotMatch(
+    loginCss,
+    /!important/s,
+    "login.module.css must not use !important to override form control styling",
+  );
+
+  // LoginForm and SetupForm consume shared primitives from @nexora/ui
+  const loginForm = source("../app/login/LoginForm.tsx");
+  assert.match(loginForm, /import\s*\{[^}]*Button[^}]*TextInput/);
+  const setupForm = source("../app/setup/SetupForm.tsx");
+  assert.match(
+    setupForm,
+    /import\s*\{[^}]*Button[^}]*TextInput[^}]*\}\s*from\s*["']@nexora\/ui["']/,
   );
 });

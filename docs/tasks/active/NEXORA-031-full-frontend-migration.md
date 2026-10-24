@@ -289,4 +289,40 @@ Addressing the two unresolved P2 review findings on PR #27 and aligning M1 visua
    - `pnpm format:check`, `pnpm lint`, `pnpm docs:check`, `pnpm preflight:check`: ALL PASSED.
    - Visual artifacts captured and inspected in `scratch/screenshots/`: `expanded_1440x900_desktop.png`, `expanded_1280x800_desktop.png`, `compact_1024x768_first_paint.png`, `tablet_768x1024_closed.png`, `tablet_768x1024_open.png`, `mobile_390x844_closed.png`, `mobile_390x844_open.png`, `mobile_375x812_closed.png`, `mobile_375x812_open.png`, `login_page_desktop.png`.
 
+### M1.6 UI Design Tokens & Component Reuse Consistency (2026-10-24)
+
+Standardized frontend Design Tokens, canonical form controls, and UI reuse consistency per owner review:
+
+1. **Normative UI Design System Rule Established**:
+   - Added [NEXORA UI TOKEN & COMPONENT REUSE RULE](../../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule) to canonical project documentation.
+   - Documented token ownership and canonical form control contract in [Frontend Architecture](../../architecture/frontend.md).
+   - Documented canonical shared control registry (`Button`, `TextInput`, `Textarea`, `Checkbox`, `Overlay`, and deferred `Select` specification) in [Reusable Components Registry](../../architecture/reusable-components.md).
+
+2. **Audit & Elimination of Unjustified Hardcoded CSS**:
+   - Centralized card radius token `--radius-xl: 16px;` in `apps/web/styles/tokens.css` without altering `--radius-lg: 12px;`.
+   - Replaced raw hex colors in `Sidebar.module.css`, `login.module.css`, `AccountMenu.module.css`, `AppShell.module.css`, and `styles.css` with semantic tokens (`var(--color-surface)`, `var(--color-border)`, `var(--color-border-subtle)`, `var(--gray-400)`, `var(--color-status-error-*)`).
+   - Removed duplicate control-state declarations and removed all `!important` overrides and `.form button[type="submit"]` broad selectors from `login.module.css`.
+
+3. **Canonical Form Control Contract Parity**:
+   - Standardized `TextInput`, `Textarea`, and `Checkbox` in `packages/ui` (`Controls.tsx`, `Controls.module.css`).
+   - Standard 44px height (`--control-height`), 12px radius (`--control-radius`), and box-sizing border-box.
+   - Full state parity: default, hover, focus/focus-visible, disabled, readonly, invalid (`aria-invalid="true"`), and placeholder.
+   - Specificity ordering ensures focus and invalid states strictly override hover styling.
+   - Consumed shared `Button` and `TextInput` in `SetupForm.tsx` and `LoginForm.tsx`.
+
+4. **Button Contrast & WCAG AA Compliance**:
+   - Previous white text on `#F58A24` achieved 2.46:1 contrast (failing WCAG AA normal text threshold of 4.5:1).
+   - Standardized button text to brand navy `var(--brand-navy, #172b4d)` on `#F58A24`, achieving **5.74:1** contrast ratio (surpassing WCAG AA 4.5:1). Hover contrast on `#E07716` achieves 4.54:1.
+
+5. **Header First-Paint Responsive Parity at 901–1100px**:
+   - Header CSS `.responsiveBrand` media query renders `.collapsedBrand` monogram at 901–1100px on first paint before React hydration completes, aligning visual presentation with the 72px Sidebar without layout shift.
+
+6. **Automated Enforcement & Verification Evidence**:
+   - `apps/web/test/form-control-contracts.test.mjs`: 5/5 PASSED (syntax-aware check enforcing token reuse, no raw hex outside `var()`, no `!important`, contract parity, button contrast).
+   - `apps/web/test/shared-ui.test.mjs`: 4/4 PASSED (token scale and reference integrity).
+   - `apps/web/test/m1-shell.test.mjs`: 5/5 PASSED.
+   - `scripts/m1-p2-regression.mjs`: ALL PASSED (first-paint geometry, shift count 0, mobile drawer toggle, 44px/12px input/button geometry, 5.74:1 button contrast, input focus and invalid styling).
+   - `pnpm --filter @nexora/ui test`: 1/1 PASSED.
+   - `docker exec nexora-web-1 env -u PORT pnpm --filter @nexora/web test`: 60/60 PASSED.
+
 This evidence commit changes documentation only. Exact final documentation-head Preflight/Foundation results and tested merge lineage are recorded in PR27 metadata after execution, avoiding a SHA-only documentation loop. Until those checks finish, final-head readiness is VERIFICATION PENDING. The implementation-source PASS above must not be relabeled as the new commit's PASS. No claim of production DNS/certificate/firewall/NTP/key custody/backup deployment verification; CI uses owned disposable resources only. Immutable design snapshot unchanged; Documentation Impact REQUIRED, canonical frontend/testing documentation synchronized.

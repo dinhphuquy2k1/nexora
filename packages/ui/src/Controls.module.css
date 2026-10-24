@@ -1,54 +1,232 @@
+/* ==========================================================================
+   Canonical Form Controls & Primitives Presentation
+   Owned by packages/ui per Tier A architecture
+   ========================================================================== */
+
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: 44px;
-  padding: var(--space-3) var(--space-4);
+  height: var(--control-height, 44px);
+  min-height: var(--control-height, 44px);
+  padding: 0 var(--space-4, 16px);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--control-radius, var(--radius-lg, 12px));
   font: inherit;
+  font-size: 14px;
   font-weight: 600;
-  background: var(--color-accent);
-  color: var(--color-primary);
+  background-color: var(--color-accent);
+  color: var(--brand-navy, #172b4d);
   cursor: pointer;
+  box-sizing: border-box;
+  text-decoration: none;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.05s ease;
 }
-.button:hover {
-  background: var(--color-accent-hover);
+
+.button:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
 }
+
+.button:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
 .button:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
+
+/* --------------------------------------------------------------------------
+   TextInput
+   -------------------------------------------------------------------------- */
+
 .input {
   width: 100%;
-  min-height: 44px;
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  height: var(--control-height, 44px);
+  min-height: var(--control-height, 44px);
+  padding: 0 var(--control-padding-x, 14px);
+  border: 1px solid var(--control-border, var(--color-border-subtle, #cbd5e1));
+  border-radius: var(--control-radius, var(--radius-lg, 12px));
   font: inherit;
-  background: var(--color-surface);
-  color: var(--color-text);
+  font-size: var(--control-font-size, 13px);
+  background-color: var(--control-bg, var(--color-surface-muted, #f8fafc));
+  color: var(--control-text, var(--color-text, #1f2937));
+  box-sizing: border-box;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
-.input[aria-invalid="true"] {
-  border-color: var(--color-status-error-text);
+
+.input::placeholder {
+  color: var(--control-placeholder, var(--gray-400, #94a3b8));
+  opacity: 1;
 }
+
+.input:hover:not(:disabled):not([readonly]):not(:focus):not(
+    [aria-invalid="true"]
+  ) {
+  border-color: var(--control-border-hover, var(--gray-400, #94a3b8));
+}
+
+.input:focus,
+.input:focus-visible,
+.input:focus:hover {
+  outline: none;
+  background-color: var(--control-bg-focus, var(--color-surface, #ffffff));
+  border-color: var(--control-focus-border, var(--color-accent, #f58a24));
+  box-shadow: 0 0 0 2px var(--control-focus-ring, rgba(245, 138, 36, 0.2));
+}
+
+.input:disabled {
+  background-color: var(--control-disabled-bg, var(--gray-100, #f1f5f9));
+  color: var(--control-disabled-text, var(--gray-500, #64748b));
+  border-color: var(--control-disabled-border, var(--gray-200, #e2e8f0));
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.input[readonly] {
+  background-color: var(--control-readonly-bg, var(--gray-50, #f8fafc));
+  cursor: default;
+}
+
+.input[aria-invalid="true"],
+.input[aria-invalid="true"]:hover {
+  border-color: var(
+    --control-invalid-border,
+    var(--color-status-error-text, #973d2b)
+  );
+}
+
+.input[aria-invalid="true"]:focus,
+.input[aria-invalid="true"]:focus-visible,
+.input[aria-invalid="true"]:focus:hover {
+  border-color: var(
+    --control-invalid-border,
+    var(--color-status-error-text, #973d2b)
+  );
+  box-shadow: 0 0 0 2px
+    var(--control-invalid-focus-ring, rgba(151, 61, 43, 0.2));
+}
+
+/* --------------------------------------------------------------------------
+   Textarea
+   -------------------------------------------------------------------------- */
+
+.textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: var(--control-padding-y, 10px) var(--control-padding-x, 14px);
+  border: 1px solid var(--control-border, var(--color-border-subtle, #cbd5e1));
+  border-radius: var(--control-radius, var(--radius-lg, 12px));
+  font: inherit;
+  font-size: var(--control-font-size, 13px);
+  background-color: var(--control-bg, var(--color-surface-muted, #f8fafc));
+  color: var(--control-text, var(--color-text, #1f2937));
+  box-sizing: border-box;
+  resize: vertical;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.textarea::placeholder {
+  color: var(--control-placeholder, var(--gray-400, #94a3b8));
+  opacity: 1;
+}
+
+.textarea:hover:not(:disabled):not([readonly]):not(:focus):not(
+    [aria-invalid="true"]
+  ) {
+  border-color: var(--control-border-hover, var(--gray-400, #94a3b8));
+}
+
+.textarea:focus,
+.textarea:focus-visible,
+.textarea:focus:hover {
+  outline: none;
+  background-color: var(--control-bg-focus, var(--color-surface, #ffffff));
+  border-color: var(--control-focus-border, var(--color-accent, #f58a24));
+  box-shadow: 0 0 0 2px var(--control-focus-ring, rgba(245, 138, 36, 0.2));
+}
+
+.textarea:disabled {
+  background-color: var(--control-disabled-bg, var(--gray-100, #f1f5f9));
+  color: var(--control-disabled-text, var(--gray-500, #64748b));
+  border-color: var(--control-disabled-border, var(--gray-200, #e2e8f0));
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.textarea[readonly] {
+  background-color: var(--control-readonly-bg, var(--gray-50, #f8fafc));
+  cursor: default;
+}
+
+.textarea[aria-invalid="true"],
+.textarea[aria-invalid="true"]:hover {
+  border-color: var(
+    --control-invalid-border,
+    var(--color-status-error-text, #973d2b)
+  );
+}
+
+.textarea[aria-invalid="true"]:focus,
+.textarea[aria-invalid="true"]:focus-visible,
+.textarea[aria-invalid="true"]:focus:hover {
+  border-color: var(
+    --control-invalid-border,
+    var(--color-status-error-text, #973d2b)
+  );
+  box-shadow: 0 0 0 2px
+    var(--control-invalid-focus-ring, rgba(151, 61, 43, 0.2));
+}
+
+.textarea[aria-invalid="true"]:focus,
+.textarea[aria-invalid="true"]:focus-visible {
+  border-color: var(
+    --control-invalid-border,
+    var(--color-status-error-text, #973d2b)
+  );
+  box-shadow: 0 0 0 2px
+    var(--control-invalid-focus-ring, rgba(151, 61, 43, 0.2));
+}
+
+/* --------------------------------------------------------------------------
+   Checkbox
+   -------------------------------------------------------------------------- */
+
 .checkbox {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   font: inherit;
   cursor: pointer;
-  min-height: 44px;
+  min-height: var(--control-height, 44px);
+  user-select: none;
 }
+
 .checkbox input {
   width: 18px;
   height: 18px;
   accent-color: var(--color-primary);
+  border-radius: var(--radius-xs, 4px);
+  cursor: pointer;
 }
-.button:focus-visible,
-.input:focus-visible,
+
 .checkbox input:focus-visible {
   outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }

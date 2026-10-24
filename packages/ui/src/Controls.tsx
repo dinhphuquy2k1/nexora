@@ -1,9 +1,11 @@
 import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
+  TextareaHTMLAttributes,
   ReactNode,
 } from "react";
 import styles from "./Controls.module.css";
+
 export function Button({
   className = "",
   type = "button",
@@ -17,12 +19,21 @@ export function Button({
     />
   );
 }
+
 export function TextInput({
   className = "",
   ...props
 }: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${styles.input} ${className}`} />;
 }
+
+export function Textarea({
+  className = "",
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} className={`${styles.textarea} ${className}`} />;
+}
+
 export function Checkbox({
   children,
   className = "",

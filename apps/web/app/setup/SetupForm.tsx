@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useRef, useState, useId, type FormEvent } from "react";
+import { Button, TextInput } from "@nexora/ui";
 import { takeSetupToken } from "../../lib/auth/setup";
 import styles from "../login/login.module.css";
+
 export function SetupForm() {
   const token = useRef<string | null>(null),
     initialized = useRef(false);
@@ -11,6 +13,7 @@ export function SetupForm() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const id = useId();
+
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
@@ -21,6 +24,7 @@ export function SetupForm() {
         "Liên kết không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu quản trị viên cấp lại.",
       );
   }, []);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (
@@ -59,6 +63,7 @@ export function SetupForm() {
       setBusy(false);
     }
   }
+
   return (
     <form className={styles.form} onSubmit={submit}>
       {error && (
@@ -70,7 +75,7 @@ export function SetupForm() {
         <label htmlFor={id + "password"} className={styles.label}>
           Mật khẩu mới
         </label>
-        <input
+        <TextInput
           id={id + "password"}
           name="password"
           type="password"
@@ -78,7 +83,6 @@ export function SetupForm() {
           minLength={8}
           maxLength={1024}
           required
-          className={styles.input}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={!ready || busy}
@@ -88,26 +92,29 @@ export function SetupForm() {
         <label htmlFor={id + "confirmation"} className={styles.label}>
           Xác nhận mật khẩu
         </label>
-        <input
+        <TextInput
           id={id + "confirmation"}
           name="confirmation"
           type="password"
           autoComplete="new-password"
           required
-          className={styles.input}
           value={confirmation}
           onChange={(e) => setConfirmation(e.target.value)}
           disabled={!ready || busy}
         />
       </div>
-      <button
+      <Button
         className={styles.submitBtn}
         type="submit"
         disabled={!ready || busy}
       >
         {busy ? "Đang thiết lập..." : "Đặt mật khẩu"}
-      </button>
-      <a href="/login">Trở về đăng nhập</a>
+      </Button>
+      <div className={styles.modeFooter}>
+        <a href="/login" className={styles.modeToggleLink}>
+          Trở về đăng nhập
+        </a>
+      </div>
     </form>
   );
 }

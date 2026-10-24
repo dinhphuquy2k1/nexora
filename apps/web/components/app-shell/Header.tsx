@@ -10,6 +10,7 @@ import styles from "./Header.module.css";
 
 interface HeaderProps {
   isSidebarCollapsed: boolean;
+  isResponsive?: boolean;
   isMobile: boolean;
   mobileOpen: boolean;
   toggleRef: RefObject<HTMLButtonElement | null>;
@@ -20,6 +21,7 @@ interface HeaderProps {
 
 export function Header({
   isSidebarCollapsed,
+  isResponsive = false,
   onToggleSidebar,
   user,
   isMobile,
@@ -50,8 +52,11 @@ export function Header({
           <Menu size={18} aria-hidden="true" />
         </button>
 
-        {isSidebarCollapsed && !isMobile && (
-          <div className={styles.collapsedBrand} aria-hidden="true">
+        {((isResponsive && !isMobile) || (isSidebarCollapsed && !isMobile)) && (
+          <div
+            className={`${styles.collapsedBrand} ${isResponsive ? styles.responsiveBrand : ""}`}
+            aria-hidden="true"
+          >
             <div className={styles.collapsedLogo}>
               <span className={styles.collapsedLogoLetter}>N</span>
               <span className={styles.collapsedLogoDot} />

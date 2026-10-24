@@ -85,6 +85,7 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
       <div className={styles.mainWrapper}>
         <Header
           isSidebarCollapsed={isEffectiveCollapsed}
+          isResponsive={isResponsive}
           isMobile={isMobile}
           mobileOpen={mobileOpen}
           toggleRef={toggleRef}

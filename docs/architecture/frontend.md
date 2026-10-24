@@ -52,8 +52,37 @@ The frontend enforces a CSS Modules architecture governed by centralized design 
 2. **Semantic Application Tokens**: Purpose-driven tokens mapped to the foundation constants (`--color-primary`, `--color-accent`, `--color-surface`, `--color-border`, `--color-status-*`, `--focus-ring-*`).
 3. **Standardized Scales**:
    - **Spacing**: `--space-1` (4px), `--space-2` (8px), `--space-3` (12px), `--space-4` (16px), `--space-5` (20px), `--space-6` (24px), `--space-8` (32px).
-   - **Radius**: `--radius-xs` (4px), `--radius-sm` (6px), `--radius-md` (8px), `--radius-lg` (12px), `--radius-full` (9999px).
+   - **Radius**: `--radius-xs` (4px), `--radius-sm` (6px), `--radius-md` (8px), `--radius-lg` (12px), `--radius-xl` (16px, cards), `--radius-full` (9999px).
    - **Shadows**: `--shadow-sm`, `--shadow-md`, `--shadow-lg`.
+4. **Canonical Form Control Contract Tokens**:
+   - Standard control sizing: `--control-height: 44px;`, `--control-radius: var(--radius-lg, 12px);`, `--control-padding-x: 14px;`, `--control-padding-y: 10px;`, `--control-font-size: 13px;`.
+   - Control color states: `--control-bg: var(--color-surface-muted);`, `--control-bg-focus: var(--color-surface);`, `--control-text: var(--color-text);`, `--control-border: var(--color-border-subtle);`, `--control-border-hover: var(--gray-400);`, `--control-placeholder: var(--gray-400);`.
+   - Control focus ring: `--control-focus-border: var(--color-accent);`, `--control-focus-ring: rgba(245, 138, 36, 0.2);`.
+   - Disabled and readonly: `--control-disabled-bg: var(--gray-100);`, `--control-disabled-text: var(--gray-500);`, `--control-disabled-border: var(--gray-200);`, `--control-readonly-bg: var(--gray-50);`.
+   - Error and invalid: `--control-invalid-border: var(--color-status-error-text);`, `--control-invalid-focus-ring: rgba(151, 61, 43, 0.2);`.
+
+### Canonical Form Control Contract & Styling Parity
+
+Per [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule), all standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) share one canonical state and sizing contract:
+
+- **Height & Box-Sizing**: Exact 44px height (`min-height: 44px`), `box-sizing: border-box`, standard 12px radius (`var(--control-radius)`).
+- **State Precedence**: Focus and invalid states strictly supersede hover styling:
+  - Default: `var(--control-border)` (`#cbd5e1`), `var(--control-bg)` (`#f8fafc`).
+  - Hover: `var(--control-border-hover)` (`#94a3b8`) only when not disabled, readonly, focused, or invalid.
+  - Focus: `var(--control-focus-border)` (`#f58a24`) with 2px outer focus ring (`rgba(245, 138, 36, 0.2)`).
+  - Invalid (`aria-invalid="true"`): `var(--control-invalid-border)` (`#973d2b`).
+  - Disabled: `var(--control-disabled-bg)` (`#f1f5f9`), `var(--control-disabled-text)` (`#64748b`), `cursor: not-allowed`.
+  - Readonly: `var(--control-readonly-bg)` (`#f8fafc`), `cursor: default`.
+- **Textarea Parity**: Reuses identical colors, borders, radius, focus rings, and state semantics; default minimum height is 88px with vertical resize.
+- **Select Specification**: Standardized to 44px height, identical border, radius, and focus parity matching `TextInput`. Implementation is deferred to M2's first consumer per YAGNI and component reuse policy.
+- **Button Contrast & WCAG AA**: Foreground text on `--color-accent` (`#F58A24`) uses `var(--brand-navy, #172b4d)` providing a **5.74:1** contrast ratio (surpassing the WCAG AA 4.5:1 threshold for normal text). On hover (`#E07716`), contrast is 4.54:1 (>= 4.5:1).
+
+### Header First-Paint Responsive Brand Presentation Parity
+
+To eliminate visual layout shift and hydration discrepancy at compact desktop viewports (901–1100px):
+
+- Header uses CSS-first `.responsiveBrand` styling matching Sidebar's CSS-first `@media (min-width: 901px) and (max-width: 1100px)` 72px collapsed geometry.
+- On first paint before React hydration completes, Header renders `.collapsedBrand` monogram at 901–1100px and hides it on wide viewports (>1100px) and mobile (<=900px) via pure CSS media queries with zero layout shift.
 
 ### Token Ownership & Consumption Contract (Option A)
 
@@ -63,7 +92,7 @@ The frontend enforces a CSS Modules architecture governed by centralized design 
 
 ### Minimal Global Styles (`apps/web/app/styles.css`)
 
-Global CSS is restricted to root token imports, basic CSS reset, base typography, and macro page layout grids (`.grid`, `.status-grid`). All internal component presentation for `Panel` and `StatusBadge` is decoupled into `@nexora/ui` CSS Modules.
+Global CSS is restricted to root token imports, basic CSS reset, base typography, and macro page layout grids (`.grid`, `.status-grid`). All internal component presentation for `Panel`, `StatusBadge`, and form controls is decoupled into `@nexora/ui` CSS Modules.
 
 ## 3. Server vs. Client Component Conventions
 

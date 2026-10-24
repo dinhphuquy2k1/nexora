@@ -187,7 +187,6 @@ export function LoginForm() {
             spellCheck={false}
             autoCapitalize="characters"
             maxLength={mode === "totp" ? 6 : 35}
-            className={styles.input}
             value={code}
             onChange={(e) => setCode(e.target.value)}
             disabled={isLoading}
@@ -256,7 +255,6 @@ export function LoginForm() {
               required
               autoComplete="username"
               autoFocus
-              className={styles.input}
               placeholder="Nhập tên đăng nhập Nexora"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -281,7 +279,7 @@ export function LoginForm() {
               type={showPassword ? "text" : "password"}
               required
               autoComplete="current-password"
-              className={`${styles.input} ${styles.inputPassword}`}
+              className={styles.inputPassword}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

@@ -60,9 +60,39 @@ test("Design tokens: complete 2-tier architecture and scale tokens", () => {
   assert.match(tokensContent, /--radius-sm:\s*6px/, "Radius sm present");
   assert.match(tokensContent, /--radius-md:\s*8px/, "Radius md present");
   assert.match(tokensContent, /--radius-lg:\s*12px/, "Radius lg present");
+  assert.match(tokensContent, /--radius-xl:\s*16px/, "Radius xl present");
   assert.match(tokensContent, /--radius-full:\s*9999px/, "Radius full present");
 
-  // Layer 5: Shadow Scale
+  // Layer 5: Canonical Form Control Contract Tokens
+  assert.match(
+    tokensContent,
+    /--control-height:\s*44px/,
+    "Control height present",
+  );
+  assert.match(
+    tokensContent,
+    /--control-radius:\s*var\(--radius-lg\)/,
+    "Control radius present",
+  );
+  assert.match(tokensContent, /--control-border:/, "Control border present");
+  assert.match(tokensContent, /--control-bg:/, "Control bg present");
+  assert.match(
+    tokensContent,
+    /--control-focus-border:/,
+    "Control focus border present",
+  );
+  assert.match(
+    tokensContent,
+    /--control-disabled-bg:/,
+    "Control disabled bg present",
+  );
+  assert.match(
+    tokensContent,
+    /--control-invalid-border:/,
+    "Control invalid border present",
+  );
+
+  // Layer 6: Shadow Scale
   assert.match(tokensContent, /--shadow-sm:/, "Shadow sm present");
   assert.match(tokensContent, /--shadow-md:/, "Shadow md present");
   assert.match(tokensContent, /--shadow-lg:/, "Shadow lg present");
