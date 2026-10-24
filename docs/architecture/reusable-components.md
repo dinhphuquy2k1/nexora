@@ -149,8 +149,9 @@ This registry catalogues canonical, reusable technical components and shared voc
   - `export function TextInput(props: InputHTMLAttributes<HTMLInputElement>): JSX.Element`
   - `export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>): JSX.Element`
   - `export function Checkbox(props: CheckboxProps): JSX.Element`
+  - `export function Select(props: SelectHTMLAttributes<HTMLSelectElement>): JSX.Element`
 - **Intended & Active Consumers**:
-  - Login (`LoginForm`), Setup (`SetupForm`), modal dialogs, and future feature forms (Customer, Settings).
+  - Login (`LoginForm`), Setup (`SetupForm`), modal dialogs and Customer M2 forms/filters; future Settings forms.
 - **Supported Behavior**:
   - **Canonical Sizing & Typography Contract**: `height: var(--control-height)` (default 44px), `border-radius: var(--control-radius)` (default 12px), `box-sizing: border-box`, and `font-size: var(--control-font-size)` (shared between `TextInput`, `Button`, and `Textarea` to ensure cohesive typography scaling).
   - **State Parity**: Complete contract covering default, hover, focus/focus-visible, disabled, readonly, invalid (`aria-invalid="true"`), and placeholder.
@@ -243,7 +244,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - `export function StatusBadge(props: StatusBadgeProps): JSX.Element`
   - `export function resolveStatusTone(ok: boolean | null): "good" | "bad" | "pending"`
 - **Intended Consumers**:
-  - System health indicators (`/system`), session connection badges, and future Shipment/Customer status indicators.
+  - System health indicators (`/system`), session connection badges, Customer M2 badges and future Shipment indicators.
 - **Supported Behavior**:
   - Maps tri-state boolean (`true` -> `good`, `false` -> `bad`, `null` -> `pending`) to semantic status colors.
   - Renders inline-flex pill badge with uppercase styling, 12px font size, and full border radius.

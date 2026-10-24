@@ -136,6 +136,17 @@ export function CustomerDrawer({
             </>
           )}
         </fieldset>
+        {reconciling && (
+          <div role="status">
+            <p>
+              Chưa đối chiếu xong dữ liệu. Chỉ thử lưu lại sau khi tải thành
+              công.
+            </p>
+            <Button disabled={mutation.busy} onClick={refresh}>
+              Đối chiếu lại dữ liệu
+            </Button>
+          </div>
+        )}
         <div id="customer-field-error">
           <Feedback error={mutation.error} />
         </div>
@@ -209,6 +220,17 @@ export function AddressDrawer({
             errorField={mutation.error?.field}
           />
         </fieldset>
+        {reconciling && (
+          <div role="status">
+            <p>
+              Chưa đối chiếu xong dữ liệu. Chỉ thử lưu lại sau khi tải thành
+              công.
+            </p>
+            <Button disabled={mutation.busy} onClick={refresh}>
+              Đối chiếu lại dữ liệu
+            </Button>
+          </div>
+        )}
         <div id="customer-field-error">
           <Feedback error={mutation.error} />
         </div>

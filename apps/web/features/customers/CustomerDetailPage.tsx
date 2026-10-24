@@ -102,6 +102,11 @@ export function CustomerDetailPage({ id }: { id: string }) {
                 Chưa có địa chỉ mặc định. Hãy chọn rõ một địa chỉ bên dưới.
               </p>
             )}
+            {c.addresses.length === 1 && (
+              <p>
+                Không thể xóa địa chỉ cuối cùng. Hãy thêm một địa chỉ trước.
+              </p>
+            )}
             {c.addresses.map((a) => (
               <article className={styles.address} key={a.id}>
                 <h3>

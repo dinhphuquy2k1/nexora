@@ -63,6 +63,14 @@ export function DeleteAddressModal({
             </p>
           )}
           <Feedback error={mutation.error} />
+          {reconciling && (
+            <div role="status">
+              <p>Chưa đối chiếu xong dữ liệu. Chưa thể thử xóa lại.</p>
+              <Button disabled={mutation.busy} onClick={refresh}>
+                Đối chiếu lại dữ liệu
+              </Button>
+            </div>
+          )}
           <Button
             disabled={
               mutation.busy ||
