@@ -220,15 +220,16 @@ try {
 
   const errors = [];
   const { writeFile, mkdir } = await import("node:fs/promises");
-  await mkdir("scratch/screenshots", { recursive: true });
+  const screenshotDir = process.env.M1_EVIDENCE_DIR || "artifacts/screenshots";
+  await mkdir(screenshotDir, { recursive: true });
 
   const capture = async (name) => {
     const shot = await send("Page.captureScreenshot");
     await writeFile(
-      `scratch/screenshots/${name}.png`,
+      `${screenshotDir}/${name}.png`,
       Buffer.from(shot.data, "base64"),
     );
-    console.log(`Saved screenshot: scratch/screenshots/${name}.png`);
+    console.log(`Saved screenshot: ${screenshotDir}/${name}.png`);
   };
 
   // Test suite 1: First paint geometry & accessibility at compact desktop viewports (901px, 1024px, 1100px)
