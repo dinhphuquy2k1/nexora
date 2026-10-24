@@ -73,11 +73,11 @@ The token system is structured into four explicit layers:
 
 Tokens must be consumed strictly according to their intended semantic role:
 
-- **Text Colors**: Use text tokens (`--color-text`, `--color-text-muted`, `--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-text-on-accent`, `--color-accent-text`, status text tokens). Never use border tokens (`--color-border-subtle`, `--color-border`) as text colors.
+- **Text Colors**: Use text tokens (`--color-text`, `--color-text-muted`, `--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-text-on-accent`, `--color-accent-text`, status text tokens). Never use surface tokens (`--color-surface`, `--color-background`) or border tokens (`--color-border-subtle`, `--color-border`) as text colors. For text rendered on dark surfaces (e.g. Navy sidebar, dark monograms, avatar initials, mobile drawer), use `--color-text-on-dark` rather than `--color-surface`.
 - **Backgrounds**: Use surface and background tokens (`--color-surface`, `--color-background`, `--color-surface-muted`, `--color-surface-on-dark`, status bg tokens). Never use text or border tokens as background colors.
 - **Borders**: Use border tokens (`--color-border`, `--color-border-subtle`, `--color-border-on-dark`, status error border). Never use surface or text tokens for border colors.
+- **Focus Rings & Outlines**: Use focus tokens (`--focus-ring-on-light`, `--focus-ring-on-dark`, `--control-focus-ring`, `--control-invalid-focus-ring`). Never use generic border or surface tokens for focus rings.
 - **Elevations**: Use elevation shadow tokens (`--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-on-dark-tooltip`).
-- **Focus Rings**: Use focus tokens (`--focus-ring-on-light`, `--focus-ring-on-dark`, `--control-focus-ring`).
 - **No Value-Based Conflation**: Never reuse a token solely because its current hex/pixel value happens to match. Tokens represent architectural intent and role.
 
 ### C. Fallback Policy
@@ -96,7 +96,7 @@ Tokens must be consumed strictly according to their intended semantic role:
 
 Per [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule), all standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) share one canonical state and sizing contract:
 
-- **Height & Box-Sizing**: `height: var(--control-height)` (default 44px), `box-sizing: border-box`, `border-radius: var(--control-radius)` (default 12px).
+- **Height, Radius & Typography**: `height: var(--control-height)` (default 44px), `box-sizing: border-box`, `border-radius: var(--control-radius)` (default 12px), `font-size: var(--control-font-size)` (shared typography token ensuring `TextInput`, `Button`, and `Textarea` scale consistently across theme configurations).
 - **Interactive State Precedence**: Focus and invalid states strictly supersede hover styling:
   - Default: `var(--control-border)`, `var(--control-bg)`.
   - Hover: `var(--control-border-hover)` only when not disabled, readonly, focused, or invalid (`:not(:focus):not([aria-invalid="true"])`).
@@ -106,7 +106,7 @@ Per [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-
   - Readonly: `var(--control-readonly-bg)`, `cursor: default`.
 - **Textarea Parity**: Retained in `@nexora/ui` for domain-neutral form control parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, and state semantics; default minimum height is 88px with vertical resize.
 - **Select Specification**: Standardized to `var(--control-height)`, identical border, radius, and focus parity matching `TextInput`. Implementation is deferred to M2's first consumer per YAGNI and component reuse policy.
-- **Button Contrast & WCAG AA**: Foreground text on `--color-accent` (`#F58A24`) uses the semantic token `--color-text-on-accent: var(--brand-navy, #172b4d)` providing a **5.74:1** contrast ratio (surpassing the WCAG AA 4.5:1 threshold for normal text). On hover (`--color-accent-hover: #E07716`), contrast is **4.58:1** (>= 4.5:1). Contrast is validated dynamically from rendered styles/tokens and tested against negative failure cases.
+- **Button Contrast & WCAG AA**: Foreground text on `--color-accent` (`#F58A24`) uses the semantic token `--color-text-on-accent: var(--brand-navy, #172b4d)` providing a **5.74:1** contrast ratio (surpassing the WCAG AA 4.5:1 threshold for normal text). On hover (`--color-accent-hover: #E07716`), contrast is **4.58:1** (>= 4.5:1). Contrast is verified dynamically on real rendered Button primitives in genuine `:hover` state via CDP pointer dispatch, confirming `>= 4.5:1` ratio after transition completion (0.15s) and compositing, with negative accessibility regression tests proving that deliberate inaccessible contrast fails closed.
 - **Layout Scoping**: Feature layouts (Login, Setup, Customer, Carrier) may adjust surrounding whitespace, layout width, or leading icon padding, but must **never** use `!important` or override the default states of shared controls.
 
 ### E. Legitimate CSS-Local Exceptions
@@ -125,12 +125,12 @@ Creating hundreds of single-use tokens for purely local coordinates or micro-adj
 Testing enforces contracts, behavioral consistency, and runtime adaptability rather than locking implementation strings or configurable theme defaults (e.g. no brittle assertions on fixed 44px or hardcoded RGB arrays):
 
 1. **Token Contract Tests**: Assert required tokens are declared in `tokens.css`, references resolve without circular dependencies, consumers use semantic tokens according to ownership rules, and `apps/web` contains no unnecessary fallbacks. Discovery covers all production CSS in `apps/web`, `packages/ui`, and future `features/**`.
-2. **Component Consistency Tests**: Assert shared controls (`TextInput`, `Button`, `Textarea`) bind sizing and states to canonical contract tokens (`inputHeight === buttonHeight`, `inputRadius === buttonRadius`), interactive states are synchronized with proper specificity (hover cannot clobber focus), no feature overrides break shared states, and `@nexora/ui` primitives are reused across pages.
-3. **Dynamic Contrast Tests**: Calculate WCAG AA contrast dynamically from rendered `getComputedStyle()` foreground/background colors (including normal and hover states) against the 4.5:1 threshold, with negative tests proving deliberate inaccessible combinations fail.
+2. **Component Consistency Tests**: Assert shared controls (`TextInput`, `Button`, `Textarea`) bind sizing, typography, and states to canonical contract tokens (`inputHeight === buttonHeight`, `inputRadius === buttonRadius`, `inputFontSize === buttonFontSize`), interactive states are synchronized with proper specificity (hover cannot clobber focus), no feature overrides break shared states, and `@nexora/ui` primitives are reused across pages.
+3. **Dynamic Contrast Tests**: Calculate WCAG AA contrast dynamically from real rendered `getComputedStyle()` foreground/background colors (including normal and real CDP `:hover` states) against the 4.5:1 threshold, with negative tests proving deliberate inaccessible combinations fail.
 4. **Runtime Token Override Tests**: Execute in browser via Chromium/CDP:
    - Render page containing form controls.
    - Record initial computed styles of controls via `window.getComputedStyle()`.
-   - Dynamically override root tokens (e.g. `--control-height: 52px;`, `--control-radius: 6px;`) on `document.documentElement`.
+   - Dynamically override root tokens (e.g. `--control-height: 52px;`, `--control-radius: 6px;`, `--control-font-size: 16px;`) on `document.documentElement`.
    - Assert all consumer controls synchronously update their computed styles in lockstep.
    - Restore root tokens and verify computed styles return cleanly to their initial values.
 5. **Legitimate Invariant Exact-Value Boundaries**: Exact-value assertions are permitted only where an absolute dimension is an explicit, justified acceptance invariant (e.g. zero layout shifts, WCAG AA thresholds, brand visibility, maximum 420px login card width) rather than a configurable theme default.

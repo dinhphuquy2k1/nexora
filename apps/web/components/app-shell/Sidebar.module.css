@@ -3,7 +3,7 @@
   top: 0;
   height: 100vh;
   background-color: var(--color-primary);
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
   border-right: 1px solid var(--color-primary-strong);
   display: flex;
   flex-direction: column;
@@ -77,7 +77,7 @@
   border-bottom: 1px solid var(--color-border-on-dark-subtle);
   flex-shrink: 0;
   text-decoration: none;
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
 }
 
 .brandLink {
@@ -118,7 +118,7 @@
   font-size: 16px;
   line-height: 1;
   letter-spacing: -0.5px;
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
 }
 
 .logoDot {
@@ -140,7 +140,7 @@
   font-weight: 700;
   font-size: var(--font-size-xl);
   letter-spacing: -0.3px;
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
   line-height: 1.2;
 }
 
@@ -200,7 +200,7 @@
 }
 
 .navItemLink:hover {
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
   background-color: var(--color-surface-on-dark);
 }
 
@@ -210,7 +210,7 @@
 }
 
 .navItemActive {
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
   background-color: var(--color-primary-hover);
   font-weight: 600;
 }
@@ -291,7 +291,7 @@
   transform: translateY(-50%);
   padding: 6px 10px;
   background-color: var(--color-primary-strong);
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
   font-size: var(--font-size-xs);
   font-weight: 500;
   border-radius: var(--radius-sm);

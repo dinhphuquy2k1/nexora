@@ -41,7 +41,7 @@
   font-weight: 800;
   font-size: var(--font-size-2xl);
   line-height: 1;
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
   letter-spacing: -0.5px;
 }
 

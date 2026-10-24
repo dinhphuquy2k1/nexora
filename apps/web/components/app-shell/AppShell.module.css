@@ -36,7 +36,7 @@
   flex-direction: column;
   height: 100dvh;
   min-height: 0;
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
   overflow-x: hidden;
 }
 .mobileNavigation aside {
@@ -67,7 +67,7 @@
 }
 .mobileCloseButton:hover {
   background-color: var(--color-surface-on-dark-hover);
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
 }
 .mobileCloseButton:focus-visible {
   outline: 2px solid var(--focus-ring-on-dark);

@@ -260,25 +260,26 @@ Testing avoids rigid implementation syntax locking (such as asserting exact impl
    - Validates the token reference graph via DFS cycle detection to ensure no circular token references exist.
    - Comprehensive Discovery: CSS policy checks scan all production CSS in `apps/web/**/*.css`, `packages/ui/**/*.css`, and future `apps/web/features/**/*.css`, deliberately excluding build and vendor artifacts. Multiline CSS declarations and nested CSS functions are parsed correctly.
    - Enforces the Fallback Policy: zero unnecessary `var()` fallbacks in `apps/web/**/*.css` (where tokens are guaranteed by root theme) and direct token consumption in `packages/ui/**/*.css` without deeply nested fallback chains (e.g. `var(--a, var(--b, c))`) or repeated raw values duplicating theme defaults.
-   - Enforces Semantic Ownership: strictly forbids border tokens as text colors, text/border tokens as backgrounds, and surface/text tokens as borders. Negative unit tests prove violations in standard paths and future `features/` modules are detected.
+   - Enforces Semantic Ownership: strictly forbids role mismatches across all token properties (text color, surface/background, border, outline/focus ring, and elevation/box-shadow). Negative unit tests prove violations in standard paths and future `features/` modules are detected.
 
 2. **Component Consistency & Computed-Style Parity**:
-   - Asserts shared primitives (`TextInput`, `Textarea`, `Button`, `Checkbox`) bind sizing and states to canonical contract tokens (`--control-height`, `--control-radius`) without hardcoding implementation constants.
-   - Verifies geometric parity: `inputHeight === buttonHeight` and `inputRadius === buttonRadius` across shared controls.
+   - Asserts shared primitives (`TextInput`, `Textarea`, `Button`, `Checkbox`) bind sizing, typography, and states to canonical contract tokens (`--control-height`, `--control-radius`, `--control-font-size`) without hardcoding implementation constants.
+   - Verifies geometric and typography parity: `inputHeight === buttonHeight`, `inputRadius === buttonRadius`, and `inputFontSize === buttonFontSize` across shared controls.
    - Verifies state parity: `TextInput` and `Textarea` share identical border, focus, disabled, readonly, and invalid (`aria-invalid="true"`) semantics.
    - Enforces CSS specificity rules: hover states must not override active focus states (`:not(:focus)`).
    - Verifies zero `!important` overrides in form controls and ensures `@nexora/ui` primitives are reused across `LoginForm` and `SetupForm`.
    - Theme Independence: Changing `--control-height` from 44px to 48px or `--control-radius` from 12px to 8px in `tokens.css` updates all consumers in lockstep and does not require updating tests.
 
 3. **Real WCAG AA Contrast Testing**:
-   - Evaluates contrast dynamically using real rendered computed styles from `getComputedStyle()` (foreground `color` and composited `background-color`) in both default and hover states.
+   - Evaluates contrast dynamically using real rendered computed styles from `getComputedStyle()` (foreground `color` and composited `background-color`) in both default and real `:hover` states.
+   - In browser CDP suite (`scripts/m1-p2-regression.mjs`), renders the actual shared Button, dispatches genuine CDP pointer moves (`Input.dispatchMouseEvent` with `type: 'mouseMoved'`), confirms genuine `:hover` matching, awaits CSS transition completion (0.15s), and accounts for alpha/opacity compositing over underlying card background.
    - Calculates relative luminance and contrast ratio per WCAG 2.1 formulas against the 4.5:1 AA threshold for normal text.
-   - Button foreground text consumes the semantic token `--color-text-on-accent: var(--brand-navy)` on `--color-accent` background, achieving a verified **5.74:1** contrast ratio. On hover (`--color-accent-hover`), text achieves **4.58:1** (>= 4.5:1).
-   - Negative Failure Verification: Unit tests inject inaccessible color combinations (e.g. white text `#ffffff` on orange accent `#f58a24` yielding 2.14:1) to prove the test suite fails closed when contrast is violated.
+   - Button foreground text consumes the semantic token `--color-text-on-accent: var(--brand-navy)` on `--color-accent` background, achieving a verified **5.74:1** contrast ratio. On real hover (`--color-accent-hover`), text achieves **4.58:1** (>= 4.5:1).
+   - Negative Accessibility Regression: Deliberately makes the real hovered Button inaccessible (matching foreground to hover background) and proves the accessibility assertion fails closed, without hardcoding RGB values or simulating hover via dummy elements.
 
 4. **Runtime Token Override**:
    - Verifies that form controls bind dynamically to root CSS custom properties rather than fixed values.
-   - Automated browser CDP regression suite (`scripts/m1-p2-regression.mjs`) navigates to rendered form controls, reads initial computed styles via `window.getComputedStyle()`, dynamically modifies `--control-height: 52px` and `--control-radius: 6px` at `document.documentElement`, verifies that both `TextInput` and `Button` update computed styles synchronously in lockstep, and restores original values.
+   - Automated browser CDP regression suite (`scripts/m1-p2-regression.mjs`) navigates to rendered form controls, reads initial computed styles via `window.getComputedStyle()`, dynamically modifies `--control-height: 52px`, `--control-radius: 6px`, and `--control-font-size: 16px` at `document.documentElement`, verifies that both `TextInput` and `Button` update computed styles synchronously in lockstep, and restores original values.
 
 5. **Pre/Post-Hydration First-Paint Accessibility**:
    - At compact desktop viewports (901–1100px), Header renders a CSS-first responsive button triad (`.desktopExpandedToggle`, `.desktopCompactToggle`, `.mobileToggle`).

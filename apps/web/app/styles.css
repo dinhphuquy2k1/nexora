@@ -112,7 +112,7 @@ button,
 .button {
   border: 0;
   background-color: var(--color-primary);
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
   border-radius: var(--radius-md);
   padding: 10px 18px;
   font-size: var(--font-size-base);

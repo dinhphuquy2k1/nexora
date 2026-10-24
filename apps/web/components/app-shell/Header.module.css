@@ -129,7 +129,7 @@
   font-size: var(--font-size-lg);
   line-height: 1;
   letter-spacing: -0.5px;
-  color: var(--color-surface);
+  color: var(--color-text-on-dark);
 }
 
 .collapsedLogoDot {

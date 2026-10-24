@@ -140,25 +140,227 @@ function analyzeCssPolicy(fileList, declaredTokens, allowlist = new Set()) {
         }
       }
 
-      // 4. Semantic ownership checks
-      if (prop === "color" && /var\(--[^)]*border[^)]*\)/.test(val)) {
-        violations.semanticMisuse.push({
-          file: filePath,
-          issue: "Border token used as text color",
-          property: prop,
-          value: val,
-        });
-      }
-      if (
-        (prop === "border" || prop === "border-color") &&
-        /var\(--[^)]*text[^)]*\)/.test(val)
-      ) {
-        violations.semanticMisuse.push({
-          file: filePath,
-          issue: "Text token used as border color",
-          property: prop,
-          value: val,
-        });
+      // 4. Semantic ownership checks (skip tokens.css where token definitions reference tokens)
+      if (!isTokensFile) {
+        const varTokens = [...val.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map(
+          (m) => m[1],
+        );
+
+        for (const token of varTokens) {
+          // Rule A: Text color properties (color, -webkit-text-fill-color)
+          if (prop === "color" || prop === "-webkit-text-fill-color") {
+            if (
+              /--color-surface|--color-background|--control-bg|--color-status-(?:success|error|pending)-bg/.test(
+                token,
+              )
+            ) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Surface/background token '${token}' used as text color`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--color-border|--control-border/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Border token '${token}' used as text color`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--shadow-/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Elevation/shadow token '${token}' used as text color`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--focus-ring/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Focus ring token '${token}' used as text color`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+          }
+
+          // Rule B: Surface / Background properties (background, background-color)
+          if (prop === "background" || prop === "background-color") {
+            if (
+              /--color-text|--control-text|--color-status-(?:success|error|pending)-text|--color-accent-text/.test(
+                token,
+              )
+            ) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Text token '${token}' used as background`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--color-border|--control-border/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Border token '${token}' used as background`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--shadow-/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Elevation/shadow token '${token}' used as background`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--focus-ring/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Focus ring token '${token}' used as background`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+          }
+
+          // Rule C: Border properties
+          if (
+            prop === "border" ||
+            (prop.startsWith("border-") &&
+              (prop.endsWith("color") ||
+                prop === "border-top" ||
+                prop === "border-bottom" ||
+                prop === "border-left" ||
+                prop === "border-right"))
+          ) {
+            if (
+              /--color-text|--control-text|--color-status-(?:success|error|pending)-text|--color-accent-text/.test(
+                token,
+              )
+            ) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Text token '${token}' used as border`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (
+              /--color-surface|--color-background|--control-bg|--color-status-(?:success|error|pending)-bg/.test(
+                token,
+              )
+            ) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Surface/background token '${token}' used as border`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--shadow-/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Elevation/shadow token '${token}' used as border`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--focus-ring/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Focus ring token '${token}' used as border`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+          }
+
+          // Rule D: Focus / Outline properties
+          if (prop === "outline" || prop === "outline-color") {
+            if (
+              /--color-text|--control-text|--color-status-(?:success|error|pending)-text/.test(
+                token,
+              )
+            ) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Text token '${token}' used as outline/focus ring`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--color-surface|--color-background|--control-bg/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Surface/background token '${token}' used as outline/focus ring`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--shadow-/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Elevation/shadow token '${token}' used as outline/focus ring`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+          }
+
+          // Rule E: Elevation / Box-Shadow properties
+          if (prop === "box-shadow") {
+            if (
+              /--color-text|--control-text|--color-status-(?:success|error|pending)-text/.test(
+                token,
+              )
+            ) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Text token '${token}' used as box-shadow`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--color-surface|--color-background|--control-bg/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Surface/background token '${token}' used as box-shadow`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+            if (/--color-border|--control-border\b/.test(token)) {
+              violations.semanticMisuse.push({
+                file: filePath,
+                issue: `Border token '${token}' used as box-shadow`,
+                property: prop,
+                value: val,
+                token,
+              });
+            }
+          }
+        }
       }
     }
   }
@@ -398,16 +600,122 @@ test("Token Contract: negative validation proves policy violations are detected 
   const r3 = analyzeCssPolicy(nestedUiCss, declaredTokens, allowlist);
   assert.equal(r3.nestedFallbackChains.length, 1);
 
-  // Test 4: Semantic misuse (border token used as color)
-  const semanticCss = [
+  // Test 4: Semantic misuse detection across all supported roles
+  // 4a. Surface token used as text color
+  const surfaceInTextCss = [
+    {
+      filePath: "apps/web/features/settings/SettingsPage.module.css",
+      content: ".text { color: var(--color-surface); }",
+    },
+  ];
+  const r4a = analyzeCssPolicy(surfaceInTextCss, declaredTokens, allowlist);
+  assert.equal(r4a.semanticMisuse.length, 1);
+  assert.match(r4a.semanticMisuse[0].issue, /Surface\/background token/);
+
+  // 4b. Border token used as text color
+  const borderInTextCss = [
     {
       filePath: "apps/web/features/settings/SettingsPage.module.css",
       content: ".text { color: var(--color-border); }",
     },
   ];
-  const r4 = analyzeCssPolicy(semanticCss, declaredTokens, allowlist);
-  assert.equal(r4.semanticMisuse.length, 1);
-  assert.equal(r4.semanticMisuse[0].issue, "Border token used as text color");
+  const r4b = analyzeCssPolicy(borderInTextCss, declaredTokens, allowlist);
+  assert.equal(r4b.semanticMisuse.length, 1);
+  assert.match(r4b.semanticMisuse[0].issue, /Border token/);
+
+  // 4c. Shadow token used as text color
+  const shadowInTextCss = [
+    {
+      filePath: "apps/web/features/settings/SettingsPage.module.css",
+      content: ".text { color: var(--shadow-sm); }",
+    },
+  ];
+  const r4c = analyzeCssPolicy(shadowInTextCss, declaredTokens, allowlist);
+  assert.equal(r4c.semanticMisuse.length, 1);
+  assert.match(r4c.semanticMisuse[0].issue, /Elevation\/shadow token/);
+
+  // 4d. Focus ring token used as text color
+  const focusInTextCss = [
+    {
+      filePath: "apps/web/features/settings/SettingsPage.module.css",
+      content: ".text { color: var(--focus-ring-on-light); }",
+    },
+  ];
+  const r4d = analyzeCssPolicy(focusInTextCss, declaredTokens, allowlist);
+  assert.equal(r4d.semanticMisuse.length, 1);
+  assert.match(r4d.semanticMisuse[0].issue, /Focus ring token/);
+
+  // 4e. Text token used as background
+  const textInBgCss = [
+    {
+      filePath: "apps/web/features/settings/SettingsPage.module.css",
+      content: ".card { background-color: var(--color-text); }",
+    },
+  ];
+  const r4e = analyzeCssPolicy(textInBgCss, declaredTokens, allowlist);
+  assert.equal(r4e.semanticMisuse.length, 1);
+  assert.match(r4e.semanticMisuse[0].issue, /Text token.*used as background/);
+
+  // 4f. Border token used as background
+  const borderInBgCss = [
+    {
+      filePath: "apps/web/features/settings/SettingsPage.module.css",
+      content: ".card { background-color: var(--color-border); }",
+    },
+  ];
+  const r4f = analyzeCssPolicy(borderInBgCss, declaredTokens, allowlist);
+  assert.equal(r4f.semanticMisuse.length, 1);
+  assert.match(r4f.semanticMisuse[0].issue, /Border token.*used as background/);
+
+  // 4g. Text token used as border
+  const textInBorderCss = [
+    {
+      filePath: "apps/web/features/settings/SettingsPage.module.css",
+      content: ".card { border-color: var(--color-text); }",
+    },
+  ];
+  const r4g = analyzeCssPolicy(textInBorderCss, declaredTokens, allowlist);
+  assert.equal(r4g.semanticMisuse.length, 1);
+  assert.match(r4g.semanticMisuse[0].issue, /Text token.*used as border/);
+
+  // 4h. Surface token used as border
+  const surfaceInBorderCss = [
+    {
+      filePath: "apps/web/features/settings/SettingsPage.module.css",
+      content: ".card { border-color: var(--color-surface); }",
+    },
+  ];
+  const r4h = analyzeCssPolicy(surfaceInBorderCss, declaredTokens, allowlist);
+  assert.equal(r4h.semanticMisuse.length, 1);
+  assert.match(
+    r4h.semanticMisuse[0].issue,
+    /Surface\/background token.*used as border/,
+  );
+
+  // 4i. Text token used as outline
+  const textInOutlineCss = [
+    {
+      filePath: "apps/web/features/settings/SettingsPage.module.css",
+      content: ".btn { outline: 2px solid var(--color-text); }",
+    },
+  ];
+  const r4i = analyzeCssPolicy(textInOutlineCss, declaredTokens, allowlist);
+  assert.equal(r4i.semanticMisuse.length, 1);
+  assert.match(r4i.semanticMisuse[0].issue, /Text token.*used as outline/);
+
+  // 4j. Surface token used as box-shadow
+  const surfaceInShadowCss = [
+    {
+      filePath: "apps/web/features/settings/SettingsPage.module.css",
+      content: ".card { box-shadow: var(--color-surface); }",
+    },
+  ];
+  const r4j = analyzeCssPolicy(surfaceInShadowCss, declaredTokens, allowlist);
+  assert.equal(r4j.semanticMisuse.length, 1);
+  assert.match(
+    r4j.semanticMisuse[0].issue,
+    /Surface\/background token.*used as box-shadow/,
+  );
 
   // Test 5: Forbidden !important in features module
   const importantCss = [
@@ -455,6 +763,23 @@ test("Component Consistency: Form controls share canonical contract tokens for s
     css,
     /\.textarea\s*\{[^}]*border-radius:\s*var\(--control-radius/s,
     "Textarea binds radius to --control-radius",
+  );
+
+  // Input, Button & Textarea bind font-size to --control-font-size
+  assert.match(
+    css,
+    /\.input\s*\{[^}]*font-size:\s*var\(--control-font-size/s,
+    "Input binds font-size to --control-font-size",
+  );
+  assert.match(
+    css,
+    /\.button\s*\{[^}]*font-size:\s*var\(--control-font-size/s,
+    "Button binds font-size to --control-font-size",
+  );
+  assert.match(
+    css,
+    /\.textarea\s*\{[^}]*font-size:\s*var\(--control-font-size/s,
+    "Textarea binds font-size to --control-font-size",
   );
 
   // Input and Textarea contract parity
@@ -636,5 +961,17 @@ test("Runtime Token Override: Controls cascade directly from root CSS custom pro
     inputBlock,
     /border-radius:\s*var\(--control-radius\)/,
     "Input border-radius must be dynamically bound to var(--control-radius)",
+  );
+
+  // The font-size property must consume var(--control-font-size)
+  assert.match(
+    buttonBlock,
+    /font-size:\s*var\(--control-font-size\)/,
+    "Button font-size must be dynamically bound to var(--control-font-size)",
+  );
+  assert.match(
+    inputBlock,
+    /font-size:\s*var\(--control-font-size\)/,
+    "Input font-size must be dynamically bound to var(--control-font-size)",
   );
 });

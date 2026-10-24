@@ -623,21 +623,26 @@ try {
     const card = document.querySelector("section[aria-labelledby='login-heading']");
     const usernameInput = document.querySelector("input[name='username']");
     const submitBtn = document.querySelector("button[type='submit']");
+    const cardStyle = window.getComputedStyle(card);
     const userStyle = window.getComputedStyle(usernameInput);
     const btnStyle = window.getComputedStyle(submitBtn);
 
     return {
       cardWidth: Math.round(card?.getBoundingClientRect().width || 0),
-      cardRadius: window.getComputedStyle(card).borderRadius,
+      cardRadius: cardStyle.borderRadius,
+      cardBg: cardStyle.backgroundColor,
       monogramPresent: !!document.querySelector("[class*='logoMonogram']"),
       inputHeight: Math.round(usernameInput.getBoundingClientRect().height),
       inputRadius: userStyle.borderRadius,
+      inputFontSize: userStyle.fontSize,
       inputBg: userStyle.backgroundColor,
       inputBorder: userStyle.borderColor,
       buttonHeight: Math.round(submitBtn.getBoundingClientRect().height),
       buttonRadius: btnStyle.borderRadius,
+      buttonFontSize: btnStyle.fontSize,
       submitBg: btnStyle.backgroundColor,
       submitColor: btnStyle.color,
+      buttonOpacity: parseFloat(btnStyle.opacity) || 1,
     };
   })()`);
   console.log("Login geometry:", loginGeometry);
@@ -657,55 +662,239 @@ try {
       `Form controls must share identical border-radius contract, but input was ${loginGeometry.inputRadius} and button was ${loginGeometry.buttonRadius}`,
     );
   }
+  if (loginGeometry.inputFontSize !== loginGeometry.buttonFontSize) {
+    errors.push(
+      `Form controls must share identical font-size contract, but input was ${loginGeometry.inputFontSize} and button was ${loginGeometry.buttonFontSize}`,
+    );
+  }
 
-  // Parse colors to calculate WCAG AA contrast from real computed styles
-  const parseRgb = (str) => {
-    const m = str.match(/\d+/g);
-    return m ? m.slice(0, 3).map(Number) : [0, 0, 0];
+  // Parse CSS colors and handle alpha/opacity compositing over underlying background
+  const parseCssColor = (colorStr) => {
+    const m = colorStr.match(/[\d.]+/g);
+    if (!m) return { r: 0, g: 0, b: 0, a: 1 };
+    return {
+      r: Number(m[0]),
+      g: Number(m[1]),
+      b: Number(m[2]),
+      a: m[3] !== undefined ? Number(m[3]) : 1,
+    };
   };
-  const submitTextRgb = parseRgb(loginGeometry.submitColor);
-  const submitBgRgb = parseRgb(loginGeometry.submitBg);
-  const defaultContrastRatio = getContrast(submitTextRgb, submitBgRgb);
-  console.log(
-    `Button default contrast ratio: ${defaultContrastRatio.toFixed(2)}:1 (Text: ${loginGeometry.submitColor}, Bg: ${loginGeometry.submitBg})`,
-  );
 
-  if (defaultContrastRatio < 4.5) {
-    errors.push(
-      `Button text contrast on accent background (${defaultContrastRatio.toFixed(2)}:1) fails WCAG AA standard (requires >= 4.5:1)`,
-    );
-  }
+  const compositeColor = (fg, bg, opacity = 1) => {
+    const effectiveAlpha = fg.a * opacity;
+    const r = Math.round(fg.r * effectiveAlpha + bg.r * (1 - effectiveAlpha));
+    const g = Math.round(fg.g * effectiveAlpha + bg.g * (1 - effectiveAlpha));
+    const b = Math.round(fg.b * effectiveAlpha + bg.b * (1 - effectiveAlpha));
+    return [r, g, b];
+  };
 
-  // Also verify Button hover state contrast
-  const hoverContrast = await evaluate(`(() => {
-    const submitBtn = document.querySelector("button[type='submit']");
-    const dummy = document.createElement("button");
-    dummy.className = submitBtn.className;
-    dummy.style.backgroundColor = "var(--color-accent-hover)";
-    document.body.appendChild(dummy);
-    const bg = window.getComputedStyle(dummy).backgroundColor;
-    const color = window.getComputedStyle(dummy).color;
-    dummy.remove();
-    return { bg, color };
+  const assertWcagAaContrast = (fgRgb, bgRgb, contextLabel) => {
+    const ratio = getContrast(fgRgb, bgRgb);
+    if (ratio < 4.5) {
+      throw new Error(
+        `${contextLabel} contrast ratio ${ratio.toFixed(2)}:1 fails WCAG AA standard (requires >= 4.5:1)`,
+      );
+    }
+    return ratio;
+  };
+
+  const cardBgRgb = parseCssColor(loginGeometry.cardBg || "rgb(255, 255, 255)");
+
+  // 1. Initial / Default State: verify pointer is neutral, Button not hovered
+  await send("Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    x: 0,
+    y: 0,
+  });
+  await delay(100);
+
+  const defaultButtonState = await evaluate(`(() => {
+    const btn = document.querySelector("button[type='submit']");
+    const style = window.getComputedStyle(btn);
+    const rect = btn.getBoundingClientRect();
+    return {
+      isHover: btn.matches(":hover"),
+      color: style.color,
+      backgroundColor: style.backgroundColor,
+      opacity: parseFloat(style.opacity) || 1,
+      centerX: Math.round(rect.left + rect.width / 2),
+      centerY: Math.round(rect.top + rect.height / 2),
+    };
   })()`);
-  const hoverTextRgb = parseRgb(hoverContrast.color);
-  const hoverBgRgb = parseRgb(hoverContrast.bg);
-  const hoverContrastRatio = getContrast(hoverTextRgb, hoverBgRgb);
-  console.log(
-    `Button hover contrast ratio: ${hoverContrastRatio.toFixed(2)}:1 (Text: ${hoverContrast.color}, Bg: ${hoverContrast.bg})`,
+
+  const defaultEffectiveBg = compositeColor(
+    parseCssColor(defaultButtonState.backgroundColor),
+    cardBgRgb,
+    defaultButtonState.opacity,
   );
-  if (hoverContrastRatio < 4.5) {
+  const defaultEffectiveFg = compositeColor(
+    parseCssColor(defaultButtonState.color),
+    {
+      r: defaultEffectiveBg[0],
+      g: defaultEffectiveBg[1],
+      b: defaultEffectiveBg[2],
+      a: 1,
+    },
+    1,
+  );
+
+  try {
+    const defaultContrastRatio = assertWcagAaContrast(
+      defaultEffectiveFg,
+      defaultEffectiveBg,
+      "Button default state",
+    );
+    console.log(
+      `Button default contrast ratio: ${defaultContrastRatio.toFixed(2)}:1 (Text: ${defaultButtonState.color}, Bg: ${defaultButtonState.backgroundColor}, isHover: ${defaultButtonState.isHover})`,
+    );
+  } catch (err) {
+    errors.push(err.message);
+  }
+
+  // 2. Real Hover State: Move real CDP pointer onto actual Button
+  console.log(
+    "\nMoving CDP pointer onto real Button to trigger genuine :hover...",
+  );
+  await send("Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    x: defaultButtonState.centerX,
+    y: defaultButtonState.centerY,
+  });
+
+  // Await genuine :hover match and CSS transition completion
+  await until(
+    "document.querySelector(\"button[type='submit']\").matches(':hover')",
+    "Button element did not enter :hover state after CDP pointer move",
+  );
+  await delay(250); // allow CSS background-color transition (0.15s) to complete
+
+  const realHoverState = await evaluate(`(() => {
+    const btn = document.querySelector("button[type='submit']");
+    const style = window.getComputedStyle(btn);
+    return {
+      isHover: btn.matches(":hover"),
+      color: style.color,
+      backgroundColor: style.backgroundColor,
+      opacity: parseFloat(style.opacity) || 1,
+    };
+  })()`);
+
+  if (!realHoverState.isHover) {
     errors.push(
-      `Button hover text contrast (${hoverContrastRatio.toFixed(2)}:1) fails WCAG AA standard (requires >= 4.5:1)`,
+      "Real Button must genuinely match :hover pseudo-class when pointer is on element",
+    );
+  }
+  if (realHoverState.backgroundColor === defaultButtonState.backgroundColor) {
+    errors.push(
+      "Real Button hover state must apply a distinct hover background color",
     );
   }
 
-  // Negative test proof: verify that deliberately setting an inaccessible color fails WCAG AA
-  const inaccessibleWhiteRgb = [255, 255, 255];
-  const inaccessibleRatio = getContrast(inaccessibleWhiteRgb, submitBgRgb);
-  if (inaccessibleRatio >= 4.5) {
+  const hoverEffectiveBg = compositeColor(
+    parseCssColor(realHoverState.backgroundColor),
+    cardBgRgb,
+    realHoverState.opacity,
+  );
+  const hoverEffectiveFg = compositeColor(
+    parseCssColor(realHoverState.color),
+    {
+      r: hoverEffectiveBg[0],
+      g: hoverEffectiveBg[1],
+      b: hoverEffectiveBg[2],
+      a: 1,
+    },
+    1,
+  );
+
+  try {
+    const hoverContrastRatio = assertWcagAaContrast(
+      hoverEffectiveFg,
+      hoverEffectiveBg,
+      "Real Button hover state",
+    );
+    console.log(
+      `Real Button hover contrast ratio: ${hoverContrastRatio.toFixed(2)}:1 (Text: ${realHoverState.color}, Bg: ${realHoverState.backgroundColor}, isHover: ${realHoverState.isHover})`,
+    );
+  } catch (err) {
+    errors.push(err.message);
+  }
+
+  // 3. Negative Accessibility Regression: Deliberately make real hover foreground inaccessible
+  // and prove the accessibility assertion fails closed without hardcoded RGB or theme assumptions
+  console.log(
+    "Executing negative accessibility regression on real hovered Button...",
+  );
+  const negativeHoverResult = await evaluate(`(() => {
+    const btn = document.querySelector("button[type='submit']");
+    if (!btn.matches(":hover")) {
+      return { error: "Button is not in :hover state" };
+    }
+    const originalColor = btn.style.color;
+    // Set foreground to match current hover background color -> produces ~1:1 contrast
+    btn.style.color = window.getComputedStyle(btn).backgroundColor;
+    const badStyle = window.getComputedStyle(btn);
+    const result = {
+      isHover: btn.matches(":hover"),
+      badColor: badStyle.color,
+      badBg: badStyle.backgroundColor,
+      opacity: parseFloat(badStyle.opacity) || 1,
+    };
+    if (originalColor) {
+      btn.style.color = originalColor;
+    } else {
+      btn.style.removeProperty("color");
+    }
+    return result;
+  })()`);
+
+  if (negativeHoverResult.error) {
     errors.push(
-      `Negative test failed: white on orange should fail WCAG AA (< 4.5:1), but was ${inaccessibleRatio.toFixed(2)}:1`,
+      `Negative regression setup error: ${negativeHoverResult.error}`,
+    );
+  } else {
+    const badBg = compositeColor(
+      parseCssColor(negativeHoverResult.badBg),
+      cardBgRgb,
+      negativeHoverResult.opacity,
+    );
+    const badFg = compositeColor(
+      parseCssColor(negativeHoverResult.badColor),
+      { r: badBg[0], g: badBg[1], b: badBg[2], a: 1 },
+      1,
+    );
+    let negativeCheckFailed = false;
+    try {
+      assertWcagAaContrast(
+        badFg,
+        badBg,
+        "Deliberately inaccessible hover style",
+      );
+    } catch (err) {
+      negativeCheckFailed = true;
+      console.log(
+        `Negative regression assertion failed closed as expected: ${err.message}`,
+      );
+    }
+    if (!negativeCheckFailed) {
+      errors.push(
+        "Negative accessibility regression failed: deliberate inaccessible hover color did not fail WCAG AA assertion",
+      );
+    }
+  }
+
+  // 4. Move pointer away to verify hover clears
+  await send("Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    x: 0,
+    y: 0,
+  });
+  await delay(250);
+  const hoverCleared = await evaluate(
+    "!document.querySelector(\"button[type='submit']\").matches(':hover')",
+  );
+  if (!hoverCleared) {
+    errors.push(
+      "Real Button failed to clear :hover state after pointer moved away",
     );
   }
 
@@ -718,29 +907,37 @@ try {
     const initialButtonHeight = window.getComputedStyle(button).height;
     const initialInputRadius = window.getComputedStyle(input).borderRadius;
     const initialButtonRadius = window.getComputedStyle(button).borderRadius;
+    const initialInputFontSize = window.getComputedStyle(input).fontSize;
+    const initialButtonFontSize = window.getComputedStyle(button).fontSize;
 
     // Dynamically override root tokens
     document.documentElement.style.setProperty('--control-height', '52px');
     document.documentElement.style.setProperty('--control-radius', '6px');
+    document.documentElement.style.setProperty('--control-font-size', '16px');
 
     const updatedInputHeight = window.getComputedStyle(input).height;
     const updatedButtonHeight = window.getComputedStyle(button).height;
     const updatedInputRadius = window.getComputedStyle(input).borderRadius;
     const updatedButtonRadius = window.getComputedStyle(button).borderRadius;
+    const updatedInputFontSize = window.getComputedStyle(input).fontSize;
+    const updatedButtonFontSize = window.getComputedStyle(button).fontSize;
 
     // Restore root tokens
     document.documentElement.style.removeProperty('--control-height');
     document.documentElement.style.removeProperty('--control-radius');
+    document.documentElement.style.removeProperty('--control-font-size');
 
     const restoredInputHeight = window.getComputedStyle(input).height;
     const restoredButtonHeight = window.getComputedStyle(button).height;
     const restoredInputRadius = window.getComputedStyle(input).borderRadius;
     const restoredButtonRadius = window.getComputedStyle(button).borderRadius;
+    const restoredInputFontSize = window.getComputedStyle(input).fontSize;
+    const restoredButtonFontSize = window.getComputedStyle(button).fontSize;
 
     return {
-      initial: { inputHeight: initialInputHeight, buttonHeight: initialButtonHeight, inputRadius: initialInputRadius, buttonRadius: initialButtonRadius },
-      updated: { inputHeight: updatedInputHeight, buttonHeight: updatedButtonHeight, inputRadius: updatedInputRadius, buttonRadius: updatedButtonRadius },
-      restored: { inputHeight: restoredInputHeight, buttonHeight: restoredButtonHeight, inputRadius: restoredInputRadius, buttonRadius: restoredButtonRadius },
+      initial: { inputHeight: initialInputHeight, buttonHeight: initialButtonHeight, inputRadius: initialInputRadius, buttonRadius: initialButtonRadius, inputFontSize: initialInputFontSize, buttonFontSize: initialButtonFontSize },
+      updated: { inputHeight: updatedInputHeight, buttonHeight: updatedButtonHeight, inputRadius: updatedInputRadius, buttonRadius: updatedButtonRadius, inputFontSize: updatedInputFontSize, buttonFontSize: updatedButtonFontSize },
+      restored: { inputHeight: restoredInputHeight, buttonHeight: restoredButtonHeight, inputRadius: restoredInputRadius, buttonRadius: restoredButtonRadius, inputFontSize: restoredInputFontSize, buttonFontSize: restoredButtonFontSize },
     };
   })()`);
   console.log("Runtime Token Override results:", overrideTest);
@@ -762,11 +959,28 @@ try {
     );
   }
   if (
+    overrideTest.updated.inputFontSize !== "16px" ||
+    overrideTest.updated.buttonFontSize !== "16px"
+  ) {
+    errors.push(
+      `Runtime token override --control-font-size: 16px failed: input was ${overrideTest.updated.inputFontSize}, button was ${overrideTest.updated.buttonFontSize}`,
+    );
+  }
+  if (
     overrideTest.restored.inputHeight !== overrideTest.initial.inputHeight ||
     overrideTest.restored.buttonHeight !== overrideTest.initial.buttonHeight
   ) {
     errors.push(
       `Runtime token override restoration failed for height: restored input ${overrideTest.restored.inputHeight} vs initial ${overrideTest.initial.inputHeight}`,
+    );
+  }
+  if (
+    overrideTest.restored.inputFontSize !==
+      overrideTest.initial.inputFontSize ||
+    overrideTest.restored.buttonFontSize !== overrideTest.initial.buttonFontSize
+  ) {
+    errors.push(
+      `Runtime token override restoration failed for font-size: restored input ${overrideTest.restored.inputFontSize} vs initial ${overrideTest.initial.inputFontSize}`,
     );
   }
 
@@ -854,8 +1068,10 @@ try {
     return {
       inputHeight: Math.round(passInput.getBoundingClientRect().height),
       inputRadius: window.getComputedStyle(passInput).borderRadius,
+      inputFontSize: window.getComputedStyle(passInput).fontSize,
       buttonHeight: Math.round(submitBtn.getBoundingClientRect().height),
       buttonRadius: window.getComputedStyle(submitBtn).borderRadius,
+      buttonFontSize: window.getComputedStyle(submitBtn).fontSize,
       buttonBg: window.getComputedStyle(submitBtn).backgroundColor,
       buttonColor: window.getComputedStyle(submitBtn).color,
     };
@@ -871,6 +1087,11 @@ try {
     if (setupGeometry.inputRadius !== setupGeometry.buttonRadius) {
       errors.push(
         `Setup form controls must share identical border-radius contract, but input was ${setupGeometry.inputRadius} and button was ${setupGeometry.buttonRadius}`,
+      );
+    }
+    if (setupGeometry.inputFontSize !== setupGeometry.buttonFontSize) {
+      errors.push(
+        `Setup form controls must share identical font-size contract, but input was ${setupGeometry.inputFontSize} and button was ${setupGeometry.buttonFontSize}`,
       );
     }
   }

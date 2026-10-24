@@ -421,4 +421,43 @@ Addressed all remaining M1 P2 review findings and synchronized implementation, t
    - `node scripts/m1-p2-regression.mjs`: ALL PASSED in Chromium CDP across all viewports (901px, 1024px, 1100px, 1101px, 1280px, 1440px, 768px, 390px, 375px), 0 layout shifts, 1024px manual toggle, 5.74:1 button contrast, hover contrast, and runtime token overrides.
    - `pnpm format:check`, `pnpm lint`, `pnpm docs:check`, `pnpm preflight:check`: ALL PASSED.
 
-This evidence commit changes documentation only. Exact final documentation-head Preflight/Foundation results and tested merge lineage are recorded in PR27 metadata after execution, avoiding a SHA-only documentation loop. Until those checks finish, final-head readiness is VERIFICATION PENDING. The implementation-source PASS above must not be relabeled as the new commit's PASS. No claim of production DNS/certificate/firewall/NTP/key custody/backup deployment verification; CI uses owned disposable resources only. Immutable design snapshot unchanged; Documentation Impact REQUIRED, canonical frontend/testing documentation synchronized.
+### M1.9 Remaining M1 Review Findings Resolution (2026-10-24)
+
+Addressed all remaining M1 review findings from the latest review on PR #27, preserving approved design v1, visual fidelity to the ZIP, and all security boundaries:
+
+1. **P2 — Real Button Hover Contrast Testing**:
+   - Replaced the dummy button simulation in `scripts/m1-p2-regression.mjs` with genuine CDP mouse interaction on the real rendered `<Button>` element (`Input.dispatchMouseEvent` with `type: 'mouseMoved'`).
+   - Verified genuine `:hover` pseudo-class match (`matches(':hover') === true`).
+   - Awaited CSS transition completion (0.15s transition + 250ms delay) and accounted for alpha/opacity compositing over the card surface (`compositeColor`).
+   - Evaluated actual WCAG AA text contrast: default state achieved **5.74:1** and real hover state achieved **4.58:1** (both surpassing the 4.5:1 threshold for normal text).
+   - Added a negative regression case on the real hovered Button (deliberately matching foreground to hover background) that proved the accessibility assertion fails closed without hardcoding RGB values or assuming theme colors.
+   - Verified that moving the pointer away (`x: 0, y: 0`) cleanly clears the `:hover` pseudo-class.
+
+2. **P2 — Complete Semantic Token Ownership Enforcement**:
+   - Enhanced `analyzeCssPolicy` in `apps/web/test/form-control-contracts.test.mjs` to comprehensively enforce semantic token role ownership across text color, surface/background, border, outline/focus, and elevation/box-shadow.
+   - Audited existing CSS and fixed 12 confirmed semantic role misuses across 6 production files (`Sidebar.module.css`, `AppShell.module.css`, `Header.module.css`, `AccountMenu.module.css`, `login.module.css`, and `styles.css`): replaced `color: var(--color-surface)` with semantic token `color: var(--color-text-on-dark)`.
+   - Added negative unit tests (cases 4a through 4j) covering all supported role violation scenarios in standard paths and future `features/**` modules.
+
+3. **P3 — Standardize Button Typography**:
+   - Replaced hardcoded `font-size: 14px;` in `packages/ui/src/Controls.module.css` with the shared canonical token `font-size: var(--control-font-size);`.
+   - Updated contract tests in `apps/web/test/form-control-contracts.test.mjs` and geometry checks in `scripts/m1-p2-regression.mjs` to assert `inputFontSize === buttonFontSize` across `TextInput`, `Button`, and `Textarea`.
+   - Updated Runtime Token Override tests to verify dynamic `--control-font-size: 16px` override and restoration across form controls.
+
+4. **Documentation and Test Consistency**:
+   - Synchronized canonical documentation:
+     - `docs/architecture/frontend.md`: Semantic token ownership rules, Button typography contract, and real CDP hover contrast verification.
+     - `docs/ai/PROJECT_RULES.md`: Mandatory rule for testing actual interactive states (`:hover`, `:focus`) via real pointer/keyboard interactions without simulated dummy elements.
+     - `docs/architecture/reusable-components.md`: Button typography contract (`--control-font-size`) and real hover contrast guarantees.
+     - `docs/operations/testing.md`: Documented real CDP hover testing, transition settlement, alpha compositing, and negative accessibility regressions.
+     - `docs/tasks/active/NEXORA-031-full-frontend-migration.md`: Findings, fixes, and executed evidence.
+
+5. **Executed Verification Evidence**:
+   - `scripts/m1-p2-regression.mjs`: ALL PASSED across all 6 viewports, genuine Button hover contrast (5.74:1 default, 4.58:1 hover), negative regression (1.00:1 fails closed), and runtime token override (`--control-height`, `--control-radius`, `--control-font-size`).
+   - `node --test apps/web/test/form-control-contracts.test.mjs apps/web/test/shared-ui.test.mjs apps/web/test/m1-shell.test.mjs`: 17/17 PASSED.
+   - `pnpm format:check`: ALL PASSED.
+   - `pnpm lint`: ALL PASSED (`Workspace boundaries PASS`).
+   - `pnpm typecheck`: ALL PASSED (10/10 tasks successful).
+   - `pnpm docs:check`: ALL PASSED.
+   - `pnpm preflight:check`: ALL PASSED.
+
+This evidence commit changes documentation and implementation to fix the remaining M1 findings. Exact final documentation-head Preflight/Foundation results and tested merge lineage are recorded in PR27 metadata after execution, avoiding a SHA-only documentation loop. Until those checks finish, final-head readiness is VERIFICATION PENDING. The implementation-source PASS above must not be relabeled as the new commit's PASS. No claim of production DNS/certificate/firewall/NTP/key custody/backup deployment verification; CI uses owned disposable resources only. Immutable design snapshot unchanged; Documentation Impact REQUIRED, canonical frontend/testing documentation synchronized.
