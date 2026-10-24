@@ -1,4 +1,5 @@
 import { browserStartupSummary } from "./browser-startup-diagnostics.mjs";
+import { verifyCustomerBrowser } from "./customer-browser-checks.mjs";
 import { verifyM1Visuals } from "./m1-visual-checks.mjs";
 import { createHmac } from "node:crypto";
 import { URLSearchParams } from "node:url";
@@ -676,6 +677,15 @@ try {
     phase: "shell",
     prefix: mfaSetupKey ? "admin" : "operator",
   });
+  checks.step("CUSTOMER_ADMIN_UI");
+  const customerOwnerProof = await verifyCustomerBrowser({
+    send,
+    evaluate,
+    baseUrl,
+    prefix: mfaSetupKey ? "admin" : "operator",
+    checks,
+    socket,
+  });
   checks.step("SESSION_COOKIE");
   const cookies = (await send("Network.getCookies", { urls: [baseUrl] }))
     .cookies;
@@ -813,6 +823,16 @@ try {
     ),
     200,
   );
+  checks.step("CUSTOMER_OPERATOR_UI");
+  await verifyCustomerBrowser({
+    send,
+    evaluate,
+    baseUrl,
+    prefix: "second-operator",
+    foreignId: customerOwnerProof,
+    checks,
+    socket,
+  });
   checks.step("OPERATOR_ACCOUNT_MENU_LOGOUT");
   await send("Page.navigate", { url: baseUrl + "/settings" });
   let accountReady = false;

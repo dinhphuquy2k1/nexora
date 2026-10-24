@@ -3,6 +3,7 @@ import type {
   InputHTMLAttributes,
   TextareaHTMLAttributes,
   ReactNode,
+  SelectHTMLAttributes,
 } from "react";
 import styles from "./Controls.module.css";
 
@@ -47,4 +48,11 @@ export function Checkbox({
       <span>{children}</span>
     </label>
   );
+}
+
+export function Select({
+  className = "",
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select {...props} className={`${styles.input} ${className}`} />;
 }

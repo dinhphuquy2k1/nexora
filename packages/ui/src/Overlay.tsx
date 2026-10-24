@@ -8,12 +8,14 @@ export function Overlay({
   label,
   children,
   side = false,
+  className = "",
 }: {
   open: boolean;
   onDismiss: () => void;
   label: string;
   children: ReactNode;
   side?: boolean;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -34,7 +36,7 @@ export function Overlay({
       ref={ref}
       aria-label={label}
       aria-modal="true"
-      className={`${styles.overlay} ${side ? styles.side : ""}`}
+      className={`${styles.overlay} ${side ? styles.side : ""} ${className}`}
       onKeyDown={(e) => {
         if (e.key !== "Tab") return;
         const stops = Array.from(

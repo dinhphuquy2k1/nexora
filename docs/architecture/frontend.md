@@ -14,7 +14,7 @@ Nexora enforces three distinct component ownership tiers to prevent component du
 
 ### Tier A: Shared UI Primitives (`packages/ui/`)
 
-Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel`, `StatusBadge`, future `Button`, `Input`):
+Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel`, `StatusBadge`, `Button`, `TextInput`, `Textarea`, `Select`):
 
 - **Domain Agnostic**: Must never import Shipment, Customer, or Identity domain models.
 - **Transport Agnostic**: Must never call Nexora API endpoints or SDK client factories.
@@ -248,7 +248,7 @@ Login/MFA/setup/AccountMenu continue same-origin browser requests and generated 
 
 ## Customer shared vocabulary contract — NEXORA-027 amendment
 
-Customer frontend remains PLANNED. The owner-approved cross-package contract exposes CustomerStatus/CustomerStatusCode and exhaustive CustomerStatusLabelsVi from @nexora/shared for future filters/comparisons/badges. Use generated SDK HTTP types, never Backend Domain imports or hand-written response substitutes. A targeted Web contract fixture checks imports/types without introducing a Customer page.
+Customer UI M2 is implemented with verification pending in NEXORA-031/PR28. The owner-approved cross-package contract exposes CustomerStatus/CustomerStatusCode and exhaustive CustomerStatusLabelsVi from @nexora/shared for future filters/comparisons/badges. Use generated SDK HTTP types, never Backend Domain imports or hand-written response substitutes. A targeted Web contract fixture checks imports/types without introducing a Customer page.
 
 Filters send canonical status codes; labels are display-only. ALL/Tất cả is UI state, not a persisted status. Two static options require no metadata endpoint. Labels have one shared Vietnamese mapping, no Domain/UI color coupling or new i18n framework. API Customer Summary/Detail now include required statusLabel; see [API contract](api-contract.md). Same-revision API/Web builds/deployment are assumed; a shared source package cannot synchronize separately deployed versions automatically. Shared exports are pure/browser-safe and Next transpiles the existing package.
 
@@ -256,7 +256,7 @@ Filters send canonical status codes; labels are display-only. ALL/Tất cả is 
 
 [Active NEXORA-029](../tasks/active/NEXORA-029-full-frontend-migration.md) and its [v8 snapshot](../tasks/design-reviews/NEXORA-029-rev-2026-10-23-frontend-migration-v8.md) specify planned visual migration, not implemented routes or API behavior. Owner selected Option B: no China sourcing route/navigation/screens/showcase/product/image search/scraping/Gemini in production; ZIP sources remain provenance only. Login Quick Fill is deliberately excluded for security. Existing server session/MFA ownership and neutral UI tiers remain authoritative.
 
-CustomerStatsBar remains PLANNED in M2. Merged NEXORA-030/PR26 already implements required owner/q/phone-scoped stats on GET /api/customers and its generated SDK; status/page/pageSize do not filter stats, and the eight endpoints remain. The selected M2 test runtime must verify the actual API/SDK contract. Never derive counts from page rows/pagination.total or fabricate zeros for missing/old-server stats. NEXORA-031 has its own digest-bound approval; the owner currently authorizes M1 only. Historical NEXORA-029 snapshots remain unchanged.
+CustomerStatsBar exists in M2 code; runtime acceptance remains pending. Merged NEXORA-030/PR26 already implements required owner/q/phone-scoped stats on GET /api/customers and its generated SDK; status/page/pageSize do not filter stats, and the eight endpoints remain. The selected M2 test runtime must verify the actual API/SDK contract. Never derive counts from page rows/pagination.total or fabricate zeros for missing/old-server stats. M1 merged in PR27 at55e3c1595d2b90a8cd85f5e3c06ab1f0552933f5. The owner's 2026-10-24 directive moves Customer UI/M2 to a new branch/PR under NEXORA-031; its v2 revision/digest approval was authenticated on PR28 comment6385229351 before implementation. Customer routes now exist; verification and navigation activation remain pending. Historical NEXORA-029/031 approved snapshots remain unchanged.
 
 ## NEXORA-031 M1 foundation
 
@@ -267,3 +267,15 @@ Neutral packages/ui Button/TextInput/Checkbox are consumed by Login/MFA; Overlay
 AppShell selects only safe deployment text on the server using existing shared policy (selective PR21 helper reuse); ShellClient receives text/user props, never environment/keys or authorization responsibility. Existing workspace server guard, session verification, safe-from, Host/Origin rules, cookie/MFA/setup/logout behavior remain authoritative. Login visual changes reuse current password/MFA outcome logic and API contracts. Remember Me stores only trimmed username (<=50) under nexora_remembered_username, clears unchecked preference on valid submit, tolerates blocked storage and never changes session TTL. Password/MFA/session/recovery secrets are never persisted. Forgot-password help directs users to their administrator; there is no fake reset endpoint or Quick Fill.
 
 Native Node tests and real CDP viewport/auth evidence are tracked in [NEXORA-031](../tasks/active/NEXORA-031-full-frontend-migration.md) and PR27. Implemented UI is distinct from passing visual/runtime acceptance. Full M5 reference-image comparison and Customer/Carrier/retail consumer acceptance remain later milestones; no production deployment is claimed.
+
+## NEXORA-031 M2 Customer UI — implemented, acceptance pending
+
+Protected /customers and /customers/[id] route files delegate to apps/web/features/customers under the existing workspace server layout. Same-origin generated SDK owns eight operations and transport types; backend session determines owner for OPERATOR and ADMIN. No client owner/scope selection, API/Domain import, new token storage or backend contract change. Customer navigation remains planned until genuine route acceptance; code presence alone is not verification.
+
+CustomerListPage composes filters, CustomerStatsBar, semantic table/mobile cards and Create/Edit drawers. URL page/pageSize/q/status/phone is committed state;300ms q draft invalidates/aborts the read lane immediately. Normalized keys/generations fence data/errors/loading; same-key history transitions restart reads, Back/Forward cancels drafts, unmount invalidates. Missing/malformed stats is unavailable, never zero or a page-derived count. List Summary has no addressCount and no per-row detail fetch.
+
+CustomerDetailPage composes profile and real addresses. Shared AddressForm serves initial creation/add/edit; shared profile fields serve Create/Edit. Explicit payload allowlists preserve nullable clearing, backend recipient fallback and200/2000 text bounds. Editing baseline remains immutable while drafts survive errors/refresh. Generated AddressPatchDto requires countryCode; send current/edited countryCode only alongside a real edit, no no-op PATCH or replacement DTO.
+
+Mutations serialize in each active parent surface, retain forms on failure and gate retries while reconciliation is pending/failed. Confirmed commits trigger refetch; refresh failure does not retract the committed save. Default deletion is explicit PUT default then DELETE, never atomic across requests; PUT failure forbids DELETE, partial/ambiguous results reconcile without reverse rollback. Legacy zero/no-default remains honest and owner-directed. HTTP401 alone triggers sanitized Login;403 is not session expiry,400/404/409 and unknown errors retain safe distinct feedback without PII logging.
+
+M1 neutral controls/tokens/Overlay remain authoritative. Native Select consumes the same control class; Overlay's optional className is a neutral layout slot, with right-side Customer forms and centered confirmation. No duplicate focus trap/framework. All actual runtime/browser/reference/CI acceptance remains pending in task031/PR28; M3–M5 not implemented.
