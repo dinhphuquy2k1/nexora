@@ -193,9 +193,10 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Native HTML `<dialog>` with top-layer placement, background inerting, keyboard focus trapping, Escape key closing, backdrop click dismissal, and body overflow restoration on unmount.
 - **Styling / Token Dependencies**:
   - Background & Elevation: `--color-surface`, `--color-border`, `--shadow-lg`, `--radius-lg`.
-  - Backdrop: `rgba(0, 0, 0, 0.45)` with `backdrop-filter: blur(2px)`.
+  - Backdrop: `rgb(15 23 42 / 55%)` (or `rgba(15, 23, 42, 0.55)`) applied to `::backdrop`.
 - **Fallback Policy**:
-  - Standalone fallbacks permitted consistent with default tokens.
+  - Standalone fallbacks are not permitted for Overlay; direct semantic token references are enforced.
+
 - **Explicit Non-Goals**:
   - Does not replace lightweight popovers; popovers use `useDismissable` hook.
 - **When to Reuse**:

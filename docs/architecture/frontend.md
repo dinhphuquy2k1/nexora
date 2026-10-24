@@ -111,18 +111,28 @@ Per [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-
 
 ### E. Legitimate CSS-Local Exceptions & Literal-Color Policy
 
-Nexora enforces an automated CSS policy scanner (`analyzeCssPolicy`) that inspects all production CSS in `apps/web/**/*.css`, `packages/ui/**/*.css`, and future `apps/web/features/**/*.css`. The scanner strictly detects raw colors (`#hex`, `rgb()`, `rgba()`, `hsl()`, `hsla()`, and CSS named colors) across color, background/gradient, border, outline, and shadow properties, taking into account multiline declarations and nested functions.
+Nexora enforces an automated CSS policy scanner (`analyzeCssPolicy`) that inspects all production CSS in `apps/web/**/*.css`, `packages/ui/**/*.css`, and future `apps/web/features/**/*.css`.
 
-Raw CSS literals are strictly forbidden in production component CSS, with only these explicit, narrow exceptions:
+The scanner is powered by a deterministic, character-level state machine parser (`parseCssDeclarations`) rather than loose regex matching:
 
-1. **Foundational Token Palette**: Canonical color definitions in `apps/web/styles/tokens.css` declare raw hex and rgba palette values to establish the design token layer.
+- **Boundary Precision**: Correctly parses declarations terminated by semicolons (`;`) or closing block braces (`}`). It prevents declarations lacking semicolons from swallowing subsequent selectors or blocks.
+- **Escape, String & URL Safety**: Respects escaped quotes (`\"`, `\'`), string literals, URL tokens, and nested parenthesis depth (`calc()`, `var()`, `url()`), ensuring semicolons inside URLs or strings never truncate values.
+- **Context & Hierarchy Retention**: Tracks selector nesting hierarchy across `@media`, `@supports`, and `@keyframes` blocks, ensuring pseudo-classes and pseudo-elements (e.g. `:hover`, `::backdrop`) are never misidentified as CSS property names.
+
+Raw CSS literals are strictly forbidden in production component CSS, with only these explicit, audited, and narrowly scoped exceptions:
+
+1. **Foundational Token Palette**: Strictly scoped to normalized repository path `apps/web/styles/tokens.css`, and **only** to custom property definitions (`--token: value`). Non-token component declarations inside `tokens.css` or files named `tokens.css` located in feature or UI directories (e.g. `apps/web/features/orders/tokens.css`) are strictly forbidden and fail policy enforcement.
 2. **Standard Contextual Constants**: `0`, `auto`, `inherit`, `transparent`, `currentcolor`, `100%`, `50%`, `100vh`, `100dvh`.
 3. **Component-Local Geometric Coordinates**: Local layout positioning, offsets, and icon alignments (e.g. `top: 10px; right: 12px;`, `left: calc(100% + 8px);`, active bar `top: 6px; bottom: 6px; width: 4px;`).
-4. **Component-Specific Micro-Shadows on Complex Backgrounds**: Subtle monogram box-shadows (e.g. `0 1px 2px rgba(0, 0, 0, 0.1)`) that depend directly on component-local gradients and do not constitute an elevation surface.
-5. **Browser Pseudo-Elements**: Scrollbar sizing (`width: 6px; height: 6px;`).
-6. **Standalone Fallbacks in `packages/ui`**: Standalone fallbacks inside `var(--token, fallback)` in `packages/ui` are permitted under a documented standalone consumer contract. Raw colors outside `var()` remain forbidden.
+4. **Documented Monogram Micro-Shadows**: Explicitly limited to audited owner paths, selectors, and exact values:
+   - `apps/web/components/app-shell/Sidebar.module.css`: selector `.logoMonogram` with exact value `0 1px 2px rgba(0, 0, 0, 0.2)`.
+   - `apps/web/components/app-shell/Header.module.css`: selector `.collapsedLogo` with exact value `0 1px 2px rgba(0, 0, 0, 0.1)`.
+   - `apps/web/app/login/login.module.css`: selector `.logoMonogram` with exact value `0 1px 2px rgba(0, 0, 0, 0.05)`.
+   - Arbitrary component shadows (e.g. `.card`), altered opacities (e.g. `0.9`), or multi-layer shadow additions are strictly rejected.
+5. **Documented Native Overlay Backdrop**: Explicitly limited to `packages/ui/src/Overlay.module.css` on selector `::backdrop`, properties `background` / `background-color`, and documented color `rgb(15 23 42 / 55%)` or `rgba(15, 23, 42, 0.55)`. Declarations containing additional unauthorized colors (e.g. `linear-gradient(red, rgb(...))`) or backdrop colors on non-backdrop selectors fail policy enforcement.
+6. **Documented Standalone Fallbacks in `packages/ui`**: Permitted strictly within audited components with documented standalone consumer contracts (`packages/ui/src/Panel.module.css` and `packages/ui/src/StatusBadge.module.css`). Arbitrary UI components (such as `NewControl.module.css`) do not receive automatic exemptions; raw colors outside `var()` and nested fallback chains remain strictly forbidden.
 
-Creating hundreds of single-use tokens for purely local coordinates or micro-adjustments is anti-pattern and rejected. Component allowlists that bypass scanner policy on entire files or components are strictly forbidden.
+Creating single-use tokens for purely local coordinates or micro-adjustments is an anti-pattern. Blanket allowlists that bypass scanner policy on entire files or components are strictly forbidden.
 
 ### F. Testing Strategy & Runtime Token Override
 

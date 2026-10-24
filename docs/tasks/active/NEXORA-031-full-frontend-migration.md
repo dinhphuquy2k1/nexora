@@ -1,7 +1,7 @@
 # NEXORA-031 — Full Frontend Migration (M1–M5)
 
 Task: IN PROGRESS
-Implementation: PLANNED
+Implementation: IN PROGRESS
 Verification: NOT VERIFIED
 Classification: SIGNIFICANT
 Documentation Impact: REQUIRED
@@ -498,3 +498,47 @@ Addressed all remaining review findings on PR #27 (HEAD `525222487e88807864e9d5a
    - Foundation CI on HEAD (`525222487e88807864e9d5ab19ba29ef48540a27`): Run [40084977848](https://github.com/dinhphuquy2k1/nexora/actions/runs/40084977848) attempt 2 SUCCESS.
 
 Task status remains IN PROGRESS; M1 milestone complete; Verification status is VERIFICATION PENDING until final documentation-head Preflight/Foundation runs complete on remote. Stop at M1 checkpoint for owner review. M2–M5 remain NOT STARTED.
+
+### M1.11 Resolution of CSS Policy Parser Boundary & Exception Scope Findings (2026-10-24)
+
+Addressed the two remaining P2 review findings on PR #27 (reviewed HEAD `a4e60c66327e25dba9babe9c67e0b6bec3dc119b`), strictly within M1 milestone scope:
+
+1. **P2 — CSS Declaration Boundary Parsing (Declarations Lacking Trailing Semicolon)**:
+   - **Root Cause**: The CSS analyzer in `apps/web/test/form-control-contracts.test.mjs` extracted declarations via regular expression `stripped.matchAll(/([a-zA-Z0-9_-]+)\s*:\s*([^;]+);/gs)`. Valid CSS declarations ending at block closing boundaries (`}`) without a trailing semicolon (e.g. `.card { color: #ff00ff }`) were silently omitted, allowing policy violations (raw colors, semantic misuse, unnecessary fallbacks) at final declarations to bypass detection.
+   - **Fix**:
+     - Implemented `parseCssDeclarations(css)` using a deterministic character-level state machine parser.
+     - Accurately emits declarations terminated either by `;` or closing block braces (`}`).
+     - Prevents declarations lacking semicolons from swallowing subsequent selectors or blocks.
+     - Respects escaped quotes (`\"`, `\'`), string literals, URLs, and nested parenthesis depths (`calc()`, `var()`, `url()`), ensuring semicolons within strings or URLs never prematurely truncate values.
+     - Retains selector nesting hierarchy across `@media`, `@supports`, and `@keyframes` blocks, ensuring pseudo-classes/elements (`:hover`, `::backdrop`) are never misidentified as CSS property names.
+   - **Regression Test Evidence**: Added negative tests 10–13 in `form-control-contracts.test.mjs` verifying that raw colors (`.card { color: #ff00ff }`), semantic misuse (`.card { color: var(--color-surface) }`), unnecessary fallbacks (`.card { color: var(--color-text, red) }`) at final declarations without semicolons, and consecutive blocks where the first block lacks a semicolon are all reliably caught and fail closed.
+
+2. **P2 — CSS Policy Exception Scopes Tightening**:
+   - **Root Cause**: Policy exception checks in `analyzeCssPolicy` were wider than documented contracts across four areas:
+     - _Bypass A (tokens.css)_: Checked `filePath.endsWith("tokens.css")`, exempting any file with that basename (e.g. `apps/web/features/orders/tokens.css`) and exempting non-token component declarations inside `tokens.css`.
+     - _Bypass B (micro-shadow)_: Regex `/^0\s+1px\s+2px\s+rgba\(0,\s*0,\s*0,\s*0\.\d+\)$/` matched any component (e.g. `.card { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }`), even though micro-shadows were only audited for specific monograms.
+     - _Bypass C (standalone fallbacks)_: Stripped `var()` across all `packages/ui` files (`!isAppWeb`), allowing unapproved components (e.g. `NewControl.module.css`) to use arbitrary fallbacks.
+     - _Bypass D (backdrop exception & docs alignment)_: Matched `rgb(15 23 42 / 55%)` anywhere in the declaration value on any selector in `Overlay.module.css`, exempting contaminated declarations like `linear-gradient(red, rgb(...))` and conflicting with `docs/architecture/reusable-components.md` line 196 which historically stated `rgba(0, 0, 0, 0.45)`.
+   - **Fix**:
+     - _Canonical Tokens Path Normalization_: Standardized path separators via `normPath = filePath.replace(/\\/g, "/")`. Restricted token palette exemption strictly to `apps/web/styles/tokens.css` (or `endsWith("/apps/web/styles/tokens.css")`) and **only** to custom property token definitions (`prop.startsWith("--")`). Component declarations in `tokens.css` and feature `tokens.css` files fail closed.
+     - _Audited Micro-Shadow Registry_: Replaced generic regex with `isDocumentedMicroShadow`, restricting exemptions to audited files, selectors, and exact values:
+       - `Sidebar.module.css`: `.logoMonogram` with `0 1px 2px rgba(0, 0, 0, 0.2)`.
+       - `Header.module.css`: `.collapsedLogo` with `0 1px 2px rgba(0, 0, 0, 0.1)`.
+       - `login.module.css`: `.logoMonogram` with `0 1px 2px rgba(0, 0, 0, 0.05)`.
+       - Positive test simulated monogram `.brandMonogram` with `0 1px 2px rgba(0, 0, 0, 0.1)`.
+       - Arbitrary cards, altered opacities, or extra shadow layers fail closed.
+     - _Audited Standalone Fallback Registry_: Restricted fallback stripping to `DOCUMENTED_STANDALONE_FALLBACK_FILES` (`packages/ui/src/Panel.module.css` and `packages/ui/src/StatusBadge.module.css`). Unapproved components fail closed.
+     - _Backdrop Scoping & Value Alignment_: In `stripDocumentedBackdrop`, required owner file `Overlay.module.css`, selector `::backdrop`, properties `background`/`background-color`, and only stripped the exact documented backdrop color (`rgb(15 23 42 / 55%)` or `rgba(15, 23, 42, 0.55)`). Any additional colors (e.g. `red` in gradients) or non-backdrop selectors trigger violations. Updated `docs/architecture/reusable-components.md` line 196 to `rgb(15 23 42 / 55%)` to eliminate documentation drift.
+   - **Regression Test Evidence**: Added negative tests 14–22 proving all 4 bypasses fail closed, and positive tests 5–8 proving valid canonical token definitions, documented micro-shadows, contextual constants, documented fallbacks, documented backdrops, safe comments/URLs/strings, and Windows/POSIX paths pass cleanly.
+
+3. **Executed Verification Evidence**:
+   - `node --test apps/web/test/form-control-contracts.test.mjs apps/web/test/shared-ui.test.mjs apps/web/test/m1-shell.test.mjs apps/web/test/navigation.test.mjs packages/ui/test/status-tone.test.mjs`: 25/25 PASSED (340ms).
+   - `pnpm typecheck`: ALL PASSED (10/10 tasks successful in Turbo).
+   - `pnpm lint`: ALL PASSED (`Workspace boundaries PASS`, ESLint clean).
+   - `pnpm format:check`: ALL PASSED.
+   - `node scripts/docs-check.mjs`: ALL PASSED.
+   - `node scripts/preflight-policy-check.mjs`: ALL PASSED.
+
+4. **Preserved Invariants & Status**:
+   - Immutable design snapshot `docs/tasks/design-reviews/NEXORA-031-rev-2026-10-23-full-frontend-m1-m5-v1.md` preserved with unchanged SHA-256 `0874328bc72217515c268a684e66c6286578ec34b73cb640e2382414048e475f`.
+   - Task status remains IN PROGRESS; M1 milestone complete; Verification status is VERIFICATION PENDING until final documentation-head Preflight/Foundation runs complete on remote. Stop at M1 checkpoint for owner review. M2–M5 remain NOT STARTED.
