@@ -122,18 +122,19 @@ Prefer Node built-ins for test orchestration; preserve exact ownership, timeout/
 ### NEXORA UI TOKEN & COMPONENT REUSE RULE
 
 - **Reuse semantic CSS tokens**: Reuse an existing semantic CSS token instead of replacing it with an equivalent hardcoded value.
-- **Central definition**: New reusable visual constants must be defined centrally in `apps/web/styles/tokens.css` before being consumed across components.
-- **Canonical state and sizing contract**: All standard form controls must share one canonical state and sizing contract (height 44px, radius 12px, hover, focus, disabled, readonly, aria-invalid, placeholder).
-- **Shared primitive reuse**: Feature components must reuse shared primitives from `packages/ui` rather than duplicate their styling.
-- **Layout vs defaults**: Feature-specific CSS may control layout and genuine exceptions (e.g. inner icon padding, layout width) but must not redefine shared control defaults.
+- **Central definition**: All design tokens must be defined centrally in `apps/web/styles/tokens.css` as the Single Source of Truth before being consumed.
+- **Semantic correctness**: Tokens must be used strictly for their intended semantic role (text tokens for text, surface tokens for backgrounds, border tokens for borders, elevation tokens for shadows, focus tokens for focus rings). Never reuse tokens across roles purely based on identical values.
+- **Avoid unnecessary fallbacks**: In `apps/web`, mandatory tokens are guaranteed by the root theme; do not write unnecessary fallbacks in `var()`. In `packages/ui`, fallbacks are permitted conditionally for standalone package contracts and must match default theme values.
+- **Canonical state and sizing contract**: All standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) must share one canonical state and sizing contract (44px height, 12px radius, hover, focus, disabled, readonly, aria-invalid, placeholder).
+- **Shared primitive reuse**: Feature components must reuse shared primitives from `packages/ui` rather than duplicate their styling or render raw HTML form controls.
+- **Layout vs defaults**: Feature-specific CSS may control layout and genuine exceptions (e.g. inner icon padding, layout width) but must not redefine shared control defaults or use `!important`.
 - **CSS Modules scoping**: Component styling must remain in CSS Modules; avoid broad global selectors.
-- **No !important**: Do not use `!important` to override shared component styling unless independently justified.
-- **Documented exceptions**: Any intentional visual exception must document its reason, scope, and compatibility impact.
-- **Regression tests**: Changes to shared tokens/components must include regression tests for existing consumers.
+- **Behavioral testing instead of implementation constants**: Tests must verify token contracts, component consistency, and runtime token overrides via computed styles and behavior, without locking brittle implementation syntax (e.g. avoiding rigid regex assertions on exact token values).
+- **Documented exceptions**: Any intentional visual exception must document its reason, scope, and compatibility impact per [Frontend Architecture](../architecture/frontend.md).
 - **Demonstrated need**: Do not create unused generic components or introduce new UI frameworks without demonstrated need.
 
 Canonical ownership:
 
 - [Engineering Policy](PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule): Mandatory engineering policy and governance.
-- [Frontend Architecture](../architecture/frontend.md): Token ownership, 2-tier CSS token hierarchy, and canonical form control styling contract.
+- [Frontend Architecture](../architecture/frontend.md): Canonical Styling Policy, token hierarchy, semantic ownership, fallback rules, and form control contract.
 - [Reusable Components Registry](../architecture/reusable-components.md): Canonical shared control registry and component ownership.

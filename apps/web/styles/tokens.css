@@ -56,8 +56,39 @@
   --color-status-pending-bg: #edf0ec;
   --color-status-pending-text: var(--gray-500);
 
+  /* Dark-surface context tokens (Sidebar, Monograms, Dark Overlays) */
+  --color-text-on-dark: var(--color-surface);
+  --color-text-on-dark-muted: var(--gray-300);
+  --color-border-on-dark: rgba(255, 255, 255, 0.15);
+  --color-border-on-dark-subtle: rgba(255, 255, 255, 0.1);
+  --color-surface-on-dark: rgba(255, 255, 255, 0.08);
+  --color-surface-on-dark-hover: rgba(255, 255, 255, 0.15);
+
   /* ==========================================================================
-     3. Spacing Scale
+     3. Typography Scale
+     ========================================================================== */
+  --font-size-2xs: 10px;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 16px;
+  --font-size-2xl: 20px;
+  --font-size-3xl: 24px;
+
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.35;
+  --line-height-normal: 1.5;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* ==========================================================================
+     4. Spacing Scale
      ========================================================================== */
   --space-1: 4px;
   --space-2: 8px;
@@ -68,7 +99,7 @@
   --space-8: 32px;
 
   /* ==========================================================================
-     4. Radius Scale
+     5. Radius Scale
      ========================================================================== */
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -78,13 +109,13 @@
   --radius-full: 9999px;
 
   /* ==========================================================================
-     5. Canonical Form Control Contract Tokens
+     6. Canonical Form Control Contract Tokens
      ========================================================================== */
   --control-height: 44px;
   --control-radius: var(--radius-lg);
   --control-padding-x: 14px;
   --control-padding-y: 10px;
-  --control-font-size: 13px;
+  --control-font-size: var(--font-size-base);
   --control-bg: var(--color-surface-muted);
   --control-bg-focus: var(--color-surface);
   --control-text: var(--color-text);
@@ -101,16 +132,17 @@
   --control-invalid-focus-ring: rgba(151, 61, 43, 0.2);
 
   /* ==========================================================================
-     5. Elevation Shadow Scale
+     7. Elevation Shadow Scale
      ========================================================================== */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.03);
   --shadow-md:
     0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-lg:
     0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --shadow-on-dark-tooltip: 0 4px 12px rgba(0, 0, 0, 0.3);
 
   /* ==========================================================================
-     6. Layout Dimensions & Typography
+     8. Layout Dimensions & Typography
      ========================================================================== */
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 72px;

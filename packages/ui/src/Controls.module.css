@@ -194,16 +194,6 @@
     var(--control-invalid-focus-ring, rgba(151, 61, 43, 0.2));
 }
 
-.textarea[aria-invalid="true"]:focus,
-.textarea[aria-invalid="true"]:focus-visible {
-  border-color: var(
-    --control-invalid-border,
-    var(--color-status-error-text, #973d2b)
-  );
-  box-shadow: 0 0 0 2px
-    var(--control-invalid-focus-ring, rgba(151, 61, 43, 0.2));
-}
-
 /* --------------------------------------------------------------------------
    Checkbox
    -------------------------------------------------------------------------- */

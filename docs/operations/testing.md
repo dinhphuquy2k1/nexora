@@ -250,3 +250,24 @@ The M1 Overlay keeps native modal inert/close behavior and explicitly wraps firs
 The OPERATOR account-menu smoke waits for a genuine interactive toggle and enabled logout action, rather than treating SSR button markup as hydrated. It probes only the harmless menu toggle within the existing100×100ms readiness budget; logout itself is clicked once and still must navigate to Login and return401 for the old session. No credential/logout submission retries or relaxed status assertions.
 
 Before native auth typing, browser harnesses activate the real tab with Page.bringToFront and interactive Login readiness requires document.hasFocus(). No focus emulation is used. HTTPS native typing additionally checks the exact field value through a boolean comparison without logging it. Pending-MFA failure diagnostics expose only focus/field-presence/alert booleans plus the existing allowlisted HTTP statuses. Credential submissions are not retried; TLS pin/CA/Host/Origin/cookie/timeout gates remain unchanged.
+
+### Design Token and Form Control Contract Verification Strategy
+
+Testing avoids rigid implementation syntax locking (such as asserting exact implementation strings like `assert.match(css, /height:\s*var\(--control-height,\s*44px\)/)`). Instead, tests in `apps/web/test/form-control-contracts.test.mjs` and `scripts/m1-p2-regression.mjs` are divided into three behavioral groups:
+
+1. **Group 1: Token Contract**:
+   - Asserts mandatory design tokens are declared in `apps/web/styles/tokens.css` (canonical form controls, typography scale, dark-surface context, elevation shadows, spacing, radius).
+   - Validates the token reference graph via DFS cycle detection to ensure no circular token references exist.
+   - Enforces the Fallback Policy: zero unnecessary `var()` fallbacks in `apps/web/**/*.css` (where tokens are guaranteed by root theme) and clean standalone fallbacks in `packages/ui/**/*.css`.
+   - Validates semantic ownership: forbids border tokens as text colors, text/border tokens as backgrounds, and surface/text tokens as borders.
+
+2. **Group 2: Component Consistency**:
+   - Asserts shared primitives (`TextInput`, `Textarea`, `Button`, `Checkbox`) bind sizing and states to canonical contract tokens without hardcoding implementation constants.
+   - Verifies state parity across default, hover, focus, disabled, readonly, invalid, and placeholder states.
+   - Enforces CSS specificity rules: hover states must not override active focus states (`:not(:focus)`).
+   - Verifies zero `!important` overrides in form controls and ensures `@nexora/ui` primitives are reused across `LoginForm` and `SetupForm`.
+   - Validates WCAG AA contrast compliance: Button text achieves >= 4.5:1 contrast on accent background (measured at 5.74:1).
+
+3. **Group 3: Runtime Token Override**:
+   - Verifies that form controls bind dynamically to root CSS variables (`var(--control-height)`, `var(--control-radius)`) rather than fixed values.
+   - Automated browser CDP regression suite (`scripts/m1-p2-regression.mjs`) navigates to rendered form controls, reads initial computed styles via `window.getComputedStyle()`, dynamically modifies `--control-height: 52px` and `--control-radius: 6px` at `document.documentElement`, verifies that both `TextInput` and `Button` update computed styles in lockstep, and restores original values.

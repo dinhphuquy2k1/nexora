@@ -74,7 +74,7 @@
   display: flex;
   align-items: center;
   padding: 0 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border-on-dark-subtle);
   flex-shrink: 0;
   text-decoration: none;
   color: var(--color-surface);
@@ -93,19 +93,19 @@
 .brandLink:focus-visible {
   outline: 2px solid var(--focus-ring-on-dark);
   outline-offset: 2px;
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--radius-sm);
 }
 
 .logoMonogram {
   width: 34px;
   height: 34px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
   background: linear-gradient(
     135deg,
     var(--brand-navy-light) 0%,
     var(--brand-navy-dark) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--color-border-on-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,17 +138,17 @@
 
 .brandTitle {
   font-weight: 700;
-  font-size: 16px;
+  font-size: var(--font-size-xl);
   letter-spacing: -0.3px;
   color: var(--color-surface);
   line-height: 1.2;
 }
 
 .brandSubtitle {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0.05em;
   font-weight: 500;
-  color: var(--color-border-subtle);
+  color: var(--color-text-on-dark-muted);
   text-transform: uppercase;
   line-height: 1.2;
 }
@@ -171,7 +171,7 @@
 
 .groupTitle {
   padding: 4px 12px 8px;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -188,10 +188,10 @@
   align-items: center;
   width: 100%;
   padding: 10px 12px;
-  border-radius: var(--radius-md, 8px);
-  font-size: 13px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
   font-weight: 500;
-  color: var(--color-border-subtle);
+  color: var(--color-text-on-dark-muted);
   text-decoration: none;
   transition:
     background-color 0.15s ease,
@@ -201,7 +201,7 @@
 
 .navItemLink:hover {
   color: var(--color-surface);
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--color-surface-on-dark);
 }
 
 .navItemLink:focus-visible {
@@ -234,10 +234,10 @@
   align-items: center;
   width: 100%;
   padding: 10px 12px;
-  border-radius: var(--radius-md, 8px);
-  font-size: 13px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
   font-weight: 500;
-  color: var(--color-text-muted);
+  color: var(--color-text-on-dark-muted);
   background: transparent;
   border: none;
   cursor: not-allowed;
@@ -273,10 +273,10 @@
 }
 
 .plannedBadge {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   padding: 2px 6px;
-  border-radius: var(--radius-xs, 4px);
-  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xs);
+  background-color: var(--color-surface-on-dark);
   color: var(--gray-400);
   margin-left: auto;
   font-weight: 500;
@@ -292,10 +292,10 @@
   padding: 6px 10px;
   background-color: var(--color-primary-strong);
   color: var(--color-surface);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
-  border-radius: var(--radius-sm, 6px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-on-dark-tooltip);
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
@@ -304,7 +304,7 @@
     visibility 0.15s ease;
   white-space: nowrap;
   z-index: 50;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border-on-dark-subtle);
 }
 
 .collapsed .collapsedTooltip {

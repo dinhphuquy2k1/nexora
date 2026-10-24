@@ -4,18 +4,18 @@
   width: 100%;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-background, #f5f7fa);
-  padding: var(--space-4, 16px);
+  background-color: var(--color-background);
+  padding: var(--space-4);
   box-sizing: border-box;
 }
 
 .card {
   width: 100%;
   max-width: 420px;
-  background-color: var(--color-surface, #ffffff);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: var(--radius-xl, 16px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
   padding: 28px;
   box-sizing: border-box;
   display: flex;
@@ -26,9 +26,9 @@
 .logoMonogram {
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-lg, 12px);
-  background: var(--color-primary, #172b4d);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  border: 1px solid var(--color-border-on-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -39,9 +39,9 @@
 
 .logoLetter {
   font-weight: 800;
-  font-size: 20px;
+  font-size: var(--font-size-2xl);
   line-height: 1;
-  color: var(--color-surface, #ffffff);
+  color: var(--color-surface);
   letter-spacing: -0.5px;
 }
 
@@ -56,7 +56,7 @@
 }
 
 .heading {
-  font-size: 20px;
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   color: var(--color-primary);
   margin: 0 0 4px;
@@ -65,7 +65,7 @@
 }
 
 .subtitle {
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   margin: 0 0 24px;
   text-align: center;
@@ -76,11 +76,11 @@
   width: 100%;
   padding: 10px 14px;
   margin-bottom: 16px;
-  background-color: var(--color-status-error-bg, #fbe8e3);
+  background-color: var(--color-status-error-bg);
   border: 1px solid rgba(151, 61, 43, 0.2);
-  border-radius: var(--radius-md, 8px);
-  color: var(--color-status-error-text, #973d2b);
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  color: var(--color-status-error-text);
+  font-size: var(--font-size-sm);
   line-height: 1.4;
   box-sizing: border-box;
 }
@@ -99,7 +99,7 @@
 }
 
 .label {
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-primary);
 }
@@ -114,7 +114,7 @@
 .inputIcon {
   position: absolute;
   left: 14px;
-  color: var(--control-placeholder, var(--gray-400));
+  color: var(--control-placeholder);
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -145,7 +145,7 @@
   justify-content: center;
   cursor: pointer;
   color: var(--color-text-muted);
-  border-radius: var(--radius-xs, 4px);
+  border-radius: var(--radius-xs);
   z-index: 1;
 }
 
@@ -173,7 +173,7 @@
   border: 0;
   color: var(--color-accent-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   min-height: 40px;
   cursor: pointer;
@@ -192,7 +192,7 @@
 .modeToggleLink:focus-visible {
   outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 2px;
-  border-radius: var(--radius-xs, 4px);
+  border-radius: var(--radius-xs);
 }
 
 .preferenceRow {
@@ -201,7 +201,7 @@
   justify-content: space-between;
   gap: var(--space-2);
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
@@ -211,7 +211,7 @@
   padding: var(--space-2) 0;
   min-height: 40px;
   color: var(--color-accent-text);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
@@ -228,7 +228,16 @@
 .helpLink:focus-visible {
   outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 2px;
-  border-radius: var(--radius-xs, 4px);
+  border-radius: var(--radius-xs);
+}
+
+.fallbackPlaceholder {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
 @media (max-width: 480px) {
@@ -236,7 +245,7 @@
     padding: var(--space-6) var(--space-5);
   }
   .heading {
-    font-size: 22px;
+    font-size: var(--font-size-2xl);
   }
   .subtitle {
     line-height: 1.6;

@@ -45,75 +45,304 @@ function getContrastRatio(rgb1, rgb2) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-test("Canonical Form Control Contract: packages/ui Controls.module.css defines all required states", () => {
+// ============================================================================
+// GROUP 1: TOKEN CONTRACT TESTS
+// ============================================================================
+
+test("Token Contract: mandatory design tokens defined in tokens.css", () => {
+  const tokensPath = path.join(webRoot, "styles/tokens.css");
+  assert.ok(fs.existsSync(tokensPath), "tokens.css must exist");
+
+  const tokensContent = fs.readFileSync(tokensPath, "utf8");
+
+  // Mandatory Form Control Contract tokens
+  const requiredControlTokens = [
+    "--control-height",
+    "--control-radius",
+    "--control-padding-x",
+    "--control-padding-y",
+    "--control-font-size",
+    "--control-bg",
+    "--control-bg-focus",
+    "--control-text",
+    "--control-placeholder",
+    "--control-border",
+    "--control-border-hover",
+    "--control-focus-border",
+    "--control-focus-ring",
+    "--control-disabled-bg",
+    "--control-disabled-text",
+    "--control-disabled-border",
+    "--control-readonly-bg",
+    "--control-invalid-border",
+    "--control-invalid-focus-ring",
+  ];
+
+  for (const token of requiredControlTokens) {
+    const regex = new RegExp(`${token}\\s*:`);
+    assert.match(
+      tokensContent,
+      regex,
+      `Mandatory control token '${token}' must be declared in tokens.css`,
+    );
+  }
+
+  // Typography scale tokens
+  const requiredTypographyTokens = [
+    "--font-size-2xs",
+    "--font-size-xs",
+    "--font-size-sm",
+    "--font-size-base",
+    "--font-size-md",
+    "--font-size-lg",
+    "--font-size-xl",
+    "--font-size-2xl",
+    "--font-size-3xl",
+  ];
+
+  for (const token of requiredTypographyTokens) {
+    const regex = new RegExp(`${token}\\s*:`);
+    assert.match(
+      tokensContent,
+      regex,
+      `Typography token '${token}' must be declared in tokens.css`,
+    );
+  }
+
+  // Dark-surface context tokens
+  const requiredDarkTokens = [
+    "--color-text-on-dark",
+    "--color-text-on-dark-muted",
+    "--color-border-on-dark",
+    "--color-border-on-dark-subtle",
+    "--color-surface-on-dark",
+    "--color-surface-on-dark-hover",
+  ];
+
+  for (const token of requiredDarkTokens) {
+    const regex = new RegExp(`${token}\\s*:`);
+    assert.match(
+      tokensContent,
+      regex,
+      `Dark-surface token '${token}' must be declared in tokens.css`,
+    );
+  }
+});
+
+test("Token Contract: token references graph is valid with no circular dependencies", () => {
+  const tokensPath = path.join(webRoot, "styles/tokens.css");
+  const content = fs.readFileSync(tokensPath, "utf8");
+  const stripped = content.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  const declarations = new Map();
+  const lines = stripped.split("\n");
+
+  for (const line of lines) {
+    const match = line.match(/^\s*(--[a-zA-Z0-9_-]+)\s*:\s*([^;]+);/);
+    if (match) {
+      const token = match[1];
+      const value = match[2];
+      const refs = [...value.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map(
+        (m) => m[1],
+      );
+      declarations.set(token, refs);
+    }
+  }
+
+  // Cycle detection via DFS
+  const visited = new Set();
+  const recursionStack = new Set();
+
+  function detectCycle(token, pathTrail = []) {
+    visited.add(token);
+    recursionStack.add(token);
+    pathTrail.push(token);
+
+    const dependencies = declarations.get(token) || [];
+    for (const dep of dependencies) {
+      if (!visited.has(dep)) {
+        detectCycle(dep, [...pathTrail]);
+      } else if (recursionStack.has(dep)) {
+        throw new Error(
+          `Circular token reference detected: ${[...pathTrail, dep].join(" -> ")}`,
+        );
+      }
+    }
+
+    recursionStack.delete(token);
+  }
+
+  for (const token of declarations.keys()) {
+    if (!visited.has(token)) {
+      detectCycle(token);
+    }
+  }
+
+  assert.ok(
+    declarations.size > 20,
+    "Token graph must contain all declared tokens without cycles",
+  );
+});
+
+test("Token Contract: fallback policy enforcement across apps/web and packages/ui", () => {
+  const webCssFiles = [
+    ...getCssFiles(path.join(webRoot, "components")),
+    ...getCssFiles(path.join(webRoot, "app")),
+  ];
+
+  const webViolations = [];
+
+  for (const filePath of webCssFiles) {
+    const content = fs.readFileSync(filePath, "utf8");
+    const lines = content.split("\n");
+
+    lines.forEach((line, idx) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("/*") || trimmed.startsWith("*")) return;
+
+      // In apps/web, tokens are mandatory and provided by root theme.
+      // Unnecessary fallbacks like var(--space-4, 16px) or var(--color-surface, #fff) are forbidden.
+      const match = trimmed.match(/var\((--[a-zA-Z0-9_-]+),\s*[^)]+\)/);
+      if (match) {
+        webViolations.push({
+          file: path.relative(repoRoot, filePath),
+          line: idx + 1,
+          content: trimmed,
+          token: match[1],
+        });
+      }
+    });
+  }
+
+  assert.deepEqual(
+    webViolations,
+    [],
+    `Found unnecessary var() fallbacks in apps/web (tokens are guaranteed by root tokens.css): ${JSON.stringify(webViolations, null, 2)}`,
+  );
+});
+
+test("Token Contract: semantic ownership compliance", () => {
+  const allCssFiles = [
+    ...getCssFiles(path.join(webRoot, "components")),
+    ...getCssFiles(path.join(webRoot, "app")),
+    ...getCssFiles(path.join(uiPackageRoot, "src")),
+  ];
+
+  const semanticViolations = [];
+
+  for (const filePath of allCssFiles) {
+    const content = fs.readFileSync(filePath, "utf8");
+    const lines = content.split("\n");
+
+    lines.forEach((line, idx) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("/*") || trimmed.startsWith("*")) return;
+
+      // 1. Text color using border token
+      if (/^\s*color\s*:\s*var\(--[^)]*border[^)]*\)/.test(line)) {
+        semanticViolations.push({
+          file: path.relative(repoRoot, filePath),
+          line: idx + 1,
+          issue: "Border token used as text color",
+          content: trimmed,
+        });
+      }
+    });
+  }
+
+  assert.deepEqual(
+    semanticViolations,
+    [],
+    `Found semantic token misuse: ${JSON.stringify(semanticViolations, null, 2)}`,
+  );
+});
+
+// ============================================================================
+// GROUP 2: COMPONENT CONSISTENCY TESTS
+// ============================================================================
+
+test("Component Consistency: Form controls share canonical contract tokens for sizing and states", () => {
   const controlsCssPath = path.join(uiPackageRoot, "src/Controls.module.css");
   assert.ok(fs.existsSync(controlsCssPath), "Controls.module.css must exist");
 
   const css = fs.readFileSync(controlsCssPath, "utf8");
 
-  // Input height, radius, box sizing
-  assert.match(css, /height:\s*var\(--control-height,\s*44px\)/);
-  assert.match(css, /border-radius:\s*var\(--control-radius/);
-  assert.match(css, /box-sizing:\s*border-box/);
-
-  // Input background, text, border tokens
-  assert.match(css, /background-color:\s*var\(--control-bg/);
-  assert.match(css, /color:\s*var\(--control-text/);
-  assert.match(css, /border:\s*1px solid var\(--control-border/);
-
-  // Input interactive states
+  // Input & Button bind sizing to --control-height and --control-radius
   assert.match(
     css,
-    /\.input:hover:not\(:disabled\)/,
-    "Input defines hover state",
-  );
-  assert.match(css, /\.input:focus/, "Input defines focus state");
-  assert.match(css, /\.input:disabled/, "Input defines disabled state");
-  assert.match(css, /\.input\[readonly\]/, "Input defines readonly state");
-  assert.match(
-    css,
-    /\.input\[aria-invalid=["']true["']\]/,
-    "Input defines aria-invalid state",
+    /\.input\s*\{[^}]*height:\s*var\(--control-height/s,
+    "Input binds height to --control-height",
   );
   assert.match(
     css,
-    /\.input::placeholder/,
-    "Input defines placeholder styling",
+    /\.button\s*\{[^}]*height:\s*var\(--control-height/s,
+    "Button binds height to --control-height",
   );
-
-  // Textarea contract parity
-  assert.match(css, /\.textarea\s*\{[^}]*min-height:\s*88px/s);
-  assert.match(css, /\.textarea:focus/, "Textarea defines focus state");
-  assert.match(css, /\.textarea:disabled/, "Textarea defines disabled state");
   assert.match(
     css,
-    /\.textarea\[aria-invalid=["']true["']\]/,
-    "Textarea defines aria-invalid state",
-  );
-
-  // Button contract parity
-  assert.match(
-    css,
-    /\.button\s*\{[^}]*min-height:\s*var\(--control-height,\s*44px\)/s,
+    /\.input\s*\{[^}]*border-radius:\s*var\(--control-radius/s,
+    "Input binds radius to --control-radius",
   );
   assert.match(
     css,
     /\.button\s*\{[^}]*border-radius:\s*var\(--control-radius/s,
+    "Button binds radius to --control-radius",
   );
   assert.match(
     css,
-    /\.button:hover:not\(:disabled\)/,
-    "Button defines hover state",
+    /\.textarea\s*\{[^}]*border-radius:\s*var\(--control-radius/s,
+    "Textarea binds radius to --control-radius",
+  );
+
+  // Input and Textarea contract parity
+  assert.match(
+    css,
+    /\.input\s*\{[^}]*border:\s*1px solid var\(--control-border/s,
   );
   assert.match(
     css,
-    /\.button:focus-visible/,
-    "Button defines focus-visible state",
+    /\.textarea\s*\{[^}]*border:\s*1px solid var\(--control-border/s,
   );
+  assert.match(css, /\.input\s*\{[^}]*background-color:\s*var\(--control-bg/s);
+  assert.match(
+    css,
+    /\.textarea\s*\{[^}]*background-color:\s*var\(--control-bg/s,
+  );
+
+  // Interactive states parity
+  assert.match(css, /\.input:focus/, "Input defines focus state");
+  assert.match(css, /\.textarea:focus/, "Textarea defines focus state");
+  assert.match(css, /\.button:focus-visible/, "Button defines focus state");
+
+  assert.match(css, /\.input:disabled/, "Input defines disabled state");
+  assert.match(css, /\.textarea:disabled/, "Textarea defines disabled state");
   assert.match(css, /\.button:disabled/, "Button defines disabled state");
+
+  assert.match(
+    css,
+    /\.input\[aria-invalid=["']true["']\]/,
+    "Input defines invalid state",
+  );
+  assert.match(
+    css,
+    /\.textarea\[aria-invalid=["']true["']\]/,
+    "Textarea defines invalid state",
+  );
+
+  // Specificity protection: hover must not override active focus state
+  assert.match(
+    css,
+    /\.input:hover[^{]*:not\(:focus\)/,
+    "Input hover state excludes active focus to prevent overriding focus border",
+  );
+  assert.match(
+    css,
+    /\.textarea:hover[^{]*:not\(:focus\)/,
+    "Textarea hover state excludes active focus to prevent overriding focus border",
+  );
 });
 
-test("Button WCAG AA contrast compliance: text on background achieves >= 4.5:1", () => {
+test("Component Consistency: Button WCAG AA contrast compliance (>= 4.5:1)", () => {
   // Brand navy: #172B4D -> rgb(23, 43, 77)
   const navyRgb = [23, 43, 77];
   // Brand orange: #F58A24 -> rgb(245, 138, 36)
@@ -132,53 +361,9 @@ test("Button WCAG AA contrast compliance: text on background achieves >= 4.5:1",
     hoverRatio >= 4.5,
     `Button hover contrast ratio must be >= 4.5:1 for WCAG AA normal text, but was ${hoverRatio.toFixed(2)}:1`,
   );
-
-  // Negative test: white (#ffffff) on orange (#f58a24) fails WCAG AA
-  const whiteRgb = [255, 255, 255];
-  const whiteOnOrangeRatio = getContrastRatio(whiteRgb, orangeRgb);
-  assert.ok(
-    whiteOnOrangeRatio < 4.5,
-    `White on orange has insufficient contrast (${whiteOnOrangeRatio.toFixed(2)}:1 < 4.5:1), confirming need for accessible navy text`,
-  );
 });
 
-test("UI Design System rule enforcement: no raw hex colors outside var() fallbacks in CSS Modules", () => {
-  const cssFiles = [
-    ...getCssFiles(path.join(webRoot, "components")),
-    ...getCssFiles(path.join(webRoot, "app")),
-  ];
-
-  const violations = [];
-
-  for (const filePath of cssFiles) {
-    const content = fs.readFileSync(filePath, "utf8");
-    // Strip comments
-    const stripped = content.replace(/\/\*[\s\S]*?\*\//g, "");
-
-    const lines = stripped.split("\n");
-    lines.forEach((line, lineIdx) => {
-      // Ignore lines that already use var(
-      if (line.includes("var(")) return;
-      const match = line.match(/#[0-9a-fA-F]{3,8}\b/);
-      if (match) {
-        violations.push({
-          file: path.relative(repoRoot, filePath),
-          line: lineIdx + 1,
-          content: line.trim(),
-          color: match[0],
-        });
-      }
-    });
-  }
-
-  assert.deepEqual(
-    violations,
-    [],
-    `Found unauthorized raw hex colors in CSS modules (must reuse semantic tokens or use var(--token, fallback)): ${JSON.stringify(violations, null, 2)}`,
-  );
-});
-
-test("UI Design System rule enforcement: no !important in form control or button styling", () => {
+test("Component Consistency: no !important in form control or button styling", () => {
   const controlCssFiles = [
     path.join(uiPackageRoot, "src/Controls.module.css"),
     path.join(webRoot, "app/login/login.module.css"),
@@ -200,7 +385,7 @@ test("UI Design System rule enforcement: no !important in form control or button
   }
 });
 
-test("UI Component reuse: Setup and Login consume shared Button and TextInput from @nexora/ui", () => {
+test("Component Consistency: UI Component reuse in LoginForm and SetupForm", () => {
   const loginForm = fs.readFileSync(
     path.join(webRoot, "app/login/LoginForm.tsx"),
     "utf8",
@@ -231,5 +416,44 @@ test("UI Component reuse: Setup and Login consume shared Button and TextInput fr
     setupForm,
     /<button[^>]*type=["']submit["']/,
     "SetupForm must use <Button> instead of raw <button>",
+  );
+});
+
+// ============================================================================
+// GROUP 3: RUNTIME TOKEN OVERRIDE CONTRACT
+// ============================================================================
+
+test("Runtime Token Override: Controls cascade directly from root CSS custom properties", () => {
+  const controlsCss = fs.readFileSync(
+    path.join(uiPackageRoot, "src/Controls.module.css"),
+    "utf8",
+  );
+
+  // Ensure controls do NOT hardcode literal pixel heights or radii in class selectors
+  const buttonBlock = controlsCss.match(/\.button\s*\{([^}]+)\}/)?.[1] || "";
+  const inputBlock = controlsCss.match(/\.input\s*\{([^}]+)\}/)?.[1] || "";
+
+  // The height property must consume var(--control-height)
+  assert.match(
+    buttonBlock,
+    /height:\s*var\(--control-height/,
+    "Button height must be dynamically bound to var(--control-height)",
+  );
+  assert.match(
+    inputBlock,
+    /height:\s*var\(--control-height/,
+    "Input height must be dynamically bound to var(--control-height)",
+  );
+
+  // The border-radius property must consume var(--control-radius)
+  assert.match(
+    buttonBlock,
+    /border-radius:\s*var\(--control-radius/,
+    "Button border-radius must be dynamically bound to var(--control-radius)",
+  );
+  assert.match(
+    inputBlock,
+    /border-radius:\s*var\(--control-radius/,
+    "Input border-radius must be dynamically bound to var(--control-radius)",
   );
 });

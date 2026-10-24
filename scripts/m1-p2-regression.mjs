@@ -564,6 +564,67 @@ try {
     );
   }
 
+  // Runtime Token Override Verification
+  console.log("\nTesting Runtime Token Override on form controls...");
+  const overrideTest = await evaluate(`(() => {
+    const input = document.querySelector("input[name='username']");
+    const button = document.querySelector("button[type='submit']");
+    const initialInputHeight = window.getComputedStyle(input).height;
+    const initialButtonHeight = window.getComputedStyle(button).height;
+    const initialInputRadius = window.getComputedStyle(input).borderRadius;
+    const initialButtonRadius = window.getComputedStyle(button).borderRadius;
+
+    // Dynamically override root tokens
+    document.documentElement.style.setProperty('--control-height', '52px');
+    document.documentElement.style.setProperty('--control-radius', '6px');
+
+    const updatedInputHeight = window.getComputedStyle(input).height;
+    const updatedButtonHeight = window.getComputedStyle(button).height;
+    const updatedInputRadius = window.getComputedStyle(input).borderRadius;
+    const updatedButtonRadius = window.getComputedStyle(button).borderRadius;
+
+    // Restore root tokens
+    document.documentElement.style.removeProperty('--control-height');
+    document.documentElement.style.removeProperty('--control-radius');
+
+    const restoredInputHeight = window.getComputedStyle(input).height;
+    const restoredButtonHeight = window.getComputedStyle(button).height;
+    const restoredInputRadius = window.getComputedStyle(input).borderRadius;
+    const restoredButtonRadius = window.getComputedStyle(button).borderRadius;
+
+    return {
+      initial: { inputHeight: initialInputHeight, buttonHeight: initialButtonHeight, inputRadius: initialInputRadius, buttonRadius: initialButtonRadius },
+      updated: { inputHeight: updatedInputHeight, buttonHeight: updatedButtonHeight, inputRadius: updatedInputRadius, buttonRadius: updatedButtonRadius },
+      restored: { inputHeight: restoredInputHeight, buttonHeight: restoredButtonHeight, inputRadius: restoredInputRadius, buttonRadius: restoredButtonRadius },
+    };
+  })()`);
+  console.log("Runtime Token Override results:", overrideTest);
+
+  if (
+    overrideTest.updated.inputHeight !== "52px" ||
+    overrideTest.updated.buttonHeight !== "52px"
+  ) {
+    errors.push(
+      `Runtime token override --control-height: 52px failed: input was ${overrideTest.updated.inputHeight}, button was ${overrideTest.updated.buttonHeight}`,
+    );
+  }
+  if (
+    overrideTest.updated.inputRadius !== "6px" ||
+    overrideTest.updated.buttonRadius !== "6px"
+  ) {
+    errors.push(
+      `Runtime token override --control-radius: 6px failed: input was ${overrideTest.updated.inputRadius}, button was ${overrideTest.updated.buttonRadius}`,
+    );
+  }
+  if (
+    overrideTest.restored.inputHeight !== overrideTest.initial.inputHeight ||
+    overrideTest.restored.buttonHeight !== overrideTest.initial.buttonHeight
+  ) {
+    errors.push(
+      `Runtime token override restoration failed for height: restored input ${overrideTest.restored.inputHeight} vs initial ${overrideTest.initial.inputHeight}`,
+    );
+  }
+
   // Test input focus state styling with real user click via CDP
   const rect = await evaluate(`(() => {
     const el = document.querySelector("input[name='username']");

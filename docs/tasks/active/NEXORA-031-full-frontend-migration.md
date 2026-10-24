@@ -317,12 +317,61 @@ Standardized frontend Design Tokens, canonical form controls, and UI reuse consi
 5. **Header First-Paint Responsive Parity at 901–1100px**:
    - Header CSS `.responsiveBrand` media query renders `.collapsedBrand` monogram at 901–1100px on first paint before React hydration completes, aligning visual presentation with the 72px Sidebar without layout shift.
 
-6. **Automated Enforcement & Verification Evidence**:
-   - `apps/web/test/form-control-contracts.test.mjs`: 5/5 PASSED (syntax-aware check enforcing token reuse, no raw hex outside `var()`, no `!important`, contract parity, button contrast).
-   - `apps/web/test/shared-ui.test.mjs`: 4/4 PASSED (token scale and reference integrity).
+### M1.7 Comprehensive CSS Token Audit, Styling Policy & Testing Strategy (2026-10-24)
+
+Executed full automated CSS audit, standardized Design Tokens, enforced Styling Policy, and transitioned tests to behavioral contract groups:
+
+1. **Comprehensive CSS Audit across Frontend**:
+   - Audited all CSS Modules in `apps/web/**/*.css`, `packages/ui/**/*.css`, and inline styles across all React components.
+   - Identified and fixed semantic mismatches:
+     - `Sidebar.module.css` (`.brandSubtitle`, `.navItemLink`): border token `--color-border-subtle` incorrectly used as text color; replaced with `--color-text-on-dark-muted`.
+     - `AppShell.module.css` (`.mobileCloseButton`): border token used as text color; replaced with `--color-text-on-dark-muted`.
+     - `styles.css` (`::-webkit-scrollbar-thumb`): border token used as background; replaced with `--gray-300` (hovering to `--gray-400`).
+     - `AccountMenu.module.css` (`.plannedBadge`): border token used as background; replaced with `--color-surface-muted`.
+   - Unified hardcoded `rgba(255, 255, 255, ...)` on dark surfaces:
+     - Introduced dark-surface context tokens in `tokens.css`: `--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-border-on-dark`, `--color-border-on-dark-subtle`, `--color-surface-on-dark`, `--color-surface-on-dark-hover`, `--shadow-on-dark-tooltip`.
+     - Replaced dark-surface literals in `Sidebar.module.css`, `AppShell.module.css`, and `login.module.css`.
+   - Unified duplicated box-shadows:
+     - `workspace-layout.module.css`: raw shadow replaced with `var(--shadow-md)`.
+     - `Header.module.css`: raw shadow replaced with `var(--shadow-lg)`.
+     - `login.module.css`: raw shadow replaced with `var(--shadow-sm)`.
+     - `Sidebar.module.css`: raw tooltip shadow replaced with `var(--shadow-on-dark-tooltip)`.
+   - Replaced repeating font sizes with standardized Typography Scale tokens:
+     - Added `--font-size-2xs` (10px) through `--font-size-3xl` (24px) in `tokens.css`.
+   - Eliminated all 3 inline styles across React components:
+     - `Breadcrumb.tsx`: replaced inline `style={{ display: "inline-flex", alignItems: "center", gap: 8 }}` with `className={styles.breadcrumbItem}`.
+     - `login/page.tsx`: replaced inline `style={{ minHeight: "180px" }}` with `className={styles.fallbackPlaceholder}`.
+     - `(workspace)/page.tsx`: replaced inline `style={{ marginBottom: "20px" }}` with `className="page-header"`.
+   - Eliminated all 32 unnecessary `var(--token, fallback)` declarations across `apps/web`:
+     - `login.module.css`: 15 unnecessary fallbacks removed.
+     - `workspace-layout.module.css`: 5 unnecessary fallbacks removed.
+     - `styles.css`: 4 unnecessary fallbacks removed.
+     - `AccountMenu.module.css`: 2 unnecessary fallbacks removed.
+     - `Sidebar.module.css`: 6 unnecessary fallbacks removed.
+   - Identified and documented legitimate CSS-local exceptions:
+     - Contextual constants (0, auto, inherit, transparent, 100%, 50%).
+     - Local geometric coordinates/offsets (`top: 10px; right: 12px;`, tooltip offsets).
+     - Component-local micro-shadows on gradient monograms (e.g. `0 1px 2px rgba(0, 0, 0, 0.1)`).
+
+2. **Transitioned Testing Strategy to Three Behavioral Groups**:
+   - Replaced implementation-specific regex locks (e.g. `assert.match(css, /height:\s*var\(--control-height,\s*44px\)/)`) in `apps/web/test/form-control-contracts.test.mjs`:
+     - **Group 1: Token Contract**: Verifies declaration of required tokens in `tokens.css`, performs DFS cycle detection on token references graph (0 cycles), enforces fallback policy (0 unnecessary fallbacks in `apps/web`), and asserts semantic ownership.
+     - **Group 2: Component Consistency**: Verifies `TextInput`, `Textarea`, and `Button` bind sizing and states to canonical contract tokens without hardcoded values, ensures hover states do not clobber focus states (`:not(:focus)`), validates zero `!important` overrides, and checks WCAG AA contrast (5.74:1).
+     - **Group 3: Runtime Token Override**: Verified dynamically in browser CDP suite (`scripts/m1-p2-regression.mjs`): overrides `--control-height: 52px` and `--control-radius: 6px` at `:root`, confirms both `TextInput` and `Button` update in lockstep, and verifies clean restoration.
+
+3. **Documentation Updates Synchronized**:
+   - `docs/architecture/frontend.md`: Canonical Styling Policy updated with Token Architecture, Semantic Ownership, Fallback Policy, Shared Control Parity, Exceptions, and Test Strategy.
+   - `docs/ai/PROJECT_RULES.md`: Section 7 updated with normative token reuse, semantic correctness, fallback avoidance, and behavioral testing requirements.
+   - `docs/architecture/reusable-components.md`: Registered `Button`, `TextInput`, `Textarea`, `Checkbox`, `Overlay`, `Panel`, and `StatusBadge` with owner paths, public contracts, consumers, styling dependencies, and fallback policies.
+   - `docs/operations/testing.md`: Documented Token Contract, Component Consistency, Runtime Token Override, and visual regression test suites.
+
+4. **Executed Verification Evidence**:
+   - `apps/web/test/form-control-contracts.test.mjs`: 9/9 PASSED.
+   - `apps/web/test/shared-ui.test.mjs`: 4/4 PASSED.
    - `apps/web/test/m1-shell.test.mjs`: 5/5 PASSED.
-   - `scripts/m1-p2-regression.mjs`: ALL PASSED (first-paint geometry, shift count 0, mobile drawer toggle, 44px/12px input/button geometry, 5.74:1 button contrast, input focus and invalid styling).
+   - `scripts/m1-p2-regression.mjs`: ALL PASSED in Chromium CDP (all 6 viewports, Runtime Token Override, focus border, 5.74:1 contrast).
    - `pnpm --filter @nexora/ui test`: 1/1 PASSED.
    - `docker exec nexora-web-1 env -u PORT pnpm --filter @nexora/web test`: 60/60 PASSED.
+   - `pnpm format:check`, `pnpm lint`, `pnpm docs:check`, `pnpm preflight:check`: ALL PASSED.
 
 This evidence commit changes documentation only. Exact final documentation-head Preflight/Foundation results and tested merge lineage are recorded in PR27 metadata after execution, avoiding a SHA-only documentation loop. Until those checks finish, final-head readiness is VERIFICATION PENDING. The implementation-source PASS above must not be relabeled as the new commit's PASS. No claim of production DNS/certificate/firewall/NTP/key custody/backup deployment verification; CI uses owned disposable resources only. Immutable design snapshot unchanged; Documentation Impact REQUIRED, canonical frontend/testing documentation synchronized.

@@ -152,12 +152,19 @@ This registry catalogues canonical, reusable technical components and shared voc
 - **Intended Consumers**:
   - Login (`LoginForm`), Setup (`SetupForm`), modal dialogs, and future feature forms (Customer, Settings).
 - **Supported Behavior**:
-  - **Canonical Sizing**: Standard 44px height (`--control-height: 44px;`), 12px radius (`--control-radius: var(--radius-lg, 12px);`), and `box-sizing: border-box`.
+  - **Canonical Sizing**: Standard 44px height (`height: var(--control-height)`), 12px radius (`border-radius: var(--control-radius)`), and `box-sizing: border-box`.
   - **State Parity**: Complete contract covering default, hover, focus/focus-visible, disabled, readonly, invalid (`aria-invalid="true"`), and placeholder.
-  - **State Precedence**: Focus and invalid states strictly override hover styling.
+  - **State Precedence**: Focus and invalid states strictly override hover styling via `:not(:focus):not([aria-invalid="true"])`.
   - **Button Contrast (WCAG AA)**: Standardized to navy `var(--brand-navy, #172b4d)` text on orange `var(--color-accent, #f58a24)` background (5.74:1 contrast ratio, exceeding WCAG AA 4.5:1 requirement).
   - **Textarea Parity**: Reuses identical colors, borders, radius, and focus rings with 88px min-height.
-  - **Self-Contained Styling**: Owns all default control appearance in `Controls.module.css` using semantic design tokens with fallbacks.
+  - **Self-Contained Styling**: Owns all default control appearance in `Controls.module.css`.
+- **Styling / Token Dependencies**:
+  - Sizing & Radius: `--control-height`, `--control-radius`, `--control-padding-x`, `--control-padding-y`, `--control-font-size`.
+  - Colors & States: `--control-bg`, `--control-bg-focus`, `--control-text`, `--control-placeholder`, `--control-border`, `--control-border-hover`, `--control-focus-border`, `--control-focus-ring`, `--control-disabled-bg`, `--control-disabled-text`, `--control-disabled-border`, `--control-readonly-bg`, `--control-invalid-border`, `--control-invalid-focus-ring`.
+- **Fallback Policy**:
+  - Permitted conditionally for standalone package usage in consumers where the root theme is not present.
+  - Fallbacks must match the root default theme (e.g. `44px`, `12px`, `#f8fafc`, `#1f2937`, `#cbd5e1`, `#f58a24`, `#973d2b`).
+  - Deeply nested ad-hoc fallback chains are prohibited.
 - **Explicit Non-Goals**:
   - Does not manage form submission, data-binding, or validation logic. Consuming feature components handle validation.
   - Does not use `!important` or broad global selectors.
@@ -168,6 +175,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Whenever rendering standard text inputs, textareas, primary buttons, or checkboxes across web features.
 - **When NOT to Reuse**:
   - Do not create duplicate local control styles or custom `<input>` styling in feature CSS Modules.
+  - Do not render raw HTML `<button>` or `<input>` for primary form interactions.
 
 ---
 
@@ -183,7 +191,66 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Mobile navigation drawer (`ShellClient`), Login help dialog (`LoginForm`), and future feature confirmation/modal dialogs.
 - **Supported Behavior**:
   - Native HTML `<dialog>` with top-layer placement, background inerting, keyboard focus trapping, Escape key closing, backdrop click dismissal, and body overflow restoration on unmount.
+- **Styling / Token Dependencies**:
+  - Background & Elevation: `--color-surface`, `--color-border`, `--shadow-lg`, `--radius-lg`.
+  - Backdrop: `rgba(0, 0, 0, 0.45)` with `backdrop-filter: blur(2px)`.
+- **Fallback Policy**:
+  - Standalone fallbacks permitted consistent with default tokens.
 - **Explicit Non-Goals**:
   - Does not replace lightweight popovers; popovers use `useDismissable` hook.
 - **When to Reuse**:
   - Whenever modal dialogs, drawers, or alert overlays are required.
+- **When NOT to Reuse**:
+  - Do not use for lightweight dropdown menus or tooltips (use popover semantics via `useDismissable`).
+
+---
+
+## 9. Content Card Panel Primitive
+
+- **Owner Path**:
+  - Component: `packages/ui/src/Panel.tsx`
+  - Styling: `packages/ui/src/Panel.module.css`
+  - Barrel: `packages/ui/src/index.tsx`
+- **Exported Contract**:
+  - `export interface PanelProps { title: string; children: ReactNode; className?: string; }`
+  - `export function Panel(props: PanelProps): JSX.Element`
+- **Intended Consumers**:
+  - Overview cards (`/`), System health status panels (`/system`), and Settings sections (`/settings`).
+- **Supported Behavior**:
+  - Semantic `<section>` container with consistent title typography (`<h2>`), internal padding, border, radius, and subtle elevation.
+  - Scoped paragraph styling resets paragraph bottom margin on `:last-child`.
+- **Styling / Token Dependencies**:
+  - Background & Border: `--color-surface`, `--color-border`, `--color-primary`, `--radius-lg`, `--shadow-sm`.
+- **Fallback Policy**:
+  - Permitted standalone fallbacks matching root theme (`#ffffff`, `#e2e8f0`, `12px`).
+- **When to Reuse**:
+  - Whenever grouping related information or settings into a distinct content card across pages.
+- **When NOT to Reuse**:
+  - Do not use as a generic unstyled wrapper; use a layout `<div>` instead.
+
+---
+
+## 10. Status Indicator Badge Primitive
+
+- **Owner Path**:
+  - Component: `packages/ui/src/StatusBadge.tsx`
+  - Resolver: `packages/ui/src/status-tone.ts`
+  - Styling: `packages/ui/src/StatusBadge.module.css`
+  - Barrel: `packages/ui/src/index.tsx`
+- **Exported Contract**:
+  - `export interface StatusBadgeProps { ok: boolean | null; children: ReactNode; className?: string; }`
+  - `export function StatusBadge(props: StatusBadgeProps): JSX.Element`
+  - `export function resolveStatusTone(ok: boolean | null): "good" | "bad" | "pending"`
+- **Intended Consumers**:
+  - System health indicators (`/system`), session connection badges, and future Shipment/Customer status indicators.
+- **Supported Behavior**:
+  - Maps tri-state boolean (`true` -> `good`, `false` -> `bad`, `null` -> `pending`) to semantic status colors.
+  - Renders inline-flex pill badge with uppercase styling, 12px font size, and full border radius.
+- **Styling / Token Dependencies**:
+  - Status tokens: `--color-status-success-*`, `--color-status-error-*`, `--color-status-pending-*`, `--radius-full`.
+- **Fallback Policy**:
+  - Permitted standalone fallbacks matching root semantic status colors.
+- **When to Reuse**:
+  - Whenever rendering tri-state health, connectivity, or operational readiness indicators.
+- **When NOT to Reuse**:
+  - Do not use for domain-specific multi-state business badges (e.g. Shipment tracking stages); use domain-specific tag components instead.
