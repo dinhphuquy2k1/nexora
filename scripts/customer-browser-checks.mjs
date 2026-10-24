@@ -1,4 +1,5 @@
 // Extends the existing authenticated CDP session. Only owned disposable fixtures.
+import { verifyCustomerReadRaces } from "./customer-read-races.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -13,6 +14,7 @@ export async function verifyCustomerBrowser({
   foreignId,
   phone = "0912345678",
   checks,
+  socket,
 }) {
   if (!process.env.M2_EVIDENCE_DIR) return;
   const step = (name) => checks?.step(`CUSTOMER_${prefix}_${name}`);
@@ -21,7 +23,27 @@ export async function verifyCustomerBrowser({
   const records = [];
   async function until(expression) {
     for (let n = 0; n < 100; n++) {
-      if (await evaluate(expression)) return;
+      try {
+        if (await evaluate(expression)) return;
+      } catch (error) {
+        const message = String(error?.message ?? "");
+        const contextChanged =
+          /Cannot find context|Execution context was destroyed|Inspected target navigated/.test(
+            message,
+          );
+        if (!contextChanged) {
+          console.error(
+            "Customer protocol diagnostic",
+            JSON.stringify({
+              typeError: error?.name === "TypeError",
+              missingValue: /undefined/.test(message),
+              invalidSelector: /selector/i.test(message),
+              commandTimeout: /timeout/i.test(message),
+            }),
+          );
+          throw error;
+        }
+      }
       await delay(100);
     }
     throw Error("CUSTOMER_BROWSER_CONDITION");
@@ -165,6 +187,25 @@ export async function verifyCustomerBrowser({
       );
     }
     await snapshot("list");
+    step("DUPLICATE_PHONE_FORM");
+    await click("Thêm khách hàng");
+    await until('!!document.querySelector("dialog[open] input[name=name]")');
+    await fill("name", "Bản ghi trùng thử nghiệm");
+    await fill("phone", phone);
+    await fill("addressText", "Địa chỉ tổng hợp");
+    await click("Lưu khách hàng");
+    await until(
+      '!!document.querySelector(\"dialog[open] input[name=phone][aria-invalid=true]\")',
+    );
+    assert.equal(
+      await evaluate(
+        'document.querySelector(\"dialog[open] input[name=name]\").value===\"Bản ghi trùng thử nghiệm\"',
+      ),
+      true,
+    );
+    await ready();
+    await click("Đóng");
+    await until('!document.querySelector("dialog[open]")');
     // Same-key URL normalization and Back/Forward must restart, not deadlock.
     step("CLEAR_QUERY");
     await click("Xóa tìm kiếm");
@@ -184,6 +225,18 @@ export async function verifyCustomerBrowser({
       await evaluate('new URLSearchParams(location.search).has("q")'),
       false,
     );
+    await verifyCustomerReadRaces({
+      send,
+      evaluate,
+      socket,
+      baseUrl,
+      fill,
+      click,
+      ready,
+      customer,
+      list: list.data,
+      checks,
+    });
     step("DETAIL_RENDER");
     await navigate("/customers/" + customer.id);
     await until(`${button("Thêm địa chỉ")}`);
@@ -192,6 +245,15 @@ export async function verifyCustomerBrowser({
     await click("Sửa khách hàng");
     await until('!!document.querySelector("dialog[open] input[name=name]")');
     await fill("note", "Ghi chú thử nghiệm");
+    await evaluate(
+      '(()=>{const s=document.querySelector("dialog select[name=status]");s.value="INACTIVE";s.dispatchEvent(new Event("change",{bubbles:true}));return true;})()',
+    );
+    assert.equal(
+      await evaluate(
+        '(()=>{const i=document.querySelector("dialog input");const s=document.querySelector("dialog select");return getComputedStyle(i).height===getComputedStyle(s).height&&getComputedStyle(i).borderRadius===getComputedStyle(s).borderRadius;})()',
+      ),
+      true,
+    );
     await snapshot("edit");
     await click("Lưu khách hàng");
     await until('!document.querySelector("dialog[open]")');
@@ -247,8 +309,84 @@ export async function verifyCustomerBrowser({
       `(()=>{const s=document.querySelector('select[name=replacement]');s.value=${JSON.stringify(replacement)};s.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`,
     );
     await snapshot("delete");
+    step("DELETE_FAULT_RECONCILIATION");
+    let failPut = true,
+      failDelete = true,
+      deleteRequests = 0,
+      interceptError;
+    const intercept = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.method !== "Fetch.requestPaused") return;
+      const p = message.params;
+      void (async () => {
+        const method = p.request.method;
+        let fail = false;
+        if (method === "PUT" && failPut) {
+          failPut = false;
+          fail = true;
+        } else if (method === "DELETE") {
+          deleteRequests++;
+          if (failDelete) {
+            failDelete = false;
+            fail = true;
+          }
+        }
+        if (fail)
+          await send("Fetch.fulfillRequest", {
+            requestId: p.requestId,
+            responseCode: 500,
+            responseHeaders: [
+              { name: "content-type", value: "application/json" },
+            ],
+            body: Buffer.from(
+              JSON.stringify({
+                code: "INTERNAL_ERROR",
+                message: "Controlled failure",
+                requestId: "m2-fault",
+              }),
+            ).toString("base64"),
+          });
+        else await send("Fetch.continueRequest", { requestId: p.requestId });
+      })().catch((error) => {
+        interceptError = error;
+      });
+    };
+    socket.addEventListener("message", intercept);
+    await send("Fetch.enable", {
+      patterns: [
+        { urlPattern: baseUrl + "/api/customers/*", requestStage: "Request" },
+      ],
+    });
+    try {
+      await click("Xác nhận xóa");
+      await until('!!document.querySelector("dialog[open] [role=alert]")');
+      await ready();
+      assert.equal(deleteRequests, 0, "Failed PUT must not send DELETE");
+      await click("Xác nhận xóa");
+      await until(
+        'document.querySelector("dialog[open]")?.textContent.includes("Đã chuyển mặc định")',
+      );
+      await ready();
+      const partial = await evaluate(
+        `fetch('/api/customers/'+${JSON.stringify(customer.id)}).then(r=>r.json())`,
+      );
+      assert.equal(partial.customer.addresses.length, 2);
+      assert.equal(
+        partial.customer.addresses.find((a) => a.id === replacement).isDefault,
+        true,
+      );
+      await click("Xác nhận xóa");
+      await until('!document.querySelector("dialog[open]")');
+      assert.equal(deleteRequests, 2);
+      assert.equal(interceptError, undefined);
+    } finally {
+      try {
+        await send("Fetch.disable");
+      } finally {
+        socket.removeEventListener("message", intercept);
+      }
+    }
     step("DELETE_SUBMIT");
-    await click("Xác nhận xóa");
     await until('!document.querySelector("dialog[open]")');
     await ready();
     detail = await evaluate(

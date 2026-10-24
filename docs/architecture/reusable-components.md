@@ -168,9 +168,9 @@ This registry catalogues canonical, reusable technical components and shared voc
 - **Explicit Non-Goals**:
   - Does not manage form submission, data-binding, or validation logic. Consuming feature components handle validation.
   - Does not use `!important` or broad global selectors.
-- **Deferred Select Specification**:
+- **Native Select Contract (M2)**:
   - Standard established: `height: var(--control-height)`, identical borders, radius, background, and focus ring matching `TextInput`.
-  - Component implementation is deferred to M2's first consumer per YAGNI and [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule).
+  - `Select` is exported from Controls.tsx and shares the input class/state tokens; actual consumers are Customer status/page-size/replacement filters. It is a native select, without a custom listbox or invented readonly state. Browser parity remains an executed acceptance gate.
 - **When to Reuse**:
   - Whenever rendering standard text inputs, textareas, primary buttons, or checkboxes across web features.
 - **When NOT to Reuse**:
@@ -190,7 +190,7 @@ This registry catalogues canonical, reusable technical components and shared voc
 - **Intended Consumers**:
   - Mobile navigation drawer (`ShellClient`), Login help dialog (`LoginForm`), and future feature confirmation/modal dialogs.
 - **Supported Behavior**:
-  - Native HTML `<dialog>` with top-layer placement, background inerting, keyboard focus trapping, Escape key closing, backdrop click dismissal, and body overflow restoration on unmount.
+  - Native HTML `<dialog>` with top-layer placement, background inerting, keyboard focus trapping, Escape key closing, backdrop click dismissal, and body overflow restoration on unmount. Optional `className` provides a neutral layout slot for Customer right-side form drawers; it does not replace native focus/close behavior.
 - **Styling / Token Dependencies**:
   - Background & Elevation: `--color-surface`, `--color-border`, `--shadow-lg`, `--radius-lg`.
   - Backdrop: `rgb(15 23 42 / 55%)` (or `rgba(15, 23, 42, 0.55)`) applied strictly to `::backdrop` or `.overlay::backdrop`; compound selector lists containing non-backdrop elements are forbidden.

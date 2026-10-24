@@ -42,7 +42,7 @@ export function useCustomerMutation(refresh: () => void) {
       setError(safe);
       if (
         e instanceof CustomerApiError &&
-        (e.status === 409 || e.status === 404)
+        (e.status === 409 || e.status === 404 || e.status >= 500)
       )
         refresh();
       if (!(e instanceof DraftError) && !(e instanceof CustomerApiError))

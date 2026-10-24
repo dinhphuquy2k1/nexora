@@ -1,6 +1,6 @@
 # Customer Management Backend V1
 
-Backend: IMPLEMENTED. Frontend: PLANNED. Verification and remaining gates are tracked in [NEXORA-027](../tasks/active/NEXORA-027-customer-management-backend.md); implementation is not a claim that mandatory runtime checks passed. Shipment management remains PLANNED. No shipment snapshots, portal, export, employee, Workspace, Shop, membership or synchronization is added.
+Backend: IMPLEMENTED. Frontend Customer UI M2: IMPLEMENTED, verification pending in NEXORA-031/PR28. Verification and remaining gates are tracked in [NEXORA-027](../tasks/active/NEXORA-027-customer-management-backend.md); implementation is not a claim that mandatory runtime checks passed. Shipment management remains PLANNED. No shipment snapshots, portal, export, employee, Workspace, Shop, membership or synchronization is added.
 
 ## Ownership and identity
 
@@ -50,3 +50,7 @@ The shared exhaustive CustomerStatusLabelsVi is presentation-only metadata. Pres
 GET /api/customers includes required stats {total,active,inactive}, all non-negative integers, total=active+inactive. Owner/q/normalized phone scope list and aggregate identically. Status changes list/pagination only; pagination never changes stats. Unknown/empty q and all existing validation/security rules are retained; ADMIN sees only its own population. Successful empty population is0/0/0, distinct from unavailable/error.
 
 This is an Application CustomerPage/CustomerStats projection under ADR-008, without a new aggregate/entity/VO/repository/write operation. Existing aggregate/address/phone/status invariants remain unchanged. Infrastructure uses shared predicates and one grouped database count alongside filtered count/bounded summary, inside existing ACTIVE actor lock/transaction. Existing application writes serialize on that actor; external DBA writes are outside that guarantee. No address hydration/N+1/cache/schema/index or speculative status. Unexpected grouped status returns a safe internal error. DTO/presenter/generated SDK carry the required stats unchanged; Summary/Detail/Address remain unchanged. Frontend cards and their deployed version-boundary behavior remain NEXORA-029 work, not completed here.
+
+## Customer UI M2 boundary
+
+NEXORA-031 adds protected list/detail, real filtered statistics, Create/Edit and address/default/delete presentation over the existing eight generated SDK operations. Backend ownership/normalization/aggregate locks and all rules above remain authoritative; browser drafts are view state, not new Domain entities. No Customer DELETE, list addressCount/N+1, Shipment or Carrier integration. Customer menu activation and runtime acceptance are tracked separately in task031; historical backend-only/frontend-planned statements above retain their dated amendment context. Missing stats is unavailable rather than fabricated0; default reassignment/deletion remains two requests with explicit partial-success reconciliation.

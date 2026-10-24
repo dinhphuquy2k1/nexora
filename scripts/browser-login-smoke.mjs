@@ -684,6 +684,7 @@ try {
     baseUrl,
     prefix: mfaSetupKey ? "admin" : "operator",
     checks,
+    socket,
   });
   checks.step("SESSION_COOKIE");
   const cookies = (await send("Network.getCookies", { urls: [baseUrl] }))
@@ -830,6 +831,7 @@ try {
     prefix: "second-operator",
     foreignId: customerOwnerProof,
     checks,
+    socket,
   });
   checks.step("OPERATOR_ACCOUNT_MENU_LOGOUT");
   await send("Page.navigate", { url: baseUrl + "/settings" });
