@@ -1,7 +1,7 @@
 # NEXORA-031 — Full Frontend Migration (M1–M5)
 
 Task: IN PROGRESS
-Implementation: IN PROGRESS
+Implementation: PLANNED
 Verification: NOT VERIFIED
 Classification: SIGNIFICANT
 Documentation Impact: REQUIRED
@@ -10,13 +10,15 @@ Documentation Impact: REQUIRED
 
 - **Task ID**: NEXORA-031
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-23-full-frontend-m1-m5-v1
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-23-full-frontend-m1-m5-v1.md
-- **Design SHA-256**: 0874328bc72217515c268a684e66c6286578ec34b73cb640e2382414048e475f
-- **Reviewed baseline**: ee8391212b2f1e8fe406d287ef0e7cc11fad79d7
+- **Plan revision**: rev-2026-10-24-customer-ui-m2-v2
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-24-customer-ui-m2-v2.md
+- **Design SHA-256**: 1deef061d631c24a4170ce295deaa912cfb69ca7f5a552e43ae75ae1496b38a7
+- **Reviewed baseline**: 55e3c1595d2b90a8cd85f5e3c06ab1f0552933f5
 - **Approval authority**: dinhphuquy2k1
-- **Approval status**: APPROVED
-- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/27#issuecomment-6360485845
+- **Approval status**: PENDING_REVIEW
+- **Approval evidence**: Owner's 2026-10-24 M2 directive authorizes design preparation/new PR; authenticated decision for this revision/digest on the new PR is pending. PR27 comment6360485845 approves historical v1 only.
+
+Current delivery decision (2026-10-24): M1 is merged in PR27; owner explicitly requests Customer UI/M2 on a new branch/PR. The effective v2 record above supersedes v1's one-PR delivery constraint and does not revoke historical M1 approval. Historical sections below retain their original dates/status/results. Overall capability remains PLANNED because M2–M5 are not implemented; M1 capability is IMPLEMENTED. M2 design preparation is in progress, implementation NOT STARTED pending new PR-specific authenticated approval. No new task ID is allocated for this existing milestone.
 
 ## Baseline and interface preflight
 
@@ -110,6 +112,8 @@ Documentation Impact: REQUIRED
 ### Changed facts
 
 M0 introduces task031, selected full M1–M5 implementation plan/reuse audit, pinned ZIP/v8 lineage and immutable review snapshot only. It does not implement UI or change canonical current behavior. Milestones will update UI/routes/consumer contracts/testing evidence as they actually ship in this same PR.
+
+2026-10-24 amendment: owner merged PR27/M1 and directs M2 to a new PR. Effective v2 captures this delivery change and current M2 design; task/approval metadata and canonical frontend planning status are synchronized. The paragraph above describes historical M0, not current delivery topology. M2 remains unimplemented pending the new PR-specific authenticated approval.
 
 ### Canonical owners
 
@@ -576,3 +580,51 @@ Addressed the two remaining P2 review findings on PR #27 (reviewed HEAD `b6082be
 4. **Preserved Invariants & Status**:
    - Immutable design snapshot `docs/tasks/design-reviews/NEXORA-031-rev-2026-10-23-full-frontend-m1-m5-v1.md` preserved with unchanged SHA-256 `0874328bc72217515c268a684e66c6286578ec34b73cb640e2382414048e475f`.
    - Task status remains IN PROGRESS; M1 milestone complete; Verification status is VERIFICATION PENDING until final documentation-head Preflight/Foundation runs complete on remote. Stop at M1 checkpoint for owner review. M2–M5 remain NOT STARTED.
+
+## M2 delivery amendment and pre-code checkpoint — 2026-10-24
+
+Owner directive: implement Customer UI/M2 only on a new branch/PR after merging PR27; do not continue its old branch and do not start M3–M5. Git fetch and authenticated GitHub PR27 metadata agree on merge55e3c1595d2b90a8cd85f5e3c06ab1f0552933f5 (PR27 final headbcab43cf15f2737c89a58c9eb962fca651ae7ce6). Current main includes later M1 token/control/CSS policy fixes; those, not the earlier1748bf7 implementation, are the reuse baseline. Historical CI/comment claims above are not reissued as new-head PASS.
+
+Created clean separate worktree/branch feat/customer-management-ui from origin/main55e3c15. Existing worktrees and unrelated changes preserved. Inspected active task inventory and all27 GitHub PRs; no existing Customer UI branch/PR was found. Keep NEXORA-031 as overall plan rather than creating a duplicate task for M2. Its single structured record now binds v2; approved v1/v8 snapshots and their evidence remain unchanged.
+
+### M2 selected solution and reuse
+
+New immutable amendment captures all12 pre-implementation-review sections, eight-field matrix for12 component responsibilities, routes/components/URL-request lifecycle, exact eight SDK operations, runtime stats compatibility, bounds/null/payload rules, non-atomic default-delete workflow, security/error behavior, responsive/accessibility and genuine verification strategy. Selected sources include merged M1 Button/TextInput/Textarea/Checkbox/Overlay/tokens and native Select added only after approval for actual M2 consumers; existing workspace server guard/session SDK/navigation/resolver/browser lifecycle stay authoritative. Customer draft/view state is presentation, not a backend Domain model. No backend/API/schema/SDK response redefinition or whole PR import.
+
+Uploaded ZIP archive SHA25617e7d68fccf654fac306f9fbde49fa4646cd770191f3922a77962776e0b1b3e5 differs from historical archive hash, but all30 src hashes match v1 Appendix A. Read Customer source/layout/interactions as untrusted reference only, without running scripts/dependencies/mocks. Pinned eight Customer source hashes are in v2. Visual parity is NOT VERIFIED until genuine screenshots/reference comparison after approval.
+
+Concrete SDK quirk inspected: generated AddressPatchDto requires countryCode because of its default annotation. Selected design sends current/edited countryCode alongside real dirty changes, blocks no-op PATCH and retains generated types; no backend change or fabricated DTO. List Summary has no addressCount: omit that unsupported list column, show real detail count only; no per-row get requests.
+
+### M2 implementation and acceptance checklist — NOT STARTED
+
+- [x] Inspect current main/M1, API/DTO/OpenAPI/SDK/status, guard/navigation, UI primitives/tokens and reference provenance; prepare SIGNIFICANT amendment/reuse audit.
+- [ ] Verify new Draft PR's exact authenticated owner task/revision/digest decision, chronology and no later relevant revocation; only then mark APPROVED.
+- [ ] RED/GREEN query/URL/generation/300ms debounce/clear/retry/unmount, eight typed operations/allowlists/runtime/error guards, payload bounds/nulls and real-consumer Select contract.
+- [ ] List/filters/StatsBar/Create/Edit, successful empty versus unavailable/error, direct URL/Back/Forward, owner-scoped actual stats and no N+1.
+- [ ] Detail/AddressForm/add/edit/default/delete, last/default protection, PUT failure/no DELETE, partial committed default/reconciliation/retry, concurrency and legacy states.
+- [ ] Genuine disposable API/DB and authenticated CDP, six viewports/reference comparison/screenshots, focus/keyboard/ARIA/overflow and existing M1/auth regression acceptance.
+- [ ] Activate Customer registry with independent list/detail/resolver/breadcrumb/mobile acceptance; no unrelated planned routes.
+- [ ] Canonical frontend/domain/reuse/testing docs, full quality/build/contracts/Docker/runtime/HTTPS/persistence/dev, final-head hosted Preflight/Foundation and independent implementation-code-review.
+- [ ] Commit/push focused implementation, reconcile exact final head/logs/artifacts and stop at Customer UI checkpoint; no automatic merge or M3–M5.
+
+### Approval binding and remaining gate
+
+Existing ADR009 implementation verifier fetches pulls/{current PR}/reviews and issues/{current PR}/comments with complete pagination/chronology. Historical owner comment6360485845 is on PR27 and names v1, so cannot satisfy the new PR/v2 digest. Owner's chat directive authorizes preparing the solution/PR; it is not fabricated authenticated GitHub approval. New revision is PENDING_REVIEW; code/tests/scaffolding/dependencies/CI untouched. Hosted implementation Preflight is expected to fail closed until real approval is posted and mutable metadata is synchronized. Do not weaken it to obtain a planning-stage green check.
+
+Only documentation/planning checks are applicable before this gate. Full frontend/API/DB/browser/CI acceptance remains NOT RUN for M2, not inherited from M1. Local disk at inspection had about96MiB free; network policy is restricted and enforced, without binaries.prisma.sh permission. No Docker build attempted, unrelated caches/volumes preserved. After approval, obtain genuine approved execution evidence; these constraints do not waive canonical gates.
+
+Documentation Impact REQUIRED: changed delivery/approval/baseline facts in this active task and canonical frontend design-status paragraph; added v2 snapshot. Customer frontend is still PLANNED, so domains/reuse/testing are not rewritten to claim unimplemented capability. Their actual implementation facts must be synchronized in M2 code commits. Planning check execution, final digest, commit, Draft PR and exact hosted results are recorded after execution in PR metadata to avoid SHA-only loops. Overall task IN PROGRESS, implementation PLANNED, verification NOT VERIFIED; M2 implementation NOT STARTED, M3–M5 NOT STARTED.
+
+### M2 planning execution evidence
+
+| Claim                                  | Evidence                                                                                                                                                                         | Date       | Result |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| New delivery baseline                  | git fetch origin main; clean new worktree feat/customer-management-ui at55e3c15; authenticated PR27 merged=true and matching merge SHA; complete27-item PR inventory             | 2026-10-24 | PASS   |
+| Reference provenance                   | Read-only ZIP hash and30/30 src hashes compared with preserved v1; eight Customer component sources inspected, no scripts executed                                               | 2026-10-24 | PASS   |
+| Snapshot binding                       | Node raw-byte SHA256 and validatePrTaskBinding against prepared PR metadata; independent reviewer recomputed matching digest                                                     | 2026-10-24 | PASS   |
+| Documentation/static checks            | node scripts/docs-check.mjs; node scripts/preflight-policy-check.mjs; full Prettier check and git diff --check                                                                   | 2026-10-24 | PASS   |
+| Governance/docs regression             | node --test scripts/docs-check.test.mjs scripts/preflight-policy-check.test.mjs:35/35,0 skipped; negative cases deliberately fail closed                                         | 2026-10-24 | PASS   |
+| Boundaries and lint                    | node scripts/boundaries.mjs and ESLint over current worktree with byte-identical existing config; reused pinned installed tooling from M1 worktree, no install/dependency change | 2026-10-24 | PASS   |
+| Independent pre-code design assessment | Separate reviewer reports no confirmed P1/P2/P3; exact v2 digest/SDK countryCode/ownership/race/partial-delete/governance checked. Not owner approval or runtime acceptance      | 2026-10-24 | PASS   |
+
+Preparation failures resolved before push: static binding initially rejected an accidental duplicate Task alias in the draft snapshot; removed that prose alias and recomputed digest, leaving the checker strict. Initial local lint invocation failed ERR_MODULE_NOT_FOUND/typescript in the new worktree; reran with the existing pinned toolchain (same lockfile), temporary resolution link removed afterward. No code/CI/security assertion was changed to make checks pass. Agent behavioral evaluation NOT RUN; M2 implementation/full quality/build/API/browser/screenshots/runtime NOT RUN pending authenticated approval. Hosted planning-gate results belong in the new PR metadata and must not be represented as frontend verification.
