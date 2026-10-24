@@ -1,7 +1,8 @@
 "use client";
 
+import type { DeploymentPresentation } from "../../lib/auth/deployment-presentation.ts";
 import { useEffect, useId, useRef, useState } from "react";
-import { User, ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import { useDismissable } from "../../lib/hooks/use-dismissable.ts";
 import styles from "./AccountMenu.module.css";
 
@@ -12,9 +13,10 @@ interface UserInfo {
 
 interface AccountMenuProps {
   initialUser?: UserInfo | null;
+  deployment: DeploymentPresentation;
 }
 
-export function AccountMenu({ initialUser }: AccountMenuProps = {}) {
+export function AccountMenu({ initialUser, deployment }: AccountMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState<UserInfo | null>(initialUser ?? null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -66,6 +68,7 @@ export function AccountMenu({ initialUser }: AccountMenuProps = {}) {
   };
 
   const displayName = user ? user.username : "Tài khoản";
+  const initials = user ? user.username.slice(0, 2).toUpperCase() : "TK";
 
   return (
     <div className={styles.menuContainer}>
@@ -80,7 +83,13 @@ export function AccountMenu({ initialUser }: AccountMenuProps = {}) {
         className={styles.accountButton}
       >
         <div className={styles.avatar} aria-hidden="true">
-          <User size={16} />
+          {initials}
+        </div>
+        <div className={styles.accountInfo}>
+          <span className={styles.accountName}>{displayName}</span>
+          <span className={styles.accountRole}>
+            {user ? deployment.badge : "Chưa kết nối"}
+          </span>
         </div>
         <div
           className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ""}`}
@@ -104,12 +113,12 @@ export function AccountMenu({ initialUser }: AccountMenuProps = {}) {
                 {user ? user.username : "Tài khoản người dùng"}
               </h4>
               <span className={user ? styles.activeBadge : styles.plannedBadge}>
-                {user ? "Cục bộ" : "Chưa kết nối"}
+                {user ? deployment.badge : "Chưa kết nối"}
               </span>
             </div>
             <p className={styles.panelDescription}>
               {user
-                ? "Phiên làm việc cục bộ đang hoạt động"
+                ? deployment.session
                 : "Quản lý danh tính và phiên làm việc"}
             </p>
           </div>
@@ -119,9 +128,7 @@ export function AccountMenu({ initialUser }: AccountMenuProps = {}) {
                 ? `Đang đăng nhập với tư cách "${user.username}".`
                 : "Chưa xác thực danh tính người dùng."}
             </div>
-            <p className={styles.infoFootnote}>
-              Hệ thống vận hành trong môi trường máy chủ nội bộ.
-            </p>
+            <p className={styles.infoFootnote}>{deployment.runtime}</p>
 
             {user && (
               <>

@@ -14,17 +14,22 @@ import styles from "./Sidebar.module.css";
 
 interface SidebarProps {
   isCollapsed: boolean;
+  isResponsive?: boolean;
 }
 
 const GROUPS: readonly NavGroup[] = ["Workspace", "System"] as const;
 
-export function Sidebar({ isCollapsed }: SidebarProps) {
+export function Sidebar({ isCollapsed, isResponsive = false }: SidebarProps) {
   const pathname = usePathname();
 
   return (
     <aside
       className={`${styles.sidebar} ${
-        isCollapsed ? styles.collapsed : styles.expanded
+        isResponsive
+          ? styles.responsive
+          : isCollapsed
+            ? styles.collapsed
+            : styles.expanded
       }`}
       aria-label="Thanh điều hướng chính"
     >
@@ -36,12 +41,10 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
             <span className={styles.logoDot} />
           </div>
 
-          {!isCollapsed && (
-            <div className={styles.brandText}>
-              <span className={styles.brandTitle}>{PRODUCT_NAME}</span>
-              <span className={styles.brandSubtitle}>QUẢN LÝ VẬN ĐƠN</span>
-            </div>
-          )}
+          <div className={styles.brandText}>
+            <span className={styles.brandTitle}>{PRODUCT_NAME}</span>
+            <span className={styles.brandSubtitle}>Logistics Hub</span>
+          </div>
         </Link>
       </div>
 
@@ -55,15 +58,13 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
 
           return (
             <div key={group} className={styles.navGroup}>
-              {!isCollapsed && (
-                <div className={styles.groupTitle}>{GROUP_LABELS[group]}</div>
-              )}
+              <div className={styles.groupTitle}>{GROUP_LABELS[group]}</div>
               {groupItems.map((item) => (
                 <NavigationItem
                   key={item.id}
                   item={item}
                   isActive={isItemActive(item, pathname)}
-                  isCollapsed={isCollapsed}
+                  isCollapsed={!isResponsive && isCollapsed}
                 />
               ))}
             </div>

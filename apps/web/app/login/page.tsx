@@ -66,7 +66,9 @@ export default async function LoginPage({
         {/* Suspense Boundary for useSearchParams */}
         <Suspense
           fallback={
-            <div style={{ minHeight: "180px" }}>Đang tải biểu mẫu...</div>
+            <div className={styles.fallbackPlaceholder}>
+              Đang tải biểu mẫu...
+            </div>
           }
         >
           <LoginForm />

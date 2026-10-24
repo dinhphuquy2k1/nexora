@@ -17,7 +17,7 @@ export default async function Home() {
 
   return (
     <>
-      <div style={{ marginBottom: "20px" }}>
+      <div className="page-header">
         <p className="eyebrow">KHÔNG GIAN LÀM VIỆC</p>
         <h1>Tổng quan</h1>
         <p className="intro">

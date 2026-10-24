@@ -1,3 +1,5 @@
+import { browserStartupSummary } from "./browser-startup-diagnostics.mjs";
+import { verifyM1Visuals } from "./m1-visual-checks.mjs";
 import { createHmac } from "node:crypto";
 import { URLSearchParams } from "node:url";
 // One dependency-free Chromium DevTools test for the real browser Login form.
@@ -62,8 +64,14 @@ const child = spawn(
     `--user-data-dir=${profile}`,
     "about:blank",
   ],
-  { stdio: "ignore" },
+  { stdio: ["ignore", "ignore", "pipe"] },
 );
+let startupStderr = "";
+let collectingStartup = true;
+child.stderr.on("data", (chunk) => {
+  if (collectingStartup)
+    startupStderr = (startupStderr + chunk.toString("utf8")).slice(-16384);
+});
 const exited = new Promise((resolve) => {
   child.once("exit", resolve);
   child.once("error", resolve);
@@ -83,6 +91,14 @@ try {
       await delay(100);
     }
   }
+  collectingStartup = false;
+  if (!port) {
+    console.error(
+      "BROWSER_STARTUP_DIAGNOSTIC",
+      JSON.stringify(browserStartupSummary(startupStderr, child)),
+    );
+  }
+  startupStderr = "";
   assert.ok(port, "Browser did not start");
   checks.step("CDP_CONNECTION");
   const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(
@@ -204,6 +220,7 @@ try {
     ).result.value;
   checks.step("LOGIN_PAGE_RENDER");
   await send("Network.enable");
+  await send("Page.bringToFront");
   await send("Page.navigate", { url: `${baseUrl}/login?from=%2Fsettings` });
   let ready = false;
   for (let i = 0; i < 100; i++) {
@@ -224,6 +241,12 @@ try {
     "Login page must not render authenticated AppShell",
   );
 
+  await verifyM1Visuals({
+    send,
+    evaluate,
+    phase: "login",
+    prefix: mfaSetupKey ? "admin" : "operator",
+  });
   checks.step("UNIFIED_LOCAL_FORM");
   assert.equal(
     await evaluate("!!document.querySelector(\"a[href*='mode=admin']\")"),
@@ -263,6 +286,28 @@ try {
   await send("Input.insertText", { text: username });
   await evaluate('document.querySelector("input[name=password]").focus()');
   await send("Input.insertText", { text: password });
+  let m1OverflowBefore;
+  if (process.env.M1_EVIDENCE_DIR && mfaSetupKey) {
+    // Controlled real-React unmount race: leave help modal open during the
+    // existing real password submit, then MFA replaces the password subtree.
+    // No screenshots are taken while credential inputs contain values.
+    m1OverflowBefore = await evaluate("document.body.style.overflow");
+    await evaluate(
+      'Array.from(document.querySelectorAll("button")).find(e=>e.textContent.includes("Quên mật khẩu")).click()',
+    );
+    let open = false;
+    for (let i = 0; i < 100; i++) {
+      open = await evaluate(
+        '!!document.querySelector("dialog[open]") && document.body.style.overflow==="hidden"',
+      );
+      if (open) break;
+      await delay(100);
+    }
+    assert.ok(
+      open,
+      "M1 help modal must be mounted before the unmount regression",
+    );
+  }
   loginStatus = undefined;
   loginUrl = undefined;
   await evaluate('document.querySelector("button[type=submit]").click()');
@@ -277,6 +322,27 @@ try {
       await delay(100);
     }
     assert.ok(ready, "MFA step missing");
+    if (m1OverflowBefore !== undefined) {
+      for (let i = 0; i < 100; i++) {
+        if (
+          await evaluate(
+            '!document.querySelector("dialog[open]") && document.body.style.overflow!=="hidden"',
+          )
+        )
+          break;
+        await delay(100);
+      }
+      assert.equal(
+        await evaluate("document.body.style.overflow"),
+        m1OverflowBefore,
+        "MFA transition unmount restores body scroll",
+      );
+      assert.equal(
+        await evaluate('!!document.querySelector("dialog[open]")'),
+        false,
+      );
+    }
+    await verifyM1Visuals({ send, evaluate, phase: "mfa", prefix: "admin" });
     assert.equal(await evaluate("location.pathname"), "/login");
     assert.equal(
       (await send("Network.getCookies", { urls: [baseUrl] })).cookies.some(
@@ -544,6 +610,11 @@ try {
       ).cookies.some((c) => c.name === "nexora_mfa_token"),
       false,
     );
+    assert.equal(
+      await evaluate('!!document.querySelector("dialog[open]")'),
+      false,
+      "Returning from MFA must not reopen the previous help overlay",
+    );
     // Returning to password form only after the real scoped cookie was sent and revoked.
     await send("Fetch.enable", {
       patterns: [
@@ -599,6 +670,12 @@ try {
     shellPresent,
     "Protected workspace must render AppShell for authenticated session",
   );
+  await verifyM1Visuals({
+    send,
+    evaluate,
+    phase: "shell",
+    prefix: mfaSetupKey ? "admin" : "operator",
+  });
   checks.step("SESSION_COOKIE");
   const cookies = (await send("Network.getCookies", { urls: [baseUrl] }))
     .cookies;
@@ -738,18 +815,21 @@ try {
   );
   checks.step("OPERATOR_ACCOUNT_MENU_LOGOUT");
   await send("Page.navigate", { url: baseUrl + "/settings" });
+  let accountReady = false;
   for (let i = 0; i < 100; i++) {
-    if (
-      await evaluate(
-        `!!document.querySelector('button[aria-label^="Tài khoản người dùng"]')`,
-      )
-    )
-      break;
+    accountReady = await evaluate(`(() => {
+      if (document.readyState !== "complete") return false;
+      const trigger = document.querySelector('button[aria-label^="Tài khoản người dùng"]');
+      const logout = document.querySelector('button[aria-label="Đăng xuất khỏi hệ thống"]');
+      if (trigger?.getAttribute("aria-expanded") === "true" && logout && !logout.disabled) return true;
+      // Only a harmless menu toggle is probed; logout is submitted once below.
+      if (trigger?.getAttribute("aria-expanded") !== "true") trigger?.click();
+      return false;
+    })()`);
+    if (accountReady) break;
     await delay(100);
   }
-  await evaluate(
-    `document.querySelector('button[aria-label^="Tài khoản người dùng"]').click()`,
-  );
+  assert.equal(accountReady, true, "Account menu did not become interactive");
   await evaluate(
     `document.querySelector('button[aria-label="Đăng xuất khỏi hệ thống"]').click()`,
   );

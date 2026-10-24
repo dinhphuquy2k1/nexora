@@ -21,16 +21,14 @@ export function Breadcrumb() {
               className={styles.breadcrumbCurrent}
               aria-current="page"
             >
-              {segment.label}
+              <span>{segment.label}</span>
+              <span className={styles.breadcrumbDot} aria-hidden="true" />
             </span>
           );
         }
 
         return (
-          <span
-            key={segment.label}
-            style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-          >
+          <span key={segment.label} className={styles.breadcrumbItem}>
             <span className={styles.breadcrumbGroup}>{segment.label}</span>
             <ChevronRight
               className={styles.breadcrumbSeparator}

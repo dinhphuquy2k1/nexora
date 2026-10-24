@@ -18,7 +18,7 @@ Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel
 
 - **Domain Agnostic**: Must never import Shipment, Customer, or Identity domain models.
 - **Transport Agnostic**: Must never call Nexora API endpoints or SDK client factories.
-- **Self-Contained Styling**: Owns its CSS Modules (`*.module.css`) and consumes semantic design tokens with sensible fallbacks (`var(--token, fallback)`).
+- **Self-Contained Styling**: Owns its CSS Modules (`*.module.css`) and consumes semantic design tokens. Fallbacks in `packages/ui` are permitted only under a documented standalone consumer contract consistent with root defaults.
 - **Extraction Criterion**: Extract into `packages/ui` only when a primitive has no domain coupling and is actively reused across multiple distinct features or applications.
 
 ### Tier B: Application-Level Components (`apps/web/components/`)
@@ -42,28 +42,129 @@ Future feature-specific modules (e.g., `ShipmentTable`, `TrackingTimeline`, `Cus
 - Reuses Tier A shared UI primitives and Tier B layout slots.
 - May own feature-specific validation schemas, presentation types, and SDK caller hooks.
 
-## 2. Design Tokens & Styling Strategy
+## 2. Design Tokens & Styling Strategy (Official Styling Policy)
 
-The frontend enforces a CSS Modules architecture governed by centralized design tokens in `apps/web/styles/tokens.css`:
+The frontend enforces a strict Design Token and CSS Modules architecture. `apps/web/styles/tokens.css` is the canonical Single Source of Truth for all design tokens across the Nexora frontend.
 
-### 2-Tier Token Architecture
+### A. Single Source of Truth & Token Architecture
 
-1. **Foundation Palette**: Raw brand and color constants (`--brand-navy`, `--brand-navy-dark`, `--brand-navy-light`, `--brand-orange`, `--brand-orange-light`, `--brand-orange-text`, `--gray-50` to `--gray-900`).
-2. **Semantic Application Tokens**: Purpose-driven tokens mapped to the foundation constants (`--color-primary`, `--color-accent`, `--color-surface`, `--color-border`, `--color-status-*`, `--focus-ring-*`).
-3. **Standardized Scales**:
-   - **Spacing**: `--space-1` (4px), `--space-2` (8px), `--space-3` (12px), `--space-4` (16px), `--space-5` (20px), `--space-6` (24px), `--space-8` (32px).
-   - **Radius**: `--radius-xs` (4px), `--radius-sm` (6px), `--radius-md` (8px), `--radius-lg` (12px), `--radius-full` (9999px).
-   - **Shadows**: `--shadow-sm`, `--shadow-md`, `--shadow-lg`.
+The token system is structured into four explicit layers:
 
-### Token Ownership & Consumption Contract (Option A)
+1. **Foundation Palette**: Raw brand and neutral color values (`--brand-navy`, `--brand-navy-dark`, `--brand-navy-light`, `--brand-orange`, `--brand-orange-light`, `--brand-orange-text`, `--gray-50` to `--gray-900`).
+2. **Semantic Application Tokens**: Role-based tokens describing UI function (`--color-primary`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`, `--color-surface`, `--color-border`, `--color-status-error-border`, `--color-status-*`, `--focus-ring-*`). Text rendered on accent backgrounds must bind to `--color-text-on-accent` (`var(--brand-navy)`) in default state and `--color-text-on-accent-hover` in hover state, never raw palette constants directly. Semantic error borders bind to `--color-status-error-border` (`rgba(151, 61, 43, 0.2)`), avoiding value-based conflation with text or focus tokens.
+3. **Dark-Surface Context Tokens**: Role-specific dark-theme tokens (`--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-border-on-dark`, `--color-border-on-dark-subtle`, `--color-surface-on-dark`, `--color-surface-on-dark-hover`, `--shadow-on-dark-tooltip`).
+4. **Standardized Scales**:
+   - **Typography Scale**: `--font-size-2xs` (10px), `--font-size-xs` (11px), `--font-size-sm` (12px), `--font-size-base` (13px), `--font-size-md` (14px), `--font-size-lg` (15px), `--font-size-xl` (16px), `--font-size-2xl` (20px), `--font-size-3xl` (24px).
+   - **Line Heights**: `--line-height-tight` (1.2), `--line-height-snug` (1.35), `--line-height-normal` (1.5).
+   - **Font Weights**: `--font-weight-normal` (400), `--font-weight-medium` (500), `--font-weight-semibold` (600), `--font-weight-bold` (700), `--font-weight-extrabold` (800).
+   - **Spacing Scale**: `--space-1` (4px), `--space-2` (8px), `--space-3` (12px), `--space-4` (16px), `--space-5` (20px), `--space-6` (24px), `--space-8` (32px).
+   - **Radius Scale**: `--radius-xs` (4px), `--radius-sm` (6px), `--radius-md` (8px), `--radius-lg` (12px), `--radius-xl` (16px, cards), `--radius-full` (9999px).
+   - **Elevation Shadows**: `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-on-dark-tooltip`.
+5. **Canonical Form Control Contract Tokens (Defaults vs. Invariant Contracts)**:
+   - Configurable theme defaults in `tokens.css`:
+     - Sizing: `--control-height: 44px;`, `--control-radius: var(--radius-lg);`, `--control-padding-x: 14px;`, `--control-padding-y: 10px;`, `--control-font-size: var(--font-size-base);`.
+     - Colors: `--control-bg: var(--color-surface-muted);`, `--control-bg-focus: var(--color-surface);`, `--control-text: var(--color-text);`, `--control-placeholder: var(--gray-400);`.
+     - Borders: `--control-border: var(--color-border-subtle);`, `--control-border-hover: var(--gray-400);`, `--control-focus-border: var(--color-accent);`.
+     - Focus rings: `--control-focus-ring: rgba(245, 138, 36, 0.2);`, `--control-invalid-focus-ring: rgba(151, 61, 43, 0.2);`.
+     - States: `--control-disabled-bg: var(--gray-100);`, `--control-disabled-text: var(--gray-500);`, `--control-disabled-border: var(--gray-200);`, `--control-readonly-bg: var(--gray-50);`, `--control-invalid-border: var(--color-status-error-text);`.
+   - Invariant Contract: Standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) must consume identical contract variables. Changing `--control-height` from 44px to 48px or `--control-radius` from 12px to 8px in `tokens.css` must update all consumers consistently without breaking tests or requiring test value updates.
 
-- **Host Application Ownership**: Tokens are declared on `:root` in `apps/web/styles/tokens.css` and loaded globally in `apps/web/app/styles.css`.
-- **Package Consumption**: Shared primitives in `packages/ui` consume these CSS custom properties via `var(--token-name, fallback)` without directly importing application stylesheets.
-- **Central Theming & Overrides**: Overriding CSS variables on `:root` or scoped selectors cleanly propagates across all shell components and `@nexora/ui` primitives simultaneously without residual hardcoded styles.
+### B. Semantic Ownership & Usage Rules
 
-### Minimal Global Styles (`apps/web/app/styles.css`)
+Tokens must be consumed strictly according to their intended semantic role:
 
-Global CSS is restricted to root token imports, basic CSS reset, base typography, and macro page layout grids (`.grid`, `.status-grid`). All internal component presentation for `Panel` and `StatusBadge` is decoupled into `@nexora/ui` CSS Modules.
+- **Text Colors**: Use text tokens (`--color-text`, `--color-text-muted`, `--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-text-on-accent`, `--color-text-on-accent-hover`, `--color-accent-text`, status text tokens). Never use surface tokens (`--color-surface`, `--color-background`) or border tokens (`--color-border-subtle`, `--color-border`) as text colors. For text rendered on dark surfaces (e.g. Navy sidebar, dark monograms, avatar initials, mobile drawer), use `--color-text-on-dark` rather than `--color-surface`.
+- **Backgrounds**: Use surface and background tokens (`--color-surface`, `--color-background`, `--color-surface-muted`, `--color-surface-on-dark`, status bg tokens). Never use text or border tokens as background colors.
+- **Borders**: Use border tokens (`--color-border`, `--color-border-subtle`, `--color-border-on-dark`, `--color-status-error-border`). Never use surface, focus ring, or text tokens for border colors.
+- **Focus Rings & Outlines**: Use focus tokens (`--focus-ring-on-light`, `--focus-ring-on-dark`, `--control-focus-ring`, `--control-invalid-focus-ring`). Never use generic border or surface tokens for focus rings.
+- **Elevations**: Use elevation shadow tokens (`--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-on-dark-tooltip`).
+- **No Value-Based Conflation**: Never reuse a token solely because its current hex/pixel value happens to match. Tokens represent architectural intent and role.
+
+### C. Fallback Policy
+
+- **In `apps/web`**:
+  - CSS custom properties are guaranteed by the root theme (`apps/web/styles/tokens.css` imported in `styles.css`).
+  - Consumers must write `color: var(--color-text);` and `border-color: var(--color-border);` **without fallbacks**.
+  - Unnecessary fallbacks (e.g. `var(--space-4, 16px)`, `var(--color-surface, #ffffff)`) are strictly forbidden because they hide missing token declarations and create maintenance drift.
+- **In `packages/ui`**:
+  - Components consume canonical design tokens directly (`var(--control-border)`).
+  - Standalone fallbacks are permitted **only** where an actual standalone-consumer contract requires independent execution outside the Nexora theme (e.g. `var(--control-border, #cbd5e1)`).
+  - Deeply nested fallback chains (e.g. `var(--control-border, var(--color-border-subtle, #cbd5e1))`) and raw value duplication across components solely to echo root defaults are forbidden.
+  - If standalone use is required, it must be verified in an independent harness without the root theme.
+
+### D. Shared Component Contract & Parity
+
+Per [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule), all standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) share one canonical state and sizing contract:
+
+- **Height, Radius & Typography**: `height: var(--control-height)` (default 44px), `box-sizing: border-box`, `border-radius: var(--control-radius)` (default 12px), `font-size: var(--control-font-size)` (shared typography token ensuring `TextInput`, `Button`, and `Textarea` scale consistently across theme configurations).
+- **Interactive State Precedence**: Focus and invalid states strictly supersede hover styling:
+  - Default: `var(--control-border)`, `var(--control-bg)`.
+  - Hover: `var(--control-border-hover)` only when not disabled, readonly, focused, or invalid (`:not(:focus):not([aria-invalid="true"])`).
+  - Focus: `var(--control-focus-border)` with 2px outer focus ring (`var(--control-focus-ring)`).
+  - Invalid (`aria-invalid="true"`): `var(--control-invalid-border)` with error focus ring (`var(--control-invalid-focus-ring)`).
+  - Disabled: `var(--control-disabled-bg)`, `var(--control-disabled-text)`, `cursor: not-allowed`.
+  - Readonly: `var(--control-readonly-bg)`, `cursor: default`.
+- **Textarea Parity**: Retained in `@nexora/ui` for domain-neutral form control parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, and state semantics; default minimum height is 88px with vertical resize.
+- **Select Specification**: Standardized to `var(--control-height)`, identical border, radius, and focus parity matching `TextInput`. Implementation is deferred to M2's first consumer per YAGNI and component reuse policy.
+- **Button Contrast & WCAG AA**: Foreground text on `--color-accent` (`#F58A24`) uses the semantic token `--color-text-on-accent: var(--brand-navy, #172b4d)` providing a **5.74:1** contrast ratio (surpassing the WCAG AA 4.5:1 threshold for normal text). On hover (`--color-accent-hover: #E07716`), enabled button foreground switches dynamically to `--color-text-on-accent-hover` with `color 0.15s ease` transition, providing a verified **4.58:1** (>= 4.5:1) contrast ratio. Disabled button state preserves `--control-disabled-text`. Contrast is verified dynamically on real rendered Button primitives in genuine `:hover` state via CDP pointer dispatch, confirming `>= 4.5:1` ratio after transition completion (0.15s) and compositing. Negative accessibility regression tests prove that deliberate inaccessible contrast fails closed, and distinct foreground token overrides prove that hover resolves its dedicated foreground token rather than reusing the default.
+- **Layout Scoping**: Feature layouts (Login, Setup, Customer, Carrier) may adjust surrounding whitespace, layout width, or leading icon padding, but must **never** use `!important` or override the default states of shared controls.
+
+### E. Legitimate CSS-Local Exceptions & Literal-Color Policy
+
+Nexora enforces an automated CSS policy scanner (`analyzeCssPolicy`) that inspects all production CSS in `apps/web/**/*.css`, `packages/ui/**/*.css`, and future `apps/web/features/**/*.css`.
+
+The scanner is powered by a deterministic, character-level state machine parser (`parseCssDeclarations`) rather than loose regex matching:
+
+- **Boundary Precision**: Correctly parses declarations terminated by semicolons (`;`) or closing block braces (`}`). It prevents declarations lacking semicolons from swallowing subsequent selectors or blocks.
+- **In-Parser Comment Tokenization & String Safety**: Comments (`/* ... */`) are tokenized strictly within the state machine when outside string literals and escapes. When comments are discarded, token boundaries are preserved with whitespace so property names or values never glue together. Isolated comment markers inside string literals or URLs (e.g. `content: "/*"` or `content: "*/"`) never trigger comment stripping or drop subsequent declarations.
+- **Escape, String & URL Safety**: Respects escaped quotes (`\"`, `\'`), string literals, URL tokens, and nested parenthesis depth (`calc()`, `var()`, `url()`), ensuring semicolons inside URLs or strings never truncate values.
+- **Context & Hierarchy Retention**: Tracks selector nesting hierarchy across `@media`, `@supports`, and `@keyframes` blocks, ensuring pseudo-classes and pseudo-elements (e.g. `:hover`, `::backdrop`) are never misidentified as CSS property names.
+- **Syntax-Safe Selector Splitting & Scope Invariant**: Comma-separated selector lists are split using `splitSelectorList`, which respects parenthesis depth, bracket depth (e.g. `:is()`, `:not()`, `:where()`, attribute selectors `[data-...]`), and string literals. A declaration with a selector list is exempted only if EVERY selector in the list belongs strictly to the permitted scope (`selectors.every(...)`). Combined declarations (such as `.collapsedLogo, .card` or `.overlay::backdrop, .card`) fail closed.
+
+Raw CSS literals are strictly forbidden in production component CSS, with only these explicit, audited, and narrowly scoped exceptions:
+
+1. **Foundational Token Palette**: Strictly scoped to normalized repository path `apps/web/styles/tokens.css`, and **only** to custom property definitions (`--token: value`). Non-token component declarations inside `tokens.css` or files named `tokens.css` located in feature or UI directories (e.g. `apps/web/features/orders/tokens.css`) are strictly forbidden and fail policy enforcement.
+2. **Standard Contextual Constants**: `0`, `auto`, `inherit`, `transparent`, `currentcolor`, `100%`, `50%`, `100vh`, `100dvh`.
+3. **Component-Local Geometric Coordinates**: Local layout positioning, offsets, and icon alignments (e.g. `top: 10px; right: 12px;`, `left: calc(100% + 8px);`, active bar `top: 6px; bottom: 6px; width: 4px;`).
+4. **Documented Monogram Micro-Shadows**: Explicitly limited to audited owner paths, exact selectors (no substring matching), and exact values:
+   - `apps/web/components/app-shell/Sidebar.module.css`: exact selector `.logoMonogram` with exact value `0 1px 2px rgba(0, 0, 0, 0.2)`.
+   - `apps/web/components/app-shell/Header.module.css`: exact selector `.collapsedLogo` with exact value `0 1px 2px rgba(0, 0, 0, 0.1)`.
+   - `apps/web/app/login/login.module.css`: exact selector `.logoMonogram` with exact value `0 1px 2px rgba(0, 0, 0, 0.05)`.
+   - Arbitrary component shadows (e.g. `.card`), near-match selectors (e.g. `.collapsedLogoExtra`), altered opacities (e.g. `0.9`), selector lists containing non-approved selectors (`.collapsedLogo, .card`), pseudo-class extensions (`.logoMonogram:is(...)`), or multi-layer shadow additions are strictly rejected. Production analyzers contain zero simulated fixture rules.
+5. **Documented Native Overlay Backdrop**: Explicitly limited to `packages/ui/src/Overlay.module.css` where all selectors in the selector list match `::backdrop` or `.overlay::backdrop`, properties `background` / `background-color`, and documented color `rgb(15 23 42 / 55%)` or `rgba(15, 23, 42, 0.55)`. Declarations containing additional unauthorized colors (e.g. `linear-gradient(red, rgb(...))`) or non-backdrop selectors in the selector list fail policy enforcement.
+6. **Documented Standalone Fallbacks in `packages/ui`**: Permitted strictly within audited components with documented standalone consumer contracts (`packages/ui/src/Panel.module.css` and `packages/ui/src/StatusBadge.module.css`). Arbitrary UI components (such as `NewControl.module.css`) do not receive automatic exemptions; raw colors outside `var()` and nested fallback chains remain strictly forbidden.
+
+Creating single-use tokens for purely local coordinates or micro-adjustments is an anti-pattern. Blanket allowlists that bypass scanner policy on entire files or components are strictly forbidden.
+
+### F. Testing Strategy & Runtime Token Override
+
+Testing enforces contracts, behavioral consistency, and runtime adaptability rather than locking implementation strings or configurable theme defaults (e.g. no brittle assertions on fixed 44px or hardcoded RGB arrays):
+
+1. **Token Contract Tests**: Assert required tokens are declared in `tokens.css`, references resolve without circular dependencies, consumers use semantic tokens according to ownership rules, and `apps/web` contains no unnecessary fallbacks. Discovery covers all production CSS in `apps/web`, `packages/ui`, and future `features/**`.
+2. **Component Consistency Tests**: Assert shared controls (`TextInput`, `Button`, `Textarea`) bind sizing, typography, and states to canonical contract tokens (`inputHeight === buttonHeight`, `inputRadius === buttonRadius`, `inputFontSize === buttonFontSize`), interactive states are synchronized with proper specificity (hover cannot clobber focus), no feature overrides break shared states, and `@nexora/ui` primitives are reused across pages.
+3. **Dynamic Contrast Tests**: Calculate WCAG AA contrast dynamically from real rendered `getComputedStyle()` foreground/background colors (including normal and real CDP `:hover` states) against the 4.5:1 threshold, with negative tests proving deliberate inaccessible combinations fail.
+4. **Runtime Token Override Tests**: Execute in browser via Chromium/CDP:
+   - Render page containing form controls.
+   - Record initial computed styles of controls via `window.getComputedStyle()`.
+   - Dynamically override root tokens (e.g. `--control-height: 52px;`, `--control-radius: 6px;`, `--control-font-size: 16px;`) on `document.documentElement`.
+   - Assert all consumer controls synchronously update their computed styles in lockstep.
+   - Restore root tokens and verify computed styles return cleanly to their initial values.
+5. **Legitimate Invariant Exact-Value Boundaries**: Exact-value assertions are permitted only where an absolute dimension is an explicit, justified acceptance invariant (e.g. zero layout shifts, WCAG AA thresholds, brand visibility, maximum 420px login card width) rather than a configurable theme default.
+
+### G. Header First-Paint Responsive Parity & Accessibility at 901–1100px
+
+To eliminate visual layout shifts, misleading accessibility semantics, and hydration discrepancies at compact desktop viewports (901–1100px):
+
+- Header implements a CSS-first responsive button triad:
+  - `.desktopExpandedToggle`: visible only on wide desktop (>1100px), static `aria-expanded="true"` and `aria-label="Thu gọn thanh điều hướng"`.
+  - `.desktopCompactToggle`: visible only on compact desktop (901–1100px), static `aria-expanded="false"` and `aria-label="Mở rộng thanh điều hướng"`.
+  - `.mobileToggle`: visible only on mobile/tablet (<=900px), dynamic `aria-expanded={mobileOpen}` and `aria-label={mobileOpen ? "Đóng menu di động" : "Mở menu di động"}`.
+- First-Paint Parity: Before React hydration completes, the visible button in the accessibility tree and visual layout match the 72px collapsed Sidebar identically without layout shift (shift < 0.05, typically 0.00) or hydration warning.
+- Post-Hydration Interaction: Manual sidebar toggle overrides cleanly switch to user-controlled state (`userOverride`), with interactive clicks at 1024px expanding the sidebar to 240px and collapsing back to 72px without breaking responsive rules.
+
+### H. Minimal Global Styles (`apps/web/app/styles.css`)
+
+Global CSS is restricted to root token imports, basic CSS reset, base typography, and macro page layout grids (`.grid`, `.status-grid`). All internal component presentation for `Panel`, `StatusBadge`, and form controls is decoupled into `@nexora/ui` CSS Modules.
 
 ## 3. Server vs. Client Component Conventions
 
@@ -155,4 +256,14 @@ Filters send canonical status codes; labels are display-only. ALL/Tất cả is 
 
 [Active NEXORA-029](../tasks/active/NEXORA-029-full-frontend-migration.md) and its [v8 snapshot](../tasks/design-reviews/NEXORA-029-rev-2026-10-23-frontend-migration-v8.md) specify planned visual migration, not implemented routes or API behavior. Owner selected Option B: no China sourcing route/navigation/screens/showcase/product/image search/scraping/Gemini in production; ZIP sources remain provenance only. Login Quick Fill is deliberately excluded for security. Existing server session/MFA ownership and neutral UI tiers remain authoritative.
 
-CustomerStatsBar is retained in planned M2 and requires a separately reviewed/approved backend PR extending GET /api/customers with real owner/q/phone-scoped stats, independent of status/page/pageSize. Current API has no stats response; eight Customer endpoints remain. No counts from page rows/pagination.total or fabricated zeros. Future backend code/SDK/tests must update canonical API/Customer docs; this design does not declare deployment. The active task specifies navigation activation, trim/omit blank q, latest-request protection, separate default-address PUT and feature-local status-to-tone mappings. Exact digest-bound ADR-009 approval is still required before implementation.
+CustomerStatsBar remains PLANNED in M2. Merged NEXORA-030/PR26 already implements required owner/q/phone-scoped stats on GET /api/customers and its generated SDK; status/page/pageSize do not filter stats, and the eight endpoints remain. The selected M2 test runtime must verify the actual API/SDK contract. Never derive counts from page rows/pagination.total or fabricate zeros for missing/old-server stats. NEXORA-031 has its own digest-bound approval; the owner currently authorizes M1 only. Historical NEXORA-029 snapshots remain unchanged.
+
+## NEXORA-031 M1 foundation
+
+M1 implements the approved presentation foundation on the existing App Router/security architecture; M2–M5 are NOT STARTED. Header56px, sidebar240px/72px, current navy/orange semantic palette and local Inter normal-variable100–900 are retained as central tokens. The unmodified font and SIL OFL license/provenance are in app/fonts; actual cmap covers U+1EA0–U+1EF9 plus Đ/đ, verified against source bytes. next/font/local supplies the root --font-inter variable; no external font request. Existing Panel and boolean/null StatusBadge semantics are unchanged.
+
+Neutral packages/ui Button/TextInput/Checkbox are consumed by Login/MFA; Overlay is consumed by mobile navigation and login-help dialog. No unused Select or generic form framework. Overlay uses native modal dialog/top-layer/inert background/focus containment, Escape/backdrop dismissal and overflow restoration. Existing useDismissable remains the popover policy. The shell adapts to tablet collapse and off-canvas at widths<=900px, closes on route/viewport change, restores trigger focus and exposes the existing honest empty NotificationMenu. Navigation registry and availability remain unchanged: Overview/System/Settings only; no Customer/Retail/Carrier activation.
+
+AppShell selects only safe deployment text on the server using existing shared policy (selective PR21 helper reuse); ShellClient receives text/user props, never environment/keys or authorization responsibility. Existing workspace server guard, session verification, safe-from, Host/Origin rules, cookie/MFA/setup/logout behavior remain authoritative. Login visual changes reuse current password/MFA outcome logic and API contracts. Remember Me stores only trimmed username (<=50) under nexora_remembered_username, clears unchecked preference on valid submit, tolerates blocked storage and never changes session TTL. Password/MFA/session/recovery secrets are never persisted. Forgot-password help directs users to their administrator; there is no fake reset endpoint or Quick Fill.
+
+Native Node tests and real CDP viewport/auth evidence are tracked in [NEXORA-031](../tasks/active/NEXORA-031-full-frontend-migration.md) and PR27. Implemented UI is distinct from passing visual/runtime acceptance. Full M5 reference-image comparison and Customer/Carrier/retail consumer acceptance remain later milestones; no production deployment is claimed.

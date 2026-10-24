@@ -135,3 +135,123 @@ This registry catalogues canonical, reusable technical components and shared voc
 - **Dependency Restrictions**: Zero dependencies. Browser-safe ESM and CommonJS exports.
 - **When to Reuse**: Whenever API Presentation or Web frontend needs customer status codes or their display labels.
 - **When NOT to Reuse**: Do not use in Domain business logic for display strings; Domain only uses codes.
+
+---
+
+## 7. Canonical Form Control Primitives
+
+- **Owner Path**:
+  - Components: `packages/ui/src/Controls.tsx`
+  - Styling: `packages/ui/src/Controls.module.css`
+  - Barrel: `packages/ui/src/index.tsx`
+- **Exported Contract**:
+  - `export function Button(props: ButtonHTMLAttributes<HTMLButtonElement>): JSX.Element`
+  - `export function TextInput(props: InputHTMLAttributes<HTMLInputElement>): JSX.Element`
+  - `export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>): JSX.Element`
+  - `export function Checkbox(props: CheckboxProps): JSX.Element`
+- **Intended & Active Consumers**:
+  - Login (`LoginForm`), Setup (`SetupForm`), modal dialogs, and future feature forms (Customer, Settings).
+- **Supported Behavior**:
+  - **Canonical Sizing & Typography Contract**: `height: var(--control-height)` (default 44px), `border-radius: var(--control-radius)` (default 12px), `box-sizing: border-box`, and `font-size: var(--control-font-size)` (shared between `TextInput`, `Button`, and `Textarea` to ensure cohesive typography scaling).
+  - **State Parity**: Complete contract covering default, hover, focus/focus-visible, disabled, readonly, invalid (`aria-invalid="true"`), and placeholder.
+  - **State Precedence**: Focus and invalid states strictly override hover styling via `:not(:focus):not([aria-invalid="true"])`.
+  - **Button Contrast (WCAG AA)**: Standardized to semantic foreground `--color-text-on-accent: var(--brand-navy, #172b4d)` text on orange `--color-accent: var(--brand-orange, #f58a24)` background (5.74:1 contrast ratio, exceeding WCAG AA 4.5:1 requirement). On hover (`--color-accent-hover`), enabled button transitions foreground to `--color-text-on-accent-hover` (4.58:1 contrast) with `color 0.15s ease`. Disabled button preserves `--control-disabled-text`. Verified on real rendered elements in genuine `:hover` state via CDP pointer dispatch, confirming `>= 4.5:1` ratio after transition completion (0.15s) and compositing. Negative accessibility regression tests prove that deliberate inaccessible contrast fails closed, and distinct foreground token overrides prove that hover resolves its dedicated foreground token rather than reusing default foreground.
+  - **Textarea Parity**: Retained in `@nexora/ui` to guarantee domain-neutral form control contract parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, disabled/readonly/invalid states, with default 88px min-height and vertical resize.
+  - **Self-Contained Styling**: Owns all default control appearance in `Controls.module.css` through direct token consumption.
+- **Styling / Token Dependencies**:
+  - Sizing & Radius: `--control-height`, `--control-radius`, `--control-padding-x`, `--control-padding-y`, `--control-font-size`.
+  - Colors & States: `--control-bg`, `--control-bg-focus`, `--control-text`, `--control-placeholder`, `--control-border`, `--control-border-hover`, `--control-focus-border`, `--control-focus-ring`, `--control-disabled-bg`, `--control-disabled-text`, `--control-disabled-border`, `--control-readonly-bg`, `--control-invalid-border`, `--control-invalid-focus-ring`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`.
+- **Fallback Policy**:
+  - `apps/web`: Mandatory theme tokens guaranteed by root `tokens.css`; fallbacks in `apps/web` are prohibited.
+  - `packages/ui`: Standardized on direct canonical token consumption (`var(--control-border)`). Standalone fallbacks are permitted only where an explicit standalone-consumer contract requires independent execution outside the Nexora theme.
+  - Deeply nested fallback chains (e.g. `var(--a, var(--b, c))`) and repeating raw hex values solely to echo default theme tokens are forbidden.
+- **Explicit Non-Goals**:
+  - Does not manage form submission, data-binding, or validation logic. Consuming feature components handle validation.
+  - Does not use `!important` or broad global selectors.
+- **Deferred Select Specification**:
+  - Standard established: `height: var(--control-height)`, identical borders, radius, background, and focus ring matching `TextInput`.
+  - Component implementation is deferred to M2's first consumer per YAGNI and [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule).
+- **When to Reuse**:
+  - Whenever rendering standard text inputs, textareas, primary buttons, or checkboxes across web features.
+- **When NOT to Reuse**:
+  - Do not create duplicate local control styles or custom `<input>` styling in feature CSS Modules.
+  - Do not render raw HTML `<button>` or `<input>` for primary form interactions.
+
+---
+
+## 8. Modal Dialog & Overlay Primitive
+
+- **Owner Path**:
+  - Component: `packages/ui/src/Overlay.tsx`
+  - Styling: `packages/ui/src/Overlay.module.css`
+  - Barrel: `packages/ui/src/index.tsx`
+- **Exported Contract**:
+  - `export function Overlay(props: OverlayProps): JSX.Element`
+- **Intended Consumers**:
+  - Mobile navigation drawer (`ShellClient`), Login help dialog (`LoginForm`), and future feature confirmation/modal dialogs.
+- **Supported Behavior**:
+  - Native HTML `<dialog>` with top-layer placement, background inerting, keyboard focus trapping, Escape key closing, backdrop click dismissal, and body overflow restoration on unmount.
+- **Styling / Token Dependencies**:
+  - Background & Elevation: `--color-surface`, `--color-border`, `--shadow-lg`, `--radius-lg`.
+  - Backdrop: `rgb(15 23 42 / 55%)` (or `rgba(15, 23, 42, 0.55)`) applied strictly to `::backdrop` or `.overlay::backdrop`; compound selector lists containing non-backdrop elements are forbidden.
+- **Fallback Policy**:
+  - Standalone fallbacks are not permitted for Overlay; direct semantic token references are enforced.
+
+- **Explicit Non-Goals**:
+  - Does not replace lightweight popovers; popovers use `useDismissable` hook.
+- **When to Reuse**:
+  - Whenever modal dialogs, drawers, or alert overlays are required.
+- **When NOT to Reuse**:
+  - Do not use for lightweight dropdown menus or tooltips (use popover semantics via `useDismissable`).
+
+---
+
+## 9. Content Card Panel Primitive
+
+- **Owner Path**:
+  - Component: `packages/ui/src/Panel.tsx`
+  - Styling: `packages/ui/src/Panel.module.css`
+  - Barrel: `packages/ui/src/index.tsx`
+- **Exported Contract**:
+  - `export interface PanelProps { title: string; children: ReactNode; className?: string; }`
+  - `export function Panel(props: PanelProps): JSX.Element`
+- **Intended Consumers**:
+  - Overview cards (`/`), System health status panels (`/system`), and Settings sections (`/settings`).
+- **Supported Behavior**:
+  - Semantic `<section>` container with consistent title typography (`<h2>`), internal padding, border, radius, and subtle elevation.
+  - Scoped paragraph styling resets paragraph bottom margin on `:last-child`.
+- **Styling / Token Dependencies**:
+  - Background & Border: `--color-surface`, `--color-border`, `--color-primary`, `--radius-lg`, `--shadow-sm`.
+- **Fallback Policy**:
+  - Permitted standalone fallbacks matching root theme (`#ffffff`, `#e2e8f0`, `12px`).
+- **When to Reuse**:
+  - Whenever grouping related information or settings into a distinct content card across pages.
+- **When NOT to Reuse**:
+  - Do not use as a generic unstyled wrapper; use a layout `<div>` instead.
+
+---
+
+## 10. Status Indicator Badge Primitive
+
+- **Owner Path**:
+  - Component: `packages/ui/src/StatusBadge.tsx`
+  - Resolver: `packages/ui/src/status-tone.ts`
+  - Styling: `packages/ui/src/StatusBadge.module.css`
+  - Barrel: `packages/ui/src/index.tsx`
+- **Exported Contract**:
+  - `export interface StatusBadgeProps { ok: boolean | null; children: ReactNode; className?: string; }`
+  - `export function StatusBadge(props: StatusBadgeProps): JSX.Element`
+  - `export function resolveStatusTone(ok: boolean | null): "good" | "bad" | "pending"`
+- **Intended Consumers**:
+  - System health indicators (`/system`), session connection badges, and future Shipment/Customer status indicators.
+- **Supported Behavior**:
+  - Maps tri-state boolean (`true` -> `good`, `false` -> `bad`, `null` -> `pending`) to semantic status colors.
+  - Renders inline-flex pill badge with uppercase styling, 12px font size, and full border radius.
+- **Styling / Token Dependencies**:
+  - Status tokens: `--color-status-success-*`, `--color-status-error-*`, `--color-status-pending-*`, `--radius-full`.
+- **Fallback Policy**:
+  - Permitted standalone fallbacks matching root semantic status colors.
+- **When to Reuse**:
+  - Whenever rendering tri-state health, connectivity, or operational readiness indicators.
+- **When NOT to Reuse**:
+  - Do not use for domain-specific multi-state business badges (e.g. Shipment tracking stages); use domain-specific tag components instead.

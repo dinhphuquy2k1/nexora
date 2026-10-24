@@ -116,3 +116,29 @@ Design approval integrity follows [ADR-009](../decisions/mandatory-pre-code-desi
 Use native Node Test Runner suffix discovery under the established ordinary roots; put external-service API tests under apps/api/integration and helpers/fixtures under non-test-suffixed paths. New nested ordinary tests must need no package filename-list edits. Preserve nonempty discovery checks and before/after baseline membership; never let unmatched globs silently pass with zero tests. Double-quote package-script globs for Windows CMD and Node expansion. Turbo owns existing build prerequisites; environment-safe assertions do not waive genuine builds. Root tooling tests join pnpm test and quality must not duplicate those runs.
 
 Prefer Node built-ins for test orchestration; preserve exact ownership, timeout/signal/failure cleanup and redaction contracts. The two existing Python standard-library PTY harnesses are a justified exception until equivalent real terminal behavior is independently proven without new native dependencies. Do not replace PTY with stdin mocks or broaden ordinary tests to destructive/shared database harnesses. Canonical commands and category details belong in [Testing](../operations/testing.md).
+
+## 7. Mandatory UI Design System & Component Reuse Rule
+
+### NEXORA UI TOKEN & COMPONENT REUSE RULE
+
+- **Reuse semantic CSS tokens**: Reuse an existing semantic CSS token instead of replacing it with an equivalent hardcoded value.
+- **Central definition**: All design tokens must be defined centrally in `apps/web/styles/tokens.css` as the Single Source of Truth before being consumed.
+- **Semantic correctness**: Tokens must be used strictly for their intended semantic role (text tokens for text, surface tokens for backgrounds, border tokens for borders, elevation tokens for shadows, focus tokens for focus rings). Never reuse tokens across roles purely based on identical values.
+- **Avoid unnecessary fallbacks**: In `apps/web`, mandatory tokens are guaranteed by the root theme; do not write unnecessary fallbacks in `var()`. In `packages/ui`, direct token consumption is standard; standalone fallbacks are permitted only under an explicit standalone consumer contract, without nested fallback chains or duplicating default raw values.
+- **Canonical state and sizing contract**: All standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) must share one canonical state and sizing contract (`--control-height`, `--control-radius`, hover, focus, disabled, readonly, aria-invalid, placeholder).
+- **Shared primitive reuse**: Feature components must reuse shared primitives from `packages/ui` rather than duplicate their styling or render raw HTML form controls.
+- **Layout vs defaults**: Feature-specific CSS may control layout and genuine exceptions (e.g. inner icon padding, layout width) but must not redefine shared control defaults or use `!important`.
+- **CSS Modules scoping**: Component styling must remain in CSS Modules; avoid broad global selectors.
+- **Mandatory contract-based tests**: Frontend tests must enforce Token Contracts (presence, resolution, acyclicity, semantic ownership), Component Consistency (shared variables across controls), dynamic WCAG AA contrast, and Runtime Overrides (dynamic updates via computed styles).
+- **Mandatory testing of actual interactive states**: Interactive states (such as `:hover`, `:focus`, `:focus-visible`) must be verified on actual rendered UI primitives using real user/pointer interaction (e.g. Chromium CDP `Input.dispatchMouseEvent` with `mouseMoved`), confirming genuine pseudo-class matches (`matches(':hover')`), awaiting CSS transition completion, and accounting for alpha/opacity compositing. Tests must never simulate interactive states by directly assigning expected styles to dummy elements or hardcoding theme RGB values, and must include negative regression cases proving that inaccessible styles fail closed.
+- **Disallow tests duplicating configurable token constants**: Tests must never lock implementation defaults (such as hardcoding 44px, 12px, or exact RGB arrays) merely to match default token values. Tests must remain resilient to token reconfigurations, and exact-value assertions are permitted only where an absolute dimension is an explicit, justified acceptance invariant.
+- **Comprehensive CSS policy discovery**: CSS policy validation must scan all production CSS across `apps/web`, `packages/ui`, and future `apps/web/features/**` CSS modules.
+- **Literal-color prohibition & scanner enforcement**: Production CSS must not contain raw color literals (`#hex`, `rgb/rgba`, `hsl/hsla`, named colors) in color, background, border, outline, or shadow properties. Canonical palette colors belong solely in `tokens.css`. Allowed exceptions are strictly limited to documented contextual constants, local geometric coordinates, component-specific micro-shadows, and standalone `packages/ui` fallbacks inside `var()`.
+- **Documented exceptions**: Any intentional visual exception must document its reason, scope, and compatibility impact per [Frontend Architecture](../architecture/frontend.md).
+- **Demonstrated need**: Do not create unused generic components or introduce new UI frameworks without demonstrated need.
+
+Canonical ownership:
+
+- [Engineering Policy](PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule): Mandatory engineering policy and governance.
+- [Frontend Architecture](../architecture/frontend.md): Canonical Styling Policy, token hierarchy, semantic ownership, fallback rules, and form control contract.
+- [Reusable Components Registry](../architecture/reusable-components.md): Canonical shared control registry and component ownership.

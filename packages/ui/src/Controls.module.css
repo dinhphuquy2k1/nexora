@@ -1,0 +1,210 @@
+/* ==========================================================================
+   Canonical Form Controls & Primitives Presentation
+   Owned by packages/ui per Tier A architecture
+   ========================================================================== */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--control-height);
+  min-height: var(--control-height);
+  padding: 0 var(--control-padding-x);
+  border: 1px solid transparent;
+  border-radius: var(--control-radius);
+  font: inherit;
+  font-size: var(--control-font-size);
+  font-weight: 600;
+  background-color: var(--color-accent);
+  color: var(--color-text-on-accent);
+  cursor: pointer;
+  box-sizing: border-box;
+  text-decoration: none;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.05s ease;
+}
+
+.button:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+  color: var(--color-text-on-accent-hover);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   TextInput
+   -------------------------------------------------------------------------- */
+
+.input {
+  width: 100%;
+  height: var(--control-height);
+  min-height: var(--control-height);
+  padding: 0 var(--control-padding-x);
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  font: inherit;
+  font-size: var(--control-font-size);
+  background-color: var(--control-bg);
+  color: var(--control-text);
+  box-sizing: border-box;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--control-placeholder);
+  opacity: 1;
+}
+
+.input:hover:not(:disabled):not([readonly]):not(:focus):not(
+    [aria-invalid="true"]
+  ) {
+  border-color: var(--control-border-hover);
+}
+
+.input:focus,
+.input:focus-visible,
+.input:focus:hover {
+  outline: none;
+  background-color: var(--control-bg-focus);
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 2px var(--control-focus-ring);
+}
+
+.input:disabled {
+  background-color: var(--control-disabled-bg);
+  color: var(--control-disabled-text);
+  border-color: var(--control-disabled-border);
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.input[readonly] {
+  background-color: var(--control-readonly-bg);
+  cursor: default;
+}
+
+.input[aria-invalid="true"],
+.input[aria-invalid="true"]:hover {
+  border-color: var(--control-invalid-border);
+}
+
+.input[aria-invalid="true"]:focus,
+.input[aria-invalid="true"]:focus-visible,
+.input[aria-invalid="true"]:focus:hover {
+  border-color: var(--control-invalid-border);
+  box-shadow: 0 0 0 2px var(--control-invalid-focus-ring);
+}
+
+/* --------------------------------------------------------------------------
+   Textarea
+   -------------------------------------------------------------------------- */
+
+.textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: var(--control-padding-y) var(--control-padding-x);
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  font: inherit;
+  font-size: var(--control-font-size);
+  background-color: var(--control-bg);
+  color: var(--control-text);
+  box-sizing: border-box;
+  resize: vertical;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.textarea::placeholder {
+  color: var(--control-placeholder);
+  opacity: 1;
+}
+
+.textarea:hover:not(:disabled):not([readonly]):not(:focus):not(
+    [aria-invalid="true"]
+  ) {
+  border-color: var(--control-border-hover);
+}
+
+.textarea:focus,
+.textarea:focus-visible,
+.textarea:focus:hover {
+  outline: none;
+  background-color: var(--control-bg-focus);
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 2px var(--control-focus-ring);
+}
+
+.textarea:disabled {
+  background-color: var(--control-disabled-bg);
+  color: var(--control-disabled-text);
+  border-color: var(--control-disabled-border);
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.textarea[readonly] {
+  background-color: var(--control-readonly-bg);
+  cursor: default;
+}
+
+.textarea[aria-invalid="true"],
+.textarea[aria-invalid="true"]:hover {
+  border-color: var(--control-invalid-border);
+}
+
+.textarea[aria-invalid="true"]:focus,
+.textarea[aria-invalid="true"]:focus-visible,
+.textarea[aria-invalid="true"]:focus:hover {
+  border-color: var(--control-invalid-border);
+  box-shadow: 0 0 0 2px var(--control-invalid-focus-ring);
+}
+
+/* --------------------------------------------------------------------------
+   Checkbox
+   -------------------------------------------------------------------------- */
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: inherit;
+  cursor: pointer;
+  min-height: var(--control-height);
+  user-select: none;
+}
+
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+
+.checkbox input:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
+}

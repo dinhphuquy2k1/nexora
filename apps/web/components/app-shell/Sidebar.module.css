@@ -3,7 +3,7 @@
   top: 0;
   height: 100vh;
   background-color: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-text-on-dark);
   border-right: 1px solid var(--color-primary-strong);
   display: flex;
   flex-direction: column;
@@ -21,15 +21,63 @@
   width: var(--sidebar-collapsed-width);
 }
 
+.collapsed .brandLink {
+  justify-content: center;
+}
+
+.collapsed .brandText,
+.collapsed .groupTitle,
+.collapsed .itemLabel,
+.collapsed .plannedBadge {
+  display: none;
+}
+
+.collapsed .navItemLink,
+.collapsed .navItemDisabled {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.responsive {
+  width: var(--sidebar-width);
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .responsive {
+    width: var(--sidebar-collapsed-width);
+  }
+
+  .responsive .brandLink {
+    justify-content: center;
+  }
+
+  .responsive .brandText,
+  .responsive .groupTitle,
+  .responsive .itemLabel,
+  .responsive .plannedBadge {
+    display: none;
+  }
+
+  .responsive .navItemLink,
+  .responsive .navItemDisabled {
+    justify-content: center;
+    padding: 10px 0;
+  }
+
+  .responsive .nav {
+    overflow: visible;
+  }
+}
+
 .brand {
   height: var(--header-height);
   display: flex;
   align-items: center;
   padding: 0 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border-on-dark-subtle);
   flex-shrink: 0;
   text-decoration: none;
-  color: #ffffff;
+  color: var(--color-text-on-dark);
 }
 
 .brandLink {
@@ -45,37 +93,41 @@
 .brandLink:focus-visible {
   outline: 2px solid var(--focus-ring-on-dark);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .logoMonogram {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #1e3a5f 0%, #0f1d36 100%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    135deg,
+    var(--brand-navy-light) 0%,
+    var(--brand-navy-dark) 100%
+  );
+  border: 1px solid var(--color-border-on-dark);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .logoLetter {
   font-weight: 800;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
   letter-spacing: -0.5px;
-  color: #ffffff;
+  color: var(--color-text-on-dark);
 }
 
 .logoDot {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background-color: var(--color-accent);
   margin-left: -2px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .brandText {
@@ -86,17 +138,17 @@
 
 .brandTitle {
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--font-size-xl);
   letter-spacing: -0.3px;
-  color: #ffffff;
+  color: var(--color-text-on-dark);
   line-height: 1.2;
 }
 
 .brandSubtitle {
-  font-size: 10px;
-  letter-spacing: 0.8px;
-  font-weight: 600;
-  color: #94a3b8;
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.05em;
+  font-weight: 500;
+  color: var(--color-text-on-dark-muted);
   text-transform: uppercase;
   line-height: 1.2;
 }
@@ -104,7 +156,8 @@
 .nav {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 12px 8px;
+  overflow-x: hidden;
+  padding: 8px;
   overscroll-behavior: contain;
 }
 
@@ -118,11 +171,11 @@
 
 .groupTitle {
   padding: 4px 12px 8px;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #94a3b8;
+  color: var(--gray-400);
 }
 
 .navItemContainer {
@@ -135,10 +188,10 @@
   align-items: center;
   width: 100%;
   padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
   font-weight: 500;
-  color: #cbd5e1;
+  color: var(--color-text-on-dark-muted);
   text-decoration: none;
   transition:
     background-color 0.15s ease,
@@ -147,8 +200,8 @@
 }
 
 .navItemLink:hover {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-on-dark);
+  background-color: var(--color-surface-on-dark);
 }
 
 .navItemLink:focus-visible {
@@ -157,7 +210,7 @@
 }
 
 .navItemActive {
-  color: #ffffff;
+  color: var(--color-text-on-dark);
   background-color: var(--color-primary-hover);
   font-weight: 600;
 }
@@ -181,10 +234,10 @@
   align-items: center;
   width: 100%;
   padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
   font-weight: 500;
-  color: #64748b;
+  color: var(--color-text-on-dark-muted);
   background: transparent;
   border: none;
   cursor: not-allowed;
@@ -204,7 +257,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: var(--gray-400);
 }
 
 .itemIconActive {
@@ -220,28 +273,29 @@
 }
 
 .plannedBadge {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   padding: 2px 6px;
-  border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
+  border-radius: var(--radius-xs);
+  background-color: var(--color-surface-on-dark);
+  color: var(--gray-400);
   margin-left: auto;
   font-weight: 500;
   white-space: nowrap;
 }
 
 .collapsedTooltip {
+  display: none;
   position: absolute;
   left: calc(100% + 8px);
   top: 50%;
   transform: translateY(-50%);
   padding: 6px 10px;
   background-color: var(--color-primary-strong);
-  color: #ffffff;
-  font-size: 11px;
+  color: var(--color-text-on-dark);
+  font-size: var(--font-size-xs);
   font-weight: 500;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-on-dark-tooltip);
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
@@ -250,11 +304,27 @@
     visibility 0.15s ease;
   white-space: nowrap;
   z-index: 50;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border-on-dark-subtle);
 }
 
-.navItemContainer:hover .collapsedTooltip,
-.navItemContainer:focus-within .collapsedTooltip {
+.collapsed .collapsedTooltip {
+  display: block;
+}
+
+.collapsed .navItemContainer:hover .collapsedTooltip,
+.collapsed .navItemContainer:focus-within .collapsedTooltip {
   opacity: 1;
   visibility: visible;
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .responsive .collapsedTooltip {
+    display: block;
+  }
+
+  .responsive .navItemContainer:hover .collapsedTooltip,
+  .responsive .navItemContainer:focus-within .collapsedTooltip {
+    opacity: 1;
+    visibility: visible;
+  }
 }

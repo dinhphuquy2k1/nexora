@@ -5,11 +5,11 @@
 .accountButton {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 2px 6px 2px 2px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-border);
+  gap: 10px;
+  height: 40px;
+  padding: 4px 8px 4px 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
   background-color: transparent;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -17,7 +17,7 @@
 
 .accountButton:hover {
   background-color: var(--color-background);
-  border-color: var(--color-border-subtle);
+  border-color: var(--color-border);
 }
 
 .accountButton:focus-visible {
@@ -26,20 +26,48 @@
 }
 
 .avatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-full);
-  background-color: var(--color-surface-subtle);
-  border: 1px solid var(--color-border);
+  background-color: var(--color-primary);
+  border: 1px solid var(--color-border-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-primary);
+  color: var(--color-text-on-dark);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.5px;
   flex-shrink: 0;
 }
 
-.chevron {
+.accountInfo {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+@media (max-width: 768px) {
+  .accountInfo {
+    display: none;
+  }
+}
+
+.accountName {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+
+.accountRole {
+  font-size: var(--font-size-2xs);
   color: var(--color-text-muted);
+  line-height: 1.2;
+}
+
+.chevron {
+  color: var(--gray-400);
   display: flex;
   align-items: center;
   transition: transform 0.15s ease;
@@ -76,30 +104,30 @@
 }
 
 .panelTitle {
-  font-size: 13px;
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-primary);
   margin: 0;
 }
 
 .plannedBadge {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 500;
   padding: 2px var(--space-2);
   border-radius: var(--radius-xs);
-  background-color: var(--color-border);
+  background-color: var(--color-surface-muted);
   color: var(--color-text-muted);
 }
 
 .panelDescription {
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin: var(--space-1) 0 0;
 }
 
 .panelBody {
   padding: 14px var(--space-4);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--color-text);
   line-height: 1.5;
 }
@@ -111,24 +139,24 @@
   padding: 10px var(--space-3);
   margin-bottom: var(--space-2);
   color: var(--color-primary);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }
 
 .infoFootnote {
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   margin: 0;
   line-height: 1.4;
 }
 
 .activeBadge {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 500;
   padding: 2px var(--space-2);
   border-radius: var(--radius-xs);
-  background-color: var(--color-status-success-bg, #e2f2e6);
-  color: var(--color-status-success-text, #24663b);
+  background-color: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
   border: 1px solid var(--color-border);
 }
 
@@ -141,20 +169,20 @@
   height: 36px;
   padding: 0 var(--space-3);
   margin-top: var(--space-3);
-  font-size: 13px;
+  font-size: var(--font-size-base);
   font-weight: 500;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background-color: transparent;
-  color: #dc2626;
+  color: var(--color-status-error-text);
   cursor: pointer;
   transition: all 0.15s ease;
   box-sizing: border-box;
 }
 
 .logoutButton:hover:not(:disabled) {
-  background-color: #fef2f2;
-  border-color: #fecaca;
+  background-color: var(--color-status-error-bg);
+  border-color: var(--color-status-error-border);
 }
 
 .logoutButton:focus-visible {
@@ -169,7 +197,20 @@
 
 .logoutError {
   margin: var(--space-2) 0 0;
-  font-size: 12px;
-  color: #dc2626;
+  font-size: var(--font-size-sm);
+  color: var(--color-status-error-text);
   line-height: 1.4;
+}
+@media (max-width: 600px) {
+  .accountButton {
+    max-width: 140px;
+  }
+  .accountButton span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dropdownPanel {
+    max-width: calc(100vw - 24px);
+  }
 }

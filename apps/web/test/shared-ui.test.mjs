@@ -60,9 +60,39 @@ test("Design tokens: complete 2-tier architecture and scale tokens", () => {
   assert.match(tokensContent, /--radius-sm:\s*6px/, "Radius sm present");
   assert.match(tokensContent, /--radius-md:\s*8px/, "Radius md present");
   assert.match(tokensContent, /--radius-lg:\s*12px/, "Radius lg present");
+  assert.match(tokensContent, /--radius-xl:\s*16px/, "Radius xl present");
   assert.match(tokensContent, /--radius-full:\s*9999px/, "Radius full present");
 
-  // Layer 5: Shadow Scale
+  // Layer 5: Canonical Form Control Contract Tokens
+  assert.match(
+    tokensContent,
+    /--control-height:\s*[^;]+;/,
+    "Control height contract token present",
+  );
+  assert.match(
+    tokensContent,
+    /--control-radius:\s*[^;]+;/,
+    "Control radius contract token present",
+  );
+  assert.match(tokensContent, /--control-border:/, "Control border present");
+  assert.match(tokensContent, /--control-bg:/, "Control bg present");
+  assert.match(
+    tokensContent,
+    /--control-focus-border:/,
+    "Control focus border present",
+  );
+  assert.match(
+    tokensContent,
+    /--control-disabled-bg:/,
+    "Control disabled bg present",
+  );
+  assert.match(
+    tokensContent,
+    /--control-invalid-border:/,
+    "Control invalid border present",
+  );
+
+  // Layer 6: Shadow Scale
   assert.match(tokensContent, /--shadow-sm:/, "Shadow sm present");
   assert.match(tokensContent, /--shadow-md:/, "Shadow md present");
   assert.match(tokensContent, /--shadow-lg:/, "Shadow lg present");
@@ -212,7 +242,14 @@ test("CSS custom properties: lightweight token reference validation", () => {
   }
 
   // Explicit allowlist for intentionally external properties
-  const allowlist = new Set();
+  // next/font/local generates this property on the root element, outside source CSS.
+  const rootLayout = fs.readFileSync(
+    path.join(webRoot, "app/layout.tsx"),
+    "utf8",
+  );
+  assert.match(rootLayout, /variable:\s*"--font-inter"/);
+  assert.match(rootLayout, /className=\{inter.variable\}/);
+  const allowlist = new Set(["--font-inter"]);
   const missingTokens = [];
 
   for (const [filePath, content] of fileContents.entries()) {

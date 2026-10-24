@@ -404,20 +404,60 @@ try {
   const type = async (name, value) => {
     await evaluate(`document.querySelector('input[name="${name}"]').focus()`);
     await send("Input.insertText", { text: value });
+    assert.equal(
+      await evaluate(
+        `document.querySelector('input[name="${name}"]').value===${JSON.stringify(value)}`,
+      ),
+      true,
+      "Native input must reach the focused field",
+    );
   };
   await send("Network.enable");
   await send("Page.enable");
+  await send("Page.bringToFront");
   await send("Page.navigate", { url: origin + "/login" });
   checks.step("ADMIN_BROWSER_INTERACTIVE_LOGIN");
-  await waitForInteractiveLogin({ until, evaluate });
+  try {
+    await waitForInteractiveLogin({ until, evaluate });
+  } catch (error) {
+    try {
+      const diag = await evaluate(`({
+        readyState: document.readyState,
+        focused: document.hasFocus(),
+        usernamePresent: !!document.querySelector("input[name=username]"),
+        passwordPresent: !!document.querySelector("input[name=password]"),
+        togglePresent: !!document.querySelector('button[aria-label="Hiện mật khẩu"]'),
+        toggleDisabled: !!document.querySelector('button[aria-label="Hiện mật khẩu"]:disabled')
+      })`);
+      console.error(
+        "PUBLIC_ADMIN_INTERACTIVE_LOGIN_DIAGNOSTIC",
+        JSON.stringify(diag),
+      );
+    } catch {
+      /* ignore evaluation error on timeout */
+    }
+    throw error;
+  }
   checks.step("ADMIN_BROWSER_PASSWORD_LOGIN");
   await type("username", f.username);
   await type("password", f.password);
   await evaluate('document.querySelector("button[type=submit]").click()');
   checks.step("ADMIN_BROWSER_PENDING_MFA");
-  await until(
-    '!!document.querySelector("input[name=mfa-code]:not(:disabled)")',
-  );
+  try {
+    await until(
+      '!!document.querySelector("input[name=mfa-code]:not(:disabled)")',
+    );
+  } catch (error) {
+    console.error(
+      "PUBLIC_LOGIN_FORM_DIAGNOSTIC",
+      JSON.stringify(
+        await evaluate(
+          '({focused:document.hasFocus(),usernamePresent:!!document.querySelector("input[name=username]")?.value,passwordPresent:!!document.querySelector("input[name=password]")?.value,alertPresent:!!document.querySelector("[role=alert]")})',
+        ),
+      ),
+    );
+    throw error;
+  }
   assert.equal(await evaluate("location.pathname"), "/login");
   let cookies = (
     await send("Network.getCookies", {
@@ -681,7 +721,27 @@ try {
   );
   checks.status(replay, 400);
   checks.step("REMOTE_OPERATOR_INTERACTIVE_LOGIN");
-  await waitForInteractiveLogin({ until, evaluate });
+  try {
+    await waitForInteractiveLogin({ until, evaluate });
+  } catch (error) {
+    try {
+      const diag = await evaluate(`({
+        readyState: document.readyState,
+        focused: document.hasFocus(),
+        usernamePresent: !!document.querySelector("input[name=username]"),
+        passwordPresent: !!document.querySelector("input[name=password]"),
+        togglePresent: !!document.querySelector('button[aria-label="Hiện mật khẩu"]'),
+        toggleDisabled: !!document.querySelector('button[aria-label="Hiện mật khẩu"]:disabled')
+      })`);
+      console.error(
+        "PUBLIC_OPERATOR_INTERACTIVE_LOGIN_DIAGNOSTIC",
+        JSON.stringify(diag),
+      );
+    } catch {
+      /* ignore evaluation error on timeout */
+    }
+    throw error;
+  }
   checks.step("REMOTE_OPERATOR_LOGIN_AND_STORAGE_PRIVACY");
   await type("username", "https_operator");
   await type("password", f.password);
