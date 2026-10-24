@@ -417,7 +417,27 @@ try {
   await send("Page.bringToFront");
   await send("Page.navigate", { url: origin + "/login" });
   checks.step("ADMIN_BROWSER_INTERACTIVE_LOGIN");
-  await waitForInteractiveLogin({ until, evaluate });
+  try {
+    await waitForInteractiveLogin({ until, evaluate });
+  } catch (error) {
+    try {
+      const diag = await evaluate(`({
+        readyState: document.readyState,
+        focused: document.hasFocus(),
+        usernamePresent: !!document.querySelector("input[name=username]"),
+        passwordPresent: !!document.querySelector("input[name=password]"),
+        togglePresent: !!document.querySelector('button[aria-label="Hiện mật khẩu"]'),
+        toggleDisabled: !!document.querySelector('button[aria-label="Hiện mật khẩu"]:disabled')
+      })`);
+      console.error(
+        "PUBLIC_ADMIN_INTERACTIVE_LOGIN_DIAGNOSTIC",
+        JSON.stringify(diag),
+      );
+    } catch {
+      /* ignore evaluation error on timeout */
+    }
+    throw error;
+  }
   checks.step("ADMIN_BROWSER_PASSWORD_LOGIN");
   await type("username", f.username);
   await type("password", f.password);
@@ -701,7 +721,27 @@ try {
   );
   checks.status(replay, 400);
   checks.step("REMOTE_OPERATOR_INTERACTIVE_LOGIN");
-  await waitForInteractiveLogin({ until, evaluate });
+  try {
+    await waitForInteractiveLogin({ until, evaluate });
+  } catch (error) {
+    try {
+      const diag = await evaluate(`({
+        readyState: document.readyState,
+        focused: document.hasFocus(),
+        usernamePresent: !!document.querySelector("input[name=username]"),
+        passwordPresent: !!document.querySelector("input[name=password]"),
+        togglePresent: !!document.querySelector('button[aria-label="Hiện mật khẩu"]'),
+        toggleDisabled: !!document.querySelector('button[aria-label="Hiện mật khẩu"]:disabled')
+      })`);
+      console.error(
+        "PUBLIC_OPERATOR_INTERACTIVE_LOGIN_DIAGNOSTIC",
+        JSON.stringify(diag),
+      );
+    } catch {
+      /* ignore evaluation error on timeout */
+    }
+    throw error;
+  }
   checks.step("REMOTE_OPERATOR_LOGIN_AND_STORAGE_PRIVACY");
   await type("username", "https_operator");
   await type("password", f.password);

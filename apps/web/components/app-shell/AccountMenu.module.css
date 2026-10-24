@@ -182,7 +182,7 @@
 
 .logoutButton:hover:not(:disabled) {
   background-color: var(--color-status-error-bg);
-  border-color: rgba(151, 61, 43, 0.2);
+  border-color: var(--color-status-error-border);
 }
 
 .logoutButton:focus-visible {

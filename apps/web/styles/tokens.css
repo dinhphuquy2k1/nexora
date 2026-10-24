@@ -55,6 +55,7 @@
   --color-status-success-text: #24663b;
   --color-status-error-bg: #fbe8e3;
   --color-status-error-text: #973d2b;
+  --color-status-error-border: rgba(151, 61, 43, 0.2);
   --color-status-pending-bg: #edf0ec;
   --color-status-pending-text: var(--gray-500);
 

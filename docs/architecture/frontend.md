@@ -51,7 +51,7 @@ The frontend enforces a strict Design Token and CSS Modules architecture. `apps/
 The token system is structured into four explicit layers:
 
 1. **Foundation Palette**: Raw brand and neutral color values (`--brand-navy`, `--brand-navy-dark`, `--brand-navy-light`, `--brand-orange`, `--brand-orange-light`, `--brand-orange-text`, `--gray-50` to `--gray-900`).
-2. **Semantic Application Tokens**: Role-based tokens describing UI function (`--color-primary`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`, `--color-surface`, `--color-border`, `--color-status-*`, `--focus-ring-*`). Text rendered on accent backgrounds must bind to `--color-text-on-accent` (`var(--brand-navy)`), never raw palette constants directly.
+2. **Semantic Application Tokens**: Role-based tokens describing UI function (`--color-primary`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`, `--color-surface`, `--color-border`, `--color-status-error-border`, `--color-status-*`, `--focus-ring-*`). Text rendered on accent backgrounds must bind to `--color-text-on-accent` (`var(--brand-navy)`) in default state and `--color-text-on-accent-hover` in hover state, never raw palette constants directly. Semantic error borders bind to `--color-status-error-border` (`rgba(151, 61, 43, 0.2)`), avoiding value-based conflation with text or focus tokens.
 3. **Dark-Surface Context Tokens**: Role-specific dark-theme tokens (`--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-border-on-dark`, `--color-border-on-dark-subtle`, `--color-surface-on-dark`, `--color-surface-on-dark-hover`, `--shadow-on-dark-tooltip`).
 4. **Standardized Scales**:
    - **Typography Scale**: `--font-size-2xs` (10px), `--font-size-xs` (11px), `--font-size-sm` (12px), `--font-size-base` (13px), `--font-size-md` (14px), `--font-size-lg` (15px), `--font-size-xl` (16px), `--font-size-2xl` (20px), `--font-size-3xl` (24px).
@@ -73,9 +73,9 @@ The token system is structured into four explicit layers:
 
 Tokens must be consumed strictly according to their intended semantic role:
 
-- **Text Colors**: Use text tokens (`--color-text`, `--color-text-muted`, `--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-text-on-accent`, `--color-accent-text`, status text tokens). Never use surface tokens (`--color-surface`, `--color-background`) or border tokens (`--color-border-subtle`, `--color-border`) as text colors. For text rendered on dark surfaces (e.g. Navy sidebar, dark monograms, avatar initials, mobile drawer), use `--color-text-on-dark` rather than `--color-surface`.
+- **Text Colors**: Use text tokens (`--color-text`, `--color-text-muted`, `--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-text-on-accent`, `--color-text-on-accent-hover`, `--color-accent-text`, status text tokens). Never use surface tokens (`--color-surface`, `--color-background`) or border tokens (`--color-border-subtle`, `--color-border`) as text colors. For text rendered on dark surfaces (e.g. Navy sidebar, dark monograms, avatar initials, mobile drawer), use `--color-text-on-dark` rather than `--color-surface`.
 - **Backgrounds**: Use surface and background tokens (`--color-surface`, `--color-background`, `--color-surface-muted`, `--color-surface-on-dark`, status bg tokens). Never use text or border tokens as background colors.
-- **Borders**: Use border tokens (`--color-border`, `--color-border-subtle`, `--color-border-on-dark`, status error border). Never use surface or text tokens for border colors.
+- **Borders**: Use border tokens (`--color-border`, `--color-border-subtle`, `--color-border-on-dark`, `--color-status-error-border`). Never use surface, focus ring, or text tokens for border colors.
 - **Focus Rings & Outlines**: Use focus tokens (`--focus-ring-on-light`, `--focus-ring-on-dark`, `--control-focus-ring`, `--control-invalid-focus-ring`). Never use generic border or surface tokens for focus rings.
 - **Elevations**: Use elevation shadow tokens (`--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-on-dark-tooltip`).
 - **No Value-Based Conflation**: Never reuse a token solely because its current hex/pixel value happens to match. Tokens represent architectural intent and role.
@@ -88,7 +88,7 @@ Tokens must be consumed strictly according to their intended semantic role:
   - Unnecessary fallbacks (e.g. `var(--space-4, 16px)`, `var(--color-surface, #ffffff)`) are strictly forbidden because they hide missing token declarations and create maintenance drift.
 - **In `packages/ui`**:
   - Components consume canonical design tokens directly (`var(--control-border)`).
-  - Standalone fallbacks are permitted **only** where an actual standalone-consumer contract requires independent execution outside the Nexora theme.
+  - Standalone fallbacks are permitted **only** where an actual standalone-consumer contract requires independent execution outside the Nexora theme (e.g. `var(--control-border, #cbd5e1)`).
   - Deeply nested fallback chains (e.g. `var(--control-border, var(--color-border-subtle, #cbd5e1))`) and raw value duplication across components solely to echo root defaults are forbidden.
   - If standalone use is required, it must be verified in an independent harness without the root theme.
 
@@ -106,19 +106,23 @@ Per [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-
   - Readonly: `var(--control-readonly-bg)`, `cursor: default`.
 - **Textarea Parity**: Retained in `@nexora/ui` for domain-neutral form control parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, and state semantics; default minimum height is 88px with vertical resize.
 - **Select Specification**: Standardized to `var(--control-height)`, identical border, radius, and focus parity matching `TextInput`. Implementation is deferred to M2's first consumer per YAGNI and component reuse policy.
-- **Button Contrast & WCAG AA**: Foreground text on `--color-accent` (`#F58A24`) uses the semantic token `--color-text-on-accent: var(--brand-navy, #172b4d)` providing a **5.74:1** contrast ratio (surpassing the WCAG AA 4.5:1 threshold for normal text). On hover (`--color-accent-hover: #E07716`), contrast is **4.58:1** (>= 4.5:1). Contrast is verified dynamically on real rendered Button primitives in genuine `:hover` state via CDP pointer dispatch, confirming `>= 4.5:1` ratio after transition completion (0.15s) and compositing, with negative accessibility regression tests proving that deliberate inaccessible contrast fails closed.
+- **Button Contrast & WCAG AA**: Foreground text on `--color-accent` (`#F58A24`) uses the semantic token `--color-text-on-accent: var(--brand-navy, #172b4d)` providing a **5.74:1** contrast ratio (surpassing the WCAG AA 4.5:1 threshold for normal text). On hover (`--color-accent-hover: #E07716`), enabled button foreground switches dynamically to `--color-text-on-accent-hover` with `color 0.15s ease` transition, providing a verified **4.58:1** (>= 4.5:1) contrast ratio. Disabled button state preserves `--control-disabled-text`. Contrast is verified dynamically on real rendered Button primitives in genuine `:hover` state via CDP pointer dispatch, confirming `>= 4.5:1` ratio after transition completion (0.15s) and compositing. Negative accessibility regression tests prove that deliberate inaccessible contrast fails closed, and distinct foreground token overrides prove that hover resolves its dedicated foreground token rather than reusing the default.
 - **Layout Scoping**: Feature layouts (Login, Setup, Customer, Carrier) may adjust surrounding whitespace, layout width, or leading icon padding, but must **never** use `!important` or override the default states of shared controls.
 
-### E. Legitimate CSS-Local Exceptions
+### E. Legitimate CSS-Local Exceptions & Literal-Color Policy
 
-CSS literals (raw values) are permitted without creating a design token only in these explicit cases:
+Nexora enforces an automated CSS policy scanner (`analyzeCssPolicy`) that inspects all production CSS in `apps/web/**/*.css`, `packages/ui/**/*.css`, and future `apps/web/features/**/*.css`. The scanner strictly detects raw colors (`#hex`, `rgb()`, `rgba()`, `hsl()`, `hsla()`, and CSS named colors) across color, background/gradient, border, outline, and shadow properties, taking into account multiline declarations and nested functions.
 
-1. **Standard Contextual Constants**: `0`, `auto`, `inherit`, `transparent`, `100%`, `50%`, `100vh`, `100dvh`.
-2. **Component-Local Geometric Coordinates**: Local layout positioning, offsets, and icon alignments (e.g. `top: 10px; right: 12px;`, `left: calc(100% + 8px);`, active bar `top: 6px; bottom: 6px; width: 4px;`).
-3. **Component-Specific Micro-Shadows on Complex Backgrounds**: Subtle monogram box-shadows (e.g. `0 1px 2px rgba(0, 0, 0, 0.1)`) that depend directly on component-local gradients and do not constitute an elevation surface.
-4. **Browser Pseudo-Elements**: Scrollbar sizing (`width: 6px; height: 6px;`).
+Raw CSS literals are strictly forbidden in production component CSS, with only these explicit, narrow exceptions:
 
-Creating hundreds of single-use tokens for purely local coordinates or micro-adjustments is anti-pattern and rejected.
+1. **Foundational Token Palette**: Canonical color definitions in `apps/web/styles/tokens.css` declare raw hex and rgba palette values to establish the design token layer.
+2. **Standard Contextual Constants**: `0`, `auto`, `inherit`, `transparent`, `currentcolor`, `100%`, `50%`, `100vh`, `100dvh`.
+3. **Component-Local Geometric Coordinates**: Local layout positioning, offsets, and icon alignments (e.g. `top: 10px; right: 12px;`, `left: calc(100% + 8px);`, active bar `top: 6px; bottom: 6px; width: 4px;`).
+4. **Component-Specific Micro-Shadows on Complex Backgrounds**: Subtle monogram box-shadows (e.g. `0 1px 2px rgba(0, 0, 0, 0.1)`) that depend directly on component-local gradients and do not constitute an elevation surface.
+5. **Browser Pseudo-Elements**: Scrollbar sizing (`width: 6px; height: 6px;`).
+6. **Standalone Fallbacks in `packages/ui`**: Standalone fallbacks inside `var(--token, fallback)` in `packages/ui` are permitted under a documented standalone consumer contract. Raw colors outside `var()` remain forbidden.
+
+Creating hundreds of single-use tokens for purely local coordinates or micro-adjustments is anti-pattern and rejected. Component allowlists that bypass scanner policy on entire files or components are strictly forbidden.
 
 ### F. Testing Strategy & Runtime Token Override
 

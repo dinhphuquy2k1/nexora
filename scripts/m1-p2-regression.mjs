@@ -898,6 +898,162 @@ try {
     );
   }
 
+  // 5. Distinct Foreground Tokens Regression: Prove --color-text-on-accent and --color-text-on-accent-hover can differ
+  console.log(
+    "\nTesting distinct Button foreground tokens on real element (--color-text-on-accent vs --color-text-on-accent-hover)...",
+  );
+  try {
+    const customDefaultFg = "#000000";
+    const customHoverFg = "#0f172a";
+
+    await evaluate(`(() => {
+      document.documentElement.style.setProperty('--color-text-on-accent', '${customDefaultFg}');
+      document.documentElement.style.setProperty('--color-text-on-accent-hover', '${customHoverFg}');
+    })()`);
+
+    // Ensure pointer is neutral (0, 0)
+    await send("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: 0,
+      y: 0,
+    });
+    await delay(250);
+
+    const overriddenDefaultState = await evaluate(`(() => {
+      const btn = document.querySelector("button[type='submit']");
+      const style = window.getComputedStyle(btn);
+      return {
+        isHover: btn.matches(":hover"),
+        color: style.color,
+        backgroundColor: style.backgroundColor,
+        opacity: parseFloat(style.opacity) || 1,
+      };
+    })()`);
+
+    if (overriddenDefaultState.isHover) {
+      errors.push("Button must not be hovered when pointer is at (0, 0)");
+    }
+
+    const defaultOverriddenFgRgb = parseCssColor(overriddenDefaultState.color);
+    const expectedDefaultRgb = parseCssColor(customDefaultFg);
+    if (
+      defaultOverriddenFgRgb.r !== expectedDefaultRgb.r ||
+      defaultOverriddenFgRgb.g !== expectedDefaultRgb.g ||
+      defaultOverriddenFgRgb.b !== expectedDefaultRgb.b
+    ) {
+      errors.push(
+        `Overridden Button default state color must compute to --color-text-on-accent (${customDefaultFg}), but was ${overriddenDefaultState.color}`,
+      );
+    }
+
+    const overriddenDefaultEffectiveBg = compositeColor(
+      parseCssColor(overriddenDefaultState.backgroundColor),
+      cardBgRgb,
+      overriddenDefaultState.opacity,
+    );
+    const overriddenDefaultEffectiveFg = compositeColor(
+      defaultOverriddenFgRgb,
+      {
+        r: overriddenDefaultEffectiveBg[0],
+        g: overriddenDefaultEffectiveBg[1],
+        b: overriddenDefaultEffectiveBg[2],
+        a: 1,
+      },
+      1,
+    );
+    const overriddenDefaultContrast = assertWcagAaContrast(
+      overriddenDefaultEffectiveFg,
+      overriddenDefaultEffectiveBg,
+      "Overridden distinct default Button foreground",
+    );
+    console.log(
+      `Overridden default Button contrast: ${overriddenDefaultContrast.toFixed(2)}:1 (Text: ${overriddenDefaultState.color})`,
+    );
+
+    // Now move CDP pointer onto real Button to trigger genuine :hover
+    await send("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: defaultButtonState.centerX,
+      y: defaultButtonState.centerY,
+    });
+    await until(
+      "document.querySelector(\"button[type='submit']\").matches(':hover')",
+      "Button element did not enter :hover state during distinct tokens test",
+    );
+    await delay(250); // await CSS background-color and color transitions (0.15s) to complete
+
+    const overriddenHoverState = await evaluate(`(() => {
+      const btn = document.querySelector("button[type='submit']");
+      const style = window.getComputedStyle(btn);
+      return {
+        isHover: btn.matches(":hover"),
+        color: style.color,
+        backgroundColor: style.backgroundColor,
+        opacity: parseFloat(style.opacity) || 1,
+      };
+    })()`);
+
+    if (!overriddenHoverState.isHover) {
+      errors.push("Button must be hovered when pointer is on element");
+    }
+
+    const hoverOverriddenFgRgb = parseCssColor(overriddenHoverState.color);
+    const expectedHoverRgb = parseCssColor(customHoverFg);
+    if (
+      hoverOverriddenFgRgb.r !== expectedHoverRgb.r ||
+      hoverOverriddenFgRgb.g !== expectedHoverRgb.g ||
+      hoverOverriddenFgRgb.b !== expectedHoverRgb.b
+    ) {
+      errors.push(
+        `Overridden Button hover state color must compute to --color-text-on-accent-hover (${customHoverFg}), but was ${overriddenHoverState.color}`,
+      );
+    }
+
+    if (overriddenHoverState.color === overriddenDefaultState.color) {
+      errors.push(
+        "Button hover state must reflect a distinct foreground color when --color-text-on-accent and --color-text-on-accent-hover differ",
+      );
+    }
+
+    const overriddenHoverEffectiveBg = compositeColor(
+      parseCssColor(overriddenHoverState.backgroundColor),
+      cardBgRgb,
+      overriddenHoverState.opacity,
+    );
+    const overriddenHoverEffectiveFg = compositeColor(
+      hoverOverriddenFgRgb,
+      {
+        r: overriddenHoverEffectiveBg[0],
+        g: overriddenHoverEffectiveBg[1],
+        b: overriddenHoverEffectiveBg[2],
+        a: 1,
+      },
+      1,
+    );
+    const overriddenHoverContrast = assertWcagAaContrast(
+      overriddenHoverEffectiveFg,
+      overriddenHoverEffectiveBg,
+      "Overridden distinct hover Button foreground",
+    );
+    console.log(
+      `Overridden hover Button contrast: ${overriddenHoverContrast.toFixed(2)}:1 (Text: ${overriddenHoverState.color})`,
+    );
+  } catch (err) {
+    errors.push(`Distinct foreground tokens test failed: ${err.message}`);
+  } finally {
+    // Restore root token overrides and pointer to neutral position
+    await evaluate(`(() => {
+      document.documentElement.style.removeProperty('--color-text-on-accent');
+      document.documentElement.style.removeProperty('--color-text-on-accent-hover');
+    })()`);
+    await send("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: 0,
+      y: 0,
+    });
+    await delay(250);
+  }
+
   // Runtime Token Override Verification
   console.log("\nTesting Runtime Token Override on form controls...");
   const overrideTest = await evaluate(`(() => {

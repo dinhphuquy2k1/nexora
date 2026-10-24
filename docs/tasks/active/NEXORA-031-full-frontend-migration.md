@@ -461,3 +461,40 @@ Addressed all remaining M1 review findings from the latest review on PR #27, pre
    - `pnpm preflight:check`: ALL PASSED.
 
 This evidence commit changes documentation and implementation to fix the remaining M1 findings. Exact final documentation-head Preflight/Foundation results and tested merge lineage are recorded in PR27 metadata after execution, avoiding a SHA-only documentation loop. Until those checks finish, final-head readiness is VERIFICATION PENDING. The implementation-source PASS above must not be relabeled as the new commit's PASS. No claim of production DNS/certificate/firewall/NTP/key custody/backup deployment verification; CI uses owned disposable resources only. Immutable design snapshot unchanged; Documentation Impact REQUIRED, canonical frontend/testing documentation synchronized.
+
+### M1.10 Resolution of Remaining PR #27 Review Findings (2026-10-24)
+
+Addressed all remaining review findings on PR #27 (HEAD `525222487e88807864e9d5ab19ba29ef48540a27`), strictly within M1 milestone scope:
+
+1. **P2 — Button Hover Foreground Token (`--color-text-on-accent-hover`)**:
+   - **Root Cause**: `.button:hover:not(:disabled)` in `packages/ui/src/Controls.module.css` changed background to `--color-accent-hover`, but omitted `color: var(--color-text-on-accent-hover)`. The hover contrast unit test formula also reused default foreground instead of the dedicated hover foreground token.
+   - **Fix**:
+     - In `packages/ui/src/Controls.module.css`: Added `color 0.15s ease` to `.button` transition and declared `color: var(--color-text-on-accent-hover);` on `.button:hover:not(:disabled)`.
+     - In `apps/web/test/form-control-contracts.test.mjs`: Updated hover contrast unit test to resolve `--color-text-on-accent-hover` over `--color-accent-hover` (4.58:1 contrast).
+     - In `scripts/m1-p2-regression.mjs`: Added distinct foreground token regression test. Overrides `--color-text-on-accent` (`#102a43`) and `--color-text-on-accent-hover` (`#610404`) to distinct contrasting values, interacts with the real Button via genuine CDP pointer moves (`Input.dispatchMouseEvent`), verifies computed styles transition cleanly to the distinct hover foreground token and back, and restores all tokens/styles in `finally`.
+
+2. **P2 — CSS Policy Raw Color Detection & Semantic Error Border Token**:
+   - **Root Cause**: `analyzeCssPolicy` in `form-control-contracts.test.mjs` only checked semantic token role misuse (e.g. using a border token for text), returning empty violation arrays for literal `#hex`, `rgb()`, `rgba()`, `hsl()`, or named colors. Production CSS contained hardcoded `rgba(151, 61, 43, 0.2)` in `.errorBanner` and `.logoutButton:hover`.
+   - **Fix**:
+     - In `apps/web/test/form-control-contracts.test.mjs`: Enhanced `analyzeCssPolicy` to parse multiline declarations and nested functions, detecting raw colors (`#hex`, `rgb()`, `rgba()`, `hsl()`, `hsla()`, and named colors) across color, background/gradient, border, outline, and shadow properties.
+     - Preserved permitted narrow exceptions: foundational palette in `tokens.css`, documented contextual constants (`0`, `auto`, `inherit`, `transparent`, `currentcolor`, etc.), component-local geometric coordinates, documented micro-shadows, browser pseudo-elements, and `@nexora/ui` standalone fallbacks inside `var(--token, fallback)`.
+     - Audited all production CSS discovered by the scanner: Detected 2 actual violations (`.errorBanner` in `login.module.css` and `.logoutButton:hover` in `AccountMenu.module.css`).
+     - Added canonical semantic token `--color-status-error-border: rgba(151, 61, 43, 0.2);` in `apps/web/styles/tokens.css` under Status semantic colors, and replaced both raw rgba borders with `var(--color-status-error-border)`.
+     - Added negative unit tests (cases 5a through 5f) proving raw color violations are detected across `apps/web`, `packages/ui`, and future `apps/web/features/**`.
+     - Added positive unit tests (cases 6a through 6e) proving canonical palette and permitted exceptions pass cleanly.
+
+3. **Investigation of Foundation CI Run 40084977848**:
+   - **Failure Analysis**: In run `40084977848` attempt 1, step 7 "Disposable public HTTPS, ingress and remote onboarding" failed at `ADMIN_BROWSER_INTERACTIVE_LOGIN` with `REQUEST_TIMEOUT` (10s timeout in `until` inside `public-https-browser.mjs`). Docker quality and local browser smoke had passed; downstream persistence and dev smoke were skipped.
+   - **Execution & Finding**: Executed canonical bounded same-head rerun (`gh run rerun 40084977848 --failed`) on attempt 2 per repository rules (NEXORA-024, NEXORA-020). Attempt 2 completed with conclusion **SUCCESS** across all steps (Docker quality, Local smoke, Disposable public HTTPS, DB persistence, Dev HMR smoke, Preserve M1 browser evidence). This established that the failure was intermittent runner latency / CDP navigation scheduling rather than a broken hydration assertion or code bug.
+   - **Harness Hardening**: In `scripts/public-https-browser.mjs`, added safe non-sensitive boolean diagnostics (`readyState`, `focused`, `usernamePresent`, `passwordPresent`, `togglePresent`, `toggleDisabled`) upon timeout in both `ADMIN_BROWSER_INTERACTIVE_LOGIN` and `REMOTE_OPERATOR_INTERACTIVE_LOGIN`, without exposing passwords, MFA codes, cookies, or raw environment payloads.
+
+4. **Executed Verification Evidence**:
+   - `node --test apps/web/test/form-control-contracts.test.mjs apps/web/test/shared-ui.test.mjs apps/web/test/m1-shell.test.mjs apps/web/test/navigation.test.mjs packages/ui/test/status-tone.test.mjs`: 25/25 PASSED.
+   - `pnpm typecheck`: ALL PASSED (10/10 tasks successful in Turbo).
+   - `pnpm lint`: ALL PASSED (`Workspace boundaries PASS`, ESLint clean).
+   - `pnpm format:check`: ALL PASSED.
+   - `node scripts/docs-check.mjs`: ALL PASSED.
+   - `node scripts/preflight-policy-check.mjs`: ALL PASSED.
+   - Foundation CI on HEAD (`525222487e88807864e9d5ab19ba29ef48540a27`): Run [40084977848](https://github.com/dinhphuquy2k1/nexora/actions/runs/40084977848) attempt 2 SUCCESS.
+
+Task status remains IN PROGRESS; M1 milestone complete; Verification status is VERIFICATION PENDING until final documentation-head Preflight/Foundation runs complete on remote. Stop at M1 checkpoint for owner review. M2–M5 remain NOT STARTED.

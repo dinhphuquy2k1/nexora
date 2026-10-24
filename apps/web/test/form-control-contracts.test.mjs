@@ -38,6 +38,58 @@ function stripCssComments(css) {
   return css.replace(/\/\*[\s\S]*?\*\//g, "");
 }
 
+// Helper to strip balanced var(...) expressions to isolate standalone fallbacks in packages/ui
+function stripBalancedVars(str) {
+  let result = "";
+  let i = 0;
+  while (i < str.length) {
+    if (str.startsWith("var(", i)) {
+      let depth = 1;
+      let j = i + 4;
+      while (j < str.length && depth > 0) {
+        if (str[j] === "(") depth++;
+        else if (str[j] === ")") depth--;
+        j++;
+      }
+      result += "var(--stripped)";
+      i = j;
+    } else {
+      result += str[i];
+      i++;
+    }
+  }
+  return result;
+}
+
+const COLOR_PROPERTIES = new Set([
+  "color",
+  "-webkit-text-fill-color",
+  "caret-color",
+  "accent-color",
+  "fill",
+  "stroke",
+  "background",
+  "background-color",
+  "background-image",
+  "border",
+  "border-color",
+  "border-top",
+  "border-top-color",
+  "border-bottom",
+  "border-bottom-color",
+  "border-left",
+  "border-left-color",
+  "border-right",
+  "border-right-color",
+  "outline",
+  "outline-color",
+  "box-shadow",
+  "text-shadow",
+]);
+
+const RAW_COLOR_REGEX =
+  /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{4}|[0-9a-fA-F]{3})\b|\b(?:rgb|rgba|hsl|hsla|hwb|lab|lch|color)\s*\(|(?<![a-zA-Z0-9_-])(?:red|blue|green|black|white|gray|grey|orange|yellow|purple|pink|cyan|magenta|brown|navy|teal|olive|maroon|silver|gold|lime|aqua|fuchsia)(?![a-zA-Z0-9_-])/i;
+
 // Calculate relative luminance per WCAG 2.1
 function getLuminance(r, g, b) {
   const [rs, gs, bs] = [r, g, b].map((c) => {
@@ -76,6 +128,7 @@ function analyzeCssPolicy(fileList, declaredTokens, allowlist = new Set()) {
     nestedFallbackChains: [],
     semanticMisuse: [],
     importantOverrides: [],
+    rawColors: [],
   };
 
   for (const { filePath, content } of fileList) {
@@ -362,6 +415,43 @@ function analyzeCssPolicy(fileList, declaredTokens, allowlist = new Set()) {
           }
         }
       }
+
+      // 5. Raw color enforcement per styling policy
+      if (!isTokensFile && COLOR_PROPERTIES.has(prop)) {
+        // Strip string literals and url(...) contents to avoid false positives
+        let testVal = val
+          .replace(/url\([^)]*\)/gi, "")
+          .replace(/"[^"]*"/g, '""')
+          .replace(/'[^']*'/g, "''");
+
+        // In packages/ui, permitted standalone fallback values inside var(--token, fallback) are allowed
+        if (!isAppWeb) {
+          testVal = stripBalancedVars(testVal);
+        }
+
+        // Legitimate documented micro-shadow exceptions on complex backgrounds:
+        // monogram subtle box-shadow (0 1px 2px rgba(0, 0, 0, 0.x)) per frontend.md Section E.3
+        const isDocumentedMicroShadow =
+          prop === "box-shadow" &&
+          /^0\s+1px\s+2px\s+rgba\(0,\s*0,\s*0,\s*0\.\d+\)$/.test(testVal);
+
+        // Legitimate documented native overlay backdrop exception per reusable-components.md Section 8
+        const isDocumentedBackdrop =
+          filePath.replace(/\\/g, "/").endsWith("Overlay.module.css") &&
+          prop === "background" &&
+          /rgb\(15\s+23\s+42\s*\/\s*55%\)/.test(testVal);
+
+        if (!isDocumentedMicroShadow && !isDocumentedBackdrop) {
+          if (RAW_COLOR_REGEX.test(testVal)) {
+            violations.rawColors.push({
+              file: filePath,
+              property: prop,
+              value: val,
+              issue: `Disallowed raw color in property '${prop}': ${val}`,
+            });
+          }
+        }
+      }
     }
   }
 
@@ -562,6 +652,12 @@ test("Token Contract: complete production frontend CSS policy compliance", () =>
     [],
     `Found forbidden !important in CSS modules: ${JSON.stringify(violations.importantOverrides, null, 2)}`,
   );
+
+  assert.deepEqual(
+    violations.rawColors,
+    [],
+    `Found unauthorized raw colors: ${JSON.stringify(violations.rawColors, null, 2)}`,
+  );
 });
 
 test("Token Contract: negative validation proves policy violations are detected in features/ modules", () => {
@@ -726,6 +822,108 @@ test("Token Contract: negative validation proves policy violations are detected 
   ];
   const r5 = analyzeCssPolicy(importantCss, declaredTokens, allowlist);
   assert.equal(r5.importantOverrides.length, 1);
+
+  // Test 6: Raw color in features module (hex colors across color, background, border)
+  const rawColorHexFeatureCss = [
+    {
+      filePath: "apps/web/features/shipments/Shipments.module.css",
+      content:
+        ".x { color: #ff00ff; background: #123456; border: 1px solid #abcdef; }",
+    },
+  ];
+  const r6 = analyzeCssPolicy(rawColorHexFeatureCss, declaredTokens, allowlist);
+  assert.equal(
+    r6.rawColors.length,
+    3,
+    "Must detect 3 raw color violations in features module",
+  );
+
+  // Test 7: Raw rgb/rgba color in apps/web component
+  const rawRgbWebCss = [
+    {
+      filePath: "apps/web/components/Badge.module.css",
+      content: ".badge { background-color: rgba(255, 0, 0, 0.5); }",
+    },
+  ];
+  const r7 = analyzeCssPolicy(rawRgbWebCss, declaredTokens, allowlist);
+  assert.equal(r7.rawColors.length, 1);
+  assert.equal(r7.rawColors[0].property, "background-color");
+
+  // Test 8: Raw named color in packages/ui outside var()
+  const rawNamedUiCss = [
+    {
+      filePath: "packages/ui/src/CustomButton.module.css",
+      content: ".btn { border: 1px solid red; color: white; }",
+    },
+  ];
+  const r8 = analyzeCssPolicy(rawNamedUiCss, declaredTokens, allowlist);
+  assert.equal(r8.rawColors.length, 2);
+
+  // Test 9: Multiline raw color declaration
+  const multilineRawCss = [
+    {
+      filePath: "apps/web/features/customers/CustomerList.module.css",
+      content: `.box {
+        border:
+          1px solid
+          #ff5500;
+      }`,
+    },
+  ];
+  const r9 = analyzeCssPolicy(multilineRawCss, declaredTokens, allowlist);
+  assert.equal(r9.rawColors.length, 1);
+  assert.equal(r9.rawColors[0].property, "border");
+});
+
+test("Token Contract: positive validation proves canonical palette and documented exceptions pass", () => {
+  const declaredTokens = new Set(["--color-border", "--color-primary"]);
+  const allowlist = new Set();
+
+  // 1. Raw palette at canonical tokens.css is permitted
+  const tokensCss = [
+    {
+      filePath: "apps/web/styles/tokens.css",
+      content: ":root { --brand-navy: #172b4d; --gray-100: #f1f5f9; }",
+    },
+  ];
+  const rTokens = analyzeCssPolicy(tokensCss, declaredTokens, allowlist);
+  assert.deepEqual(rTokens.rawColors, []);
+
+  // 2. Documented monogram micro-shadow exception passes
+  const microShadowCss = [
+    {
+      filePath: "apps/web/components/app-shell/Header.module.css",
+      content: ".brandMonogram { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }",
+    },
+  ];
+  const rShadow = analyzeCssPolicy(microShadowCss, declaredTokens, allowlist);
+  assert.deepEqual(rShadow.rawColors, []);
+
+  // 3. Documented contextual constants pass (transparent, currentColor, inherit)
+  const contextualConstantsCss = [
+    {
+      filePath: "apps/web/app/login/login.module.css",
+      content:
+        ".field { color: inherit; background-color: transparent; border: 1px solid currentColor; }",
+    },
+  ];
+  const rContext = analyzeCssPolicy(
+    contextualConstantsCss,
+    declaredTokens,
+    allowlist,
+  );
+  assert.deepEqual(rContext.rawColors, []);
+
+  // 4. Documented standalone fallbacks inside var() in packages/ui pass
+  const uiStandaloneCss = [
+    {
+      filePath: "packages/ui/src/Panel.module.css",
+      content:
+        ".panel { color: var(--color-primary, #172b4d); border: 1px solid var(--color-border, #e2e8f0); }",
+    },
+  ];
+  const rUi = analyzeCssPolicy(uiStandaloneCss, declaredTokens, allowlist);
+  assert.deepEqual(rUi.rawColors, []);
 });
 
 // ============================================================================
@@ -748,6 +946,11 @@ test("Component Consistency: Form controls share canonical contract tokens for s
     css,
     /\.button\s*\{[^}]*height:\s*var\(--control-height/s,
     "Button binds height to --control-height",
+  );
+  assert.match(
+    css,
+    /\.button:hover:not\(:disabled\)\s*\{[^}]*color:\s*var\(--color-text-on-accent-hover\)/s,
+    "Button:hover:not(:disabled) must consume --color-text-on-accent-hover",
   );
   assert.match(
     css,
@@ -863,15 +1066,17 @@ test("Component Consistency: Button WCAG AA contrast compliance (>= 4.5:1) from 
 
   // Resolve actual theme tokens
   const textColorHex = resolveTokenHex("--color-text-on-accent");
+  const textHoverColorHex = resolveTokenHex("--color-text-on-accent-hover");
   const accentBgHex = resolveTokenHex("--color-accent");
   const accentHoverBgHex = resolveTokenHex("--color-accent-hover");
 
   const textRgb = hexToRgb(textColorHex);
+  const textHoverRgb = hexToRgb(textHoverColorHex);
   const bgRgb = hexToRgb(accentBgHex);
   const hoverBgRgb = hexToRgb(accentHoverBgHex);
 
   const defaultRatio = getContrastRatio(textRgb, bgRgb);
-  const hoverRatio = getContrastRatio(textRgb, hoverBgRgb);
+  const hoverRatio = getContrastRatio(textHoverRgb, hoverBgRgb);
 
   assert.ok(
     defaultRatio >= 4.5,
@@ -879,7 +1084,7 @@ test("Component Consistency: Button WCAG AA contrast compliance (>= 4.5:1) from 
   );
   assert.ok(
     hoverRatio >= 4.5,
-    `Button hover contrast ratio from resolved tokens (${textColorHex} on ${accentHoverBgHex}) must be >= 4.5:1, but was ${hoverRatio.toFixed(2)}:1`,
+    `Button hover contrast ratio from resolved tokens (${textHoverColorHex} on ${accentHoverBgHex}) must be >= 4.5:1, but was ${hoverRatio.toFixed(2)}:1`,
   );
 
   // Negative test proof: An inaccessible combination (e.g. white text on brand orange) MUST fail WCAG AA
