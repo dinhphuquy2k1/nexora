@@ -629,9 +629,12 @@ Documentation Impact REQUIRED: changed delivery/approval/baseline facts in this 
 
 Preparation failures resolved before push: static binding initially rejected an accidental duplicate Task alias in the draft snapshot; removed that prose alias and recomputed digest, leaving the checker strict. Initial local lint invocation failed ERR_MODULE_NOT_FOUND/typescript in the new worktree; reran with the existing pinned toolchain (same lockfile), temporary resolution link removed afterward. No code/CI/security assertion was changed to make checks pass. Agent behavioral evaluation NOT RUN; M2 implementation/full quality/build/API/browser/screenshots/runtime NOT RUN pending authenticated approval. Hosted planning-gate results belong in the new PR metadata and must not be represented as frontend verification.
 
-
 ## M2 authorization and implementation start — 2026-10-24
 
 Authenticated GitHub PR28 comments/reviews fully fetched (2 comments,0 reviews, page size100); owner/User/dinhphuquy2k1 comment6385229351 created=updated2026-10-24T14:11:58Z contains exact v2 formal decision and raw-byte digest1deef061…. Existing canonical verifyGitHubApprovalEvidence accepted these connector-authenticated payloads, with no later relevant revocation. This is an evidence adapter to the canonical verifier, not a claim that a local token authenticated GitHub CI. Mutable approval APPROVED; explicit owner continuation authorizes M2 implementation IN PROGRESS. Immutable v2/v1/v8 unchanged. Task remains IN PROGRESS, overall capability PLANNED until M1–M5 exist; M3–M5 NOT STARTED.
 
 Environment rechecked: Node24.19.0/pnpm10.34.6, Docker28.4.0, about96MiB free. Canonical local Docker build is unsafe; no unrelated data/resources removed. Continue independent implementation/testing and use genuine hosted canonical verification. Reference source hashes will be rechecked before adaptation.
+
+### M2-A foundations execution
+
+Frozen offline install with --frozen-lockfile --ignore-scripts --package-import-method hardlink PASS (427 cached packages,0 downloads, unchanged lockfile). Shared build PASS. RED customer-ui-model test failed on missing proposed modules before implementation; GREEN covers query limits/blank/repeated keys, exact bounds/null/omitted/allowlists/no-op payloads, stats unavailable, generation invalidation and non-atomic deletion. Generated SDK loopback transport tests cover all eight operations; this is controlled HTTP contract evidence, not genuine database integration. Feature-local helpers retain SDK aliases and backend authority; native Select reuses the existing control CSS class. Genuine browser/token override and API/DB evidence remain required. No production menu activated yet.
