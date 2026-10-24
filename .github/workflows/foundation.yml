@@ -12,6 +12,7 @@ jobs:
     env:
       COMPOSE_PROJECT_NAME: nexora-ci
       M1_EVIDENCE_DIR: artifacts/m1
+      M2_EVIDENCE_DIR: artifacts/m2
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Select pinned host Node for smoke harnesses
@@ -36,6 +37,14 @@ jobs:
         with:
           name: m1-browser-evidence
           path: artifacts/m1
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve Customer UI browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: customer-ui-evidence
+          path: artifacts/m2
           if-no-files-found: warn
           retention-days: 14
       - name: Diagnostics
