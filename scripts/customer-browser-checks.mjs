@@ -195,11 +195,11 @@ export async function verifyCustomerBrowser({
     await fill("addressText", "Địa chỉ tổng hợp");
     await click("Lưu khách hàng");
     await until(
-      '!!document.querySelector(\"dialog[open] input[name=phone][aria-invalid=true]\")',
+      '!!document.querySelector("dialog[open] input[name=phone][aria-invalid=true]")',
     );
     assert.equal(
       await evaluate(
-        'document.querySelector(\"dialog[open] input[name=name]\").value===\"Bản ghi trùng thử nghiệm\"',
+        'document.querySelector("dialog[open] input[name=name]").value==="Bản ghi trùng thử nghiệm"',
       ),
       true,
     );
