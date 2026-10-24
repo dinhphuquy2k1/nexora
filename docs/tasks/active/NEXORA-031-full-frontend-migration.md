@@ -15,8 +15,8 @@ Documentation Impact: REQUIRED
 - **Design SHA-256**: 1deef061d631c24a4170ce295deaa912cfb69ca7f5a552e43ae75ae1496b38a7
 - **Reviewed baseline**: 55e3c1595d2b90a8cd85f5e3c06ab1f0552933f5
 - **Approval authority**: dinhphuquy2k1
-- **Approval status**: PENDING_REVIEW
-- **Approval evidence**: Owner's 2026-10-24 M2 directive authorizes design preparation/new PR; authenticated decision for this revision/digest on the new PR is pending. PR27 comment6360485845 approves historical v1 only.
+- **Approval status**: APPROVED
+- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/28#issuecomment-6385229351
 
 Current delivery decision (2026-10-24): M1 is merged in PR27; owner explicitly requests Customer UI/M2 on a new branch/PR. The effective v2 record above supersedes v1's one-PR delivery constraint and does not revoke historical M1 approval. Historical sections below retain their original dates/status/results. Overall capability remains PLANNED because M2–M5 are not implemented; M1 capability is IMPLEMENTED. M2 design preparation is in progress, implementation NOT STARTED pending new PR-specific authenticated approval. No new task ID is allocated for this existing milestone.
 
@@ -628,3 +628,10 @@ Documentation Impact REQUIRED: changed delivery/approval/baseline facts in this 
 | Independent pre-code design assessment | Separate reviewer reports no confirmed P1/P2/P3; exact v2 digest/SDK countryCode/ownership/race/partial-delete/governance checked. Not owner approval or runtime acceptance      | 2026-10-24 | PASS   |
 
 Preparation failures resolved before push: static binding initially rejected an accidental duplicate Task alias in the draft snapshot; removed that prose alias and recomputed digest, leaving the checker strict. Initial local lint invocation failed ERR_MODULE_NOT_FOUND/typescript in the new worktree; reran with the existing pinned toolchain (same lockfile), temporary resolution link removed afterward. No code/CI/security assertion was changed to make checks pass. Agent behavioral evaluation NOT RUN; M2 implementation/full quality/build/API/browser/screenshots/runtime NOT RUN pending authenticated approval. Hosted planning-gate results belong in the new PR metadata and must not be represented as frontend verification.
+
+
+## M2 authorization and implementation start — 2026-10-24
+
+Authenticated GitHub PR28 comments/reviews fully fetched (2 comments,0 reviews, page size100); owner/User/dinhphuquy2k1 comment6385229351 created=updated2026-10-24T14:11:58Z contains exact v2 formal decision and raw-byte digest1deef061…. Existing canonical verifyGitHubApprovalEvidence accepted these connector-authenticated payloads, with no later relevant revocation. This is an evidence adapter to the canonical verifier, not a claim that a local token authenticated GitHub CI. Mutable approval APPROVED; explicit owner continuation authorizes M2 implementation IN PROGRESS. Immutable v2/v1/v8 unchanged. Task remains IN PROGRESS, overall capability PLANNED until M1–M5 exist; M3–M5 NOT STARTED.
+
+Environment rechecked: Node24.19.0/pnpm10.34.6, Docker28.4.0, about96MiB free. Canonical local Docker build is unsafe; no unrelated data/resources removed. Continue independent implementation/testing and use genuine hosted canonical verification. Reference source hashes will be rechecked before adaptation.
