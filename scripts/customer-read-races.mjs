@@ -166,7 +166,7 @@ export async function verifyCustomerReadRaces({
     await fill("q", stale);
     await waitHeld();
     await evaluate(
-      'document.querySelector("a[href="/settings"]").click();true',
+      `document.querySelector('a[href="/settings"]').click();true`,
     );
     for (let n = 0; n < 100; n++) {
       if (await evaluate('location.pathname==="/settings"')) break;
