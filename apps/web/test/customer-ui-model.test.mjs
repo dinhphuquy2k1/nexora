@@ -202,3 +202,28 @@ test("error status authority separates forbidden/session/phone and never renders
     false,
   );
 });
+
+test("editing against captured baseline never adds untouched concurrently refreshed fields", () => {
+  const original = {
+    name: "Original",
+    phone: "123",
+    email: null,
+    note: null,
+    status: "ACTIVE",
+  };
+  const draft = { ...original, email: "", note: "", phone: "456" };
+  const refreshed = { ...original, name: "Other writer" };
+  assert.deepEqual(patchCustomerPayload(draft, original), { phone: "456" });
+  assert.equal(refreshed.name, "Other writer");
+});
+test("canonical query equality covers empty URL, explicit defaults and reordered keys", () => {
+  const keys = ["", "page=1&pageSize=20", "pageSize=20&page=1", "q=%20"];
+  assert.equal(
+    new Set(
+      keys.map((s) =>
+        customerQueryString(parseCustomerQuery(new URLSearchParams(s))),
+      ),
+    ).size,
+    1,
+  );
+});
