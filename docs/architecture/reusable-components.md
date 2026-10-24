@@ -193,7 +193,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Native HTML `<dialog>` with top-layer placement, background inerting, keyboard focus trapping, Escape key closing, backdrop click dismissal, and body overflow restoration on unmount.
 - **Styling / Token Dependencies**:
   - Background & Elevation: `--color-surface`, `--color-border`, `--shadow-lg`, `--radius-lg`.
-  - Backdrop: `rgb(15 23 42 / 55%)` (or `rgba(15, 23, 42, 0.55)`) applied to `::backdrop`.
+  - Backdrop: `rgb(15 23 42 / 55%)` (or `rgba(15, 23, 42, 0.55)`) applied strictly to `::backdrop` or `.overlay::backdrop`; compound selector lists containing non-backdrop elements are forbidden.
 - **Fallback Policy**:
   - Standalone fallbacks are not permitted for Overlay; direct semantic token references are enforced.
 

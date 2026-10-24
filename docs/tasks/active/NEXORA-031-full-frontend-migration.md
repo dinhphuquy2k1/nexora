@@ -542,3 +542,37 @@ Addressed the two remaining P2 review findings on PR #27 (reviewed HEAD `a4e60c6
 4. **Preserved Invariants & Status**:
    - Immutable design snapshot `docs/tasks/design-reviews/NEXORA-031-rev-2026-10-23-full-frontend-m1-m5-v1.md` preserved with unchanged SHA-256 `0874328bc72217515c268a684e66c6286578ec34b73cb640e2382414048e475f`.
    - Task status remains IN PROGRESS; M1 milestone complete; Verification status is VERIFICATION PENDING until final documentation-head Preflight/Foundation runs complete on remote. Stop at M1 checkpoint for owner review. M2–M5 remain NOT STARTED.
+
+### M1.12 Resolution of Fixture Leakage and Comment Parser Invariants (2026-10-24)
+
+Addressed the two remaining P2 review findings on PR #27 (reviewed HEAD `b6082be986c3ed1b58f58b9061477107b1ff44fe`), strictly within M1 milestone scope:
+
+1. **P2 — Fixture Exception Leaking into Production Policy & Selector List Handling**:
+   - **Root Cause**: `isDocumentedMicroShadow` contained a simulated `.brandMonogram` fixture branch matching any CSS file with `0 1px 2px rgba(0, 0, 0, 0.1)`, enabling arbitrary feature modules (e.g. `apps/web/features/x/X.module.css`) to use raw box-shadow literals. Furthermore, `selectorMatcher` used `s.includes()`, allowing compound selector lists (e.g. `.collapsedLogo, .card`) to grant exemptions to non-approved selectors (`.card`). Similar selector list leakage occurred in `stripDocumentedBackdrop` via `selector.includes("::backdrop")`.
+   - **Fix**:
+     - Removed the `.brandMonogram` fixture branch entirely from the production analyzer.
+     - Replaced predicate functions with a strict canonical registry `DOCUMENTED_MONOGRAMS` mapping normalized paths to exact selectors and values (`.logoMonogram` in Sidebar/Login, `.collapsedLogo` in Header).
+     - Implemented `splitSelectorList(selector)`: a syntax-safe selector splitter tracking parenthesis depth (`:is()`, `:not()`, `:where()`), bracket depth (`[data-...]`), quotes, and escapes, preventing naive comma splitting.
+     - Enforced `selectors.every(...)` for both micro-shadows (`selectors.every(s => s === entry.expectedSelector)`) and native overlay backdrops (`selectors.every(s => s === ".overlay::backdrop" || s === "::backdrop")`). Declarations with contaminated selector lists (e.g. `.collapsedLogo, .card` or `.overlay::backdrop, .card`) fail closed.
+   - **Regression Test Evidence**: Added negative tests 27–31 (generic `.brandMonogram` in feature path fails; `.collapsedLogoExtra` fails; `.collapsedLogo, .card` fails; `.overlay::backdrop, .card` fails; `:is(:hover, :focus)` function with commas does not split naively) and updated positive test 2 to validate all 3 genuine documented monograms in their approved owners.
+
+2. **P2 — Regex Comment Stripping Dropping Valid CSS Declarations**:
+   - **Root Cause**: `stripCssComments` ran `css.replace(/\/\*[\s\S]*?\*\//g, " ")` prior to declaration parsing. In valid CSS containing isolated comment markers inside string literals (e.g. `.a { content: "/*"; color: #ff00ff; } .b { content: "*/"; color: var(--color-text); }`), the regex matched from the `/*` inside `.a`'s string to the `*/` inside `.b`'s string, erasing the declaration `color: #ff00ff;` and corrupting selector `.b`.
+   - **Fix**:
+     - In `parseCssDeclarations(css)`: Removed pre-parsing regex comment stripping. Handled comment tokenization directly inside the state machine parser, recognizing `/* ... */` strictly when outside string literals (`!inString`) and in proper token context.
+     - Preserved token boundaries: When discarding real comments, inserted a boundary space if the buffer does not end with whitespace, preventing property names and values from gluing together.
+     - Replaced naive regex in `stripCssComments` with the same string-aware state machine for other callers (`getDeclaredTokens`, `!important` check).
+     - Implemented `stripSafeUrlsAndStrings(val)` to strip quotes and URL contents safely without regex truncation.
+   - **Regression Test Evidence**: Added negative tests 23–26 (comment probe `.a`/`.b` detecting `#ff00ff` on `.a`, isolated `/*`, isolated `*/`, escaped quotes with comment markers) and positive tests 7–9 (comment markers in strings, real comments between tokens preserving token boundaries, complex URLs/strings with semicolons and parens).
+
+3. **Executed Verification Evidence**:
+   - `node --test apps/web/test/form-control-contracts.test.mjs apps/web/test/shared-ui.test.mjs apps/web/test/m1-shell.test.mjs apps/web/test/navigation.test.mjs packages/ui/test/status-tone.test.mjs`: 25/25 PASSED (352ms).
+   - `pnpm format:check`: ALL PASSED.
+   - `pnpm lint`: ALL PASSED (`Workspace boundaries PASS`, ESLint clean).
+   - `pnpm typecheck`: ALL PASSED (10/10 tasks successful in Turbo).
+   - `node scripts/docs-check.mjs`: ALL PASSED.
+   - `node scripts/preflight-policy-check.mjs`: ALL PASSED.
+
+4. **Preserved Invariants & Status**:
+   - Immutable design snapshot `docs/tasks/design-reviews/NEXORA-031-rev-2026-10-23-full-frontend-m1-m5-v1.md` preserved with unchanged SHA-256 `0874328bc72217515c268a684e66c6286578ec34b73cb640e2382414048e475f`.
+   - Task status remains IN PROGRESS; M1 milestone complete; Verification status is VERIFICATION PENDING until final documentation-head Preflight/Foundation runs complete on remote. Stop at M1 checkpoint for owner review. M2–M5 remain NOT STARTED.

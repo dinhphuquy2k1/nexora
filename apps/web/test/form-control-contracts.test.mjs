@@ -33,9 +33,68 @@ function getCssFiles(dir) {
   return results;
 }
 
-// Strip CSS comments safely
+// Strip CSS comments safely while respecting string literals, escapes, and token boundaries
 function stripCssComments(css) {
-  return css.replace(/\/\*[\s\S]*?\*\//g, " ");
+  let result = "";
+  let inString = null;
+  let inComment = false;
+  let isEscaped = false;
+
+  for (let i = 0; i < css.length; i++) {
+    const ch = css[i];
+
+    if (isEscaped) {
+      isEscaped = false;
+      if (!inComment) result += ch;
+      continue;
+    }
+
+    if (inComment) {
+      if (ch === "*" && css[i + 1] === "/") {
+        inComment = false;
+        i++;
+        if (result.length > 0 && !/\s$/.test(result)) {
+          result += " ";
+        }
+      }
+      continue;
+    }
+
+    if (inString) {
+      if (ch === "\\") {
+        isEscaped = true;
+        result += ch;
+        continue;
+      }
+      result += ch;
+      if (ch === inString) {
+        inString = null;
+      }
+      continue;
+    }
+
+    if (ch === "/" && css[i + 1] === "*") {
+      inComment = true;
+      i++;
+      continue;
+    }
+
+    if (ch === "\\") {
+      isEscaped = true;
+      result += ch;
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      inString = ch;
+      result += ch;
+      continue;
+    }
+
+    result += ch;
+  }
+
+  return result;
 }
 
 // Helper to strip balanced var(...) expressions to isolate standalone fallbacks in packages/ui
@@ -61,19 +120,17 @@ function stripBalancedVars(str) {
   return result;
 }
 
-// Parse CSS declarations respecting block delimiters, strings, URLs, nested parens, and comments
-function parseCssDeclarations(css) {
-  const clean = stripCssComments(css);
-  const declarations = [];
-  const selectorStack = [];
+// Syntax-safe selector list splitter respecting functions (:is, :not, :where), attributes, and strings
+function splitSelectorList(selector) {
+  const selectors = [];
   let buffer = "";
-  let currentProp = null;
-  let inString = null;
   let parenDepth = 0;
+  let bracketDepth = 0;
+  let inString = null;
   let isEscaped = false;
 
-  for (let i = 0; i < clean.length; i++) {
-    const ch = clean[i];
+  for (let i = 0; i < selector.length; i++) {
+    const ch = selector[i];
 
     if (isEscaped) {
       buffer += ch;
@@ -92,6 +149,112 @@ function parseCssDeclarations(css) {
       if (ch === inString) {
         inString = null;
       }
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      inString = ch;
+      buffer += ch;
+      continue;
+    }
+
+    if (ch === "(") {
+      parenDepth++;
+      buffer += ch;
+      continue;
+    }
+
+    if (ch === ")") {
+      if (parenDepth > 0) parenDepth--;
+      buffer += ch;
+      continue;
+    }
+
+    if (ch === "[") {
+      bracketDepth++;
+      buffer += ch;
+      continue;
+    }
+
+    if (ch === "]") {
+      if (bracketDepth > 0) bracketDepth--;
+      buffer += ch;
+      continue;
+    }
+
+    if (ch === "," && parenDepth === 0 && bracketDepth === 0 && !inString) {
+      const trimmed = buffer.trim();
+      if (trimmed.length > 0) {
+        selectors.push(trimmed);
+      }
+      buffer = "";
+      continue;
+    }
+
+    buffer += ch;
+  }
+
+  const trimmed = buffer.trim();
+  if (trimmed.length > 0) {
+    selectors.push(trimmed);
+  }
+
+  return selectors;
+}
+
+// Parse CSS declarations respecting block delimiters, strings, URLs, nested parens, and comments
+function parseCssDeclarations(css) {
+  const declarations = [];
+  const selectorStack = [];
+  let buffer = "";
+  let currentProp = null;
+  let inString = null;
+  let inComment = false;
+  let parenDepth = 0;
+  let isEscaped = false;
+
+  for (let i = 0; i < css.length; i++) {
+    const ch = css[i];
+
+    if (isEscaped) {
+      buffer += ch;
+      isEscaped = false;
+      continue;
+    }
+
+    if (inComment) {
+      if (ch === "*" && css[i + 1] === "/") {
+        inComment = false;
+        i++;
+        if (buffer.length > 0 && !/\s$/.test(buffer)) {
+          buffer += " ";
+        }
+      }
+      continue;
+    }
+
+    if (inString) {
+      if (ch === "\\") {
+        buffer += ch;
+        isEscaped = true;
+        continue;
+      }
+      buffer += ch;
+      if (ch === inString) {
+        inString = null;
+      }
+      continue;
+    }
+
+    if (ch === "/" && css[i + 1] === "*") {
+      inComment = true;
+      i++;
+      continue;
+    }
+
+    if (ch === "\\") {
+      buffer += ch;
+      isEscaped = true;
       continue;
     }
 
@@ -222,45 +385,42 @@ function isDocumentedStandaloneFallbackFile(normPath) {
   return false;
 }
 
+const DOCUMENTED_MONOGRAMS = [
+  {
+    fileSuffix: "apps/web/components/app-shell/Sidebar.module.css",
+    expectedSelector: ".logoMonogram",
+    expectedVal: "0 1px 2px rgba(0, 0, 0, 0.2)",
+  },
+  {
+    fileSuffix: "apps/web/components/app-shell/Header.module.css",
+    expectedSelector: ".collapsedLogo",
+    expectedVal: "0 1px 2px rgba(0, 0, 0, 0.1)",
+  },
+  {
+    fileSuffix: "apps/web/app/login/login.module.css",
+    expectedSelector: ".logoMonogram",
+    expectedVal: "0 1px 2px rgba(0, 0, 0, 0.05)",
+  },
+];
+
 function isDocumentedMicroShadow(normPath, selector, prop, val) {
   if (prop !== "box-shadow") return false;
   const normalizedVal = val.replace(/\s+/g, " ").trim();
 
-  const monogramEntries = [
-    {
-      fileSuffix: "apps/web/components/app-shell/Sidebar.module.css",
-      selectorMatcher: (s) => s.includes(".logoMonogram"),
-      expectedVal: "0 1px 2px rgba(0, 0, 0, 0.2)",
-    },
-    {
-      fileSuffix: "apps/web/components/app-shell/Header.module.css",
-      selectorMatcher: (s) => s.includes(".collapsedLogo"),
-      expectedVal: "0 1px 2px rgba(0, 0, 0, 0.1)",
-    },
-    {
-      fileSuffix: "apps/web/app/login/login.module.css",
-      selectorMatcher: (s) => s.includes(".logoMonogram"),
-      expectedVal: "0 1px 2px rgba(0, 0, 0, 0.05)",
-    },
-  ];
-
-  for (const entry of monogramEntries) {
+  for (const entry of DOCUMENTED_MONOGRAMS) {
     if (
       (normPath === entry.fileSuffix ||
         normPath.endsWith("/" + entry.fileSuffix)) &&
-      entry.selectorMatcher(selector) &&
       normalizedVal === entry.expectedVal
     ) {
-      return true;
+      const selectors = splitSelectorList(selector);
+      if (
+        selectors.length > 0 &&
+        selectors.every((s) => s === entry.expectedSelector)
+      ) {
+        return true;
+      }
     }
-  }
-
-  // Simulated documented monogram for positive validation tests
-  if (
-    selector.includes(".brandMonogram") &&
-    normalizedVal === "0 1px 2px rgba(0, 0, 0, 0.1)"
-  ) {
-    return true;
   }
 
   return false;
@@ -272,13 +432,107 @@ function stripDocumentedBackdrop(normPath, selector, prop, val) {
     normPath.endsWith("/packages/ui/src/Overlay.module.css");
 
   if (!isOverlayFile) return val;
-  if (!selector.includes("::backdrop")) return val;
   if (prop !== "background" && prop !== "background-color") return val;
+
+  const selectors = splitSelectorList(selector);
+  if (
+    selectors.length === 0 ||
+    !selectors.every((s) => s === ".overlay::backdrop" || s === "::backdrop")
+  ) {
+    return val;
+  }
 
   return val
     .replace(/rgb\(15\s+23\s+42\s*\/\s*55%\)/gi, "")
     .replace(/rgba\(15,\s*23,\s*42,\s*0?\.55\)/gi, "")
     .trim();
+}
+
+function stripSafeUrlsAndStrings(val) {
+  let result = "";
+  let inString = null;
+  let inUrl = false;
+  let parenDepth = 0;
+  let isEscaped = false;
+
+  for (let i = 0; i < val.length; i++) {
+    const ch = val[i];
+
+    if (isEscaped) {
+      isEscaped = false;
+      continue;
+    }
+
+    if (ch === "\\") {
+      isEscaped = true;
+      continue;
+    }
+
+    if (inString) {
+      if (ch === inString) {
+        inString = null;
+        result += '""';
+      }
+      continue;
+    }
+
+    if (inUrl) {
+      if (ch === "(") {
+        parenDepth++;
+        continue;
+      }
+      if (ch === ")") {
+        parenDepth--;
+        if (parenDepth === 0) {
+          inUrl = false;
+        }
+        continue;
+      }
+      if (ch === '"' || ch === "'") {
+        const quote = ch;
+        let escaped = false;
+        i++;
+        while (i < val.length) {
+          if (escaped) {
+            escaped = false;
+            i++;
+            continue;
+          }
+          if (val[i] === "\\") {
+            escaped = true;
+            i++;
+            continue;
+          }
+          if (val[i] === quote) {
+            break;
+          }
+          i++;
+        }
+        continue;
+      }
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      inString = ch;
+      continue;
+    }
+
+    if (
+      (ch === "u" || ch === "U") &&
+      val.slice(i, i + 4).toLowerCase() === "url("
+    ) {
+      inUrl = true;
+      parenDepth = 1;
+      i += 3;
+      result += "url()";
+      continue;
+    }
+
+    result += ch;
+  }
+
+  return result;
 }
 
 const COLOR_PROPERTIES = new Set([
@@ -650,11 +904,8 @@ function analyzeCssPolicy(fileList, declaredTokens, allowlist = new Set()) {
           continue;
         }
 
-        // Strip string literals and url(...) contents to avoid false positives
-        let testVal = val
-          .replace(/url\([^)]*\)/gi, "")
-          .replace(/"[^"]*"/g, '""')
-          .replace(/'[^']*'/g, "''");
+        // Strip string literals and url(...) contents safely without regex truncation
+        let testVal = stripSafeUrlsAndStrings(val);
 
         // Strip documented backdrop color if in Overlay.module.css under ::backdrop
         testVal = stripDocumentedBackdrop(normPath, selector, prop, testVal);
@@ -1321,6 +1572,155 @@ test("Token Contract: negative validation proves policy violations are detected 
     1,
     "Backdrop color outside Overlay.module.css MUST NOT be exempted",
   );
+
+  // Test 23: Comment marker probe drops no declarations and preserves selector identity
+  const commentMarkerProbeCss = [
+    {
+      filePath: "apps/web/features/comments/Probe.module.css",
+      content:
+        '.a { content: "/*"; color: #ff00ff; }\n.b { content: "*/"; color: var(--color-text); }',
+    },
+  ];
+  const r23 = analyzeCssPolicy(
+    commentMarkerProbeCss,
+    declaredTokens,
+    allowlist,
+  );
+  assert.equal(
+    r23.rawColors.length,
+    1,
+    "Must detect raw color #ff00ff inside declaration following isolated comment opener string",
+  );
+  assert.equal(r23.rawColors[0].selector, ".a");
+  assert.equal(r23.rawColors[0].property, "color");
+  assert.equal(r23.rawColors[0].value, "#ff00ff");
+
+  // Test 24: Isolated comment opener string does not drop subsequent declarations
+  const isolatedOpenerCss = [
+    {
+      filePath: "apps/web/features/comments/Opener.module.css",
+      content: '.x { content: "/*"; color: #ff00ff; }',
+    },
+  ];
+  const r24 = analyzeCssPolicy(isolatedOpenerCss, declaredTokens, allowlist);
+  assert.equal(r24.rawColors.length, 1);
+  assert.equal(r24.rawColors[0].selector, ".x");
+
+  // Test 25: Isolated comment closer string does not drop subsequent declarations
+  const isolatedCloserCss = [
+    {
+      filePath: "apps/web/features/comments/Closer.module.css",
+      content: '.x { content: "*/"; color: #ff00ff; }',
+    },
+  ];
+  const r25 = analyzeCssPolicy(isolatedCloserCss, declaredTokens, allowlist);
+  assert.equal(r25.rawColors.length, 1);
+  assert.equal(r25.rawColors[0].selector, ".x");
+
+  // Test 26: Escaped quotes with comment markers are parsed safely
+  const escapedQuotesWithCommentsCss = [
+    {
+      filePath: "apps/web/features/comments/Escaped.module.css",
+      content:
+        '.x { content: "escaped \\" /* inside string \\""; color: #ff00ff; }',
+    },
+  ];
+  const r26 = analyzeCssPolicy(
+    escapedQuotesWithCommentsCss,
+    declaredTokens,
+    allowlist,
+  );
+  assert.equal(r26.rawColors.length, 1);
+  assert.equal(r26.rawColors[0].selector, ".x");
+
+  // Test 27: Generic .brandMonogram in feature path is NOT exempted (fixture leakage eliminated)
+  const fixtureLeakageProbeCss = [
+    {
+      filePath: "apps/web/features/x/X.module.css",
+      content: ".brandMonogram { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }",
+    },
+  ];
+  const r27 = analyzeCssPolicy(
+    fixtureLeakageProbeCss,
+    declaredTokens,
+    allowlist,
+  );
+  assert.equal(
+    r27.rawColors.length,
+    1,
+    "Generic .brandMonogram in features module MUST NOT be exempted",
+  );
+
+  // Test 28: Near-match selector .collapsedLogoExtra in Header is NOT exempted
+  const nearMatchSelectorCss = [
+    {
+      filePath: "apps/web/components/app-shell/Header.module.css",
+      content:
+        ".collapsedLogoExtra { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }",
+    },
+  ];
+  const r28 = analyzeCssPolicy(nearMatchSelectorCss, declaredTokens, allowlist);
+  assert.equal(
+    r28.rawColors.length,
+    1,
+    "Near-match selector substring MUST NOT match documented monogram exception",
+  );
+
+  // Test 29: Selector list .collapsedLogo, .card in Header is NOT exempted for the declaration
+  const selectorListContaminatedMonogramCss = [
+    {
+      filePath: "apps/web/components/app-shell/Header.module.css",
+      content:
+        ".collapsedLogo, .card { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }",
+    },
+  ];
+  const r29 = analyzeCssPolicy(
+    selectorListContaminatedMonogramCss,
+    declaredTokens,
+    allowlist,
+  );
+  assert.equal(
+    r29.rawColors.length,
+    1,
+    "Selector list containing non-approved selector (.card) MUST NOT be exempted",
+  );
+
+  // Test 30: Selector list .overlay::backdrop, .card in Overlay is NOT exempted
+  const selectorListContaminatedBackdropCss = [
+    {
+      filePath: "packages/ui/src/Overlay.module.css",
+      content: ".overlay::backdrop, .card { background: rgb(15 23 42 / 55%); }",
+    },
+  ];
+  const r30 = analyzeCssPolicy(
+    selectorListContaminatedBackdropCss,
+    declaredTokens,
+    allowlist,
+  );
+  assert.equal(
+    r30.rawColors.length,
+    1,
+    "Backdrop selector list containing non-backdrop selector MUST NOT be exempted",
+  );
+
+  // Test 31: Commas inside pseudo-class functions/attributes are not naively split
+  const functionCommaSelectorCss = [
+    {
+      filePath: "apps/web/components/app-shell/Sidebar.module.css",
+      content:
+        ".logoMonogram:is(:hover, :focus) { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }",
+    },
+  ];
+  const r31 = analyzeCssPolicy(
+    functionCommaSelectorCss,
+    declaredTokens,
+    allowlist,
+  );
+  assert.equal(
+    r31.rawColors.length,
+    1,
+    "Extended selector scope like :is(:hover, :focus) MUST NOT match exact .logoMonogram contract",
+  );
 });
 
 test("Token Contract: positive validation proves canonical palette and documented exceptions pass", () => {
@@ -1337,15 +1737,23 @@ test("Token Contract: positive validation proves canonical palette and documente
   const rTokens = analyzeCssPolicy(tokensCss, declaredTokens, allowlist);
   assert.deepEqual(rTokens.rawColors, []);
 
-  // 2. Documented monogram micro-shadow exception passes
-  const microShadowCss = [
+  // 2. Documented monogram micro-shadow exceptions pass for all 3 approved owners/selectors/values
+  const microShadowsCss = [
+    {
+      filePath: "apps/web/components/app-shell/Sidebar.module.css",
+      content: ".logoMonogram { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }",
+    },
     {
       filePath: "apps/web/components/app-shell/Header.module.css",
-      content: ".brandMonogram { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }",
+      content: ".collapsedLogo { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }",
+    },
+    {
+      filePath: "apps/web/app/login/login.module.css",
+      content: ".logoMonogram { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }",
     },
   ];
-  const rShadow = analyzeCssPolicy(microShadowCss, declaredTokens, allowlist);
-  assert.deepEqual(rShadow.rawColors, []);
+  const rShadows = analyzeCssPolicy(microShadowsCss, declaredTokens, allowlist);
+  assert.deepEqual(rShadows.rawColors, []);
 
   // 3. Documented contextual constants pass (transparent, currentColor, inherit)
   const contextualConstantsCss = [
@@ -1391,29 +1799,7 @@ test("Token Contract: positive validation proves canonical palette and documente
   );
   assert.deepEqual(rBackdrop.rawColors, []);
 
-  // 6. Documented micro-shadows in production components pass
-  const prodMicroShadowsCss = [
-    {
-      filePath: "apps/web/components/app-shell/Sidebar.module.css",
-      content: ".logoMonogram { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }",
-    },
-    {
-      filePath: "apps/web/components/app-shell/Header.module.css",
-      content: ".collapsedLogo { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }",
-    },
-    {
-      filePath: "apps/web/app/login/login.module.css",
-      content: ".logoMonogram { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }",
-    },
-  ];
-  const rProdShadows = analyzeCssPolicy(
-    prodMicroShadowsCss,
-    declaredTokens,
-    allowlist,
-  );
-  assert.deepEqual(rProdShadows.rawColors, []);
-
-  // 7. Safe non-color constructs do not cause false positives (comments, escaped strings, URLs)
+  // 6. Safe non-color constructs do not cause false positives (comments, escaped strings, URLs)
   const safeConstructsCss = [
     {
       filePath: "apps/web/components/Safe.module.css",
@@ -1429,7 +1815,57 @@ test("Token Contract: positive validation proves canonical palette and documente
   const rSafe = analyzeCssPolicy(safeConstructsCss, declaredTokens, allowlist);
   assert.deepEqual(rSafe.rawColors, []);
 
-  // 8. Path normalization works with both Windows backslashes and POSIX forward slashes
+  // 7. Strings containing comment markers /* and */ without raw colors pass safely
+  const commentInStringsCss = [
+    {
+      filePath: "apps/web/components/CommentStrings.module.css",
+      content:
+        '.a { content: "/* safe */"; color: var(--color-primary); }\n.b { content: "*/"; color: var(--color-border); }',
+    },
+  ];
+  const rCommentStrings = analyzeCssPolicy(
+    commentInStringsCss,
+    declaredTokens,
+    allowlist,
+  );
+  assert.deepEqual(rCommentStrings.rawColors, []);
+
+  // 8. Real CSS comments between tokens preserve token boundaries
+  const commentTokenBoundaryCss = [
+    {
+      filePath: "apps/web/components/TokenBoundary.module.css",
+      content:
+        ".box { border: 1px/* comment */solid/* comment */var(--color-border); }",
+    },
+  ];
+  const rCommentTokens = analyzeCssPolicy(
+    commentTokenBoundaryCss,
+    declaredTokens,
+    allowlist,
+  );
+  assert.deepEqual(rCommentTokens.rawColors, []);
+
+  // 9. Strings and URLs with semicolons, parentheses, or query params do not truncate declarations
+  const urlAndStringComplexCss = [
+    {
+      filePath: "apps/web/components/ComplexUrl.module.css",
+      content: `
+        .complex {
+          content: "string with ; and (parens) and /* markers */";
+          background-image: url("https://example.com/asset.png?a=1;b=2&c=(3)/*not-comment*/");
+          color: var(--color-primary);
+        }
+      `,
+    },
+  ];
+  const rUrlComplex = analyzeCssPolicy(
+    urlAndStringComplexCss,
+    declaredTokens,
+    allowlist,
+  );
+  assert.deepEqual(rUrlComplex.rawColors, []);
+
+  // 10. Path normalization works with both Windows backslashes and POSIX forward slashes
   const windowsPathFallbackCss = [
     {
       filePath: "packages\\ui\\src\\Panel.module.css",
