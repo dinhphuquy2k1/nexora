@@ -149,27 +149,27 @@ This registry catalogues canonical, reusable technical components and shared voc
   - `export function TextInput(props: InputHTMLAttributes<HTMLInputElement>): JSX.Element`
   - `export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>): JSX.Element`
   - `export function Checkbox(props: CheckboxProps): JSX.Element`
-- **Intended Consumers**:
+- **Intended & Active Consumers**:
   - Login (`LoginForm`), Setup (`SetupForm`), modal dialogs, and future feature forms (Customer, Settings).
 - **Supported Behavior**:
-  - **Canonical Sizing**: Standard 44px height (`height: var(--control-height)`), 12px radius (`border-radius: var(--control-radius)`), and `box-sizing: border-box`.
+  - **Canonical Sizing Contract**: `height: var(--control-height)` (default 44px), `border-radius: var(--control-radius)` (default 12px), and `box-sizing: border-box`.
   - **State Parity**: Complete contract covering default, hover, focus/focus-visible, disabled, readonly, invalid (`aria-invalid="true"`), and placeholder.
   - **State Precedence**: Focus and invalid states strictly override hover styling via `:not(:focus):not([aria-invalid="true"])`.
-  - **Button Contrast (WCAG AA)**: Standardized to navy `var(--brand-navy, #172b4d)` text on orange `var(--color-accent, #f58a24)` background (5.74:1 contrast ratio, exceeding WCAG AA 4.5:1 requirement).
-  - **Textarea Parity**: Reuses identical colors, borders, radius, and focus rings with 88px min-height.
-  - **Self-Contained Styling**: Owns all default control appearance in `Controls.module.css`.
+  - **Button Contrast (WCAG AA)**: Standardized to semantic foreground `--color-text-on-accent: var(--brand-navy, #172b4d)` text on orange `--color-accent: var(--brand-orange, #f58a24)` background (5.74:1 contrast ratio, exceeding WCAG AA 4.5:1 requirement). On hover (`--color-accent-hover`), text uses `--color-text-on-accent-hover` (4.58:1 contrast).
+  - **Textarea Parity**: Retained in `@nexora/ui` to guarantee domain-neutral form control contract parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, disabled/readonly/invalid states, with default 88px min-height and vertical resize.
+  - **Self-Contained Styling**: Owns all default control appearance in `Controls.module.css` through direct token consumption.
 - **Styling / Token Dependencies**:
   - Sizing & Radius: `--control-height`, `--control-radius`, `--control-padding-x`, `--control-padding-y`, `--control-font-size`.
-  - Colors & States: `--control-bg`, `--control-bg-focus`, `--control-text`, `--control-placeholder`, `--control-border`, `--control-border-hover`, `--control-focus-border`, `--control-focus-ring`, `--control-disabled-bg`, `--control-disabled-text`, `--control-disabled-border`, `--control-readonly-bg`, `--control-invalid-border`, `--control-invalid-focus-ring`.
+  - Colors & States: `--control-bg`, `--control-bg-focus`, `--control-text`, `--control-placeholder`, `--control-border`, `--control-border-hover`, `--control-focus-border`, `--control-focus-ring`, `--control-disabled-bg`, `--control-disabled-text`, `--control-disabled-border`, `--control-readonly-bg`, `--control-invalid-border`, `--control-invalid-focus-ring`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`.
 - **Fallback Policy**:
-  - Permitted conditionally for standalone package usage in consumers where the root theme is not present.
-  - Fallbacks must match the root default theme (e.g. `44px`, `12px`, `#f8fafc`, `#1f2937`, `#cbd5e1`, `#f58a24`, `#973d2b`).
-  - Deeply nested ad-hoc fallback chains are prohibited.
+  - `apps/web`: Mandatory theme tokens guaranteed by root `tokens.css`; fallbacks in `apps/web` are prohibited.
+  - `packages/ui`: Standardized on direct canonical token consumption (`var(--control-border)`). Standalone fallbacks are permitted only where an explicit standalone-consumer contract requires independent execution outside the Nexora theme.
+  - Deeply nested fallback chains (e.g. `var(--a, var(--b, c))`) and repeating raw hex values solely to echo default theme tokens are forbidden.
 - **Explicit Non-Goals**:
   - Does not manage form submission, data-binding, or validation logic. Consuming feature components handle validation.
   - Does not use `!important` or broad global selectors.
 - **Deferred Select Specification**:
-  - Standard established: 44px height, identical borders, radius, background, and focus ring matching `TextInput`.
+  - Standard established: `height: var(--control-height)`, identical borders, radius, background, and focus ring matching `TextInput`.
   - Component implementation is deferred to M2's first consumer per YAGNI and [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule).
 - **When to Reuse**:
   - Whenever rendering standard text inputs, textareas, primary buttons, or checkboxes across web features.

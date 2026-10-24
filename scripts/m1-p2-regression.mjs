@@ -96,6 +96,20 @@ const evaluate = async (expression) => {
   return res.result?.value;
 };
 
+const until = async (
+  expression,
+  errorMsg = "Condition timeout",
+  timeoutMs = 8000,
+) => {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const res = await evaluate(expression);
+    if (res) return res;
+    await delay(50);
+  }
+  throw new Error(errorMsg || `Timeout waiting for ${expression}`);
+};
+
 // Relative luminance per WCAG 2.1
 function getLuminance(r, g, b) {
   const [rs, gs, bs] = [r, g, b].map((c) => {
@@ -160,6 +174,8 @@ try {
       window.__fpMeasurements = {
         domContentLoadedAsideWidth: null,
         domContentLoadedBrandDisplay: null,
+        domContentLoadedToggleExpanded: null,
+        domContentLoadedToggleLabel: null,
         layoutShifts: [],
       };
 
@@ -172,6 +188,13 @@ try {
         const brand = document.querySelector("header [class*='collapsedBrand']");
         if (brand) {
           window.__fpMeasurements.domContentLoadedBrandDisplay = window.getComputedStyle(brand).display;
+        }
+        // Query visible toggle button at first paint
+        const buttons = Array.from(document.querySelectorAll("header button[aria-expanded]"));
+        const visibleBtn = buttons.find(b => window.getComputedStyle(b).display !== 'none');
+        if (visibleBtn) {
+          window.__fpMeasurements.domContentLoadedToggleExpanded = visibleBtn.getAttribute("aria-expanded");
+          window.__fpMeasurements.domContentLoadedToggleLabel = visibleBtn.getAttribute("aria-label");
         }
       });
 
@@ -208,7 +231,7 @@ try {
     console.log(`Saved screenshot: scratch/screenshots/${name}.png`);
   };
 
-  // Test suite 1: First paint geometry at compact desktop viewports (901px, 1024px, 1100px)
+  // Test suite 1: First paint geometry & accessibility at compact desktop viewports (901px, 1024px, 1100px)
   const compactViewports = [
     { w: 901, h: 800 },
     { w: 1024, h: 768 },
@@ -239,6 +262,9 @@ try {
     console.log(`Viewport ${width}px results:`, {
       domContentLoadedAsideWidth: measurements?.domContentLoadedAsideWidth,
       domContentLoadedBrandDisplay: measurements?.domContentLoadedBrandDisplay,
+      domContentLoadedToggleExpanded:
+        measurements?.domContentLoadedToggleExpanded,
+      domContentLoadedToggleLabel: measurements?.domContentLoadedToggleLabel,
       settledWidth,
       scrollWidth,
       shiftCount: measurements?.layoutShifts?.length || 0,
@@ -264,6 +290,20 @@ try {
         `Compact desktop (${width}px) Header must display collapsedBrand ('flex') at first paint, but was '${measurements?.domContentLoadedBrandDisplay}'`,
       );
     }
+    // Verify Header first-paint toggle button accessible semantics at 901-1100px
+    if (measurements?.domContentLoadedToggleExpanded !== "false") {
+      errors.push(
+        `Compact desktop (${width}px) toggle must have aria-expanded='false' at first paint, but had '${measurements?.domContentLoadedToggleExpanded}'`,
+      );
+    }
+    if (
+      measurements?.domContentLoadedToggleLabel !== "Mở rộng thanh điều hướng"
+    ) {
+      errors.push(
+        `Compact desktop (${width}px) toggle must have aria-label='Mở rộng thanh điều hướng' at first paint, but had '${measurements?.domContentLoadedToggleLabel}'`,
+      );
+    }
+
     if (scrollWidth > width) {
       errors.push(
         `Compact desktop (${width}px) has horizontal overflow: scrollWidth ${scrollWidth} > viewport ${width}`,
@@ -280,7 +320,68 @@ try {
       );
     }
 
+    // Interactive manual toggle test on compact desktop (at 1024px)
     if (width === 1024) {
+      console.log("Testing manual sidebar toggle interaction at 1024px...");
+      await until(
+        "!!document.querySelector('[data-hydrated=\"true\"]')",
+        "Timeout waiting for client hydration at 1024px",
+      );
+      await delay(150);
+
+      // Click toggle to expand
+      await evaluate(`(() => {
+        const buttons = Array.from(document.querySelectorAll("header button[aria-expanded]"));
+        const visibleBtn = buttons.find(b => window.getComputedStyle(b).display !== "none");
+        visibleBtn?.click();
+      })()`);
+      await delay(350);
+
+      const expandedWidth = await evaluate(
+        "Math.round(document.querySelector('aside')?.getBoundingClientRect().width || 0)",
+      );
+      const expandedToggle = await evaluate(`(() => {
+        const buttons = Array.from(document.querySelectorAll("header button[aria-expanded]"));
+        const visibleBtn = buttons.find(b => window.getComputedStyle(b).display !== "none");
+        return {
+          expanded: visibleBtn?.getAttribute("aria-expanded"),
+          label: visibleBtn?.getAttribute("aria-label"),
+        };
+      })()`);
+
+      if (expandedWidth !== 240) {
+        errors.push(
+          `After manual toggle, sidebar should expand to 240px at 1024px, but was ${expandedWidth}px`,
+        );
+      }
+      if (expandedToggle.expanded !== "true") {
+        errors.push(
+          `After manual toggle, expanded toggle must have aria-expanded='true', had '${expandedToggle.expanded}'`,
+        );
+      }
+      if (expandedToggle.label !== "Thu gọn thanh điều hướng") {
+        errors.push(
+          `After manual toggle, expanded toggle must have aria-label='Thu gọn thanh điều hướng', had '${expandedToggle.label}'`,
+        );
+      }
+
+      // Click toggle again to collapse back
+      await evaluate(`(() => {
+        const buttons = Array.from(document.querySelectorAll("header button[aria-expanded]"));
+        const visibleBtn = buttons.find(b => window.getComputedStyle(b).display !== "none");
+        visibleBtn?.click();
+      })()`);
+      await delay(350);
+
+      const reCollapsedWidth = await evaluate(
+        "Math.round(document.querySelector('aside')?.getBoundingClientRect().width || 0)",
+      );
+      if (reCollapsedWidth !== 72) {
+        errors.push(
+          `After second manual toggle, sidebar should collapse back to 72px at 1024px, but was ${reCollapsedWidth}px`,
+        );
+      }
+
       await capture("compact_1024x768_first_paint");
     }
   }
@@ -316,6 +417,9 @@ try {
     console.log(`Viewport ${width}px results:`, {
       domContentLoadedAsideWidth: measurements?.domContentLoadedAsideWidth,
       domContentLoadedBrandDisplay: measurements?.domContentLoadedBrandDisplay,
+      domContentLoadedToggleExpanded:
+        measurements?.domContentLoadedToggleExpanded,
+      domContentLoadedToggleLabel: measurements?.domContentLoadedToggleLabel,
       settledWidth,
       scrollWidth,
     });
@@ -336,6 +440,19 @@ try {
         `Expanded desktop (${width}px) Header must hide collapsedBrand ('none') at first paint, but was '${measurements?.domContentLoadedBrandDisplay}'`,
       );
     }
+    // Verify Header first-paint toggle accessible semantics at 1101px+
+    if (measurements?.domContentLoadedToggleExpanded !== "true") {
+      errors.push(
+        `Expanded desktop (${width}px) toggle must have aria-expanded='true' at first paint, but had '${measurements?.domContentLoadedToggleExpanded}'`,
+      );
+    }
+    if (
+      measurements?.domContentLoadedToggleLabel !== "Thu gọn thanh điều hướng"
+    ) {
+      errors.push(
+        `Expanded desktop (${width}px) toggle must have aria-label='Thu gọn thanh điều hướng' at first paint, but had '${measurements?.domContentLoadedToggleLabel}'`,
+      );
+    }
     if (scrollWidth > width) {
       errors.push(
         `Expanded desktop (${width}px) has horizontal overflow: scrollWidth ${scrollWidth} > viewport ${width}`,
@@ -345,17 +462,6 @@ try {
     if (width === 1280) await capture("expanded_1280x800_desktop");
     if (width === 1440) await capture("expanded_1440x900_desktop");
   }
-
-  // Helper to wait for DOM condition
-  const until = async (fnStr, errorMsg, timeoutMs = 8000) => {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-      const ok = await evaluate(fnStr);
-      if (ok) return true;
-      await delay(50);
-    }
-    throw new Error(errorMsg || `Timeout waiting for ${fnStr}`);
-  };
 
   // Test suite 3: Mobile drawer accessibility and toggle states (768px, 390px, 375px)
   const mobileViewports = [
@@ -377,18 +483,22 @@ try {
 
     await send("Page.navigate", { url: `${baseUrl}/` });
     await until(
-      "document.readyState === 'complete'",
+      "document.readyState === 'complete' && !!document.querySelector('[data-hydrated=\"true\"]')",
       `Failed to load page at ${width}x${height}`,
     );
-    await delay(300);
+    await delay(200);
 
-    // Initial closed state assertions
-    const closedState = await evaluate(`({
-      expanded: document.querySelector('header button[aria-expanded]')?.getAttribute('aria-expanded'),
-      label: document.querySelector('header button[aria-expanded]')?.getAttribute('aria-label'),
-      title: document.querySelector('header button[aria-expanded]')?.getAttribute('title'),
-      scrollWidth: document.documentElement.scrollWidth,
-    })`);
+    // Initial closed state assertions on visible active toggle button
+    const closedState = await evaluate(`(() => {
+      const buttons = Array.from(document.querySelectorAll("header button[aria-expanded]"));
+      const visibleBtn = buttons.find(b => window.getComputedStyle(b).display !== 'none');
+      return {
+        expanded: visibleBtn?.getAttribute('aria-expanded'),
+        label: visibleBtn?.getAttribute('aria-label'),
+        title: visibleBtn?.getAttribute('title'),
+        scrollWidth: document.documentElement.scrollWidth,
+      };
+    })()`);
     console.log(`${name} closed state:`, closedState);
 
     if (closedState.expanded !== "false") {
@@ -408,23 +518,29 @@ try {
     }
     await capture(`${name}_closed`);
 
-    // Click toggle button to open drawer
-    await evaluate(
-      "document.querySelector('header button[aria-expanded]').click()",
-    );
+    // Click visible mobile toggle button to open drawer
+    await evaluate(`(() => {
+      const buttons = Array.from(document.querySelectorAll("header button[aria-expanded]"));
+      const visibleBtn = buttons.find(b => window.getComputedStyle(b).display !== 'none');
+      visibleBtn?.click();
+    })()`);
     await until(
       '!!document.querySelector("dialog[open]")',
       `Mobile dialog did not open after toggle click at ${width}px`,
     );
     await delay(200);
 
-    const openState = await evaluate(`({
-      expanded: document.querySelector('header button[aria-expanded]')?.getAttribute('aria-expanded'),
-      label: document.querySelector('header button[aria-expanded]')?.getAttribute('aria-label'),
-      title: document.querySelector('header button[aria-expanded]')?.getAttribute('title'),
-      scrollWidth: document.documentElement.scrollWidth,
-      hasCloseButton: !!document.querySelector("dialog[open] button[aria-label='Đóng menu di động']"),
-    })`);
+    const openState = await evaluate(`(() => {
+      const buttons = Array.from(document.querySelectorAll("header button[aria-expanded]"));
+      const visibleBtn = buttons.find(b => window.getComputedStyle(b).display !== 'none');
+      return {
+        expanded: visibleBtn?.getAttribute('aria-expanded'),
+        label: visibleBtn?.getAttribute('aria-label'),
+        title: visibleBtn?.getAttribute('title'),
+        scrollWidth: document.documentElement.scrollWidth,
+        hasCloseButton: !!document.querySelector("dialog[open] button[aria-label='Đóng menu di động']"),
+      };
+    })()`);
     console.log(`${name} open state:`, openState);
 
     if (openState.expanded !== "true") {
@@ -457,11 +573,16 @@ try {
       '!document.querySelector("dialog[open]")',
       "Mobile dialog did not close after close button click",
     );
+    await delay(150);
 
-    const closedAfterButtonClick = await evaluate(`({
-      expanded: document.querySelector('header button[aria-expanded]')?.getAttribute('aria-expanded'),
-      label: document.querySelector('header button[aria-expanded]')?.getAttribute('aria-label'),
-    })`);
+    const closedAfterButtonClick = await evaluate(`(() => {
+      const buttons = Array.from(document.querySelectorAll("header button[aria-expanded]"));
+      const visibleBtn = buttons.find(b => window.getComputedStyle(b).display !== 'none');
+      return {
+        expanded: visibleBtn?.getAttribute('aria-expanded'),
+        label: visibleBtn?.getAttribute('aria-label'),
+      };
+    })()`);
     if (
       closedAfterButtonClick.expanded !== "false" ||
       closedAfterButtonClick.label !== "Mở menu di động"
@@ -525,42 +646,65 @@ try {
       `Login card width should be <= 420px matching ZIP reference, but was ${loginGeometry.cardWidth}px`,
     );
   }
-  if (loginGeometry.inputHeight !== 44) {
+  if (loginGeometry.inputHeight !== loginGeometry.buttonHeight) {
     errors.push(
-      `Input height must be 44px (--control-height), but was ${loginGeometry.inputHeight}px`,
+      `Form controls must share identical height contract, but input was ${loginGeometry.inputHeight}px and button was ${loginGeometry.buttonHeight}px`,
     );
   }
-  if (loginGeometry.buttonHeight !== 44) {
+  if (loginGeometry.inputRadius !== loginGeometry.buttonRadius) {
     errors.push(
-      `Button height must be 44px (--control-height), but was ${loginGeometry.buttonHeight}px`,
-    );
-  }
-  if (loginGeometry.inputRadius !== "12px") {
-    errors.push(
-      `Input border-radius must be 12px (--control-radius), but was ${loginGeometry.inputRadius}`,
-    );
-  }
-  if (loginGeometry.buttonRadius !== "12px") {
-    errors.push(
-      `Button border-radius must be 12px (--control-radius), but was ${loginGeometry.buttonRadius}`,
+      `Form controls must share identical border-radius contract, but input was ${loginGeometry.inputRadius} and button was ${loginGeometry.buttonRadius}`,
     );
   }
 
-  // Parse colors to calculate WCAG AA contrast
+  // Parse colors to calculate WCAG AA contrast from real computed styles
   const parseRgb = (str) => {
     const m = str.match(/\d+/g);
     return m ? m.slice(0, 3).map(Number) : [0, 0, 0];
   };
   const submitTextRgb = parseRgb(loginGeometry.submitColor);
   const submitBgRgb = parseRgb(loginGeometry.submitBg);
-  const contrastRatio = getContrast(submitTextRgb, submitBgRgb);
+  const defaultContrastRatio = getContrast(submitTextRgb, submitBgRgb);
   console.log(
-    `Button contrast ratio: ${contrastRatio.toFixed(2)}:1 (Text: ${loginGeometry.submitColor}, Bg: ${loginGeometry.submitBg})`,
+    `Button default contrast ratio: ${defaultContrastRatio.toFixed(2)}:1 (Text: ${loginGeometry.submitColor}, Bg: ${loginGeometry.submitBg})`,
   );
 
-  if (contrastRatio < 4.5) {
+  if (defaultContrastRatio < 4.5) {
     errors.push(
-      `Button text contrast on accent background (${contrastRatio.toFixed(2)}:1) fails WCAG AA standard (requires >= 4.5:1)`,
+      `Button text contrast on accent background (${defaultContrastRatio.toFixed(2)}:1) fails WCAG AA standard (requires >= 4.5:1)`,
+    );
+  }
+
+  // Also verify Button hover state contrast
+  const hoverContrast = await evaluate(`(() => {
+    const submitBtn = document.querySelector("button[type='submit']");
+    const dummy = document.createElement("button");
+    dummy.className = submitBtn.className;
+    dummy.style.backgroundColor = "var(--color-accent-hover)";
+    document.body.appendChild(dummy);
+    const bg = window.getComputedStyle(dummy).backgroundColor;
+    const color = window.getComputedStyle(dummy).color;
+    dummy.remove();
+    return { bg, color };
+  })()`);
+  const hoverTextRgb = parseRgb(hoverContrast.color);
+  const hoverBgRgb = parseRgb(hoverContrast.bg);
+  const hoverContrastRatio = getContrast(hoverTextRgb, hoverBgRgb);
+  console.log(
+    `Button hover contrast ratio: ${hoverContrastRatio.toFixed(2)}:1 (Text: ${hoverContrast.color}, Bg: ${hoverContrast.bg})`,
+  );
+  if (hoverContrastRatio < 4.5) {
+    errors.push(
+      `Button hover text contrast (${hoverContrastRatio.toFixed(2)}:1) fails WCAG AA standard (requires >= 4.5:1)`,
+    );
+  }
+
+  // Negative test proof: verify that deliberately setting an inaccessible color fails WCAG AA
+  const inaccessibleWhiteRgb = [255, 255, 255];
+  const inaccessibleRatio = getContrast(inaccessibleWhiteRgb, submitBgRgb);
+  if (inaccessibleRatio >= 4.5) {
+    errors.push(
+      `Negative test failed: white on orange should fail WCAG AA (< 4.5:1), but was ${inaccessibleRatio.toFixed(2)}:1`,
     );
   }
 
@@ -657,22 +801,39 @@ try {
   })`);
   console.log("After CDP click focus:", focusDebugAfter);
 
+  const expectedFocusColor = await evaluate(`(() => {
+    const dummy = document.createElement("div");
+    dummy.style.borderColor = "var(--control-focus-border)";
+    document.body.appendChild(dummy);
+    const color = window.getComputedStyle(dummy).borderColor;
+    dummy.remove();
+    return color;
+  })()`);
   const focusBorder = focusDebugAfter.styleBorder;
-  if (focusBorder !== "rgb(245, 138, 36)") {
+  if (focusBorder !== expectedFocusColor) {
     errors.push(
-      `Input focus border-color must be rgb(245, 138, 36), but was '${focusBorder}'`,
+      `Input focus border-color must match var(--control-focus-border) ('${expectedFocusColor}'), but was '${focusBorder}'`,
     );
   }
 
   // Test form validation error state styling
   await evaluate("document.querySelector(\"button[type='submit']\").click()");
   await delay(200);
+
+  const expectedInvalidColor = await evaluate(`(() => {
+    const dummy = document.createElement("div");
+    dummy.style.borderColor = "var(--control-invalid-border)";
+    document.body.appendChild(dummy);
+    const color = window.getComputedStyle(dummy).borderColor;
+    dummy.remove();
+    return color;
+  })()`);
   const invalidBorder = await evaluate(
     "window.getComputedStyle(document.querySelector(\"input[name='username'][aria-invalid='true']\")).borderColor",
   );
-  if (invalidBorder !== "rgb(151, 61, 43)") {
+  if (invalidBorder !== expectedInvalidColor) {
     errors.push(
-      `Invalid input border-color must be rgb(151, 61, 43), but was '${invalidBorder}'`,
+      `Invalid input border-color must match var(--control-invalid-border) ('${expectedInvalidColor}'), but was '${invalidBorder}'`,
     );
   }
 
@@ -701,14 +862,14 @@ try {
   console.log("Setup geometry:", setupGeometry);
 
   if (setupGeometry) {
-    if (setupGeometry.inputHeight !== 44) {
+    if (setupGeometry.inputHeight !== setupGeometry.buttonHeight) {
       errors.push(
-        `Setup input height must be 44px, but was ${setupGeometry.inputHeight}px`,
+        `Setup form controls must share identical height contract, but input was ${setupGeometry.inputHeight}px and button was ${setupGeometry.buttonHeight}px`,
       );
     }
-    if (setupGeometry.buttonHeight !== 44) {
+    if (setupGeometry.inputRadius !== setupGeometry.buttonRadius) {
       errors.push(
-        `Setup button height must be 44px, but was ${setupGeometry.buttonHeight}px`,
+        `Setup form controls must share identical border-radius contract, but input was ${setupGeometry.inputRadius} and button was ${setupGeometry.buttonRadius}`,
       );
     }
   }

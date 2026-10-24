@@ -51,7 +51,7 @@ The frontend enforces a strict Design Token and CSS Modules architecture. `apps/
 The token system is structured into four explicit layers:
 
 1. **Foundation Palette**: Raw brand and neutral color values (`--brand-navy`, `--brand-navy-dark`, `--brand-navy-light`, `--brand-orange`, `--brand-orange-light`, `--brand-orange-text`, `--gray-50` to `--gray-900`).
-2. **Semantic Application Tokens**: Role-based tokens describing UI function (`--color-primary`, `--color-accent`, `--color-surface`, `--color-border`, `--color-status-*`, `--focus-ring-*`).
+2. **Semantic Application Tokens**: Role-based tokens describing UI function (`--color-primary`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`, `--color-surface`, `--color-border`, `--color-status-*`, `--focus-ring-*`). Text rendered on accent backgrounds must bind to `--color-text-on-accent` (`var(--brand-navy)`), never raw palette constants directly.
 3. **Dark-Surface Context Tokens**: Role-specific dark-theme tokens (`--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-border-on-dark`, `--color-border-on-dark-subtle`, `--color-surface-on-dark`, `--color-surface-on-dark-hover`, `--shadow-on-dark-tooltip`).
 4. **Standardized Scales**:
    - **Typography Scale**: `--font-size-2xs` (10px), `--font-size-xs` (11px), `--font-size-sm` (12px), `--font-size-base` (13px), `--font-size-md` (14px), `--font-size-lg` (15px), `--font-size-xl` (16px), `--font-size-2xl` (20px), `--font-size-3xl` (24px).
@@ -60,18 +60,20 @@ The token system is structured into four explicit layers:
    - **Spacing Scale**: `--space-1` (4px), `--space-2` (8px), `--space-3` (12px), `--space-4` (16px), `--space-5` (20px), `--space-6` (24px), `--space-8` (32px).
    - **Radius Scale**: `--radius-xs` (4px), `--radius-sm` (6px), `--radius-md` (8px), `--radius-lg` (12px), `--radius-xl` (16px, cards), `--radius-full` (9999px).
    - **Elevation Shadows**: `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-on-dark-tooltip`.
-5. **Canonical Form Control Contract Tokens**:
-   - Sizing: `--control-height: 44px;`, `--control-radius: var(--radius-lg);`, `--control-padding-x: 14px;`, `--control-padding-y: 10px;`, `--control-font-size: var(--font-size-base);`.
-   - Colors: `--control-bg: var(--color-surface-muted);`, `--control-bg-focus: var(--color-surface);`, `--control-text: var(--color-text);`, `--control-placeholder: var(--gray-400);`.
-   - Borders: `--control-border: var(--color-border-subtle);`, `--control-border-hover: var(--gray-400);`, `--control-focus-border: var(--color-accent);`.
-   - Focus rings: `--control-focus-ring: rgba(245, 138, 36, 0.2);`, `--control-invalid-focus-ring: rgba(151, 61, 43, 0.2);`.
-   - States: `--control-disabled-bg: var(--gray-100);`, `--control-disabled-text: var(--gray-500);`, `--control-disabled-border: var(--gray-200);`, `--control-readonly-bg: var(--gray-50);`, `--control-invalid-border: var(--color-status-error-text);`.
+5. **Canonical Form Control Contract Tokens (Defaults vs. Invariant Contracts)**:
+   - Configurable theme defaults in `tokens.css`:
+     - Sizing: `--control-height: 44px;`, `--control-radius: var(--radius-lg);`, `--control-padding-x: 14px;`, `--control-padding-y: 10px;`, `--control-font-size: var(--font-size-base);`.
+     - Colors: `--control-bg: var(--color-surface-muted);`, `--control-bg-focus: var(--color-surface);`, `--control-text: var(--color-text);`, `--control-placeholder: var(--gray-400);`.
+     - Borders: `--control-border: var(--color-border-subtle);`, `--control-border-hover: var(--gray-400);`, `--control-focus-border: var(--color-accent);`.
+     - Focus rings: `--control-focus-ring: rgba(245, 138, 36, 0.2);`, `--control-invalid-focus-ring: rgba(151, 61, 43, 0.2);`.
+     - States: `--control-disabled-bg: var(--gray-100);`, `--control-disabled-text: var(--gray-500);`, `--control-disabled-border: var(--gray-200);`, `--control-readonly-bg: var(--gray-50);`, `--control-invalid-border: var(--color-status-error-text);`.
+   - Invariant Contract: Standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) must consume identical contract variables. Changing `--control-height` from 44px to 48px or `--control-radius` from 12px to 8px in `tokens.css` must update all consumers consistently without breaking tests or requiring test value updates.
 
 ### B. Semantic Ownership & Usage Rules
 
 Tokens must be consumed strictly according to their intended semantic role:
 
-- **Text Colors**: Use text tokens (`--color-text`, `--color-text-muted`, `--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-accent-text`, status text tokens). Never use border tokens (`--color-border-subtle`, `--color-border`) as text colors.
+- **Text Colors**: Use text tokens (`--color-text`, `--color-text-muted`, `--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-text-on-accent`, `--color-accent-text`, status text tokens). Never use border tokens (`--color-border-subtle`, `--color-border`) as text colors.
 - **Backgrounds**: Use surface and background tokens (`--color-surface`, `--color-background`, `--color-surface-muted`, `--color-surface-on-dark`, status bg tokens). Never use text or border tokens as background colors.
 - **Borders**: Use border tokens (`--color-border`, `--color-border-subtle`, `--color-border-on-dark`, status error border). Never use surface or text tokens for border colors.
 - **Elevations**: Use elevation shadow tokens (`--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-on-dark-tooltip`).
@@ -85,27 +87,26 @@ Tokens must be consumed strictly according to their intended semantic role:
   - Consumers must write `color: var(--color-text);` and `border-color: var(--color-border);` **without fallbacks**.
   - Unnecessary fallbacks (e.g. `var(--space-4, 16px)`, `var(--color-surface, #ffffff)`) are strictly forbidden because they hide missing token declarations and create maintenance drift.
 - **In `packages/ui`**:
-  - Fallbacks are permitted **only** when defining an explicit standalone component contract for use in consumers where the root theme is not guaranteed.
-  - Any standalone fallback must be consistent with the default root theme values (e.g. `var(--control-height, 44px)`).
-  - Standalone fallbacks must be cleanly defined without deeply nested ad-hoc fallback chains (e.g. avoid `var(--a, var(--b, 12px))`).
-  - Fallbacks must be tested independently in package tests.
-  - Fallbacks must never be added reflexively to every `var()` declaration.
+  - Components consume canonical design tokens directly (`var(--control-border)`).
+  - Standalone fallbacks are permitted **only** where an actual standalone-consumer contract requires independent execution outside the Nexora theme.
+  - Deeply nested fallback chains (e.g. `var(--control-border, var(--color-border-subtle, #cbd5e1))`) and raw value duplication across components solely to echo root defaults are forbidden.
+  - If standalone use is required, it must be verified in an independent harness without the root theme.
 
 ### D. Shared Component Contract & Parity
 
 Per [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule), all standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) share one canonical state and sizing contract:
 
-- **Height & Box-Sizing**: Exact 44px height (`height: var(--control-height)`), `box-sizing: border-box`, standard 12px radius (`border-radius: var(--control-radius)`).
+- **Height & Box-Sizing**: `height: var(--control-height)` (default 44px), `box-sizing: border-box`, `border-radius: var(--control-radius)` (default 12px).
 - **Interactive State Precedence**: Focus and invalid states strictly supersede hover styling:
-  - Default: `var(--control-border)` (`#cbd5e1`), `var(--control-bg)` (`#f8fafc`).
-  - Hover: `var(--control-border-hover)` (`#94a3b8`) only when not disabled, readonly, focused, or invalid (`:not(:focus):not([aria-invalid="true"])`).
-  - Focus: `var(--control-focus-border)` (`#f58a24`) with 2px outer focus ring (`rgba(245, 138, 36, 0.2)`).
-  - Invalid (`aria-invalid="true"`): `var(--control-invalid-border)` (`#973d2b`) with error focus ring (`rgba(151, 61, 43, 0.2)`).
-  - Disabled: `var(--control-disabled-bg)` (`#f1f5f9`), `var(--control-disabled-text)` (`#64748b`), `cursor: not-allowed`.
-  - Readonly: `var(--control-readonly-bg)` (`#f8fafc`), `cursor: default`.
-- **Textarea Parity**: Reuses identical colors, borders, radius, focus rings, and state semantics; default minimum height is 88px with vertical resize.
-- **Select Specification**: Standardized to 44px height, identical border, radius, and focus parity matching `TextInput`. Implementation is deferred to M2's first consumer per YAGNI and component reuse policy.
-- **Button Contrast & WCAG AA**: Foreground text on `--color-accent` (`#F58A24`) uses `var(--brand-navy, #172b4d)` providing a **5.74:1** contrast ratio (surpassing the WCAG AA 4.5:1 threshold for normal text). On hover (`#E07716`), contrast is 4.54:1 (>= 4.5:1).
+  - Default: `var(--control-border)`, `var(--control-bg)`.
+  - Hover: `var(--control-border-hover)` only when not disabled, readonly, focused, or invalid (`:not(:focus):not([aria-invalid="true"])`).
+  - Focus: `var(--control-focus-border)` with 2px outer focus ring (`var(--control-focus-ring)`).
+  - Invalid (`aria-invalid="true"`): `var(--control-invalid-border)` with error focus ring (`var(--control-invalid-focus-ring)`).
+  - Disabled: `var(--control-disabled-bg)`, `var(--control-disabled-text)`, `cursor: not-allowed`.
+  - Readonly: `var(--control-readonly-bg)`, `cursor: default`.
+- **Textarea Parity**: Retained in `@nexora/ui` for domain-neutral form control parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, and state semantics; default minimum height is 88px with vertical resize.
+- **Select Specification**: Standardized to `var(--control-height)`, identical border, radius, and focus parity matching `TextInput`. Implementation is deferred to M2's first consumer per YAGNI and component reuse policy.
+- **Button Contrast & WCAG AA**: Foreground text on `--color-accent` (`#F58A24`) uses the semantic token `--color-text-on-accent: var(--brand-navy, #172b4d)` providing a **5.74:1** contrast ratio (surpassing the WCAG AA 4.5:1 threshold for normal text). On hover (`--color-accent-hover: #E07716`), contrast is **4.58:1** (>= 4.5:1). Contrast is validated dynamically from rendered styles/tokens and tested against negative failure cases.
 - **Layout Scoping**: Feature layouts (Login, Setup, Customer, Carrier) may adjust surrounding whitespace, layout width, or leading icon padding, but must **never** use `!important` or override the default states of shared controls.
 
 ### E. Legitimate CSS-Local Exceptions
@@ -121,24 +122,29 @@ Creating hundreds of single-use tokens for purely local coordinates or micro-adj
 
 ### F. Testing Strategy & Runtime Token Override
 
-Testing does not lock implementation strings (e.g. asserting exact regex like `/height:\s*var\(--control-height,\s*44px\)/`). Instead, frontend tests are organized into three behavioral groups:
+Testing enforces contracts, behavioral consistency, and runtime adaptability rather than locking implementation strings or configurable theme defaults (e.g. no brittle assertions on fixed 44px or hardcoded RGB arrays):
 
-1. **Token Contract Tests**: Assert required tokens are declared in `tokens.css`, references resolve without circular dependencies, consumers use semantic tokens according to ownership rules, and `apps/web` contains no unnecessary fallbacks.
-2. **Component Consistency Tests**: Assert shared controls bind sizing and states to canonical contract tokens, interactive states are synchronized with proper specificity (hover cannot clobber focus), no `!important` overrides exist, and `@nexora/ui` primitives are reused across pages.
-3. **Runtime Token Override Tests**: Execute in browser via Chromium/CDP:
+1. **Token Contract Tests**: Assert required tokens are declared in `tokens.css`, references resolve without circular dependencies, consumers use semantic tokens according to ownership rules, and `apps/web` contains no unnecessary fallbacks. Discovery covers all production CSS in `apps/web`, `packages/ui`, and future `features/**`.
+2. **Component Consistency Tests**: Assert shared controls (`TextInput`, `Button`, `Textarea`) bind sizing and states to canonical contract tokens (`inputHeight === buttonHeight`, `inputRadius === buttonRadius`), interactive states are synchronized with proper specificity (hover cannot clobber focus), no feature overrides break shared states, and `@nexora/ui` primitives are reused across pages.
+3. **Dynamic Contrast Tests**: Calculate WCAG AA contrast dynamically from rendered `getComputedStyle()` foreground/background colors (including normal and hover states) against the 4.5:1 threshold, with negative tests proving deliberate inaccessible combinations fail.
+4. **Runtime Token Override Tests**: Execute in browser via Chromium/CDP:
    - Render page containing form controls.
    - Record initial computed styles of controls via `window.getComputedStyle()`.
    - Dynamically override root tokens (e.g. `--control-height: 52px;`, `--control-radius: 6px;`) on `document.documentElement`.
    - Assert all consumer controls synchronously update their computed styles in lockstep.
    - Restore root tokens and verify computed styles return cleanly to their initial values.
+5. **Legitimate Invariant Exact-Value Boundaries**: Exact-value assertions are permitted only where an absolute dimension is an explicit, justified acceptance invariant (e.g. zero layout shifts, WCAG AA thresholds, brand visibility, maximum 420px login card width) rather than a configurable theme default.
 
-### G. Header First-Paint Responsive Parity at 901–1100px
+### G. Header First-Paint Responsive Parity & Accessibility at 901–1100px
 
-To eliminate visual layout shift and hydration discrepancy at compact desktop viewports (901–1100px):
+To eliminate visual layout shifts, misleading accessibility semantics, and hydration discrepancies at compact desktop viewports (901–1100px):
 
-- Header uses CSS-first `.responsiveBrand` styling matching Sidebar's CSS-first `@media (min-width: 901px) and (max-width: 1100px)` 72px collapsed geometry.
-- On first paint before React hydration completes, Header renders `.collapsedBrand` monogram at 901–1100px and hides it on wide viewports (>1100px) and mobile (<=900px) via pure CSS media queries with zero layout shift.
-- Manual sidebar toggle overrides are cleanly separated in `userOverride: boolean | null`, ensuring user preferences supersede responsive defaults.
+- Header implements a CSS-first responsive button triad:
+  - `.desktopExpandedToggle`: visible only on wide desktop (>1100px), static `aria-expanded="true"` and `aria-label="Thu gọn thanh điều hướng"`.
+  - `.desktopCompactToggle`: visible only on compact desktop (901–1100px), static `aria-expanded="false"` and `aria-label="Mở rộng thanh điều hướng"`.
+  - `.mobileToggle`: visible only on mobile/tablet (<=900px), dynamic `aria-expanded={mobileOpen}` and `aria-label={mobileOpen ? "Đóng menu di động" : "Mở menu di động"}`.
+- First-Paint Parity: Before React hydration completes, the visible button in the accessibility tree and visual layout match the 72px collapsed Sidebar identically without layout shift (shift < 0.05, typically 0.00) or hydration warning.
+- Post-Hydration Interaction: Manual sidebar toggle overrides cleanly switch to user-controlled state (`userOverride`), with interactive clicks at 1024px expanding the sidebar to 240px and collapsing back to 72px without breaking responsive rules.
 
 ### H. Minimal Global Styles (`apps/web/app/styles.css`)
 

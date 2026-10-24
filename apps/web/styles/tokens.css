@@ -45,6 +45,8 @@
   /* Context-aware semantic tokens for WCAG AA compliance */
   --color-accent-text: var(--brand-orange-text);
   --color-accent-text-hover: var(--brand-orange-text-hover);
+  --color-text-on-accent: var(--brand-navy);
+  --color-text-on-accent-hover: var(--brand-navy);
   --focus-ring-on-light: var(--brand-orange-text);
   --focus-ring-on-dark: var(--brand-orange);
 

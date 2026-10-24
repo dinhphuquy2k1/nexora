@@ -374,4 +374,51 @@ Executed full automated CSS audit, standardized Design Tokens, enforced Styling 
    - `docker exec nexora-web-1 env -u PORT pnpm --filter @nexora/web test`: 60/60 PASSED.
    - `pnpm format:check`, `pnpm lint`, `pnpm docs:check`, `pnpm preflight:check`: ALL PASSED.
 
+### M1.8 Fix M1 Review Findings & Token Contract (2026-10-24)
+
+Addressed all remaining M1 P2 review findings and synchronized implementation, tests, and canonical documentation with Nexora's UI Design System policy:
+
+1. **P2 — Remove Implementation-Value Locking from Tests**:
+   - Refactored `apps/web/test/shared-ui.test.mjs`, `apps/web/test/form-control-contracts.test.mjs`, and `scripts/m1-p2-regression.mjs`.
+   - Eliminated brittle literal value assertions (`--control-height: 44px`, `--control-radius: 12px`, hardcoded RGB strings).
+   - Enforced Token Contract: required token definitions exist, references resolve acyclically, no circular references, and semantic ownership is preserved.
+   - Enforced Component Consistency: `TextInput` and `Button` share identical control height and radius variables (`inputHeight === buttonHeight`, `inputRadius === buttonRadius`), while `TextInput` and `Textarea` share border, focus, disabled, readonly, and invalid semantics. Reconfiguring `--control-height` to 48px or `--control-radius` to 8px in `tokens.css` does not break tests.
+   - Enforced Runtime Override: recorded initial computed styles via `getComputedStyle()`, dynamically overrode root `--control-height: 52px` and `--control-radius: 6px` on `document.documentElement`, verified all consumers updated in lockstep, and verified clean restoration to original values.
+   - Exact-value assertions are permitted only where an absolute dimension is an explicit, justified acceptance invariant (e.g. 0 layout shifts, WCAG AA thresholds, brand visibility).
+
+2. **P2 — Correct WCAG Contrast Testing**:
+   - Replaced hardcoded RGB arrays in `form-control-contracts.test.mjs` with dynamic contrast calculations derived directly from resolved theme tokens (`--color-text-on-accent` and `--color-accent`) using relative luminance formulas.
+   - In `scripts/m1-p2-regression.mjs`, evaluated real rendered computed styles from `window.getComputedStyle()`, verifying default state (5.74:1) and hover state (4.58:1) both exceed the WCAG AA 4.5:1 threshold.
+   - Standardized Button foreground text in `Controls.module.css` to semantic token `--color-text-on-accent: var(--brand-navy)` and hover to `--color-text-on-accent-hover: var(--brand-navy)`.
+   - Added negative tests proving deliberate inaccessible theme modifications (e.g. white text `#ffffff` on orange accent `#f58a24` yielding 2.14:1) fail closed.
+
+3. **P2 — Fix Header/Sidebar First-Paint Accessibility at 901–1100px**:
+   - Implemented CSS-first responsive button triad in `Header.tsx` and `Header.module.css`:
+     - `.desktopExpandedToggle`: visible only on wide desktop (>1100px), static `aria-expanded="true"`, "Thu gọn thanh điều hướng".
+     - `.desktopCompactToggle`: visible only on compact desktop (901–1100px), static `aria-expanded="false"`, "Mở rộng thanh điều hướng".
+     - `.mobileToggle`: visible only on mobile/tablet (<=900px), dynamic `aria-expanded={mobileOpen}`, "Mở/Đóng menu di động".
+   - First-Paint Parity: Pre-hydration accessibility tree and visible layout match the 72px collapsed Sidebar identically without layout shift (shift < 0.05, observed 0.00) or React hydration warnings.
+   - Interactive Verification: CDP verified that manual toggle clicks at 1024px expand the sidebar to 240px (`aria-expanded="true"`) and collapse back to 72px (`aria-expanded="false"`).
+   - Mobile drawer accessibility, focus restoration, and zero horizontal scroll overflow (`scrollWidth === viewportWidth`) remain intact across 768px, 390px, and 375px viewports.
+
+4. **P2 — Expand CSS Policy Validation**:
+   - Expanded discovery in `form-control-contracts.test.mjs` to recursively scan all production CSS in `apps/web/**/*.css`, `packages/ui/**/*.css`, and future `apps/web/features/**/*.css`, while deliberately excluding build and vendor artifacts.
+   - Enhanced declaration parser to handle multiline CSS declarations and nested CSS functions.
+   - Enforced fallback rules and semantic ownership (forbidding border tokens for text, surface/border for backgrounds, etc.).
+   - Added negative unit tests proving violations in standard paths and future `features/` modules are detected.
+
+5. **Resolve Fallback and Shared Component Consistency**:
+   - Standardized `packages/ui/src/Controls.module.css`: eliminated deeply nested fallback chains (`var(--control-border, var(--color-border-subtle, #cbd5e1))`) in favor of direct token consumption (`var(--control-border)`).
+   - Enforced strict fallback policy: `apps/web` has mandatory theme tokens (no fallbacks permitted); `packages/ui` avoids repeating raw values solely to duplicate root defaults.
+   - Retained `Textarea` export in `@nexora/ui` for domain-neutral form control contract parity with `TextInput`.
+
+6. **Investigation of Foundation CI Failure 40068551943**:
+   - Investigated `BROWSER_LAUNCH` timeout in Foundation run 40068551943: Chrome did not emit `DevToolsActivePort` within the 10-second polling timeout under runner load (`exitCode: null`, `stderrBytes: 0`, process still alive).
+   - Verified that prior quality and integration stages passed; following established repository rules (NEXORA-024, NEXORA-020, NEXORA-019), bounded same-head rerun is the canonical procedure for runner startup latency without weakening timeouts or assertions.
+
+7. **Executed Verification Evidence**:
+   - `node --test apps/web/test/form-control-contracts.test.mjs apps/web/test/shared-ui.test.mjs apps/web/test/m1-shell.test.mjs apps/web/test/navigation.test.mjs packages/ui/test/status-tone.test.mjs`: 24/24 PASSED.
+   - `node scripts/m1-p2-regression.mjs`: ALL PASSED in Chromium CDP across all viewports (901px, 1024px, 1100px, 1101px, 1280px, 1440px, 768px, 390px, 375px), 0 layout shifts, 1024px manual toggle, 5.74:1 button contrast, hover contrast, and runtime token overrides.
+   - `pnpm format:check`, `pnpm lint`, `pnpm docs:check`, `pnpm preflight:check`: ALL PASSED.
+
 This evidence commit changes documentation only. Exact final documentation-head Preflight/Foundation results and tested merge lineage are recorded in PR27 metadata after execution, avoiding a SHA-only documentation loop. Until those checks finish, final-head readiness is VERIFICATION PENDING. The implementation-source PASS above must not be relabeled as the new commit's PASS. No claim of production DNS/certificate/firewall/NTP/key custody/backup deployment verification; CI uses owned disposable resources only. Immutable design snapshot unchanged; Documentation Impact REQUIRED, canonical frontend/testing documentation synchronized.

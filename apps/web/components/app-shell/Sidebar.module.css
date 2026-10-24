@@ -29,7 +29,7 @@
 .collapsed .groupTitle,
 .collapsed .itemLabel,
 .collapsed .plannedBadge {
-  display: none !important;
+  display: none;
 }
 
 .collapsed .navItemLink,
@@ -55,7 +55,7 @@
   .responsive .groupTitle,
   .responsive .itemLabel,
   .responsive .plannedBadge {
-    display: none !important;
+    display: none;
   }
 
   .responsive .navItemLink,

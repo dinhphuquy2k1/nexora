@@ -8,16 +8,16 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  height: var(--control-height, 44px);
-  min-height: var(--control-height, 44px);
-  padding: 0 var(--space-4, 16px);
+  height: var(--control-height);
+  min-height: var(--control-height);
+  padding: 0 var(--control-padding-x);
   border: 1px solid transparent;
-  border-radius: var(--control-radius, var(--radius-lg, 12px));
+  border-radius: var(--control-radius);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
   background-color: var(--color-accent);
-  color: var(--brand-navy, #172b4d);
+  color: var(--color-text-on-accent);
   cursor: pointer;
   box-sizing: border-box;
   text-decoration: none;
@@ -52,15 +52,15 @@
 
 .input {
   width: 100%;
-  height: var(--control-height, 44px);
-  min-height: var(--control-height, 44px);
-  padding: 0 var(--control-padding-x, 14px);
-  border: 1px solid var(--control-border, var(--color-border-subtle, #cbd5e1));
-  border-radius: var(--control-radius, var(--radius-lg, 12px));
+  height: var(--control-height);
+  min-height: var(--control-height);
+  padding: 0 var(--control-padding-x);
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
   font: inherit;
-  font-size: var(--control-font-size, 13px);
-  background-color: var(--control-bg, var(--color-surface-muted, #f8fafc));
-  color: var(--control-text, var(--color-text, #1f2937));
+  font-size: var(--control-font-size);
+  background-color: var(--control-bg);
+  color: var(--control-text);
   box-sizing: border-box;
   transition:
     background-color 0.15s ease,
@@ -69,55 +69,48 @@
 }
 
 .input::placeholder {
-  color: var(--control-placeholder, var(--gray-400, #94a3b8));
+  color: var(--control-placeholder);
   opacity: 1;
 }
 
 .input:hover:not(:disabled):not([readonly]):not(:focus):not(
     [aria-invalid="true"]
   ) {
-  border-color: var(--control-border-hover, var(--gray-400, #94a3b8));
+  border-color: var(--control-border-hover);
 }
 
 .input:focus,
 .input:focus-visible,
 .input:focus:hover {
   outline: none;
-  background-color: var(--control-bg-focus, var(--color-surface, #ffffff));
-  border-color: var(--control-focus-border, var(--color-accent, #f58a24));
-  box-shadow: 0 0 0 2px var(--control-focus-ring, rgba(245, 138, 36, 0.2));
+  background-color: var(--control-bg-focus);
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 2px var(--control-focus-ring);
 }
 
 .input:disabled {
-  background-color: var(--control-disabled-bg, var(--gray-100, #f1f5f9));
-  color: var(--control-disabled-text, var(--gray-500, #64748b));
-  border-color: var(--control-disabled-border, var(--gray-200, #e2e8f0));
+  background-color: var(--control-disabled-bg);
+  color: var(--control-disabled-text);
+  border-color: var(--control-disabled-border);
   cursor: not-allowed;
   opacity: 0.8;
 }
 
 .input[readonly] {
-  background-color: var(--control-readonly-bg, var(--gray-50, #f8fafc));
+  background-color: var(--control-readonly-bg);
   cursor: default;
 }
 
 .input[aria-invalid="true"],
 .input[aria-invalid="true"]:hover {
-  border-color: var(
-    --control-invalid-border,
-    var(--color-status-error-text, #973d2b)
-  );
+  border-color: var(--control-invalid-border);
 }
 
 .input[aria-invalid="true"]:focus,
 .input[aria-invalid="true"]:focus-visible,
 .input[aria-invalid="true"]:focus:hover {
-  border-color: var(
-    --control-invalid-border,
-    var(--color-status-error-text, #973d2b)
-  );
-  box-shadow: 0 0 0 2px
-    var(--control-invalid-focus-ring, rgba(151, 61, 43, 0.2));
+  border-color: var(--control-invalid-border);
+  box-shadow: 0 0 0 2px var(--control-invalid-focus-ring);
 }
 
 /* --------------------------------------------------------------------------
@@ -127,13 +120,13 @@
 .textarea {
   width: 100%;
   min-height: 88px;
-  padding: var(--control-padding-y, 10px) var(--control-padding-x, 14px);
-  border: 1px solid var(--control-border, var(--color-border-subtle, #cbd5e1));
-  border-radius: var(--control-radius, var(--radius-lg, 12px));
+  padding: var(--control-padding-y) var(--control-padding-x);
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
   font: inherit;
-  font-size: var(--control-font-size, 13px);
-  background-color: var(--control-bg, var(--color-surface-muted, #f8fafc));
-  color: var(--control-text, var(--color-text, #1f2937));
+  font-size: var(--control-font-size);
+  background-color: var(--control-bg);
+  color: var(--control-text);
   box-sizing: border-box;
   resize: vertical;
   transition:
@@ -143,55 +136,48 @@
 }
 
 .textarea::placeholder {
-  color: var(--control-placeholder, var(--gray-400, #94a3b8));
+  color: var(--control-placeholder);
   opacity: 1;
 }
 
 .textarea:hover:not(:disabled):not([readonly]):not(:focus):not(
     [aria-invalid="true"]
   ) {
-  border-color: var(--control-border-hover, var(--gray-400, #94a3b8));
+  border-color: var(--control-border-hover);
 }
 
 .textarea:focus,
 .textarea:focus-visible,
 .textarea:focus:hover {
   outline: none;
-  background-color: var(--control-bg-focus, var(--color-surface, #ffffff));
-  border-color: var(--control-focus-border, var(--color-accent, #f58a24));
-  box-shadow: 0 0 0 2px var(--control-focus-ring, rgba(245, 138, 36, 0.2));
+  background-color: var(--control-bg-focus);
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 2px var(--control-focus-ring);
 }
 
 .textarea:disabled {
-  background-color: var(--control-disabled-bg, var(--gray-100, #f1f5f9));
-  color: var(--control-disabled-text, var(--gray-500, #64748b));
-  border-color: var(--control-disabled-border, var(--gray-200, #e2e8f0));
+  background-color: var(--control-disabled-bg);
+  color: var(--control-disabled-text);
+  border-color: var(--control-disabled-border);
   cursor: not-allowed;
   opacity: 0.8;
 }
 
 .textarea[readonly] {
-  background-color: var(--control-readonly-bg, var(--gray-50, #f8fafc));
+  background-color: var(--control-readonly-bg);
   cursor: default;
 }
 
 .textarea[aria-invalid="true"],
 .textarea[aria-invalid="true"]:hover {
-  border-color: var(
-    --control-invalid-border,
-    var(--color-status-error-text, #973d2b)
-  );
+  border-color: var(--control-invalid-border);
 }
 
 .textarea[aria-invalid="true"]:focus,
 .textarea[aria-invalid="true"]:focus-visible,
 .textarea[aria-invalid="true"]:focus:hover {
-  border-color: var(
-    --control-invalid-border,
-    var(--color-status-error-text, #973d2b)
-  );
-  box-shadow: 0 0 0 2px
-    var(--control-invalid-focus-ring, rgba(151, 61, 43, 0.2));
+  border-color: var(--control-invalid-border);
+  box-shadow: 0 0 0 2px var(--control-invalid-focus-ring);
 }
 
 /* --------------------------------------------------------------------------
@@ -204,7 +190,7 @@
   gap: var(--space-2);
   font: inherit;
   cursor: pointer;
-  min-height: var(--control-height, 44px);
+  min-height: var(--control-height);
   user-select: none;
 }
 
@@ -212,7 +198,7 @@
   width: 18px;
   height: 18px;
   accent-color: var(--color-primary);
-  border-radius: var(--radius-xs, 4px);
+  border-radius: var(--radius-xs);
   cursor: pointer;
 }
 

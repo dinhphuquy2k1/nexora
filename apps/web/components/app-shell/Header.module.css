@@ -55,6 +55,18 @@
   flex-shrink: 0;
 }
 
+.desktopExpandedToggle {
+  display: flex;
+}
+
+.desktopCompactToggle {
+  display: none;
+}
+
+.mobileToggle {
+  display: none;
+}
+
 .responsiveBrand {
   display: none;
 }
@@ -63,12 +75,36 @@
   .responsiveBrand {
     display: flex;
   }
+
+  .desktopExpandedToggle {
+    display: none;
+  }
+
+  .desktopCompactToggle {
+    display: flex;
+  }
+
+  .mobileToggle {
+    display: none;
+  }
 }
 
 @media (max-width: 900px) {
   .collapsedBrand,
   .responsiveBrand {
-    display: none !important;
+    display: none;
+  }
+
+  .desktopExpandedToggle {
+    display: none;
+  }
+
+  .desktopCompactToggle {
+    display: none;
+  }
+
+  .mobileToggle {
+    display: flex;
   }
 }
 

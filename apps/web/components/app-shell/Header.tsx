@@ -40,17 +40,56 @@ export function Header({
     <header className={styles.header} aria-label="Thanh công cụ đầu trang">
       {/* Left section: Sidebar Toggle & Breadcrumbs */}
       <div className={styles.leftSection}>
-        <button
-          ref={toggleRef}
-          aria-expanded={isMobile ? mobileOpen : !isSidebarCollapsed}
-          type="button"
-          onClick={onToggleSidebar}
-          aria-label={toggleLabel}
-          className={styles.toggleButton}
-          title={toggleLabel}
-        >
-          <Menu size={18} aria-hidden="true" />
-        </button>
+        {isResponsive ? (
+          <>
+            {/* Desktop expanded: >= 1101px */}
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-expanded="true"
+              aria-label="Thu gọn thanh điều hướng"
+              title="Thu gọn thanh điều hướng"
+              className={`${styles.toggleButton} ${styles.desktopExpandedToggle}`}
+            >
+              <Menu size={18} aria-hidden="true" />
+            </button>
+            {/* Desktop compact: 901px - 1100px */}
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-expanded="false"
+              aria-label="Mở rộng thanh điều hướng"
+              title="Mở rộng thanh điều hướng"
+              className={`${styles.toggleButton} ${styles.desktopCompactToggle}`}
+            >
+              <Menu size={18} aria-hidden="true" />
+            </button>
+            {/* Mobile: <= 900px */}
+            <button
+              ref={toggleRef}
+              type="button"
+              onClick={onToggleSidebar}
+              aria-expanded={mobileOpen}
+              aria-label={mobileOpen ? "Đóng menu di động" : "Mở menu di động"}
+              title={mobileOpen ? "Đóng menu di động" : "Mở menu di động"}
+              className={`${styles.toggleButton} ${styles.mobileToggle}`}
+            >
+              <Menu size={18} aria-hidden="true" />
+            </button>
+          </>
+        ) : (
+          <button
+            ref={toggleRef}
+            aria-expanded={isMobile ? mobileOpen : !isSidebarCollapsed}
+            type="button"
+            onClick={onToggleSidebar}
+            aria-label={toggleLabel}
+            className={styles.toggleButton}
+            title={toggleLabel}
+          >
+            <Menu size={18} aria-hidden="true" />
+          </button>
+        )}
 
         {((isResponsive && !isMobile) || (isSidebarCollapsed && !isMobile)) && (
           <div

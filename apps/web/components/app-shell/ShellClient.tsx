@@ -13,6 +13,7 @@ interface ShellClientProps {
   deployment: DeploymentPresentation;
 }
 export function ShellClient({ children, user, deployment }: ShellClientProps) {
+  const [mounted, setMounted] = useState(false);
   const [userOverride, setUserOverride] = useState<boolean | null>(null);
   const [isCompact, setIsCompact] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -20,6 +21,7 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
   const toggleRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   useEffect(() => {
+    setMounted(true);
     const mobile = window.matchMedia("(max-width: 900px)");
     const compact = window.matchMedia("(max-width: 1100px)");
     const update = () => {
@@ -51,7 +53,10 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
   const isEffectiveCollapsed = userOverride !== null ? userOverride : isCompact;
   const isResponsive = userOverride === null;
   return (
-    <div className={styles.container}>
+    <div
+      className={styles.container}
+      data-hydrated={mounted ? "true" : undefined}
+    >
       <div className={styles.desktopSidebar}>
         <Sidebar
           isCollapsed={isEffectiveCollapsed}

@@ -66,13 +66,13 @@ test("Design tokens: complete 2-tier architecture and scale tokens", () => {
   // Layer 5: Canonical Form Control Contract Tokens
   assert.match(
     tokensContent,
-    /--control-height:\s*44px/,
-    "Control height present",
+    /--control-height:\s*[^;]+;/,
+    "Control height contract token present",
   );
   assert.match(
     tokensContent,
-    /--control-radius:\s*var\(--radius-lg\)/,
-    "Control radius present",
+    /--control-radius:\s*[^;]+;/,
+    "Control radius contract token present",
   );
   assert.match(tokensContent, /--control-border:/, "Control border present");
   assert.match(tokensContent, /--control-bg:/, "Control bg present");
