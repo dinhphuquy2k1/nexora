@@ -1,4 +1,5 @@
 // Extends the existing authenticated CDP session. Only owned disposable fixtures.
+import { verifyCustomerControls } from "./customer-control-checks.mjs";
 import { verifyCustomerReadRaces } from "./customer-read-races.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -56,7 +57,7 @@ export async function verifyCustomerBrowser({
     throw Error("CUSTOMER_BROWSER_CONDITION");
   }
   const button = (text) =>
-    `Array.from(document.querySelectorAll('button')).find(b=>b.getClientRects().length&&b.textContent.trim()===${JSON.stringify(text)})`;
+    `Array.from(document.querySelectorAll('button')).find(b=>b.getClientRects().length&&(b.getAttribute('aria-label')??b.textContent.trim())===${JSON.stringify(text)})`;
   async function click(text) {
     await until(`${button(text)}&&!${button(text)}.disabled`);
     await evaluate(`${button(text)}.click();true`);
@@ -178,7 +179,7 @@ export async function verifyCustomerBrowser({
   }
   async function ready(expectedAlert = false) {
     await until(
-      `location.pathname.startsWith('/customers') && !!document.querySelector('h1') && document.querySelector('h1').textContent.toLowerCase().includes('khách hàng') && !Array.from(document.querySelectorAll('[role=status]')).some(e=>e.textContent.startsWith('Đang tải')) && Boolean(document.querySelector('[role=alert]')) === ${expectedAlert}`,
+      `location.pathname.startsWith('/customers') && !!document.querySelector('h1#customer-heading') && !Array.from(document.querySelectorAll('[role=status]')).some(e=>e.textContent.startsWith('Đang tải')) && Boolean(document.querySelector('[role=alert]')) === ${expectedAlert}`,
     );
   }
   async function navigate(path) {
@@ -188,6 +189,23 @@ export async function verifyCustomerBrowser({
   }
   async function snapshot(phase) {
     step("CAPTURE_" + phase);
+    await evaluate(
+      `(()=>{const dialog=document.querySelector('dialog[open]');if(dialog){dialog.querySelector('[aria-label="Đóng biểu mẫu"]')?.focus();const body=dialog.querySelector('[data-customer-form-body]');if(body)body.scrollTop=${phase.endsWith("-address") ? "body.scrollHeight" : "0"};}return true;})()`,
+    );
+    await send("DOM.enable");
+    await send("CSS.enable");
+    const { root } = await send("DOM.getDocument");
+    const { nodeId } = await send("DOM.querySelector", {
+      nodeId: root.nodeId,
+      selector: "h1#customer-heading",
+    });
+    const { fonts } = await send("CSS.getPlatformFontsForNode", { nodeId });
+    assert.ok(
+      fonts.some(
+        (f) =>
+          f.isCustomFont && /inter/i.test(f.familyName) && f.glyphCount > 0,
+      ),
+    );
     for (const viewport of M1_VIEWPORTS) {
       await send("Emulation.setDeviceMetricsOverride", {
         ...viewport,
@@ -218,6 +236,7 @@ export async function verifyCustomerBrowser({
         file,
         ...viewport,
         sha256: createHash("sha256").update(bytes).digest("hex"),
+        fonts,
       });
     }
     await send("Emulation.clearDeviceMetricsOverride");
@@ -261,12 +280,13 @@ export async function verifyCustomerBrowser({
     await fill("phone", phone);
     await fill("addressText", "Địa chỉ tổng hợp dùng một lần");
     await snapshot("create");
+    await snapshot("create-address");
     step("TOKEN_OVERRIDE_VERIFY");
     // Real token override reaches TextInput/Select/Button, restored before submit.
     const tokenResult = await evaluate(`(()=>{
       const root = document.documentElement;
-      const input = document.querySelector('dialog[open] input[name=name], input[name=q]');
-      const button = document.querySelector('dialog[open] button, button');
+      const input = document.querySelector('dialog[open]')?.querySelector('input[name=name]') ?? document.querySelector('input[name=q]');
+      const button = document.querySelector('dialog[open]')?.querySelector('button[data-variant=primary]') ?? document.querySelector('button[data-variant=primary]');
       const select = document.querySelector('select[name=filter-status], select[aria-label="Số dòng mỗi trang"], select');
       if (!input || !button || !select) {
         return {
@@ -287,9 +307,9 @@ export async function verifyCustomerBrowser({
         select: readStyles(select),
       };
       const tokens = [
-        { prop: '--control-height', styleKey: 'height', override: '52px' },
-        { prop: '--control-radius', styleKey: 'radius', override: '6px' },
-        { prop: '--control-font-size', styleKey: 'fontSize', override: '16px' }
+        { prop: '--control-height', styleKey: 'height', override: (parseFloat(baseline.input.height)+8)+'px' },
+        { prop: '--control-radius', styleKey: 'radius', override: (parseFloat(baseline.input.radius)+2)+'px' },
+        { prop: '--control-font-size', styleKey: 'fontSize', override: (parseFloat(baseline.input.fontSize)+2)+'px' }
       ];
       const saved = tokens.map(t => ({
         value: root.style.getPropertyValue(t.prop),
@@ -306,7 +326,7 @@ export async function verifyCustomerBrowser({
         };
         for (const [name, cs] of Object.entries(overridden)) {
           for (const t of tokens) {
-            if (cs[t.styleKey] !== t.override) {
+            if (cs[t.styleKey] !== t.override || cs[t.styleKey] === baseline[name][t.styleKey]) {
               return {
                 success: false,
                 reason: name + '_' + t.styleKey + '_not_overridden',
@@ -316,7 +336,7 @@ export async function verifyCustomerBrowser({
             }
           }
         }
-        return { success: true, baseline };
+        return { success: true, baseline, saved, tokens };
       } finally {
         tokens.forEach((t, i) => {
           if (saved[i].value) {
@@ -345,8 +365,8 @@ export async function verifyCustomerBrowser({
 
     // Verify computed styles returned to baseline after restoring inline values
     const restoredResult = await evaluate(`(()=>{
-      const input = document.querySelector('dialog[open] input[name=name], input[name=q]');
-      const button = document.querySelector('dialog[open] button, button');
+      const input = document.querySelector('dialog[open]')?.querySelector('input[name=name]') ?? document.querySelector('input[name=q]');
+      const button = document.querySelector('dialog[open]')?.querySelector('button[data-variant=primary]') ?? document.querySelector('button[data-variant=primary]');
       const select = document.querySelector('select[name=filter-status], select[aria-label="Số dòng mỗi trang"], select');
       const readStyles = (el) => {
         const cs = getComputedStyle(el);
@@ -358,6 +378,8 @@ export async function verifyCustomerBrowser({
         select: readStyles(select),
       };
       const base = ${JSON.stringify(tokenResult.baseline)};
+      const tokens=${JSON.stringify(tokenResult.tokens)};const saved=${JSON.stringify(tokenResult.saved)};
+      for(let i=0;i<tokens.length;i++){if(document.documentElement.style.getPropertyValue(tokens[i].prop)!==saved[i].value||document.documentElement.style.getPropertyPriority(tokens[i].prop)!==saved[i].priority)return{success:false,reason:'ROOT_TOKEN_NOT_RESTORED'};}
       for (const name of ['input', 'button', 'select']) {
         if (current[name].height !== base[name].height ||
             current[name].radius !== base[name].radius ||
@@ -384,6 +406,8 @@ export async function verifyCustomerBrowser({
       const root = document.documentElement;
       const select = document.querySelector('select[name=filter-status], select[aria-label="Số dòng mỗi trang"], select');
       if (!select) return { success: false, reason: 'SELECT_NOT_FOUND' };
+      const oldRootHeight = root.style.getPropertyValue('--control-height');
+      const oldRootPriority = root.style.getPropertyPriority('--control-height');
       const oldInlineHeight = select.style.height;
       const oldInlinePriority = select.style.getPropertyPriority('height');
       const oldInlineMinHeight = select.style.minHeight;
@@ -394,6 +418,7 @@ export async function verifyCustomerBrowser({
         root.style.setProperty('--control-height', '52px');
         const computedHeight = getComputedStyle(select).height;
         return {
+          savedRoot:oldRootHeight,savedRootPriority:oldRootPriority,savedInline:oldInlineHeight,savedInlinePriority:oldInlinePriority,
           detectedFailure: computedHeight !== '52px',
           actualHeight: computedHeight
         };
@@ -402,7 +427,7 @@ export async function verifyCustomerBrowser({
         else select.style.removeProperty('height');
         if (oldInlineMinHeight) select.style.setProperty('min-height', oldInlineMinHeight, oldInlineMinPriority);
         else select.style.removeProperty('min-height');
-        root.style.removeProperty('--control-height');
+        if(oldRootHeight)root.style.setProperty('--control-height',oldRootHeight,oldRootPriority);else root.style.removeProperty('--control-height');
       }
     })()`);
     if (!negativeResult.detectedFailure) {
@@ -416,7 +441,13 @@ export async function verifyCustomerBrowser({
       true,
       "Negative test must detect detached consumer",
     );
-
+    await verifyCustomerControls({ send, evaluate, checks });
+    assert.equal(
+      await evaluate(
+        `(()=>{const root=document.documentElement;const select=document.querySelector('select[aria-label="Số dòng mỗi trang"]');const saved=${JSON.stringify(negativeResult)};return root.style.getPropertyValue('--control-height')===saved.savedRoot&&root.style.getPropertyPriority('--control-height')===saved.savedRootPriority&&select.style.height===saved.savedInline&&select.style.getPropertyPriority('height')===saved.savedInlinePriority;})()`,
+      ),
+      true,
+    );
     step("CREATE_SUBMIT");
     await click("Lưu khách hàng");
     await until('!document.querySelector("dialog[open]")');
@@ -462,7 +493,7 @@ export async function verifyCustomerBrowser({
       true,
     );
     await ready(true);
-    await click("Đóng");
+    await click("Đóng biểu mẫu");
     await until('!document.querySelector("dialog[open]")');
     // Same-key URL normalization and Back/Forward must restart, not deadlock.
     step("CLEAR_QUERY");
@@ -477,6 +508,7 @@ export async function verifyCustomerBrowser({
     await delay(350);
     await until('location.search.includes("q=")');
     await ready();
+    await snapshot("filtered-empty");
     await click("Xóa tìm kiếm");
     await ready();
     assert.equal(
@@ -491,6 +523,7 @@ export async function verifyCustomerBrowser({
       fill,
       click,
       ready,
+      snapshot,
       customer,
       list: list.data,
       checks,
@@ -555,7 +588,7 @@ export async function verifyCustomerBrowser({
     step("DELETE_DEFAULT");
     const currentDefault = added.id;
     await evaluate(
-      `Array.from(document.querySelectorAll('article')).find(a=>a.querySelector('h3')?.textContent.includes('Mặc định')).querySelector('button:last-child').click();true`,
+      `document.querySelector('article[aria-label="Địa chỉ mặc định"] button[aria-label="Xóa địa chỉ"]').click();true`,
     );
     await until(
       '!!document.querySelector("dialog[open] select[name=replacement]")',
@@ -702,6 +735,135 @@ export async function verifyCustomerBrowser({
       await evaluate("document.activeElement.textContent.trim()"),
       "Thêm địa chỉ",
     );
+    step("SAVE_OPEN_LONG_CONTENT");
+    await navigate("/customers");
+    await click("Thêm khách hàng");
+    await until('!!document.querySelector("dialog[open] input[name=name]")');
+    const longName = "Tên khách hàng dài ".repeat(20).slice(0, 199) + "Z";
+    const longAddress =
+      "Địa chỉ giao nhận tổng hợp dài ".repeat(100).slice(0, 1999) + "Z";
+    await fill("name", longName);
+    await fill("phone", "0912345679");
+    await fill("addressText", longAddress);
+    await click("Lưu và mở hồ sơ");
+    await until('location.pathname.startsWith("/customers/")');
+    await ready();
+    const stressId = await evaluate('location.pathname.split("/").at(-1)');
+    const stress = await evaluate(
+      `fetch('/api/customers/'+${JSON.stringify(stressId)}).then(r=>r.json())`,
+    );
+    assert.equal(stress.customer.name.length, 200);
+    assert.equal(stress.customer.addresses[0].addressText.length, 2000);
+    await snapshot("detail-long");
+    step("CUSTOMER_MOBILE_NAVIGATION");
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await until(
+      `document.querySelector('header button[aria-expanded]')?.getAttribute('aria-label')==='Mở menu di động'`,
+    );
+    const previousScroll = await evaluate("document.body.style.overflow");
+    await evaluate(
+      `document.querySelector('header button[aria-expanded]').click();true`,
+    );
+    await until(
+      `!!document.querySelector('dialog[open] a[href="/customers"]')`,
+    );
+    await evaluate(
+      `document.querySelector('dialog[open] a[href="/customers"]').click();true`,
+    );
+    await until(
+      'location.pathname==="/customers"&&!document.querySelector("dialog[open]")',
+    );
+    await ready();
+    assert.equal(
+      await evaluate("document.body.style.overflow"),
+      previousScroll,
+    );
+    await evaluate(
+      `document.querySelector('header button[aria-expanded]').click();true`,
+    );
+    await until('!!document.querySelector("dialog[open]")');
+    assert.equal(
+      await evaluate(
+        `document.querySelector('dialog[open] a[href="/customers"]').getAttribute('aria-current')`,
+      ),
+      "page",
+    );
+    await send("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "Escape",
+      code: "Escape",
+      windowsVirtualKeyCode: 27,
+    });
+    await send("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "Escape",
+      code: "Escape",
+      windowsVirtualKeyCode: 27,
+    });
+    await until('!document.querySelector("dialog[open]")');
+    await send("Emulation.clearDeviceMetricsOverride");
+    step("CUSTOMER_SEGMENTED_STATUS");
+    await evaluate(
+      `document.querySelector('#customer-tab-ACTIVE').focus();document.querySelector('#customer-tab-ACTIVE').click();true`,
+    );
+    await ready();
+    assert.equal(
+      await evaluate('new URLSearchParams(location.search).get("status")'),
+      "ACTIVE",
+    );
+    const filtered = await evaluate(
+      'fetch("/api/customers?status=ACTIVE").then(r=>r.json())',
+    );
+    assert.equal(
+      await evaluate('document.querySelectorAll("tbody tr").length'),
+      filtered.customers.length,
+    );
+    assert.equal(
+      await evaluate(
+        `document.querySelector('#customer-tab-all').textContent.trim().endsWith(${JSON.stringify(String(filtered.stats.total))})`,
+      ),
+      true,
+    );
+    await send("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "End",
+      code: "End",
+      windowsVirtualKeyCode: 35,
+    });
+    await send("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "End",
+      code: "End",
+      windowsVirtualKeyCode: 35,
+    });
+    await ready();
+    assert.equal(
+      await evaluate('new URLSearchParams(location.search).get("status")'),
+      "INACTIVE",
+    );
+    await send("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "Home",
+      code: "Home",
+      windowsVirtualKeyCode: 36,
+    });
+    await send("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "Home",
+      code: "Home",
+      windowsVirtualKeyCode: 36,
+    });
+    await ready();
+    assert.equal(
+      await evaluate('new URLSearchParams(location.search).has("status")'),
+      false,
+    );
+    await snapshot("populated-final");
     await writeFile(
       join(directory, `${prefix}.json`),
       JSON.stringify(

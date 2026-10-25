@@ -9,6 +9,7 @@ export async function verifyCustomerReadRaces({
   fill,
   click,
   ready,
+  snapshot,
   customer,
   list,
   checks,
@@ -98,6 +99,7 @@ export async function verifyCustomerReadRaces({
     await delay(150);
     assert.equal(held, undefined);
     await waitHeld();
+    await snapshot("loading");
     await fill("q", latest);
     await delay(350);
     await ready();
@@ -161,6 +163,7 @@ export async function verifyCustomerReadRaces({
       ),
       true,
     );
+    await snapshot("stats-unavailable");
     mode = "hold";
     await click("Tải lại");
     await ready();
@@ -173,12 +176,13 @@ export async function verifyCustomerReadRaces({
     checks.step("CUSTOMER_FORBIDDEN_NOT_SESSION");
     mode = "forbidden";
     await click("Tải lại");
-    await ready();
+    await ready(true);
     assert.equal(await evaluate("location.pathname"), "/customers");
     assert.equal(
       await evaluate('!!document.querySelector("main [role=alert]")'),
       true,
     );
+    await snapshot("request-error");
     mode = "hold";
     await click("Tải lại");
     await ready();

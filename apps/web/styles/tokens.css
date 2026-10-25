@@ -47,6 +47,8 @@
   --color-accent-text-hover: var(--brand-orange-text-hover);
   --color-text-on-accent: var(--brand-navy);
   --color-text-on-accent-hover: var(--brand-navy);
+  --color-text-accent-on-dark: var(--brand-orange);
+  --color-border-accent: var(--brand-orange);
   --focus-ring-on-light: var(--brand-orange-text);
   --focus-ring-on-dark: var(--brand-orange);
 

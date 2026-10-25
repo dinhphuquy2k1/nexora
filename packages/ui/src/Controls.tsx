@@ -7,16 +7,24 @@ import type {
 } from "react";
 import styles from "./Controls.module.css";
 
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "ghost";
+  icon?: boolean;
+}
+
 export function Button({
   className = "",
   type = "button",
+  variant = "primary",
+  icon = false,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement>) {
+}: ButtonProps) {
   return (
     <button
       {...props}
       type={type}
-      className={`${styles.button} ${className}`}
+      data-variant={variant}
+      className={`${styles.button} ${variant !== "primary" ? styles[variant] : ""} ${icon ? styles.icon : ""} ${className}`}
     />
   );
 }

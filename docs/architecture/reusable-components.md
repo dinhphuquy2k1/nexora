@@ -145,7 +145,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Styling: `packages/ui/src/Controls.module.css`
   - Barrel: `packages/ui/src/index.tsx`
 - **Exported Contract**:
-  - `export function Button(props: ButtonHTMLAttributes<HTMLButtonElement>): JSX.Element`
+  - `export function Button(props: ButtonProps): JSX.Element`, extending native attributes with optional `variant: primary | secondary | ghost` and `icon: boolean`. Primary remains the default for Login/M1.
   - `export function TextInput(props: InputHTMLAttributes<HTMLInputElement>): JSX.Element`
   - `export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>): JSX.Element`
   - `export function Checkbox(props: CheckboxProps): JSX.Element`
@@ -256,3 +256,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Whenever rendering tri-state health, connectivity, or operational readiness indicators.
 - **When NOT to Reuse**:
   - Do not use for domain-specific multi-state business badges (e.g. Shipment tracking stages); use domain-specific tag components instead.
+
+### Neutral action hierarchy (Customer M2 actual consumers)
+
+Button primary(default)/secondary/ghost variants share control sizing/radius/font, focus ring and disabled behavior. Secondary uses surface/text/border semantic tokens; ghost uses transparent surface and semantic text; neither relies on feature CSS state overrides. `icon` makes width/min-width equal to control-height, retaining canonical hit target; consumers provide an accessible name. Actual consumers: Customer toolbar/reload/clear, segmented status, pagination, profile/address inline actions and drawer Cancel/Save. Input/Select/Textarea remain unchanged. New root semantic text-on-dark accent and accent-border tokens belong to dark brand icons/default-address emphasis, not interchangeable palette shortcuts. Genuine computed-style/contrast/token-override and M1/Login regression remain acceptance requirements.

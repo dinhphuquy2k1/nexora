@@ -1,16 +1,17 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Select } from "@nexora/ui";
+import { Button } from "@nexora/ui";
 import { parseCustomerQuery, customerQueryString } from "./query.ts";
 import type { Query, Summary } from "./types.ts";
 import { customerApi } from "./api.ts";
 import { useCustomerRead } from "./useCustomerRead.ts";
+import { Users, Plus } from "lucide-react";
+import { CustomerPagination } from "./CustomerPagination.tsx";
 import { CustomerStatsBar } from "./CustomerStatsBar.tsx";
 import { CustomerFilters } from "./CustomerFilters.tsx";
 import { CustomerTable } from "./CustomerTable.tsx";
 import { CustomerDrawer } from "./CustomerDrawers.tsx";
-import { Feedback } from "./Feedback.tsx";
 import styles from "./customers.module.css";
 export function CustomerListPage() {
   const params = useSearchParams();
@@ -96,110 +97,103 @@ export function CustomerListPage() {
       read.refresh();
     }
   }
-  const page = read.data?.pagination;
+  const clearFilters = () => {
+    setDraft("");
+    change({ q: undefined, status: undefined, phone: undefined, page: 1 });
+  };
   return (
-    <div className={styles.page}>
-      <div className={styles.toolbar}>
-        <div>
-          <p className={styles.eyebrow}>KHÁCH HÀNG</p>
-          <h1 tabIndex={-1}>Quản lý khách hàng</h1>
+    <div className={styles.listPage}>
+      <section
+        className={styles.commandDeck}
+        aria-label="Command deck khách hàng"
+      >
+        <div className={styles.titleRow}>
+          <div className={styles.titleGroup}>
+            <span className={styles.brandIcon}>
+              <Users size={20} />
+            </span>
+            <h1 id="customer-heading" tabIndex={-1}>
+              Quản lý khách hàng
+            </h1>
+          </div>
+          <Button onClick={() => setOverlay("create")}>
+            <Plus size={18} aria-hidden="true" />
+            Thêm khách hàng
+          </Button>
         </div>
-        <Button onClick={() => setOverlay("create")}>Thêm khách hàng</Button>
-      </div>
+        <CustomerStatsBar
+          stats={read.data?.stats}
+          loading={read.loading}
+          error={!!read.error}
+          status={query.status}
+          onChange={(status) => change({ status, page: 1 })}
+        />
+        <CustomerFilters
+          query={query}
+          draft={draft}
+          onSearch={searchChange}
+          onQuery={(p) => change(p)}
+          onClear={() => {
+            setDraft("");
+            change({ q: undefined, page: 1 });
+          }}
+          onClearFilters={clearFilters}
+          onReload={handleReload}
+        />
+      </section>
       {notice && (
         <p role="status" className={styles.notice}>
           {notice}
         </p>
       )}
       {invalid ? (
-        <section role="alert">
-          <p>Bộ lọc URL không hợp lệ. Không gửi truy vấn mở rộng.</p>
-          <Button
-            onClick={() => {
-              cancel();
-              read.invalidate();
-              window.history.replaceState(null, "", "/customers");
-            }}
-          >
-            Đặt lại bộ lọc
-          </Button>
+        <section
+          className={styles.dataCard}
+          id="customer-results"
+          role="tabpanel"
+          aria-labelledby={`customer-tab-${query.status ?? "all"}`}
+        >
+          <div role="alert">
+            <div className={styles.invalidPanel}>
+              <h2>Bộ lọc URL không hợp lệ</h2>
+              <p>Không gửi truy vấn mở rộng. Hãy đặt lại bộ lọc để tiếp tục.</p>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  cancel();
+                  read.invalidate();
+                  window.history.replaceState(null, "", "/customers");
+                }}
+              >
+                Đặt lại bộ lọc
+              </Button>
+            </div>
+          </div>
         </section>
       ) : (
-        <>
-          <CustomerStatsBar
-            stats={read.data?.stats}
+        <section
+          className={styles.dataCard}
+          id="customer-results"
+          role="tabpanel"
+          aria-labelledby={`customer-tab-${query.status ?? "all"}`}
+        >
+          <CustomerTable
+            rows={read.data?.customers ?? []}
             loading={read.loading}
-            error={!!read.error}
+            error={read.error}
+            filtered={!!(query.q || query.status || query.phone)}
+            onEdit={setOverlay}
+            onClear={clearFilters}
+            onRetry={handleReload}
           />
-          <CustomerFilters
+          <CustomerPagination
+            pagination={read.data?.pagination}
             query={query}
-            draft={draft}
-            onSearch={searchChange}
+            rowCount={read.data?.customers.length ?? 0}
             onQuery={(p) => change(p)}
-            onClear={() => {
-              cancel();
-              setDraft("");
-              change({ q: undefined, page: 1 });
-            }}
+            loading={read.loading}
           />
-          <div className={styles.toolbar}>
-            <Button onClick={handleReload}>Tải lại</Button>
-            <label>
-              Số dòng
-              <Select
-                aria-label="Số dòng mỗi trang"
-                value={query.pageSize}
-                onChange={(e) =>
-                  change({ pageSize: Number(e.target.value), page: 1 })
-                }
-              >
-                {[10, 20, 50, 100].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </Select>
-            </label>
-          </div>
-          <Feedback error={read.error} />
-          {read.loading ? (
-            <p role="status">Đang tải khách hàng…</p>
-          ) : (
-            read.data && (
-              <>
-                {read.data.customers.length ? (
-                  <CustomerTable
-                    rows={read.data.customers}
-                    onEdit={setOverlay}
-                  />
-                ) : (
-                  <p>Không có khách hàng phù hợp.</p>
-                )}
-                <nav
-                  aria-label="Phân trang khách hàng"
-                  className={styles.actions}
-                >
-                  <Button
-                    disabled={query.page <= 1}
-                    onClick={() => change({ page: query.page - 1 })}
-                  >
-                    Trang trước
-                  </Button>
-                  <span>
-                    Trang {page?.page} / {Math.max(1, page?.totalPages ?? 0)} ·{" "}
-                    {page?.total ?? 0} kết quả
-                  </span>
-                  <Button
-                    disabled={!page || query.page >= page.totalPages}
-                    onClick={() => change({ page: query.page + 1 })}
-                  >
-                    Trang sau
-                  </Button>
-                </nav>
-              </>
-            )
-          )}
-        </>
+        </section>
       )}
       {overlay && (
         <CustomerDrawer

@@ -23,6 +23,7 @@ export function AddressLabelField({
         {["Nhà riêng", "Cửa hàng", "Kho hàng", "Văn phòng"].map((label) => (
           <Button
             key={label}
+            variant={value === label ? "primary" : "secondary"}
             aria-pressed={value === label}
             onClick={() => onChange(value === label ? "" : label)}
           >
@@ -52,28 +53,40 @@ export function AddressForm({
         value={value.label}
         onChange={(v) => change("label", v)}
       />
-      {(
-        [
-          { name: "recipientName", label: "Tên người nhận", max: 200 },
-          { name: "recipientPhone", label: "Điện thoại người nhận", max: 64 },
-          { name: "countryCode", label: "Mã quốc gia ISO (VN)", max: 2 },
-        ] as const
-      ).map((f) => (
-        <label key={f.name}>
-          {f.label}
-          <TextInput
-            name={f.name}
-            maxLength={f.max}
-            required={edit || f.name === "countryCode"}
-            value={value[f.name]}
-            onChange={(e) => change(f.name, e.target.value)}
-            aria-invalid={errorField === f.name}
-            aria-describedby={
-              errorField === f.name ? "customer-field-error" : undefined
-            }
-          />
-        </label>
-      ))}
+      <div className={styles.fieldPair}>
+        {(
+          [
+            { name: "recipientName", label: "Tên người nhận", max: 200 },
+            { name: "recipientPhone", label: "Điện thoại người nhận", max: 64 },
+          ] as const
+        ).map((f) => (
+          <label key={f.name}>
+            {f.label}
+            <TextInput
+              name={f.name}
+              maxLength={f.max}
+              required={edit}
+              value={value[f.name]}
+              onChange={(e) => change(f.name, e.target.value)}
+              aria-invalid={errorField === f.name}
+              aria-describedby={
+                errorField === f.name ? "customer-field-error" : undefined
+              }
+            />
+          </label>
+        ))}
+      </div>
+      <label>
+        Mã quốc gia ISO (VN)
+        <TextInput
+          name="countryCode"
+          maxLength={2}
+          required
+          value={value.countryCode}
+          onChange={(e) => change("countryCode", e.target.value)}
+          aria-invalid={errorField === "countryCode"}
+        />
+      </label>
       {!edit && (
         <p className={styles.muted}>
           Bỏ trống người nhận để dùng tên và điện thoại khách hàng.

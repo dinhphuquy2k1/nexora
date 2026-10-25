@@ -208,3 +208,28 @@
   outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 2px;
 }
+
+/* Neutral variants share sizing, focus and disabled behavior; primary remains default. */
+.secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--control-border);
+}
+.secondary:hover:not(:disabled) {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+  border-color: var(--control-border-hover);
+}
+.ghost {
+  background-color: transparent;
+  color: var(--color-text);
+}
+.ghost:hover:not(:disabled) {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+}
+.icon {
+  width: var(--control-height);
+  min-width: var(--control-height);
+  padding: 0;
+}
