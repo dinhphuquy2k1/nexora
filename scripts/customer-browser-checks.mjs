@@ -327,6 +327,16 @@ export async function verifyCustomerBrowser({
         });
       }
     })()`);
+    if (!tokenResult.success) {
+      console.error(
+        "Token override diagnostic",
+        JSON.stringify({
+          reason: tokenResult.reason,
+          actual: tokenResult.actual,
+          expected: tokenResult.expected,
+        }),
+      );
+    }
     assert.equal(
       tokenResult.success,
       true,
@@ -357,6 +367,12 @@ export async function verifyCustomerBrowser({
       }
       return { success: true };
     })()`);
+    if (!restoredResult.success) {
+      console.error(
+        "Token restore diagnostic",
+        JSON.stringify({ reason: restoredResult.reason }),
+      );
+    }
     assert.equal(
       restoredResult.success,
       true,
@@ -370,8 +386,11 @@ export async function verifyCustomerBrowser({
       if (!select) return { success: false, reason: 'SELECT_NOT_FOUND' };
       const oldInlineHeight = select.style.height;
       const oldInlinePriority = select.style.getPropertyPriority('height');
+      const oldInlineMinHeight = select.style.minHeight;
+      const oldInlineMinPriority = select.style.getPropertyPriority('min-height');
       try {
-        select.style.setProperty('height', '30px', 'important');
+        select.style.setProperty('height', '70px', 'important');
+        select.style.setProperty('min-height', '70px', 'important');
         root.style.setProperty('--control-height', '52px');
         const computedHeight = getComputedStyle(select).height;
         return {
@@ -381,14 +400,23 @@ export async function verifyCustomerBrowser({
       } finally {
         if (oldInlineHeight) select.style.setProperty('height', oldInlineHeight, oldInlinePriority);
         else select.style.removeProperty('height');
+        if (oldInlineMinHeight) select.style.setProperty('min-height', oldInlineMinHeight, oldInlineMinPriority);
+        else select.style.removeProperty('min-height');
         root.style.removeProperty('--control-height');
       }
     })()`);
+    if (!negativeResult.detectedFailure) {
+      console.error(
+        "Negative override check diagnostic",
+        JSON.stringify(negativeResult),
+      );
+    }
     assert.equal(
       negativeResult.detectedFailure,
       true,
       "Negative test must detect detached consumer",
     );
+
     step("CREATE_SUBMIT");
     await click("Lưu khách hàng");
     await until('!document.querySelector("dialog[open]")');
