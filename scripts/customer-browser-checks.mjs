@@ -6,6 +6,10 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { M1_VIEWPORTS } from "./m1-visual-checks.mjs";
+// CDP returnByValue must never serialize a React-owned DOM node/circular Fiber.
+export function customerPredicate(expression) {
+  return `Boolean(${expression})`;
+}
 export async function verifyCustomerBrowser({
   send,
   evaluate,
@@ -24,7 +28,7 @@ export async function verifyCustomerBrowser({
   async function until(expression) {
     for (let n = 0; n < 100; n++) {
       try {
-        if (await evaluate(expression)) return;
+        if (await evaluate(customerPredicate(expression))) return;
       } catch (error) {
         const message = String(error?.message ?? "");
         const contextChanged =

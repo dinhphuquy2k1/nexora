@@ -48,3 +48,26 @@ test("static CDP expressions are valid JavaScript before a genuine browser run",
     SyntaxError,
   );
 });
+
+test("readiness predicates return serializable booleans even when matching DOM nodes have React cycles", async () => {
+  const { runInNewContext } = await import("node:vm");
+  const { customerPredicate } = await import("./customer-browser-checks.mjs");
+  const node = { getClientRects: () => [{}], textContent: "Fixture" };
+  node.reactFiber = { stateNode: node };
+  const context = { document: { querySelectorAll: () => [node] } };
+  const expression = `Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Fixture')`;
+  assert.throws(
+    () => JSON.stringify(runInNewContext(expression, context)),
+    TypeError,
+  );
+  assert.equal(
+    JSON.stringify(runInNewContext(customerPredicate(expression), context)),
+    "true",
+  );
+  assert.equal(
+    runInNewContext(customerPredicate(expression), {
+      document: { querySelectorAll: () => [] },
+    }),
+    false,
+  );
+});
