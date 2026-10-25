@@ -764,3 +764,64 @@ Artifact12585228714 SHA25680941e3775e2b649e691a32eca6bc228991f000431464d2d5c4fe3
    - **User interaction helpers**: Added `clickPointer` using genuine CDP `Input.dispatchMouseEvent` (`mouseMoved`, `mousePressed`, `mouseReleased` on computed center coordinates) and `clickWithVerifiedFocus` for intentional programmatic focus verification.
    - **Stable DOM identity**: Added `data-address-id={a.id}` to `<article>` in `CustomerDetailPage.tsx` for deterministic selector matching without PII.
    - **Unit regressions**: Added unit test coverage in `apps/web/test/customer-ui-model.test.mjs` verifying focus restoration (trigger connected, fallback when disconnected, and detection of broken restoration) and delete reconciliation settlement contract (delayed refresh, error state, wrong replacement, and correct settled state). All 12/12 tests PASS.
+
+### M2 Customer UI Visual Parity Refactoring & Quality Verification — 2026-10-25
+
+1. **Phase A UI Audit & Mapping Table**:
+   - Comprehensive 12-column mapping audit was completed against the reference archive (`nexora-logistics-management (1).zip` extracted components) and saved in `ui_audit_mapping.md`.
+   - All 11 UI regions were audited: Customer List, Status Tabs, Search Toolbar, Data Table, Pagination Footer, Customer Detail, Information Card (`dl` key-value pairs), Address Card List, Create/Edit Drawers, Address Drawer, and Delete Address Confirmation Modal.
+   - Preserved real backend contracts: List API payload supplies customer summary without embedded addresses; address count column is omitted from table to strictly prevent N+1 queries. Address count badge is displayed on Customer Detail view where full address array is available.
+   - Preserved application shell: Sidebar (240px/72px), Header (56px), Breadcrumbs, Navigation, Auth guards, and server workspace layout remained untouched.
+
+2. **Phase C, D, E Component Presentation Implementation**:
+   - **CustomerListPage (`apps/web/features/customers/CustomerListPage.tsx`)**:
+     - Brand icon updated to 18px in dark navy 32x32px box (`.brandIcon`).
+     - Heading updated to uppercase `QUẢN LÝ KHÁCH HÀNG` (`h1`).
+     - "+ THÊM KHÁCH HÀNG" primary button with explicit `aria-label="Thêm khách hàng"` and visible uppercase text `<span>THÊM KHÁCH HÀNG</span>` satisfying both reference visual density and CDP test helper contracts.
+   - **CustomerStatsBar (`apps/web/features/customers/CustomerStatsBar.tsx`)**:
+     - Restyled segmented control container with background `var(--color-surface-subtle)` and subtle border.
+     - Tabs styled with uppercase labels ("TẤT CẢ", "ĐANG HOẠT ĐỘNG", "NGỪNG HOẠT ĐỘNG").
+     - Added 6px round status dots (`.tabDot` with `.tabDotActive` emerald success color and `.tabDotInactive` slate muted color).
+     - Pill count badges with selected state (`.countSelected`) on orange and unselected state (`.countUnselected`) with white surface and subtle shadow.
+   - **CustomerFilters (`apps/web/features/customers/CustomerFilters.tsx`)**:
+     - Placeholder updated to `"Tìm mã khách hàng, họ tên, số điện thoại, email..."` with leading search icon.
+     - Clear affordance conditionally rendered when draft query is present.
+     - Action toolbar aligned to right with active filter badge and compact "Làm mới" refresh button with spinning state on reload.
+   - **CustomerTable (`apps/web/features/customers/CustomerTable.tsx`)**:
+     - Table headers styled in sticky navy (`var(--color-primary)`) with white uppercase 11px typography.
+     - Column hierarchy: CHI TIẾT (centered 48px), MÃ KHÁCH HÀNG (min 130px), HỌ VÀ TÊN (min 160px), SỐ ĐIỆN THOẠI (min 130px), EMAIL (min 180px), TRẠNG THÁI (centered 140px), NGÀY TẠO (centered 110px), THAO TÁC (centered 90px).
+     - Customer detail action rendered as 26x26px square Eye icon button (`.detailLink`).
+     - Customer code rendered as orange monospace link (`.codeLink`).
+     - Status badges reused `@nexora/ui` `StatusBadge` primitive with `.statusChip` styling and 6px status dot (`.chipDot`).
+     - Empty and error state panels redesigned with 32x32px circle icon, bold title, and descriptive explanation.
+   - **CustomerPagination (`apps/web/features/customers/CustomerPagination.tsx`)**:
+     - Attached bottom pagination toolbar (`.pagination`) attached to table card.
+     - Summary format: `"Hiển thị {from}–{to} / {total} khách hàng"`.
+     - Page size selector styled with `"Số dòng: [N / trang]"` select dropdown.
+     - Pagination navigation buttons (First, Previous, bounded page numbers, Next, Last) with proper disabled states.
+   - **CustomerDetailPage (`apps/web/features/customers/CustomerDetailPage.tsx`)**:
+     - Header toolbar with "Quay lại danh sách" back navigation, vertical divider, 40x40px navy monogram avatar box (`getMonogram`), customer name, orange code badge (`.codeBadge`), status badge, and subtitle showing phone and email.
+     - "Chỉnh sửa thông tin" primary action button in header.
+     - Left column "THÔNG TIN KHÁCH HÀNG": Two-column key-value `dl` structure explicitly isolated via CSS Modules (`.profile`) to prevent global `dl` inherited grid splitting, displaying Mã khách hàng, Họ và tên, Số điện thoại, Email, Trạng thái, Ngày đăng ký hồ sơ, and Số địa chỉ nhận hàng, followed by internal note box (`.noteBox`).
+     - Right column "ĐỊA CHỈ NHẬN HÀNG": Header with address count badge (`.addressCountBadge`) and "+ THÊM ĐỊA CHỈ" button.
+     - Default address card styled with orange accent border (`.defaultAddress`), orange background (`var(--color-accent-light)`), and star badge (`.defaultBadge` with `MẶC ĐỊNH`).
+     - Non-default address cards styled with "Đặt làm mặc định" button and edit/delete action icons.
+     - Empty address state (`.emptyAddressState`) with dashed border, map pin icon, and "Thêm địa chỉ đầu tiên" action.
+   - **CustomerDrawers & DeleteAddressModal**:
+     - Preserved test-required selectors: `dialog[open]`, `select[name="replacement"]`, button `Xác nhận xóa`.
+     - Preserved sequential non-atomic PUT→DELETE workflow, default replacement requirement, and last-address invariant protection.
+
+3. **Design Token Architecture & CSS Policy (`customers.module.css`)**:
+   - Strictly 0 raw color literals (no `#hex`, `rgb()`, `rgba()`, `hsl()`, or named colors outside `tokens.css`).
+   - Strictly 0 semantic token misuses (text color tokens used exclusively for text/SVG; surface tokens used for background; border tokens used for borders; `background: currentColor` leveraged for semantic indicator dots).
+   - Strictly 0 unnecessary fallbacks (`var(--token)` without fallback arguments in `apps/web`).
+   - Zero `!important` declarations.
+   - Fully compliant with `apps/web/test/form-control-contracts.test.mjs` (9/9 tests PASS).
+
+4. **Canonical Quality & Verification Evidence**:
+   - `pnpm format:check`: PASS (All matched files use Prettier code style).
+   - `node scripts/boundaries.mjs`: PASS (Workspace boundaries PASS).
+   - `eslint .`: PASS (0 errors, 0 warnings across the entire repository).
+   - Unit tests: 37/37 PASS (`customer-ui-model.test.mjs`, `navigation.test.mjs`, `shared-ui.test.mjs`, `m1-shell.test.mjs`, `form-control-contracts.test.mjs`).
+   - Canonical Docker quality suite (`docker compose run quality pnpm quality`): PASS (exit code 0). Tested format, lint, preflight policy, docs check, typecheck, 172 API tests, all Web tests, reproducible OpenAPI contracts, and production Next.js build.
+   - Real browser visual verification: Executed via browser subagent on authenticated local runtime. Inspected Customer List (all, active, inactive tabs), Create Customer Drawer, Customer Detail view with multiple addresses, and Delete Address confirmation modal. Full video recording preserved at `customer_ui_visual_parity_1792909765435.webp`.

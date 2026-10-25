@@ -33,36 +33,38 @@ export function CustomerFilters({
             name="q"
             maxLength={200}
             className={styles.searchInput}
-            placeholder="Tìm mã khách hàng, họ tên, số điện thoại…"
+            placeholder="Tìm mã khách hàng, họ tên, số điện thoại, email..."
             value={draft}
             onChange={(e) => onSearch(e.target.value)}
           />
-          <Button
-            icon
-            variant="ghost"
-            className={styles.searchClear}
-            aria-label="Xóa tìm kiếm"
-            onClick={onClear}
-          >
-            <X size={16} />
-          </Button>
+          {draft && (
+            <Button
+              icon
+              variant="ghost"
+              className={styles.searchClear}
+              aria-label="Xóa tìm kiếm"
+              onClick={onClear}
+            >
+              <X size={15} />
+            </Button>
+          )}
         </div>
         <div className={styles.toolbarActions}>
           {filtered && (
             <span className={styles.filterBadge}>
-              Đang lọc
+              <span>Đang lọc</span>
               <Button
                 variant="ghost"
                 icon
                 aria-label="Xóa bộ lọc"
                 onClick={onClearFilters}
               >
-                <X size={15} />
+                <X size={14} />
               </Button>
             </span>
           )}
           <Button variant="secondary" onClick={onReload} aria-label="Tải lại">
-            <RefreshCw size={16} aria-hidden="true" />
+            <RefreshCw size={14} aria-hidden="true" />
             <span>Làm mới</span>
           </Button>
         </div>

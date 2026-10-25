@@ -23,6 +23,12 @@ type Mode =
   | { kind: "profile" }
   | { kind: "add" }
   | { kind: "address" | "delete"; id: string };
+function getMonogram(name: string) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "KH";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 export function CustomerDetailPage({ id }: { id: string }) {
   const read = useCustomerRead(id, (signal) => customerApi.get(id, signal));
   const mutation = useCustomerMutation(read.refresh);
@@ -62,28 +68,55 @@ export function CustomerDetailPage({ id }: { id: string }) {
             className={styles.backLink}
             href="/customers"
             aria-label="Danh sách khách hàng"
+            title="Quay lại danh sách khách hàng"
           >
-            <ArrowLeft size={17} />
-            Danh sách
+            <ArrowLeft size={16} aria-hidden="true" />
+            <span>Quay lại danh sách</span>
           </Link>
-          <span className={styles.brandIcon}>
-            <UserRound size={19} />
-          </span>
+          <span className={styles.toolbarDivider} aria-hidden="true" />
+          {c && (
+            <div className={styles.monogramAvatar} aria-hidden="true">
+              {getMonogram(c.name)}
+            </div>
+          )}
           <div>
-            <h1
-              id="customer-heading"
-              tabIndex={-1}
-              className={styles.detailTitle}
-            >
-              {c?.name ?? "Chi tiết khách hàng"}
-            </h1>
-            {c && <span className={styles.drawerCode}>{c.code}</span>}
+            <div className={styles.detailTitleRow}>
+              <h1
+                id="customer-heading"
+                tabIndex={-1}
+                className={styles.detailTitle}
+              >
+                {c?.name ?? "Chi tiết khách hàng"}
+              </h1>
+              {c && <span className={styles.codeBadge}>{c.code}</span>}
+              {c && <CustomerBadge status={c.status} />}
+            </div>
+            {c && (
+              <p className={styles.detailSubtitle}>
+                SĐT: {c.phone} {c.email ? `· Email: ${c.email}` : ""}
+              </p>
+            )}
           </div>
-          {c && <CustomerBadge status={c.status} />}
         </div>
-        <Button variant="secondary" onClick={read.refresh} aria-label="Tải lại">
-          Tải lại
-        </Button>
+        <div className={styles.actions}>
+          <Button
+            variant="secondary"
+            onClick={read.refresh}
+            aria-label="Tải lại"
+          >
+            Tải lại
+          </Button>
+          {c && (
+            <Button
+              variant="primary"
+              disabled={mutation.busy}
+              onClick={() => setMode({ kind: "profile" })}
+            >
+              <Edit3 size={15} aria-hidden="true" />
+              <span>Chỉnh sửa thông tin</span>
+            </Button>
+          )}
+        </div>
       </div>
       {notice && (
         <p role="status" className={styles.notice}>
@@ -99,16 +132,16 @@ export function CustomerDetailPage({ id }: { id: string }) {
             <div className={styles.cardHeading}>
               <div className={styles.titleGroup}>
                 <span className={styles.brandIcon}>
-                  <UserRound size={17} />
+                  <UserRound size={16} aria-hidden="true" />
                 </span>
-                <h2>Thông tin khách hàng</h2>
+                <h2>THÔNG TIN KHÁCH HÀNG</h2>
               </div>
               <Button
                 variant="ghost"
                 disabled={mutation.busy}
                 onClick={() => setMode({ kind: "profile" })}
               >
-                Sửa khách hàng
+                Sửa
               </Button>
             </div>
             <dl className={styles.profile}>
@@ -117,43 +150,74 @@ export function CustomerDetailPage({ id }: { id: string }) {
                 ["Họ và tên", c.name],
                 ["Số điện thoại", c.phone],
                 ["Email", c.email ?? "—"],
-                ["Ngày tạo", customerDate(c.createdAt)],
-                ["Địa chỉ nhận hàng", String(c.addresses.length)],
+                ["Trạng thái", c.status],
+                ["Ngày đăng ký hồ sơ", customerDate(c.createdAt)],
+                ["Số địa chỉ nhận hàng", `${c.addresses.length} địa chỉ`],
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt>{label}</dt>
-                  <dd>{value}</dd>
+                  <dd>
+                    {label === "Mã khách hàng" ? (
+                      <span className={styles.codeText}>{value}</span>
+                    ) : label === "Trạng thái" ? (
+                      <CustomerBadge status={c.status} />
+                    ) : (
+                      value
+                    )}
+                  </dd>
                 </div>
               ))}
             </dl>
             <div className={styles.profileNote}>
               <h3>Ghi chú nội bộ</h3>
-              <p className={styles.targetSummary}>
-                {c.note ?? "Chưa có ghi chú nội bộ."}
-              </p>
+              <div className={styles.noteBox}>
+                {c.note || (
+                  <span className={styles.muted}>
+                    Chưa có ghi chú nội bộ cho khách hàng này.
+                  </span>
+                )}
+              </div>
             </div>
           </section>
           <section className={styles.card}>
             <div className={styles.cardHeading}>
               <div className={styles.titleGroup}>
                 <span className={styles.brandIcon}>
-                  <MapPin size={18} />
+                  <MapPin size={16} aria-hidden="true" />
                 </span>
-                <h2>Địa chỉ nhận hàng ({c.addresses.length})</h2>
+                <h2>
+                  ĐỊA CHỈ NHẬN HÀNG{" "}
+                  <span className={styles.addressCountBadge}>
+                    {c.addresses.length}
+                  </span>
+                </h2>
               </div>
               <Button
                 disabled={mutation.busy}
                 onClick={() => setMode({ kind: "add" })}
               >
-                <Plus size={17} />
-                Thêm địa chỉ
+                <Plus size={16} aria-hidden="true" />
+                <span>THÊM ĐỊA CHỈ</span>
               </Button>
             </div>
             {!c.addresses.length && (
-              <div className={styles.targetSummary}>
-                <MapPin size={25} />
-                <h3>Chưa có địa chỉ nhận hàng</h3>
-                <p>Thêm địa chỉ thật để tiếp tục quản lý hồ sơ.</p>
+              <div className={styles.emptyAddressState}>
+                <div className={styles.emptyIconCircle}>
+                  <MapPin size={24} aria-hidden="true" />
+                </div>
+                <h3>Khách hàng chưa có địa chỉ nhận hàng.</h3>
+                <p>
+                  Thêm địa chỉ giao hàng để hệ thống tự động gán vào kiện hàng
+                  TMĐT và xử lý giao nhận nhanh chóng.
+                </p>
+                <Button
+                  variant="secondary"
+                  disabled={mutation.busy}
+                  onClick={() => setMode({ kind: "add" })}
+                >
+                  <Plus size={15} aria-hidden="true" />
+                  <span>Thêm địa chỉ đầu tiên</span>
+                </Button>
               </div>
             )}
             {!!c.addresses.length && !c.addresses.some((a) => a.isDefault) && (
@@ -177,11 +241,16 @@ export function CustomerDetailPage({ id }: { id: string }) {
               >
                 <div className={styles.toolbar}>
                   <div className={styles.titleGroup}>
-                    <MapPin size={17} aria-hidden="true" />
+                    <MapPin size={16} aria-hidden="true" />
                     <h3>{a.label ?? "Địa chỉ nhận hàng"}</h3>
                     {a.isDefault && (
-                      <span className={styles.defaultTag}>
-                        <Star size={13} aria-hidden="true" /> Mặc định
+                      <span className={styles.defaultBadge}>
+                        <Star
+                          size={11}
+                          fill="currentColor"
+                          aria-hidden="true"
+                        />
+                        <span>MẶC ĐỊNH</span>
                       </span>
                     )}
                   </div>
@@ -197,18 +266,19 @@ export function CustomerDetailPage({ id }: { id: string }) {
                           )
                         }
                       >
-                        <Star size={15} />
-                        Đặt mặc định
+                        <Star size={14} aria-hidden="true" />
+                        <span>Đặt làm mặc định</span>
                       </Button>
                     )}
                     <Button
                       variant="ghost"
                       icon
                       aria-label="Sửa địa chỉ"
+                      title="Chỉnh sửa địa chỉ"
                       disabled={mutation.busy}
                       onClick={() => setMode({ kind: "address", id: a.id })}
                     >
-                      <Edit3 size={16} />
+                      <Edit3 size={15} />
                     </Button>
                     <Button
                       variant="ghost"
@@ -218,19 +288,27 @@ export function CustomerDetailPage({ id }: { id: string }) {
                       title={
                         c.addresses.length <= 1
                           ? "Không thể xóa địa chỉ cuối cùng"
-                          : undefined
+                          : "Xóa địa chỉ"
                       }
                       onClick={() => setMode({ kind: "delete", id: a.id })}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={15} />
                     </Button>
                   </div>
                 </div>
-                <p>
-                  <strong>{a.recipientName}</strong> · {a.recipientPhone}
+                <div className={styles.addressMeta}>
+                  <strong className={styles.recipientName}>
+                    {a.recipientName}
+                  </strong>
+                  <span>·</span>
+                  <span className={styles.recipientPhone}>
+                    {a.recipientPhone}
+                  </span>
+                </div>
+                <p className={styles.addressText}>{a.addressText}</p>
+                <p className={styles.addressCountry}>
+                  Quốc gia: {a.countryCode}
                 </p>
-                <p>{a.addressText}</p>
-                <p className={styles.muted}>{a.countryCode}</p>
               </article>
             ))}
           </section>

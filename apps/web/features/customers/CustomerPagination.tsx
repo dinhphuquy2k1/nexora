@@ -35,13 +35,22 @@ export function CustomerPagination({
   return (
     <footer className={styles.pagination}>
       <div className={styles.paginationSummary}>
-        <span>
-          {pagination
-            ? `Hiển thị ${from}–${to} / ${pagination.total} khách hàng`
-            : "Chưa có dữ liệu phân trang"}
+        <div className={styles.paginationText}>
+          <span>Hiển thị</span>
+          <strong className={styles.paginationBold}>
+            {rowCount ? `${from}–${to}` : "0"}
+          </strong>
+          <span>/</span>
+          <strong className={styles.paginationBold}>
+            {pagination?.total ?? 0}
+          </strong>
+          <span>khách hàng</span>
+        </div>
+        <span className={styles.paginationDivider} aria-hidden="true">
+          |
         </span>
-        <label>
-          Số dòng
+        <label className={styles.pageSizeLabel}>
+          <span>Số dòng:</span>
           <Select
             aria-label="Số dòng mỗi trang"
             value={query.pageSize}
@@ -51,7 +60,7 @@ export function CustomerPagination({
           >
             {[10, 20, 50, 100].map((n) => (
               <option key={n} value={n}>
-                {n}
+                {n} / trang
               </option>
             ))}
           </Select>

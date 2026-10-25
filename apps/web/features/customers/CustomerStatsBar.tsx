@@ -1,5 +1,5 @@
 import { Button } from "@nexora/ui";
-import { CustomerStatus, CustomerStatusLabelsVi } from "@nexora/shared";
+import { CustomerStatus } from "@nexora/shared";
 import type { Query, Stats } from "./types.ts";
 import styles from "./customers.module.css";
 export function CustomerStatsBar({
@@ -16,16 +16,18 @@ export function CustomerStatsBar({
   onChange: (status: Query["status"]) => void;
 }) {
   const tabs = [
-    { code: undefined, label: "Tất cả", count: stats?.total },
+    { code: undefined, label: "TẤT CẢ", count: stats?.total, dot: false },
     {
       code: CustomerStatus.ACTIVE,
-      label: CustomerStatusLabelsVi.ACTIVE,
+      label: "ĐANG HOẠT ĐỘNG",
       count: stats?.active,
+      dot: true,
     },
     {
       code: CustomerStatus.INACTIVE,
-      label: CustomerStatusLabelsVi.INACTIVE,
+      label: "NGỪNG HOẠT ĐỘNG",
       count: stats?.inactive,
+      dot: true,
     },
   ];
   return (
@@ -35,39 +37,59 @@ export function CustomerStatsBar({
         aria-label="Trạng thái khách hàng"
         className={styles.segments}
       >
-        {tabs.map((tab, index) => (
-          <Button
-            key={tab.code ?? "all"}
-            role="tab"
-            id={`customer-tab-${tab.code ?? "all"}`}
-            aria-controls="customer-results"
-            aria-selected={status === tab.code}
-            tabIndex={status === tab.code ? 0 : -1}
-            variant={status === tab.code ? "primary" : "ghost"}
-            onClick={() => onChange(tab.code)}
-            onKeyDown={(e) => {
-              let next: number;
-              if (e.key === "ArrowRight") next = (index + 1) % tabs.length;
-              else if (e.key === "ArrowLeft")
-                next = (index + tabs.length - 1) % tabs.length;
-              else if (e.key === "Home") next = 0;
-              else if (e.key === "End") next = tabs.length - 1;
-              else return;
-              e.preventDefault();
-              const buttons =
-                e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
-                  "[role=tab]",
-                );
-              buttons?.[next]?.focus();
-              onChange(tabs[next].code);
-            }}
-          >
-            <span>{tab.label}</span>
-            <span className={styles.count}>
-              {loading || error || !stats ? "—" : tab.count}
-            </span>
-          </Button>
-        ))}
+        {tabs.map((tab, index) => {
+          const selected = status === tab.code;
+          return (
+            <Button
+              key={tab.code ?? "all"}
+              role="tab"
+              id={`customer-tab-${tab.code ?? "all"}`}
+              aria-controls="customer-results"
+              aria-selected={selected}
+              tabIndex={selected ? 0 : -1}
+              variant={selected ? "primary" : "ghost"}
+              className={`${styles.tabButton} ${selected ? styles.tabSelected : styles.tabUnselected}`}
+              onClick={() => onChange(tab.code)}
+              onKeyDown={(e) => {
+                let next: number;
+                if (e.key === "ArrowRight") next = (index + 1) % tabs.length;
+                else if (e.key === "ArrowLeft")
+                  next = (index + tabs.length - 1) % tabs.length;
+                else if (e.key === "Home") next = 0;
+                else if (e.key === "End") next = tabs.length - 1;
+                else return;
+                e.preventDefault();
+                const buttons =
+                  e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+                    "[role=tab]",
+                  );
+                buttons?.[next]?.focus();
+                onChange(tabs[next].code);
+              }}
+            >
+              {tab.dot && (
+                <span
+                  className={`${styles.tabDot} ${
+                    selected
+                      ? styles.tabDotSelected
+                      : tab.code === CustomerStatus.ACTIVE
+                        ? styles.tabDotActive
+                        : styles.tabDotInactive
+                  }`}
+                  aria-hidden="true"
+                />
+              )}
+              <span>{tab.label}</span>
+              <span
+                className={`${styles.count} ${
+                  selected ? styles.countSelected : styles.countUnselected
+                }`}
+              >
+                {loading || error || !stats ? "—" : tab.count}
+              </span>
+            </Button>
+          );
+        })}
       </div>
       {loading && (
         <span role="status" className={styles.statsHint}>

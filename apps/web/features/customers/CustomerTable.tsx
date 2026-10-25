@@ -22,9 +22,17 @@ const tones = {
   [CustomerStatus.INACTIVE]: false,
 } satisfies Record<CustomerStatusCode, boolean>;
 export function CustomerBadge({ status }: { status: CustomerStatusCode }) {
+  const active = status === CustomerStatus.ACTIVE;
   return (
-    <StatusBadge ok={tones[status]}>
-      {CustomerStatusLabelsVi[status]}
+    <StatusBadge
+      ok={tones[status]}
+      className={`${styles.statusChip} ${active ? styles.statusChipActive : styles.statusChipInactive}`}
+    >
+      <span
+        className={`${styles.chipDot} ${active ? styles.chipDotActive : styles.chipDotInactive}`}
+        aria-hidden="true"
+      />
+      <span>{CustomerStatusLabelsVi[status]}</span>
     </StatusBadge>
   );
 }
@@ -53,16 +61,22 @@ export function CustomerTable({
   if (loading)
     state = (
       <>
-        <LoaderCircle size={28} aria-hidden="true" />
-        <p role="status">Đang tải khách hàng…</p>
-        <p>Đang cập nhật danh sách và thống kê.</p>
+        <div className={styles.stateIconCircle}>
+          <LoaderCircle size={22} className={styles.spin} aria-hidden="true" />
+        </div>
+        <p role="status" className={styles.stateTitle}>
+          Đang tải danh sách khách hàng...
+        </p>
+        <p className={styles.stateDesc}>Đang cập nhật danh sách và thống kê.</p>
       </>
     );
   else if (error)
     state = (
       <>
-        <AlertCircle size={30} aria-hidden="true" />
-        <h2>Chưa tải được danh sách</h2>
+        <div className={styles.stateIconCircle}>
+          <AlertCircle size={22} aria-hidden="true" />
+        </div>
+        <h2 className={styles.stateTitle}>Chưa tải được danh sách</h2>
         <Feedback error={error} />
         <Button variant="secondary" onClick={onRetry}>
           Thử tải lại
@@ -72,9 +86,14 @@ export function CustomerTable({
   else if (filtered)
     state = (
       <>
-        <Search size={30} aria-hidden="true" />
-        <h2>Không tìm thấy khách hàng phù hợp</h2>
-        <p>Không có hồ sơ trùng khớp với từ khóa hoặc bộ lọc hiện tại.</p>
+        <div className={styles.stateIconCircle}>
+          <Search size={22} aria-hidden="true" />
+        </div>
+        <h2 className={styles.stateTitle}>Không tìm thấy khách hàng phù hợp</h2>
+        <p className={styles.stateDesc}>
+          Không có hồ sơ nào trùng khớp với từ khóa tìm kiếm hoặc bộ lọc trạng
+          thái hiện tại.
+        </p>
         <Button variant="secondary" onClick={onClear}>
           Xóa bộ lọc tìm kiếm
         </Button>
@@ -83,9 +102,13 @@ export function CustomerTable({
   else
     state = (
       <>
-        <Users size={30} aria-hidden="true" />
-        <h2>Chưa có khách hàng</h2>
-        <p>Thêm khách hàng đầu tiên để quản lý hồ sơ và địa chỉ nhận hàng.</p>
+        <div className={styles.stateIconCircle}>
+          <Users size={22} aria-hidden="true" />
+        </div>
+        <h2 className={styles.stateTitle}>Chưa có khách hàng</h2>
+        <p className={styles.stateDesc}>
+          Thêm khách hàng đầu tiên để quản lý hồ sơ và địa chỉ nhận hàng.
+        </p>
       </>
     );
   const empty = loading || !!error || !rows.length;
@@ -104,14 +127,14 @@ export function CustomerTable({
         <thead>
           <tr>
             {[
-              "Chi tiết",
-              "Mã khách hàng",
-              "Họ và tên",
-              "Số điện thoại",
-              "Email",
-              "Trạng thái",
-              "Ngày tạo",
-              "Thao tác",
+              "CHI TIẾT",
+              "MÃ KHÁCH HÀNG",
+              "HỌ VÀ TÊN",
+              "SỐ ĐIỆN THOẠI",
+              "EMAIL",
+              "TRẠNG THÁI",
+              "NGÀY TẠO",
+              "THAO TÁC",
             ].map((t) => (
               <th key={t} scope="col">
                 {t}
@@ -130,17 +153,18 @@ export function CustomerTable({
             </tr>
           ) : (
             rows.map((c) => (
-              <tr key={c.id}>
-                <td>
+              <tr key={c.id} className={styles.tableRow}>
+                <td className={styles.detailCell}>
                   <Link
                     className={styles.detailLink}
                     href={`/customers/${encodeURIComponent(c.id)}`}
                     aria-label={`Xem ${c.code}`}
+                    title="Xem chi tiết hồ sơ & quản lý địa chỉ"
                   >
-                    <Eye size={17} />
+                    <Eye size={15} />
                   </Link>
                 </td>
-                <td>
+                <td className={styles.codeCell}>
                   <Link
                     className={styles.codeLink}
                     href={`/customers/${encodeURIComponent(c.id)}`}
@@ -150,19 +174,20 @@ export function CustomerTable({
                 </td>
                 <td className={styles.customerName}>{c.name}</td>
                 <td className={styles.phoneCell}>{c.phone}</td>
-                <td>{c.email ?? "—"}</td>
-                <td>
+                <td className={styles.emailCell}>{c.email ?? "—"}</td>
+                <td className={styles.statusCell}>
                   <CustomerBadge status={c.status} />
                 </td>
-                <td>{customerDate(c.createdAt)}</td>
-                <td>
+                <td className={styles.dateCell}>{customerDate(c.createdAt)}</td>
+                <td className={styles.actionCell}>
                   <Button
                     icon
                     variant="ghost"
                     onClick={() => onEdit(c)}
                     aria-label={`Sửa ${c.code}`}
+                    title="Chỉnh sửa thông tin khách hàng"
                   >
-                    <Edit3 size={16} />
+                    <Edit3 size={15} />
                   </Button>
                 </td>
               </tr>

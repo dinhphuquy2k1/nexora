@@ -110,15 +110,18 @@ export function CustomerListPage() {
         <div className={styles.titleRow}>
           <div className={styles.titleGroup}>
             <span className={styles.brandIcon}>
-              <Users size={20} />
+              <Users size={18} aria-hidden="true" />
             </span>
             <h1 id="customer-heading" tabIndex={-1}>
-              Quản lý khách hàng
+              QUẢN LÝ KHÁCH HÀNG
             </h1>
           </div>
-          <Button onClick={() => setOverlay("create")}>
-            <Plus size={18} aria-hidden="true" />
-            Thêm khách hàng
+          <Button
+            onClick={() => setOverlay("create")}
+            aria-label="Thêm khách hàng"
+          >
+            <Plus size={16} aria-hidden="true" />
+            <span>THÊM KHÁCH HÀNG</span>
           </Button>
         </div>
         <CustomerStatsBar
