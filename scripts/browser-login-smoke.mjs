@@ -211,14 +211,21 @@ try {
       });
       socket.send(JSON.stringify({ id: current, method, params }));
     });
-  const evaluate = async (expression) =>
-    (
-      await send("Runtime.evaluate", {
-        expression,
-        awaitPromise: true,
-        returnByValue: true,
-      })
-    ).result.value;
+  const evaluate = async (expression) => {
+    const res = await send("Runtime.evaluate", {
+      expression,
+      awaitPromise: true,
+      returnByValue: true,
+    });
+    if (res.exceptionDetails) {
+      const desc =
+        res.exceptionDetails.exception?.description ||
+        res.exceptionDetails.text ||
+        "Browser evaluation failed";
+      throw new Error(`Browser evaluation failed: ${desc}`);
+    }
+    return res.result?.value;
+  };
   checks.step("LOGIN_PAGE_RENDER");
   await send("Network.enable");
   await send("Page.bringToFront");

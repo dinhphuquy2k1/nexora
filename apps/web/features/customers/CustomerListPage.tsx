@@ -76,6 +76,26 @@ export function CustomerListPage() {
       300,
     );
   }
+  function handleReload() {
+    cancel();
+    read.invalidate();
+    const trimmedDraft = draft.trim();
+    let current: Query;
+    try {
+      current = parseCustomerQuery(new URLSearchParams(location.search));
+    } catch {
+      current = { page: 1, pageSize: 20 };
+    }
+    const currentQ = (current.q ?? "").trim();
+    if (trimmedDraft !== currentQ) {
+      change({ q: trimmedDraft || undefined, page: 1 }, true);
+    } else {
+      if (draft !== trimmedDraft) {
+        setDraft(trimmedDraft);
+      }
+      read.refresh();
+    }
+  }
   const page = read.data?.pagination;
   return (
     <div className={styles.page}>
@@ -117,19 +137,13 @@ export function CustomerListPage() {
             onSearch={searchChange}
             onQuery={(p) => change(p)}
             onClear={() => {
+              cancel();
               setDraft("");
               change({ q: undefined, page: 1 });
             }}
           />
           <div className={styles.toolbar}>
-            <Button
-              onClick={() => {
-                cancel();
-                read.refresh();
-              }}
-            >
-              Tải lại
-            </Button>
+            <Button onClick={handleReload}>Tải lại</Button>
             <label>
               Số dòng
               <Select

@@ -38,8 +38,8 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
   {
     id: "customers",
     label: "Khách hàng",
-    href: null,
-    status: "planned",
+    href: "/customers",
+    status: "available",
     group: "Workspace",
     iconKey: "customers",
   },

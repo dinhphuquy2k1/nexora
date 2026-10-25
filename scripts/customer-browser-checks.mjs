@@ -59,9 +59,37 @@ export async function verifyCustomerBrowser({
     await evaluate(`${button(text)}.click();true`);
   }
   async function fill(name, text) {
-    await evaluate(
-      `document.querySelector('dialog[open] [name=${JSON.stringify(name)}], [name=${JSON.stringify(name)}]').focus();true`,
-    );
+    const selector = `dialog[open] [name=${JSON.stringify(name)}], [name=${JSON.stringify(name)}]`;
+    await until(`(()=>{
+      const el = document.querySelector(${JSON.stringify(selector)});
+      return !!el && !el.disabled && el.getAttribute('aria-disabled') !== 'true';
+    })()`);
+    await evaluate(`(()=>{
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (el) el.focus();
+      return true;
+    })()`);
+    const focusCheck = await evaluate(`(()=>{
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (!el) return { found: false, active: false, disabled: false };
+      return {
+        found: true,
+        active: document.activeElement === el,
+        disabled: !!el.disabled || el.getAttribute('aria-disabled') === 'true',
+      };
+    })()`);
+    if (!focusCheck.found) throw new Error("FILL_SELECTOR_NOT_FOUND");
+    if (focusCheck.disabled) throw new Error("FILL_DISABLED");
+    if (!focusCheck.active) {
+      await send("Page.bringToFront");
+      await evaluate(
+        `document.querySelector(${JSON.stringify(selector)})?.focus();true`,
+      );
+      const retryActive = await evaluate(
+        `document.activeElement === document.querySelector(${JSON.stringify(selector)})`,
+      );
+      if (!retryActive) throw new Error("FILL_FOCUS_MISMATCH");
+    }
     await send("Input.dispatchKeyEvent", {
       type: "keyDown",
       key: "a",
@@ -89,20 +117,25 @@ export async function verifyCustomerBrowser({
       windowsVirtualKeyCode: 8,
     });
     if (text) await send("Input.insertText", { text });
-    assert.equal(
-      await evaluate(
-        `document.querySelector('dialog[open] [name=${JSON.stringify(name)}], [name=${JSON.stringify(name)}]').value===${JSON.stringify(text)}`,
-      ),
-      true,
-    );
+    const matchCheck = await evaluate(`(()=>{
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (!el) return { found: false, matches: false };
+      return {
+        found: true,
+        matches: el.value === ${JSON.stringify(text)},
+      };
+    })()`);
+    if (!matchCheck.found) throw new Error("FILL_SELECTOR_NOT_FOUND");
+    if (!matchCheck.matches) throw new Error("FILL_VALUE_MISMATCH");
   }
   async function ready() {
     await until(
-      `document.querySelector('h1')?.textContent.includes('khách hàng') && !Array.from(document.querySelectorAll('[role=status]')).some(e=>e.textContent.startsWith('Đang tải'))`,
+      `location.pathname.startsWith('/customers') && !!document.querySelector('h1') && document.querySelector('h1').textContent.toLowerCase().includes('khách hàng') && !Array.from(document.querySelectorAll('[role=status]')).some(e=>e.textContent.startsWith('Đang tải')) && !document.querySelector('[role=alert]')`,
     );
   }
   async function navigate(path) {
     await send("Page.navigate", { url: baseUrl + path });
+    await until(`location.pathname === ${JSON.stringify(path)}`);
     await ready();
   }
   async function snapshot(phase) {
@@ -142,9 +175,11 @@ export async function verifyCustomerBrowser({
     await send("Emulation.clearDeviceMetricsOverride");
   }
   try {
-    step("LIST_RENDER");
+    step("LIST_NAVIGATE");
     await navigate("/customers");
+    step("LIST_RENDER");
     await until(`${button("Thêm khách hàng")}`);
+    step("CREATE_DRAWER_OPEN");
     // Prove harmless create toggle is interactive before typing; never retry a mutation.
     for (let n = 0; n < 100; n++) {
       if (await evaluate('!!document.querySelector("dialog[open]")')) break;
@@ -152,16 +187,138 @@ export async function verifyCustomerBrowser({
       await delay(100);
     }
     await until('!!document.querySelector("dialog[open] input[name=name]")');
+    step("CREATE_FILL_FORM");
     await fill("name", `Khách kiểm thử ${prefix}`);
     await fill("phone", phone);
     await fill("addressText", "Địa chỉ tổng hợp dùng một lần");
     await snapshot("create");
+    step("TOKEN_OVERRIDE_VERIFY");
     // Real token override reaches TextInput/Select/Button, restored before submit.
+    const tokenResult = await evaluate(`(()=>{
+      const root = document.documentElement;
+      const input = document.querySelector('dialog[open] input[name=name], input[name=q]');
+      const button = document.querySelector('dialog[open] button, button');
+      const select = document.querySelector('select[name=filter-status], select[aria-label="Số dòng mỗi trang"], select');
+      if (!input || !button || !select) {
+        return {
+          success: false,
+          reason: 'CONTROLS_NOT_FOUND',
+          hasInput: !!input,
+          hasButton: !!button,
+          hasSelect: !!select
+        };
+      }
+      const readStyles = (el) => {
+        const cs = getComputedStyle(el);
+        return { height: cs.height, radius: cs.borderRadius, fontSize: cs.fontSize };
+      };
+      const baseline = {
+        input: readStyles(input),
+        button: readStyles(button),
+        select: readStyles(select),
+      };
+      const tokens = [
+        { prop: '--control-height', styleKey: 'height', override: '52px' },
+        { prop: '--control-radius', styleKey: 'radius', override: '6px' },
+        { prop: '--control-font-size', styleKey: 'fontSize', override: '16px' }
+      ];
+      const saved = tokens.map(t => ({
+        value: root.style.getPropertyValue(t.prop),
+        priority: root.style.getPropertyPriority(t.prop)
+      }));
+      try {
+        for (const t of tokens) {
+          root.style.setProperty(t.prop, t.override);
+        }
+        const overridden = {
+          input: readStyles(input),
+          button: readStyles(button),
+          select: readStyles(select),
+        };
+        for (const [name, cs] of Object.entries(overridden)) {
+          for (const t of tokens) {
+            if (cs[t.styleKey] !== t.override) {
+              return {
+                success: false,
+                reason: name + '_' + t.styleKey + '_not_overridden',
+                actual: cs[t.styleKey],
+                expected: t.override
+              };
+            }
+          }
+        }
+        return { success: true, baseline };
+      } finally {
+        tokens.forEach((t, i) => {
+          if (saved[i].value) {
+            root.style.setProperty(t.prop, saved[i].value, saved[i].priority);
+          } else {
+            root.style.removeProperty(t.prop);
+          }
+        });
+      }
+    })()`);
     assert.equal(
-      await evaluate(
-        `(()=>{const root=document.documentElement;const keys=['--control-height','--control-radius'];const old=keys.map(k=>root.style.getPropertyValue(k));try{root.style.setProperty(keys[0],'52px');root.style.setProperty(keys[1],'6px');const e=document.querySelector('dialog input');const b=document.querySelector('dialog button');return getComputedStyle(e).height===getComputedStyle(b).height&&getComputedStyle(e).borderRadius===getComputedStyle(b).borderRadius;}finally{keys.forEach((k,i)=>old[i]?root.style.setProperty(k,old[i]):root.style.removeProperty(k));}})()`,
-      ),
+      tokenResult.success,
       true,
+      `Token override failed: ${tokenResult.reason}`,
+    );
+
+    // Verify computed styles returned to baseline after restoring inline values
+    const restoredResult = await evaluate(`(()=>{
+      const input = document.querySelector('dialog[open] input[name=name], input[name=q]');
+      const button = document.querySelector('dialog[open] button, button');
+      const select = document.querySelector('select[name=filter-status], select[aria-label="Số dòng mỗi trang"], select');
+      const readStyles = (el) => {
+        const cs = getComputedStyle(el);
+        return { height: cs.height, radius: cs.borderRadius, fontSize: cs.fontSize };
+      };
+      const current = {
+        input: readStyles(input),
+        button: readStyles(button),
+        select: readStyles(select),
+      };
+      const base = ${JSON.stringify(tokenResult.baseline)};
+      for (const name of ['input', 'button', 'select']) {
+        if (current[name].height !== base[name].height ||
+            current[name].radius !== base[name].radius ||
+            current[name].fontSize !== base[name].fontSize) {
+          return { success: false, reason: name + '_not_restored_to_baseline' };
+        }
+      }
+      return { success: true };
+    })()`);
+    assert.equal(
+      restoredResult.success,
+      true,
+      `Token restore failed: ${restoredResult.reason}`,
+    );
+
+    // Negative regression: verify check fails closed if a consumer is detached from token
+    const negativeResult = await evaluate(`(()=>{
+      const root = document.documentElement;
+      const select = document.querySelector('select[name=filter-status], select[aria-label="Số dòng mỗi trang"], select');
+      if (!select) return { success: false, reason: 'SELECT_NOT_FOUND' };
+      const oldInlineHeight = select.style.height;
+      const oldInlinePriority = select.style.getPropertyPriority('height');
+      try {
+        select.style.setProperty('height', '30px', 'important');
+        root.style.setProperty('--control-height', '52px');
+        const computedHeight = getComputedStyle(select).height;
+        return {
+          detectedFailure: computedHeight !== '52px',
+          actualHeight: computedHeight
+        };
+      } finally {
+        if (oldInlineHeight) select.style.setProperty('height', oldInlineHeight, oldInlinePriority);
+        else select.style.removeProperty('height');
+        root.style.removeProperty('--control-height');
+      }
+    })()`);
+    assert.equal(
+      negativeResult.detectedFailure,
+      true,
+      "Negative test must detect detached consumer",
     );
     step("CREATE_SUBMIT");
     await click("Lưu khách hàng");

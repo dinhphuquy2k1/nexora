@@ -131,6 +131,26 @@ export async function verifyCustomerReadRaces({
       ),
       true,
     );
+    checks.step("CUSTOMER_SEARCH_RELOAD_FLUSH");
+    await fill("q", "Lan");
+    await click("Tải lại");
+    await ready();
+    assert.equal(
+      await evaluate('new URLSearchParams(location.search).get("q")'),
+      "Lan",
+    );
+    await delay(350);
+    assert.equal(
+      await evaluate('new URLSearchParams(location.search).get("q")'),
+      "Lan",
+    );
+    assert.equal(
+      await evaluate('document.querySelector("input[name=q]").value'),
+      "Lan",
+    );
+    await fill("q", latest);
+    await delay(350);
+    await ready();
     checks.step("CUSTOMER_OLD_STATS_RUNTIME");
     mode = "old";
     await click("Xóa tìm kiếm");

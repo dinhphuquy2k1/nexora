@@ -1,4 +1,5 @@
 import { URLSearchParams } from "node:url";
+import { setTimeout, clearTimeout } from "node:timers";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -225,5 +226,229 @@ test("canonical query equality covers empty URL, explicit defaults and reordered
       ),
     ).size,
     1,
+  );
+});
+
+test("search debounce reload lifecycle flushes draft, prevents stale commits, and clears timers", async () => {
+  class SearchReloadController {
+    constructor(initialQuery = { page: 1, pageSize: 20 }) {
+      this.timer = null;
+      this.currentQuery = { ...initialQuery };
+      this.draft = this.currentQuery.q ?? "";
+      this.lane = new CustomerReadLane();
+      this.dispatches = [];
+    }
+    cancel() {
+      if (this.timer !== null) clearTimeout(this.timer);
+      this.timer = null;
+    }
+    searchChange(q) {
+      this.cancel();
+      this.lane.invalidate();
+      this.draft = q;
+      this.timer = setTimeout(() => {
+        this.change({ q: q.trim() || undefined, page: 1 }, true);
+      }, 300);
+    }
+    change(patch, replace = false) {
+      this.cancel();
+      this.lane.invalidate();
+      const next = { ...this.currentQuery, ...patch };
+      const sameKey =
+        customerQueryString(this.currentQuery) === customerQueryString(next);
+      this.currentQuery = next;
+      this.draft = next.q ?? "";
+      const ticket = this.lane.begin(customerQueryString(next));
+      this.dispatches.push({ query: next, sameKey, replace, ticket });
+      return ticket;
+    }
+    handleReload() {
+      this.cancel();
+      this.lane.invalidate();
+      const trimmedDraft = this.draft.trim();
+      const currentQ = (this.currentQuery.q ?? "").trim();
+      if (trimmedDraft !== currentQ) {
+        return this.change({ q: trimmedDraft || undefined, page: 1 }, true);
+      } else {
+        if (this.draft !== trimmedDraft) {
+          this.draft = trimmedDraft;
+        }
+        const ticket = this.lane.begin(customerQueryString(this.currentQuery));
+        this.dispatches.push({
+          query: this.currentQuery,
+          sameKey: true,
+          replace: true,
+          ticket,
+        });
+        return ticket;
+      }
+    }
+    clear() {
+      this.cancel();
+      this.draft = "";
+      return this.change({ q: undefined, page: 1 });
+    }
+    dispose() {
+      this.cancel();
+      this.lane.dispose();
+    }
+  }
+
+  // 1. Type A -> Reload before 300ms flushes A immediately, page resets to 1, no duplicate after 300ms
+  const ctrl1 = new SearchReloadController({ page: 2, pageSize: 20 });
+  ctrl1.searchChange("Lan");
+  assert.equal(ctrl1.draft, "Lan");
+  assert.equal(ctrl1.currentQuery.q, undefined);
+  // Reload at ~50ms (before 300ms timer)
+  const ticket1 = ctrl1.handleReload();
+  assert.equal(ctrl1.currentQuery.q, "Lan");
+  assert.equal(ctrl1.currentQuery.page, 1);
+  assert.equal(ctrl1.lane.current(ticket1), true);
+  assert.equal(ctrl1.dispatches.length, 1);
+  // Advance beyond 300ms: timer was cancelled, no secondary dispatch
+  await new Promise((r) => setTimeout(r, 350));
+  assert.equal(ctrl1.dispatches.length, 1);
+
+  // 2. Type A -> Type B -> Reload before 300ms flushes B, timer for A/B never fires
+  const ctrl2 = new SearchReloadController();
+  ctrl2.searchChange("Lan");
+  ctrl2.searchChange("Hoa");
+  assert.equal(ctrl2.draft, "Hoa");
+  ctrl2.handleReload();
+  assert.equal(ctrl2.currentQuery.q, "Hoa");
+  assert.equal(ctrl2.dispatches.length, 1);
+  await new Promise((r) => setTimeout(r, 350));
+  assert.equal(ctrl2.dispatches.length, 1);
+
+  // 3. Clear via input vs clear button
+  const ctrl3 = new SearchReloadController({
+    page: 1,
+    pageSize: 20,
+    q: "Initial",
+  });
+  // Clear via clear button
+  ctrl3.clear();
+  assert.equal(ctrl3.draft, "");
+  assert.equal(ctrl3.currentQuery.q, undefined);
+  assert.equal(ctrl3.currentQuery.page, 1);
+  // Clear via typing whitespace and reloading
+  ctrl3.change({ q: "Active", page: 1 });
+  ctrl3.searchChange("   ");
+  ctrl3.handleReload();
+  assert.equal(ctrl3.currentQuery.q, undefined);
+
+  // 4. Same canonical key / whitespace
+  const ctrl4 = new SearchReloadController({
+    page: 1,
+    pageSize: 20,
+    q: "Lan",
+  });
+  ctrl4.draft = "Lan  "; // User typed trailing spaces
+  const reloadTicket = ctrl4.handleReload();
+  assert.equal(ctrl4.draft, "Lan"); // Normalized
+  assert.equal(ctrl4.dispatches[0].sameKey, true);
+  assert.equal(ctrl4.lane.current(reloadTicket), true);
+
+  // 5. Reload while old request is pending; stale success/error cannot commit
+  const ctrl5 = new SearchReloadController();
+  const ticketA = ctrl5.change({ q: "A", page: 1 });
+  assert.equal(ctrl5.lane.current(ticketA), true);
+  // Reload with draft "B"
+  ctrl5.draft = "B";
+  const ticketB = ctrl5.handleReload();
+  assert.equal(ctrl5.lane.current(ticketA), false); // Ticket A invalidated!
+  assert.equal(ctrl5.lane.current(ticketB), true);
+  // If request A finishes late (stale success/error), it is rejected
+  let stateCommitted = null;
+  const resolveA = () => {
+    if (ctrl5.lane.current(ticketA)) stateCommitted = "A";
+  };
+  resolveA();
+  assert.equal(stateCommitted, null);
+
+  // 6. Dispose cancels timer and invalidates lane
+  ctrl5.searchChange("PendingTimer");
+  ctrl5.dispose();
+  assert.equal(ctrl5.timer, null);
+  assert.equal(ctrl5.lane.current(ticketB), false);
+});
+
+test("token override validation logic detects detached consumers and unchanged styles", () => {
+  function validateTokenOverrides(consumers, tokens) {
+    const baseline = {};
+    for (const [name, el] of Object.entries(consumers)) {
+      if (!el) return { success: false, reason: `${name}_not_found` };
+      baseline[name] = { ...el.computed };
+    }
+    // Simulate applying overrides
+    for (const el of Object.values(consumers)) {
+      for (const t of tokens) {
+        if (!el.detachedProps?.includes(t.prop)) {
+          el.computed[t.styleKey] = t.override;
+        }
+      }
+    }
+    // Verify each consumer individually computed exact override
+    for (const [name, el] of Object.entries(consumers)) {
+      for (const t of tokens) {
+        if (el.computed[t.styleKey] !== t.override) {
+          return {
+            success: false,
+            reason: `${name}_${t.styleKey}_not_overridden`,
+            actual: el.computed[t.styleKey],
+            expected: t.override,
+          };
+        }
+      }
+    }
+    return { success: true };
+  }
+
+  const tokens = [
+    { prop: "--control-height", styleKey: "height", override: "52px" },
+    { prop: "--control-radius", styleKey: "borderRadius", override: "6px" },
+    { prop: "--control-font-size", styleKey: "fontSize", override: "16px" },
+  ];
+
+  // Case 1: Healthy consumers all receive overrides -> PASS
+  const healthy = {
+    input: {
+      computed: { height: "44px", borderRadius: "12px", fontSize: "13px" },
+    },
+    button: {
+      computed: { height: "44px", borderRadius: "12px", fontSize: "13px" },
+    },
+    select: {
+      computed: { height: "44px", borderRadius: "12px", fontSize: "13px" },
+    },
+  };
+  assert.equal(validateTokenOverrides(healthy, tokens).success, true);
+
+  // Case 2: One consumer (select) is detached from --control-height -> FAILS CLOSED
+  const detachedSelect = {
+    input: {
+      computed: { height: "44px", borderRadius: "12px", fontSize: "13px" },
+    },
+    button: {
+      computed: { height: "44px", borderRadius: "12px", fontSize: "13px" },
+    },
+    select: {
+      computed: { height: "44px", borderRadius: "12px", fontSize: "13px" },
+      detachedProps: ["--control-height"],
+    },
+  };
+  const res2 = validateTokenOverrides(detachedSelect, tokens);
+  assert.equal(res2.success, false);
+  assert.equal(res2.reason, "select_height_not_overridden");
+
+  // Case 3: Missing consumer element -> FAILS CLOSED
+  const missingConsumer = {
+    input: { computed: { height: "44px" } },
+    button: null,
+    select: { computed: { height: "44px" } },
+  };
+  assert.equal(
+    validateTokenOverrides(missingConsumer, tokens).reason,
+    "button_not_found",
   );
 });

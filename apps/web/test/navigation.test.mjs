@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   NAVIGATION_ITEMS,
@@ -31,8 +32,8 @@ export const APPROVED_NAVIGATION_CONTRACT = [
   },
   {
     id: "customers",
-    href: null,
-    status: "planned",
+    href: "/customers",
+    status: "available",
     group: "Workspace",
   },
   {
@@ -158,7 +159,7 @@ test("Navigation contract negative assertions", () => {
   assert.throws(() => {
     validateNavigationContract(
       APPROVED_NAVIGATION_CONTRACT.map((item) =>
-        item.id === "customers" ? { ...item, href: "/fake-route" } : item,
+        item.id === "shipment" ? { ...item, href: "/fake-route" } : item,
       ),
       APPROVED_NAVIGATION_CONTRACT,
     );
@@ -186,10 +187,11 @@ test("normalizePathname edge cases", () => {
 test("isItemActive matching logic", () => {
   const overview = NAVIGATION_ITEMS.find((i) => i.id === "overview");
   const shipment = NAVIGATION_ITEMS.find((i) => i.id === "shipment");
+  const customers = NAVIGATION_ITEMS.find((i) => i.id === "customers");
   const system = NAVIGATION_ITEMS.find((i) => i.id === "system");
   const settings = NAVIGATION_ITEMS.find((i) => i.id === "settings");
 
-  assert.ok(overview && shipment && system && settings);
+  assert.ok(overview && shipment && customers && system && settings);
 
   // Overview exact matching
   assert.equal(isItemActive(overview, "/"), true);
@@ -199,6 +201,14 @@ test("isItemActive matching logic", () => {
   // Planned items are never active
   assert.equal(isItemActive(shipment, "/shipment"), false);
   assert.equal(isItemActive(shipment, null), false);
+
+  // Customer route matching
+  assert.equal(isItemActive(customers, "/customers"), true);
+  assert.equal(isItemActive(customers, "/customers/"), true);
+  assert.equal(isItemActive(customers, "/customers/c-123"), true);
+  assert.equal(isItemActive(customers, "/customers-other"), false); // Prefix near-match rejected
+  assert.equal(isItemActive(customers, "/"), false);
+  assert.equal(isItemActive(customers, "/settings"), false);
 
   // System route matching
   assert.equal(isItemActive(system, "/system"), true);
@@ -216,6 +226,15 @@ test("isItemActive matching logic", () => {
 test("resolveActiveItem identifies available routes and rejects fake ones", () => {
   const rootItem = resolveActiveItem("/");
   assert.equal(rootItem?.id, "overview");
+
+  const customerItem = resolveActiveItem("/customers");
+  assert.equal(customerItem?.id, "customers");
+
+  const customerDetailItem = resolveActiveItem("/customers/c-001");
+  assert.equal(customerDetailItem?.id, "customers");
+
+  // Prefix near-match rejects
+  assert.equal(resolveActiveItem("/customers-other"), null);
 
   const systemItem = resolveActiveItem("/system");
   assert.equal(systemItem?.id, "system");
@@ -243,6 +262,24 @@ test("resolveBreadcrumbs builds accurate breadcrumb trails", () => {
   assert.equal(rootCrumbs[1].href, "/");
   assert.equal(rootCrumbs[1].isCurrent, true);
 
+  // Customer list route
+  const customerCrumbs = resolveBreadcrumbs("/customers");
+  assert.equal(customerCrumbs.length, 2);
+  assert.equal(customerCrumbs[0].label, "Không gian làm việc");
+  assert.equal(customerCrumbs[0].isCurrent, false);
+  assert.equal(customerCrumbs[1].label, "Khách hàng");
+  assert.equal(customerCrumbs[1].href, "/customers");
+  assert.equal(customerCrumbs[1].isCurrent, true);
+
+  // Customer detail route
+  const customerDetailCrumbs = resolveBreadcrumbs("/customers/c-001");
+  assert.equal(customerDetailCrumbs.length, 2);
+  assert.equal(customerDetailCrumbs[0].label, "Không gian làm việc");
+  assert.equal(customerDetailCrumbs[0].isCurrent, false);
+  assert.equal(customerDetailCrumbs[1].label, "Khách hàng");
+  assert.equal(customerDetailCrumbs[1].href, "/customers");
+  assert.equal(customerDetailCrumbs[1].isCurrent, true);
+
   // System route
   const systemCrumbs = resolveBreadcrumbs("/system");
   assert.equal(systemCrumbs.length, 2);
@@ -268,4 +305,28 @@ test("resolveBreadcrumbs builds accurate breadcrumb trails", () => {
   assert.equal(unknownCrumbs[0].isCurrent, false);
   assert.equal(unknownCrumbs[1].label, "Không xác định");
   assert.equal(unknownCrumbs[1].isCurrent, true);
+});
+
+test("Navigation items set aria-current and mobile drawer dismisses on route/click", () => {
+  const customers = NAVIGATION_ITEMS.find((i) => i.id === "customers");
+  assert.equal(isItemActive(customers, "/customers"), true);
+  assert.equal(isItemActive(customers, "/customers/123"), true);
+  // Negative near-match must never activate aria-current
+  assert.equal(isItemActive(customers, "/customers-fake"), false);
+
+  // ShellClient source verifies mobile drawer dismisses when a link is clicked
+  const shellSource = readFileSync(
+    new URL("../components/app-shell/ShellClient.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    shellSource,
+    /closest\("a\[href\]"\)\s*\)\s*dismiss\(\)/,
+    "Mobile navigation container must dismiss on link click",
+  );
+  assert.match(
+    shellSource,
+    /useEffect\(\(\)\s*=>\s*\{\s*setMobileOpen\(false\);\s*\},?\s*\[pathname\]\)/,
+    "Mobile drawer must dismiss on pathname change",
+  );
 });

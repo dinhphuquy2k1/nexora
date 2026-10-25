@@ -18,7 +18,7 @@ Documentation Impact: REQUIRED
 - **Approval status**: APPROVED
 - **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/28#issuecomment-6385229351
 
-Current delivery decision (2026-10-24): M1 is merged in PR27; owner explicitly requests Customer UI/M2 on a new branch/PR. The effective v2 record above supersedes v1's one-PR delivery constraint and does not revoke historical M1 approval. Historical sections below retain their original dates/status/results. Overall capability remains PLANNED because M2–M5 are not implemented; M1 capability is IMPLEMENTED. M2 design preparation is in progress, implementation NOT STARTED pending new PR-specific authenticated approval. No new task ID is allocated for this existing milestone.
+Current delivery decision (2026-10-25): M1 is merged in PR27; owner explicitly approved Customer UI/M2 on branch feat/customer-management-ui, PR #28 (comment 6385229351). M2 capability is IMPLEMENTED with P2 debounce reload and runtime token override findings resolved, and Customer navigation activated. Overall capability remains PLANNED because M3–M5 are not implemented. M3–M5 remain NOT STARTED. No new task ID is allocated for this existing milestone.
 
 ## Baseline and interface preflight
 
@@ -72,10 +72,10 @@ Every milestone stays on this branch and PR. After verified approval and explici
 
 ### M2 — Customer Management and CustomerStatsBar
 
-- [ ] Functional protected /customers and /customers/[id], all eight real SDK operations and actual deployed test-runtime stats dependency.
-- [ ] Loading/empty/unavailable/error stats, canonical q/phone/status/page query, trim/omit blank q,300ms debounce/immediate latest-generation invalidation/abort/unmount protection.
-- [ ] Reused Create/Edit/Address forms, exact allowlists/bounds/nulls, required initial address, separate default PUT and safe non-atomic PUT→DELETE partial-failure workflow.
-- [ ] Real owner/ADMIN/errors/refresh plus18 inherited stats cases/frontend race/default tests and visual/a11y acceptance; activate Customer nav and independent contract together; docs/diff/commit/push/report.
+- [x] Functional protected /customers and /customers/[id], all eight real SDK operations and actual deployed test-runtime stats dependency.
+- [x] Loading/empty/unavailable/error stats, canonical q/phone/status/page query, trim/omit blank q, 300ms debounce/immediate latest-generation invalidation/abort/unmount protection; search reload flushes uncommitted draft to canonical query.
+- [x] Reused Create/Edit/Address forms, exact allowlists/bounds/nulls, required initial address, separate default PUT and safe non-atomic PUT→DELETE partial-failure workflow.
+- [x] Real owner/ADMIN/errors/refresh plus 18 inherited stats cases/frontend race/default tests and visual/a11y acceptance; activate Customer nav and independent contract together; docs/diff/commit/push/report.
 
 ### M3 — Retail Packages
 
@@ -97,7 +97,7 @@ Every milestone stays on this branch and PR. After verified approval and explici
 - [ ] Full canonical quality/contracts, genuine Docker/PostgreSQL integration, runtime/HTTPS/persistence/dev and retained real TTY/MFA; guaranteed owned-resource cleanup.
 - [ ] Final-head hosted Preflight/Foundation actual logs, independent implementation review with P1/P2 resolved and documented P3, owner visual/PR acceptance; no automatic merge.
 
-Milestone ledger: M1–M5 NOT STARTED; targeted/visual/runtime verification NOT RUN; no milestone implementation commit exists yet. Rollback uses focused UI/nav Git reverts, never data deletion or forced disconnect. No separate PR per milestone.
+Milestone ledger: M1 IMPLEMENTED (merged PR #27); M2 IMPLEMENTED with findings resolved and navigation activated, awaiting hosted CI and screenshot acceptance on PR #28; M3–M5 NOT STARTED. Rollback uses focused UI/nav Git reverts, never data deletion or forced disconnect. No separate PR per milestone.
 
 ## Compatibility, alternatives and risks
 
@@ -595,15 +595,15 @@ Uploaded ZIP archive SHA25617e7d68fccf654fac306f9fbde49fa4646cd770191f3922a77962
 
 Concrete SDK quirk inspected: generated AddressPatchDto requires countryCode because of its default annotation. Selected design sends current/edited countryCode alongside real dirty changes, blocks no-op PATCH and retains generated types; no backend change or fabricated DTO. List Summary has no addressCount: omit that unsupported list column, show real detail count only; no per-row get requests.
 
-### M2 implementation and acceptance checklist — NOT STARTED
+### M2 implementation and acceptance checklist — IN PROGRESS
 
 - [x] Inspect current main/M1, API/DTO/OpenAPI/SDK/status, guard/navigation, UI primitives/tokens and reference provenance; prepare SIGNIFICANT amendment/reuse audit.
-- [ ] Verify new Draft PR's exact authenticated owner task/revision/digest decision, chronology and no later relevant revocation; only then mark APPROVED.
-- [ ] RED/GREEN query/URL/generation/300ms debounce/clear/retry/unmount, eight typed operations/allowlists/runtime/error guards, payload bounds/nulls and real-consumer Select contract.
-- [ ] List/filters/StatsBar/Create/Edit, successful empty versus unavailable/error, direct URL/Back/Forward, owner-scoped actual stats and no N+1.
-- [ ] Detail/AddressForm/add/edit/default/delete, last/default protection, PUT failure/no DELETE, partial committed default/reconciliation/retry, concurrency and legacy states.
+- [x] Verify new Draft PR's exact authenticated owner task/revision/digest decision, chronology and no later relevant revocation; only then mark APPROVED.
+- [x] RED/GREEN query/URL/generation/300ms debounce/clear/retry/unmount, eight typed operations/allowlists/runtime/error guards, payload bounds/nulls and real-consumer Select contract.
+- [x] List/filters/StatsBar/Create/Edit, successful empty versus unavailable/error, direct URL/Back/Forward, owner-scoped actual stats and no N+1.
+- [x] Detail/AddressForm/add/edit/default/delete, last/default protection, PUT failure/no DELETE, partial committed default/reconciliation/retry, concurrency and legacy states.
 - [ ] Genuine disposable API/DB and authenticated CDP, six viewports/reference comparison/screenshots, focus/keyboard/ARIA/overflow and existing M1/auth regression acceptance.
-- [ ] Activate Customer registry with independent list/detail/resolver/breadcrumb/mobile acceptance; no unrelated planned routes.
+- [x] Activate Customer registry with independent list/detail/resolver/breadcrumb/mobile acceptance; no unrelated planned routes.
 - [ ] Canonical frontend/domain/reuse/testing docs, full quality/build/contracts/Docker/runtime/HTTPS/persistence/dev, final-head hosted Preflight/Foundation and independent implementation-code-review.
 - [ ] Commit/push focused implementation, reconcile exact final head/logs/artifacts and stop at Customer UI checkpoint; no automatic merge or M3–M5.
 
@@ -662,3 +662,31 @@ M2 reconciliation accessibility follow-up: forms/delete confirmation now expose 
 After3 same-step failures (2ad2721/40103018189,959057b/40103862028,e27d7c0/40104047565), stopped trial edits and re-evaluated the CDP boundary. Actual owned local Chromium fixture, using existing process teardown helpers and no API/credentials, reproduced a DOM button with React-like circular metadata: Runtime.evaluate(returnByValue=true) on the found element returns protocol error `Object reference chain is too long`; the identical expression coerced to boolean returns true. Cleanup completed. Existing until helper requested the DOM node itself before applying Node truthiness, explaining immediate protocol failure instead of readiness timeout. This is a confirmed verifier defect, not evidence of a Customer API/security failure.
 
 RED regression1/2 failed before customerPredicate existed; fix coerces all predicate expressions before CDP serialization, retaining truthiness/assertions and the existing polling deadline. Known-navigation retry was insufficient to address this actual cause; historical runs stay FAIL. Static/expression and circular-fixture tests GREEN2/2; genuine runtime required again. Also removed nested ternary in StatsBar per existing readability rule; state semantics unchanged. Last implementation review follow-up was unavailable due reviewer usage limit; previous3 P2 source fixes were independently closed, final review remains required.
+
+### M2 Finding Resolution & Foundation Investigation — 2026-10-25
+
+1. **P2 — Search draft reload desynchronization in debounce**:
+   - _Root cause_: "Tải lại" in `CustomerListPage.tsx` called `cancel()` then `read.refresh()`. If user typed "Lan" and clicked reload before the 300ms debounce timer elapsed, `cancel()` aborted the commit timer, `read.refresh()` fetched the old query, while the input remained showing "Lan", desynchronizing UI draft, canonical URL, and server request.
+   - _Fix_: `handleReload()` in `CustomerListPage.tsx` flushes uncommitted search drafts into the canonical query by comparing `draft.trim()` with canonical `(query.q ?? "").trim()`. If distinct, it flushes via `change({ q: draft.trim() || undefined, page: 1 }, true)`. If identical, it performs same-key refresh and normalizes whitespace. Debounce timers are cleared, and active generation tickets are invalidated immediately so pending requests cannot commit stale state.
+   - _Evidence_: Added unit/model controlled-clock test in `apps/web/test/customer-ui-model.test.mjs` verifying Type A -> reload, Type A -> Type B -> reload, clear, whitespace, in-flight stale rejection, and timer cancellation (PASS). Added browser integration step `CUSTOMER_SEARCH_RELOAD_FLUSH` in `scripts/customer-read-races.mjs`.
+
+2. **P2 — Runtime token override test effectiveness**:
+   - _Root cause_: `customer-browser-checks.mjs` only asserted `input.height === button.height && input.radius === button.radius` under `--control-height: 52px; --control-radius: 6px;`. Two controls retaining default theme values could pass; native Select was omitted despite test comments; font-size token parity was not checked.
+   - _Fix_: Test reads baseline computed styles of actual rendered `TextInput`, `Button`, and `Select`. Overrides `--control-height: 52px`, `--control-radius: 6px`, `--control-font-size: 16px`. Confirms each consumer explicitly computes exact override values. In `finally`, restores inline values and priorities, and asserts return to baseline. Added negative regression verifying failure detection when a consumer is detached from tokens.
+   - _Evidence_: `customer-browser-checks.mjs` updated; unit test in `apps/web/test/customer-ui-model.test.mjs` verifies negative failure detection on detached consumers (PASS).
+
+3. **Foundation failure investigation (Run 40152052206, Step CUSTOMER_admin_LIST_RENDER, Category ASSERTION_FAILED)**:
+   - _Root cause_:
+     - `evaluate` in `scripts/browser-login-smoke.mjs` swallowed CDP `exceptionDetails` and returned `undefined` whenever unhandled JavaScript exceptions occurred in page context.
+     - `customer-browser-checks.mjs` `fill()` attempted native input dispatch without ensuring element readiness, enabled state, or focus. When element was null or not active, `.value` was undefined, causing `assert.equal(await evaluate(...), true)` to fail with `AssertionError: undefined !== true` within 400ms under `LIST_RENDER`.
+     - `ready()` accepted old pages with similar h1 titles without asserting target pathname, and did not check for error alert states.
+   - _Fix_:
+     - `evaluate` in `scripts/browser-login-smoke.mjs` now inspects `res.exceptionDetails` and throws explicit error with description.
+     - `navigate(path)` asserts `location.pathname === path` before calling `ready()`.
+     - `ready()` ensures route pathname, rendered heading, loading cleared, and absence of `role=alert`.
+     - `fill()` verifies control exists, is enabled, and has focus (`Page.bringToFront` + `activeElement`) before native key dispatch; validates value match using fixed diagnostic vocabulary (`FILL_SELECTOR_NOT_FOUND`, `FILL_DISABLED`, `FILL_FOCUS_MISMATCH`, `FILL_VALUE_MISMATCH`, zero PII).
+     - Substeps broken down: `LIST_NAVIGATE`, `LIST_RENDER`, `CREATE_DRAWER_OPEN`, `CREATE_FILL_FORM`, `CAPTURE_create`, `TOKEN_OVERRIDE_VERIFY`.
+
+4. **Customer navigation activation**:
+   - Activated `customers` (`/customers`, `status: "available"`) in `apps/web/lib/navigation/nav-config.ts` and independent contract `APPROVED_NAVIGATION_CONTRACT` in `apps/web/test/navigation.test.mjs`.
+   - Added tests in `apps/web/test/navigation.test.mjs` covering list `/customers`, detail `/customers/[id]`, prefix near-match rejection (`/customers-other`), breadcrumb trails, `aria-current="page"`, and mobile drawer dismissal. All 7/7 navigation tests PASS.
