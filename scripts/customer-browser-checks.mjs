@@ -215,6 +215,9 @@ export async function verifyCustomerBrowser({
       await evaluate(
         "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true)))))",
       );
+      await evaluate(
+        `(()=>{const body=document.querySelector('dialog[open] [data-customer-form-body]');if(body)body.scrollTop=${phase.endsWith("-address") ? "body.scrollHeight" : "0"};return new Promise(r=>requestAnimationFrame(()=>r(true)));})()`,
+      );
       assert.equal(
         await evaluate("document.documentElement.scrollWidth<=innerWidth"),
         true,
@@ -418,7 +421,7 @@ export async function verifyCustomerBrowser({
         root.style.setProperty('--control-height', '52px');
         const computedHeight = getComputedStyle(select).height;
         return {
-          savedRoot:oldRootHeight,savedRootPriority:oldRootPriority,savedInline:oldInlineHeight,savedInlinePriority:oldInlinePriority,
+          savedRoot:oldRootHeight,savedRootPriority:oldRootPriority,savedInline:oldInlineHeight,savedInlinePriority:oldInlinePriority,savedInlineMin:oldInlineMinHeight,savedInlineMinPriority:oldInlineMinPriority,
           detectedFailure: computedHeight !== '52px',
           actualHeight: computedHeight
         };
@@ -444,7 +447,7 @@ export async function verifyCustomerBrowser({
     await verifyCustomerControls({ send, evaluate, checks });
     assert.equal(
       await evaluate(
-        `(()=>{const root=document.documentElement;const select=document.querySelector('select[aria-label="Số dòng mỗi trang"]');const saved=${JSON.stringify(negativeResult)};return root.style.getPropertyValue('--control-height')===saved.savedRoot&&root.style.getPropertyPriority('--control-height')===saved.savedRootPriority&&select.style.height===saved.savedInline&&select.style.getPropertyPriority('height')===saved.savedInlinePriority;})()`,
+        `(()=>{const root=document.documentElement;const select=document.querySelector('select[aria-label="Số dòng mỗi trang"]');const saved=${JSON.stringify(negativeResult)};return root.style.getPropertyValue('--control-height')===saved.savedRoot&&root.style.getPropertyPriority('--control-height')===saved.savedRootPriority&&select.style.height===saved.savedInline&&select.style.getPropertyPriority('height')===saved.savedInlinePriority&&select.style.minHeight===saved.savedInlineMin&&select.style.getPropertyPriority('min-height')===saved.savedInlineMinPriority;})()`,
       ),
       true,
     );
@@ -689,7 +692,7 @@ export async function verifyCustomerBrowser({
     assert.equal(detail.customer.addresses[0].isDefault, true);
     assert.equal(
       await evaluate(
-        `(()=>{const buttons=Array.from(document.querySelectorAll('button[aria-label=\"Xóa địa chỉ\"]'));return buttons.length===1&&buttons.every(b=>b.disabled);})()`,
+        `(()=>{const buttons=Array.from(document.querySelectorAll('button[aria-label="Xóa địa chỉ"]'));return buttons.length===1&&buttons.every(b=>b.disabled);})()`,
       ),
       true,
     );
