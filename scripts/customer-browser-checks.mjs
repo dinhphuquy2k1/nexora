@@ -94,8 +94,16 @@ export async function verifyCustomerBrowser({
         disabled: el.matches(':disabled') || el.getAttribute('aria-disabled') === 'true',
       };
     })()`);
-    if (!focusCheck.found) throw new Error("FILL_SELECTOR_NOT_FOUND");
-    if (focusCheck.disabled) throw new Error("FILL_DISABLED");
+    if (!focusCheck.found) {
+      const err = new Error("FILL_SELECTOR_NOT_FOUND");
+      err.code = "SELECTOR_NOT_FOUND";
+      throw err;
+    }
+    if (focusCheck.disabled) {
+      const err = new Error("FILL_DISABLED");
+      err.code = "CONTROL_DISABLED";
+      throw err;
+    }
     if (!focusCheck.active) {
       await send("Page.bringToFront");
       await evaluate(
@@ -104,7 +112,11 @@ export async function verifyCustomerBrowser({
       const retryActive = await evaluate(
         `document.activeElement === document.querySelector(${JSON.stringify(selector)})`,
       );
-      if (!retryActive) throw new Error("FILL_FOCUS_MISMATCH");
+      if (!retryActive) {
+        const err = new Error("FILL_FOCUS_MISMATCH");
+        err.code = "FOCUS_MISMATCH";
+        throw err;
+      }
     }
     await send("Input.dispatchKeyEvent", {
       type: "keyDown",
@@ -133,25 +145,35 @@ export async function verifyCustomerBrowser({
       windowsVirtualKeyCode: 8,
     });
     if (text) await send("Input.insertText", { text });
-    const matchCheck = await evaluate(`(()=>{
-      const el = document.querySelector(${JSON.stringify(selector)});
-      if (!el) return { found: false, matches: false };
-      return {
-        found: true,
-        matches: el.value === ${JSON.stringify(text)},
-      };
-    })()`);
-    if (!matchCheck.found) throw new Error("FILL_SELECTOR_NOT_FOUND");
-    if (!matchCheck.matches) {
-      console.error(
-        "Customer native input diagnostic",
-        JSON.stringify(
-          await evaluate(
-            `(()=>{const el=document.querySelector(${JSON.stringify(selector)});return{found:!!el,focused:document.activeElement===el,documentFocused:document.hasFocus(),disabled:el?.matches(':disabled')??false,actualLength:el?.value?.length??-1,expectedLength:${text.length}};})()`,
+    for (let i = 0; i < 50; i++) {
+      const matchCheck = await evaluate(`(()=>{
+        const el = document.querySelector(${JSON.stringify(selector)});
+        if (!el) return { found: false, matches: false };
+        return {
+          found: true,
+          matches: el.value === ${JSON.stringify(text)},
+        };
+      })()`);
+      if (!matchCheck.found) {
+        const err = new Error("FILL_SELECTOR_NOT_FOUND");
+        err.code = "SELECTOR_NOT_FOUND";
+        throw err;
+      }
+      if (matchCheck.matches) break;
+      if (i === 49) {
+        console.error(
+          "Customer native input diagnostic",
+          JSON.stringify(
+            await evaluate(
+              `(()=>{const el=document.querySelector(${JSON.stringify(selector)});return{found:!!el,focused:document.activeElement===el,documentFocused:document.hasFocus(),disabled:el?.matches(':disabled')??false,actualLength:el?.value?.length??-1,expectedLength:${text.length}};})()`,
+            ),
           ),
-        ),
-      );
-      throw new Error("FILL_VALUE_MISMATCH");
+        );
+        const err = new Error("FILL_VALUE_MISMATCH");
+        err.code = "VALUE_MISMATCH";
+        throw err;
+      }
+      await delay(50);
     }
   }
   async function ready(expectedAlert = false) {
@@ -225,7 +247,15 @@ export async function verifyCustomerBrowser({
       await evaluate(`${button("Thêm khách hàng")}.click();true`);
       await delay(100);
     }
+    step("CREATE_FIELDS_READY");
     await until('!!document.querySelector("dialog[open] input[name=name]")');
+    await until('!!document.querySelector("dialog[open] input[name=phone]")');
+    await until(
+      '!!document.querySelector("dialog[open] textarea[name=addressText]")',
+    );
+    await until(
+      '!document.querySelector("dialog[open] fieldset[disabled]") && !document.querySelector("dialog[open] [role=status]")',
+    );
     step("CREATE_FILL_FORM");
     await fill("name", `Khách kiểm thử ${prefix}`);
     await fill("phone", phone);

@@ -222,7 +222,9 @@ try {
         res.exceptionDetails.exception?.description ||
         res.exceptionDetails.text ||
         "Browser evaluation failed";
-      throw new Error(`Browser evaluation failed: ${desc}`);
+      const err = new Error(`Browser evaluation failed: ${desc}`);
+      err.code = "PROTOCOL_EXCEPTION";
+      throw err;
     }
     return res.result?.value;
   };
