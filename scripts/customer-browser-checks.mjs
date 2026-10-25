@@ -213,7 +213,10 @@ export async function verifyCustomerBrowser({
         mobile: false,
       });
       await evaluate(
-        "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true)))))",
+        "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true))))).then(async()=>{await Promise.all(Array.from(document.querySelectorAll('aside')).flatMap(el=>el.getAnimations()).map(a=>a.finished.catch(()=>{})));return true;})",
+      );
+      await evaluate(
+        `(()=>{const body=document.querySelector('dialog[open] [data-customer-form-body]');if(body)body.scrollTop=${phase.endsWith("-address") ? "body.scrollHeight" : "0"};return new Promise(r=>requestAnimationFrame(()=>r(true)));})()`,
       );
       assert.equal(
         await evaluate("document.documentElement.scrollWidth<=innerWidth"),
@@ -424,7 +427,7 @@ export async function verifyCustomerBrowser({
         root.style.setProperty('--control-height', '52px');
         const computedHeight = getComputedStyle(select).height;
         return {
-          savedRoot:oldRootHeight,savedRootPriority:oldRootPriority,savedInline:oldInlineHeight,savedInlinePriority:oldInlinePriority,
+          savedRoot:oldRootHeight,savedRootPriority:oldRootPriority,savedInline:oldInlineHeight,savedInlinePriority:oldInlinePriority,savedInlineMin:oldInlineMinHeight,savedInlineMinPriority:oldInlineMinPriority,
           detectedFailure: computedHeight !== '52px',
           actualHeight: computedHeight
         };
@@ -450,7 +453,7 @@ export async function verifyCustomerBrowser({
     await verifyCustomerControls({ send, evaluate, checks });
     assert.equal(
       await evaluate(
-        `(()=>{const root=document.documentElement;const select=document.querySelector('select[aria-label="Số dòng mỗi trang"]');const saved=${JSON.stringify(negativeResult)};return root.style.getPropertyValue('--control-height')===saved.savedRoot&&root.style.getPropertyPriority('--control-height')===saved.savedRootPriority&&select.style.height===saved.savedInline&&select.style.getPropertyPriority('height')===saved.savedInlinePriority;})()`,
+        `(()=>{const root=document.documentElement;const select=document.querySelector('select[aria-label="Số dòng mỗi trang"]');const saved=${JSON.stringify(negativeResult)};return root.style.getPropertyValue('--control-height')===saved.savedRoot&&root.style.getPropertyPriority('--control-height')===saved.savedRootPriority&&select.style.height===saved.savedInline&&select.style.getPropertyPriority('height')===saved.savedInlinePriority&&select.style.minHeight===saved.savedInlineMin&&select.style.getPropertyPriority('min-height')===saved.savedInlineMinPriority;})()`,
       ),
       true,
     );
@@ -538,6 +541,12 @@ export async function verifyCustomerBrowser({
     step("DETAIL_RENDER");
     await navigate("/customers/" + customer.id);
     await until(`${button("Thêm địa chỉ")}`);
+    assert.equal(
+      await evaluate(
+        `(()=>{const profile=document.querySelector('main dl');return !!profile&&profile.children.length===6&&Array.from(profile.children).every(row=>Math.abs(row.getBoundingClientRect().width-profile.getBoundingClientRect().width)<1);})()`,
+      ),
+      true,
+    );
     await snapshot("detail");
     step("EDIT_PROFILE");
     await click("Sửa khách hàng");
@@ -594,6 +603,11 @@ export async function verifyCustomerBrowser({
     // Delete current default through explicit replacement then DELETE.
     step("DELETE_DEFAULT");
     const currentDefault = added.id;
+    step("DELETE_DEFAULT_READY");
+    await until(
+      `(()=>{const card=document.querySelector('article[aria-label="Địa chỉ mặc định"]');const action=card?.querySelector('button[aria-label="Xóa địa chỉ"]');return !!action&&!action.disabled&&card.textContent.includes('Địa chỉ thay thế tổng hợp');})()`,
+    );
+    step("DELETE_DEFAULT_OPEN");
     await evaluate(
       `document.querySelector('article[aria-label="Địa chỉ mặc định"] button[aria-label="Xóa địa chỉ"]').click();true`,
     );
@@ -603,6 +617,7 @@ export async function verifyCustomerBrowser({
     const replacement = detail.customer.addresses.find(
       (a) => a.id !== currentDefault,
     ).id;
+    step("DELETE_DEFAULT_REPLACEMENT");
     await evaluate(
       `(()=>{const s=document.querySelector('select[name=replacement]');s.value=${JSON.stringify(replacement)};s.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`,
     );
@@ -695,7 +710,7 @@ export async function verifyCustomerBrowser({
     assert.equal(detail.customer.addresses[0].isDefault, true);
     assert.equal(
       await evaluate(
-        `(()=>{const buttons=Array.from(document.querySelectorAll('button[aria-label=\"Xóa địa chỉ\"]'));return buttons.length===1&&buttons.every(b=>b.disabled);})()`,
+        `(()=>{const buttons=Array.from(document.querySelectorAll('button[aria-label="Xóa địa chỉ"]'));return buttons.length===1&&buttons.every(b=>b.disabled);})()`,
       ),
       true,
     );
