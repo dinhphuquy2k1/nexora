@@ -493,6 +493,7 @@ export async function verifyCustomerBrowser({
       true,
     );
     await ready(true);
+    await snapshot("validation-error");
     await click("Đóng biểu mẫu");
     await until('!document.querySelector("dialog[open]")');
     // Same-key URL normalization and Back/Forward must restart, not deadlock.
@@ -688,7 +689,7 @@ export async function verifyCustomerBrowser({
     assert.equal(detail.customer.addresses[0].isDefault, true);
     assert.equal(
       await evaluate(
-        `Array.from(document.querySelectorAll('button')).filter(b=>b.textContent.trim()==='Xóa địa chỉ').every(b=>b.disabled)`,
+        `(()=>{const buttons=Array.from(document.querySelectorAll('button[aria-label=\"Xóa địa chỉ\"]'));return buttons.length===1&&buttons.every(b=>b.disabled);})()`,
       ),
       true,
     );
