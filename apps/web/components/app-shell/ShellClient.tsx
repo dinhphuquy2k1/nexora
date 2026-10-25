@@ -107,7 +107,11 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
         />
 
         <main
-          className={styles.contentArea}
+          className={
+            pathname?.startsWith("/customers")
+              ? `${styles.contentArea} ${styles.customerContentArea}`
+              : styles.contentArea
+          }
           id="workspace-content"
           tabIndex={-1}
         >

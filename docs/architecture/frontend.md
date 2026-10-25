@@ -279,10 +279,29 @@ Mutations serialize in each active parent surface, retain forms on failure and g
 
 M1 neutral controls/tokens/Overlay remain authoritative. Native Select consumes the same control class; Overlay's optional className is a neutral layout slot, with right-side Customer forms and centered confirmation. No duplicate focus trap/framework. All actual runtime/browser/reference/CI acceptance remains pending in task031/PR28; M3–M5 not implemented.
 
-### M2 reference presentation correction
+### M2 reference presentation & 100% DOM parity reconciliation
 
-Customer list follows the pinned CustomerListView source: one white command deck (icon/title/Create row, segmented all/ACTIVE/INACTIVE counts, bounded460/max480 search/actions toolbar), advanced exact-phone disclosure, stable navy-header data card with in-body loading/error/empty, and attached API pagination footer. Counts come only from stats; the bounded page window never scales with totalPages. Invalid direct filters remain explicit, not silently widened. Reload commits the current draft before dispatch, preserving the existing generation/URL lifecycle.
+Customer list follows the approved reference ZIP (`CustomerListView.tsx` and `src/App.tsx`) with strict DOM structure parity:
 
-Detail follows the reference5/7 profile/address grouping with mobile stacking, code/status header and real metadata. Create/Edit/Address drawers use fixed header/footer and scrollable grouped fields; Delete confirmation is centered. Shared neutral Button variants provide primary(default), secondary, ghost and icon hit targets without feature control-state overrides. Optional Save-and-open uses one confirmed Create response and its real id through the existing mutation guard. Edit opened from list Summary links to address management instead of inventing address counts/previews or fetching every row; actual Detail data can show its address preview.
+- **Command Deck Header**: Single title row without visible `border-bottom`; right-aligned action group containing disabled `Xuất Excel` (honest disabled state explaining backend export capability is unavailable) and primary `+ THÊM KHÁCH HÀNG` button.
+- **Status Tabs**: Exactly three tabs (`TẤT CẢ`, `ĐANG HOẠT ĐỘNG`, `NGỪNG HOẠT ĐỘNG`) with status dots and rounded numeric badges. No visible loading or error texts consume vertical layout height; accessibility and screen-reader announcements are maintained via `.srOnly`.
+- **Search Toolbar**: Controlled width (~460px desktop, max 480px, responsive on mobile), left-aligned; right-aligned actions cluster with conditional `Đang lọc` badge and `Làm mới` refresh button. Advanced filter accordion (`<details>`) and exact phone form are completely removed from the rendered DOM.
+- **Customer Table (9 columns)**: Exactly 9 columns in order:
+  1. `CHI TIẾT` (Eye icon navigation)
+  2. `MÃ KHÁCH HÀNG` (Monospace orange link)
+  3. `HỌ VÀ TÊN` (Bold primary text)
+  4. `SỐ ĐIỆN THOẠI` (Monospace tabular numbers)
+  5. `EMAIL` (Muted text, fallback `—`)
+  6. `SỐ ĐỊA CHỈ` (Displays neutral unavailable marker `—` with `MapPin` icon; avoids N+1 detail queries while preserving 9-column layout)
+  7. `TRẠNG THÁI` (Status chip with dot indicator)
+  8. `NGÀY TẠO` (Localized date `vi-VN`)
+  9. `THAO TÁC` (Action group containing both `Edit` and `Power` status toggle button)
+- **Pagination**: Default `pageSize: 10` across query parser, state initialization, fallback, and selector. Options: `[5, 10, 20, 50, 100]`.
+- **Scoped Content Padding**: Scoped `.customerContentArea` on routes starting with `/customers` (`padding: 14px` on desktop, `12px` on tablet, `10px` on mobile) matching reference geometry without modifying global AppShell padding or affecting unrelated pages.
 
-Intentional differences: canonical44px controls/tokens/AA contrast rather than reference32px/white-on-orange, backend field/ownership/null/fallback bounds, no unsupported export/addressCount, native Select for explicit replacement and status edits, and accessible/mobile reflow. These exceptions do not replace the command-deck/data-card hierarchy. Source-based visual matrix and actual screenshot/CI evidence remain in task031/PR28; no pixel-perfect claim without a safe reference render.
+#### Feature compatibility ledger:
+
+- **Excel Export**: `DISABLED` — Rendered in approved header structure as disabled with accessible explanation; no fake file download or invented backend endpoint.
+- **Address Count in List**: `DISABLED` — Rendered as neutral `—` marker with tooltip; real address management and counts are accessible via Customer Detail page; avoids N+1 API requests.
+- **Power Status Toggle**: `SUPPORTED` — Powered by authorized `customerApi.update(id, { status })` contract; toggles `ACTIVE` ↔ `INACTIVE` with pending spinner, refreshed backend stats, and error recovery.
+- **Backend Statistics**: `SUPPORTED` — Driven by real `CustomerStatsDto` via `CustomerStatsBar`, preserving query, cache, and stale-response protections. Real counts are never substituted with current-page counts.

@@ -3,6 +3,8 @@ import { Button, StatusBadge } from "@nexora/ui";
 import {
   Eye,
   Edit3,
+  Power,
+  MapPin,
   Search,
   Users,
   LoaderCircle,
@@ -43,6 +45,8 @@ export function customerDate(value: string) {
 export function CustomerTable({
   rows,
   onEdit,
+  onToggleStatus,
+  togglingId,
   loading,
   error,
   filtered,
@@ -51,6 +55,8 @@ export function CustomerTable({
 }: {
   rows: Summary[];
   onEdit: (c: Summary) => void;
+  onToggleStatus?: (c: Summary) => void;
+  togglingId?: string | null;
   loading: boolean;
   error?: ReturnType<typeof customerError>;
   filtered: boolean;
@@ -112,6 +118,17 @@ export function CustomerTable({
       </>
     );
   const empty = loading || !!error || !rows.length;
+  const columns = [
+    "CHI TIẾT",
+    "MÃ KHÁCH HÀNG",
+    "HỌ VÀ TÊN",
+    "SỐ ĐIỆN THOẠI",
+    "EMAIL",
+    "SỐ ĐỊA CHỈ",
+    "TRẠNG THÁI",
+    "NGÀY TẠO",
+    "THAO TÁC",
+  ];
   return (
     <div
       className={styles.tableViewport}
@@ -126,16 +143,7 @@ export function CustomerTable({
         <caption className={styles.srOnly}>Danh sách khách hàng</caption>
         <thead>
           <tr>
-            {[
-              "CHI TIẾT",
-              "MÃ KHÁCH HÀNG",
-              "HỌ VÀ TÊN",
-              "SỐ ĐIỆN THOẠI",
-              "EMAIL",
-              "TRẠNG THÁI",
-              "NGÀY TẠO",
-              "THAO TÁC",
-            ].map((t) => (
+            {columns.map((t) => (
               <th key={t} scope="col">
                 {t}
               </th>
@@ -145,7 +153,7 @@ export function CustomerTable({
         <tbody>
           {empty ? (
             <tr>
-              <td colSpan={8} className={styles.stateCell}>
+              <td colSpan={9} className={styles.stateCell}>
                 <div className={styles.statePanel}>
                   <div>{state}</div>
                 </div>
@@ -175,20 +183,66 @@ export function CustomerTable({
                 <td className={styles.customerName}>{c.name}</td>
                 <td className={styles.phoneCell}>{c.phone}</td>
                 <td className={styles.emailCell}>{c.email ?? "—"}</td>
+                <td className={styles.addressCountCell}>
+                  <span
+                    className={styles.addressCountBadge}
+                    title="Số địa chỉ khả dụng trong chi tiết hồ sơ"
+                  >
+                    <MapPin
+                      size={12}
+                      className={styles.addressCountIcon}
+                      aria-hidden="true"
+                    />
+                    <span>—</span>
+                  </span>
+                </td>
                 <td className={styles.statusCell}>
                   <CustomerBadge status={c.status} />
                 </td>
                 <td className={styles.dateCell}>{customerDate(c.createdAt)}</td>
-                <td className={styles.actionCell}>
-                  <Button
-                    icon
-                    variant="ghost"
-                    onClick={() => onEdit(c)}
-                    aria-label={`Sửa ${c.code}`}
-                    title="Chỉnh sửa thông tin khách hàng"
-                  >
-                    <Edit3 size={15} />
-                  </Button>
+                <td
+                  className={styles.actionCell}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className={styles.actionGroup}>
+                    <Button
+                      icon
+                      variant="ghost"
+                      onClick={() => onEdit(c)}
+                      aria-label={`Sửa ${c.code}`}
+                      title="Chỉnh sửa thông tin khách hàng"
+                    >
+                      <Edit3 size={15} />
+                    </Button>
+                    <Button
+                      icon
+                      variant="ghost"
+                      onClick={() => onToggleStatus?.(c)}
+                      disabled={togglingId === c.id}
+                      aria-label={
+                        c.status === CustomerStatus.ACTIVE
+                          ? `Tạm ngừng hoạt động ${c.code}`
+                          : `Kích hoạt lại ${c.code}`
+                      }
+                      title={
+                        c.status === CustomerStatus.ACTIVE
+                          ? "Tạm ngừng hoạt động"
+                          : "Kích hoạt lại tài khoản"
+                      }
+                      className={
+                        c.status === CustomerStatus.ACTIVE
+                          ? styles.powerActive
+                          : styles.powerInactive
+                      }
+                    >
+                      <Power
+                        size={14}
+                        className={
+                          togglingId === c.id ? styles.spin : undefined
+                        }
+                      />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))

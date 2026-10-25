@@ -2,11 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@nexora/ui";
+import { CustomerStatus } from "@nexora/shared";
 import { parseCustomerQuery, customerQueryString } from "./query.ts";
 import type { Query, Summary } from "./types.ts";
 import { customerApi } from "./api.ts";
 import { useCustomerRead } from "./useCustomerRead.ts";
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, FileSpreadsheet } from "lucide-react";
 import { CustomerPagination } from "./CustomerPagination.tsx";
 import { CustomerStatsBar } from "./CustomerStatsBar.tsx";
 import { CustomerFilters } from "./CustomerFilters.tsx";
@@ -16,7 +17,7 @@ import styles from "./customers.module.css";
 export function CustomerListPage() {
   const params = useSearchParams();
   const search = params.toString();
-  let query: Query = { page: 1, pageSize: 20 },
+  let query: Query = { page: 1, pageSize: 10 },
     invalid = false;
   try {
     query = parseCustomerQuery(new URLSearchParams(search));
@@ -33,6 +34,7 @@ export function CustomerListPage() {
   const [draft, setDraft] = useState(query.q ?? "");
   const [overlay, setOverlay] = useState<Summary | "create" | null>(null);
   const [notice, setNotice] = useState("");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   function cancel() {
     if (timer.current !== null) clearTimeout(timer.current);
     timer.current = null;
@@ -58,7 +60,7 @@ export function CustomerListPage() {
     try {
       current = parseCustomerQuery(new URLSearchParams(location.search));
     } catch {
-      current = { page: 1, pageSize: 20 };
+      current = { page: 1, pageSize: 10 };
     }
     const next = { ...current, ...patch };
     const sameKey = customerQueryString(current) === customerQueryString(next);
@@ -85,7 +87,7 @@ export function CustomerListPage() {
     try {
       current = parseCustomerQuery(new URLSearchParams(location.search));
     } catch {
-      current = { page: 1, pageSize: 20 };
+      current = { page: 1, pageSize: 10 };
     }
     const currentQ = (current.q ?? "").trim();
     if (trimmedDraft !== currentQ) {
@@ -95,6 +97,29 @@ export function CustomerListPage() {
         setDraft(trimmedDraft);
       }
       read.refresh();
+    }
+  }
+  async function handleToggleStatus(c: Summary) {
+    if (togglingId) return;
+    const nextStatus =
+      c.status === CustomerStatus.ACTIVE
+        ? CustomerStatus.INACTIVE
+        : CustomerStatus.ACTIVE;
+    const actionText =
+      nextStatus === CustomerStatus.ACTIVE
+        ? "kích hoạt"
+        : "tạm ngừng hoạt động";
+    setTogglingId(c.id);
+    try {
+      await customerApi.update(c.id, { status: nextStatus });
+      setNotice(`Đã ${actionText} khách hàng ${c.name}.`);
+      await read.refresh();
+    } catch {
+      setNotice(
+        `Không thể thay đổi trạng thái khách hàng ${c.name}. Vui lòng thử lại.`,
+      );
+    } finally {
+      setTogglingId(null);
     }
   }
   const clearFilters = () => {
@@ -116,13 +141,29 @@ export function CustomerListPage() {
               QUẢN LÝ KHÁCH HÀNG
             </h1>
           </div>
-          <Button
-            onClick={() => setOverlay("create")}
-            aria-label="Thêm khách hàng"
-          >
-            <Plus size={16} aria-hidden="true" />
-            <span>THÊM KHÁCH HÀNG</span>
-          </Button>
+          <div className={styles.headerActions}>
+            <Button
+              variant="secondary"
+              disabled
+              aria-label="Xuất Excel (chưa khả dụng)"
+              title="Chức năng xuất báo cáo danh sách khách hàng ra tệp Excel hiện chưa được hỗ trợ bởi hệ thống máy chủ."
+              className={styles.exportButton}
+            >
+              <FileSpreadsheet
+                size={14}
+                className={styles.exportIcon}
+                aria-hidden="true"
+              />
+              <span className={styles.exportLabel}>Xuất Excel</span>
+            </Button>
+            <Button
+              onClick={() => setOverlay("create")}
+              aria-label="Thêm khách hàng"
+            >
+              <Plus size={16} aria-hidden="true" />
+              <span>THÊM KHÁCH HÀNG</span>
+            </Button>
+          </div>
         </div>
         <CustomerStatsBar
           stats={read.data?.stats}
@@ -186,6 +227,8 @@ export function CustomerListPage() {
             error={read.error}
             filtered={!!(query.q || query.status || query.phone)}
             onEdit={setOverlay}
+            onToggleStatus={handleToggleStatus}
+            togglingId={togglingId}
             onClear={clearFilters}
             onRetry={handleReload}
           />

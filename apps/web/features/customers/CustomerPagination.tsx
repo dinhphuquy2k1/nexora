@@ -58,7 +58,7 @@ export function CustomerPagination({
               onQuery({ pageSize: Number(e.target.value), page: 1 })
             }
           >
-            {[10, 20, 50, 100].map((n) => (
+            {[5, 10, 20, 50, 100].map((n) => (
               <option key={n} value={n}>
                 {n} / trang
               </option>

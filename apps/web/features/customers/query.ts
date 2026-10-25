@@ -13,7 +13,7 @@ export function parseCustomerQuery(params: URLSearchParams): Query {
     return n;
   };
   const page = integer("page", 1, 2147483647),
-    pageSize = integer("pageSize", 20, 100);
+    pageSize = integer("pageSize", 10, 100);
   if ((page - 1) * pageSize > 2147483647) throw Error("INVALID_FILTER");
   const out: Query = { page, pageSize };
   const q = params.get("q")?.trim();

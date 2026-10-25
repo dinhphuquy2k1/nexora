@@ -18,7 +18,7 @@ import { deleteCustomerAddress } from "../features/customers/address-actions.ts"
 test("URL parsing is bounded, omits blank search and never broadens invalid queries", () => {
   assert.deepEqual(parseCustomerQuery(new URLSearchParams("q=  &x=secret")), {
     page: 1,
-    pageSize: 20,
+    pageSize: 10,
   });
   for (const q of [
     "page=0",
@@ -218,7 +218,7 @@ test("editing against captured baseline never adds untouched concurrently refres
   assert.equal(refreshed.name, "Other writer");
 });
 test("canonical query equality covers empty URL, explicit defaults and reordered keys", () => {
-  const keys = ["", "page=1&pageSize=20", "pageSize=20&page=1", "q=%20"];
+  const keys = ["", "page=1&pageSize=10", "pageSize=10&page=1", "q=%20"];
   assert.equal(
     new Set(
       keys.map((s) =>

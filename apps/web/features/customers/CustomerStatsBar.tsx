@@ -91,19 +91,15 @@ export function CustomerStatsBar({
           );
         })}
       </div>
-      {loading && (
-        <span role="status" className={styles.statsHint}>
-          Đang tải thống kê…
-        </span>
-      )}
-      {!loading && error && (
-        <span className={styles.statsHint}>Không tải được thống kê.</span>
-      )}
-      {!loading && !error && !stats && (
-        <span className={styles.statsHint}>
-          Thống kê chưa khả dụng từ máy chủ.
-        </span>
-      )}
+      <span role="status" className={styles.srOnly}>
+        {loading
+          ? "Đang tải thống kê…"
+          : error
+            ? "Không tải được thống kê."
+            : !stats
+              ? "Thống kê chưa khả dụng từ máy chủ."
+              : ""}
+      </span>
     </div>
   );
 }
