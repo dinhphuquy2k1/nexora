@@ -71,3 +71,15 @@ test("readiness predicates return serializable booleans even when matching DOM n
     false,
   );
 });
+
+test("modal field selection never falls back to an earlier inert page field", async () => {
+  const { customerFieldSelector } = await import(
+    "./customer-browser-checks.mjs"
+  );
+  assert.equal(
+    customerFieldSelector("phone", true),
+    'dialog[open] [name="phone"]',
+  );
+  assert.equal(customerFieldSelector("q", false), '[name="q"]');
+  assert.equal(customerFieldSelector("phone", true).includes(","), false);
+});

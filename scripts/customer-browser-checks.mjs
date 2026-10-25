@@ -10,6 +10,9 @@ import { M1_VIEWPORTS } from "./m1-visual-checks.mjs";
 export function customerPredicate(expression) {
   return `Boolean(${expression})`;
 }
+export function customerFieldSelector(name, inDialog) {
+  return `${inDialog ? "dialog[open] " : ""}[name=${JSON.stringify(name)}]`;
+}
 export async function verifyCustomerBrowser({
   send,
   evaluate,
@@ -59,10 +62,23 @@ export async function verifyCustomerBrowser({
     await evaluate(`${button(text)}.click();true`);
   }
   async function fill(name, text) {
-    const selector = `dialog[open] [name=${JSON.stringify(name)}], [name=${JSON.stringify(name)}]`;
+    const fieldSteps = {
+      name: "FILL_NAME",
+      phone: "FILL_PHONE",
+      addressText: "FILL_ADDRESS",
+      note: "FILL_NOTE",
+      q: "FILL_QUERY",
+      label: "FILL_LABEL",
+    };
+    if (!fieldSteps[name]) throw Error("FILL_UNKNOWN_FIELD");
+    step(fieldSteps[name]);
+    const selector = customerFieldSelector(
+      name,
+      await evaluate('!!document.querySelector("dialog[open]")'),
+    );
     await until(`(()=>{
       const el = document.querySelector(${JSON.stringify(selector)});
-      return !!el && !el.disabled && el.getAttribute('aria-disabled') !== 'true';
+      return !!el && !el.matches(":disabled") && el.getAttribute('aria-disabled') !== 'true';
     })()`);
     await evaluate(`(()=>{
       const el = document.querySelector(${JSON.stringify(selector)});
@@ -75,7 +91,7 @@ export async function verifyCustomerBrowser({
       return {
         found: true,
         active: document.activeElement === el,
-        disabled: !!el.disabled || el.getAttribute('aria-disabled') === 'true',
+        disabled: el.matches(':disabled') || el.getAttribute('aria-disabled') === 'true',
       };
     })()`);
     if (!focusCheck.found) throw new Error("FILL_SELECTOR_NOT_FOUND");
@@ -126,11 +142,21 @@ export async function verifyCustomerBrowser({
       };
     })()`);
     if (!matchCheck.found) throw new Error("FILL_SELECTOR_NOT_FOUND");
-    if (!matchCheck.matches) throw new Error("FILL_VALUE_MISMATCH");
+    if (!matchCheck.matches) {
+      console.error(
+        "Customer native input diagnostic",
+        JSON.stringify(
+          await evaluate(
+            `(()=>{const el=document.querySelector(${JSON.stringify(selector)});return{found:!!el,focused:document.activeElement===el,documentFocused:document.hasFocus(),disabled:el?.matches(':disabled')??false,actualLength:el?.value?.length??-1,expectedLength:${text.length}};})()`,
+          ),
+        ),
+      );
+      throw new Error("FILL_VALUE_MISMATCH");
+    }
   }
-  async function ready() {
+  async function ready(expectedAlert = false) {
     await until(
-      `location.pathname.startsWith('/customers') && !!document.querySelector('h1') && document.querySelector('h1').textContent.toLowerCase().includes('khách hàng') && !Array.from(document.querySelectorAll('[role=status]')).some(e=>e.textContent.startsWith('Đang tải')) && !document.querySelector('[role=alert]')`,
+      `location.pathname.startsWith('/customers') && !!document.querySelector('h1') && document.querySelector('h1').textContent.toLowerCase().includes('khách hàng') && !Array.from(document.querySelectorAll('[role=status]')).some(e=>e.textContent.startsWith('Đang tải')) && Boolean(document.querySelector('[role=alert]')) === ${expectedAlert}`,
     );
   }
   async function navigate(path) {
@@ -173,12 +199,25 @@ export async function verifyCustomerBrowser({
       });
     }
     await send("Emulation.clearDeviceMetricsOverride");
+    await writeFile(
+      join(directory, `${prefix}-captures.json`),
+      JSON.stringify(
+        {
+          sourceCommit: process.env.GITHUB_SHA ?? null,
+          captureOnly: true,
+          records,
+        },
+        null,
+        2,
+      ) + "\n",
+    );
   }
   try {
     step("LIST_NAVIGATE");
     await navigate("/customers");
     step("LIST_RENDER");
     await until(`${button("Thêm khách hàng")}`);
+    await snapshot("empty-list");
     step("CREATE_DRAWER_OPEN");
     // Prove harmless create toggle is interactive before typing; never retry a mutation.
     for (let n = 0; n < 100; n++) {
@@ -364,7 +403,7 @@ export async function verifyCustomerBrowser({
       ),
       true,
     );
-    await ready();
+    await ready(true);
     await click("Đóng");
     await until('!document.querySelector("dialog[open]")');
     // Same-key URL normalization and Back/Forward must restart, not deadlock.
@@ -521,13 +560,13 @@ export async function verifyCustomerBrowser({
     try {
       await click("Xác nhận xóa");
       await until('!!document.querySelector("dialog[open] [role=alert]")');
-      await ready();
+      await ready(true);
       assert.equal(deleteRequests, 0, "Failed PUT must not send DELETE");
       await click("Xác nhận xóa");
       await until(
         'document.querySelector("dialog[open]")?.textContent.includes("Đã chuyển mặc định")',
       );
-      await ready();
+      await ready(true);
       const partial = await evaluate(
         `fetch('/api/customers/'+${JSON.stringify(customer.id)}).then(r=>r.json())`,
       );
