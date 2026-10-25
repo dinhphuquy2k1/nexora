@@ -282,12 +282,12 @@ export async function verifyCustomerBrowser({
     await snapshot("create");
     await snapshot("create-address");
     step("TOKEN_OVERRIDE_VERIFY");
-    // Real token override reaches TextInput/Select/Button, restored before submit.
     const tokenResult = await evaluate(`(()=>{
       const root = document.documentElement;
-      const input = document.querySelector('dialog[open]')?.querySelector('input[name=name]') ?? document.querySelector('input[name=q]');
-      const button = document.querySelector('dialog[open]')?.querySelector('button[data-variant=primary]') ?? document.querySelector('button[data-variant=primary]');
-      const select = document.querySelector('select[name=filter-status], select[aria-label="Số dòng mỗi trang"], select');
+      const dialog = document.querySelector('dialog[open]');
+      const input = dialog?.querySelector('input[name="name"]') ?? document.querySelector('input[name="q"]') ?? document.querySelector('input');
+      const button = dialog?.querySelector('button[data-variant="primary"]') ?? dialog?.querySelector('button[type="submit"]') ?? document.querySelector('button[data-variant="primary"]') ?? document.querySelector('main button');
+      const select = dialog?.querySelector('select[name="countryCode"]') ?? document.querySelector('select[name="filter-status"], select[aria-label="Số dòng mỗi trang"], select');
       if (!input || !button || !select) {
         return {
           success: false,
@@ -365,9 +365,11 @@ export async function verifyCustomerBrowser({
 
     // Verify computed styles returned to baseline after restoring inline values
     const restoredResult = await evaluate(`(()=>{
-      const input = document.querySelector('dialog[open]')?.querySelector('input[name=name]') ?? document.querySelector('input[name=q]');
-      const button = document.querySelector('dialog[open]')?.querySelector('button[data-variant=primary]') ?? document.querySelector('button[data-variant=primary]');
-      const select = document.querySelector('select[name=filter-status], select[aria-label="Số dòng mỗi trang"], select');
+      const root = document.documentElement;
+      const dialog = document.querySelector('dialog[open]');
+      const input = dialog?.querySelector('input[name="name"]') ?? document.querySelector('input[name="q"]') ?? document.querySelector('input');
+      const button = dialog?.querySelector('button[data-variant="primary"]') ?? dialog?.querySelector('button[type="submit"]') ?? document.querySelector('button[data-variant="primary"]') ?? document.querySelector('main button');
+      const select = dialog?.querySelector('select[name="countryCode"]') ?? document.querySelector('select[name="filter-status"], select[aria-label="Số dòng mỗi trang"], select');
       const readStyles = (el) => {
         const cs = getComputedStyle(el);
         return { height: cs.height, radius: cs.borderRadius, fontSize: cs.fontSize };
@@ -404,7 +406,11 @@ export async function verifyCustomerBrowser({
     // Negative regression: verify check fails closed if a consumer is detached from token
     const negativeResult = await evaluate(`(()=>{
       const root = document.documentElement;
-      const select = document.querySelector('select[name=filter-status], select[aria-label="Số dòng mỗi trang"], select');
+      const dialog = document.querySelector('dialog[open]');
+      const select = (dialog && (dialog.querySelector('select[name="countryCode"]') || dialog.querySelector('select')))
+        || document.querySelector('select[name="filter-status"]')
+        || document.querySelector('select[aria-label="Số dòng mỗi trang"]')
+        || document.querySelector('select');
       if (!select) return { success: false, reason: 'SELECT_NOT_FOUND' };
       const oldRootHeight = root.style.getPropertyValue('--control-height');
       const oldRootPriority = root.style.getPropertyPriority('--control-height');
