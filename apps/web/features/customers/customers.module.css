@@ -2,9 +2,14 @@
 .listPage {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   min-width: 0;
   overflow-wrap: anywhere;
+  --control-height: 32px;
+  --control-radius: var(--radius-md);
+  --control-padding-x: var(--space-3);
+  --control-padding-y: 6px;
+  --control-font-size: var(--font-size-xs);
 }
 .listPage {
   height: calc(
@@ -19,6 +24,11 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  --control-height: 32px;
+  --control-radius: var(--radius-md);
+  --control-padding-x: var(--space-3);
+  --control-padding-y: 6px;
+  --control-font-size: var(--font-size-xs);
 }
 .titleRow,
 .toolbar {
@@ -29,7 +39,7 @@
   flex-wrap: wrap;
 }
 .titleRow {
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
 }
 .titleGroup {
@@ -61,7 +71,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-1) var(--space-4);
   background: var(--color-surface-muted);
   border-bottom: 1px solid var(--color-border);
 }
@@ -75,6 +85,11 @@
   background: var(--color-surface-subtle);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
+  --control-height: 28px;
+  --control-radius: var(--radius-md);
+  --control-padding-x: var(--space-4);
+  --control-padding-y: 2px;
+  --control-font-size: var(--font-size-xs);
 }
 .tabButton {
   display: inline-flex;
@@ -82,6 +97,7 @@
   justify-content: center;
   gap: var(--space-2);
   height: 28px;
+  min-height: 28px;
   padding: 0 var(--space-4);
   border-radius: var(--radius-md);
   border: 0;
@@ -95,7 +111,7 @@
 }
 .tabSelected {
   background: var(--color-accent);
-  color: var(--color-text-on-dark);
+  color: var(--color-text-on-accent);
   font-weight: var(--font-weight-bold);
   box-shadow: var(--shadow-sm);
 }
@@ -116,7 +132,7 @@
   flex-shrink: 0;
 }
 .tabDotSelected {
-  color: var(--color-text-on-dark);
+  color: var(--color-text-on-accent);
 }
 .tabDotActive {
   color: var(--color-status-success-text);
@@ -136,7 +152,7 @@
 }
 .countSelected {
   background: var(--color-surface-on-dark-hover);
-  color: var(--color-text-on-dark);
+  color: var(--color-text-on-accent);
   font-weight: var(--font-weight-bold);
 }
 .countUnselected {
@@ -165,7 +181,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-4);
   background: var(--color-surface);
 }
 .searchBox {
@@ -183,7 +199,7 @@
   pointer-events: none;
 }
 .searchInput {
-  padding-left: calc(var(--space-8) + var(--space-2));
+  padding-left: calc(var(--space-8) + var(--space-1));
   padding-right: calc(var(--control-height) + var(--space-1));
 }
 .searchClear {
@@ -216,7 +232,12 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 0;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
   font-size: var(--font-size-xs);
 }
 .filterBadge button:hover {
@@ -274,7 +295,12 @@
   width: 100%;
   min-width: 950px;
   border-collapse: collapse;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
+  --control-height: 28px;
+  --control-radius: var(--radius-sm);
+  --control-padding-x: var(--space-2);
+  --control-padding-y: 2px;
+  --control-font-size: var(--font-size-xs);
 }
 .tableEmpty {
   height: 100%;
@@ -293,7 +319,7 @@
   text-transform: uppercase;
   letter-spacing: 0.02em;
   white-space: nowrap;
-  padding: var(--space-2) var(--space-3);
+  padding: 6px var(--space-3);
   border-right: 1px solid var(--color-border-on-dark-subtle);
   border-bottom: 1px solid var(--color-border);
 }
@@ -314,7 +340,7 @@
   background: var(--color-surface-muted);
 }
 .table td {
-  padding: var(--space-2) var(--space-3);
+  padding: 6px var(--space-3);
   border-bottom: 1px solid var(--color-border);
   border-right: 1px solid var(--color-border);
   font-size: var(--font-size-sm);
@@ -327,16 +353,16 @@
 }
 .detailCell {
   text-align: center;
-  width: 48px;
-  min-width: 48px;
-  padding: var(--space-2) var(--space-1);
+  width: 44px;
+  min-width: 44px;
+  padding: 6px var(--space-1);
 }
 .detailLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-sm);
   background: var(--color-surface-subtle);
   color: var(--color-text-muted);
@@ -364,6 +390,8 @@
 .customerName {
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
+  min-width: 160px;
+  white-space: nowrap;
 }
 .phoneCell {
   font-family: monospace;
@@ -372,6 +400,11 @@
   color: var(--color-text);
   white-space: nowrap;
   min-width: 130px;
+}
+.emailCell {
+  min-width: 180px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 .statusCell {
   text-align: center;
@@ -476,6 +509,11 @@
   background: var(--color-surface-muted);
   border-top: 1px solid var(--color-border);
   font-size: var(--font-size-sm);
+  --control-height: 28px;
+  --control-radius: var(--radius-sm);
+  --control-padding-x: var(--space-2);
+  --control-padding-y: 2px;
+  --control-font-size: var(--font-size-xs);
 }
 .paginationSummary {
   display: flex;
@@ -507,6 +545,7 @@
 .pageSizeLabel select {
   width: auto;
   height: 28px;
+  min-height: 28px;
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border-subtle);
@@ -580,6 +619,11 @@
   width: 100%;
   height: 100%;
   min-height: 0;
+  --control-height: 32px;
+  --control-radius: var(--radius-md);
+  --control-padding-x: var(--space-3);
+  --control-padding-y: 6px;
+  --control-font-size: var(--font-size-xs);
 }
 .drawerHeader {
   display: flex;
@@ -875,6 +919,11 @@
 .confirmation {
   width: 100%;
   min-width: 0;
+  --control-height: 32px;
+  --control-radius: var(--radius-md);
+  --control-padding-x: var(--space-3);
+  --control-padding-y: 6px;
+  --control-font-size: var(--font-size-xs);
 }
 .confirmHeader {
   display: flex;
@@ -1003,6 +1052,11 @@
       var(--space-4)
   );
   overflow-y: auto;
+  --control-height: 32px;
+  --control-radius: var(--radius-md);
+  --control-padding-x: var(--space-3);
+  --control-padding-y: 6px;
+  --control-font-size: var(--font-size-xs);
 }
 @media (max-width: 900px) {
   .detailPage {

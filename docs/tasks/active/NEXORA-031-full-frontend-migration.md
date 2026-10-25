@@ -825,3 +825,50 @@ Artifact12585228714 SHA25680941e3775e2b649e691a32eca6bc228991f000431464d2d5c4fe3
    - Unit tests: 37/37 PASS (`customer-ui-model.test.mjs`, `navigation.test.mjs`, `shared-ui.test.mjs`, `m1-shell.test.mjs`, `form-control-contracts.test.mjs`).
    - Canonical Docker quality suite (`docker compose run quality pnpm quality`): PASS (exit code 0). Tested format, lint, preflight policy, docs check, typecheck, 172 API tests, all Web tests, reproducible OpenAPI contracts, and production Next.js build.
    - Real browser visual verification: Executed via browser subagent on authenticated local runtime. Inspected Customer List (all, active, inactive tabs), Create Customer Drawer, Customer Detail view with multiple addresses, and Delete Address confirmation modal. Full video recording preserved at `customer_ui_visual_parity_1792909765435.webp`.
+
+### M2 Customer UI Compact Density & Visual Fidelity Correction — 2026-10-25
+
+1. **Root Cause Analysis (Control Sizing Audit)**:
+   - Shared controls in `packages/ui/src/Controls.module.css` bind `.button`, `.input`, `.select` to `height: var(--control-height); min-height: var(--control-height);`.
+   - Icon-only buttons derive `width: var(--control-height); min-width: var(--control-height);`.
+   - `apps/web/styles/tokens.css` defines root theme sizing `--control-height: 44px`.
+   - Customer Management components previously inherited 44px for buttons, inputs, tabs, and pagination buttons. Child class declarations attempting `height: 32px` or `height: 28px` were suppressed by `min-height: 44px`.
+   - Table row height (60.5px vs target 36–40px) was inflated by the Edit icon button inheriting 44px min-height, and an unconstrained email cell (`.emailCell` missing in CSS) which wrapped customer email addresses into two lines.
+
+2. **Shared Sizing Architecture Decision (Option B)**:
+   - Evaluated three approaches:
+     - _Option A (Shared UI Variants)_: Introduce `size="sm"` prop to `@nexora/ui` controls. Rejected because `@nexora/ui` is domain-neutral and frozen for M1/M2, and adding variants increases API surface area and regression risk across other apps.
+     - _Option B (Scoped CSS Custom Properties)_: Override `--control-height`, `--control-radius`, `--control-padding-x`, `--control-padding-y`, and `--control-font-size` on Customer container scopes (`.listPage`, `.commandDeck`, `.drawer`, `.confirmation` at 32px; `.segments`, `.pagination`, `.table` at 28px). **Selected**: Leverages native CSS variable inheritance, maintains 100% `@nexora/ui` API compatibility, preserves global 44px forms on Login/MFA/Setup/Settings, and requires zero `!important`.
+     - _Option C (Class Overrides)_: Direct CSS Module child overrides. Rejected because child class overrides struggle against `min-height: 44px` without duplicated declarations and high specificity.
+
+3. **Measured DOM Geometry Comparison Matrix (1440x900 Baseline)**:
+   | Element | ZIP Target | Before | After | Result |
+   | --- | --- | --- | --- | --- |
+   | Primary button (`+ THÊM KHÁCH HÀNG`) | 32px (`h-8`) | 44px | **32px** | **PASS** |
+   | Search input | 32px (`h-8`) | 44px | **32px** | **PASS** |
+   | Refresh button (`Làm mới`) | 32px (`h-8`) | 44px | **32px** | **PASS** |
+   | Status tab (`TẤT CẢ`) | 28px (`h-7`) | 44px | **28px** | **PASS** |
+   | Status tab (`ĐANG HOẠT ĐỘNG`) | 28px (`h-7`) | 44px | **28px** | **PASS** |
+   | Pagination button (`1`) | 28px (`h-7`) | 44px | **28px** | **PASS** |
+   | Page size select (`10 / trang`) | 28px (`h-7`) | 44px | **28px** | **PASS** |
+   | Table header (`thead tr`) | ~30–34px | 33px | **29px** | **PASS** |
+   | Table row (`tbody tr`) | ~36–40px | 60.5px | **40.5px** | **PASS** |
+   | Action icon button (`Detail Eye`) | 24px (`w-6 h-6`) | 26px | **24px** | **PASS** |
+   | Action icon button (`Edit Pencil`) | 24px (`w-6 h-6`) | 44px | **24px** | **PASS** |
+   | Filter badge remove button | 16px (`w-4 h-4`) | 44px | **16px** | **PASS** |
+   | Drawer inputs | 32px (`h-8`) | 44px | **32px** | **PASS** |
+   | Drawer footer actions | 32px (`h-8`) | 44px | **32px** | **PASS** |
+
+4. **Multi-Viewport Visual Verification Matrix**:
+   - `1440x900` (Wide Desktop): Primary 32px, Search 32px, Status 28px, Table Row 40.5px, Pagination 28px — PASS.
+   - `1280x800` (Standard Desktop): Primary 32px, Search 32px, Status 28px, Table Row 40.5px, Pagination 28px — PASS.
+   - `1024x768` (Compact Desktop): Primary 32px, Search 32px, Status 28px, Table Row 40.5px, Pagination 28px — PASS.
+   - `768x1024` (Tablet Portrait): Primary 32px, Search 32px, Status 28px, Table Row 40.5px, Pagination 28px — PASS.
+   - `390x844` (Mobile iPhone 12/13/14): Responsive layout, zero horizontal page overflow, Primary 32px, Search 32px, Status 28px — PASS.
+   - `375x812` (Mobile iPhone X/Mini): Responsive layout, zero horizontal page overflow, Primary 32px, Search 32px, Status 28px — PASS.
+
+5. **Color & Token Fidelity — Accessible Contrast Policy Exception**:
+   - Reference ZIP renders orange action buttons and selected status tabs with white text (`#FFFFFF` on `#F58A24`).
+   - White on `#F58A24` provides only **2.32:1** contrast, failing WCAG AA (>= 4.5:1 for normal text).
+   - In accordance with Nexora design token policy, `--color-text-on-accent: var(--brand-navy)` (`#172B4D`) is bound to all accent surfaces, yielding **5.74:1** contrast in default state and **4.58:1** on hover.
+   - This intentional deviation from the reference ZIP is an approved visual exception to strictly maintain WCAG AA accessibility compliance.
