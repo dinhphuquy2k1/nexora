@@ -452,3 +452,151 @@ test("token override validation logic detects detached consumers and unchanged s
     "button_not_found",
   );
 });
+
+test("modal focus restoration restores live trigger or falls back to live heading when disconnected", () => {
+  function simulateFocusRestore(trigger, heading) {
+    if (trigger?.isConnected) {
+      trigger.focus();
+      return trigger;
+    }
+    if (heading?.isConnected) {
+      heading.focus();
+      return heading;
+    }
+    return null;
+  }
+
+  // Case 1: Initial focus on other control, trigger clicked properly -> focus returns to trigger
+  const heading = {
+    name: "h1",
+    isConnected: true,
+    focused: false,
+    focus() {
+      this.focused = true;
+    },
+  };
+  const trigger = {
+    name: "AddAddressButton",
+    isConnected: true,
+    focused: false,
+    focus() {
+      this.focused = true;
+    },
+  };
+  const otherControl = {
+    name: "SearchInput",
+    isConnected: true,
+    focused: true,
+    focus() {
+      this.focused = true;
+    },
+  };
+
+  const restored = simulateFocusRestore(trigger, heading);
+  assert.equal(restored, trigger);
+  assert.equal(trigger.focused, true);
+
+  // Case 2: Trigger is removed while modal was open -> falls back to live heading
+  trigger.isConnected = false;
+  trigger.focused = false;
+  heading.focused = false;
+  const fallbackRestored = simulateFocusRestore(trigger, heading);
+  assert.equal(fallbackRestored, heading);
+  assert.equal(heading.focused, true);
+
+  // Case 3: Focus restoration intentionally broken -> regression must fail
+  function validateFocusRestoration(activeElement, expectedTrigger) {
+    if (!activeElement || activeElement !== expectedTrigger) {
+      return { success: false, reason: "FOCUS_MISMATCH" };
+    }
+    return { success: true };
+  }
+  assert.equal(validateFocusRestoration(otherControl, trigger).success, false);
+  assert.equal(
+    validateFocusRestoration(otherControl, trigger).reason,
+    "FOCUS_MISMATCH",
+  );
+  assert.equal(validateFocusRestoration(null, trigger).success, false);
+});
+
+test("delete reconciliation settlement requires route, idle status, single card, default replacement, and disabled action", () => {
+  function checkDeleteSettled({
+    pathname,
+    customerId,
+    dialogOpen,
+    loadingStatuses,
+    cards,
+    deleteButtons,
+  }) {
+    if (pathname !== `/customers/${customerId}`)
+      return { settled: false, reason: "WRONG_ROUTE" };
+    if (dialogOpen) return { settled: false, reason: "DIALOG_STILL_OPEN" };
+    if (
+      loadingStatuses.some(
+        (s) => s.includes("Đang tải") || s.includes("Chưa đối chiếu"),
+      )
+    )
+      return { settled: false, reason: "PENDING_RECONCILIATION" };
+    if (cards.length !== 1)
+      return { settled: false, reason: "CARDINALITY_MISMATCH" };
+    const card = cards[0];
+    if (!card.isDefault) return { settled: false, reason: "NOT_DEFAULT" };
+    if (card.id !== "addr-replacement")
+      return { settled: false, reason: "WRONG_REPLACEMENT_ID" };
+    if (deleteButtons.length !== 1)
+      return { settled: false, reason: "WRONG_BUTTON_COUNT" };
+    if (!deleteButtons[0].disabled)
+      return { settled: false, reason: "DELETE_BUTTON_NOT_DISABLED" };
+    return { settled: true };
+  }
+
+  // Case 1: Refresh delayed (still has 2 cards) -> NOT SETTLED
+  const delayed = {
+    pathname: "/customers/c-1",
+    customerId: "c-1",
+    dialogOpen: false,
+    loadingStatuses: ["Đang tải khách hàng…"],
+    cards: [
+      { id: "addr-old", isDefault: false },
+      { id: "addr-replacement", isDefault: true },
+    ],
+    deleteButtons: [{ disabled: false }, { disabled: false }],
+  };
+  assert.equal(checkDeleteSettled(delayed).settled, false);
+  assert.equal(checkDeleteSettled(delayed).reason, "PENDING_RECONCILIATION");
+
+  // Case 2: Dialog closed, but refresh error / retry state -> NOT SETTLED
+  const errorState = {
+    pathname: "/customers/c-1",
+    customerId: "c-1",
+    dialogOpen: false,
+    loadingStatuses: ["Chưa đối chiếu xong dữ liệu. Chưa thể thử xóa lại."],
+    cards: [{ id: "addr-old", isDefault: true }],
+    deleteButtons: [{ disabled: false }],
+  };
+  assert.equal(checkDeleteSettled(errorState).settled, false);
+  assert.equal(checkDeleteSettled(errorState).reason, "PENDING_RECONCILIATION");
+
+  // Case 3: Wrong remaining address / not default -> FAILS
+  const wrongAddress = {
+    pathname: "/customers/c-1",
+    customerId: "c-1",
+    dialogOpen: false,
+    loadingStatuses: [],
+    cards: [{ id: "addr-wrong", isDefault: false }],
+    deleteButtons: [{ disabled: true }],
+  };
+  assert.equal(checkDeleteSettled(wrongAddress).settled, false);
+  assert.equal(checkDeleteSettled(wrongAddress).reason, "NOT_DEFAULT");
+
+  // Case 4: Correct settled state -> SETTLED
+  const settled = {
+    pathname: "/customers/c-1",
+    customerId: "c-1",
+    dialogOpen: false,
+    loadingStatuses: [],
+    cards: [{ id: "addr-replacement", isDefault: true }],
+    deleteButtons: [{ disabled: true }],
+  };
+  assert.equal(checkDeleteSettled(settled).settled, true);
+});

@@ -58,9 +58,112 @@ export async function verifyCustomerBrowser({
   }
   const button = (text) =>
     `Array.from(document.querySelectorAll('button')).find(b=>b.getClientRects().length&&(b.getAttribute('aria-label')??b.textContent.trim())===${JSON.stringify(text)})`;
+  async function clickPointer(text) {
+    const expr = button(text);
+    await until(
+      `${expr} && !${expr}.disabled && !${expr}.matches(':disabled') && ${expr}.getAttribute('aria-disabled') !== 'true'`,
+    );
+    const loc = await evaluate(`(()=>{
+      const el = ${expr};
+      if (!el) return null;
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    })()`);
+    assert.ok(loc, `Pointer target for "${text}" must be rendered and visible`);
+    await send("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: loc.x,
+      y: loc.y,
+    });
+    await send("Input.dispatchMouseEvent", {
+      type: "mousePressed",
+      x: loc.x,
+      y: loc.y,
+      button: "left",
+      clickCount: 1,
+    });
+    await send("Input.dispatchMouseEvent", {
+      type: "mouseReleased",
+      x: loc.x,
+      y: loc.y,
+      button: "left",
+      clickCount: 1,
+    });
+  }
+  async function clickWithVerifiedFocus(text) {
+    const expr = button(text);
+    await until(
+      `${expr} && !${expr}.disabled && !${expr}.matches(':disabled') && ${expr}.getAttribute('aria-disabled') !== 'true'`,
+    );
+    const check = await evaluate(`(()=>{
+      const el = ${expr};
+      if (!el) return { found: false, enabled: false, visible: false, active: false };
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      const enabled = !el.disabled && !el.matches(':disabled') && el.getAttribute('aria-disabled') !== 'true';
+      const visible = el.getClientRects().length > 0 && getComputedStyle(el).visibility === 'visible';
+      el.focus();
+      return {
+        found: true,
+        enabled,
+        visible,
+        active: document.activeElement === el,
+      };
+    })()`);
+    assert.equal(check.found, true, `Trigger "${text}" must exist`);
+    assert.equal(check.enabled, true, `Trigger "${text}" must be enabled`);
+    assert.equal(check.visible, true, `Trigger "${text}" must be visible`);
+    assert.equal(
+      check.active,
+      true,
+      `Trigger "${text}" must have activeElement focus`,
+    );
+    await evaluate(`${expr}.click();true`);
+  }
   async function click(text) {
-    await until(`${button(text)}&&!${button(text)}.disabled`);
-    await evaluate(`${button(text)}.click();true`);
+    const expr = button(text);
+    await until(
+      `${expr} && !${expr}.disabled && !${expr}.matches(':disabled') && ${expr}.getAttribute('aria-disabled') !== 'true'`,
+    );
+    const loc = await evaluate(`(()=>{
+      const el = ${expr};
+      if (!el) return null;
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    })()`);
+    if (loc) {
+      await send("Input.dispatchMouseEvent", {
+        type: "mouseMoved",
+        x: loc.x,
+        y: loc.y,
+      });
+      await send("Input.dispatchMouseEvent", {
+        type: "mousePressed",
+        x: loc.x,
+        y: loc.y,
+        button: "left",
+        clickCount: 1,
+      });
+      await send("Input.dispatchMouseEvent", {
+        type: "mouseReleased",
+        x: loc.x,
+        y: loc.y,
+        button: "left",
+        clickCount: 1,
+      });
+    } else {
+      await evaluate(`(()=>{
+        const el = ${expr};
+        if (el) {
+          el.focus();
+          el.click();
+        }
+        return true;
+      })()`);
+    }
   }
   async function fill(name, text) {
     const fieldSteps = {
@@ -699,47 +802,122 @@ export async function verifyCustomerBrowser({
         socket.removeEventListener("message", intercept);
       }
     }
-    step("DELETE_SUBMIT");
+    step("DELETE_DIALOG_CLOSED");
     await until('!document.querySelector("dialog[open]")');
     await ready();
+
+    step("DELETE_SERVER_CONFIRMED");
     detail = await evaluate(
       `fetch('/api/customers/'+${JSON.stringify(customer.id)}).then(r=>r.json())`,
     );
     assert.equal(detail.customer.addresses.length, 1);
     assert.equal(detail.customer.addresses[0].id, replacement);
     assert.equal(detail.customer.addresses[0].isDefault, true);
+
+    step("DELETE_UI_RECONCILED");
+    // Await UI settlement: Customer route, idle status, single address card with replacement ID and default flag, disabled delete button
+    await until(`(()=>{
+      if (location.pathname !== '/customers/' + ${JSON.stringify(customer.id)}) return false;
+      if (document.querySelector('dialog[open]')) return false;
+      const statuses = Array.from(document.querySelectorAll('[role=status]'));
+      if (statuses.some(e => e.textContent.includes('Đang tải') || e.textContent.includes('Chưa đối chiếu'))) return false;
+      const cards = Array.from(document.querySelectorAll('main article[data-address-id]'));
+      if (cards.length !== 1) return false;
+      const card = cards[0];
+      if (card.getAttribute('data-address-id') !== ${JSON.stringify(replacement)}) return false;
+      if (card.getAttribute('aria-label') !== 'Địa chỉ mặc định') return false;
+      const delButtons = Array.from(document.querySelectorAll('button[aria-label="Xóa địa chỉ"]'));
+      if (delButtons.length !== 1) return false;
+      return delButtons[0].disabled === true;
+    })()`);
+
+    step("DELETE_LAST_ACTION_DISABLED");
+    const uiStatus = await evaluate(`(()=>{
+      const cards = Array.from(document.querySelectorAll('main article[data-address-id]'));
+      const delButtons = Array.from(document.querySelectorAll('button[aria-label="Xóa địa chỉ"]'));
+      const card = cards[0];
+      return {
+        cardCount: cards.length,
+        remainingId: card?.getAttribute('data-address-id') ?? null,
+        isDefault: card?.getAttribute('aria-label') === 'Địa chỉ mặc định',
+        buttonCount: delButtons.length,
+        buttonDisabled: delButtons[0]?.disabled === true,
+      };
+    })()`);
+    assert.equal(uiStatus.cardCount, 1);
+    assert.equal(uiStatus.remainingId, replacement);
+    assert.equal(uiStatus.isDefault, true);
+    assert.equal(uiStatus.buttonCount, 1);
+    assert.equal(uiStatus.buttonDisabled, true);
+
+    step("FOCUS_ADD_ADDRESS_OPENED");
+    // Ensure initial focus is on another control (heading) before user clicks trigger
+    await evaluate(`(()=>{
+      const h1 = document.querySelector('h1#customer-heading');
+      if (h1) h1.focus();
+      return document.activeElement === h1;
+    })()`);
+    // Click trigger with real CDP pointer interaction
+    await clickPointer("Thêm địa chỉ");
+    await until('!!document.querySelector("dialog[open]")');
+    // Ensure focus moved inside modal dialog
+    await until(
+      'document.querySelector("dialog[open]").contains(document.activeElement)',
+    );
     assert.equal(
       await evaluate(
-        `(()=>{const buttons=Array.from(document.querySelectorAll('button[aria-label="Xóa địa chỉ"]'));return buttons.length===1&&buttons.every(b=>b.disabled);})()`,
+        'document.querySelector("dialog[open]").contains(document.activeElement)',
       ),
       true,
     );
-    // Keyboard forward/reverse and Escape restore live trigger on actual shared modal.
-    await click("Thêm địa chỉ");
-    await until('!!document.querySelector("dialog[open]")');
-    for (const shift of [false, true])
-      for (let i = 0; i < 12; i++) {
-        await send("Input.dispatchKeyEvent", {
-          type: "keyDown",
-          key: "Tab",
-          code: "Tab",
-          windowsVirtualKeyCode: 9,
-          modifiers: shift ? 8 : 0,
-        });
-        await send("Input.dispatchKeyEvent", {
-          type: "keyUp",
-          key: "Tab",
-          code: "Tab",
-          windowsVirtualKeyCode: 9,
-          modifiers: shift ? 8 : 0,
-        });
-        assert.equal(
-          await evaluate(
-            'document.querySelector("dialog[open]").contains(document.activeElement)',
-          ),
-          true,
-        );
-      }
+
+    step("FOCUS_FORWARD_TAB_CONTAINMENT");
+    for (let i = 0; i < 12; i++) {
+      await send("Input.dispatchKeyEvent", {
+        type: "keyDown",
+        key: "Tab",
+        code: "Tab",
+        windowsVirtualKeyCode: 9,
+      });
+      await send("Input.dispatchKeyEvent", {
+        type: "keyUp",
+        key: "Tab",
+        code: "Tab",
+        windowsVirtualKeyCode: 9,
+      });
+      assert.equal(
+        await evaluate(
+          'document.querySelector("dialog[open]").contains(document.activeElement)',
+        ),
+        true,
+      );
+    }
+
+    step("FOCUS_REVERSE_TAB_CONTAINMENT");
+    for (let i = 0; i < 12; i++) {
+      await send("Input.dispatchKeyEvent", {
+        type: "keyDown",
+        key: "Tab",
+        code: "Tab",
+        windowsVirtualKeyCode: 9,
+        modifiers: 8,
+      });
+      await send("Input.dispatchKeyEvent", {
+        type: "keyUp",
+        key: "Tab",
+        code: "Tab",
+        windowsVirtualKeyCode: 9,
+        modifiers: 8,
+      });
+      assert.equal(
+        await evaluate(
+          'document.querySelector("dialog[open]").contains(document.activeElement)',
+        ),
+        true,
+      );
+    }
+
+    step("FOCUS_ESCAPE_CLOSED");
     await send("Input.dispatchKeyEvent", {
       type: "keyDown",
       key: "Escape",
@@ -753,9 +931,51 @@ export async function verifyCustomerBrowser({
       windowsVirtualKeyCode: 27,
     });
     await until('!document.querySelector("dialog[open]")');
+
+    step("FOCUS_TRIGGER_RESTORED");
+    await until(`(()=>{
+      const trigger = ${button("Thêm địa chỉ")};
+      const active = document.activeElement;
+      return active === trigger && (active.getAttribute('aria-label') ?? active.textContent.trim()) === "Thêm địa chỉ";
+    })()`);
     assert.equal(
-      await evaluate("document.activeElement.textContent.trim()"),
-      "Thêm địa chỉ",
+      await evaluate(`document.activeElement === ${button("Thêm địa chỉ")}`),
+      true,
+    );
+
+    step("FOCUS_FALLBACK_REMOVED_TRIGGER");
+    // Open dialog using verified focus + click helper
+    await clickWithVerifiedFocus("Thêm địa chỉ");
+    await until('!!document.querySelector("dialog[open]")');
+    // Simulate removed trigger by disconnecting the button while dialog is open
+    await evaluate(`(()=>{
+      const btn = ${button("Thêm địa chỉ")};
+      if (btn) btn.remove();
+      return true;
+    })()`);
+    // Close with Escape
+    await send("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "Escape",
+      code: "Escape",
+      windowsVirtualKeyCode: 27,
+    });
+    await send("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "Escape",
+      code: "Escape",
+      windowsVirtualKeyCode: 27,
+    });
+    await until('!document.querySelector("dialog[open]")');
+    // Focus must fall back to live heading
+    await until(
+      'document.activeElement === document.querySelector("h1#customer-heading")',
+    );
+    assert.equal(
+      await evaluate(
+        'document.activeElement === document.querySelector("h1#customer-heading")',
+      ),
+      true,
     );
     step("SAVE_OPEN_LONG_CONTENT");
     await navigate("/customers");

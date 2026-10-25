@@ -173,6 +173,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                 }
                 className={`${styles.address} ${a.isDefault ? styles.defaultAddress : ""}`}
                 key={a.id}
+                data-address-id={a.id}
               >
                 <div className={styles.toolbar}>
                   <div className={styles.titleGroup}>
