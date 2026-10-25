@@ -297,7 +297,7 @@ Customer list follows the approved reference ZIP (`CustomerListView.tsx` and `sr
   8. `NGÀY TẠO` (Localized date `vi-VN`)
   9. `THAO TÁC` (Action group containing both `Edit` and `Power` status toggle button)
 - **Pagination**: Default `pageSize: 10` across query parser, state initialization, fallback, and selector. Options: `[5, 10, 20, 50, 100]`.
-- **Scoped Content Padding**: Scoped `.customerContentArea` on routes starting with `/customers` (`padding: 14px` on desktop, `12px` on tablet, `10px` on mobile) matching reference geometry without modifying global AppShell padding or affecting unrelated pages.
+- **Scoped Content Area Sizing & Padding**: Scoped `.customerContentArea` on routes starting with `/customers` (`padding: 14px` on desktop, `12px` on tablet, `10px` on mobile, `max-width: none; margin: 0; width: 100%`). This matches reference full-width data card geometry and completely eliminates asymmetric left-side whitespace and 114px header alignment offsets when the sidebar collapses on viewports wider than 1600px, while preserving the default `max-width: 1600px; margin: 0 auto;` on Overview and Settings pages.
 
 #### Feature compatibility ledger:
 
