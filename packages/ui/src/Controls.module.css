@@ -119,19 +119,19 @@
   opacity: 0.8;
 }
 
-.input[readonly] {
+.input[readonly]:not(:disabled) {
   background-color: var(--control-readonly-bg);
   cursor: default;
 }
 
-.input[aria-invalid="true"],
-.input[aria-invalid="true"]:hover {
+.input[aria-invalid="true"]:not(:disabled),
+.input[aria-invalid="true"]:not(:disabled):hover {
   border-color: var(--control-invalid-border);
 }
 
-.input[aria-invalid="true"]:focus,
-.input[aria-invalid="true"]:focus-visible,
-.input[aria-invalid="true"]:focus:hover {
+.input[aria-invalid="true"]:not(:disabled):focus,
+.input[aria-invalid="true"]:not(:disabled):focus-visible,
+.input[aria-invalid="true"]:not(:disabled):focus:hover {
   border-color: var(--control-invalid-border);
   box-shadow: 0 0 0 2px var(--control-invalid-focus-ring);
 }
@@ -190,19 +190,19 @@
   opacity: 0.8;
 }
 
-.textarea[readonly] {
+.textarea[readonly]:not(:disabled) {
   background-color: var(--control-readonly-bg);
   cursor: default;
 }
 
-.textarea[aria-invalid="true"],
-.textarea[aria-invalid="true"]:hover {
+.textarea[aria-invalid="true"]:not(:disabled),
+.textarea[aria-invalid="true"]:not(:disabled):hover {
   border-color: var(--control-invalid-border);
 }
 
-.textarea[aria-invalid="true"]:focus,
-.textarea[aria-invalid="true"]:focus-visible,
-.textarea[aria-invalid="true"]:focus:hover {
+.textarea[aria-invalid="true"]:not(:disabled):focus,
+.textarea[aria-invalid="true"]:not(:disabled):focus-visible,
+.textarea[aria-invalid="true"]:not(:disabled):focus:hover {
   border-color: var(--control-invalid-border);
   box-shadow: 0 0 0 2px var(--control-invalid-focus-ring);
 }

@@ -46,6 +46,45 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
         `real ${row.size} height and runtime override`,
       );
   assert.equal(sizing.textarea, true, "multiline Textarea rows and resize");
+  checks.step("CUSTOMER_CONTROL_STATE_PRECEDENCE");
+  const states = await evaluate(`(async()=>{
+    const elements=[document.querySelector('dialog[open] input[name="name"]'),document.querySelector('dialog[open] textarea')];
+    if(elements.some(e=>!e))return null;
+    const previous=document.activeElement;
+    const attrs=elements.map(el=>['disabled','readonly','aria-invalid'].map(name=>[name,el.getAttribute(name)]));
+    const paint=el=>{const s=getComputedStyle(el);return {bg:s.backgroundColor,color:s.color,border:s.borderColor,shadow:s.boxShadow,cursor:s.cursor};};
+    const settle=async el=>{await Promise.all(el.getAnimations().map(a=>a.finished));await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));};
+    try{
+      const results=[];
+      for(const el of elements){
+        el.removeAttribute('disabled');el.removeAttribute('readonly');el.removeAttribute('aria-invalid');
+        el.focus();await settle(el);const focus=paint(el);
+        el.setAttribute('aria-invalid','true');await settle(el);const invalidFocus=paint(el);
+        el.blur();el.setAttribute('disabled','');el.removeAttribute('aria-invalid');await settle(el);const disabled=paint(el);
+        el.setAttribute('readonly','');el.setAttribute('aria-invalid','true');await settle(el);const combined=paint(el);
+        results.push({focus,invalidFocus,disabled,combined});
+      }
+      return results;
+    }finally{
+      elements.forEach((el,i)=>attrs[i].forEach(([name,value])=>value===null?el.removeAttribute(name):el.setAttribute(name,value)));
+      if(previous?.isConnected)previous.focus();
+    }
+  })()`);
+  assert.ok(states);
+  for (const state of states) {
+    assert.notEqual(state.focus.shadow, "none", "actual focus ring visible");
+    assert.notEqual(
+      state.invalidFocus.border,
+      state.focus.border,
+      "invalid focus overrides regular focus",
+    );
+    assert.deepEqual(
+      state.combined,
+      state.disabled,
+      "disabled wins readonly/invalid combinations",
+    );
+    assert.equal(state.disabled.cursor, "not-allowed");
+  }
   for (const variant of ["emphasis", "secondary", "ghost"]) {
     const selector = `dialog[open] button[data-variant=${variant}]:not(:disabled)`;
     const location = await evaluate(

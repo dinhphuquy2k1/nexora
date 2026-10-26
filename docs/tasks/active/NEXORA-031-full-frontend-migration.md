@@ -1067,3 +1067,13 @@ admin-list1440×900 c22eb2a2a3d1acb56a0347b8db61bca1345904817926c08d44a0b81bb28d
 admin-list375×812 e054f990ad04d13e5aafec00a12747b2e1b1082c54d5f7c19a66709ed5b38260.
 These are genuine earlier failed-run images, not final acceptance. Reviewer confirmed
 phone source P2 fixes; independent helper review corrections are recorded above.
+
+### v3 shared state verification correction
+
+Source review of combined states found readonly/invalid declarations could override
+Input/Textarea disabled background/cursor/border. Enabled-state rules now exclude
+:disabled. Extend actual modal control probe for focus versus invalid-focus and
+combined disabled/readonly/invalid precedence, waiting actual CSS transitions and
+restoring attributes/focus. Policy/helper tests PASS14/14; genuine final-head probe
+execution remains required. Independent full source review at9c84a56: no confirmed
+P1/P2, focused24/24 PASS; this later focused state change receives follow-up review.

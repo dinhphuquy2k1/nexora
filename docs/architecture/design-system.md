@@ -110,3 +110,8 @@ and heading divider, without outer margin. Customer profile and address sections
 consume this shared composition; their duplicate card/heading paint was removed.
 The search field advertises only name/code/phone. Exact phone uses a secondary native
 filter disclosure and the existing URL/query contract, without another API.
+
+Disabled Input/Textarea presentation takes precedence when readonly and invalid are
+also present; those enabled-state rules exclude :disabled. Genuine state probes
+wait real CSS transitions, verify focus/invalid-focus distinction and compare the
+combined disabled presentation, restoring native attributes/focus afterward.
