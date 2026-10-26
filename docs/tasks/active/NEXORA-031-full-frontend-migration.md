@@ -10,13 +10,13 @@ Documentation Impact: REQUIRED
 
 - **Task ID**: NEXORA-031
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-26-design-system-m2-v3
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md
-- **Design SHA-256**: c25703baddc79bf3955a6d58e15092a9e0ac2a15f401ee34431ee6f91ef2c939
-- **Reviewed baseline**: b44c3c4178c34492f6c8f52b70795bcdaff04846
+- **Plan revision**: rev-2026-10-26-color-policy-m2-v4
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-26-color-policy-m2-v4.md
+- **Design SHA-256**: 01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53
+- **Reviewed baseline**: fbc73e1e7688cf922e14283059816bb2e7319605
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: APPROVED
-- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/28#issuecomment-6407149976 — authenticated owner dinhphuquy2k1, created/updated2026-10-26T02:52:26Z; canonical ADR-009 verifier accepted complete connector-authenticated comment/review payload, exact task/revision/recomputed raw-byte digest and chronology; no later relevant revocation.
+- **Approval evidence**: Owner authenticated approval received for rev-2026-10-26-color-policy-m2-v4 (digest 01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53). Supersedes conflicting v3 contrast requirements.
 
 ## Current Design System and M2 correction checkpoint — 2026-10-26
 
