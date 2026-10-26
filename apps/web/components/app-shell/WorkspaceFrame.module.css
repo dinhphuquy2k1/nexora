@@ -1,0 +1,11 @@
+.frame {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-inline: auto;
+  padding-inline: var(--workspace-gutter);
+  max-width: var(--workspace-standard-max);
+}
+:global([data-layout-variant="wide"]) .frame {
+  max-width: none;
+}

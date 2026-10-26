@@ -20,6 +20,7 @@ import {
 export const APPROVED_NAVIGATION_CONTRACT = [
   {
     id: "overview",
+    contentVariant: "standard",
     href: "/",
     status: "available",
     group: "Workspace",
@@ -32,18 +33,21 @@ export const APPROVED_NAVIGATION_CONTRACT = [
   },
   {
     id: "customers",
+    contentVariant: "wide",
     href: "/customers",
     status: "available",
     group: "Workspace",
   },
   {
     id: "system",
+    contentVariant: "standard",
     href: "/system",
     status: "available",
     group: "System",
   },
   {
     id: "settings",
+    contentVariant: "standard",
     href: "/settings",
     status: "available",
     group: "System",
@@ -93,6 +97,9 @@ export function validateNavigationContract(actualItems, approvedContract) {
       throw new Error(
         `Navigation item '${id}' group mismatch: expected '${expected.group}', got '${actual.group}'`,
       );
+    }
+    if (actual.contentVariant !== expected.contentVariant) {
+      throw new Error(`Navigation item '${id}' contentVariant mismatch`);
     }
     if (actual.status === "planned" && actual.href !== null) {
       throw new Error(
@@ -328,5 +335,20 @@ test("Navigation items set aria-current and mobile drawer dismisses on route/cli
     shellSource,
     /useEffect\(\(\)\s*=>\s*\{\s*setMobileOpen\(false\);\s*\},?\s*\[pathname\]\)/,
     "Mobile drawer must dismiss on pathname change",
+  );
+});
+
+test("navigation rejects unauthorized frame variants", () => {
+  assert.throws(
+    () =>
+      validateNavigationContract(
+        NAVIGATION_ITEMS.map((item) =>
+          item.id === "customers"
+            ? { ...item, contentVariant: "standard" }
+            : item,
+        ),
+        APPROVED_NAVIGATION_CONTRACT,
+      ),
+    /contentVariant mismatch/,
   );
 });

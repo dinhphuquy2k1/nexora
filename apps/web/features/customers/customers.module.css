@@ -7,18 +7,10 @@
   overflow-wrap: anywhere;
 }
 .listPage {
-  height: calc(100dvh - var(--header-height) - 28px);
+  height: calc(
+    100dvh - var(--header-height) - 2 * var(--workspace-padding-block)
+  );
   min-height: 32rem;
-}
-@media (max-width: 1023px) {
-  .listPage {
-    height: calc(100dvh - var(--header-height) - 24px);
-  }
-}
-@media (max-width: 639px) {
-  .listPage {
-    height: calc(100dvh - var(--header-height) - 20px);
-  }
 }
 .commandDeck {
   flex-shrink: 0;
@@ -885,13 +877,6 @@
     grid-template-columns: 1fr;
   }
 }
-@media (max-width: 900px) {
-  .listPage {
-    height: calc(
-      100dvh - var(--header-height) - var(--space-4) - var(--space-4)
-    );
-  }
-}
 @media (max-width: 600px) {
   .listPage {
     min-height: 38rem;
@@ -982,17 +967,9 @@
 
 .detailPage {
   max-height: calc(
-    100dvh - var(--header-height) - var(--space-6) - var(--space-8) -
-      var(--space-4)
+    100dvh - var(--header-height) - 2 * var(--workspace-padding-block)
   );
   overflow-y: auto;
-}
-@media (max-width: 900px) {
-  .detailPage {
-    max-height: calc(
-      100dvh - var(--header-height) - var(--space-4) - var(--space-4)
-    );
-  }
 }
 
 .statsHint {

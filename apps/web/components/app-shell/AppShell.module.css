@@ -1,12 +1,15 @@
 .container {
   display: flex;
-  min-height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   width: 100%;
   background-color: var(--color-background);
 }
 
 .mainWrapper {
   flex: 1 1 0%;
+  height: 100dvh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -14,37 +17,11 @@
 }
 
 .contentArea {
-  flex: 1 1 auto;
-  padding: 24px 32px 48px;
-  max-width: 1600px;
-  width: 100%;
-  margin: 0 auto;
+  flex: 1 0 auto;
+  min-height: calc(100dvh - var(--header-height));
+  padding-block: var(--workspace-padding-block);
 }
 
-@media (max-width: 768px) {
-  .contentArea {
-    padding: 16px 16px 32px;
-  }
-}
-
-.customerContentArea {
-  padding: 14px;
-  max-width: none;
-  margin: 0;
-  width: 100%;
-}
-
-@media (max-width: 1023px) {
-  .customerContentArea {
-    padding: 12px;
-  }
-}
-
-@media (max-width: 639px) {
-  .customerContentArea {
-    padding: 10px;
-  }
-}
 .desktopSidebar {
   flex-shrink: 0;
 }
@@ -81,9 +58,6 @@
 @media (max-width: 900px) {
   .desktopSidebar {
     display: none;
-  }
-  .contentArea {
-    padding: var(--space-4);
   }
 }
 @media (prefers-reduced-motion: reduce) {

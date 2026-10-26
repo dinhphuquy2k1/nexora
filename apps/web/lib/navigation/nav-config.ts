@@ -1,3 +1,5 @@
+export type WorkspaceVariant = "standard" | "wide";
+
 export type NavStatus = "available" | "planned";
 
 export type NavGroup = "Workspace" | "System";
@@ -16,6 +18,7 @@ export interface NavItem {
   readonly status: NavStatus;
   readonly group: NavGroup;
   readonly iconKey: NavIconKey;
+  readonly contentVariant?: WorkspaceVariant;
 }
 
 export const NAVIGATION_ITEMS: readonly NavItem[] = [
@@ -26,6 +29,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     status: "available",
     group: "Workspace",
     iconKey: "overview",
+    contentVariant: "standard",
   },
   {
     id: "shipment",
@@ -42,6 +46,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     status: "available",
     group: "Workspace",
     iconKey: "customers",
+    contentVariant: "wide",
   },
   {
     id: "system",
@@ -50,6 +55,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     status: "available",
     group: "System",
     iconKey: "system",
+    contentVariant: "standard",
   },
   {
     id: "settings",
@@ -58,6 +64,7 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
     status: "available",
     group: "System",
     iconKey: "settings",
+    contentVariant: "standard",
   },
 ] as const;
 

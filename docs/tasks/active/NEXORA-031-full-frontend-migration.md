@@ -937,3 +937,14 @@ Independent review found mutation401 retained protected state until navigation. 
 Executed Toast/Power/denied policy tests RED then GREEN6/6; actual SSR Toast verifies escaped text/roles/default32 dismiss. Web91/91 PASS; UI/Web typecheck PASS; lint/boundaries PASS; diff check PASS. Typecheck caught callback plumbing inadvertently added to read-only ReconcileNotice; corrected before commit, no weakened assertion. Genuine React/modal/timer/session/Power concurrency and full canonical runtime/visual evidence remain pending final-head CDP/CI.
 
 Intermediate Stage3 Foundation40264164323: quality/integration PASS; actual Customer controls default32px/radius8px and all primary/secondary/ghost normal+hover contrast checks PASS, then CLEAR_QUERY/CHECK_FAILED. Source and log investigation found stale accessible action selectors after remote baseline changes: clear is conditional on nonempty draft and named Xóa từ khóa tìm kiếm; reload is Làm mới; profile/default actions also changed. Updated helper to current accessible names and entered a whitespace draft before clearing to preserve the original same-key/debounce regression (not skip it). Replaced obsolete six-field profile count with independent exact seven-field label assertion plus separate full-width geometry step; backend fields unchanged. Helper syntax3/3 PASS. This intermediate failure is retained; no full runtime PASS claimed.
+
+### v3 stage 5 — shared workspace frames
+
+- Replaced Customer-only pathname/padding selection with canonical navigation
+  `contentVariant`, longest-prefix resolution and shared Header/main frame CSS.
+- Standard max-width 1600px; wide unlimited; shared responsive 24/16/12px gutters.
+  MainWrapper owns scrolling for equal Header/content edges. Sidebar/mobile security
+  and focus contracts are retained.
+- Verification-first: new route/near-match/planned/longest-prefix test failed before
+  resolver export (RED), then PASS. Web tests 93/93 PASS; Web typecheck and
+  lint/boundaries PASS. Browser geometry and final quality remain pending.

@@ -82,3 +82,16 @@ Exceptions need a concrete consumer/rationale, owner/path, compatibility impact,
 ToastProvider/useToast/Toast/ToastViewport are neutral UI exports. Workspace owner-keyed provider keeps one bounded/deduplicated queue (3 visible/6 queued), safe text, explicit dismissal, persistent errors and pausable success timers. An open native Overlay registers the sole active viewport so notifications remain inside its top-layer/inert boundary; no provider preserves existing Overlay behavior. Toast does not steal focus. Modal notification placement, pointer/keyboard dismissal, timers and session cleanup require actual browser acceptance.
 
 Customer List/Detail/forms classify API errors with their existing safe mapper and preserve essential inline descriptions. Toast announces API errors once; inline Feedback uses a non-live data-customer-error marker when already announced. Browser gates still assert surface errors and, in API negative cases, an actual error Toast; persistent historical Toasts do not make an otherwise settled surface erroneous.401 clears retained rows/stats/dialogs/notifications before redirect; generic denial stays latched through failed refresh until accepted success. Power uses a synchronous table-wide gate, not React state as a lock; confirmed write and read reconciliation have separate outcomes and Retry.
+
+### Workspace frame implementation (v3 stage 5)
+
+Canonical navigation metadata supplies `contentVariant`: Customer list/detail use
+`wide`; Overview/System/Settings use `standard`. Resolution uses the longest available
+ancestor and rejects prefix near-matches. Unknown routes fall back to standard.
+`WorkspaceFrame.module.css` owns both Header inner and main frames, centered at
+1600px including gutters for standard, unlimited for wide. Root gutter tokens are
+24px desktop, 16px at ≤900px and 12px at ≤600px. MainWrapper owns vertical scrolling,
+so its scrollbar reduces both frames together; Header remains sticky at 56px.
+Customer no longer selects padding through a pathname-specific CSS class. Sidebar
+widths/breakpoints and mobile Overlay behavior remain the existing contract.
+Browser geometry across variants and Sidebar states remains required evidence.

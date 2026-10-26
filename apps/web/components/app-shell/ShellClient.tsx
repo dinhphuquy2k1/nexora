@@ -6,6 +6,8 @@ import { X } from "lucide-react";
 import { Sidebar } from "./Sidebar.tsx";
 import { Header } from "./Header.tsx";
 import type { DeploymentPresentation } from "../../lib/auth/deployment-presentation.ts";
+import { resolveWorkspaceVariant } from "../../lib/navigation/resolve-active.ts";
+import frame from "./WorkspaceFrame.module.css";
 import styles from "./AppShell.module.css";
 interface ShellClientProps {
   children: ReactNode;
@@ -55,6 +57,7 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
   return (
     <div
       className={styles.container}
+      data-layout-variant={resolveWorkspaceVariant(pathname)}
       data-hydrated={mounted ? "true" : undefined}
     >
       <div className={styles.desktopSidebar}>
@@ -109,11 +112,8 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
         />
 
         <main
-          className={
-            pathname?.startsWith("/customers")
-              ? `${styles.contentArea} ${styles.customerContentArea}`
-              : styles.contentArea
-          }
+          className={`${frame.frame} ${styles.contentArea}`}
+          data-workspace-frame="content"
           id="workspace-content"
           tabIndex={-1}
         >

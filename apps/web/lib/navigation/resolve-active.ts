@@ -1,4 +1,9 @@
-import { GROUP_LABELS, NAVIGATION_ITEMS, type NavItem } from "./nav-config.ts";
+import {
+  GROUP_LABELS,
+  NAVIGATION_ITEMS,
+  type NavItem,
+  type WorkspaceVariant,
+} from "./nav-config.ts";
 
 export interface BreadcrumbSegment {
   readonly label: string;
@@ -61,17 +66,20 @@ export function resolveActiveItem(
     }
   }
 
-  // Second check nested prefix match (non-root only)
+  // Prefer the most specific available ancestor; reject prefix near-matches.
+  let match: NavItem | null = null;
   for (const item of items) {
-    if (item.status === "available" && item.href && item.href !== "/") {
-      const target = normalizePathname(item.href);
-      if (current.startsWith(`${target}/`)) {
-        return item;
-      }
+    if (
+      isItemActive(item, current) &&
+      item.href !== "/" &&
+      (!match ||
+        normalizePathname(item.href).length >
+          normalizePathname(match.href).length)
+    ) {
+      match = item;
     }
   }
-
-  return null;
+  return match;
 }
 
 /**
@@ -109,4 +117,11 @@ export function resolveBreadcrumbs(
       isCurrent: true,
     },
   ];
+}
+
+export function resolveWorkspaceVariant(
+  pathname: string | null | undefined,
+  items: readonly NavItem[] = NAVIGATION_ITEMS,
+): WorkspaceVariant {
+  return resolveActiveItem(pathname, items)?.contentVariant ?? "standard";
 }
