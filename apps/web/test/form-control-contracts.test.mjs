@@ -657,12 +657,21 @@ function analyzeCssPolicy(fileList, declaredTokens, allowlist = new Set()) {
     for (const decl of declarations) {
       const { selector, property: prop, value: val } = decl;
       const isTokenDefinition = isCanonicalTokensFile && prop.startsWith("--");
+      const variant = ["default", "medium", "large"].find(
+        (size) => selector.trim() === `.size[data-size="${size}"]`,
+      );
+      const validPrivateDeclaration =
+        ownsControls &&
+        variant &&
+        privateMappings.has(prop) &&
+        val.trim() === `var(${privateMappings.get(prop)}${variant})`;
+
       if (
         prop === "--control-height" ||
         (!isCanonicalTokensFile &&
           /^(?:--control-(?:size-|radius$|font-size$|padding-))/.test(prop)) ||
         (prop.startsWith("--_control-") &&
-          (!ownsControls || !localTokens.has(prop)))
+          (!localTokens.has(prop) || !validPrivateDeclaration))
       ) {
         violations.sizingOverrides.push({
           file: filePath,
@@ -2200,4 +2209,28 @@ test("Size policy rejects feature-level public token shadows and retired height 
     declared,
   );
   assert.equal(valid.sizingOverrides?.length, 0);
+});
+
+test("Private mappings cannot be bypassed by extra declarations beside valid mappings", () => {
+  const declared = getDeclaredTokens(path.join(webRoot, "styles/tokens.css"));
+  const valid = fs.readFileSync(
+    path.join(uiPackageRoot, "src/Controls.module.css"),
+    "utf8",
+  );
+  for (const rogue of [
+    ".input { --_control-height: 44px; }",
+    '.size[data-size="default"] { --_control-height: 44px; }',
+    '@media (min-width: 600px) { .size[data-size="default"] { --_control-height: 28px; } }',
+  ]) {
+    const result = analyzeCssPolicy(
+      [
+        {
+          filePath: "packages/ui/src/Controls.module.css",
+          content: valid + rogue,
+        },
+      ],
+      declared,
+    );
+    assert.ok(result.sizingOverrides.length > 0);
+  }
 });
