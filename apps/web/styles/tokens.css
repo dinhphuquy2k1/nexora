@@ -61,11 +61,13 @@
   /* Status semantic colors */
   --color-status-success-bg: #e2f2e6;
   --color-status-success-text: #24663b;
+  --color-status-success-border: #a7f3d0;
   --color-status-error-bg: #fbe8e3;
   --color-status-error-text: #973d2b;
   --color-status-error-border: rgba(151, 61, 43, 0.2);
   --color-status-pending-bg: #edf0ec;
   --color-status-pending-text: var(--gray-700);
+  --color-status-pending-border: #cbd5e1;
 
   /* Dark-surface context tokens (Sidebar, Monograms, Dark Overlays) */
   --color-text-on-dark: var(--color-surface);

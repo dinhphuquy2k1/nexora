@@ -99,6 +99,7 @@
 }
 .tabSelected {
   box-shadow: var(--shadow-sm);
+  font-weight: var(--font-weight-bold);
 }
 .tabUnselected {
   opacity: 1;
@@ -111,30 +112,29 @@
   width: 6px;
   height: 6px;
   border-radius: var(--radius-full);
-  background: currentColor;
   flex-shrink: 0;
 }
 .tabDotSelected {
-  color: var(--color-action-emphasis-text);
+  background-color: #ffffff;
 }
 .tabDotActive {
-  color: var(--color-status-success-text);
+  background-color: #10b981;
 }
 .tabDotInactive {
-  color: var(--color-text-muted);
+  background-color: var(--gray-400);
 }
 .count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 1px var(--space-1);
+  padding: 1px 6px;
   border-radius: var(--radius-full);
   font-family: monospace;
   font-size: var(--font-size-2xs);
   font-variant-numeric: tabular-nums;
 }
 .countSelected {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.2);
   color: var(--color-action-emphasis-text);
   font-weight: var(--font-weight-bold);
 }
@@ -183,19 +183,24 @@
 .searchIcon {
   position: absolute;
   top: 50%;
-  left: var(--space-3);
+  left: 10px;
   transform: translateY(-50%);
-  color: var(--control-placeholder);
+  color: var(--gray-400);
   pointer-events: none;
+  width: 14px;
+  height: 14px;
 }
 .searchInput {
-  padding-left: calc(var(--space-8) + var(--space-1));
-  padding-right: calc(var(--control-size-default) + var(--space-1));
+  padding-left: 32px;
+  padding-right: 32px;
+  background-color: var(--gray-50);
+  border-color: var(--gray-300);
 }
 .searchClear {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
 }
 .toolbarActions {
   display: flex;
@@ -207,19 +212,42 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  background: var(--color-accent-light);
-  border: 1px solid var(--color-border-accent);
+  padding: 2px var(--space-2);
+  background: #fffbeb;
+  border: 1px solid rgba(251, 191, 36, 0.6);
   border-radius: var(--radius-sm);
-  color: var(--color-accent-text);
+  color: #92400e;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
+  height: 24px;
+  box-sizing: border-box;
 }
-.filterBadge button {
-  flex-shrink: 0;
+.filterCounts {
+  font-family: monospace;
+  font-weight: var(--font-weight-bold);
 }
-.filterBadge button:hover {
-  text-decoration: none;
+.filterClearAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: #b45309;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  line-height: 1;
+}
+.filterClearAction:hover {
+  color: #78350f;
+  text-decoration: underline;
+}
+.filterClearAction:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 1px;
 }
 
 .dataCard {
@@ -305,9 +333,24 @@
   padding: 6px var(--space-1);
 }
 .detailLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: var(--radius-sm);
+  background-color: var(--gray-100);
+  color: var(--gray-500);
   flex-shrink: 0;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 .detailLink:hover {
+  background-color: var(--color-primary);
+  color: #ffffff;
   text-decoration: none;
 }
 .codeCell {
@@ -351,28 +394,27 @@
   font-weight: var(--font-weight-semibold);
 }
 .statusChipActive {
-  background: var(--color-status-success-bg);
-  color: var(--color-status-success-text);
-  border: 1px solid var(--color-border);
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid var(--color-status-success-border);
 }
 .statusChipInactive {
-  background: var(--color-status-pending-bg);
-  color: var(--color-status-pending-text);
-  border: 1px solid var(--color-border);
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: 1px solid var(--color-status-pending-border);
 }
 .chipDot {
   display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: var(--radius-full);
-  background: currentColor;
   flex-shrink: 0;
 }
 .chipDotActive {
-  color: var(--color-status-success-text);
+  background-color: #10b981;
 }
 .chipDotInactive {
-  color: var(--color-status-pending-text);
+  background-color: var(--gray-400);
 }
 .dateCell {
   text-align: center;
@@ -382,6 +424,17 @@
 }
 .addressCountCell {
   text-align: center;
+}
+.addressCountBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  background-color: var(--gray-100);
+  color: var(--color-primary);
 }
 .addressCountIcon {
   color: var(--color-accent);

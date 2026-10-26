@@ -287,7 +287,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
               <span className={styles.exportLabel}>Xuất Excel</span>
             </Button>
             <Button
-              variant="emphasis"
+              variant="primary"
               onClick={() => setOverlay("create")}
               aria-label="Thêm khách hàng"
             >
@@ -317,6 +317,8 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           }}
           onClearFilters={clearFilters}
           onReload={handleReload}
+          filteredTotal={compatible ? read.data?.pagination?.total : undefined}
+          statsTotal={stats?.total}
         />
       </section>
       {powerState?.phase === "blocked" && (
