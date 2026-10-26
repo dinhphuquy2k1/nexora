@@ -334,9 +334,8 @@ restoring exact attributes/token values/priorities in finally; Textarea remains
 multiline and native Checkbox labels are preserved. These scripts require genuine
 browser execution; static syntax PASS does not certify their assertions.
 
-Exact-phone filter typing is local until Apply or explicit Reload. It does not
-send incomplete prefixes, and unapplied incompatible draft displays an instruction,
-never a successful empty list. Missing pagination shows unavailable markers rather
+Exact-phone URL filtering (/customers?phone=...) renders an accessible filter badge
+with inline clear action and truthful counts. Missing pagination shows unavailable markers rather
 than invented zero totals. Persistent Toast errors remain dismissible across reads;
 essential errors use data-customer-error and actual API-error readiness also requires
 an active Toast alert. Do not restore obsolete global-alert assumptions.
