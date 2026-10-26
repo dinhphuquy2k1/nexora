@@ -42,17 +42,9 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   );
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [draft, setDraft] = useState(query.q ?? "");
-  const [phoneDraft, setPhoneDraft] = useState(query.phone ?? "");
-  useEffect(() => {
-    setPhoneDraft(query.phone ?? "");
-  }, [query.phone]);
   const [statistics, setStatistics] = useState<StatisticsSnapshot>();
   const committedScope = statisticsScope(ownerId, query);
-  const displayScope = statisticsScope(
-    ownerId,
-    { ...query, phone: phoneDraft },
-    draft,
-  );
+  const displayScope = statisticsScope(ownerId, query, draft);
   useEffect(() => {
     if (read.denied || invalid) {
       setStatistics(undefined);
@@ -177,15 +169,10 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
       current = { page: 1, pageSize: 10 };
     }
     const currentQ = (current.q ?? "").trim();
-    const trimmedPhone = phoneDraft.trim();
-    if (
-      trimmedDraft !== currentQ ||
-      trimmedPhone !== (current.phone ?? "").trim()
-    ) {
+    if (trimmedDraft !== currentQ) {
       change(
         {
           q: trimmedDraft || undefined,
-          phone: trimmedPhone || undefined,
           page: 1,
         },
         true,
@@ -253,7 +240,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   }
   const clearFilters = () => {
     setDraft("");
-    setPhoneDraft("");
     change({ q: undefined, status: undefined, phone: undefined, page: 1 });
   };
   return (
@@ -298,19 +284,21 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
         </div>
         <CustomerStatsBar
           stats={stats}
-          stale={!!stats && (read.loading || !!read.error)}
-          loading={read.loading}
-          error={!!read.error}
+          stale={Boolean(
+            stats &&
+              (powerState?.phase === "revalidating" ||
+                powerState?.phase === "blocked" ||
+                (read.error && compatible)),
+          )}
+          loading={!stats && read.loading && compatible}
+          error={Boolean(read.error && compatible)}
           status={query.status}
           onChange={(status) => change({ status, page: 1 })}
         />
         <CustomerFilters
           query={query}
           draft={draft}
-          phoneDraft={phoneDraft}
-          onPhoneDraft={setPhoneDraft}
           onSearch={searchChange}
-          onQuery={(p) => change(p)}
           onClear={() => {
             setDraft("");
             change({ q: undefined, page: 1 });
