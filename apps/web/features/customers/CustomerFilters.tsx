@@ -12,6 +12,8 @@ export function CustomerFilters({
   onClear,
   onReload,
   onClearFilters,
+  filteredTotal,
+  statsTotal,
 }: {
   query: Query;
   draft: string;
@@ -22,12 +24,14 @@ export function CustomerFilters({
   onClear: () => void;
   onReload: () => void;
   onClearFilters: () => void;
+  filteredTotal?: number;
+  statsTotal?: number;
 }) {
   const filtered = !!(query.q || query.status || query.phone);
   return (
     <div className={styles.searchToolbar}>
       <div className={styles.searchBox}>
-        <Search size={16} className={styles.searchIcon} aria-hidden="true" />
+        <Search size={14} className={styles.searchIcon} aria-hidden="true" />
         <label className={styles.srOnly} htmlFor="customer-search">
           Tìm mã khách hàng, họ tên, số điện thoại
         </label>
@@ -77,18 +81,25 @@ export function CustomerFilters({
       </details>
       <div className={styles.toolbarActions}>
         {filtered && (
-          <span className={styles.filterBadge}>
+          <div className={styles.filterBadge}>
             <span>Đang lọc</span>
-            <Button
-              variant="ghost"
-              icon
+            {filteredTotal !== undefined && (
+              <span className={styles.filterCounts}>
+                ({filteredTotal}
+                {statsTotal !== undefined ? `/${statsTotal}` : ""})
+              </span>
+            )}
+            <button
+              type="button"
+              className={styles.filterClearAction}
               aria-label="Xóa các điều kiện lọc hiện tại"
-              title="Xóa lọc"
+              title="Xóa các điều kiện lọc hiện tại"
               onClick={onClearFilters}
             >
-              <X size={12} />
-            </Button>
-          </span>
+              <X size={12} aria-hidden="true" />
+              <span>Xóa lọc</span>
+            </button>
+          </div>
         )}
         <Button variant="secondary" onClick={onReload} aria-label="Làm mới">
           <RefreshCw size={14} aria-hidden="true" />
