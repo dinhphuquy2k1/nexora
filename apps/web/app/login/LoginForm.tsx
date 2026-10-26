@@ -201,7 +201,8 @@ export function LoginForm() {
         <Button type="submit" className={styles.submitBtn} disabled={isLoading}>
           {isLoading ? "Đang xác thực..." : "Xác thực"}
         </Button>
-        <button
+        <Button
+          variant="ghost"
           type="button"
           className={styles.modeToggleLink}
           disabled={isLoading}
@@ -212,15 +213,16 @@ export function LoginForm() {
           }}
         >
           {mode === "totp" ? "Dùng mã khôi phục" : "Dùng ứng dụng xác thực"}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
           type="button"
           className={styles.modeToggleLink}
           disabled={isLoading}
           onClick={cancelMfa}
         >
           Hủy và quay lại đăng nhập
-        </button>
+        </Button>
       </form>
     );
 
@@ -285,8 +287,10 @@ export function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
             />
-            <button
+            <Button
+              variant="ghost"
               type="button"
+              icon
               className={styles.togglePasswordBtn}
               onClick={() => setShowPassword((prev) => !prev)}
               aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
@@ -294,7 +298,7 @@ export function LoginForm() {
               disabled={isLoading}
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -307,13 +311,14 @@ export function LoginForm() {
           >
             Ghi nhớ tên đăng nhập
           </Checkbox>
-          <button
+          <Button
+            variant="ghost"
             type="button"
             className={styles.helpLink}
             onClick={() => setHelpOpen(true)}
           >
             Quên mật khẩu?
-          </button>
+          </Button>
         </div>
         <Button type="submit" className={styles.submitBtn} disabled={isLoading}>
           {isLoading ? (

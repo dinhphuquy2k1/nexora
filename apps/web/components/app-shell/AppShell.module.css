@@ -68,29 +68,15 @@
 }
 .mobileCloseButton {
   position: absolute;
-  top: 10px;
-  right: 12px;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border-on-dark);
-  background-color: var(--color-surface-on-dark);
-  color: var(--color-text-on-dark-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  top: var(--space-3);
+  right: var(--space-3);
   z-index: 40;
-  transition: all 0.15s ease;
-  padding: 0;
 }
 .mobileCloseButton:hover {
-  background-color: var(--color-surface-on-dark-hover);
-  color: var(--color-text-on-dark);
+  text-decoration: none;
 }
 .mobileCloseButton:focus-visible {
-  outline: 2px solid var(--focus-ring-on-dark);
-  outline-offset: 2px;
+  text-decoration: none;
 }
 @media (max-width: 900px) {
   .desktopSidebar {

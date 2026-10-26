@@ -603,6 +603,7 @@ function analyzeCssPolicy(fileList, declaredTokens, allowlist = new Set()) {
     semanticMisuse: [],
     importantOverrides: [],
     rawColors: [],
+    sizingOverrides: [],
   };
 
   for (const { filePath, content } of fileList) {
@@ -629,16 +630,56 @@ function analyzeCssPolicy(fileList, declaredTokens, allowlist = new Set()) {
 
     // 2. Parse declarations with robust state machine
     const declarations = parseCssDeclarations(content);
+    const privateMappings = new Map([
+      ["--_control-height", "--control-size-"],
+      ["--_control-padding-x", "--control-padding-"],
+      ["--_control-padding-y", "--control-padding-block-"],
+      ["--_control-icon", "--icon-control-"],
+      ["--_control-indicator", "--checkbox-indicator-"],
+    ]);
+    const ownsControls =
+      /(?:^|\/)packages\/ui\/src\/Controls\.module\.css$/.test(normPath);
+    const localTokens = new Set();
+    if (ownsControls) {
+      for (const [local, target] of privateMappings) {
+        const valid = ["default", "medium", "large"].every((size) =>
+          declarations.some(
+            (d) =>
+              d.selector.trim() === `.size[data-size="${size}"]` &&
+              d.property === local &&
+              d.value.trim() === `var(${target}${size})`,
+          ),
+        );
+        if (valid) localTokens.add(local);
+      }
+    }
 
     for (const decl of declarations) {
       const { selector, property: prop, value: val } = decl;
       const isTokenDefinition = isCanonicalTokensFile && prop.startsWith("--");
+      if (
+        prop === "--control-height" ||
+        (!isCanonicalTokensFile &&
+          /^(?:--control-(?:size-|radius$|font-size$|padding-))/.test(prop)) ||
+        (prop.startsWith("--_control-") &&
+          (!ownsControls || !localTokens.has(prop)))
+      ) {
+        violations.sizingOverrides.push({
+          file: filePath,
+          selector,
+          property: prop,
+        });
+      }
 
       // 2a. Check for invalid token references
       const varRefs = val.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g);
       for (const match of varRefs) {
         const token = match[1];
-        if (!declaredTokens.has(token) && !allowlist.has(token)) {
+        if (
+          !declaredTokens.has(token) &&
+          !allowlist.has(token) &&
+          !localTokens.has(token)
+        ) {
           violations.invalidTokens.push({ file: filePath, token });
         }
       }
@@ -943,10 +984,12 @@ test("Token Contract: mandatory design tokens defined in tokens.css", () => {
 
   // Mandatory Form Control Contract tokens
   const requiredControlTokens = [
-    "--control-height",
+    "--control-size-default",
+    "--control-size-medium",
+    "--control-size-large",
     "--control-radius",
-    "--control-padding-x",
-    "--control-padding-y",
+    "--control-padding-default",
+    "--control-padding-block-default",
     "--control-font-size",
     "--control-bg",
     "--control-bg-focus",
@@ -1890,16 +1933,16 @@ test("Component Consistency: Form controls share canonical contract tokens for s
 
   const css = fs.readFileSync(controlsCssPath, "utf8");
 
-  // Input & Button bind sizing to --control-height and --control-radius
+  // Input & Button bind sizing to --_control-height and --control-radius
   assert.match(
     css,
-    /\.input\s*\{[^}]*height:\s*var\(--control-height/s,
-    "Input binds height to --control-height",
+    /\.input\s*\{[^}]*height:\s*var\(--_control-height/s,
+    "Input binds height to --_control-height",
   );
   assert.match(
     css,
-    /\.button\s*\{[^}]*height:\s*var\(--control-height/s,
-    "Button binds height to --control-height",
+    /\.button\s*\{[^}]*height:\s*var\(--_control-height/s,
+    "Button binds height to --_control-height",
   );
   assert.match(
     css,
@@ -2098,16 +2141,16 @@ test("Runtime Token Override: Controls cascade directly from root CSS custom pro
   const buttonBlock = controlsCss.match(/\.button\s*\{([^}]+)\}/)?.[1] || "";
   const inputBlock = controlsCss.match(/\.input\s*\{([^}]+)\}/)?.[1] || "";
 
-  // The height property must consume var(--control-height)
+  // The height property must consume var(--_control-height)
   assert.match(
     buttonBlock,
-    /height:\s*var\(--control-height\)/,
-    "Button height must be dynamically bound to var(--control-height)",
+    /height:\s*var\(--_control-height\)/,
+    "Button height must be dynamically bound to var(--_control-height)",
   );
   assert.match(
     inputBlock,
-    /height:\s*var\(--control-height\)/,
-    "Input height must be dynamically bound to var(--control-height)",
+    /height:\s*var\(--_control-height\)/,
+    "Input height must be dynamically bound to var(--_control-height)",
   );
 
   // The border-radius property must consume var(--control-radius)
@@ -2133,4 +2176,28 @@ test("Runtime Token Override: Controls cascade directly from root CSS custom pro
     /font-size:\s*var\(--control-font-size\)/,
     "Input font-size must be dynamically bound to var(--control-font-size)",
   );
+});
+
+test("Size policy rejects feature-level public token shadows and retired height aliases", () => {
+  const declared = getDeclaredTokens(path.join(webRoot, "styles/tokens.css"));
+  for (const content of [
+    ".page { --control-size-default:48px; }",
+    ".page { --control-height:32px; }",
+  ]) {
+    const result = analyzeCssPolicy(
+      [{ filePath: "apps/web/features/future/page.module.css", content }],
+      declared,
+    );
+    assert.ok(result.sizingOverrides?.length > 0);
+  }
+  const valid = analyzeCssPolicy(
+    [
+      {
+        filePath: "apps/web/features/future/page.module.css",
+        content: ".page { width:calc(100% - 4px); padding:var(--space-4); }",
+      },
+    ],
+    declared,
+  );
+  assert.equal(valid.sizingOverrides?.length, 0);
 });

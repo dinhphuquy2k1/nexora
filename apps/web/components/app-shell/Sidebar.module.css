@@ -35,7 +35,7 @@
 .collapsed .navItemLink,
 .collapsed .navItemDisabled {
   justify-content: center;
-  padding: 10px 0;
+  padding: var(--space-1) 0;
 }
 
 .responsive {
@@ -61,7 +61,7 @@
   .responsive .navItemLink,
   .responsive .navItemDisabled {
     justify-content: center;
-    padding: 10px 0;
+    padding: var(--space-1) 0;
   }
 
   .responsive .nav {
@@ -187,7 +187,8 @@
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 10px 12px;
+  min-height: var(--control-size-default);
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-md);
   font-size: var(--font-size-base);
   font-weight: 500;
@@ -233,7 +234,8 @@
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 10px 12px;
+  min-height: var(--control-size-default);
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-md);
   font-size: var(--font-size-base);
   font-weight: 500;
@@ -247,7 +249,7 @@
 
 .itemCentered {
   justify-content: center;
-  padding: 10px 0;
+  padding: var(--space-1) 0;
 }
 
 .itemIcon {

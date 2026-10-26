@@ -46,67 +46,13 @@ Future feature-specific modules (e.g., `ShipmentTable`, `TrackingTimeline`, `Cus
 
 The frontend enforces a strict Design Token and CSS Modules architecture. `apps/web/styles/tokens.css` is the canonical Single Source of Truth for all design tokens across the Nexora frontend.
 
-### A. Single Source of Truth & Token Architecture
+### Shared visual contract owner
 
-The token system is structured into four explicit layers:
+[Design System](design-system.md) now owns the foundation→semantic→component token architecture, size/state/typography/spacing/radius/icon/color/density/layout contracts and migration guidance. The root theme remains apps/web/styles/tokens.css; neutral UI maps sizes at actual consumers. Public default/medium/large sizes are32/40/48px, including Login/MFA/Setup; --control-height and Customer-scoped28/32px overrides are retired. Input/Select numeric native size conflicts are resolved by the shared typed size API. Textarea remains multiline and Checkbox retains a separate indicator/target.
 
-1. **Foundation Palette**: Raw brand and neutral color values (`--brand-navy`, `--brand-navy-dark`, `--brand-navy-light`, `--brand-orange`, `--brand-orange-light`, `--brand-orange-text`, `--gray-50` to `--gray-900`).
-2. **Semantic Application Tokens**: Role-based tokens describing UI function (`--color-primary`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`, `--color-surface`, `--color-border`, `--color-status-error-border`, `--color-status-*`, `--focus-ring-*`). Text rendered on accent backgrounds must bind to `--color-text-on-accent` (`var(--brand-navy)`) in default state and `--color-text-on-accent-hover` in hover state, never raw palette constants directly. Semantic error borders bind to `--color-status-error-border` (`rgba(151, 61, 43, 0.2)`), avoiding value-based conflation with text or focus tokens.
-3. **Dark-Surface Context Tokens**: Role-specific dark-theme tokens (`--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-border-on-dark`, `--color-border-on-dark-subtle`, `--color-surface-on-dark`, `--color-surface-on-dark-hover`, `--shadow-on-dark-tooltip`).
-4. **Standardized Scales**:
-   - **Typography Scale**: `--font-size-2xs` (10px), `--font-size-xs` (11px), `--font-size-sm` (12px), `--font-size-base` (13px), `--font-size-md` (14px), `--font-size-lg` (15px), `--font-size-xl` (16px), `--font-size-2xl` (20px), `--font-size-3xl` (24px).
-   - **Line Heights**: `--line-height-tight` (1.2), `--line-height-snug` (1.35), `--line-height-normal` (1.5).
-   - **Font Weights**: `--font-weight-normal` (400), `--font-weight-medium` (500), `--font-weight-semibold` (600), `--font-weight-bold` (700), `--font-weight-extrabold` (800).
-   - **Spacing Scale**: `--space-1` (4px), `--space-2` (8px), `--space-3` (12px), `--space-4` (16px), `--space-5` (20px), `--space-6` (24px), `--space-8` (32px).
-   - **Radius Scale**: `--radius-xs` (4px), `--radius-sm` (6px), `--radius-md` (8px), `--radius-lg` (12px), `--radius-xl` (16px, cards), `--radius-full` (9999px).
-   - **Elevation Shadows**: `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-on-dark-tooltip`.
-5. **Canonical Form Control Contract Tokens (Defaults vs. Invariant Contracts)**:
-   - Configurable theme defaults in `tokens.css`:
-     - Sizing: `--control-height: 44px;`, `--control-radius: var(--radius-lg);`, `--control-padding-x: 14px;`, `--control-padding-y: 10px;`, `--control-font-size: var(--font-size-base);`.
-     - Colors: `--control-bg: var(--color-surface-muted);`, `--control-bg-focus: var(--color-surface);`, `--control-text: var(--color-text);`, `--control-placeholder: var(--gray-400);`.
-     - Borders: `--control-border: var(--color-border-subtle);`, `--control-border-hover: var(--gray-400);`, `--control-focus-border: var(--color-accent);`.
-     - Focus rings: `--control-focus-ring: rgba(245, 138, 36, 0.2);`, `--control-invalid-focus-ring: rgba(151, 61, 43, 0.2);`.
-     - States: `--control-disabled-bg: var(--gray-100);`, `--control-disabled-text: var(--gray-500);`, `--control-disabled-border: var(--gray-200);`, `--control-readonly-bg: var(--gray-50);`, `--control-invalid-border: var(--color-status-error-text);`.
-   - Invariant Contract: Standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) must consume identical contract variables. Changing `--control-height` from 44px to 48px or `--control-radius` from 12px to 8px in `tokens.css` must update all consumers consistently without breaking tests or requiring test value updates.
+Use shared components and explicit size/variant APIs. Native refs/attrs remain; input icon positions and genuine feature widths are layout exceptions, not authority to override control min-height or interaction states. Root public size/font/radius overrides must affect actual shared consumers and restore cleanly. Button default colors preserve Login/MFA; emphasis is the approved accessible Customer color option. Shared typography aliases reuse existing scales.
 
-### B. Semantic Ownership & Usage Rules
-
-Tokens must be consumed strictly according to their intended semantic role:
-
-- **Text Colors**: Use text tokens (`--color-text`, `--color-text-muted`, `--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-text-on-accent`, `--color-text-on-accent-hover`, `--color-accent-text`, status text tokens). Never use surface tokens (`--color-surface`, `--color-background`) or border tokens (`--color-border-subtle`, `--color-border`) as text colors. For text rendered on dark surfaces (e.g. Navy sidebar, dark monograms, avatar initials, mobile drawer), use `--color-text-on-dark` rather than `--color-surface`.
-- **Backgrounds**: Use surface and background tokens (`--color-surface`, `--color-background`, `--color-surface-muted`, `--color-surface-on-dark`, status bg tokens). Never use text or border tokens as background colors.
-- **Borders**: Use border tokens (`--color-border`, `--color-border-subtle`, `--color-border-on-dark`, `--color-status-error-border`). Never use surface, focus ring, or text tokens for border colors.
-- **Focus Rings & Outlines**: Use focus tokens (`--focus-ring-on-light`, `--focus-ring-on-dark`, `--control-focus-ring`, `--control-invalid-focus-ring`). Never use generic border or surface tokens for focus rings.
-- **Elevations**: Use elevation shadow tokens (`--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-on-dark-tooltip`).
-- **No Value-Based Conflation**: Never reuse a token solely because its current hex/pixel value happens to match. Tokens represent architectural intent and role.
-
-### C. Fallback Policy
-
-- **In `apps/web`**:
-  - CSS custom properties are guaranteed by the root theme (`apps/web/styles/tokens.css` imported in `styles.css`).
-  - Consumers must write `color: var(--color-text);` and `border-color: var(--color-border);` **without fallbacks**.
-  - Unnecessary fallbacks (e.g. `var(--space-4, 16px)`, `var(--color-surface, #ffffff)`) are strictly forbidden because they hide missing token declarations and create maintenance drift.
-- **In `packages/ui`**:
-  - Components consume canonical design tokens directly (`var(--control-border)`).
-  - Standalone fallbacks are permitted **only** where an actual standalone-consumer contract requires independent execution outside the Nexora theme (e.g. `var(--control-border, #cbd5e1)`).
-  - Deeply nested fallback chains (e.g. `var(--control-border, var(--color-border-subtle, #cbd5e1))`) and raw value duplication across components solely to echo root defaults are forbidden.
-  - If standalone use is required, it must be verified in an independent harness without the root theme.
-
-### D. Shared Component Contract & Parity
-
-Per [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule), all standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) share one canonical state and sizing contract:
-
-- **Height, Radius & Typography**: `height: var(--control-height)` (default 44px), `box-sizing: border-box`, `border-radius: var(--control-radius)` (default 12px), `font-size: var(--control-font-size)` (shared typography token ensuring `TextInput`, `Button`, and `Textarea` scale consistently across theme configurations).
-- **Interactive State Precedence**: Focus and invalid states strictly supersede hover styling:
-  - Default: `var(--control-border)`, `var(--control-bg)`.
-  - Hover: `var(--control-border-hover)` only when not disabled, readonly, focused, or invalid (`:not(:focus):not([aria-invalid="true"])`).
-  - Focus: `var(--control-focus-border)` with 2px outer focus ring (`var(--control-focus-ring)`).
-  - Invalid (`aria-invalid="true"`): `var(--control-invalid-border)` with error focus ring (`var(--control-invalid-focus-ring)`).
-  - Disabled: `var(--control-disabled-bg)`, `var(--control-disabled-text)`, `cursor: not-allowed`.
-  - Readonly: `var(--control-readonly-bg)`, `cursor: default`.
-- **Select Specification**: Standardized to `var(--control-height)`, identical border, radius, and focus parity matching `TextInput`. Implemented in M2 via `@nexora/ui` `Select` for Customer status/page-size/replacement filters and dialog controls.
-- **Button Contrast & WCAG AA**: Foreground text on `--color-accent` (`#F58A24`) uses the semantic token `--color-text-on-accent: var(--brand-navy, #172b4d)` providing a **5.74:1** contrast ratio (surpassing the WCAG AA 4.5:1 threshold for normal text). On hover (`--color-accent-hover: #E07716`), enabled button foreground switches dynamically to `--color-text-on-accent-hover` with `color 0.15s ease` transition, providing a verified **4.58:1** (>= 4.5:1) contrast ratio. Disabled button state preserves `--control-disabled-text`. Contrast is verified dynamically on real rendered Button primitives in genuine `:hover` state via CDP pointer dispatch, confirming `>= 4.5:1` ratio after transition completion (0.15s) and compositing. Negative accessibility regression tests prove that deliberate inaccessible contrast fails closed, and distinct foreground token overrides prove that hover resolves its dedicated foreground token rather than reusing the default.
-- **Layout Scoping & Compact Density**: Feature layouts (such as Customer Management) may define scoped control sizing contract variables (e.g. `--control-height: 32px;` on `.listPage`, `.commandDeck`, `.drawer`, or `--control-height: 28px;` on `.segments`, `.pagination`, `.table`) on local container scopes to establish dense, compact logistics layouts. These scoped variables cascade naturally into shared `@nexora/ui` primitives (`Button`, `TextInput`, `Select`) without modifying shared component code, breaking global 44px forms across Login/MFA/Setup, or using `!important`. Feature CSS must **never** use `!important` or override the interactive state cascade (hover/focus/invalid/disabled) of shared controls.
+The following policy-parser implementation details remain here until final documentation consolidation; visual contract truth belongs to design-system.md.
 
 ### E. Legitimate CSS-Local Exceptions & Literal-Color Policy
 

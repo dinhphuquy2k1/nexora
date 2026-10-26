@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, StatusBadge } from "@nexora/ui";
+import { Button, StatusBadge, buttonClassName } from "@nexora/ui";
 import {
   Eye,
   Edit3,
@@ -164,7 +164,12 @@ export function CustomerTable({
               <tr key={c.id} className={styles.tableRow}>
                 <td className={styles.detailCell}>
                   <Link
-                    className={styles.detailLink}
+                    data-size="default"
+                    className={buttonClassName(
+                      "ghost",
+                      true,
+                      styles.detailLink,
+                    )}
                     href={`/customers/${encodeURIComponent(c.id)}`}
                     aria-label={`Xem ${c.code}`}
                     title="Xem chi tiết hồ sơ & quản lý địa chỉ"
@@ -229,16 +234,15 @@ export function CustomerTable({
                           ? "Tạm ngừng hoạt động"
                           : "Kích hoạt lại tài khoản"
                       }
-                      className={
-                        c.status === CustomerStatus.ACTIVE
-                          ? styles.powerActive
-                          : styles.powerInactive
-                      }
                     >
                       <Power
                         size={14}
                         className={
-                          togglingId === c.id ? styles.spin : undefined
+                          togglingId === c.id
+                            ? styles.spin
+                            : c.status === CustomerStatus.ACTIVE
+                              ? styles.powerActive
+                              : styles.powerInactive
                         }
                       />
                     </Button>

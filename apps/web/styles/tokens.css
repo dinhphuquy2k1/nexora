@@ -30,6 +30,9 @@
 
   --color-accent: var(--brand-orange);
   --color-accent-hover: var(--brand-orange-dark);
+  --color-action-emphasis-bg: #bf570b;
+  --color-action-emphasis-hover: #b94e08;
+  --color-action-emphasis-text: #ffffff;
   --color-accent-light: var(--brand-orange-light);
 
   --color-background: #f5f7fa;
@@ -86,6 +89,17 @@
   --line-height-snug: 1.35;
   --line-height-normal: 1.5;
 
+  --type-page-title-size: var(--font-size-xl);
+  --type-section-heading-size: var(--font-size-md);
+  --type-body-size: var(--font-size-base);
+  --type-small-size: var(--font-size-sm);
+  --type-label-size: var(--font-size-base);
+  --type-caption-size: var(--font-size-sm);
+  --type-table-heading-size: var(--font-size-sm);
+  --type-button-label-size: var(--font-size-base);
+  --type-status-size: var(--font-size-sm);
+  --surface-padding-standard: var(--space-6);
+  --surface-padding-compact: var(--space-4);
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
@@ -116,11 +130,23 @@
   /* ==========================================================================
      6. Canonical Form Control Contract Tokens
      ========================================================================== */
-  --control-height: 44px;
-  --control-radius: var(--radius-lg);
-  --control-padding-x: 14px;
-  --control-padding-y: 10px;
-  --control-font-size: var(--font-size-base);
+  --control-size-default: 32px;
+  --control-size-medium: 40px;
+  --control-size-large: 48px;
+  --control-padding-default: var(--space-3);
+  --control-padding-medium: var(--space-4);
+  --control-padding-large: var(--space-5);
+  --control-padding-block-default: var(--space-2);
+  --control-padding-block-medium: var(--space-3);
+  --control-padding-block-large: var(--space-4);
+  --icon-control-default: 14px;
+  --icon-control-medium: 16px;
+  --icon-control-large: 18px;
+  --checkbox-indicator-default: 16px;
+  --checkbox-indicator-medium: 18px;
+  --checkbox-indicator-large: 20px;
+  --control-radius: var(--radius-md);
+  --control-font-size: var(--type-label-size);
   --control-bg: var(--color-surface-muted);
   --control-bg-focus: var(--color-surface);
   --control-text: var(--color-text);
@@ -149,6 +175,7 @@
   /* ==========================================================================
      8. Layout Dimensions & Typography
      ========================================================================== */
+  --avatar-size: var(--space-6);
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 72px;
   --header-height: 56px;

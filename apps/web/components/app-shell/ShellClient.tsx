@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Overlay } from "@nexora/ui";
+import { Button, Overlay } from "@nexora/ui";
 import { X } from "lucide-react";
 import { Sidebar } from "./Sidebar.tsx";
 import { Header } from "./Header.tsx";
@@ -75,7 +75,9 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
             if ((e.target as HTMLElement).closest("a[href]")) dismiss();
           }}
         >
-          <button
+          <Button
+            variant="ghost"
+            icon
             type="button"
             className={styles.mobileCloseButton}
             onClick={dismiss}
@@ -83,7 +85,7 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
             title="Đóng menu di động"
           >
             <X size={18} aria-hidden="true" />
-          </button>
+          </Button>
           <Sidebar isCollapsed={false} isResponsive={false} />
         </div>
       </Overlay>

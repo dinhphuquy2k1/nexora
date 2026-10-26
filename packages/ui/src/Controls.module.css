@@ -1,3 +1,24 @@
+.size[data-size="default"] {
+  --_control-height: var(--control-size-default);
+  --_control-padding-x: var(--control-padding-default);
+  --_control-padding-y: var(--control-padding-block-default);
+  --_control-icon: var(--icon-control-default);
+  --_control-indicator: var(--checkbox-indicator-default);
+}
+.size[data-size="medium"] {
+  --_control-height: var(--control-size-medium);
+  --_control-padding-x: var(--control-padding-medium);
+  --_control-padding-y: var(--control-padding-block-medium);
+  --_control-icon: var(--icon-control-medium);
+  --_control-indicator: var(--checkbox-indicator-medium);
+}
+.size[data-size="large"] {
+  --_control-height: var(--control-size-large);
+  --_control-padding-x: var(--control-padding-large);
+  --_control-padding-y: var(--control-padding-block-large);
+  --_control-icon: var(--icon-control-large);
+  --_control-indicator: var(--checkbox-indicator-large);
+}
 /* ==========================================================================
    Canonical Form Controls & Primitives Presentation
    Owned by packages/ui per Tier A architecture
@@ -8,14 +29,14 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  height: var(--control-height);
-  min-height: var(--control-height);
-  padding: 0 var(--control-padding-x);
+  height: var(--_control-height);
+  min-height: var(--_control-height);
+  padding: 0 var(--_control-padding-x);
   border: 1px solid transparent;
   border-radius: var(--control-radius);
   font: inherit;
   font-size: var(--control-font-size);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   background-color: var(--color-accent);
   color: var(--color-text-on-accent);
   cursor: pointer;
@@ -54,9 +75,9 @@
 
 .input {
   width: 100%;
-  height: var(--control-height);
-  min-height: var(--control-height);
-  padding: 0 var(--control-padding-x);
+  height: var(--_control-height);
+  min-height: var(--_control-height);
+  padding: 0 var(--_control-padding-x);
   border: 1px solid var(--control-border);
   border-radius: var(--control-radius);
   font: inherit;
@@ -121,8 +142,12 @@
 
 .textarea {
   width: 100%;
-  min-height: 88px;
-  padding: var(--control-padding-y) var(--control-padding-x);
+  min-height: calc(
+    var(--control-font-size) * 3 + var(--_control-padding-y) * 2
+  );
+  height: auto;
+  line-height: var(--line-height-normal);
+  padding: var(--_control-padding-y) var(--_control-padding-x);
   border: 1px solid var(--control-border);
   border-radius: var(--control-radius);
   font: inherit;
@@ -192,13 +217,13 @@
   gap: var(--space-2);
   font: inherit;
   cursor: pointer;
-  min-height: var(--control-height);
+  min-height: var(--_control-height);
   user-select: none;
 }
 
 .checkbox input {
-  width: 18px;
-  height: 18px;
+  width: var(--_control-indicator);
+  height: var(--_control-indicator);
   accent-color: var(--color-primary);
   border-radius: var(--radius-xs);
   cursor: pointer;
@@ -229,7 +254,31 @@
   color: var(--color-text);
 }
 .icon {
-  width: var(--control-height);
-  min-width: var(--control-height);
+  width: var(--_control-height);
+  min-width: var(--_control-height);
   padding: 0;
+}
+
+.size svg {
+  width: var(--_control-icon);
+  height: var(--_control-icon);
+  flex-shrink: 0;
+}
+.multiple {
+  height: auto;
+}
+.emphasis {
+  background-color: var(--color-action-emphasis-bg);
+  color: var(--color-action-emphasis-text);
+}
+.emphasis:hover:not(:disabled) {
+  background-color: var(--color-action-emphasis-hover);
+  color: var(--color-action-emphasis-text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .input,
+  .textarea {
+    transition: none;
+  }
 }

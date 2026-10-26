@@ -20,29 +20,15 @@
 }
 
 .toggleButton {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  border: none;
-  background-color: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  padding: 0;
   flex-shrink: 0;
 }
 
 .toggleButton:hover {
-  background-color: var(--color-background);
-  color: var(--color-primary);
+  text-decoration: none;
 }
 
 .toggleButton:focus-visible {
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 2px;
+  text-decoration: none;
 }
 
 .collapsedBrand {
@@ -55,15 +41,15 @@
   flex-shrink: 0;
 }
 
-.desktopExpandedToggle {
+.header .desktopExpandedToggle {
   display: flex;
 }
 
-.desktopCompactToggle {
+.header .desktopCompactToggle {
   display: none;
 }
 
-.mobileToggle {
+.header .mobileToggle {
   display: none;
 }
 
@@ -76,15 +62,15 @@
     display: flex;
   }
 
-  .desktopExpandedToggle {
+  .header .desktopExpandedToggle {
     display: none;
   }
 
-  .desktopCompactToggle {
+  .header .desktopCompactToggle {
     display: flex;
   }
 
-  .mobileToggle {
+  .header .mobileToggle {
     display: none;
   }
 }
@@ -95,15 +81,15 @@
     display: none;
   }
 
-  .desktopExpandedToggle {
+  .header .desktopExpandedToggle {
     display: none;
   }
 
-  .desktopCompactToggle {
+  .header .desktopCompactToggle {
     display: none;
   }
 
-  .mobileToggle {
+  .header .mobileToggle {
     display: flex;
   }
 }
@@ -206,30 +192,15 @@
 }
 
 .iconButton {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  background-color: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  padding: 0;
-  text-decoration: none;
+  flex-shrink: 0;
 }
 
 .iconButton:hover {
-  background-color: var(--color-background);
-  color: var(--color-primary);
-  border-color: var(--color-border);
+  text-decoration: none;
 }
 
 .iconButton:focus-visible {
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 2px;
+  text-decoration: none;
 }
 
 .dropdownMenu {

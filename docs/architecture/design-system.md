@@ -1,0 +1,78 @@
+# Nexora Design System
+
+This document owns shared frontend visual contracts. [Frontend architecture](frontend.md) owns routes/data/server boundaries, [Reusable Components](reusable-components.md) owns exported APIs and actual consumers, and [Project Rules](../ai/PROJECT_RULES.md) owns mandatory reuse. The approved [v3 design](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md) governs the migration; execution and remaining verification belong to [NEXORA-031](../tasks/active/NEXORA-031-full-frontend-migration.md).
+
+## Ownership and token layers
+
+Use existing Vanilla CSS Modules, local Inter and neutral @nexora/ui components. No duplicate UI library, feature-specific form defaults or unapproved dependencies. Theme source is apps/web/styles/tokens.css:
+
+1. Foundation: existing palette, type10–24px, weights400–800, line heights1.2/1.35/1.5, spacing4/8/12/16/20/24/32, radii4/6/8/12/16/full and shadows.
+2. Semantic: text/surface/border/focus/action/status roles, typography aliases and density/layout contracts. Equal current values do not make roles interchangeable.
+3. Component: @nexora/ui maps public size tokens to private --\_control-\* values at the actual consumer. Private aliases are owned only by Controls.module.css, not root theme overrides or feature extension points.
+
+## Controls and public APIs
+
+| size                        | Height/min-height/interactive target | Inline padding | Icon | Checkbox indicator |
+| --------------------------- | ------------------------------------ | -------------- | ---- | ------------------ |
+| default, including omission | 32px                                 | 12px           | 14px | 16px               |
+| medium                      | 40px                                 | 16px           | 16px | 18px               |
+| large                       | 48px                                 | 20px           | 18px | 20px               |
+
+Button, TextInput, Select, Textarea and Checkbox accept size="default"|"medium"|"large" and React19 native refs. Input/Select omit conflicting numeric native size; no current numeric-size consumer exists. All modules, including Login/MFA/Setup, use32px by default. No legacy44px fallback or Customer28px density. Decorative logos/avatars and container/navigation geometry have separate semantic roles.
+
+```tsx
+<Button>Thêm khách hàng</Button>
+<TextInput size="medium" type="number" />
+<Select size="large" aria-label="Lựa chọn" />
+<Textarea rows={6} />
+```
+
+Button variants primary(default), secondary, ghost and emphasis share size/state/focus/disabled behavior. icon gives a square target; consumers supply an accessible name. Real navigation stays a real Link; buttonClassName shares presentation with data-size without changing link semantics.
+
+Textarea shares font, padding, radius and states, defaults rows3, honors explicit rows and vertical resize, and retains a multiline minimum; it is never forced to32px tall. Checkbox's label is the interactive target; indicator dimensions are separate. One-line native Input types reuse TextInput; no speculative DatePicker, Radio, Switch, Combobox or multi-select framework. Native multiple Select remains auto-height, not a32px listbox.
+
+## Runtime override and migration
+
+Authoritative public sizing points are --control-size-default/medium/large. --control-radius and --control-font-size remain public. State colors/focus tokens remain semantic public theme controls. Change a root size token to update that variant across actual compatible consumers; other variants retain their own size. Private mappings resolve at the control rather than inheriting a feature's shadowed defaults.
+
+--control-height and old generic padding aliases are retired. Migrate theme overrides to the selected size token; remove feature-local control height/font/radius/padding declarations and direct button/input/select state overrides. Use explicit shared size/variant APIs. Feature CSS may own widths, positions and icon input padding, not shared height/min-height or hover/focus/disabled rules.
+
+Tests assert32/40/48 as owner-defined acceptance values AND dynamically change public values to different measurements. Verify actual computed styles per consumer/variant, isolation, detached-consumer negatives and restoration of exact inline values/priorities plus computed baseline. Changing only test expectations cannot repair a hidden cascade defect.
+
+## Typography, spacing and surfaces
+
+| Role                             | Existing scale mapping               |
+| -------------------------------- | ------------------------------------ |
+| Page title                       | xl/bold/tight                        |
+| Section heading                  | md/semibold/snug                     |
+| Body / small body                | base/normal/normal; sm/normal/normal |
+| Label / button label             | base/semibold/snug                   |
+| Caption / table heading / status | sm with medium/semibold and snug     |
+
+Semantic --type-\*-size aliases reference the existing scale, not a second font scale. Use canonical weight and line-height variables. Controls share --control-font-size; headings do not inherit control heights.
+
+Use spacing2 for control gaps/field-label separation; spacing4 for form groups; toolbar padding3/gap2; surface standard padding6, compact4; table inline3/block2; dialog header/body/footer4; pagination3. Use root radius/shadow/border tokens; focus is a distinct role from border/error. Real local coordinates are allowed; arbitrary offsets that conceal a structural defect are not.
+
+Panel/Card/Overlay/Drawer use semantic surface density, automatic content height and appropriate border/elevation. StatusBadge/Toast use semantic typography/padding and automatic height, not input-height constraints. Native Overlay remains the focus/top-layer/body-lock authority; no parallel trap.
+
+## Colors and interaction
+
+Text, surfaces, borders, focus and status tokens keep separate roles. Root palette is the only owner of raw colors; no app fallbacks. Documented standalone Panel/Badge fallbacks remain narrowly scoped. Existing primary keeps navy-on-bright-orange; emphasis selects white on accessible darker orange with a distinct hover surface, preserving Login/MFA color behavior. Customer visual migration and actual AA acceptance remain staged, not certified by these declarations.
+
+Applicable states: default, genuine hover, focus-visible, pressed/selected, disabled, readonly, invalid and loading. Native Select has no invented readonly. Focus/invalid supersede hover. Disabled actions remain unavailable with truthful state; reduced-motion removes animation without removing readiness checks. Icons/text must meet relevant contrast on final composed backgrounds; inactive controls are identified as such rather than misreported as enabled contrast PASS.
+
+All default targets are32px, above WCAG2.2 target24px; validate spacing and real hit testing, not only visual icon dimensions. Maintain labels, native keyboard behavior, modal containment/Escape/return focus, font glyphs and no page-level horizontal overflow. A focused scroll region retains a clear focus-visible outline; never remove keyboard access merely to improve a screenshot.
+
+## Shared workspace and asynchronous feedback migration
+
+Approved standard/wide frame, modal-aware Toast, keyed read/statistics retention and table Skeleton are implemented in subsequent v3 stages. Until their execution evidence exists, their presence in the approved snapshot is a requirement, not current runtime PASS. Do not create LayoutProvider/global state manager, Customer-only Toast or stats hook/request.
+
+The frame contract uses the same Header/content inline gutters24 desktop/16≤900/12≤600, standard max-width1600 including gutters and wide unrestricted; preserve sidebar240/72, Header56 and SSR/mobile behavior. Customer owns column geometry and backend-field truth; shared UI owns generic interaction. Exact backend row/address/status/session rules remain outside this document.
+
+## Reuse, policy and verification
+
+Before any UI change inspect this document and the registry, search actual consumers and choose reuse. Changes to shared defaults require consumer impact and regression verification. Extend the existing CSS declaration/context parser rather than regex-only policy or blanket exceptions. Enforce token existence/cycles/semantic roles, legitimate component mappings and no feature-shadowed public sizes; include negative and valid-future-module tests. No new Python tooling.
+
+Use native Node discovery and existing Chromium CDP session. Test three sizes/omission, type/ref compatibility, native fields, multiline/checkbox behavior, real pointer/keyboard states, public overrides and negative contrast/ownership cases. Full quality/contracts/build/genuine Docker/API/DB/MFA/runtime/HTTPS/data/dev and final-head hosted evidence remain mandatory. Visual acceptance requires opening actual images and DOM measurements at the ten approved viewports, with source/merge lineage and explicit reference differences. Unit or overflow PASS is insufficient.
+
+Exceptions need a concrete consumer/rationale, owner/path, compatibility impact, tests and approved design delta where material. Do not edit approved snapshots. Rollback uses focused source/test/doc commits together, never security assertions, keys or data resets. Current stage outcomes and failures are recorded in task031 and PR28.

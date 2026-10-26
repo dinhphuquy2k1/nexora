@@ -1067,7 +1067,7 @@ try {
     const initialButtonFontSize = window.getComputedStyle(button).fontSize;
 
     // Dynamically override root tokens
-    document.documentElement.style.setProperty('--control-height', '52px');
+    document.documentElement.style.setProperty('--control-size-default', '52px');
     document.documentElement.style.setProperty('--control-radius', '6px');
     document.documentElement.style.setProperty('--control-font-size', '16px');
 
@@ -1079,7 +1079,7 @@ try {
     const updatedButtonFontSize = window.getComputedStyle(button).fontSize;
 
     // Restore root tokens
-    document.documentElement.style.removeProperty('--control-height');
+    document.documentElement.style.removeProperty('--control-size-default');
     document.documentElement.style.removeProperty('--control-radius');
     document.documentElement.style.removeProperty('--control-font-size');
 
@@ -1103,7 +1103,7 @@ try {
     overrideTest.updated.buttonHeight !== "52px"
   ) {
     errors.push(
-      `Runtime token override --control-height: 52px failed: input was ${overrideTest.updated.inputHeight}, button was ${overrideTest.updated.buttonHeight}`,
+      `Runtime token override --control-size-default: 52px failed: input was ${overrideTest.updated.inputHeight}, button was ${overrideTest.updated.buttonHeight}`,
     );
   }
   if (

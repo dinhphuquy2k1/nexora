@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@nexora/ui";
 
 import type { RefObject } from "react";
 import type { DeploymentPresentation } from "../../lib/auth/deployment-presentation.ts";
@@ -43,7 +44,9 @@ export function Header({
         {isResponsive ? (
           <>
             {/* Desktop expanded: >= 1101px */}
-            <button
+            <Button
+              variant="ghost"
+              icon
               type="button"
               onClick={onToggleSidebar}
               aria-expanded="true"
@@ -52,9 +55,11 @@ export function Header({
               className={`${styles.toggleButton} ${styles.desktopExpandedToggle}`}
             >
               <Menu size={18} aria-hidden="true" />
-            </button>
+            </Button>
             {/* Desktop compact: 901px - 1100px */}
-            <button
+            <Button
+              variant="ghost"
+              icon
               type="button"
               onClick={onToggleSidebar}
               aria-expanded="false"
@@ -63,9 +68,11 @@ export function Header({
               className={`${styles.toggleButton} ${styles.desktopCompactToggle}`}
             >
               <Menu size={18} aria-hidden="true" />
-            </button>
+            </Button>
             {/* Mobile: <= 900px */}
-            <button
+            <Button
+              variant="ghost"
+              icon
               ref={toggleRef}
               type="button"
               onClick={onToggleSidebar}
@@ -75,10 +82,12 @@ export function Header({
               className={`${styles.toggleButton} ${styles.mobileToggle}`}
             >
               <Menu size={18} aria-hidden="true" />
-            </button>
+            </Button>
           </>
         ) : (
-          <button
+          <Button
+            variant="ghost"
+            icon
             ref={toggleRef}
             aria-expanded={isMobile ? mobileOpen : !isSidebarCollapsed}
             type="button"
@@ -88,7 +97,7 @@ export function Header({
             title={toggleLabel}
           >
             <Menu size={18} aria-hidden="true" />
-          </button>
+          </Button>
         )}
 
         {((isResponsive && !isMobile) || (isSidebarCollapsed && !isMobile)) && (

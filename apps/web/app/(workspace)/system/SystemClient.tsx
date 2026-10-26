@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { createNexoraClient } from "@nexora/sdk";
-import { Panel, StatusBadge } from "@nexora/ui";
+import { Button, Panel, StatusBadge } from "@nexora/ui";
 
 type Result = {
   live: boolean;
@@ -52,9 +52,13 @@ export function SystemClient() {
       <p className="intro">
         Trạng thái được kiểm tra trực tiếp khi mở trang hoặc bấm kiểm tra lại.
       </p>
-      <button onClick={() => void refresh()} disabled={loading}>
+      <Button
+        variant="secondary"
+        onClick={() => void refresh()}
+        disabled={loading}
+      >
         {loading ? "Đang kiểm tra…" : "Kiểm tra lại"}
-      </button>
+      </Button>
       {error && (
         <p role="alert" className="notice">
           {error}

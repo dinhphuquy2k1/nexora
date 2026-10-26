@@ -405,7 +405,7 @@ test("token override validation logic detects detached consumers and unchanged s
   }
 
   const tokens = [
-    { prop: "--control-height", styleKey: "height", override: "52px" },
+    { prop: "--control-size-default", styleKey: "height", override: "52px" },
     { prop: "--control-radius", styleKey: "borderRadius", override: "6px" },
     { prop: "--control-font-size", styleKey: "fontSize", override: "16px" },
   ];
@@ -424,7 +424,7 @@ test("token override validation logic detects detached consumers and unchanged s
   };
   assert.equal(validateTokenOverrides(healthy, tokens).success, true);
 
-  // Case 2: One consumer (select) is detached from --control-height -> FAILS CLOSED
+  // Case 2: One consumer (select) is detached from --control-size-default -> FAILS CLOSED
   const detachedSelect = {
     input: {
       computed: { height: "44px", borderRadius: "12px", fontSize: "13px" },
@@ -434,7 +434,7 @@ test("token override validation logic detects detached consumers and unchanged s
     },
     select: {
       computed: { height: "44px", borderRadius: "12px", fontSize: "13px" },
-      detachedProps: ["--control-height"],
+      detachedProps: ["--control-size-default"],
     },
   };
   const res2 = validateTokenOverrides(detachedSelect, tokens);

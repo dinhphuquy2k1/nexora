@@ -413,7 +413,7 @@ export async function verifyCustomerBrowser({
         select: readStyles(select),
       };
       const tokens = [
-        { prop: '--control-height', styleKey: 'height', override: (parseFloat(baseline.input.height)+8)+'px' },
+        { prop: '--control-size-default', styleKey: 'height', override: (parseFloat(baseline.input.height)+8)+'px' },
         { prop: '--control-radius', styleKey: 'radius', override: (parseFloat(baseline.input.radius)+2)+'px' },
         { prop: '--control-font-size', styleKey: 'fontSize', override: (parseFloat(baseline.input.fontSize)+2)+'px' }
       ];
@@ -518,8 +518,8 @@ export async function verifyCustomerBrowser({
         || document.querySelector('select[aria-label="Số dòng mỗi trang"]')
         || document.querySelector('select');
       if (!select) return { success: false, reason: 'SELECT_NOT_FOUND' };
-      const oldRootHeight = root.style.getPropertyValue('--control-height');
-      const oldRootPriority = root.style.getPropertyPriority('--control-height');
+      const oldRootHeight = root.style.getPropertyValue('--control-size-default');
+      const oldRootPriority = root.style.getPropertyPriority('--control-size-default');
       const oldInlineHeight = select.style.height;
       const oldInlinePriority = select.style.getPropertyPriority('height');
       const oldInlineMinHeight = select.style.minHeight;
@@ -527,7 +527,7 @@ export async function verifyCustomerBrowser({
       try {
         select.style.setProperty('height', '70px', 'important');
         select.style.setProperty('min-height', '70px', 'important');
-        root.style.setProperty('--control-height', '52px');
+        root.style.setProperty('--control-size-default', '52px');
         const computedHeight = getComputedStyle(select).height;
         return {
           savedRoot:oldRootHeight,savedRootPriority:oldRootPriority,savedInline:oldInlineHeight,savedInlinePriority:oldInlinePriority,savedInlineMin:oldInlineMinHeight,savedInlineMinPriority:oldInlineMinPriority,
@@ -539,7 +539,7 @@ export async function verifyCustomerBrowser({
         else select.style.removeProperty('height');
         if (oldInlineMinHeight) select.style.setProperty('min-height', oldInlineMinHeight, oldInlineMinPriority);
         else select.style.removeProperty('min-height');
-        if(oldRootHeight)root.style.setProperty('--control-height',oldRootHeight,oldRootPriority);else root.style.removeProperty('--control-height');
+        if(oldRootHeight)root.style.setProperty('--control-size-default',oldRootHeight,oldRootPriority);else root.style.removeProperty('--control-size-default');
       }
     })()`);
     if (!negativeResult.detectedFailure) {
@@ -556,7 +556,7 @@ export async function verifyCustomerBrowser({
     await verifyCustomerControls({ send, evaluate, checks });
     assert.equal(
       await evaluate(
-        `(()=>{const root=document.documentElement;const select=document.querySelector('select[aria-label="Số dòng mỗi trang"]');const saved=${JSON.stringify(negativeResult)};return root.style.getPropertyValue('--control-height')===saved.savedRoot&&root.style.getPropertyPriority('--control-height')===saved.savedRootPriority&&select.style.height===saved.savedInline&&select.style.getPropertyPriority('height')===saved.savedInlinePriority&&select.style.minHeight===saved.savedInlineMin&&select.style.getPropertyPriority('min-height')===saved.savedInlineMinPriority;})()`,
+        `(()=>{const root=document.documentElement;const select=document.querySelector('select[aria-label="Số dòng mỗi trang"]');const saved=${JSON.stringify(negativeResult)};return root.style.getPropertyValue('--control-size-default')===saved.savedRoot&&root.style.getPropertyPriority('--control-size-default')===saved.savedRootPriority&&select.style.height===saved.savedInline&&select.style.getPropertyPriority('height')===saved.savedInlinePriority&&select.style.minHeight===saved.savedInlineMin&&select.style.getPropertyPriority('min-height')===saved.savedInlineMinPriority;})()`,
       ),
       true,
     );
