@@ -251,11 +251,12 @@ test("search debounce reload lifecycle flushes draft, prevents stale commits, an
       }, 300);
     }
     change(patch, replace = false) {
-      this.cancel();
-      this.lane.invalidate();
       const next = { ...this.currentQuery, ...patch };
       const sameKey =
         customerQueryString(this.currentQuery) === customerQueryString(next);
+      if (sameKey) return null;
+      this.cancel();
+      this.lane.invalidate();
       this.currentQuery = next;
       this.draft = next.q ?? "";
       const ticket = this.lane.begin(customerQueryString(next));
@@ -371,6 +372,22 @@ test("search debounce reload lifecycle flushes draft, prevents stale commits, an
   ctrl5.dispose();
   assert.equal(ctrl5.timer, null);
   assert.equal(ctrl5.lane.current(ticketB), false);
+
+  // 7. Finding 04: No-op tab selection does not invalidate, dispatch or trigger read
+  const ctrlTab = new SearchReloadController({
+    page: 1,
+    pageSize: 10,
+    status: "ACTIVE",
+  });
+  const noopTicket = ctrlTab.change({ status: "ACTIVE", page: 1 });
+  assert.equal(noopTicket, null);
+  assert.equal(ctrlTab.dispatches.length, 0); // No dispatch or refresh triggered
+  // Genuine tab change DOES dispatch and return ticket
+  const realTicket = ctrlTab.change({ status: "INACTIVE", page: 1 });
+  assert.notEqual(realTicket, null);
+  assert.equal(ctrlTab.dispatches.length, 1);
+  assert.equal(ctrlTab.currentQuery.status, "INACTIVE");
+  ctrlTab.dispose();
 });
 
 test("token override validation logic detects detached consumers and unchanged styles", () => {

@@ -4,6 +4,11 @@ import {
   customerPageWindow,
   derivePaginationModel,
 } from "../features/customers/pagination.ts";
+import { loadComponent, React, render } from "./helpers/render-component.mjs";
+const { CustomerPagination } = loadComponent(
+  new URL("../features/customers/CustomerPagination.tsx", import.meta.url)
+    .pathname,
+);
 
 test("pagination window stays bounded at huge populations and empty/edge pages", () => {
   for (const total of [0, 1, 2, 10, 2147483647])
@@ -144,4 +149,19 @@ test("derivePaginationModel: edge cases - cold start, out of bounds page, and mi
   assert.equal(outOfBounds.from, 21);
   assert.equal(outOfBounds.to, 25);
   assert.equal(outOfBounds.summaryRange, "21–25");
+});
+
+test("Finding 05: CustomerPagination renders navigation buttons with data-press-effect='none'", () => {
+  const html = render(
+    React.createElement(CustomerPagination, {
+      pagination: { page: 1, pageSize: 10, total: 20, totalPages: 2 },
+      query: { page: 1, pageSize: 10 },
+      rowCount: 10,
+      loading: false,
+      onQuery() {},
+    }),
+  );
+  const matches = html.match(/data-press-effect="none"/g) || [];
+  // Must render on First, Prev, Next, Last and individual page buttons
+  assert.ok(matches.length >= 4);
 });

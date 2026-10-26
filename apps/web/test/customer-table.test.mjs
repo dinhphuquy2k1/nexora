@@ -90,3 +90,24 @@ test("long name/email retain their complete accessible DOM contents", () => {
   assert.ok(html.includes(email));
   assert.match(html, /aria-label="Xem KH000001"/);
 });
+
+test("Finding 10: table row retains native link semantics, accessible detail links and noninteractive click navigation", () => {
+  const html = render(
+    React.createElement(CustomerTable, {
+      ...props,
+      rows: [row],
+    }),
+  );
+  // Row has tableRow class
+  assert.match(html, /class="[^"]*tableRow[^"]*"/);
+  // Native Eye link exists with href pointing to /customers/one
+  assert.match(
+    html,
+    /<a[^>]*aria-label="Xem KH000001"[^>]*href="\/customers\/one"/,
+  );
+  // Native code link exists with href pointing to /customers/one
+  assert.match(html, /<a[^>]*href="\/customers\/one"[^>]*>KH000001<\/a>/);
+  // Action buttons (Edit, Power) are separate buttons inside actionCell
+  assert.match(html, /<button[^>]*aria-label="Sửa KH000001"/);
+  assert.match(html, /<button[^>]*aria-label="Tạm ngừng hoạt động KH000001"/);
+});

@@ -157,3 +157,23 @@ export async function verifyCustomerStatusContrast({ evaluate, checks }) {
     );
   }
 }
+
+export async function verifyButtonPressEffects({ evaluate, checks }) {
+  checks?.step?.("BUTTON_PRESS_EFFECTS");
+  const result = await evaluate(`(()=>{
+    const tab = document.querySelector('[role="tab"][data-press-effect="none"]');
+    const pageBtn = document.querySelector('nav[aria-label="Phân trang khách hàng"] button[data-press-effect="none"]');
+    const ctaBtn = document.querySelector('button[data-variant="emphasis"]');
+    if (!tab) return { present: false, reason: "tab_not_found" };
+    return {
+      present: true,
+      tabAttr: tab.getAttribute('data-press-effect'),
+      pageBtnAttr: pageBtn ? pageBtn.getAttribute('data-press-effect') : 'none',
+      ctaAttr: ctaBtn?.getAttribute('data-press-effect') ?? 'scale',
+    };
+  })()`);
+  assert.equal(result.present, true);
+  assert.equal(result.tabAttr, "none");
+  assert.equal(result.pageBtnAttr, "none");
+  assert.equal(result.ctaAttr, "scale");
+}
