@@ -1,4 +1,8 @@
 // Extends the existing authenticated CDP session. Only owned disposable fixtures.
+import {
+  verifyWorkspaceGeometry,
+  verifyCustomerTableGeometry,
+} from "./workspace-geometry-checks.mjs";
 import { verifyCustomerControls } from "./customer-control-checks.mjs";
 import { verifyCustomerReadRaces } from "./customer-read-races.mjs";
 import assert from "node:assert/strict";
@@ -331,6 +335,15 @@ export async function verifyCustomerBrowser({
         ),
         false,
       );
+      const geometry = await verifyWorkspaceGeometry({
+        evaluate,
+        width: viewport.width,
+      });
+      const tableGeometry = (await evaluate(
+        "Boolean(document.querySelector('main table'))",
+      ))
+        ? await verifyCustomerTableGeometry({ evaluate })
+        : null;
       const shot = await send("Page.captureScreenshot", {
         format: "png",
         captureBeyondViewport: false,
@@ -343,6 +356,8 @@ export async function verifyCustomerBrowser({
         ...viewport,
         sha256: createHash("sha256").update(bytes).digest("hex"),
         fonts,
+        geometry,
+        tableGeometry,
       });
     }
     await send("Emulation.clearDeviceMetricsOverride");
@@ -594,7 +609,9 @@ export async function verifyCustomerBrowser({
     await fill("name", "Bản ghi trùng thử nghiệm");
     await fill("phone", phone);
     await fill("addressText", "Địa chỉ tổng hợp");
+    step("DUPLICATE_PHONE_SUBMIT");
     await click("Lưu khách hàng");
+    step("DUPLICATE_PHONE_FIELD_ERROR");
     await until(
       '!!document.querySelector("dialog[open] input[name=phone][aria-invalid=true]")',
     );
@@ -604,6 +621,7 @@ export async function verifyCustomerBrowser({
       ),
       true,
     );
+    step("DUPLICATE_PHONE_NOTICE_SETTLED");
     await ready(true);
     await snapshot("validation-error");
     await click("Đóng biểu mẫu");
@@ -1125,7 +1143,7 @@ export async function verifyCustomerBrowser({
       ) + "\n",
     );
     console.log(
-      `Customer ${prefix} real API/UI CRUD, default/delete, history, keyboard and six viewport evidence PASS`,
+      `Customer ${prefix} real API/UI CRUD, default/delete, history, keyboard and ten viewport evidence PASS`,
     );
     return customer.id;
   } finally {

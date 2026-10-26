@@ -965,3 +965,32 @@ Intermediate Stage3 Foundation40264164323: quality/integration PASS; actual Cust
 - Intermediate Foundation40266755218 failed at BROWSER_LAUNCH before Customer UI,
   while quality/integration and real provisioning/TTY/security checks passed.
   This is FAIL, not final-head runtime acceptance; no assertion was removed.
+
+### v3 independent review correction — phone draft
+
+Independent review found P2: committing exact-phone on every keystroke would send
+incomplete prefixes to server validation and create repeated persistent error Toasts.
+Phone now stays a List-owned draft until explicit native-form Apply. Draft changes
+invalidate incompatible statistics/rows immediately without issuing a request;
+Back/Forward/query changes resynchronize it. Actual component handler regression
+verifies zero query calls for prefixes and exactly one explicit Apply. No backend
+phone-normalization algorithm was duplicated.
+
+### v3 stage 7 — automated acceptance expansion (execution pending)
+
+- Existing CDP extended to ten target widths, Header/main edge/gutter/max-width
+  assertions and nine table header/body column boundaries; manifests store actual
+  measurements alongside screenshots/hashes. Negative Node geometry fixtures PASS.
+- Actual controls exercise32/40/48 and isolated token overrides with exact finally
+  restoration; Textarea/Checkbox semantics checked. Syntax checks PASS; genuine
+  browser execution is still required before acceptance.
+- Existing CSS parser now preserves at-rule context and rejects conflicting token
+  definitions/cycles per effective scope; negative media-cycle/conflict and valid
+  calc/string/media/private-map cases PASS11/11. No parallel CSS scanner introduced.
+- Independent review follow-up false-empty phone draft fixed with explicit unapplied
+  filter instruction. Reload explicitly applies drafts; Clear removes them. Missing
+  pagination uses unavailable markers. Actual SSR/handler regressions PASS4/4.
+- Intermediate Foundation40278731208 failed CUSTOMER_admin_DUPLICATE_PHONE_FORM,
+  after genuine auth/MFA and32px controls/AA checks. Added precise child diagnostic
+  checkpoints to distinguish field validation from Toast/read settlement; historical
+  FAIL retained. Final-head Foundation and screenshot acceptance remain NOT VERIFIED.

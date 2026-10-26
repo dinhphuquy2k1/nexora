@@ -308,6 +308,7 @@ function parseCssDeclarations(css) {
             "";
           declarations.push({
             selector: currentSelector,
+            context: selectorStack.filter((s) => s.startsWith("@")).join(" "),
             property: currentProp.toLowerCase(),
             value: val,
           });
@@ -356,6 +357,7 @@ function parseCssDeclarations(css) {
           "";
         declarations.push({
           selector: currentSelector,
+          context: selectorStack.filter((s) => s.startsWith("@")).join(" "),
           property: currentProp.toLowerCase(),
           value: val,
         });
@@ -1068,58 +1070,64 @@ test("Token Contract: mandatory design tokens defined in tokens.css", () => {
   }
 });
 
-test("Token Contract: token references graph is valid with no circular dependencies", () => {
-  const tokensPath = path.join(webRoot, "styles/tokens.css");
-  const content = fs.readFileSync(tokensPath, "utf8");
-  const stripped = stripCssComments(content);
-
-  const declarations = new Map();
-  const lines = stripped.split("\n");
-
-  for (const line of lines) {
-    const match = line.match(/^\s*(--[a-zA-Z0-9_-]+)\s*:\s*([^;]+);/);
-    if (match) {
-      const token = match[1];
-      const value = match[2];
-      const refs = [...value.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map(
-        (m) => m[1],
-      );
-      declarations.set(token, refs);
-    }
+function validateTokenDefinitions(css) {
+  const scopes = new Map();
+  for (const { selector, context, property, value } of parseCssDeclarations(
+    css,
+  )) {
+    if (!property.startsWith("--")) continue;
+    const key = `${context}::${selector}`;
+    if (!scopes.has(key)) scopes.set(key, new Map());
+    const scope = scopes.get(key);
+    if (scope.has(property) && scope.get(property) !== value)
+      throw Error(`Conflicting token definition ${property} in ${key}`);
+    scope.set(property, value);
   }
-
-  // Cycle detection via DFS
-  const visited = new Set();
-  const recursionStack = new Set();
-
-  function detectCycle(token, pathTrail = []) {
-    visited.add(token);
-    recursionStack.add(token);
-    pathTrail.push(token);
-
-    const dependencies = declarations.get(token) || [];
-    for (const dep of dependencies) {
-      if (!visited.has(dep)) {
-        detectCycle(dep, [...pathTrail]);
-      } else if (recursionStack.has(dep)) {
-        throw new Error(
-          `Circular token reference detected: ${[...pathTrail, dep].join(" -> ")}`,
-        );
-      }
+  const root = scopes.get(":::root") ?? new Map();
+  for (const scope of scopes.values()) {
+    const definitions = new Map([...root, ...scope]);
+    const visited = new Set(),
+      active = new Set();
+    function visit(token) {
+      if (active.has(token)) throw Error(`Circular token reference: ${token}`);
+      if (visited.has(token)) return;
+      active.add(token);
+      for (const [, dep] of (definitions.get(token) ?? "").matchAll(
+        /var\(\s*(--[a-zA-Z0-9_-]+)/g,
+      ))
+        visit(dep);
+      active.delete(token);
+      visited.add(token);
     }
-
-    recursionStack.delete(token);
+    for (const token of definitions.keys()) visit(token);
   }
-
-  for (const token of declarations.keys()) {
-    if (!visited.has(token)) {
-      detectCycle(token);
-    }
-  }
-
-  assert.ok(
-    declarations.size > 20,
-    "Token graph must contain all declared tokens without cycles",
+  return scopes;
+}
+test("Token Contract: parser detects conflicts and cycles without flattening media overrides", () => {
+  const content = fs.readFileSync(
+    path.join(webRoot, "styles/tokens.css"),
+    "utf8",
+  );
+  assert.ok(validateTokenDefinitions(content).size >= 3);
+  assert.throws(
+    () => validateTokenDefinitions(":root{--a:1px;--a:2px;}"),
+    /Conflicting/,
+  );
+  assert.throws(
+    () => validateTokenDefinitions(":root{--a:var(--b);--b:var(--a);}"),
+    /Circular/,
+  );
+  assert.throws(
+    () =>
+      validateTokenDefinitions(
+        ":root{--a:var(--b);--b:1px;} @media(max-width:900px){:root{--b:var(--a);}}",
+      ),
+    /Circular/,
+  );
+  assert.doesNotThrow(() =>
+    validateTokenDefinitions(
+      ':root{--a:1px;--b:calc(var(--a) * 2);--text:"a;b:c";} @media(max-width:900px){:root{--a:2px;}} .size[data-size="default"]{--_control:var(--b);}',
+    ),
   );
 });
 

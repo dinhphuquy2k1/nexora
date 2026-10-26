@@ -287,7 +287,7 @@ Testing avoids rigid implementation syntax locking (such as asserting exact impl
 
 4. **Runtime Token Override**:
    - Verifies that form controls bind dynamically to root CSS custom properties rather than fixed values.
-   - Automated browser CDP regression suite (`scripts/m1-p2-regression.mjs`) navigates to rendered form controls, reads initial computed styles via `window.getComputedStyle()`, dynamically modifies `--control-height: 52px`, `--control-radius: 6px`, and `--control-font-size: 16px` at `document.documentElement`, verifies that both `TextInput` and `Button` update computed styles synchronously in lockstep, and restores original values.
+   - Automated browser CDP regression suite (`scripts/m1-p2-regression.mjs`) navigates to rendered form controls, reads initial computed styles via `window.getComputedStyle()`, dynamically modifies `--control-size-default: 52px`, `--control-radius: 6px`, and `--control-font-size: 16px` at `document.documentElement`, verifies that both `TextInput` and `Button` update computed styles synchronously in lockstep, and restores original values.
 
 5. **Pre/Post-Hydration First-Paint Accessibility**:
    - At compact desktop viewports (901–1100px), Header renders a CSS-first responsive button triad (`.desktopExpandedToggle`, `.desktopCompactToggle`, `.mobileToggle`).
@@ -321,3 +321,22 @@ Public --control-size-default/medium/large replace --control-height; verify exac
 ### v3 read/Toast/Power regression contracts
 
 customer-read-state tests exercise actual generic keyed policies, owner/q/phone snapshot compatibility and sticky explicit denial across failed refresh; toast-power tests cover real queue bounds/dedupe/copies and synchronous write/read gate, plus actual SSR safe text/roles/dismiss action. They are not substitutes for React/browser timing. Extend existing CDP with same-tick two-row writes, denied mutation resets, true mutation success plus failed reconciliation, modal Toast registration/dismissal and error/success distinction. Surface readiness tests query data-customer-error as well as non-Toast alerts, and API-error readiness additionally requires an actual Toast alert; this preserves error assertions while avoiding obsolete global-alert assumptions about persistent dismissible notifications.
+
+### Approved v3 acceptance extensions
+
+The existing CDP session now covers ten widths:1920,1440,1280,1100,1024,901,900,
+768,390,375. Workspace measurements assert both Header/main inner edges, gutter,
+Header height, standard max-width/wide fill and body overflow; Customer captures
+also assert nine colgroup/header/body boundaries. Negative Node tests reject wrong
+edges/gutters/max-width/overflow. Captures store these measurements with hashes.
+Actual modal Input/Button/Select exercise32/40/48 and isolated public overrides,
+restoring exact attributes/token values/priorities in finally; Textarea remains
+multiline and native Checkbox labels are preserved. These scripts require genuine
+browser execution; static syntax PASS does not certify their assertions.
+
+Exact-phone filter typing is local until Apply or explicit Reload. It does not
+send incomplete prefixes, and unapplied incompatible draft displays an instruction,
+never a successful empty list. Missing pagination shows unavailable markers rather
+than invented zero totals. Persistent Toast errors remain dismissible across reads;
+essential errors use data-customer-error and actual API-error readiness also requires
+an active Toast alert. Do not restore obsolete global-alert assumptions.

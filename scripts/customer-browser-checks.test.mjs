@@ -35,7 +35,12 @@ function validateExpressions(source) {
 }
 test("static CDP expressions are valid JavaScript before a genuine browser run", async () => {
   let count = 0;
-  for (const name of ["customer-browser-checks.mjs", "customer-read-races.mjs"])
+  for (const name of [
+    "customer-browser-checks.mjs",
+    "customer-read-races.mjs",
+    "workspace-geometry-checks.mjs",
+    "customer-control-checks.mjs",
+  ])
     count += validateExpressions(
       await readFile(new URL(name, import.meta.url), "utf8"),
     );

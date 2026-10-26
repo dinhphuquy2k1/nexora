@@ -91,7 +91,7 @@ Testing enforces contracts, behavioral consistency, and runtime adaptability rat
 4. **Runtime Token Override Tests**: Execute in browser via Chromium/CDP:
    - Render page containing form controls.
    - Record initial computed styles of controls via `window.getComputedStyle()`.
-   - Dynamically override root tokens (e.g. `--control-height: 52px;`, `--control-radius: 6px;`, `--control-font-size: 16px;`) on `document.documentElement`.
+   - Dynamically override root tokens (e.g. `--control-size-default: 52px;`, `--control-radius: 6px;`, `--control-font-size: 16px;`) on `document.documentElement`.
    - Assert all consumer controls synchronously update their computed styles in lockstep.
    - Restore root tokens and verify computed styles return cleanly to their initial values.
 5. **Legitimate Invariant Exact-Value Boundaries**: Exact-value assertions are permitted only where an absolute dimension is an explicit, justified acceptance invariant (e.g. zero layout shifts, WCAG AA thresholds, brand visibility, maximum 420px login card width) rather than a configurable theme default.
@@ -243,7 +243,7 @@ Customer list follows the approved reference ZIP (`CustomerListView.tsx` and `sr
   8. `NGÀY TẠO` (Localized date `vi-VN`)
   9. `THAO TÁC` (Action group containing both `Edit` and `Power` status toggle button)
 - **Pagination**: Default `pageSize: 10` across query parser, state initialization, fallback, and selector. Options: `[5, 10, 20, 50, 100]`.
-- **Scoped Content Area Sizing & Padding**: Scoped `.customerContentArea` on routes starting with `/customers` (`padding: 14px` on desktop, `12px` on tablet, `10px` on mobile, `max-width: none; margin: 0; width: 100%`). This matches reference full-width data card geometry and completely eliminates asymmetric left-side whitespace and 114px header alignment offsets when the sidebar collapses on viewports wider than 1600px, while preserving the default `max-width: 1600px; margin: 0 auto;` on Overview and Settings pages.
+- **Shared Workspace Frames**: Navigation metadata selects standard/wide. Header inner and main share centered1600px standard frame or unlimited wide frame, with24/16/12px responsive gutters. MainWrapper scrolls both together; Customer-only pathname padding is removed. See [Design System](design-system.md).
 
 #### Feature compatibility ledger:
 

@@ -38,11 +38,11 @@ export function CustomerPagination({
         <div className={styles.paginationText}>
           <span>Hiển thị</span>
           <strong className={styles.paginationBold}>
-            {rowCount ? `${from}–${to}` : "0"}
+            {!pagination ? "—" : rowCount ? `${from}–${to}` : "0"}
           </strong>
           <span>/</span>
           <strong className={styles.paginationBold}>
-            {pagination?.total ?? 0}
+            {pagination?.total ?? "—"}
           </strong>
           <span>khách hàng</span>
         </div>

@@ -1,14 +1,19 @@
 // Extends the existing CDP session; never receives credentials or session tokens.
 import { waitForInteractiveLogin } from "./browser-login-ready.mjs";
+import { verifyWorkspaceGeometry } from "./workspace-geometry-checks.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 export const M1_VIEWPORTS = [
+  { width: 1920, height: 1080 },
   { width: 1440, height: 900 },
   { width: 1280, height: 800 },
+  { width: 1100, height: 800 },
   { width: 1024, height: 768 },
+  { width: 901, height: 768 },
+  { width: 900, height: 768 },
   { width: 768, height: 1024 },
   { width: 390, height: 844 },
   { width: 375, height: 812 },
@@ -106,6 +111,7 @@ export async function verifyM1Visuals({
         await until(
           'Math.round(document.querySelector("header").getBoundingClientRect().height)===56',
         );
+        await verifyWorkspaceGeometry({ evaluate, width: viewport.width });
         const mobile = viewport.width <= 900;
         if (mobile) {
           await until(
@@ -382,6 +388,6 @@ export async function verifyM1Visuals({
     await send("Emulation.clearDeviceMetricsOverride");
   }
   console.log(
-    `M1 ${prefix} ${phase}: six viewport geometry/keyboard/font evidence PASS`,
+    `M1 ${prefix} ${phase}: ten viewport geometry/keyboard/font evidence PASS`,
   );
 }

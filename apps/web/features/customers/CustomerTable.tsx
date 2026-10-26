@@ -49,6 +49,7 @@ export function CustomerTable({
   togglingId,
   powerUnavailable = false,
   loading,
+  pendingFilter = false,
   error,
   filtered,
   onClear,
@@ -60,13 +61,23 @@ export function CustomerTable({
   togglingId?: string | null;
   powerUnavailable?: boolean;
   loading: boolean;
+  pendingFilter?: boolean;
   error?: ReturnType<typeof customerError>;
   filtered: boolean;
   onClear: () => void;
   onRetry: () => void;
 }) {
   let state;
-  if (error)
+  if (pendingFilter)
+    state = (
+      <>
+        <h2 className={styles.stateTitle}>Bộ lọc chưa áp dụng</h2>
+        <p className={styles.stateDesc}>
+          Chọn Áp dụng hoặc Làm mới để tải danh sách theo số điện thoại đã nhập.
+        </p>
+      </>
+    );
+  else if (error)
     state = (
       <>
         <div className={styles.stateIconCircle}>

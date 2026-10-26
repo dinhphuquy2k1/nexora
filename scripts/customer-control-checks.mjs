@@ -5,6 +5,45 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
   await evaluate(
     "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true)))))",
   );
+  checks.step("CUSTOMER_CONTROL_SIZE_VARIANTS");
+  const sizing = await evaluate(`(()=>{
+    const root=document.documentElement;
+    const input=document.querySelector('dialog[open] input[name="name"]');
+    const button=document.querySelector('dialog[open] button[data-variant="emphasis"]');
+    const select=document.querySelector('select[aria-label="Số dòng mỗi trang"]');
+    const textarea=document.querySelector('dialog[open] textarea');
+    const checkbox=document.querySelector('dialog[open] input[type="checkbox"]');
+    if(!input||!button||!select||!textarea)return {present:false};
+    const elements=[input,button,select], attrs=elements.map(e=>e.getAttribute('data-size'));
+    const tokens=['--control-size-default','--control-size-medium','--control-size-large'];
+    const saved=tokens.map(t=>[root.style.getPropertyValue(t),root.style.getPropertyPriority(t)]);
+    const rows=[];let restored=false;
+    try{
+      for(const [index,size] of ['default','medium','large'].entries()){
+        elements.forEach(e=>e.setAttribute('data-size',size));
+        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[32,40,48][index]});
+        root.style.setProperty(tokens[index],String([36,44,52][index])+'px','important');
+        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[36,44,52][index]});
+        if(saved[index][0])root.style.setProperty(tokens[index],...saved[index]);else root.style.removeProperty(tokens[index]);
+      }
+      return {present:true,rows,textarea:textarea.rows>=3&&getComputedStyle(textarea).resize==='vertical'&&textarea.getBoundingClientRect().height>32,checkbox:!checkbox||!!checkbox.labels?.length};
+    }finally{
+      elements.forEach((e,i)=>attrs[i]===null?e.removeAttribute('data-size'):e.setAttribute('data-size',attrs[i]));
+      tokens.forEach((t,i)=>saved[i][0]?root.style.setProperty(t,...saved[i]):root.style.removeProperty(t));
+      restored=elements.every((e,i)=>e.getAttribute('data-size')===attrs[i])&&tokens.every((t,i)=>root.style.getPropertyValue(t)===saved[i][0]&&root.style.getPropertyPriority(t)===saved[i][1]);
+      if(!restored)throw Error('SIZE_OVERRIDE_RESTORATION');
+    }
+  })()`);
+  assert.equal(sizing.present, true);
+  for (const row of sizing.rows)
+    for (const height of row.heights)
+      assert.equal(
+        height,
+        row.expected,
+        `real ${row.size} height and runtime override`,
+      );
+  assert.equal(sizing.textarea, true, "multiline Textarea rows and resize");
+  assert.equal(sizing.checkbox, true, "native Checkbox label");
   for (const variant of ["emphasis", "secondary", "ghost"]) {
     const selector = `dialog[open] button[data-variant=${variant}]:not(:disabled)`;
     const location = await evaluate(

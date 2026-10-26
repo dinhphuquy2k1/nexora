@@ -63,3 +63,15 @@ test("same-query revalidation retains actual rows; failure exits skeleton with R
   assert.doesNotMatch(failed, /data-skeleton/);
   assert.match(failed, /Thử tải lại/);
 });
+
+test("unapplied filter draft is explicit and never reported as successful empty", () => {
+  const html = render(
+    React.createElement(CustomerTable, { ...props, pendingFilter: true }),
+  );
+  assert.match(html, /Bộ lọc chưa áp dụng/);
+  assert.doesNotMatch(
+    html,
+    /Chưa có khách hàng|Không tìm thấy khách hàng phù hợp/,
+  );
+  assert.equal((html.match(/<col(?=[\s/>])/g) || []).length, 9);
+});

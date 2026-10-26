@@ -5,6 +5,8 @@ import styles from "./customers.module.css";
 export function CustomerFilters({
   query,
   draft,
+  phoneDraft,
+  onPhoneDraft,
   onSearch,
   onQuery,
   onClear,
@@ -13,6 +15,8 @@ export function CustomerFilters({
 }: {
   query: Query;
   draft: string;
+  phoneDraft: string;
+  onPhoneDraft: (value: string) => void;
   onSearch: (q: string) => void;
   onQuery: (p: Partial<Query>) => void;
   onClear: () => void;
@@ -51,17 +55,25 @@ export function CustomerFilters({
       </div>
       <details className={styles.secondaryFilter}>
         <summary>Lọc số điện thoại</summary>
-        <label htmlFor="customer-phone">Số điện thoại chính xác</label>
-        <TextInput
-          id="customer-phone"
-          name="phone"
-          inputMode="tel"
-          maxLength={64}
-          value={query.phone ?? ""}
-          onChange={(e) =>
-            onQuery({ phone: e.target.value || undefined, page: 1 })
-          }
-        />
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onQuery({ phone: phoneDraft.trim() || undefined, page: 1 });
+          }}
+        >
+          <label htmlFor="customer-phone">Số điện thoại chính xác</label>
+          <TextInput
+            id="customer-phone"
+            name="phone"
+            inputMode="tel"
+            maxLength={64}
+            value={phoneDraft}
+            onChange={(e) => onPhoneDraft(e.target.value)}
+          />
+          <Button type="submit" variant="secondary">
+            Áp dụng
+          </Button>
+        </form>
       </details>
       <div className={styles.toolbarActions}>
         {filtered && (

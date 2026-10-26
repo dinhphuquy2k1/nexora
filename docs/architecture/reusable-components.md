@@ -153,14 +153,14 @@ This registry catalogues canonical, reusable technical components and shared voc
 - **Intended & Active Consumers**:
   - Login (`LoginForm`), Setup (`SetupForm`), modal dialogs and Customer M2 forms/filters; future Settings forms.
 - **Supported Behavior**:
-  - **Canonical Sizing & Typography Contract**: `height: var(--control-height)` (default 32px), `border-radius: var(--control-radius)` (default 12px), `box-sizing: border-box`, and `font-size: var(--control-font-size)` (shared between `TextInput`, `Button`, and `Textarea` to ensure cohesive typography scaling).
+  - **Canonical Sizing & Typography Contract**: `size="default"` → shared `--control-size-default` (32px) (default 32px), `border-radius: var(--control-radius)` (default 8px), `box-sizing: border-box`, and `font-size: var(--control-font-size)` (shared between `TextInput`, `Button`, and `Textarea` to ensure cohesive typography scaling).
   - **State Parity**: Complete contract covering default, hover, focus/focus-visible, disabled, readonly, invalid (`aria-invalid="true"`), and placeholder.
   - **State Precedence**: Focus and invalid states strictly override hover styling via `:not(:focus):not([aria-invalid="true"])`.
   - **Button Contrast (WCAG AA)**: Standardized to semantic foreground `--color-text-on-accent: var(--brand-navy, #172b4d)` text on orange `--color-accent: var(--brand-orange, #f58a24)` background (5.74:1 contrast ratio, exceeding WCAG AA 4.5:1 requirement). On hover (`--color-accent-hover`), enabled button transitions foreground to `--color-text-on-accent-hover` (4.58:1 contrast) with `color 0.15s ease`. Disabled button preserves `--control-disabled-text`. Verified on real rendered elements in genuine `:hover` state via CDP pointer dispatch, confirming `>= 4.5:1` ratio after transition completion (0.15s) and compositing. Negative accessibility regression tests prove that deliberate inaccessible contrast fails closed, and distinct foreground token overrides prove that hover resolves its dedicated foreground token rather than reusing default foreground.
-  - **Textarea Parity**: Retained in `@nexora/ui` to guarantee domain-neutral form control contract parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, disabled/readonly/invalid states, with default 88px min-height and vertical resize.
+  - **Textarea Parity**: Retained in `@nexora/ui` to guarantee domain-neutral form control contract parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, disabled/readonly/invalid states, with default three rows, size-aware multiline minimum and vertical resize.
   - **Self-Contained Styling**: Owns all default control appearance in `Controls.module.css` through direct token consumption.
 - **Styling / Token Dependencies**:
-  - Sizing & Radius: `--control-size-default/medium/large`, `--control-radius`, `--control-padding-x`, `--control-padding-y`, `--control-font-size`.
+  - Sizing & Radius: `--control-size-default/medium/large`, `--control-radius`, size-specific `--control-padding-inline-*`, `--control-padding-block-*`, `--control-font-size`.
   - Colors & States: `--control-bg`, `--control-bg-focus`, `--control-text`, `--control-placeholder`, `--control-border`, `--control-border-hover`, `--control-focus-border`, `--control-focus-ring`, `--control-disabled-bg`, `--control-disabled-text`, `--control-disabled-border`, `--control-readonly-bg`, `--control-invalid-border`, `--control-invalid-focus-ring`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`.
 - **Fallback Policy**:
   - `apps/web`: Mandatory theme tokens guaranteed by root `tokens.css`; fallbacks in `apps/web` are prohibited.
@@ -170,7 +170,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Does not manage form submission, data-binding, or validation logic. Consuming feature components handle validation.
   - Does not use `!important` or broad global selectors.
 - **Native Select Contract (M2)**:
-  - Standard established: `height: var(--control-height)`, identical borders, radius, background, and focus ring matching `TextInput`.
+  - Standard established: `size="default"` → shared `--control-size-default` (32px), identical borders, radius, background, and focus ring matching `TextInput`.
   - `Select` is exported from Controls.tsx and shares the input class/state tokens; actual consumers are Customer status/page-size/replacement filters. It is a native select, without a custom listbox or invented readonly state. Browser parity remains an executed acceptance gate.
 - **When to Reuse**:
   - Whenever rendering standard text inputs, textareas, primary buttons, or checkboxes across web features.
@@ -268,3 +268,8 @@ Controls export ControlSize(default|medium|large), typed native/ref props, Butto
 ## Shared Toast and modal viewport
 
 Owner: packages/ui/src/Toast.tsx, toast-state.ts and Toast.module.css. Exports ToastProvider, useToast, ToastViewport, Toast and ToastMessage. Domain/transport-neutral bounded queue and live-region/dismissal/timeout behavior; actual consumers are Customer List/Detail read feedback and profile/address/default/delete/Power mutations. AppShell keys provider by verified user identity; native Overlay registers its optional active viewport. No API calls, Customer imports, raw HTML or browser persistence. See [Design System](design-system.md); static/SSR tests do not replace native dialog/focus/session/CDP acceptance.
+
+Panel now supports optional standard/compact density and actions; Customer Detail
+uses compact panels for profile/addresses. Workspace frame CSS is shared by Header
+inner/main and is selected by canonical route metadata. ToastProvider/Viewport API
+and all size/color contracts are owned by [Design System](design-system.md).

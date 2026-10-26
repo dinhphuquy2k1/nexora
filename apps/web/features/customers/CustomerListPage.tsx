@@ -42,9 +42,17 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   );
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [draft, setDraft] = useState(query.q ?? "");
+  const [phoneDraft, setPhoneDraft] = useState(query.phone ?? "");
+  useEffect(() => {
+    setPhoneDraft(query.phone ?? "");
+  }, [query.phone]);
   const [statistics, setStatistics] = useState<StatisticsSnapshot>();
   const committedScope = statisticsScope(ownerId, query);
-  const displayScope = statisticsScope(ownerId, query, draft);
+  const displayScope = statisticsScope(
+    ownerId,
+    { ...query, phone: phoneDraft },
+    draft,
+  );
   useEffect(() => {
     if (read.denied || invalid) {
       setStatistics(undefined);
@@ -172,8 +180,19 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
       current = { page: 1, pageSize: 10 };
     }
     const currentQ = (current.q ?? "").trim();
-    if (trimmedDraft !== currentQ) {
-      change({ q: trimmedDraft || undefined, page: 1 }, true);
+    const trimmedPhone = phoneDraft.trim();
+    if (
+      trimmedDraft !== currentQ ||
+      trimmedPhone !== (current.phone ?? "").trim()
+    ) {
+      change(
+        {
+          q: trimmedDraft || undefined,
+          phone: trimmedPhone || undefined,
+          page: 1,
+        },
+        true,
+      );
     } else {
       if (draft !== trimmedDraft) {
         setDraft(trimmedDraft);
@@ -237,6 +256,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   }
   const clearFilters = () => {
     setDraft("");
+    setPhoneDraft("");
     change({ q: undefined, status: undefined, phone: undefined, page: 1 });
   };
   return (
@@ -290,6 +310,8 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
         <CustomerFilters
           query={query}
           draft={draft}
+          phoneDraft={phoneDraft}
+          onPhoneDraft={setPhoneDraft}
           onSearch={searchChange}
           onQuery={(p) => change(p)}
           onClear={() => {
@@ -348,6 +370,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           <CustomerTable
             rows={rows ?? []}
             loading={read.loading}
+            pendingFilter={!compatible && !read.loading}
             error={
               read.error ??
               (read.denied
@@ -365,7 +388,9 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
                 ? powerState.id
                 : null
             }
-            powerUnavailable={!!powerState || !!read.error || read.loading}
+            powerUnavailable={
+              !compatible || !!powerState || !!read.error || read.loading
+            }
             onClear={clearFilters}
             onRetry={handleReload}
           />
