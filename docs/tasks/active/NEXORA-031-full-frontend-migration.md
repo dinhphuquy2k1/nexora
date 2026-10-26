@@ -1077,3 +1077,11 @@ combined disabled/readonly/invalid precedence, waiting actual CSS transitions an
 restoring attributes/focus. Policy/helper tests PASS14/14; genuine final-head probe
 execution remains required. Independent full source review at9c84a56: no confirmed
 P1/P2, focused24/24 PASS; this later focused state change receives follow-up review.
+
+Hosted7f35887 run40281146330 now passes duplicate-phone form; hit-test confirms
+Create pointer toastOcclusion=true. It progresses through controlled read races and
+captures request-error, then fails at retry after that capture. Two persistent errors
+can cover the toolbar retry target. The scenario now explicitly dismisses captured
+notifications through real close controls before manual retry; one shared bounded
+helper also serves Create and Power scenarios. Feedback capture/assertions stay
+before dismissal; writes are not retried and timeouts/assertions remain unchanged.

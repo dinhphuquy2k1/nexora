@@ -187,6 +187,8 @@ export async function verifyCustomerReadRaces({
       true,
     );
     await snapshot("request-error");
+    checks.step("CUSTOMER_FORBIDDEN_EXPLICIT_RETRY");
+    await dismissCustomerToasts({ evaluate });
     mode = "hold";
     await click("Làm mới");
     await ready();
@@ -287,20 +289,6 @@ export async function verifyCustomerPower({
     }
     throw Error("CUSTOMER_POWER_CONDITION");
   }
-  async function dismissNotifications() {
-    for (let n = 0; n < 6; n++) {
-      const dismissed = await evaluate(
-        "(()=>{const button=document.querySelector('[data-toast-viewport] button');if(!button)return false;button.click();return true;})()",
-      );
-      if (!dismissed) break;
-    }
-    assert.equal(
-      await evaluate(
-        "document.querySelectorAll('[data-toast-message]').length",
-      ),
-      0,
-    );
-  }
   socket.addEventListener("message", handler);
   await send("Fetch.enable", {
     patterns: [
@@ -315,7 +303,7 @@ export async function verifyCustomerPower({
       ),
       1,
     );
-    await dismissNotifications();
+    await dismissCustomerToasts({ evaluate });
     checks.step("CUSTOMER_POWER_SAME_TICK");
     await until(
       `Array.from(document.querySelectorAll('${powerSelector}')).filter(b=>!b.disabled).length>=2`,
@@ -333,7 +321,7 @@ export async function verifyCustomerPower({
     );
     await ready();
     checks.step("CUSTOMER_POWER_COMMITTED_WRITE_FAILED_READ");
-    await dismissNotifications();
+    await dismissCustomerToasts({ evaluate });
     const target = await evaluate(
       `document.querySelector('${powerSelector}').closest('tr').querySelector('a[href]').getAttribute('href')`,
     );
@@ -383,4 +371,17 @@ export async function verifyCustomerPower({
     socket.removeEventListener("message", handler);
     await send("Fetch.disable");
   }
+}
+
+export async function dismissCustomerToasts({ evaluate }) {
+  for (let n = 0; n < 6; n++) {
+    const dismissed = await evaluate(
+      "(()=>{const button=document.querySelector('[data-toast-viewport] button');if(!button)return false;button.click();return true;})()",
+    );
+    if (!dismissed) break;
+  }
+  assert.equal(
+    await evaluate("document.querySelectorAll('[data-toast-message]').length"),
+    0,
+  );
 }

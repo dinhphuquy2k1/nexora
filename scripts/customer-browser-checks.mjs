@@ -7,6 +7,7 @@ import { verifyCustomerControls } from "./customer-control-checks.mjs";
 import {
   verifyCustomerReadRaces,
   verifyCustomerPower,
+  dismissCustomerToasts,
 } from "./customer-read-races.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -138,21 +139,9 @@ export async function verifyCustomerBrowser({
         ),
       ),
     );
-    for (let n = 0; n < 6; n++) {
-      if (
-        !(await evaluate(
-          "(()=>{const button=document.querySelector('[data-toast-viewport] button');if(!button)return false;button.click();return true;})()",
-        ))
-      )
-        break;
-    }
-    assert.equal(
-      await evaluate(
-        "document.querySelectorAll('[data-toast-message]').length",
-      ),
-      0,
-    );
+    await dismissCustomerToasts({ evaluate });
   }
+
   async function click(text) {
     const expr = button(text);
     await until(
