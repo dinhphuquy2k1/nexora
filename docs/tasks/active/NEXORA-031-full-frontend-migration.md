@@ -1085,3 +1085,9 @@ can cover the toolbar retry target. The scenario now explicitly dismisses captur
 notifications through real close controls before manual retry; one shared bounded
 helper also serves Create and Power scenarios. Feedback capture/assertions stay
 before dismissal; writes are not retried and timeouts/assertions remain unchanged.
+
+Final browser acceptance additionally verifies genuine success Toast hover pause
+beyond5seconds, eventual expiry after pointer leaves, persistent error beyond5seconds,
+keyboard Enter dismissal/focus restoration and retained inline error. New-owner
+Customer entry asserts no notifications from the prior workspace. These are explicit
+real CDP interactions, not timer mocks; hosted execution is still pending.

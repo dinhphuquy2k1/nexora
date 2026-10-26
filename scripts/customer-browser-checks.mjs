@@ -396,6 +396,13 @@ export async function verifyCustomerBrowser({
     await navigate("/customers");
     step("LIST_RENDER");
     await until(`${button("Thêm khách hàng")}`);
+    assert.equal(
+      await evaluate(
+        "document.querySelectorAll('[data-toast-message]').length",
+      ),
+      0,
+      "new owner workspace has no previous notifications",
+    );
     await snapshot("empty-list");
     step("CREATE_DRAWER_OPEN");
     // Prove harmless create toggle is interactive before typing; never retry a mutation.

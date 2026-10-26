@@ -320,6 +320,22 @@ export async function verifyCustomerPower({
       "same-tick two-row action sends exactly one genuine PATCH",
     );
     await ready();
+    checks.step("CUSTOMER_TOAST_SUCCESS_TIMER_PAUSES_HOVER");
+    const location = await evaluate(
+      "(()=>{const el=document.querySelector('[data-toast-message][role=status]');if(!el)return null;const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};})()",
+    );
+    assert.ok(location);
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", ...location });
+    await delay(5200);
+    assert.equal(
+      await evaluate(
+        "Boolean(document.querySelector('[data-toast-message][role=status]'))",
+      ),
+      true,
+      "hover pauses success expiry",
+    );
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 0, y: 0 });
+    await until("!document.querySelector('[data-toast-message][role=status]')");
     checks.step("CUSTOMER_POWER_COMMITTED_WRITE_FAILED_READ");
     await dismissCustomerToasts({ evaluate });
     const target = await evaluate(
@@ -358,7 +374,46 @@ export async function verifyCustomerPower({
       true,
       "confirmed write and failed read have distinct actual Toasts",
     );
+    checks.step("CUSTOMER_TOAST_PERSISTENT_ERROR_KEYBOARD_DISMISS");
+    await delay(5200);
+    assert.equal(
+      await evaluate(
+        "Boolean(document.querySelector('[data-toast-message][role=alert]'))",
+      ),
+      true,
+      "error never expires automatically",
+    );
     await snapshot("power-reconciliation-error");
+    await evaluate(
+      "document.querySelector('button[aria-label=\"Làm mới\"]').focus();document.querySelector('[data-toast-message][role=alert]').parentElement.querySelector('button').focus();true",
+    );
+    await send("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "Enter",
+      code: "Enter",
+      windowsVirtualKeyCode: 13,
+    });
+    await send("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "Enter",
+      code: "Enter",
+      windowsVirtualKeyCode: 13,
+    });
+    await until("!document.querySelector('[data-toast-message][role=alert]')");
+    assert.equal(
+      await evaluate(
+        "document.activeElement===document.querySelector('button[aria-label=\"Làm mới\"]')",
+      ),
+      true,
+      "keyboard dismissal restores previous live focus",
+    );
+    assert.equal(
+      await evaluate(
+        "Boolean(document.querySelector('main [data-customer-error]'))",
+      ),
+      true,
+      "essential error stays inline after Toast dismissal",
+    );
     failRead = false;
     await click("Đối chiếu lại dữ liệu");
     await ready();
