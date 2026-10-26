@@ -269,12 +269,12 @@ Testing avoids rigid implementation syntax locking (such as asserting exact impl
    - Enforces Semantic Ownership: strictly forbids role mismatches across all token properties (text color, surface/background, border, outline/focus ring, and elevation/box-shadow). Negative unit tests prove violations in standard paths and future `features/` modules are detected.
 
 2. **Component Consistency & Computed-Style Parity**:
-   - Asserts shared primitives (`TextInput`, `Textarea`, `Button`, `Checkbox`) bind sizing, typography, and states to canonical contract tokens (`--control-height`, `--control-radius`, `--control-font-size`) without hardcoding implementation constants.
+   - Asserts shared primitives (`TextInput`, `Textarea`, `Button`, `Checkbox`) bind sizing, typography, and states to canonical contract tokens (`--control-size-default/medium/large`, `--control-radius`, `--control-font-size`) without hardcoding implementation constants.
    - Verifies geometric and typography parity: `inputHeight === buttonHeight`, `inputRadius === buttonRadius`, and `inputFontSize === buttonFontSize` across shared controls.
    - Verifies state parity: `TextInput` and `Textarea` share identical border, focus, disabled, readonly, and invalid (`aria-invalid="true"`) semantics.
    - Enforces CSS specificity rules: hover states must not override active focus states (`:not(:focus)`).
    - Verifies zero `!important` overrides in form controls and ensures `@nexora/ui` primitives are reused across `LoginForm` and `SetupForm`.
-   - Theme Independence: Changing `--control-height` from 44px to 48px or `--control-radius` from 12px to 8px in `tokens.css` updates all consumers in lockstep and does not require updating tests.
+   - Runtime Adaptability: Overriding a selected public size token or control radius updates actual consumers; probes compare the override and restore its exact value/priority. Base32/40/48 acceptance is an explicit approved contract, so an unapproved base-size change must fail rather than silently update expectations.
 
 3. **Real WCAG AA Contrast Testing**:
    - Evaluates contrast dynamically using real rendered computed styles from `getComputedStyle()` (foreground `color` and composited `background-color`) in both default and real `:hover` states.

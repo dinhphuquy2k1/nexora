@@ -145,15 +145,15 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Styling: `packages/ui/src/Controls.module.css`
   - Barrel: `packages/ui/src/index.tsx`
 - **Exported Contract**:
-  - `export function Button(props: ButtonProps): JSX.Element`, extending native attributes with optional `variant: primary | secondary | ghost` and `icon: boolean`. Primary remains the default for Login/M1.
-  - `export function TextInput(props: InputHTMLAttributes<HTMLInputElement>): JSX.Element`
-  - `export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>): JSX.Element`
+  - `export function Button(props: ButtonProps): JSX.Element`, extending native attributes with optional `variant: primary | secondary | ghost | emphasis` and `icon: boolean`. Primary remains the default for Login/M1.
+  - `export function TextInput(props: TextInputProps): JSX.Element`
+  - `export function Textarea(props: TextareaProps): JSX.Element`
   - `export function Checkbox(props: CheckboxProps): JSX.Element`
-  - `export function Select(props: SelectHTMLAttributes<HTMLSelectElement>): JSX.Element`
+  - `export function Select(props: SelectProps): JSX.Element`
 - **Intended & Active Consumers**:
   - Login (`LoginForm`), Setup (`SetupForm`), modal dialogs and Customer M2 forms/filters; future Settings forms.
 - **Supported Behavior**:
-  - **Canonical Sizing & Typography Contract**: `size="default"` → shared `--control-size-default` (32px) (default 32px), `border-radius: var(--control-radius)` (default 8px), `box-sizing: border-box`, and `font-size: var(--control-font-size)` (shared between `TextInput`, `Button`, and `Textarea` to ensure cohesive typography scaling).
+  - **Canonical Sizing & Typography Contract**: `size="default"` → shared `--control-size-default` (32px), `border-radius: var(--control-radius)` (default 8px), `box-sizing: border-box`, and `font-size: var(--control-font-size)` (shared between `TextInput`, `Button`, and `Textarea` to ensure cohesive typography scaling).
   - **State Parity**: Complete contract covering default, hover, focus/focus-visible, disabled, readonly, invalid (`aria-invalid="true"`), and placeholder.
   - **State Precedence**: Focus and invalid states strictly override hover styling via `:not(:focus):not([aria-invalid="true"])`.
   - **Button Contrast (WCAG AA)**: Standardized to semantic foreground `--color-text-on-accent: var(--brand-navy, #172b4d)` text on orange `--color-accent: var(--brand-orange, #f58a24)` background (5.74:1 contrast ratio, exceeding WCAG AA 4.5:1 requirement). On hover (`--color-accent-hover`), enabled button transitions foreground to `--color-text-on-accent-hover` (4.58:1 contrast) with `color 0.15s ease`. Disabled button preserves `--control-disabled-text`. Verified on real rendered elements in genuine `:hover` state via CDP pointer dispatch, confirming `>= 4.5:1` ratio after transition completion (0.15s) and compositing. Negative accessibility regression tests prove that deliberate inaccessible contrast fails closed, and distinct foreground token overrides prove that hover resolves its dedicated foreground token rather than reusing default foreground.
@@ -259,7 +259,7 @@ This registry catalogues canonical, reusable technical components and shared voc
 
 ### Neutral action hierarchy (Customer M2 actual consumers)
 
-Button primary(default)/secondary/ghost variants share control sizing/radius/font, focus ring and disabled behavior. Secondary uses surface/text/border semantic tokens; ghost uses transparent surface and semantic text; neither relies on feature CSS state overrides. `icon` makes width/min-width equal to control-height, retaining canonical hit target; consumers provide an accessible name. Actual consumers: Customer toolbar/reload/clear, segmented status, pagination, profile/address inline actions and drawer Cancel/Save. Input/Select/Textarea remain unchanged. New root semantic text-on-dark accent and accent-border tokens belong to dark brand icons/default-address emphasis, not interchangeable palette shortcuts. Genuine computed-style/contrast/token-override and M1/Login regression remain acceptance requirements.
+Button primary(default)/secondary/ghost variants share control sizing/radius/font, focus ring and disabled behavior. Secondary uses surface/text/border semantic tokens; ghost uses transparent surface and semantic text; neither relies on feature CSS state overrides. `icon` makes width/min-width equal to the selected control size, retaining canonical hit target; consumers provide an accessible name. Actual consumers: Customer toolbar/reload/clear, segmented status, pagination, profile/address inline actions and drawer Cancel/Save. Input/Select/Textarea share the approved size API; multiline/native multiple exceptions remain. New root semantic text-on-dark accent and accent-border tokens belong to dark brand icons/default-address emphasis, not interchangeable palette shortcuts. Genuine computed-style/contrast/token-override and M1/Login regression remain acceptance requirements.
 
 ### v3 shared control API migration
 
