@@ -98,9 +98,7 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
         x: hover ? location.x : 0,
         y: hover ? location.y : 0,
       });
-      const result = await evaluate(
-        `(async()=>{const el=document.querySelector(${JSON.stringify(selector)});await Promise.all(el.getAnimations().map(a=>a.finished.catch(()=>{})));const parse=s=>{const n=s.match(/[\\d.]+/g).map(Number);return[n[0],n[1],n[2],n[3]??1];};const chain=[];for(let n=el;n;n=n.parentElement)chain.push(n);let bg=[255,255,255];for(const n of chain.reverse()){const c=parse(getComputedStyle(n).backgroundColor);bg=bg.map((v,i)=>c[i]*c[3]+v*(1-c[3]));}const fg=parse(getComputedStyle(el).color);const text=bg.map((v,i)=>fg[i]*fg[3]+v*(1-fg[3]));const luminance=c=>c.map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);const a=luminance(text),b=luminance(bg);return{ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05),hover:el.matches(':hover'),height:getComputedStyle(el).height,radius:getComputedStyle(el).borderRadius};})()`,
-      );
+      const result = await evaluate(customerContrastExpression(selector));
       console.log(
         "Customer control diagnostic",
         JSON.stringify({ variant, expectedHover: hover, ...result }),
@@ -116,4 +114,31 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
   console.log(
     "Customer actual emphasis/secondary/ghost default and hover contrast PASS",
   );
+}
+
+export function customerContrastExpression(selector) {
+  return `(async()=>{const el=document.querySelector(${JSON.stringify(selector)});await Promise.all(el.getAnimations().map(a=>a.finished.catch(()=>{})));const parse=s=>{const n=s.match(/[\\d.]+/g).map(Number);return[n[0],n[1],n[2],n[3]??1];};const chain=[];for(let n=el;n;n=n.parentElement)chain.push(n);let bg=[255,255,255];for(const n of chain.reverse()){const c=parse(getComputedStyle(n).backgroundColor);bg=bg.map((v,i)=>c[i]*c[3]+v*(1-c[3]));}const fg=parse(getComputedStyle(el).color);const text=bg.map((v,i)=>fg[i]*fg[3]+v*(1-fg[3]));const luminance=c=>c.map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);const a=luminance(text),b=luminance(bg);return{ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05),hover:el.matches(':hover'),height:getComputedStyle(el).height,radius:getComputedStyle(el).borderRadius};})()`;
+}
+
+export async function verifyCustomerStatusContrast({ evaluate, checks }) {
+  checks.step("CUSTOMER_STATUS_AND_COUNT_CONTRAST");
+  const base = "main tbody tr:not([data-skeleton]) td:nth-child(7)>span";
+  const count = await evaluate(
+    `document.querySelectorAll(${JSON.stringify(base)}).length`,
+  );
+  assert.ok(count > 0, "actual status chips required");
+  const selectors = [];
+  for (let i = 0; i < count; i++)
+    selectors.push(
+      `main tbody tr:not([data-skeleton]):nth-child(${i + 1}) td:nth-child(7)>span`,
+    );
+  selectors.push("main [role=tab][aria-selected=true]>span:last-child");
+  for (const selector of selectors) {
+    const result = await evaluate(customerContrastExpression(selector));
+    assert.ok(result.ratio >= 4.5, "actual status/count text must meet AA");
+    console.log(
+      "Customer status/count contrast diagnostic",
+      JSON.stringify({ ratio: result.ratio }),
+    );
+  }
 }

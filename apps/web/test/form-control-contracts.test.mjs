@@ -2047,7 +2047,7 @@ test("Component Consistency: Form controls share canonical contract tokens for s
   );
 });
 
-test("Component Consistency: Button WCAG AA contrast compliance (>= 4.5:1) from resolved theme tokens", () => {
+test("Component Consistency: Button and status WCAG AA contrast from resolved theme tokens", () => {
   const tokensPath = path.join(webRoot, "styles/tokens.css");
   const tokensContent = fs.readFileSync(tokensPath, "utf8");
 
@@ -2100,6 +2100,15 @@ test("Component Consistency: Button WCAG AA contrast compliance (>= 4.5:1) from 
     hoverRatio >= 4.5,
     `Button hover contrast ratio from resolved tokens (${textHoverColorHex} on ${accentHoverBgHex}) must be >= 4.5:1, but was ${hoverRatio.toFixed(2)}:1`,
   );
+
+  for (const status of ["success", "pending"]) {
+    const text = hexToRgb(resolveTokenHex(`--color-status-${status}-text`));
+    const background = hexToRgb(resolveTokenHex(`--color-status-${status}-bg`));
+    assert.ok(
+      getContrastRatio(text, background) >= 4.5,
+      `${status} text must meet AA`,
+    );
+  }
 
   // Negative test proof: An inaccessible combination (e.g. white text on brand orange) MUST fail WCAG AA
   const inaccessibleWhiteRgb = [255, 255, 255];

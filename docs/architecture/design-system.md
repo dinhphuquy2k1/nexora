@@ -120,3 +120,8 @@ Fixed-column Customer name/email text wraps within the column and retains comple
 DOM text plus keyboard Detail links; it cannot paint over neighboring columns.
 The same native colgroup owns row/Skeleton/header widths. Browser Range checks
 validate both padded header text and actual data-cell content, including long fixtures.
+
+Pending/inactive status text uses its semantic pending foreground mapped to gray700,
+including the decorative dot. The previous muted gray500 against pending background
+was4.14:1 and failed normal-text AA; root palette calculation and genuine status/count
+composed-color probes enforce4.5. Active semantics remain unchanged.

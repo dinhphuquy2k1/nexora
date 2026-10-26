@@ -1,4 +1,5 @@
 // Controlled response scheduling in the existing real browser; not an infrastructure mock PASS.
+import { verifyCustomerStatusContrast } from "./customer-control-checks.mjs";
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 export async function verifyCustomerReadRaces({
@@ -374,6 +375,7 @@ export async function verifyCustomerPower({
       true,
       "confirmed write and failed read have distinct actual Toasts",
     );
+    await verifyCustomerStatusContrast({ evaluate, checks });
     checks.step("CUSTOMER_TOAST_PERSISTENT_ERROR_KEYBOARD_DISMISS");
     await delay(5200);
     assert.equal(

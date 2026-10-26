@@ -1173,3 +1173,11 @@ alert present; no observed auth response status). Add only safe fixed-message-ca
 booleans and fixed endpoint-dispatched flags to distinguish client validation from
 transport/API rejection. No credential values, raw alerts/headers/errors logged;
 TLS/Host/Origin/MFA/cookie assertions and timeouts unchanged. Data/dev still SKIPPED.
+
+Final AA audit found confirmed status P2: inactive gray500 (#64748b) against pending
+#edf0ec is4.1416:1. Existing token resolver/contrast test extended to success/pending
+roles RED before source change. Pending semantic foreground now maps existing gray700;
+Customer chip/dot consume that role, without darkening all muted text. Shared browser
+contrast expression reused for actual status chips and selected counts in initial
+and Power retained rows; no duplicate color algorithm. Genuine final-head AA still
+requires hosted probe execution. This is approved semantic-color/accessibility scope.

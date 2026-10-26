@@ -357,7 +357,7 @@
 }
 .statusChipInactive {
   background: var(--color-status-pending-bg);
-  color: var(--color-text-muted);
+  color: var(--color-status-pending-text);
   border: 1px solid var(--color-border);
 }
 .chipDot {
@@ -372,7 +372,7 @@
   color: var(--color-status-success-text);
 }
 .chipDotInactive {
-  color: var(--color-text-muted);
+  color: var(--color-status-pending-text);
 }
 .dateCell {
   text-align: center;

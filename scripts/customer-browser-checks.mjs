@@ -3,7 +3,10 @@ import {
   verifyWorkspaceGeometry,
   verifyCustomerTableGeometry,
 } from "./workspace-geometry-checks.mjs";
-import { verifyCustomerControls } from "./customer-control-checks.mjs";
+import {
+  verifyCustomerControls,
+  verifyCustomerStatusContrast,
+} from "./customer-control-checks.mjs";
 import {
   verifyCustomerReadRaces,
   verifyCustomerPower,
@@ -626,6 +629,7 @@ export async function verifyCustomerBrowser({
         false,
       );
     }
+    await verifyCustomerStatusContrast({ evaluate, checks });
     await snapshot("list");
     step("WIDE_MANUAL_SIDEBAR_COLLAPSE");
     await send("Emulation.setDeviceMetricsOverride", {
