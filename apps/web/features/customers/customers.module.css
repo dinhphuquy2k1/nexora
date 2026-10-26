@@ -294,7 +294,6 @@
   border-right: 1px solid var(--color-border);
   font-size: var(--font-size-sm);
   vertical-align: middle;
-  max-width: 16rem;
   overflow-wrap: anywhere;
 }
 .table td:last-child {
@@ -325,8 +324,7 @@
 .customerName {
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
-
-  white-space: nowrap;
+  white-space: normal;
 }
 .phoneCell {
   font-family: monospace;
@@ -337,7 +335,7 @@
 }
 .emailCell {
   color: var(--color-text-muted);
-  white-space: nowrap;
+  white-space: normal;
 }
 .statusCell {
   text-align: center;
@@ -968,12 +966,10 @@
 }
 .staleFeedback {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2);
-}
-.table td {
-  overflow-wrap: anywhere;
 }
 
 .secondaryFilter {

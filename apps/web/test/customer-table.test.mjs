@@ -75,3 +75,18 @@ test("unapplied filter draft is explicit and never reported as successful empty"
   );
   assert.equal((html.match(/<col(?=[\s/>])/g) || []).length, 9);
 });
+
+test("long name/email retain their complete accessible DOM contents", () => {
+  const name = "N".repeat(200),
+    email = "a".repeat(64) + "@" + "b".repeat(185) + ".com";
+  assert.equal(email.length, 254);
+  const html = render(
+    React.createElement(CustomerTable, {
+      ...props,
+      rows: [{ ...row, name, email }],
+    }),
+  );
+  assert.ok(html.includes(name));
+  assert.ok(html.includes(email));
+  assert.match(html, /aria-label="Xem KH000001"/);
+});

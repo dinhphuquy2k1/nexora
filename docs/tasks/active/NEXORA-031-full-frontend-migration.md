@@ -1148,3 +1148,12 @@ CHECK_FAILED. Added precise post-capture keyboard-dismiss/explicit-retry/read-se
 controls-enabled checkpoints. Keyboard phase brings the genuine tab to front and
 asserts document/Toast-control focus before Enter; no focus emulation or mutation
 retry. Actual remaining failing child must be diagnosed from hosted evidence.
+
+Opened actual5796799 Power-error1440×900/375×812 images (artifact12633673231,
+partial failed run, not final acceptance) show another confirmed visual P2: nowrap
+name/email can paint across fixed column boundaries; mobile Retry label wraps beyond
+its32px control. Name/email now wrap with full accessible DOM text and existing
+keyboard Detail disclosure; remove obsolete td max-width competing with colgroup.
+Shared Button labels stay single-line and feedback flex-wraps. Add body text/content
+Range bounds to the same genuine table geometry gate, plus SSR full200-name/254-email
+retention regression. No backend or data contract changes.

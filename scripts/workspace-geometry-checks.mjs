@@ -31,10 +31,15 @@ export async function verifyWorkspaceGeometry({ evaluate, width }) {
 }
 export async function verifyCustomerTableGeometry({ evaluate }) {
   const value = await evaluate(
-    `(()=>{const table=document.querySelector('main table'),row=table?.querySelector('tbody tr');if(!table||!row)return null;const headers=Array.from(table.querySelectorAll('thead th')).map(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),range=document.createRange();range.selectNodeContents(e);const text=range.getBoundingClientRect();return {left:r.left,right:r.right,textLeft:text.left,textRight:text.right,paddingLeft:parseFloat(s.paddingLeft),paddingRight:parseFloat(s.paddingRight)}}),cells=Array.from(row.children).map(e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,colspan:e.colSpan}});return {cols:table.querySelectorAll('colgroup col').length,headers,cells,skeleton:row.hasAttribute('data-skeleton')};})()`,
+    `(()=>{const table=document.querySelector('main table'),row=table?.querySelector('tbody tr');if(!table||!row)return null;const headers=Array.from(table.querySelectorAll('thead th')).map(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),range=document.createRange();range.selectNodeContents(e);const text=range.getBoundingClientRect();return {left:r.left,right:r.right,textLeft:text.left,textRight:text.right,paddingLeft:parseFloat(s.paddingLeft),paddingRight:parseFloat(s.paddingRight)}}),cells=Array.from(row.children).map(e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,colspan:e.colSpan}});return {cols:table.querySelectorAll('colgroup col').length,headers,cells,skeleton:row.hasAttribute('data-skeleton'),bodyContentFits:Array.from(table.querySelectorAll('tbody tr:not([data-skeleton])')).filter(row=>row.children.length===9).every(row=>Array.from(row.children).every(cell=>{const r=cell.getBoundingClientRect(),s=getComputedStyle(cell),range=document.createRange();range.selectNodeContents(cell);const content=range.getBoundingClientRect();return content.left>=r.left+parseFloat(s.paddingLeft)-1&&content.right<=r.right-parseFloat(s.paddingRight)+1;}))};})()`,
   );
   assert.ok(value, "real table must exist");
   assert.equal(value.cols, 9);
+  assert.equal(
+    value.bodyContentFits,
+    true,
+    "actual row content must stay inside its padded columns",
+  );
   assert.equal(value.headers.length, 9);
   for (const [index, header] of value.headers.entries()) {
     assert.ok(
