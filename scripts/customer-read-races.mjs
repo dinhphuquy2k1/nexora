@@ -384,8 +384,17 @@ export async function verifyCustomerPower({
       "error never expires automatically",
     );
     await snapshot("power-reconciliation-error");
+    checks.step("CUSTOMER_TOAST_KEYBOARD_DISMISS");
+    await send("Page.bringToFront");
     await evaluate(
       "document.querySelector('button[aria-label=\"Làm mới\"]').focus();document.querySelector('[data-toast-message][role=alert]').parentElement.querySelector('button').focus();true",
+    );
+    assert.equal(
+      await evaluate(
+        "document.hasFocus()&&Boolean(document.activeElement.closest('[data-toast-id]'))",
+      ),
+      true,
+      "actual Toast close control must have keyboard focus",
     );
     await send("Input.dispatchKeyEvent", {
       type: "keyDown",
@@ -415,8 +424,11 @@ export async function verifyCustomerPower({
       "essential error stays inline after Toast dismissal",
     );
     failRead = false;
+    checks.step("CUSTOMER_POWER_EXPLICIT_READ_RETRY");
     await click("Đối chiếu lại dữ liệu");
+    checks.step("CUSTOMER_POWER_RETRY_READ_SETTLED");
     await ready();
+    checks.step("CUSTOMER_POWER_RETRY_CONTROLS_ENABLED");
     await until(
       `document.querySelectorAll('${powerSelector}').length>=2&&Array.from(document.querySelectorAll('${powerSelector}')).every(b=>!b.disabled)`,
     );

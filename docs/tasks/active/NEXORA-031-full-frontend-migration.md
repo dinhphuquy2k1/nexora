@@ -1141,3 +1141,10 @@ Task remains IN PROGRESS, overall implementation PLANNED for M1–M5 and verific
 NOT VERIFIED; M3–M5 remain outside this correction. Draft remains until required
 checkpoint acceptance is substantiated. Immutable v3 digest is unchanged. No backend,
 DB/schema, generated SDK, dependencies, public deployment or live Carrier changes.
+
+Foundation40285089720 (5796799) now passes Detail/CRUD/default/delete/focus/long
+content/segmented-status scenarios and reaches Power failed-read capture before
+CHECK_FAILED. Added precise post-capture keyboard-dismiss/explicit-retry/read-settled/
+controls-enabled checkpoints. Keyboard phase brings the genuine tab to front and
+asserts document/Toast-control focus before Enter; no focus emulation or mutation
+retry. Actual remaining failing child must be diagnosed from hosted evidence.
