@@ -1007,3 +1007,16 @@ phone-normalization algorithm was duplicated.
 - test:lint PASS52/52. Root Node suite first124/125 FAIL because the independent
   viewport inventory still expected six; migrated it to all ten approved v3 sizes,
   retaining explicit inventory assertion. Corrected rerun recorded separately.
+
+### v3 genuine-browser mutation acceptance extension
+
+The existing Customer read-race CDP module now also runs table-wide Power against
+real continued PATCH requests: same-tick two-row clicks must count exactly one
+PATCH; a subsequent genuine successful PATCH plus injected failed reconciliation
+GET must show separate success/error Toasts, blocked controls and explicit Retry.
+Retry must restore enabled controls through GET without another PATCH. Existing
+queue is explicitly dismissed through actual Toast controls before this scenario,
+with exactly one active viewport. Owned disposable customer fixtures only. Syntax
+checks PASS; this extension is not claimed runtime PASS until hosted execution.
+Host contracts:check PASS (generated snapshots unchanged); corrected root suite
+PASS125/125 with no skips. Final CI/browser acceptance remains open.

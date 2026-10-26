@@ -4,7 +4,10 @@ import {
   verifyCustomerTableGeometry,
 } from "./workspace-geometry-checks.mjs";
 import { verifyCustomerControls } from "./customer-control-checks.mjs";
-import { verifyCustomerReadRaces } from "./customer-read-races.mjs";
+import {
+  verifyCustomerReadRaces,
+  verifyCustomerPower,
+} from "./customer-read-races.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -1133,6 +1136,16 @@ export async function verifyCustomerBrowser({
       await evaluate('new URLSearchParams(location.search).has("status")'),
       false,
     );
+    await verifyCustomerPower({
+      send,
+      evaluate,
+      socket,
+      baseUrl,
+      ready,
+      snapshot,
+      click,
+      checks,
+    });
     await snapshot("populated-final");
     await writeFile(
       join(directory, `${prefix}.json`),
