@@ -160,7 +160,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - **Textarea Parity**: Retained in `@nexora/ui` to guarantee domain-neutral form control contract parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, disabled/readonly/invalid states, with default three rows, size-aware multiline minimum and vertical resize.
   - **Self-Contained Styling**: Owns all default control appearance in `Controls.module.css` through direct token consumption.
 - **Styling / Token Dependencies**:
-  - Sizing & Radius: `--control-size-default/medium/large`, `--control-radius`, size-specific `--control-padding-inline-*`, `--control-padding-block-*`, `--control-font-size`.
+  - Sizing & Radius: `--control-size-default/medium/large`, `--control-radius`, size-specific `--control-padding-default/medium/large`, `--control-padding-block-default/medium/large`, `--control-font-size`.
   - Colors & States: `--control-bg`, `--control-bg-focus`, `--control-text`, `--control-placeholder`, `--control-border`, `--control-border-hover`, `--control-focus-border`, `--control-focus-ring`, `--control-disabled-bg`, `--control-disabled-text`, `--control-disabled-border`, `--control-readonly-bg`, `--control-invalid-border`, `--control-invalid-focus-ring`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`.
 - **Fallback Policy**:
   - `apps/web`: Mandatory theme tokens guaranteed by root `tokens.css`; fallbacks in `apps/web` are prohibited.
