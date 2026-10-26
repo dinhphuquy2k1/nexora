@@ -29,8 +29,8 @@ Comprehensive read-only inventory, eight-field reuse matrix, alternatives, exact
 - [x] Stage3 source implementation: centralized nine-column colgroup, same-width Skeleton, honest unavailable address count and stable footer.
 - [x] Stage4 source implementation: neutral modal-aware Toast provider and table-wide synchronous Power lock; separate write/read settlement.
 - [x] Stage5 source implementation: standard/wide metadata and shared Header/content frame/gutters; preserve SSR/sidebar/security.
-- [ ] Stage6 final acceptance (source implemented): measured AA/shared emphasis variant, reference comparison/focus and ten-viewport geometry acceptance.
-- [ ] Stage7 final acceptance (docs/automation implemented): canonical design-system.md, router/rules/registry/frontend/testing/index, full final-head hosted checks and independent implementation review.
+- [x] Stage6 final acceptance (source implemented): measured AA/shared emphasis variant, reference comparison/focus and ten-viewport geometry acceptance.
+- [x] Stage7 final acceptance (docs/automation implemented): canonical design-system.md, router/rules/registry/frontend/testing/index, full final-head hosted checks and independent implementation review.
 
 Read-only findings at b44c3c4: root --control-height44px is shadowed by Customer scopes32/28px, confirmed against actual computed-style Foundation failure (input32 vs root override40); invalidation discards read.data and loading hides counts; table has9 headers but no colgroup/Skeleton; Power guards with React state, disables only active row and awaits void refresh; Header/content gutters and Customer pathname CSS differ. Native date/time/datetime-local/number/radio/switch/multi-select/Toast consumers were not found; do not invent them. SDK and actual Customer adapter confirm stats owner/q/phone scope, independent of status/page/pageSize; Summary has no addressCount and q excludes email.
 
