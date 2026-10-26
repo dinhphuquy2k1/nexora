@@ -51,7 +51,7 @@ test("static CDP expressions are valid JavaScript before a genuine browser run",
   for (const selector of [
     'button[data-variant="emphasis"]',
     "main tbody tr:nth-child(2) td:nth-child(7)>span",
-    'button[aria-label="Quoted \" name"]',
+    'button[aria-label="Quoted \\" name"]',
   ])
     new AsyncFunction(`return ${customerContrastExpression(selector)}`);
   assert.ok(count > 20);
