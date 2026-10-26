@@ -948,3 +948,20 @@ Intermediate Stage3 Foundation40264164323: quality/integration PASS; actual Cust
 - Verification-first: new route/near-match/planned/longest-prefix test failed before
   resolver export (RED), then PASS. Web tests 93/93 PASS; Web typecheck and
   lint/boundaries PASS. Browser geometry and final quality remain pending.
+
+### v3 stage 6 — fidelity and shared composition
+
+- Reviewed approved ZIP Customer source again (source comparison, not a rendered
+  pixel-perfect claim). Default32 sizing intentionally supersedes reference compact
+  controls. Existing command deck, nine columns, seven-field profile, address cards
+  and unavailable export/count behavior remain.
+- Customer primary/selected controls now use shared accessible-candidate emphasis;
+  selected dots/count foreground is white. Authentication primary stays unchanged.
+- Shared Panel gains compatible optional density/actions and is used by both Detail
+  sections, removing duplicate card/heading CSS. Exact-phone filter uses existing
+  query/API; unsupported email search copy removed.
+- Panel actual SSR contract RED then GREEN; Web94/94 PASS before final Panel consumer
+  migration; final repeated checks/browser measurements recorded separately.
+- Intermediate Foundation40266755218 failed at BROWSER_LAUNCH before Customer UI,
+  while quality/integration and real provisioning/TTY/security checks passed.
+  This is FAIL, not final-head runtime acceptance; no assertion was removed.

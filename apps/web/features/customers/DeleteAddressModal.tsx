@@ -113,6 +113,7 @@ export function DeleteAddressModal({
           Hủy
         </Button>
         <Button
+          variant="emphasis"
           disabled={
             !others.length ||
             mutation.busy ||

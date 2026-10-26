@@ -392,7 +392,7 @@ export async function verifyCustomerBrowser({
       const root = document.documentElement;
       const dialog = document.querySelector('dialog[open]');
       const input = dialog?.querySelector('input[name="name"]') ?? document.querySelector('input[name="q"]') ?? document.querySelector('input');
-      const button = dialog?.querySelector('button[data-variant="primary"]') ?? dialog?.querySelector('button[type="submit"]') ?? document.querySelector('button[data-variant="primary"]') ?? document.querySelector('main button');
+      const button = dialog?.querySelector('button[data-variant="emphasis"]') ?? dialog?.querySelector('button[type="submit"]') ?? document.querySelector('button[data-variant="emphasis"]') ?? document.querySelector('main button');
       const select = dialog?.querySelector('select[name="countryCode"]') ?? document.querySelector('select[name="filter-status"], select[aria-label="Số dòng mỗi trang"], select');
       if (!input || !button || !select) {
         return {
@@ -474,7 +474,7 @@ export async function verifyCustomerBrowser({
       const root = document.documentElement;
       const dialog = document.querySelector('dialog[open]');
       const input = dialog?.querySelector('input[name="name"]') ?? document.querySelector('input[name="q"]') ?? document.querySelector('input');
-      const button = dialog?.querySelector('button[data-variant="primary"]') ?? dialog?.querySelector('button[type="submit"]') ?? document.querySelector('button[data-variant="primary"]') ?? document.querySelector('main button');
+      const button = dialog?.querySelector('button[data-variant="emphasis"]') ?? dialog?.querySelector('button[type="submit"]') ?? document.querySelector('button[data-variant="emphasis"]') ?? document.querySelector('main button');
       const select = dialog?.querySelector('select[name="countryCode"]') ?? document.querySelector('select[name="filter-status"], select[aria-label="Số dòng mỗi trang"], select');
       const readStyles = (el) => {
         const cs = getComputedStyle(el);

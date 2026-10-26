@@ -10,7 +10,7 @@ import {
   Trash2,
   Star,
 } from "lucide-react";
-import { Button, useToast } from "@nexora/ui";
+import { Button, Panel, useToast } from "@nexora/ui";
 import { useReadNotice } from "./useReadNotice.ts";
 import { customerApi } from "./api.ts";
 import { useCustomerRead } from "./useCustomerRead.ts";
@@ -122,7 +122,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           </Button>
           {c && (
             <Button
-              variant="primary"
+              variant="emphasis"
               disabled={mutation.busy}
               onClick={() => setMode({ kind: "profile" })}
             >
@@ -142,14 +142,17 @@ export function CustomerDetailPage({ id }: { id: string }) {
       {read.loading && <p role="status">Đang tải khách hàng…</p>}
       {c && (
         <div className={styles.detailGrid}>
-          <section className={styles.card}>
-            <div className={styles.cardHeading}>
-              <div className={styles.titleGroup}>
+          <Panel
+            density="compact"
+            title={
+              <span className={styles.titleGroup}>
                 <span className={styles.brandIcon}>
                   <UserRound size={16} aria-hidden="true" />
                 </span>
-                <h2>THÔNG TIN KHÁCH HÀNG</h2>
-              </div>
+                THÔNG TIN KHÁCH HÀNG
+              </span>
+            }
+            actions={
               <Button
                 variant="ghost"
                 disabled={mutation.busy}
@@ -157,7 +160,8 @@ export function CustomerDetailPage({ id }: { id: string }) {
               >
                 Sửa
               </Button>
-            </div>
+            }
+          >
             <dl className={styles.profile}>
               {[
                 ["Mã khách hàng", c.code],
@@ -192,28 +196,31 @@ export function CustomerDetailPage({ id }: { id: string }) {
                 )}
               </div>
             </div>
-          </section>
-          <section className={styles.card}>
-            <div className={styles.cardHeading}>
-              <div className={styles.titleGroup}>
+          </Panel>
+          <Panel
+            density="compact"
+            title={
+              <span className={styles.titleGroup}>
                 <span className={styles.brandIcon}>
                   <MapPin size={16} aria-hidden="true" />
                 </span>
-                <h2>
-                  ĐỊA CHỈ NHẬN HÀNG{" "}
-                  <span className={styles.addressCountBadge}>
-                    {c.addresses.length}
-                  </span>
-                </h2>
-              </div>
+                ĐỊA CHỈ NHẬN HÀNG{" "}
+                <span className={styles.addressCountBadge}>
+                  {c.addresses.length}
+                </span>
+              </span>
+            }
+            actions={
               <Button
+                variant="emphasis"
                 disabled={mutation.busy}
                 onClick={() => setMode({ kind: "add" })}
               >
                 <Plus size={16} aria-hidden="true" />
                 <span>THÊM ĐỊA CHỈ</span>
               </Button>
-            </div>
+            }
+          >
             {!c.addresses.length && (
               <div className={styles.emptyAddressState}>
                 <div className={styles.emptyIconCircle}>
@@ -325,7 +332,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                 </p>
               </article>
             ))}
-          </section>
+          </Panel>
         </div>
       )}
       {mode?.kind === "profile" && data && (

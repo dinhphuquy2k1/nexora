@@ -95,3 +95,18 @@ so its scrollbar reduces both frames together; Header remains sticky at 56px.
 Customer no longer selects padding through a pathname-specific CSS class. Sidebar
 widths/breakpoints and mobile Overlay behavior remain the existing contract.
 Browser geometry across variants and Sidebar states remains required evidence.
+
+### Customer emphasis and Panel composition (v3 stage 6)
+
+Customer Create, selected tabs, selected pagination and primary drawer/confirmation
+controls use shared `emphasis` (dark orange/white); Login/MFA keep default primary.
+Selected count/dot colors follow emphasis foreground rather than the legacy navy
+accent foreground. Actual composed-color, hover and focus measurements are still
+required; palette calculations alone are not browser evidence.
+
+Panel accepts existing title/children/className plus optional `density` and `actions`.
+`standard` remains the default; `compact` uses the shared compact surface spacing
+and heading divider, without outer margin. Customer profile and address sections
+consume this shared composition; their duplicate card/heading paint was removed.
+The search field advertises only name/code/phone. Exact phone uses a secondary native
+filter disclosure and the existing URL/query contract, without another API.

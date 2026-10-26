@@ -23,7 +23,7 @@ export function AddressLabelField({
         {["Nhà riêng", "Cửa hàng", "Kho hàng", "Văn phòng"].map((label) => (
           <Button
             key={label}
-            variant={value === label ? "primary" : "secondary"}
+            variant={value === label ? "emphasis" : "secondary"}
             aria-pressed={value === label}
             onClick={() => onChange(value === label ? "" : label)}
           >

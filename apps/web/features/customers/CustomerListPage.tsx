@@ -270,6 +270,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
               <span className={styles.exportLabel}>Xuất Excel</span>
             </Button>
             <Button
+              variant="emphasis"
               onClick={() => setOverlay("create")}
               aria-label="Thêm khách hàng"
             >

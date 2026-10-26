@@ -5,7 +5,7 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
   await evaluate(
     "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true)))))",
   );
-  for (const variant of ["primary", "secondary", "ghost"]) {
+  for (const variant of ["emphasis", "secondary", "ghost"]) {
     const selector = `dialog[open] button[data-variant=${variant}]:not(:disabled)`;
     const location = await evaluate(
       `(()=>{const el=document.querySelector(${JSON.stringify(selector)});if(!el)return null;const r=el.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`,
@@ -33,6 +33,6 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
   }
   await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 0, y: 0 });
   console.log(
-    "Customer actual primary/secondary/ghost default and hover contrast PASS",
+    "Customer actual emphasis/secondary/ghost default and hover contrast PASS",
   );
 }

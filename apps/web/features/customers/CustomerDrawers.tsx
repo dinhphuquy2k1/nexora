@@ -267,7 +267,7 @@ export function CustomerDrawer({
           </Button>
           <div className={styles.actions}>
             <Button
-              variant={customer ? "primary" : "secondary"}
+              variant={customer ? "emphasis" : "secondary"}
               type="submit"
               disabled={mutation.busy || reconciling}
             >
@@ -275,6 +275,7 @@ export function CustomerDrawer({
             </Button>
             {!customer && (
               <Button
+                variant="emphasis"
                 type="submit"
                 value="open"
                 disabled={mutation.busy || reconciling}
@@ -376,7 +377,11 @@ export function AddressDrawer({
           >
             Hủy
           </Button>
-          <Button type="submit" disabled={mutation.busy || reconciling}>
+          <Button
+            variant="emphasis"
+            type="submit"
+            disabled={mutation.busy || reconciling}
+          >
             {mutation.busy ? "Đang lưu…" : "Lưu địa chỉ"}
           </Button>
         </footer>

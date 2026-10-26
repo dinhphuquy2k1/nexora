@@ -1,5 +1,5 @@
 import { Button } from "@nexora/ui";
-import { CustomerStatus } from "@nexora/shared";
+import { CustomerStatus, CustomerStatusLabelsVi } from "@nexora/shared";
 import type { Query, Stats } from "./types.ts";
 import styles from "./customers.module.css";
 export function CustomerStatsBar({
@@ -21,13 +21,15 @@ export function CustomerStatsBar({
     { code: undefined, label: "TẤT CẢ", count: stats?.total, dot: false },
     {
       code: CustomerStatus.ACTIVE,
-      label: "ĐANG HOẠT ĐỘNG",
+      label:
+        CustomerStatusLabelsVi[CustomerStatus.ACTIVE].toLocaleUpperCase("vi"),
       count: stats?.active,
       dot: true,
     },
     {
       code: CustomerStatus.INACTIVE,
-      label: "NGỪNG HOẠT ĐỘNG",
+      label:
+        CustomerStatusLabelsVi[CustomerStatus.INACTIVE].toLocaleUpperCase("vi"),
       count: stats?.inactive,
       dot: true,
     },
@@ -55,7 +57,7 @@ export function CustomerStatsBar({
               aria-controls="customer-results"
               aria-selected={selected}
               tabIndex={selected ? 0 : -1}
-              variant={selected ? "primary" : "ghost"}
+              variant={selected ? "emphasis" : "ghost"}
               className={`${styles.tabButton} ${selected ? styles.tabSelected : styles.tabUnselected}`}
               onClick={() => onChange(tab.code)}
               onKeyDown={(e) => {

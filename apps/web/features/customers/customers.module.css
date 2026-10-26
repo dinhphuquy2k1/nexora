@@ -115,7 +115,7 @@
   flex-shrink: 0;
 }
 .tabDotSelected {
-  color: var(--color-text-on-accent);
+  color: var(--color-action-emphasis-text);
 }
 .tabDotActive {
   color: var(--color-status-success-text);
@@ -134,8 +134,8 @@
   font-variant-numeric: tabular-nums;
 }
 .countSelected {
-  background: var(--color-surface-on-dark-hover);
-  color: var(--color-text-on-accent);
+  background: transparent;
+  color: var(--color-action-emphasis-text);
   font-weight: var(--font-weight-bold);
 }
 .countUnselected {
@@ -542,13 +542,6 @@
   overflow: hidden;
   clip-path: inset(50%);
 }
-.card {
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  min-width: 0;
-}
 .drawer {
   display: flex;
   flex-direction: column;
@@ -709,20 +702,6 @@
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
   align-items: start;
   gap: var(--space-3);
-}
-.cardHeading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  border-bottom: 1px solid var(--color-border-subtle);
-  padding-bottom: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-.cardHeading h2 {
-  margin: 0;
-  font-size: var(--font-size-md);
-  text-transform: uppercase;
 }
 .profile {
   display: flex;
@@ -995,4 +974,28 @@
 }
 .table td {
   overflow-wrap: anywhere;
+}
+
+.secondaryFilter {
+  flex-shrink: 0;
+}
+.secondaryFilter summary {
+  cursor: pointer;
+  min-height: var(--control-size-default);
+  display: list-item;
+  align-content: center;
+  color: var(--color-text-muted);
+  font-size: var(--type-label-size);
+}
+.secondaryFilter summary:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 2px;
+}
+.secondaryFilter[open] {
+  max-width: 15rem;
+}
+.secondaryFilter label {
+  display: block;
+  font-size: var(--type-label-size);
+  margin-block: var(--space-2);
 }
