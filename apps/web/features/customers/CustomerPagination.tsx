@@ -92,7 +92,7 @@ export function CustomerPagination({
             {i > 0 && n - pages[i - 1] > 1 && <span aria-hidden="true">…</span>}
             <Button
               icon
-              variant={query.page === n ? "emphasis" : "secondary"}
+              variant={query.page === n ? "primary" : "secondary"}
               className={
                 query.page === n ? styles.pageSelected : styles.pageUnselected
               }
