@@ -27,7 +27,7 @@ Button, TextInput, Select, Textarea and Checkbox accept size="default"|"medium"|
 <Textarea rows={6} />
 ```
 
-Button variants primary(default), secondary, ghost and emphasis share size/state/focus/disabled behavior. icon gives a square target; consumers supply an accessible name. Real navigation stays a real Link; buttonClassName shares presentation with data-size without changing link semantics.
+Button variants primary(default), secondary, ghost and emphasis share size/state/focus/disabled behavior. Labels stay single-line within the selected fixed height; consuming action/feedback groups wrap between controls rather than wrapping a label inside32px. icon gives a square target; consumers supply an accessible name. Real navigation stays a real Link; buttonClassName shares presentation with data-size without changing link semantics.
 
 Textarea shares font, padding, radius and states, defaults rows3, honors explicit rows and vertical resize, and retains a multiline minimum; it is never forced to32px tall. Checkbox's label is the interactive target; indicator dimensions are separate. One-line native Input types reuse TextInput; no speculative DatePicker, Radio, Switch, Combobox or multi-select framework. Native multiple Select remains auto-height, not a32px listbox.
 
@@ -115,3 +115,8 @@ Disabled Input/Textarea presentation takes precedence when readonly and invalid 
 also present; those enabled-state rules exclude :disabled. Genuine state probes
 wait real CSS transitions, verify focus/invalid-focus distinction and compare the
 combined disabled presentation, restoring native attributes/focus afterward.
+
+Fixed-column Customer name/email text wraps within the column and retains complete
+DOM text plus keyboard Detail links; it cannot paint over neighboring columns.
+The same native colgroup owns row/Skeleton/header widths. Browser Range checks
+validate both padded header text and actual data-cell content, including long fixtures.
