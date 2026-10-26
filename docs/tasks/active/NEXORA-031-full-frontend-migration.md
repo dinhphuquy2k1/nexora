@@ -1111,3 +1111,9 @@ the visible body. Diagnostic expectedHover=true/hover=false confirms no actual h
 not an AA pass. Contrast probe now scrolls the actual control into viewport center
 before measuring pointer coordinates and uses a distinct per-variant checkpoint.
 Hover and4.5 assertions remain unchanged; no forced pseudo-state or timeout increase.
+
+Foundation40282800839 (a9b306a): contrast fix passes all real emphasis/secondary/ghost
+hover checks, and controlled read-race/unmount scenarios PASS. Next failure is
+DETAIL_RENDER: existing harness expects accessible name Thêm địa chỉ, while the
+Panel action displayed uppercase without an explicit name. Add that exact accessible
+label while retaining uppercase visual text; no operation or assertion change.

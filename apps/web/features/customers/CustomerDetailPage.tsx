@@ -211,6 +211,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
             actions={
               <Button
                 variant="emphasis"
+                aria-label="Thêm địa chỉ"
                 disabled={mutation.busy}
                 onClick={() => setMode({ kind: "add" })}
               >
