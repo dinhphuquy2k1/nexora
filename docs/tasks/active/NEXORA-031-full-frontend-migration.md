@@ -1164,3 +1164,12 @@ after keyDown/keyUp. CDP Enter must include its carriage-return text to produce
 native character activation; add text/unmodifiedText while retaining real key events,
 focus restoration, persistent-inline-error and disappearance assertions. No click
 fallback, timeout increase or automatic mutation retry was added.
+
+Foundation40287361741 (543629f): full LOCAL runtime PASS including both actual
+Customer actor flows, genuine Power success/failed-read/Retry, keyboard dismissal,
+timers and final focus screenshots. Next workflow gate FAIL in disposable HTTPS at
+ADMIN_BROWSER_PENDING_MFA (timeout, focused and both native field values present,
+alert present; no observed auth response status). Add only safe fixed-message-category
+booleans and fixed endpoint-dispatched flags to distinguish client validation from
+transport/API rejection. No credential values, raw alerts/headers/errors logged;
+TLS/Host/Origin/MFA/cookie assertions and timeouts unchanged. Data/dev still SKIPPED.
