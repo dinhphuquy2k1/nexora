@@ -86,9 +86,10 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
     assert.equal(state.disabled.cursor, "not-allowed");
   }
   for (const variant of ["emphasis", "secondary", "ghost"]) {
+    checks.step(`CUSTOMER_ACTION_CONTRAST_${variant.toUpperCase()}`);
     const selector = `dialog[open] button[data-variant=${variant}]:not(:disabled)`;
     const location = await evaluate(
-      `(()=>{const el=document.querySelector(${JSON.stringify(selector)});if(!el)return null;const r=el.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`,
+      `(()=>{const el=document.querySelector(${JSON.stringify(selector)});if(!el)return null;el.scrollIntoView({block:"center",inline:"nearest"});const r=el.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};})()`,
     );
     assert.ok(location);
     for (const hover of [false, true]) {

@@ -1104,3 +1104,10 @@ Customer adds a real manual-collapse capture. Final Customer table receives real
 keyboard input and must retain active :focus-visible solid2px outline, with focused
 screenshots. This verifies the reported rectangle as keyboard focus rather than
 silently removing accessibility. No new launcher or product behavior added.
+
+Foundation40281989279 (8eaef6c) fails the retained hover assertion: after the new
+real focus-state probe scrolls the form, secondary target coordinates can be outside
+the visible body. Diagnostic expectedHover=true/hover=false confirms no actual hover,
+not an AA pass. Contrast probe now scrolls the actual control into viewport center
+before measuring pointer coordinates and uses a distinct per-variant checkpoint.
+Hover and4.5 assertions remain unchanged; no forced pseudo-state or timeout increase.
