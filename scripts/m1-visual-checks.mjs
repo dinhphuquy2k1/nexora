@@ -61,6 +61,10 @@ export async function verifyM1Visuals({
       "new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true))))",
     );
     const before = phase === "shell" ? await shellGeometry() : null;
+    const geometry =
+      phase === "shell"
+        ? await verifyWorkspaceGeometry({ evaluate, width: viewport.width })
+        : null;
     const shot = await send("Page.captureScreenshot", {
       format: "png",
       // Evidence is of the specified viewport, not a full-page resize. A capture
@@ -87,6 +91,7 @@ export async function verifyM1Visuals({
       width: viewport.width,
       height: viewport.height,
       state,
+      geometry,
       sha256: createHash("sha256").update(bytes).digest("hex"),
     });
   }

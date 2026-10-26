@@ -627,6 +627,23 @@ export async function verifyCustomerBrowser({
       );
     }
     await snapshot("list");
+    step("WIDE_MANUAL_SIDEBAR_COLLAPSE");
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 1440,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await until(
+      "Boolean(document.querySelector('header button[aria-expanded=true]'))",
+    );
+    await evaluate(
+      "document.querySelector('header button[aria-expanded=true]').click();true",
+    );
+    await until(
+      "Math.round(document.querySelector('aside').getBoundingClientRect().width)===72",
+    );
+    await snapshot("list-manual-collapsed");
     step("DUPLICATE_PHONE_FORM");
     await dismissToastFeedback();
     await click("Thêm khách hàng");
@@ -1170,6 +1187,32 @@ export async function verifyCustomerBrowser({
       click,
       checks,
     });
+    step("TABLE_KEYBOARD_FOCUS_RING");
+    await evaluate(
+      "document.querySelector('main [role=region][tabindex]').focus();true",
+    );
+    await send("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "ArrowRight",
+      code: "ArrowRight",
+      windowsVirtualKeyCode: 39,
+    });
+    await send("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "ArrowRight",
+      code: "ArrowRight",
+      windowsVirtualKeyCode: 39,
+    });
+    const focusRing = await evaluate(
+      "(()=>{const el=document.querySelector('main [role=region][tabindex]'),s=getComputedStyle(el);return {active:document.activeElement===el,visible:el.matches(':focus-visible'),width:s.outlineWidth,style:s.outlineStyle};})()",
+    );
+    assert.deepEqual(focusRing, {
+      active: true,
+      visible: true,
+      width: "2px",
+      style: "solid",
+    });
+    await snapshot("table-keyboard-focus");
     await snapshot("populated-final");
     await writeFile(
       join(directory, `${prefix}.json`),

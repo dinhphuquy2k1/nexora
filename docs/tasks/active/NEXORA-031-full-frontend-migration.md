@@ -1097,3 +1097,10 @@ that said a read was still loading after settlement and repeated the shared succ
 Toast announcement. Shared Toast owns confirmed-write feedback; accepted read state
 and safe inline/Toast error own reconciliation. Detail missing-address explanation
 is preserved. No operation/refresh contract changed.
+
+Final geometry coverage closes manual-state gaps: every existing M1 shell capture
+now records/asserts shared frame geometry in both actual expanded/collapsed states;
+Customer adds a real manual-collapse capture. Final Customer table receives real
+keyboard input and must retain active :focus-visible solid2px outline, with focused
+screenshots. This verifies the reported rectangle as keyboard focus rather than
+silently removing accessibility. No new launcher or product behavior added.
