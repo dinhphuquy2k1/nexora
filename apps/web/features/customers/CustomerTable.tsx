@@ -7,7 +7,6 @@ import {
   MapPin,
   Search,
   Users,
-  LoaderCircle,
   AlertCircle,
 } from "lucide-react";
 import {
@@ -17,6 +16,7 @@ import {
 } from "@nexora/shared";
 import type { Summary } from "./types.ts";
 import type { customerError } from "./errors.ts";
+import { customerColumns, customerTableMinWidth } from "./columns.ts";
 import { Feedback } from "./Feedback.tsx";
 import styles from "./customers.module.css";
 const tones = {
@@ -64,19 +64,7 @@ export function CustomerTable({
   onRetry: () => void;
 }) {
   let state;
-  if (loading)
-    state = (
-      <>
-        <div className={styles.stateIconCircle}>
-          <LoaderCircle size={22} className={styles.spin} aria-hidden="true" />
-        </div>
-        <p role="status" className={styles.stateTitle}>
-          Đang tải danh sách khách hàng...
-        </p>
-        <p className={styles.stateDesc}>Đang cập nhật danh sách và thống kê.</p>
-      </>
-    );
-  else if (error)
+  if (error)
     state = (
       <>
         <div className={styles.stateIconCircle}>
@@ -117,18 +105,8 @@ export function CustomerTable({
         </p>
       </>
     );
-  const empty = loading || !!error || !rows.length;
-  const columns = [
-    "CHI TIẾT",
-    "MÃ KHÁCH HÀNG",
-    "HỌ VÀ TÊN",
-    "SỐ ĐIỆN THOẠI",
-    "EMAIL",
-    "SỐ ĐỊA CHỈ",
-    "TRẠNG THÁI",
-    "NGÀY TẠO",
-    "THAO TÁC",
-  ];
+  const skeleton = loading && !rows.length;
+  const empty = !loading && !rows.length;
   return (
     <div
       className={styles.tableViewport}
@@ -136,22 +114,52 @@ export function CustomerTable({
       role="region"
       aria-label="Bảng khách hàng có thể cuộn"
     >
+      {loading && (
+        <span role="status" className={styles.srOnly}>
+          Đang tải khách hàng…
+        </span>
+      )}
+      {error && rows.length > 0 && (
+        <div className={styles.staleFeedback}>
+          <Feedback error={error} />
+          <Button variant="secondary" onClick={onRetry}>
+            Thử tải lại
+          </Button>
+        </div>
+      )}
       <table
+        style={{ minWidth: customerTableMinWidth }}
+        data-stale={rows.length > 0 && (loading || !!error)}
         className={`${styles.table} ${empty ? styles.tableEmpty : ""}`}
         aria-busy={loading}
       >
         <caption className={styles.srOnly}>Danh sách khách hàng</caption>
+        <colgroup>
+          {customerColumns.map((column) => (
+            <col key={column.key} style={{ width: column.width }} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
-            {columns.map((t) => (
-              <th key={t} scope="col">
-                {t}
+            {customerColumns.map((column) => (
+              <th key={column.key} scope="col">
+                {column.label}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {empty ? (
+          {skeleton ? (
+            Array.from({ length: 5 }, (_, index) => (
+              <tr key={index} data-skeleton="true" aria-hidden="true">
+                {customerColumns.map((column) => (
+                  <td key={column.key}>
+                    <span className={styles.skeletonCell} />
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : empty ? (
             <tr>
               <td colSpan={9} className={styles.stateCell}>
                 <div className={styles.statePanel}>

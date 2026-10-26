@@ -255,7 +255,7 @@
 }
 .table {
   width: 100%;
-  min-width: 950px;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
 }
@@ -310,8 +310,7 @@
 }
 .detailCell {
   text-align: center;
-  width: 44px;
-  min-width: 44px;
+
   padding: 6px var(--space-1);
 }
 .detailLink {
@@ -321,7 +320,6 @@
   text-decoration: none;
 }
 .codeCell {
-  min-width: 130px;
 }
 .codeLink {
   color: var(--color-accent-text);
@@ -335,7 +333,7 @@
 .customerName {
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
-  min-width: 160px;
+
   white-space: nowrap;
 }
 .phoneCell {
@@ -344,17 +342,14 @@
   font-weight: var(--font-weight-medium);
   color: var(--color-text);
   white-space: nowrap;
-  min-width: 130px;
 }
 .emailCell {
-  min-width: 180px;
   color: var(--color-text-muted);
   white-space: nowrap;
 }
 .statusCell {
   text-align: center;
   white-space: nowrap;
-  width: 140px;
 }
 .statusChip {
   display: inline-flex;
@@ -394,19 +389,15 @@
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  width: 110px;
 }
 .addressCountCell {
   text-align: center;
-  width: 96px;
-  min-width: 96px;
 }
 .addressCountIcon {
   color: var(--color-accent);
 }
 .actionCell {
   text-align: center;
-  width: 96px;
 }
 .actionGroup {
   display: inline-flex;
@@ -1009,4 +1000,22 @@
   margin-inline-start: var(--space-2);
   font-size: var(--type-caption-size);
   color: var(--color-text-muted);
+}
+
+.skeletonCell {
+  display: block;
+  width: 75%;
+  min-height: var(--space-4);
+  margin-block: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-subtle);
+}
+.staleFeedback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+.table td {
+  overflow-wrap: anywhere;
 }

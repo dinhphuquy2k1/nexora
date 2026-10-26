@@ -1,42 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import vm from "node:vm";
 import ts from "typescript";
-
-const uiRequire = createRequire(
-  new URL("../../../packages/ui/package.json", import.meta.url),
-);
-const webRequire = createRequire(new URL("../package.json", import.meta.url));
-const { createElement } = uiRequire("react");
-const { renderToStaticMarkup } = webRequire("react-dom/server");
-function controls() {
-  const source = readFileSync(
-    new URL("../../../packages/ui/src/Controls.tsx", import.meta.url),
-    "utf8",
+import { loadComponent, React, render } from "./helpers/render-component.mjs";
+const { createElement } = React;
+const renderToStaticMarkup = render;
+const controls = () =>
+  loadComponent(
+    new URL("../../../packages/ui/src/Controls.tsx", import.meta.url).pathname,
   );
-  const { outputText } = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      jsx: ts.JsxEmit.ReactJSX,
-      esModuleInterop: true,
-    },
-  });
-  const module = { exports: {} };
-  vm.runInNewContext(outputText, {
-    module,
-    exports: module.exports,
-    require: (name) =>
-      name.endsWith(".css")
-        ? new Proxy(
-            {},
-            { get: (_, key) => (key === "__esModule" ? false : String(key)) },
-          )
-        : uiRequire(name),
-  });
-  return module.exports;
-}
 test("all compatible controls render omitted/default/medium/large sizes without leaking a numeric native size", () => {
   const exports = controls();
   for (const name of [
