@@ -1020,3 +1020,11 @@ with exactly one active viewport. Owned disposable customer fixtures only. Synta
 checks PASS; this extension is not claimed runtime PASS until hosted execution.
 Host contracts:check PASS (generated snapshots unchanged); corrected root suite
 PASS125/125 with no skips. Final CI/browser acceptance remains open.
+
+Independent browser-helper review found a P2 false-green possibility: a first
+operation's success Toast could incorrectly satisfy the second-operation assertion.
+The helper now dismisses prior notifications before the second action, requires its
+actual network PATCH response HTTP200, and checks a nonfaulted same-owner Detail
+read changed status. Only List GET is fault-injected. Button readiness also requires
+at least two actual controls (no empty-array every PASS). Syntax/lint verification
+remains separate from required genuine hosted execution.

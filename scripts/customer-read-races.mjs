@@ -236,13 +236,30 @@ export async function verifyCustomerPower({
   let patches = 0,
     failRead = false,
     interceptError;
+  const patchIds = [];
+  const patchStatuses = new Map();
   const handler = (event) => {
     const message = JSON.parse(event.data);
+    if (message.method === "Network.responseReceived") {
+      if (patchIds.includes(message.params.requestId))
+        patchStatuses.set(
+          message.params.requestId,
+          message.params.response.status,
+        );
+      return;
+    }
     if (message.method !== "Fetch.requestPaused") return;
     const { requestId, request } = message.params;
     void (async () => {
-      if (request.method === "PATCH") patches++;
-      if (failRead && request.method === "GET") {
+      if (request.method === "PATCH") {
+        patches++;
+        patchIds.push(message.params.networkId);
+      }
+      if (
+        failRead &&
+        request.method === "GET" &&
+        new URL(request.url).pathname === "/api/customers"
+      ) {
         await send("Fetch.fulfillRequest", {
           requestId,
           responseCode: 500,
@@ -270,6 +287,20 @@ export async function verifyCustomerPower({
     }
     throw Error("CUSTOMER_POWER_CONDITION");
   }
+  async function dismissNotifications() {
+    for (let n = 0; n < 6; n++) {
+      const dismissed = await evaluate(
+        "(()=>{const button=document.querySelector('[data-toast-viewport] button');if(!button)return false;button.click();return true;})()",
+      );
+      if (!dismissed) break;
+    }
+    assert.equal(
+      await evaluate(
+        "document.querySelectorAll('[data-toast-message]').length",
+      ),
+      0,
+    );
+  }
   socket.addEventListener("message", handler);
   await send("Fetch.enable", {
     patterns: [
@@ -284,18 +315,7 @@ export async function verifyCustomerPower({
       ),
       1,
     );
-    for (let n = 0; n < 6; n++) {
-      const dismissed = await evaluate(
-        "(()=>{const button=document.querySelector('[data-toast-viewport] button');if(!button)return false;button.click();return true;})()",
-      );
-      if (!dismissed) break;
-    }
-    assert.equal(
-      await evaluate(
-        "document.querySelectorAll('[data-toast-message]').length",
-      ),
-      0,
-    );
+    await dismissNotifications();
     checks.step("CUSTOMER_POWER_SAME_TICK");
     await until(
       `Array.from(document.querySelectorAll('${powerSelector}')).filter(b=>!b.disabled).length>=2`,
@@ -304,7 +324,7 @@ export async function verifyCustomerPower({
       `(()=>{const buttons=Array.from(document.querySelectorAll('${powerSelector}')).filter(b=>!b.disabled);buttons[0].click();buttons[1].click();return true;})()`,
     );
     await until(
-      `Array.from(document.querySelectorAll('${powerSelector}')).every(b=>!b.disabled)`,
+      `document.querySelectorAll('${powerSelector}').length>=2&&Array.from(document.querySelectorAll('${powerSelector}')).every(b=>!b.disabled)`,
     );
     assert.equal(
       patches,
@@ -313,12 +333,35 @@ export async function verifyCustomerPower({
     );
     await ready();
     checks.step("CUSTOMER_POWER_COMMITTED_WRITE_FAILED_READ");
+    await dismissNotifications();
+    const target = await evaluate(
+      `document.querySelector('${powerSelector}').closest('tr').querySelector('a[href]').getAttribute('href')`,
+    );
+    assert.match(target, /^\/customers\/[0-9a-f-]{36}$/i);
+    const readTarget = () =>
+      evaluate(
+        `fetch('/api'+${JSON.stringify(target)}).then(async r=>({status:r.status,value:(await r.json()).status}))`,
+      );
+    const before = await readTarget();
+    assert.equal(before.status, 200);
     failRead = true;
     await evaluate(`document.querySelector('${powerSelector}').click();true`);
     await until(
-      `!!document.querySelector('main [data-customer-error]')&&Array.from(document.querySelectorAll('${powerSelector}')).every(b=>b.disabled)`,
+      `!!document.querySelector('main [data-customer-error]')&&document.querySelectorAll('${powerSelector}').length>=2&&Array.from(document.querySelectorAll('${powerSelector}')).every(b=>b.disabled)`,
     );
     assert.equal(patches, 2);
+    assert.equal(
+      patchStatuses.get(patchIds[1]),
+      200,
+      "second actual PATCH must return HTTP200",
+    );
+    const committed = await readTarget();
+    assert.equal(committed.status, 200);
+    assert.equal(
+      committed.value,
+      before.value === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+      "nonfaulted owner read proves second write committed",
+    );
     assert.equal(
       await evaluate(
         `Array.from(document.querySelectorAll('[data-toast-message]')).some(e=>e.getAttribute('role')==='status'&&e.textContent.includes('Đã cập nhật trạng thái'))&&Array.from(document.querySelectorAll('[data-toast-message]')).some(e=>e.getAttribute('role')==='alert')`,
@@ -331,7 +374,7 @@ export async function verifyCustomerPower({
     await click("Đối chiếu lại dữ liệu");
     await ready();
     await until(
-      `Array.from(document.querySelectorAll('${powerSelector}')).every(b=>!b.disabled)`,
+      `document.querySelectorAll('${powerSelector}').length>=2&&Array.from(document.querySelectorAll('${powerSelector}')).every(b=>!b.disabled)`,
     );
     assert.equal(patches, 2, "Retry reconciles GET without repeating PATCH");
     assert.equal(interceptError, undefined);
