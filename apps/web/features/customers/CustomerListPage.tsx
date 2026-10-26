@@ -2,6 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@nexora/ui";
+import {
+  statisticsScope,
+  captureStatistics,
+  visibleStatistics,
+  type StatisticsSnapshot,
+} from "./list-statistics.ts";
 import { CustomerStatus } from "@nexora/shared";
 import { parseCustomerQuery, customerQueryString } from "./query.ts";
 import type { Query, Summary } from "./types.ts";
@@ -14,7 +20,7 @@ import { CustomerFilters } from "./CustomerFilters.tsx";
 import { CustomerTable } from "./CustomerTable.tsx";
 import { CustomerDrawer } from "./CustomerDrawers.tsx";
 import styles from "./customers.module.css";
-export function CustomerListPage() {
+export function CustomerListPage({ ownerId }: { ownerId: string }) {
   const params = useSearchParams();
   const search = params.toString();
   let query: Query = { page: 1, pageSize: 10 },
@@ -32,6 +38,46 @@ export function CustomerListPage() {
   );
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [draft, setDraft] = useState(query.q ?? "");
+  const [statistics, setStatistics] = useState<StatisticsSnapshot>();
+  const committedScope = statisticsScope(ownerId, query);
+  const displayScope = statisticsScope(ownerId, query, draft);
+  useEffect(() => {
+    if (read.denied || invalid) {
+      setStatistics(undefined);
+      return;
+    }
+    if (
+      read.outcome === "success" &&
+      read.key === key &&
+      committedScope === displayScope
+    )
+      setStatistics((previous) =>
+        captureStatistics(
+          previous,
+          read.data?.stats,
+          committedScope,
+          read.settledId,
+        ),
+      );
+  }, [
+    read.denied,
+    read.outcome,
+    read.data,
+    read.key,
+    read.settledId,
+    key,
+    invalid,
+    committedScope,
+    displayScope,
+  ]);
+  const compatible = !invalid && committedScope === displayScope;
+  let stats = invalid
+    ? undefined
+    : visibleStatistics(statistics, displayScope, read.denied);
+  if (read.outcome === "success" && compatible)
+    stats = read.data?.stats ?? undefined;
+  const rows = compatible && !read.denied ? read.data?.customers : undefined;
+
   const [overlay, setOverlay] = useState<Summary | "create" | null>(null);
   const [notice, setNotice] = useState("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -166,7 +212,8 @@ export function CustomerListPage() {
           </div>
         </div>
         <CustomerStatsBar
-          stats={read.data?.stats}
+          stats={stats}
+          stale={!!stats && (read.loading || !!read.error)}
           loading={read.loading}
           error={!!read.error}
           status={query.status}
@@ -222,7 +269,7 @@ export function CustomerListPage() {
           aria-labelledby={`customer-tab-${query.status ?? "all"}`}
         >
           <CustomerTable
-            rows={read.data?.customers ?? []}
+            rows={rows ?? []}
             loading={read.loading}
             error={read.error}
             filtered={!!(query.q || query.status || query.phone)}
@@ -233,9 +280,9 @@ export function CustomerListPage() {
             onRetry={handleReload}
           />
           <CustomerPagination
-            pagination={read.data?.pagination}
+            pagination={compatible ? read.data?.pagination : undefined}
             query={query}
-            rowCount={read.data?.customers.length ?? 0}
+            rowCount={rows?.length ?? 0}
             onQuery={(p) => change(p)}
             loading={read.loading}
           />

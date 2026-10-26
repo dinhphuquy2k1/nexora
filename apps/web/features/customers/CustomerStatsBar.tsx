@@ -4,12 +4,14 @@ import type { Query, Stats } from "./types.ts";
 import styles from "./customers.module.css";
 export function CustomerStatsBar({
   stats,
+  stale = false,
   loading,
   error,
   status,
   onChange,
 }: {
   stats?: Stats | null;
+  stale?: boolean;
   loading: boolean;
   error?: boolean;
   status?: Query["status"];
@@ -30,8 +32,14 @@ export function CustomerStatsBar({
       dot: true,
     },
   ];
+  let freshness = "unavailable";
+  if (stats) freshness = stale ? "stale" : "fresh";
   return (
-    <div className={styles.statusBand} aria-busy={loading}>
+    <div
+      className={styles.statusBand}
+      aria-busy={loading}
+      data-freshness={freshness}
+    >
       <div
         role="tablist"
         aria-label="Trạng thái khách hàng"
@@ -85,12 +93,17 @@ export function CustomerStatsBar({
                   selected ? styles.countSelected : styles.countUnselected
                 }`}
               >
-                {loading || error || !stats ? "—" : tab.count}
+                {!stats ? "—" : tab.count}
               </span>
             </Button>
           );
         })}
       </div>
+      {stale && (
+        <span className={styles.statsHint}>
+          Thống kê trước lần tải lại · đang đối chiếu
+        </span>
+      )}
       <span role="status" className={styles.srOnly}>
         {loading
           ? "Đang tải thống kê…"

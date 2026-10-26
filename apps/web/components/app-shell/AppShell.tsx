@@ -9,7 +9,11 @@ interface AppShellProps {
 
 export function AppShell({ children, user }: AppShellProps) {
   return (
-    <ShellClient user={user} deployment={deploymentPresentation()}>
+    <ShellClient
+      key={user?.id ?? "anonymous"}
+      user={user}
+      deployment={deploymentPresentation()}
+    >
       {children}
     </ShellClient>
   );

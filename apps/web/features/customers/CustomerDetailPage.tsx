@@ -39,7 +39,10 @@ export function CustomerDetailPage({ id }: { id: string }) {
   useEffect(() => {
     if (c) setRetained(c);
   }, [c]);
-  const data = c ?? retained;
+  const data = read.denied ? undefined : (c ?? retained);
+  useEffect(() => {
+    if (read.denied) setRetained(undefined);
+  }, [read.denied]);
   const target = data?.addresses.find(
     (a) => mode && "id" in mode && a.id === mode.id,
   );
@@ -61,7 +64,11 @@ export function CustomerDetailPage({ id }: { id: string }) {
     );
   };
   return (
-    <div className={`${styles.page} ${styles.detailPage}`}>
+    <div
+      className={`${styles.page} ${styles.detailPage}`}
+      aria-busy={read.loading}
+      data-stale={!!c && (read.loading || !!read.error)}
+    >
       <div className={styles.toolbar}>
         <div className={styles.titleGroup}>
           <Link
