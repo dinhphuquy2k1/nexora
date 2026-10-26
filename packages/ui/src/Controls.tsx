@@ -3,8 +3,13 @@ import styles from "./Controls.module.css";
 export type ControlSize = "default" | "medium" | "large";
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "emphasis";
 type SizeProps = { size?: ControlSize };
+export type PressEffect = "scale" | "none";
 export type ButtonProps = ComponentPropsWithRef<"button"> &
-  SizeProps & { variant?: ButtonVariant; icon?: boolean };
+  SizeProps & {
+    variant?: ButtonVariant;
+    icon?: boolean;
+    pressEffect?: PressEffect;
+  };
 export type TextInputProps = Omit<ComponentPropsWithRef<"input">, "size"> &
   SizeProps;
 export type SelectProps = Omit<ComponentPropsWithRef<"select">, "size"> &
@@ -18,8 +23,9 @@ export function buttonClassName(
   variant: ButtonVariant = "primary",
   icon = false,
   className = "",
+  pressEffect: PressEffect = "scale",
 ) {
-  return `${styles.size} ${styles.button} ${variant !== "primary" ? styles[variant] : ""} ${icon ? styles.icon : ""} ${className}`;
+  return `${styles.size} ${styles.button} ${variant !== "primary" ? styles[variant] : ""} ${icon ? styles.icon : ""} ${pressEffect === "none" ? styles.noPress : ""} ${className}`.trim();
 }
 export function Button({
   className = "",
@@ -27,6 +33,7 @@ export function Button({
   variant = "primary",
   size = "default",
   icon = false,
+  pressEffect = "scale",
   ...props
 }: ButtonProps) {
   return (
@@ -35,7 +42,8 @@ export function Button({
       type={type}
       data-size={size}
       data-variant={variant}
-      className={buttonClassName(variant, icon, className)}
+      data-press-effect={pressEffect}
+      className={buttonClassName(variant, icon, className, pressEffect)}
     />
   );
 }

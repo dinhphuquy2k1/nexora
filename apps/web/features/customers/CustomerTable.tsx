@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button, StatusBadge, buttonClassName } from "@nexora/ui";
 import {
   Eye,
@@ -67,6 +68,12 @@ export function CustomerTable({
   onClear: () => void;
   onRetry: () => void;
 }) {
+  let router: ReturnType<typeof useRouter> | null = null;
+  try {
+    router = useRouter();
+  } catch {
+    router = null;
+  }
   let state;
   if (pendingFilter)
     state = (
@@ -182,7 +189,27 @@ export function CustomerTable({
             </tr>
           ) : (
             rows.map((c) => (
-              <tr key={c.id} className={styles.tableRow}>
+              <tr
+                key={c.id}
+                className={styles.tableRow}
+                onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (
+                    target.closest(
+                      "a, button, input, select, textarea, [data-no-row-click]",
+                    )
+                  ) {
+                    return;
+                  }
+                  if (router) {
+                    router.push(`/customers/${encodeURIComponent(c.id)}`);
+                  } else if (typeof window !== "undefined") {
+                    window.location.assign(
+                      `/customers/${encodeURIComponent(c.id)}`,
+                    );
+                  }
+                }}
+              >
                 <td className={styles.detailCell}>
                   <Link
                     data-size="default"

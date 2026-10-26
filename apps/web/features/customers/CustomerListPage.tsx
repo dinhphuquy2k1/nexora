@@ -134,7 +134,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     };
   }, [search, read.invalidate, read.refresh]);
   function change(patch: Partial<Query>, replace = false) {
-    cancel();
     let current: Query;
     try {
       current = parseCustomerQuery(new URLSearchParams(location.search));
@@ -143,10 +142,12 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     }
     const next = { ...current, ...patch };
     const sameKey = customerQueryString(current) === customerQueryString(next);
+    if (sameKey) return;
+    cancel();
+    read.invalidate();
     const url = "/customers?" + customerQueryString(next);
     if (url !== location.pathname + location.search)
       window.history[replace ? "replaceState" : "pushState"](null, "", url);
-    if (sameKey) read.refresh();
   }
   function searchChange(q: string) {
     cancel();
@@ -389,6 +390,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           reconciling={read.loading || !!read.error}
           onClose={() => setOverlay(null)}
           refresh={read.refresh}
+          settlement={read}
           onDenied={() => {
             read.deny();
             setStatistics(undefined);

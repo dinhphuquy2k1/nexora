@@ -70,6 +70,7 @@ export function CustomerPagination({
         <Button
           icon
           variant="secondary"
+          pressEffect="none"
           aria-label="Trang đầu"
           disabled={!model.canFirst}
           onClick={() => onQuery({ page: 1 })}
@@ -79,6 +80,7 @@ export function CustomerPagination({
         <Button
           icon
           variant="secondary"
+          pressEffect="none"
           aria-label="Trang trước"
           disabled={!model.canPrev}
           onClick={() => onQuery({ page: Math.max(1, model.page - 1) })}
@@ -93,6 +95,7 @@ export function CustomerPagination({
             <Button
               icon
               variant={model.page === n ? "primary" : "secondary"}
+              pressEffect="none"
               className={
                 model.page === n ? styles.pageSelected : styles.pageUnselected
               }
@@ -108,6 +111,7 @@ export function CustomerPagination({
         <Button
           icon
           variant="secondary"
+          pressEffect="none"
           aria-label="Trang sau"
           disabled={!model.canNext}
           onClick={() => onQuery({ page: model.page + 1 })}
@@ -117,6 +121,7 @@ export function CustomerPagination({
         <Button
           icon
           variant="secondary"
+          pressEffect="none"
           aria-label="Trang cuối"
           disabled={!model.canLast}
           onClick={() => onQuery({ page: model.totalPages })}

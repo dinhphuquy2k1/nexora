@@ -57,6 +57,7 @@ export function CustomerStatsBar({
               aria-controls="customer-results"
               aria-selected={selected}
               tabIndex={selected ? 0 : -1}
+              pressEffect="none"
               variant={selected ? "primary" : "ghost"}
               className={`${styles.tabButton} ${selected ? styles.tabSelected : styles.tabUnselected}`}
               onClick={() => onChange(tab.code)}
