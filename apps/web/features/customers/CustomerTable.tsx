@@ -243,6 +243,11 @@ export function CustomerTable({
                     <Button
                       icon
                       variant="ghost"
+                      className={
+                        c.status === CustomerStatus.ACTIVE
+                          ? styles.powerDeactivate
+                          : styles.powerActivate
+                      }
                       onClick={() => onToggleStatus?.(c)}
                       disabled={powerUnavailable}
                       aria-busy={togglingId === c.id}
@@ -260,11 +265,7 @@ export function CustomerTable({
                       <Power
                         size={14}
                         className={
-                          togglingId === c.id
-                            ? styles.spin
-                            : c.status === CustomerStatus.ACTIVE
-                              ? styles.powerActive
-                              : styles.powerInactive
+                          togglingId === c.id ? styles.spin : undefined
                         }
                       />
                     </Button>

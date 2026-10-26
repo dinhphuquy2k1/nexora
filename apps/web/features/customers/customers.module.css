@@ -448,12 +448,25 @@
   justify-content: center;
   gap: var(--space-1);
 }
-.powerActive {
-  color: var(--color-text-muted);
+.actionGroup .powerDeactivate {
+  color: var(--color-action-deactivate);
 }
-
+.actionGroup .powerDeactivate:hover:not(:disabled) {
+  background-color: var(--color-action-deactivate-hover-bg);
+  color: var(--color-action-deactivate-hover);
+}
+.actionGroup .powerActivate {
+  color: var(--color-action-activate);
+}
+.actionGroup .powerActivate:hover:not(:disabled) {
+  background-color: var(--color-action-activate-hover-bg);
+  color: var(--color-action-activate-hover);
+}
+.powerActive {
+  color: var(--color-action-deactivate);
+}
 .powerInactive {
-  color: var(--color-status-success-text);
+  color: var(--color-action-activate);
 }
 
 .table .stateCell {

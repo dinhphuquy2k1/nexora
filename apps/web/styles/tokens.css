@@ -33,10 +33,18 @@
 
   --color-accent: var(--brand-orange);
   --color-accent-hover: var(--brand-orange-dark);
-  --color-action-emphasis-bg: #bf570b;
-  --color-action-emphasis-hover: #b94e08;
-  --color-action-emphasis-text: #ffffff;
+  --color-action-emphasis-bg: var(--brand-orange);
+  --color-action-emphasis-hover: var(--brand-orange-dark);
+  --color-action-emphasis-text: var(--brand-navy);
   --color-accent-light: var(--brand-orange-light);
+
+  /* Action-specific semantic tokens (Power status toggling) */
+  --color-action-deactivate: var(--gray-400);
+  --color-action-deactivate-hover: var(--gray-700);
+  --color-action-deactivate-hover-bg: var(--gray-100);
+  --color-action-activate: #059669;
+  --color-action-activate-hover: #047857;
+  --color-action-activate-hover-bg: #ecfdf5;
 
   --color-background: #f5f7fa;
   --color-surface: #ffffff;

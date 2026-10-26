@@ -135,7 +135,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   }, [search, read.invalidate, read.refresh]);
   function change(patch: Partial<Query>, replace = false) {
     cancel();
-    read.invalidate();
     let current: Query;
     try {
       current = parseCustomerQuery(new URLSearchParams(location.search));
@@ -151,7 +150,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   }
   function searchChange(q: string) {
     cancel();
-    read.invalidate();
     setDraft(q);
     timer.current = setTimeout(
       () => change({ q: q.trim() || undefined, page: 1 }, true),
@@ -160,7 +158,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   }
   function handleReload() {
     cancel();
-    read.invalidate();
     const trimmedDraft = draft.trim();
     let current: Query;
     try {
@@ -378,6 +375,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           />
           <CustomerPagination
             pagination={compatible ? read.data?.pagination : undefined}
+            stats={stats}
             query={query}
             rowCount={rows?.length ?? 0}
             onQuery={(p) => change(p)}
