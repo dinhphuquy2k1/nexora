@@ -20,17 +20,17 @@ Documentation Impact: REQUIRED
 
 ## Current Design System and M2 correction checkpoint — 2026-10-26
 
-Owner directive fixes default32px/medium40px/large48px globally, including Login/MFA; shared typography/spacing/radius/icons/states; no separate stats hook/request; nine-column colgroup/Skeleton; shared Toast; table-wide Power single-flight; standard/wide layout; accessible ZIP fidelity and unchanged backend contracts. These preferences are settled. Authenticated v3 approval was verified on2026-10-26; execution now begins stage1. Completion and verification remain gated by executed stage/final-head evidence. Overall task remains IN PROGRESS, overall capability PLANNED and Verification NOT VERIFIED because M3–M5 and current M2 acceptance are unfinished. Existing M1/M2 code is distinct from the proposed amendment.
+Owner directive fixes default32px/medium40px/large48px globally, including Login/MFA; shared typography/spacing/radius/icons/states; no separate stats hook/request; nine-column colgroup/Skeleton; shared Toast; table-wide Power single-flight; standard/wide layout; accessible ZIP fidelity and unchanged backend contracts. These preferences are settled. Authenticated v3 approval was verified on2026-10-26; source implementation stages1–6 and stage7 automation/docs are committed. Final runtime/visual verification is in progress. Completion and verification remain gated by executed stage/final-head evidence. Overall task remains IN PROGRESS, overall capability PLANNED and Verification NOT VERIFIED because M3–M5 and current M2 acceptance are unfinished. Existing M1/M2 plus the v3 correction are implemented; acceptance remains pending.
 
-Comprehensive read-only inventory, eight-field reuse matrix, alternatives, exact public API/type/override migration, consumer impact, security/race/state policies, modal Toast viewport, layout/column geometry, seven-stage commits, parser enforcement and test/rollback strategy are in the linked snapshot. Canonical Design System documentation and rule/router/registry migrations are planned there; this planning checkpoint does not change today's runtime defaults or claim the new contract is implemented.
+Comprehensive read-only inventory, eight-field reuse matrix, alternatives, exact public API/type/override migration, consumer impact, security/race/state policies, modal Toast viewport, layout/column geometry, seven-stage commits, parser enforcement and test/rollback strategy are in the linked snapshot. Canonical Design System documentation and rule/router/registry migrations now exist. The source contract is implemented; historical planning and intermediate FAIL evidence below remain intact and do not certify final-head runtime acceptance.
 
-- [ ] Stage1: shared size API/tokens and all actual consumers, including Login/MFA/Setup and native shell actions; retire --control-height and local28/32px shadows only after approval.
-- [ ] Stage2: generic keyed read lifecycle plus List-owned validated q/phone/owner-scoped statistics snapshot, no new hook/request.
-- [ ] Stage3: centralized nine-column colgroup, same-width Skeleton, honest unavailable address count and stable footer.
-- [ ] Stage4: neutral modal-aware Toast provider and table-wide synchronous Power lock; separate write/read settlement.
-- [ ] Stage5: standard/wide metadata and shared Header/content frame/gutters; preserve SSR/sidebar/security.
-- [ ] Stage6: measured AA/shared emphasis variant, reference comparison/focus and ten-viewport geometry acceptance.
-- [ ] Stage7: canonical design-system.md, router/rules/registry/frontend/testing/index, full final-head hosted checks and independent implementation review.
+- [x] Stage1 source implementation: shared size API/tokens and all actual consumers, including Login/MFA/Setup and native shell actions; retire --control-height and local28/32px shadows only after approval.
+- [x] Stage2 source implementation: generic keyed read lifecycle plus List-owned validated q/phone/owner-scoped statistics snapshot, no new hook/request.
+- [x] Stage3 source implementation: centralized nine-column colgroup, same-width Skeleton, honest unavailable address count and stable footer.
+- [x] Stage4 source implementation: neutral modal-aware Toast provider and table-wide synchronous Power lock; separate write/read settlement.
+- [x] Stage5 source implementation: standard/wide metadata and shared Header/content frame/gutters; preserve SSR/sidebar/security.
+- [ ] Stage6 final acceptance (source implemented): measured AA/shared emphasis variant, reference comparison/focus and ten-viewport geometry acceptance.
+- [ ] Stage7 final acceptance (docs/automation implemented): canonical design-system.md, router/rules/registry/frontend/testing/index, full final-head hosted checks and independent implementation review.
 
 Read-only findings at b44c3c4: root --control-height44px is shadowed by Customer scopes32/28px, confirmed against actual computed-style Foundation failure (input32 vs root override40); invalidation discards read.data and loading hides counts; table has9 headers but no colgroup/Skeleton; Power guards with React state, disables only active row and awaits void refresh; Header/content gutters and Customer pathname CSS differ. Native date/time/datetime-local/number/radio/switch/multi-select/Toast consumers were not found; do not invent them. SDK and actual Customer adapter confirm stats owner/q/phone scope, independent of status/page/pageSize; Summary has no addressCount and q excludes email.
 
@@ -1061,3 +1061,9 @@ continue same colgroup, minimum derived. Extend DOM geometry to record text Rang
 bounds and require text inside padded header bounds at every target width, so edge
 alignment alone cannot certify overlapping text. This is a measured rendering
 correction allowed by approved prototype widths, not a design architecture change.
+
+Opened partial-image hashes fromd59d4ce evidence:
+admin-list1440×900 c22eb2a2a3d1acb56a0347b8db61bca1345904817926c08d44a0b81bb28d3fca;
+admin-list375×812 e054f990ad04d13e5aafec00a12747b2e1b1082c54d5f7c19a66709ed5b38260.
+These are genuine earlier failed-run images, not final acceptance. Reviewer confirmed
+phone source P2 fixes; independent helper review corrections are recorded above.
