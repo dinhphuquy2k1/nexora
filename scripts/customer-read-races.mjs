@@ -137,7 +137,7 @@ export async function verifyCustomerReadRaces({
     );
     checks.step("CUSTOMER_SEARCH_RELOAD_FLUSH");
     await fill("q", "Lan");
-    await click("Tải lại");
+    await click("Làm mới");
     await ready();
     assert.equal(
       await evaluate('new URLSearchParams(location.search).get("q")'),
@@ -157,7 +157,7 @@ export async function verifyCustomerReadRaces({
     await ready();
     checks.step("CUSTOMER_OLD_STATS_RUNTIME");
     mode = "old";
-    await click("Xóa tìm kiếm");
+    await click("Xóa từ khóa tìm kiếm");
     await ready();
     assert.equal(
       await evaluate(
@@ -167,7 +167,7 @@ export async function verifyCustomerReadRaces({
     );
     await snapshot("stats-unavailable");
     mode = "hold";
-    await click("Tải lại");
+    await click("Làm mới");
     await ready();
     assert.equal(
       await evaluate(
@@ -177,7 +177,7 @@ export async function verifyCustomerReadRaces({
     );
     checks.step("CUSTOMER_FORBIDDEN_NOT_SESSION");
     mode = "forbidden";
-    await click("Tải lại");
+    await click("Làm mới");
     await ready(true);
     assert.equal(await evaluate("location.pathname"), "/customers");
     assert.equal(
@@ -188,7 +188,7 @@ export async function verifyCustomerReadRaces({
     );
     await snapshot("request-error");
     mode = "hold";
-    await click("Tải lại");
+    await click("Làm mới");
     await ready();
     checks.step("CUSTOMER_READ_UNMOUNT");
     await fill("q", stale);

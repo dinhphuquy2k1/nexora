@@ -610,7 +610,8 @@ export async function verifyCustomerBrowser({
     await until('!document.querySelector("dialog[open]")');
     // Same-key URL normalization and Back/Forward must restart, not deadlock.
     step("CLEAR_QUERY");
-    await click("Xóa tìm kiếm");
+    await fill("q", " "); // Visible whitespace draft exercises same-key clear before debounce.
+    await click("Xóa từ khóa tìm kiếm");
     await ready();
     await evaluate(
       'history.pushState(null,"","/customers?pageSize=20&page=1");history.back();true',
@@ -622,7 +623,7 @@ export async function verifyCustomerBrowser({
     await until('location.search.includes("q=")');
     await ready();
     await snapshot("filtered-empty");
-    await click("Xóa tìm kiếm");
+    await click("Xóa từ khóa tìm kiếm");
     await ready();
     assert.equal(
       await evaluate('new URLSearchParams(location.search).has("q")'),
@@ -644,15 +645,24 @@ export async function verifyCustomerBrowser({
     step("DETAIL_RENDER");
     await navigate("/customers/" + customer.id);
     await until(`${button("Thêm địa chỉ")}`);
-    assert.equal(
-      await evaluate(
-        `(()=>{const profile=document.querySelector('main dl');return !!profile&&profile.children.length===6&&Array.from(profile.children).every(row=>Math.abs(row.getBoundingClientRect().width-profile.getBoundingClientRect().width)<1);})()`,
-      ),
-      true,
+    step("DETAIL_PROFILE_FIELDS");
+    const profileLayout = await evaluate(
+      `(()=>{const profile=document.querySelector('main dl');return {labels:Array.from(profile?.children??[]).map(row=>row.querySelector('dt')?.textContent.trim()),fullWidth:!!profile&&Array.from(profile.children).every(row=>Math.abs(row.getBoundingClientRect().width-profile.getBoundingClientRect().width)<1)};})()`,
     );
+    assert.deepEqual(profileLayout.labels, [
+      "Mã khách hàng",
+      "Họ và tên",
+      "Số điện thoại",
+      "Email",
+      "Trạng thái",
+      "Ngày đăng ký hồ sơ",
+      "Số địa chỉ nhận hàng",
+    ]);
+    step("DETAIL_PROFILE_GEOMETRY");
+    assert.equal(profileLayout.fullWidth, true);
     await snapshot("detail");
     step("EDIT_PROFILE");
-    await click("Sửa khách hàng");
+    await click("Chỉnh sửa thông tin");
     await until('!!document.querySelector("dialog[open] input[name=name]")');
     await fill("note", "Ghi chú thử nghiệm");
     await evaluate(
@@ -691,7 +701,7 @@ export async function verifyCustomerBrowser({
     await until('!document.querySelector("dialog[open]")');
     await ready();
     step("SET_DEFAULT");
-    await click("Đặt mặc định");
+    await click("Đặt làm mặc định");
     await ready();
     await until(
       `!document.querySelector('dialog[open]')&&document.querySelector('h1')`,
