@@ -1091,3 +1091,9 @@ beyond5seconds, eventual expiry after pointer leaves, persistent error beyond5se
 keyboard Enter dismissal/focus restoration and retained inline error. New-owner
 Customer entry asserts no notifications from the prior workspace. These are explicit
 real CDP interactions, not timer mocks; hosted execution is still pending.
+
+Visual/announcement follow-up: removed obsolete permanent List/Detail saved notices
+that said a read was still loading after settlement and repeated the shared success
+Toast announcement. Shared Toast owns confirmed-write feedback; accepted read state
+and safe inline/Toast error own reconciliation. Detail missing-address explanation
+is preserved. No operation/refresh contract changed.

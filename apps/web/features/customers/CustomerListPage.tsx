@@ -91,7 +91,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   const rows = compatible && !read.denied ? read.data?.customers : undefined;
 
   const [overlay, setOverlay] = useState<Summary | "create" | null>(null);
-  const [notice, setNotice] = useState("");
   const power = useRef(new CustomerPowerFlight());
   const powerInstance = useId();
   const mounted = useRef(true);
@@ -145,7 +144,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   function change(patch: Partial<Query>, replace = false) {
     cancel();
     read.invalidate();
-    setNotice("");
     let current: Query;
     try {
       current = parseCustomerQuery(new URLSearchParams(location.search));
@@ -163,7 +161,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     cancel();
     read.invalidate();
     setDraft(q);
-    setNotice("");
     timer.current = setTimeout(
       () => change({ q: q.trim() || undefined, page: 1 }, true),
       300,
@@ -331,11 +328,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           </Button>
         </p>
       )}
-      {notice && (
-        <p role="status" className={styles.notice}>
-          {notice}
-        </p>
-      )}
       {invalid ? (
         <section
           className={styles.dataCard}
@@ -416,9 +408,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           }}
           onSaved={() => {
             setOverlay(null);
-            setNotice(
-              "Đã lưu khách hàng. Đang tải lại dữ liệu; nếu tải lại lỗi, dùng nút Tải lại.",
-            );
           }}
         />
       )}

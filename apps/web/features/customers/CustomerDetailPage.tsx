@@ -66,9 +66,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
   }, [c, mode]);
   const saved = () => {
     setMode(null);
-    setNotice(
-      "Đã lưu thay đổi. Đang tải lại; nếu không tải được, dùng Tải lại.",
-    );
+    setNotice("");
   };
   return (
     <div
