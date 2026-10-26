@@ -91,7 +91,46 @@ export async function verifyM1Visuals({
     });
   }
   try {
-    if (phase === "login") await waitForInteractiveLogin({ until, evaluate });
+    if (phase === "login") {
+      await waitForInteractiveLogin({ until, evaluate });
+      const checkboxSizes = await evaluate(`(()=>{
+        const input=document.querySelector('input[name="remember-username"]');
+        const label=input?.closest('label[data-size]');
+        if(!input||!label||!input.labels?.length)return null;
+        const previous=label.getAttribute('data-size');
+        const root=document.documentElement;
+        const tokens=['--control-size-default','--control-size-medium','--control-size-large'];
+        const saved=tokens.map(t=>[root.style.getPropertyValue(t),root.style.getPropertyPriority(t)]);
+        try {
+          const rows=[];
+          for(const [i,size] of ['default','medium','large'].entries()){
+            label.setAttribute('data-size',size);
+            const measure=()=>({target:label.getBoundingClientRect().height,indicator:input.getBoundingClientRect().height});
+            const baseline=measure();
+            root.style.setProperty(tokens[i],String([36,44,52][i])+'px','important');
+            const override=measure();
+            if(saved[i][0])root.style.setProperty(tokens[i],...saved[i]);else root.style.removeProperty(tokens[i]);
+            rows.push({baseline,override});
+          }
+          return rows;
+        }finally{
+          if(previous===null)label.removeAttribute('data-size');else label.setAttribute('data-size',previous);
+          tokens.forEach((t,i)=>saved[i][0]?root.style.setProperty(t,...saved[i]):root.style.removeProperty(t));
+          if(label.getAttribute('data-size')!==previous||!tokens.every((t,i)=>root.style.getPropertyValue(t)===saved[i][0]&&root.style.getPropertyPriority(t)===saved[i][1]))throw Error('CHECKBOX_RESTORATION');
+        }
+      })()`);
+      assert.ok(checkboxSizes, "actual Login Checkbox and label required");
+      for (const [i, row] of checkboxSizes.entries()) {
+        assert.equal(row.baseline.target, [32, 40, 48][i]);
+        assert.equal(row.baseline.indicator, [16, 18, 20][i]);
+        assert.equal(row.override.target, [36, 44, 52][i]);
+        assert.equal(
+          row.override.indicator,
+          row.baseline.indicator,
+          "height override keeps indicator independent",
+        );
+      }
+    }
     for (const viewport of M1_VIEWPORTS) {
       console.log(
         `M1 ${prefix} ${phase} viewport ${viewport.width}x${viewport.height}`,

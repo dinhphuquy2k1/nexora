@@ -12,7 +12,6 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
     const button=document.querySelector('dialog[open] button[data-variant="emphasis"]');
     const select=document.querySelector('select[aria-label="Số dòng mỗi trang"]');
     const textarea=document.querySelector('dialog[open] textarea');
-    const checkbox=document.querySelector('dialog[open] input[type="checkbox"]');
     if(!input||!button||!select||!textarea)return {present:false};
     const elements=[input,button,select], attrs=elements.map(e=>e.getAttribute('data-size'));
     const tokens=['--control-size-default','--control-size-medium','--control-size-large'];
@@ -22,11 +21,15 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
       for(const [index,size] of ['default','medium','large'].entries()){
         elements.forEach(e=>e.setAttribute('data-size',size));
         rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[32,40,48][index]});
+        const other=(index+1)%tokens.length;
+        root.style.setProperty(tokens[other],'99px','important');
+        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[32,40,48][index]});
+        if(saved[other][0])root.style.setProperty(tokens[other],...saved[other]);else root.style.removeProperty(tokens[other]);
         root.style.setProperty(tokens[index],String([36,44,52][index])+'px','important');
         rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[36,44,52][index]});
         if(saved[index][0])root.style.setProperty(tokens[index],...saved[index]);else root.style.removeProperty(tokens[index]);
       }
-      return {present:true,rows,textarea:textarea.rows>=3&&getComputedStyle(textarea).resize==='vertical'&&textarea.getBoundingClientRect().height>32,checkbox:!checkbox||!!checkbox.labels?.length};
+      return {present:true,rows,textarea:textarea.rows>=3&&getComputedStyle(textarea).resize==='vertical'&&textarea.getBoundingClientRect().height>32};
     }finally{
       elements.forEach((e,i)=>attrs[i]===null?e.removeAttribute('data-size'):e.setAttribute('data-size',attrs[i]));
       tokens.forEach((t,i)=>saved[i][0]?root.style.setProperty(t,...saved[i]):root.style.removeProperty(t));
@@ -43,7 +46,6 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
         `real ${row.size} height and runtime override`,
       );
   assert.equal(sizing.textarea, true, "multiline Textarea rows and resize");
-  assert.equal(sizing.checkbox, true, "native Checkbox label");
   for (const variant of ["emphasis", "secondary", "ghost"]) {
     const selector = `dialog[open] button[data-variant=${variant}]:not(:disabled)`;
     const location = await evaluate(

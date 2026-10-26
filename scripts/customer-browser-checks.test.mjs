@@ -40,6 +40,7 @@ test("static CDP expressions are valid JavaScript before a genuine browser run",
     "customer-read-races.mjs",
     "workspace-geometry-checks.mjs",
     "customer-control-checks.mjs",
+    "m1-visual-checks.mjs",
   ])
     count += validateExpressions(
       await readFile(new URL(name, import.meta.url), "utf8"),

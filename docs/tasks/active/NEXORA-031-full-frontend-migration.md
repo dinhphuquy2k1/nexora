@@ -994,3 +994,16 @@ phone-normalization algorithm was duplicated.
   after genuine auth/MFA and32px controls/AA checks. Added precise child diagnostic
   checkpoints to distinguish field validation from Toast/read settlement; historical
   FAIL retained. Final-head Foundation and screenshot acceptance remain NOT VERIFIED.
+
+### v3 verification follow-up
+
+- Independent stage5–7 review confirms both phone P2 fixes; no new production P1/P2
+  found. It correctly rejected a vacuous optional Customer Checkbox probe. Replaced
+  with mandatory actual Login remember-username Checkbox target/indicator32/40/48
+  and isolated height overrides/restoration. No missing-control PASS allowed.
+- Host quality first failed missing API_INTERNAL_URL; configured retry reached build
+  but failed ENOSPC (workspace only22MiB free). Removed only this attempt's generated
+  .next output; no user/Docker volumes changed. Host quality is FAIL, not PASS.
+- test:lint PASS52/52. Root Node suite first124/125 FAIL because the independent
+  viewport inventory still expected six; migrated it to all ten approved v3 sizes,
+  retaining explicit inventory assertion. Corrected rerun recorded separately.

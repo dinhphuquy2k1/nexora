@@ -65,7 +65,7 @@ All default targets are32px, above WCAG2.2 target24px; validate spacing and real
 
 ## Shared workspace and asynchronous feedback migration
 
-Keyed read/statistics retention, nine-column colgroup/Skeleton and modal-aware Toast are implemented in v3 stages2–4; browser verification remains pending. Standard/wide frame migration follows in stage5. Source implementation is not runtime PASS. Do not create LayoutProvider/global state manager, Customer-only Toast or stats hook/request.
+Keyed read/statistics retention, nine-column colgroup/Skeleton and modal-aware Toast are implemented in v3 stages2–4; browser verification remains pending. Standard/wide frame migration is implemented in stage5; final browser geometry remains required. Source implementation is not runtime PASS. Do not create LayoutProvider/global state manager, Customer-only Toast or stats hook/request.
 
 The frame contract uses the same Header/content inline gutters24 desktop/16≤900/12≤600, standard max-width1600 including gutters and wide unrestricted; preserve sidebar240/72, Header56 and SSR/mobile behavior. Customer owns column geometry and backend-field truth; shared UI owns generic interaction. Exact backend row/address/status/session rules remain outside this document.
 
