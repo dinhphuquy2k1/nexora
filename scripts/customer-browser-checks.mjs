@@ -128,6 +128,31 @@ export async function verifyCustomerBrowser({
     );
     await evaluate(`${expr}.click();true`);
   }
+  async function dismissToastFeedback() {
+    // Assert/capture feedback before this explicit user dismissal, never retry a write.
+    console.log(
+      "Customer Create pointer diagnostic",
+      JSON.stringify(
+        await evaluate(
+          `(()=>{const el=${button("Thêm khách hàng")};if(!el)return{present:false};const r=el.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {present:true,toastOcclusion:!!hit?.closest('[data-toast-viewport]')};})()`,
+        ),
+      ),
+    );
+    for (let n = 0; n < 6; n++) {
+      if (
+        !(await evaluate(
+          "(()=>{const button=document.querySelector('[data-toast-viewport] button');if(!button)return false;button.click();return true;})()",
+        ))
+      )
+        break;
+    }
+    assert.equal(
+      await evaluate(
+        "document.querySelectorAll('[data-toast-message]').length",
+      ),
+      0,
+    );
+  }
   async function click(text) {
     const expr = button(text);
     await until(
@@ -607,7 +632,9 @@ export async function verifyCustomerBrowser({
     }
     await snapshot("list");
     step("DUPLICATE_PHONE_FORM");
+    await dismissToastFeedback();
     await click("Thêm khách hàng");
+    step("DUPLICATE_PHONE_FIELDS_READY");
     await until('!!document.querySelector("dialog[open] input[name=name]")');
     await fill("name", "Bản ghi trùng thử nghiệm");
     await fill("phone", phone);
@@ -1010,6 +1037,7 @@ export async function verifyCustomerBrowser({
     );
     step("SAVE_OPEN_LONG_CONTENT");
     await navigate("/customers");
+    await dismissToastFeedback();
     await click("Thêm khách hàng");
     await until('!!document.querySelector("dialog[open] input[name=name]")');
     const longName = "Tên khách hàng dài ".repeat(20).slice(0, 199) + "Z";

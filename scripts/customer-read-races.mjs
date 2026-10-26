@@ -340,10 +340,11 @@ export async function verifyCustomerPower({
     assert.match(target, /^\/customers\/[0-9a-f-]{36}$/i);
     const readTarget = () =>
       evaluate(
-        `fetch('/api'+${JSON.stringify(target)}).then(async r=>({status:r.status,value:(await r.json()).status}))`,
+        `fetch('/api'+${JSON.stringify(target)}).then(async r=>({status:r.status,value:(await r.json()).customer.status}))`,
       );
     const before = await readTarget();
     assert.equal(before.status, 200);
+    assert.ok(["ACTIVE", "INACTIVE"].includes(before.value));
     failRead = true;
     await evaluate(`document.querySelector('${powerSelector}').click();true`);
     await until(

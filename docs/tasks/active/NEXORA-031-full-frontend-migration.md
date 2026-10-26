@@ -1028,3 +1028,20 @@ actual network PATCH response HTTP200, and checks a nonfaulted same-owner Detail
 read changed status. Only List GET is fault-injected. Button readiness also requires
 at least two actual controls (no empty-array every PASS). Syntax/lint verification
 remains separate from required genuine hosted execution.
+
+### v3 intermediate runtime evidence and investigation
+
+Foundation40280127379 atd59d4ce: Docker quality/migrated integration PASS; Local
+runtime FAIL at duplicate-phone-form before Submit child checkpoint. Real ten-width
+Login/MFA/shell geometry/keyboard/font checks passed; actual emphasis normal/hover
+contrast measured4.5818/5.0528, secondary14.6791/14.0299, ghost14.0299. This is partial
+run evidence only; HTTPS/data/dev were SKIPPED. Required final-head PASS remains open.
+
+Added safe boolean pointer hit-test diagnostic and explicit actual Toast-close action
+after feedback capture, before subsequent Create scenarios. A transient/persistent
+notification may cover the Create pointer location; until hit-test evidence exists,
+this remains an investigation rather than a proven production defect. No mutation
+retry or feedback assertion removal. GitHub artifact download yielded a file reference,
+but direct download was HTTP403 in this environment; screenshots have NOT been opened
+or accepted. Independent review also caught new helper Detail response nesting;
+readback now uses customer.status and requires a canonical pre-write status.
