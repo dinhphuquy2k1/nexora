@@ -92,7 +92,10 @@ export function CustomerPagination({
             {i > 0 && n - pages[i - 1] > 1 && <span aria-hidden="true">…</span>}
             <Button
               icon
-              variant={query.page === n ? "emphasis" : "ghost"}
+              variant={query.page === n ? "emphasis" : "secondary"}
+              className={
+                query.page === n ? styles.pageSelected : styles.pageUnselected
+              }
               aria-label={`Trang ${n}`}
               aria-current={query.page === n ? "page" : undefined}
               disabled={loading || !pagination}
