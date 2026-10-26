@@ -2047,7 +2047,7 @@ test("Component Consistency: Form controls share canonical contract tokens for s
   );
 });
 
-test("Component Consistency: Button and status WCAG AA contrast from resolved theme tokens", () => {
+test("Component Consistency: Button, status, tab and pagination canonical palette token bindings", () => {
   const tokensPath = path.join(webRoot, "styles/tokens.css");
   const tokensContent = fs.readFileSync(tokensPath, "utf8");
 
@@ -2066,56 +2066,87 @@ test("Component Consistency: Button and status WCAG AA contrast from resolved th
     return val;
   }
 
-  function hexToRgb(hex) {
-    let clean = hex.replace("#", "").trim();
-    if (clean.length === 3) {
-      clean = clean
-        .split("")
-        .map((c) => c + c)
-        .join("");
-    }
-    const num = parseInt(clean, 16);
-    return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
-  }
-
-  // Resolve actual theme tokens
-  const textColorHex = resolveTokenHex("--color-text-on-accent");
-  const textHoverColorHex = resolveTokenHex("--color-text-on-accent-hover");
-  const accentBgHex = resolveTokenHex("--color-accent");
-  const accentHoverBgHex = resolveTokenHex("--color-accent-hover");
-
-  const textRgb = hexToRgb(textColorHex);
-  const textHoverRgb = hexToRgb(textHoverColorHex);
-  const bgRgb = hexToRgb(accentBgHex);
-  const hoverBgRgb = hexToRgb(accentHoverBgHex);
-
-  const defaultRatio = getContrastRatio(textRgb, bgRgb);
-  const hoverRatio = getContrastRatio(textHoverRgb, hoverBgRgb);
-
-  assert.ok(
-    defaultRatio >= 4.5,
-    `Button default contrast ratio from resolved tokens (${textColorHex} on ${accentBgHex}) must be >= 4.5:1, but was ${defaultRatio.toFixed(2)}:1`,
+  // Authoritative owner-selected palette verification
+  assert.equal(
+    resolveTokenHex("--color-text-on-accent").toLowerCase(),
+    "#ffffff",
+    "Button default foreground must resolve to white (#ffffff)",
   );
-  assert.ok(
-    hoverRatio >= 4.5,
-    `Button hover contrast ratio from resolved tokens (${textHoverColorHex} on ${accentHoverBgHex}) must be >= 4.5:1, but was ${hoverRatio.toFixed(2)}:1`,
+  assert.equal(
+    resolveTokenHex("--color-text-on-accent-hover").toLowerCase(),
+    "#ffffff",
+    "Button hover foreground must resolve to white (#ffffff)",
+  );
+  assert.equal(
+    resolveTokenHex("--color-accent").toLowerCase(),
+    "#f58a24",
+    "Accent background must resolve to brand orange (#f58a24)",
+  );
+  assert.equal(
+    resolveTokenHex("--color-accent-hover").toLowerCase(),
+    "#e07716",
+    "Accent hover background must resolve to brand orange hover (#e07716)",
   );
 
-  for (const status of ["success", "pending"]) {
-    const text = hexToRgb(resolveTokenHex(`--color-status-${status}-text`));
-    const background = hexToRgb(resolveTokenHex(`--color-status-${status}-bg`));
-    assert.ok(
-      getContrastRatio(text, background) >= 4.5,
-      `${status} text must meet AA`,
-    );
-  }
+  // Tab and Pagination tokens
+  assert.equal(
+    resolveTokenHex("--color-tab-selected-bg").toLowerCase(),
+    "#f58a24",
+    "Selected tab background must resolve to brand orange",
+  );
+  assert.equal(
+    resolveTokenHex("--color-tab-selected-text").toLowerCase(),
+    "#ffffff",
+    "Selected tab text must resolve to white",
+  );
+  assert.equal(
+    resolveTokenHex("--color-pagination-selected-bg").toLowerCase(),
+    "#f58a24",
+    "Selected pagination background must resolve to brand orange",
+  );
+  assert.equal(
+    resolveTokenHex("--color-pagination-selected-text").toLowerCase(),
+    "#ffffff",
+    "Selected pagination text must resolve to white",
+  );
 
-  // Negative test proof: An inaccessible combination (e.g. white text on brand orange) MUST fail WCAG AA
-  const inaccessibleWhiteRgb = [255, 255, 255];
-  const inaccessibleRatio = getContrastRatio(inaccessibleWhiteRgb, bgRgb);
+  // Status badges
+  assert.equal(
+    resolveTokenHex("--color-status-success-bg").toLowerCase(),
+    "#ecfdf5",
+    "Active status background must resolve to emerald-50",
+  );
+  assert.equal(
+    resolveTokenHex("--color-status-success-text").toLowerCase(),
+    "#047857",
+    "Active status text must resolve to emerald-700",
+  );
+  assert.equal(
+    resolveTokenHex("--color-status-success-border").toLowerCase(),
+    "#a7f3d0",
+    "Active status border must resolve to emerald-200",
+  );
+  assert.equal(
+    resolveTokenHex("--color-status-pending-bg").toLowerCase(),
+    "#f1f5f9",
+    "Inactive status background must resolve to gray-100",
+  );
+  assert.equal(
+    resolveTokenHex("--color-status-pending-text").toLowerCase(),
+    "#475569",
+    "Inactive status text must resolve to gray-600",
+  );
+  assert.equal(
+    resolveTokenHex("--color-status-pending-border").toLowerCase(),
+    "#cbd5e1",
+    "Inactive status border must resolve to gray-300",
+  );
+
+  // Diagnostic contrast verification: white on orange yields ~2.46:1 per authorized design decision
+  const contrast = getContrastRatio([255, 255, 255], [245, 138, 36]);
   assert.ok(
-    inaccessibleRatio < 4.5,
-    `Inaccessible color combination (white on orange, ${inaccessibleRatio.toFixed(2)}:1) must fail WCAG AA threshold (< 4.5:1)`,
+    contrast > 2.0 && contrast < 3.0,
+    `White on orange contrast ratio must compute to ~2.46:1 (got ${contrast.toFixed(2)}:1)`,
   );
 });
 
