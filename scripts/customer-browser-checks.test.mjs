@@ -45,6 +45,15 @@ test("static CDP expressions are valid JavaScript before a genuine browser run",
     count += validateExpressions(
       await readFile(new URL(name, import.meta.url), "utf8"),
     );
+  const { customerContrastExpression } = await import(
+    "./customer-control-checks.mjs"
+  );
+  for (const selector of [
+    'button[data-variant="emphasis"]',
+    "main tbody tr:nth-child(2) td:nth-child(7)>span",
+    'button[aria-label="Quoted \" name"]',
+  ])
+    new AsyncFunction(`return ${customerContrastExpression(selector)}`);
   assert.ok(count > 20);
   assert.throws(
     () =>
