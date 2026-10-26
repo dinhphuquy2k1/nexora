@@ -1157,3 +1157,10 @@ keyboard Detail disclosure; remove obsolete td max-width competing with colgroup
 Shared Button labels stay single-line and feedback flex-wraps. Add body text/content
 Range bounds to the same genuine table geometry gate, plus SSR full200-name/254-email
 retention regression. No backend or data contract changes.
+
+Foundation40286223089 (5489916) narrows the remaining failure to Toast keyboard
+activation: actual document/close-control focus assertion passes, but alert remains
+after keyDown/keyUp. CDP Enter must include its carriage-return text to produce
+native character activation; add text/unmodifiedText while retaining real key events,
+focus restoration, persistent-inline-error and disappearance assertions. No click
+fallback, timeout increase or automatic mutation retry was added.

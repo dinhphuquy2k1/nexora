@@ -401,6 +401,8 @@ export async function verifyCustomerPower({
       key: "Enter",
       code: "Enter",
       windowsVirtualKeyCode: 13,
+      text: "\r",
+      unmodifiedText: "\r",
     });
     await send("Input.dispatchKeyEvent", {
       type: "keyUp",
