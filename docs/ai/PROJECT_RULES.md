@@ -137,8 +137,13 @@ Prefer Node built-ins for test orchestration; preserve exact ownership, timeout/
 - **Documented exceptions**: Any intentional visual exception must document its reason, scope, and compatibility impact per [Frontend Architecture](../architecture/frontend.md).
 - **Demonstrated need**: Do not create unused generic components or introduce new UI frameworks without demonstrated need.
 
+### Visual Fidelity Rule for Reference Migrations
+
+When implementing a UI from a supplied design/source reference, the agent must preserve the reference's approved visual intent. Shared components and design tokens must serve that intent, not silently replace it. All differences must be traced to source, explained, and verified. Unrequested visible features must not be introduced.
+
 Canonical ownership:
 
 - [Engineering Policy](PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule): Mandatory engineering policy and governance.
 - [Frontend Architecture](../architecture/frontend.md): Canonical Styling Policy, token hierarchy, semantic ownership, fallback rules, and form control contract.
 - [Reusable Components Registry](../architecture/reusable-components.md): Canonical shared control registry and component ownership.
+- [Design System](../architecture/design-system.md): Canonical visual fidelity matrix, token contracts, and reference migration guidelines.

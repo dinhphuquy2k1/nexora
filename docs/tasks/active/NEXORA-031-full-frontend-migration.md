@@ -1181,3 +1181,15 @@ Customer chip/dot consume that role, without darkening all muted text. Shared br
 contrast expression reused for actual status chips and selected counts in initial
 and Power retained rows; no duplicate color algorithm. Genuine final-head AA still
 requires hosted probe execution. This is approved semantic-color/accessibility scope.
+
+### Visual Fidelity Correction (Reference Parity) — 2026-10-26
+
+Resolved visual fidelity differences against authoritative reference ZIP (`17e7d68fccf654fac306f9fbde49fa4646cd770191f3922a77962776e0b1b3e5`):
+
+1. **Fix 1 — Decoupled Statistics Freshness from Row Loading**: Derived stats validity from statistics scope identity (`ownerId`, `q`, `phone`), mutation revalidation phase (`revalidating`/`blocked`), and same-scope error. Ordinary tab switching (`ALL` → `ACTIVE` → `INACTIVE`), page transitions, and pageSize changes retain valid statistics without count resets or false "Thống kê cũ · đang tải lại" warnings.
+2. **Fix 2 — Removed Secondary Phone Filter UI**: Removed `<details className={styles.secondaryFilter}>` and `phoneDraft` state, restoring the reference toolbar layout (Search input left, active FilterChip center, Refresh button right). URL parameter compatibility (`/customers?phone=...`) is fully preserved with truth-in-UI FilterBadge display and clear action.
+3. **Fix 3, 4 & 6 — Unified Brand Orange Palette (`#F58A24` + Navy `#172B4D`)**: Add Customer primary button, Selected status tabs, and Selected pagination buttons now share one coherent accent system (`variant="primary"`) with background `#F58A24` (hover `#E07716`) and high-contrast Navy `#172B4D` text, achieving 5.74:1 contrast (WCAG AA compliant).
+4. **Fix 5 — FilterChip Content and Density**: 24px compact badge displaying "Đang lọc", truthful `({filteredTotal}/{statsTotal})` counts, and visible labeled "Xóa lọc" button.
+5. **Fix 7 & 9 — Outlined Status Badges & Action Buttons**: ACTIVE (emerald outlined, green dot) and INACTIVE (slate outlined, muted dot); Eye detail button rendered as 26px rounded square.
+6. **Fix 8 — Table Geometry**: Centralized nine-column colgroup contract with 240px name width, ensuring zero horizontal overflow and header-to-content alignment across all 10 viewports.
+7. **Verification**: 35/35 Node unit tests PASS; Preflight check PASS; Prettier format:check PASS; ESLint boundary check PASS; Typecheck PASS (all 6 projects); CDP automated suite PASS across all 10 viewports and 7 reference screen resolutions.
