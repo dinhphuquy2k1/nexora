@@ -1,6 +1,6 @@
 /** The one header/body/Skeleton sizing contract. Widths include cell gutters and 32px actions. */
 export const customerColumns = [
-  { key: "detail", label: "CHI TIẾT", width: 56 },
+  { key: "detail", label: "CHI TIẾT", width: 80 },
   { key: "code", label: "MÃ KHÁCH HÀNG", width: 144 },
   { key: "name", label: "HỌ VÀ TÊN", width: undefined, minimum: 200 },
   { key: "phone", label: "SỐ ĐIỆN THOẠI", width: 152 },

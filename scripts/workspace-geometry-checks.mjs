@@ -31,11 +31,21 @@ export async function verifyWorkspaceGeometry({ evaluate, width }) {
 }
 export async function verifyCustomerTableGeometry({ evaluate }) {
   const value = await evaluate(
-    `(()=>{const table=document.querySelector('main table'),row=table?.querySelector('tbody tr');if(!table||!row)return null;const headers=Array.from(table.querySelectorAll('thead th')).map(e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right}}),cells=Array.from(row.children).map(e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,colspan:e.colSpan}});return {cols:table.querySelectorAll('colgroup col').length,headers,cells,skeleton:row.hasAttribute('data-skeleton')};})()`,
+    `(()=>{const table=document.querySelector('main table'),row=table?.querySelector('tbody tr');if(!table||!row)return null;const headers=Array.from(table.querySelectorAll('thead th')).map(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),range=document.createRange();range.selectNodeContents(e);const text=range.getBoundingClientRect();return {left:r.left,right:r.right,textLeft:text.left,textRight:text.right,paddingLeft:parseFloat(s.paddingLeft),paddingRight:parseFloat(s.paddingRight)}}),cells=Array.from(row.children).map(e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,colspan:e.colSpan}});return {cols:table.querySelectorAll('colgroup col').length,headers,cells,skeleton:row.hasAttribute('data-skeleton')};})()`,
   );
   assert.ok(value, "real table must exist");
   assert.equal(value.cols, 9);
   assert.equal(value.headers.length, 9);
+  for (const [index, header] of value.headers.entries()) {
+    assert.ok(
+      header.textLeft >= header.left + header.paddingLeft - 1,
+      `header ${index} text must fit its left content edge`,
+    );
+    assert.ok(
+      header.textRight <= header.right - header.paddingRight + 1,
+      `header ${index} text must fit its right content edge`,
+    );
+  }
   if (value.cells.length === 1) {
     assert.equal(value.cells[0].colspan, 9);
     return value;

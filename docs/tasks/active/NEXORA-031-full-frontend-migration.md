@@ -1045,3 +1045,19 @@ retry or feedback assertion removal. GitHub artifact download yielded a file ref
 but direct download was HTTP403 in this environment; screenshots have NOT been opened
 or accepted. Independent review also caught new helper Detail response nesting;
 readback now uses customer.status and requires a canonical pre-write status.
+
+### v3 opened partial visual evidence
+
+Recovered artifact12632063110 through its Sediment-backed file reference after the
+direct URL403; opened actual admin-list1440×900 and375×812 screenshots from failed
+run40280127379. Manifest merge checkout d076d4f93780dd1c55614c00a80b73e76ec194d3,
+source headd59d4ce; actual Inter custom font. This resolves artifact-access only,
+not final-head screenshot acceptance. Images confirm transient success Toast occupies
+workspace Create pointer area (explicit dismissal is now part of new-form scenarios).
+
+Images plus DOM manifest show first header width56px: CHI TIẾT visually collides with
+next heading. Increase only central Detail column to80px; all body/Skeleton/header
+continue same colgroup, minimum derived. Extend DOM geometry to record text Range
+bounds and require text inside padded header bounds at every target width, so edge
+alignment alone cannot certify overlapping text. This is a measured rendering
+correction allowed by approved prototype widths, not a design architecture change.
