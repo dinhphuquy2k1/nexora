@@ -15,12 +15,12 @@ Documentation Impact: REQUIRED
 - **Design SHA-256**: c25703baddc79bf3955a6d58e15092a9e0ac2a15f401ee34431ee6f91ef2c939
 - **Reviewed baseline**: b44c3c4178c34492f6c8f52b70795bcdaff04846
 - **Approval authority**: dinhphuquy2k1
-- **Approval status**: PENDING_REVIEW
-- **Approval evidence**: Awaiting authenticated ADR-009 owner decision on https://github.com/dinhphuquy2k1/nexora/pull/28 for this revision and raw-byte digest; no matching v3 approval exists in the fetched complete comments/reviews.
+- **Approval status**: APPROVED
+- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/28#issuecomment-6407149976 — authenticated owner dinhphuquy2k1, created/updated2026-10-26T02:52:26Z; canonical ADR-009 verifier accepted complete connector-authenticated comment/review payload, exact task/revision/recomputed raw-byte digest and chronology; no later relevant revocation.
 
 ## Current Design System and M2 correction checkpoint — 2026-10-26
 
-Owner directive fixes default32px/medium40px/large48px globally, including Login/MFA; shared typography/spacing/radius/icons/states; no separate stats hook/request; nine-column colgroup/Skeleton; shared Toast; table-wide Power single-flight; standard/wide layout; accessible ZIP fidelity and unchanged backend contracts. These preferences are settled, but implementation awaits authenticated approval for the concrete v3 snapshot. All production/test/CI/dependency changes for this amendment are NOT STARTED. Overall task remains IN PROGRESS, overall capability PLANNED and Verification NOT VERIFIED because M3–M5 and current M2 acceptance are unfinished. Existing M1/M2 code is distinct from the proposed amendment.
+Owner directive fixes default32px/medium40px/large48px globally, including Login/MFA; shared typography/spacing/radius/icons/states; no separate stats hook/request; nine-column colgroup/Skeleton; shared Toast; table-wide Power single-flight; standard/wide layout; accessible ZIP fidelity and unchanged backend contracts. These preferences are settled. Authenticated v3 approval was verified on2026-10-26; execution now begins stage1. Completion and verification remain gated by executed stage/final-head evidence. Overall task remains IN PROGRESS, overall capability PLANNED and Verification NOT VERIFIED because M3–M5 and current M2 acceptance are unfinished. Existing M1/M2 code is distinct from the proposed amendment.
 
 Comprehensive read-only inventory, eight-field reuse matrix, alternatives, exact public API/type/override migration, consumer impact, security/race/state policies, modal Toast viewport, layout/column geometry, seven-stage commits, parser enforcement and test/rollback strategy are in the linked snapshot. Canonical Design System documentation and rule/router/registry migrations are planned there; this planning checkpoint does not change today's runtime defaults or claim the new contract is implemented.
 
@@ -903,3 +903,7 @@ Artifact12585228714 SHA25680941e3775e2b649e691a32eca6bc228991f000431464d2d5c4fe3
    - White on `#F58A24` provides only **2.32:1** contrast, failing WCAG AA (>= 4.5:1 for normal text).
    - In accordance with Nexora design token policy, `--color-text-on-accent: var(--brand-navy)` (`#172B4D`) is bound to all accent surfaces, yielding **5.74:1** contrast in default state and **4.58:1** on hover.
    - This intentional deviation from the reference ZIP is an approved visual exception to strictly maintain WCAG AA accessibility compliance.
+
+### v3 authenticated approval verification — 2026-10-26
+
+Canonical verifyGitHubApprovalEvidence accepted owner comment6407149976 from complete authenticated GitHub connector payload (comments<100, reviews0), matching raw digest c25703baddc79bf3955a6d58e15092a9e0ac2a15f401ee34431ee6f91ef2c939 and exact revision/task. Snapshot publication commitcdb6ccb timestamp02:45:43Z precedes comment creation/update02:52:26Z; no matching later revocation. This local replay uses actual connector-authenticated payload and canonical chronology/authority rules, distinct from hosted Preflight execution. Mutable metadata APPROVED; immutable snapshot unchanged. Earlier pending-gate statements are historical capture checkpoints. User explicitly directed continuation after verification.
