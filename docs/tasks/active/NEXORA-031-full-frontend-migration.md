@@ -1117,3 +1117,27 @@ hover checks, and controlled read-race/unmount scenarios PASS. Next failure is
 DETAIL_RENDER: existing harness expects accessible name Thêm địa chỉ, while the
 Panel action displayed uppercase without an explicit name. Add that exact accessible
 label while retaining uppercase visual text; no operation or assertion change.
+
+### v3 final source checkpoint — execution gates still open
+
+Independent implementation review of source579679911c65adfb12cd66d2f8cabeb32a6f1afe
+reports no remaining confirmed P1/P2, focused6/6 PASS and clean full diff. Earlier
+full-source/focused review counts24/24 and17/17 remain separate, overlapping evidence;
+this is not owner approval or runtime acceptance.
+
+Executed local checks: Web96/96 PASS, root Node125/125 PASS, lint tests52/52 PASS;
+format, lint/boundaries, UI/Web typecheck, docs/static preflight, contract reproduction
+and final diff checks PASS. No skipped tests in these reported counts. Host full
+quality attempts are FAIL: required upstream config, then disk ENOSPC, then configured
+RAM-output retry reached Web compilation but Prisma artifact DNS EAI_AGAIN blocked
+Database build. Temporary .next symlink removed; only owned generated output used,
+no volumes/data/keys changed. These limitations do not weaken canonical hosted Docker
+gates or imply they passed.
+
+Current final source hosted Preflight40285089721 SUCCESS; Foundation40285089720 is
+still running at this checkpoint. Read final-head workflow results/logs and merge
+checkout lineage in PR metadata after completion to avoid documentation SHA loops.
+Task remains IN PROGRESS, overall implementation PLANNED for M1–M5 and verification
+NOT VERIFIED; M3–M5 remain outside this correction. Draft remains until required
+checkpoint acceptance is substantiated. Immutable v3 digest is unchanged. No backend,
+DB/schema, generated SDK, dependencies, public deployment or live Carrier changes.
