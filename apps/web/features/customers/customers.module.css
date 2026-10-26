@@ -87,7 +87,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-1);
+  padding: 2px;
   max-width: 100%;
   overflow-x: auto;
   background: var(--color-surface-subtle);
@@ -107,6 +107,13 @@
 .tabUnselected:hover {
   text-decoration: none;
 }
+.segments .tabUnselected {
+  color: var(--color-tab-unselected-text);
+}
+.segments .tabUnselected:hover:not(:disabled) {
+  background-color: var(--color-tab-unselected-hover-bg);
+  color: var(--color-tab-unselected-hover-text);
+}
 .tabDot {
   display: inline-block;
   width: 6px;
@@ -115,10 +122,10 @@
   flex-shrink: 0;
 }
 .tabDotSelected {
-  background-color: var(--color-primary);
+  background-color: var(--color-white);
 }
 .tabDotActive {
-  background-color: #10b981;
+  background-color: var(--emerald-500);
 }
 .tabDotInactive {
   background-color: var(--gray-400);
@@ -134,13 +141,13 @@
   font-variant-numeric: tabular-nums;
 }
 .countSelected {
-  background: rgba(23, 43, 77, 0.12);
-  color: var(--color-primary);
+  background: var(--color-count-selected-bg);
+  color: var(--color-count-selected-text);
   font-weight: var(--font-weight-bold);
 }
 .countUnselected {
-  background: var(--color-surface);
-  color: var(--color-text-muted);
+  background: var(--color-count-unselected-bg);
+  color: var(--color-count-unselected-text);
   box-shadow: var(--shadow-sm);
 }
 .srOnly {
@@ -213,10 +220,10 @@
   align-items: center;
   gap: var(--space-1);
   padding: 2px var(--space-2);
-  background: #fffbeb;
-  border: 1px solid rgba(251, 191, 36, 0.6);
+  background: var(--color-filter-chip-bg);
+  border: 1px solid var(--color-filter-chip-border);
   border-radius: var(--radius-sm);
-  color: #92400e;
+  color: var(--color-filter-chip-text);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   height: 24px;
@@ -234,7 +241,7 @@
   padding: 0 2px;
   border: none;
   background: transparent;
-  color: #b45309;
+  color: var(--color-filter-chip-clear);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
@@ -242,7 +249,7 @@
   line-height: 1;
 }
 .filterClearAction:hover {
-  color: #78350f;
+  color: var(--color-filter-chip-clear-hover);
   text-decoration: underline;
 }
 .filterClearAction:focus-visible {
@@ -350,7 +357,7 @@
 }
 .detailLink:hover {
   background-color: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-white);
   text-decoration: none;
 }
 .codeCell {
@@ -394,13 +401,13 @@
   font-weight: var(--font-weight-semibold);
 }
 .statusChipActive {
-  background: #ecfdf5;
-  color: #047857;
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
   border: 1px solid var(--color-status-success-border);
 }
 .statusChipInactive {
-  background: var(--gray-100);
-  color: var(--gray-700);
+  background: var(--color-status-pending-bg);
+  color: var(--color-status-pending-text);
   border: 1px solid var(--color-status-pending-border);
 }
 .chipDot {
@@ -411,7 +418,7 @@
   flex-shrink: 0;
 }
 .chipDotActive {
-  background-color: #10b981;
+  background-color: var(--emerald-500);
 }
 .chipDotInactive {
   background-color: var(--gray-400);
@@ -559,6 +566,25 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+}
+.pageSelected {
+  background-color: var(--color-pagination-selected-bg);
+  color: var(--color-pagination-selected-text);
+  border-color: var(--color-pagination-selected-border);
+}
+.pageSelected:hover:not(:disabled) {
+  background-color: var(--color-action-emphasis-hover);
+  color: var(--color-pagination-selected-text);
+  border-color: var(--color-action-emphasis-hover);
+}
+.pageUnselected {
+  background-color: var(--color-pagination-unselected-bg);
+  color: var(--color-pagination-unselected-text);
+  border-color: var(--color-pagination-unselected-border);
+}
+.pageUnselected:hover:not(:disabled) {
+  background-color: var(--color-surface-muted);
+  color: var(--brand-navy);
 }
 .invalidPanel {
   padding: var(--space-6);
