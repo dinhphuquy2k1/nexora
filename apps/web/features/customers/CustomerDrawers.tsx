@@ -125,12 +125,14 @@ export function CustomerDrawer({
   onClose,
   onSaved,
   refresh,
+  onDenied,
   reconciling = false,
 }: {
   customer?: Customer | Summary;
   onClose: () => void;
   onSaved: () => void;
   refresh: () => void;
+  onDenied: () => void;
   reconciling?: boolean;
 }) {
   const [baseline] = useState(customer);
@@ -143,7 +145,7 @@ export function CustomerDrawer({
     status: customer?.status,
   }));
   const [address, setAddress] = useState(emptyAddress);
-  const mutation = useCustomerMutation(refresh);
+  const mutation = useCustomerMutation(refresh, onDenied);
   return (
     <DrawerFrame
       title={customer ? "Sửa khách hàng" : "Thêm khách hàng"}
@@ -292,6 +294,7 @@ export function AddressDrawer({
   onClose,
   onSaved,
   refresh,
+  onDenied,
   reconciling = false,
 }: {
   id: string;
@@ -299,6 +302,7 @@ export function AddressDrawer({
   onClose: () => void;
   onSaved: () => void;
   refresh: () => void;
+  onDenied: () => void;
   reconciling?: boolean;
 }) {
   const [baseline] = useState(address);
@@ -313,7 +317,7 @@ export function AddressDrawer({
         }
       : emptyAddress(),
   );
-  const mutation = useCustomerMutation(refresh);
+  const mutation = useCustomerMutation(refresh, onDenied);
   return (
     <DrawerFrame
       title={address ? "Sửa địa chỉ" : "Thêm địa chỉ"}

@@ -1,10 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useToast } from "@nexora/ui";
 import { useRouter } from "next/navigation";
 import { CustomerReadLane } from "./request.ts";
 import { customerError, CustomerApiError } from "./errors.ts";
 import {
   beginRead,
+  denyRead,
   acceptRead,
   rejectRead,
   type ReadState,
@@ -22,6 +24,8 @@ export function useCustomerRead<T>(
   const currentKey = useRef(key);
   currentKey.current = key;
   const sequence = useRef(0);
+  const deniedNow = useRef(false);
+  const isDenied = useCallback(() => deniedNow.current, []);
   const intent = useRef<{ id: number; key: string } | null>(null);
   const [state, setState] = useState<
     ReadState<T, ReturnType<typeof customerError>>
@@ -35,6 +39,14 @@ export function useCustomerRead<T>(
   });
   const [revision, retry] = useState(0);
   const router = useRouter();
+  const toast = useToast();
+  const deny = useCallback(() => {
+    deniedNow.current = true;
+    lane.current.invalidate();
+    intent.current = null;
+    const id = ++sequence.current;
+    setState((previous) => denyRead(previous, id));
+  }, []);
   const invalidate = useCallback(() => {
     lane.current.invalidate();
     const id = ++sequence.current;
@@ -63,8 +75,10 @@ export function useCustomerRead<T>(
       void latest
         .current(ticket.signal)
         .then((data) => {
-          if (current.current(ticket))
+          if (current.current(ticket)) {
+            deniedNow.current = false;
             setState((previous) => acceptRead(previous, key, requestId, data));
+          }
         })
         .catch((error) => {
           if (!current.current(ticket)) return;
@@ -72,10 +86,12 @@ export function useCustomerRead<T>(
           const denied =
             error instanceof CustomerApiError &&
             (error.status === 401 || error.status === 403);
+          if (denied) deniedNow.current = true;
           setState((previous) =>
             rejectRead(previous, key, requestId, safe, denied),
           );
           if (safe.unauthenticated) {
+            toast.clear();
             const from = sanitizeReturnUrl(location.pathname + location.search);
             router.replace(
               from ? `/login?from=${encodeURIComponent(from)}` : "/login",
@@ -83,7 +99,7 @@ export function useCustomerRead<T>(
           }
         });
     return () => current.dispose();
-  }, [key, revision, enabled, router]);
+  }, [key, revision, enabled, router, toast]);
   const visible =
     state.key === key ? state : beginRead(state, key, state.requestId);
   return {
@@ -92,5 +108,7 @@ export function useCustomerRead<T>(
     data: enabled ? visible.data : undefined,
     invalidate,
     refresh,
+    deny,
+    isDenied,
   };
 }

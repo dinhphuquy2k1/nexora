@@ -10,7 +10,8 @@ import {
   Trash2,
   Star,
 } from "lucide-react";
-import { Button } from "@nexora/ui";
+import { Button, useToast } from "@nexora/ui";
+import { useReadNotice } from "./useReadNotice.ts";
 import { customerApi } from "./api.ts";
 import { useCustomerRead } from "./useCustomerRead.ts";
 import { useCustomerMutation } from "./useCustomerMutation.ts";
@@ -30,8 +31,10 @@ function getMonogram(name: string) {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 export function CustomerDetailPage({ id }: { id: string }) {
+  const toast = useToast();
   const read = useCustomerRead(id, (signal) => customerApi.get(id, signal));
-  const mutation = useCustomerMutation(read.refresh);
+  const mutation = useCustomerMutation(read.refresh, read.deny);
+  useReadNotice(read);
   const [mode, setMode] = useState<Mode | null>(null);
   const [notice, setNotice] = useState("");
   const c = read.data;
@@ -41,8 +44,12 @@ export function CustomerDetailPage({ id }: { id: string }) {
   }, [c]);
   const data = read.denied ? undefined : (c ?? retained);
   useEffect(() => {
-    if (read.denied) setRetained(undefined);
-  }, [read.denied]);
+    if (read.denied) {
+      setRetained(undefined);
+      setMode(null);
+      if (read.error?.unauthenticated || read.outcome === "idle") toast.clear();
+    }
+  }, [read.denied, read.error?.unauthenticated, read.outcome, toast]);
   const target = data?.addresses.find(
     (a) => mode && "id" in mode && a.id === mode.id,
   );
@@ -130,7 +137,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           {notice}
         </p>
       )}
-      <Feedback error={read.error} />
+      <Feedback live={false} error={read.error} />
       <Feedback error={mutation.error} />
       {read.loading && <p role="status">Đang tải khách hàng…</p>}
       {c && (
@@ -327,15 +334,17 @@ export function CustomerDetailPage({ id }: { id: string }) {
           onClose={() => setMode(null)}
           onSaved={saved}
           refresh={read.refresh}
+          onDenied={read.deny}
           reconciling={read.loading || !!read.error}
         />
       )}
-      {mode?.kind === "add" && (
+      {mode?.kind === "add" && !read.denied && (
         <AddressDrawer
           id={id}
           onClose={() => setMode(null)}
           onSaved={saved}
           refresh={read.refresh}
+          onDenied={read.deny}
           reconciling={read.loading || !!read.error}
         />
       )}
@@ -346,6 +355,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           onClose={() => setMode(null)}
           onSaved={saved}
           refresh={read.refresh}
+          onDenied={read.deny}
           reconciling={read.loading || !!read.error}
         />
       )}
@@ -355,6 +365,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           target={target}
           addresses={data.addresses}
           refresh={read.refresh}
+          onDenied={read.deny}
           onClose={() => setMode(null)}
           onSaved={saved}
           reconciling={read.loading || !!read.error}

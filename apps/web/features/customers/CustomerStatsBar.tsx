@@ -101,7 +101,9 @@ export function CustomerStatsBar({
       </div>
       {stale && (
         <span className={styles.statsHint}>
-          Thống kê trước lần tải lại · đang đối chiếu
+          {error
+            ? "Thống kê cũ · chưa đối chiếu được"
+            : "Thống kê cũ · đang tải lại"}
         </span>
       )}
       <span role="status" className={styles.srOnly}>

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
 import styles from "./Overlay.module.css";
+import { ToastViewport } from "./Toast";
 /** Native modal supplies the top layer, inert background and keyboard focus containment. */
 export function Overlay({
   open,
@@ -93,6 +94,7 @@ export function Overlay({
       }}
     >
       {children}
+      <ToastViewport modal active={open} />
     </dialog>
   );
 }

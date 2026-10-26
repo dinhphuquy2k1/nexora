@@ -19,7 +19,7 @@ export function beginRead<T, E>(
     requestId,
     settledId: previous.settledId,
     loading: true,
-    denied: false,
+    denied: previous.denied,
     outcome: "pending",
     data: previous.key === key && !previous.denied ? previous.data : undefined,
   };
@@ -51,11 +51,25 @@ export function rejectRead<T, E>(
   if (state.key !== key || state.requestId !== requestId) return state;
   return {
     ...state,
-    data: denied ? undefined : state.data,
+    data: denied || state.denied ? undefined : state.data,
     error,
     loading: false,
-    denied,
+    denied: state.denied || denied,
     outcome: "error",
     settledId: requestId,
+  };
+}
+
+export function denyRead<T, E>(
+  state: ReadState<T, E>,
+  requestId: number,
+): ReadState<T, E> {
+  return {
+    key: state.key,
+    loading: false,
+    requestId,
+    settledId: requestId,
+    denied: true,
+    outcome: "idle",
   };
 }

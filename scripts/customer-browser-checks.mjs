@@ -282,7 +282,7 @@ export async function verifyCustomerBrowser({
   }
   async function ready(expectedAlert = false) {
     await until(
-      `location.pathname.startsWith('/customers') && !!document.querySelector('h1#customer-heading') && !Array.from(document.querySelectorAll('[role=status]')).some(e=>e.textContent.startsWith('Đang tải')) && Boolean(document.querySelector('[role=alert]')) === ${expectedAlert}`,
+      `location.pathname.startsWith('/customers') && !!document.querySelector('h1#customer-heading') && !Array.from(document.querySelectorAll('[role=status]')).some(e=>e.textContent.startsWith('Đang tải')) && Boolean(document.querySelector('[data-customer-error], [role=alert]:not([data-toast-message])')) === ${expectedAlert} ${expectedAlert ? "&& Boolean(document.querySelector('[data-toast-viewport] [role=alert]'))" : ""}`,
     );
   }
   async function navigate(path) {

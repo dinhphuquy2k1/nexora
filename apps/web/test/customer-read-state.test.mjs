@@ -95,3 +95,28 @@ test("statistics retain only validated backend values for the same owner/q/phone
     0,
   );
 });
+
+test("explicit denied reset immediately clears retained data and fences earlier completions", async () => {
+  const { denyRead } = await import("../features/customers/read-state.ts");
+  const old = {
+    key: "A",
+    data: { private: "previous" },
+    loading: false,
+    requestId: 1,
+    settledId: 1,
+    denied: false,
+    outcome: "success",
+  };
+  const denied = denyRead(old, 2);
+  assert.equal(denied.data, undefined);
+  assert.equal(denied.denied, true);
+  assert.equal(acceptRead(denied, "A", 1, { private: "late" }), denied);
+  const retry = beginRead(denied, "A", 3);
+  assert.equal(retry.denied, true);
+  assert.equal(retry.data, undefined);
+  const failed = rejectRead(retry, "A", 3, "offline");
+  assert.equal(failed.denied, true);
+  assert.equal(failed.data, undefined);
+  const allowed = acceptRead(retry, "A", 3, { private: "current" });
+  assert.equal(allowed.denied, false);
+});

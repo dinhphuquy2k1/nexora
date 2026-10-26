@@ -47,6 +47,7 @@ export function CustomerTable({
   onEdit,
   onToggleStatus,
   togglingId,
+  powerUnavailable = false,
   loading,
   error,
   filtered,
@@ -57,6 +58,7 @@ export function CustomerTable({
   onEdit: (c: Summary) => void;
   onToggleStatus?: (c: Summary) => void;
   togglingId?: string | null;
+  powerUnavailable?: boolean;
   loading: boolean;
   error?: ReturnType<typeof customerError>;
   filtered: boolean;
@@ -71,7 +73,7 @@ export function CustomerTable({
           <AlertCircle size={22} aria-hidden="true" />
         </div>
         <h2 className={styles.stateTitle}>Chưa tải được danh sách</h2>
-        <Feedback error={error} />
+        <Feedback live={false} error={error} />
         <Button variant="secondary" onClick={onRetry}>
           Thử tải lại
         </Button>
@@ -121,7 +123,7 @@ export function CustomerTable({
       )}
       {error && rows.length > 0 && (
         <div className={styles.staleFeedback}>
-          <Feedback error={error} />
+          <Feedback live={false} error={error} />
           <Button variant="secondary" onClick={onRetry}>
             Thử tải lại
           </Button>
@@ -231,7 +233,8 @@ export function CustomerTable({
                       icon
                       variant="ghost"
                       onClick={() => onToggleStatus?.(c)}
-                      disabled={togglingId === c.id}
+                      disabled={powerUnavailable}
+                      aria-busy={togglingId === c.id}
                       aria-label={
                         c.status === CustomerStatus.ACTIVE
                           ? `Tạm ngừng hoạt động ${c.code}`

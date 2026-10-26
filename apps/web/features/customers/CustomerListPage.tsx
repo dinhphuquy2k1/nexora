@@ -1,13 +1,17 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { Button } from "@nexora/ui";
+import { useEffect, useId, useRef, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Button, useToast } from "@nexora/ui";
 import {
   statisticsScope,
   captureStatistics,
   visibleStatistics,
   type StatisticsSnapshot,
 } from "./list-statistics.ts";
+import { CustomerPowerFlight } from "./power-flight.ts";
+import { customerError, CustomerApiError } from "./errors.ts";
+import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
+import { useReadNotice } from "./useReadNotice.ts";
 import { CustomerStatus } from "@nexora/shared";
 import { parseCustomerQuery, customerQueryString } from "./query.ts";
 import type { Query, Summary } from "./types.ts";
@@ -74,13 +78,45 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   let stats = invalid
     ? undefined
     : visibleStatistics(statistics, displayScope, read.denied);
-  if (read.outcome === "success" && compatible)
+  if (read.outcome === "success" && compatible && !read.denied)
     stats = read.data?.stats ?? undefined;
   const rows = compatible && !read.denied ? read.data?.customers : undefined;
 
   const [overlay, setOverlay] = useState<Summary | "create" | null>(null);
   const [notice, setNotice] = useState("");
-  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const power = useRef(new CustomerPowerFlight());
+  const powerInstance = useId();
+  const mounted = useRef(true);
+  const [powerState, setPowerState] = useState(power.current.snapshot());
+  const toast = useToast();
+  useEffect(() => {
+    if (read.denied) {
+      setOverlay(null);
+      power.current.cancel();
+      setPowerState(null);
+      if (read.error?.unauthenticated || read.outcome === "idle") toast.clear();
+    }
+  }, [read.denied, read.error?.unauthenticated, read.outcome, toast]);
+  const router = useRouter();
+  useReadNotice(read);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      power.current.cancel();
+    };
+  }, []);
+  useEffect(() => {
+    if (power.current.observe(read, key))
+      setPowerState(power.current.snapshot());
+  }, [
+    read.key,
+    read.requestId,
+    read.settledId,
+    read.loading,
+    read.outcome,
+    key,
+  ]);
   function cancel() {
     if (timer.current !== null) clearTimeout(timer.current);
     timer.current = null;
@@ -146,26 +182,57 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     }
   }
   async function handleToggleStatus(c: Summary) {
-    if (togglingId) return;
+    if (read.isDenied()) return;
+    const token = power.current.begin(c.id);
+    if (token === null) return;
+    setPowerState(power.current.snapshot());
     const nextStatus =
       c.status === CustomerStatus.ACTIVE
         ? CustomerStatus.INACTIVE
         : CustomerStatus.ACTIVE;
-    const actionText =
-      nextStatus === CustomerStatus.ACTIVE
-        ? "kích hoạt"
-        : "tạm ngừng hoạt động";
-    setTogglingId(c.id);
     try {
       await customerApi.update(c.id, { status: nextStatus });
-      setNotice(`Đã ${actionText} khách hàng ${c.name}.`);
-      await read.refresh();
-    } catch {
-      setNotice(
-        `Không thể thay đổi trạng thái khách hàng ${c.name}. Vui lòng thử lại.`,
-      );
-    } finally {
-      setTogglingId(null);
+      if (!mounted.current || !power.current.matches(token)) return;
+      if (read.isDenied()) {
+        power.current.reject(token);
+        setPowerState(null);
+        return;
+      }
+      toast.enqueue({
+        id: `${powerInstance}-power-${token}-success`,
+        tone: "success",
+        message: "Đã cập nhật trạng thái khách hàng.",
+      });
+      power.current.reconcile(token, read.refresh());
+      setPowerState(power.current.snapshot());
+    } catch (error) {
+      if (!mounted.current || !power.current.matches(token)) return;
+      const safe = customerError(error);
+      if (safe.unauthenticated) {
+        read.deny();
+        toast.clear();
+        setOverlay(null);
+        setStatistics(undefined);
+        power.current.reject(token);
+        const from = sanitizeReturnUrl(location.pathname + location.search);
+        router.replace(
+          from ? `/login?from=${encodeURIComponent(from)}` : "/login",
+        );
+      } else {
+        toast.enqueue({
+          id: `${powerInstance}-power-${token}-error`,
+          tone: "error",
+          message: safe.message,
+        });
+        if (
+          !(error instanceof CustomerApiError) ||
+          error.status >= 500 ||
+          [403, 404, 409].includes(error.status)
+        )
+          power.current.reconcile(token, read.refresh());
+        else power.current.reject(token);
+      }
+      setPowerState(power.current.snapshot());
     }
   }
   const clearFilters = () => {
@@ -232,6 +299,15 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           onReload={handleReload}
         />
       </section>
+      {powerState?.phase === "blocked" && (
+        <p className={styles.notice}>
+          Thao tác đã kết thúc nhưng dữ liệu chưa đối chiếu được. Các nút trạng
+          thái tạm khóa.
+          <Button variant="secondary" onClick={handleReload}>
+            Đối chiếu lại dữ liệu
+          </Button>
+        </p>
+      )}
       {notice && (
         <p role="status" className={styles.notice}>
           {notice}
@@ -271,11 +347,24 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           <CustomerTable
             rows={rows ?? []}
             loading={read.loading}
-            error={read.error}
+            error={
+              read.error ??
+              (read.denied
+                ? {
+                    message:
+                      "Dữ liệu đã được khóa. Đang xác minh quyền truy cập.",
+                  }
+                : undefined)
+            }
             filtered={!!(query.q || query.status || query.phone)}
             onEdit={setOverlay}
             onToggleStatus={handleToggleStatus}
-            togglingId={togglingId}
+            togglingId={
+              powerState && powerState.phase !== "blocked"
+                ? powerState.id
+                : null
+            }
+            powerUnavailable={!!powerState || !!read.error || read.loading}
             onClear={clearFilters}
             onRetry={handleReload}
           />
@@ -288,12 +377,17 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           />
         </section>
       )}
-      {overlay && (
+      {overlay && !read.denied && (
         <CustomerDrawer
           customer={overlay === "create" ? undefined : overlay}
           reconciling={read.loading || !!read.error}
           onClose={() => setOverlay(null)}
           refresh={read.refresh}
+          onDenied={() => {
+            read.deny();
+            setStatistics(undefined);
+            setOverlay(null);
+          }}
           onSaved={() => {
             setOverlay(null);
             setNotice(

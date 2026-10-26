@@ -124,7 +124,9 @@ export async function verifyCustomerReadRaces({
     held = undefined;
     await delay(100);
     assert.equal(
-      await evaluate('!!document.querySelector("main [role=alert]")'),
+      await evaluate(
+        '!!document.querySelector("main [role=alert], main [data-customer-error]")',
+      ),
       false,
     );
     assert.equal(
@@ -179,7 +181,9 @@ export async function verifyCustomerReadRaces({
     await ready(true);
     assert.equal(await evaluate("location.pathname"), "/customers");
     assert.equal(
-      await evaluate('!!document.querySelector("main [role=alert]")'),
+      await evaluate(
+        '!!document.querySelector("main [role=alert], main [data-customer-error]")',
+      ),
       true,
     );
     await snapshot("request-error");

@@ -14,6 +14,7 @@ export function DeleteAddressModal({
   target,
   addresses,
   refresh,
+  onDenied,
   onClose,
   onSaved,
   reconciling,
@@ -22,13 +23,14 @@ export function DeleteAddressModal({
   target: Address;
   addresses: Address[];
   refresh: () => void;
+  onDenied: () => void;
   onClose: () => void;
   onSaved: () => void;
   reconciling: boolean;
 }) {
   const [replacement, setReplacement] = useState("");
   const [partial, setPartial] = useState(false);
-  const mutation = useCustomerMutation(refresh);
+  const mutation = useCustomerMutation(refresh, onDenied);
   const others = addresses.filter((a) => a.id !== target.id);
   return (
     <DrawerFrame
