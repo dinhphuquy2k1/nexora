@@ -66,6 +66,7 @@ The canonical project color specification is owned by this document, and the act
 - **Three-Tier Token Architecture**: Foundation (raw values) → Semantic (application roles) → Component (private consumer mappings).
 - **Prohibition of Automatic Palette Shifting**: Do not automatically darken backgrounds or change white text to navy to satisfy WCAG AA.
 - **Non-Color Accessibility Invariant**: All other accessibility requirements remain strictly enforced: semantic HTML, accessible ARIA labels and states, keyboard navigation (Tab/Shift+Tab/Arrow navigation), 32px standard click targets, visible focus rings (`:focus-visible`), modal focus traps, and screen reader announcements.
+- **Focus Indication & Non-Interactive Layout Surfaces**: Visible focus rings (`:focus-visible`) belong strictly to interactive controls (buttons, links, inputs, selects, textareas). Non-interactive programmatic focus containers, such as `<main id="workspace-content" tabIndex={-1}>` (`.contentArea`), receive programmatic focus during route transitions and skip-navigation without rendering visual focus outlines (`.contentArea:focus { outline: none; }`). This prevents unintended rectangular border artifacts around the main workspace surface while maintaining accessibility focus management and keyboard navigation flow.
 - **Self-Contained Contract**: This specification is self-contained and independent of any external files or temporary archives.
 
 ### 2. Foundation Palette

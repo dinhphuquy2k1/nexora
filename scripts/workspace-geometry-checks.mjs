@@ -21,13 +21,87 @@ export function assertWorkspaceGeometry(value, width) {
       "wide fills MainWrapper",
     );
   assert.ok(value.noBodyOverflow, "no document horizontal overflow");
+  if (value.mainOutlineStyle !== undefined) {
+    assert.ok(
+      value.mainOutlineStyle === "none" || value.mainOutlineWidth === 0,
+      "Main contentArea must not have an outline",
+    );
+  }
+  if (value.mainBorderTop !== undefined) {
+    assert.equal(value.mainBorderTop, 0, "Main must not have border-top");
+  }
+  if (value.mainBorderLeft !== undefined) {
+    assert.equal(value.mainBorderLeft, 0, "Main must not have border-left");
+  }
 }
 export async function verifyWorkspaceGeometry({ evaluate, width }) {
   const value = await evaluate(
-    `(()=>{const header=document.querySelector('[data-workspace-frame="header"]'),main=document.querySelector('[data-workspace-frame="content"]');if(!header||!main)return null;const h=header.getBoundingClientRect(),m=main.getBoundingClientRect(),s=getComputedStyle(main),wrapper=main.parentElement;return {variant:main.closest('[data-layout-variant]').dataset.layoutVariant,gutter:parseFloat(s.paddingLeft),headerLeft:h.left+parseFloat(getComputedStyle(header).paddingLeft),headerRight:h.right-parseFloat(getComputedStyle(header).paddingRight),mainLeft:m.left+parseFloat(s.paddingLeft),mainRight:m.right-parseFloat(s.paddingRight),headerHeight:header.closest('header').getBoundingClientRect().height,frameWidth:m.width,wrapperWidth:wrapper.clientWidth,noBodyOverflow:document.documentElement.scrollWidth<=innerWidth};})()`,
+    `(()=>{const header=document.querySelector('[data-workspace-frame="header"]'),main=document.querySelector('[data-workspace-frame="content"]');if(!header||!main)return null;const h=header.getBoundingClientRect(),m=main.getBoundingClientRect(),s=getComputedStyle(main),wrapper=main.parentElement;return {variant:main.closest('[data-layout-variant]').dataset.layoutVariant,gutter:parseFloat(s.paddingLeft),headerLeft:h.left+parseFloat(getComputedStyle(header).paddingLeft),headerRight:h.right-parseFloat(getComputedStyle(header).paddingRight),mainLeft:m.left+parseFloat(s.paddingLeft),mainRight:m.right-parseFloat(s.paddingRight),headerHeight:header.closest('header').getBoundingClientRect().height,frameWidth:m.width,wrapperWidth:wrapper.clientWidth,noBodyOverflow:document.documentElement.scrollWidth<=innerWidth,mainOutlineStyle:s.outlineStyle,mainOutlineWidth:parseFloat(s.outlineWidth)||0,mainBorderTop:parseFloat(s.borderTopWidth)||0,mainBorderLeft:parseFloat(s.borderLeftWidth)||0};})()`,
   );
   assertWorkspaceGeometry(value, width);
   return value;
+}
+export async function verifyMainFocusOutlineContract({ evaluate }) {
+  const result = await evaluate(`(()=>{
+    const main = document.querySelector('[data-workspace-frame="content"]');
+    if (!main) return null;
+    const initialStyle = getComputedStyle(main);
+    const initialOutline = initialStyle.outlineStyle;
+    const initialBorderTop = parseFloat(initialStyle.borderTopWidth) || 0;
+    const initialBorderLeft = parseFloat(initialStyle.borderLeftWidth) || 0;
+
+    // Controlled programmatic focus
+    main.focus();
+    const focused = document.activeElement === main;
+    const focusedStyle = getComputedStyle(main);
+    const focusedOutline = focusedStyle.outlineStyle;
+    const focusedOutlineWidth = parseFloat(focusedStyle.outlineWidth) || 0;
+    const focusedBorderTop = parseFloat(focusedStyle.borderTopWidth) || 0;
+    const focusedBorderLeft = parseFloat(focusedStyle.borderLeftWidth) || 0;
+
+    // Check interactive child controls retain their focus
+    const btn = main.querySelector('button, a[href]');
+    let btnHasFocus = false;
+    if (btn) {
+      btn.focus();
+      btnHasFocus = document.activeElement === btn;
+    }
+
+    // Blur
+    main.blur();
+
+    return {
+      hasMain: true,
+      tabIndex: main.tabIndex,
+      initialOutline,
+      initialBorderTop,
+      initialBorderLeft,
+      focused,
+      focusedOutline,
+      focusedOutlineWidth,
+      focusedBorderTop,
+      focusedBorderLeft,
+      btnHasFocus,
+    };
+  })()`);
+  assert.ok(result?.hasMain, "Main workspace-frame content must exist");
+  assert.equal(
+    result.tabIndex,
+    -1,
+    "Main content must retain tabIndex=-1 for programmatic navigation",
+  );
+  assert.equal(
+    result.focused,
+    true,
+    "Main content must accept programmatic focus without error",
+  );
+  assert.ok(
+    result.focusedOutline === "none" || result.focusedOutlineWidth === 0,
+    "Main content must not display focus outline",
+  );
+  assert.equal(result.focusedBorderTop, 0, "Main must not have border-top");
+  assert.equal(result.focusedBorderLeft, 0, "Main must not have border-left");
+  return result;
 }
 export async function verifyCustomerTableGeometry({ evaluate }) {
   const value = await evaluate(

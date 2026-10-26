@@ -13,6 +13,10 @@ test("geometry fails either mismatched edge, wrong gutter, overflow and wrong ma
     frameWidth: 1600,
     wrapperWidth: 1680,
     noBodyOverflow: true,
+    mainOutlineStyle: "none",
+    mainOutlineWidth: 0,
+    mainBorderTop: 0,
+    mainBorderLeft: 0,
   };
   assert.doesNotThrow(() => assertWorkspaceGeometry(good, 1920));
   for (const change of [
@@ -23,6 +27,9 @@ test("geometry fails either mismatched edge, wrong gutter, overflow and wrong ma
     { frameWidth: 1602 },
     { noBodyOverflow: false },
     { variant: "wide" },
+    { mainOutlineStyle: "solid", mainOutlineWidth: 2 },
+    { mainBorderTop: 1 },
+    { mainBorderLeft: 1 },
   ])
     assert.throws(() => assertWorkspaceGeometry({ ...good, ...change }, 1920));
   assert.doesNotThrow(() =>

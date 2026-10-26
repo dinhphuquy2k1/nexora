@@ -1257,3 +1257,57 @@ Executed and verified all 4 findings for Customer Table Skeleton Alignment and L
    - Chromium CDP assertions added to `workspace-geometry-checks.mjs` verifying `fits`, `balanced`, and `column boundaries < 1px`.
    - All 39 customer unit tests PASS; Preflight check PASS; Prettier format:check PASS; ESLint PASS; Typecheck PASS across all 6 projects; docs check PASS.
    - Visual screenshots captured and archived under viewports 1440x900, 1024x768, and 375x812. Ready for owner review.
+
+### Main Content Border & Focus Outline Investigation & Verification — 2026-10-27
+
+Investigated and resolved intermittent dark Main Content border and focus outline symptoms under task NEXORA-031:
+
+1. **Confirmed Root Cause**:
+   - The `<main className={`${frame.frame} ${styles.contentArea}`} id="workspace-content" tabIndex={-1}>` element in `ShellClient.tsx` establishes a landmark destination for skip-navigation links and programmatic route transitions.
+   - Because `tabIndex={-1}` makes the element focusable, User-Agent stylesheets in browsers apply default `:focus` / `:focus-visible` outline rules (`outline: -webkit-focus-ring-color auto 1px`).
+   - In `AppShell.module.css`, `.contentArea` lacked an explicit `outline` rule. When `<main>` received focus (e.g. from pointer click on the main container background, programmatic focus restoration, or skip navigation), the browser rendered an unexpected dark rectangular outline around the container.
+   - Because `main` sits directly below the sticky Header at `y = 56px` and adjacent to the Sidebar at `x = 240px` (or `72px`), this focus ring manifested as:
+     - A dark horizontal line immediately below the Header.
+     - A dark vertical line along the left edge of Main Content.
+   - The symptom was intermittent because clicking any interactive control (button, input, tab, link) shifted focus away from `<main>`, removing the outline.
+
+2. **AppShell-Level Minimal Correction**:
+   - Added scoped reset in `apps/web/components/app-shell/AppShell.module.css`:
+     ```css
+     .contentArea:focus {
+       outline: none;
+     }
+     ```
+   - Maintained `tabIndex={-1}` on `<main>` so programmatic accessibility focus and skip-navigation continue functioning correctly.
+   - Preserved all interactive control focus rings (`a:focus-visible`, `button:focus-visible`, inputs, textareas, dialog controls).
+   - Confirmed no global `*:focus { outline: none; }` or accessibility compromises were introduced.
+
+3. **Reproduction & Browser Verification Evidence**:
+   - Tested all 11 user-specified interaction scenarios via Chromium CDP:
+     1. Initial load of `/customers`.
+     2. Click Customer Management from Sidebar.
+     3. Navigate between Dashboard and Customer Management.
+     4. Click inside Main Content (workspace padding, card header background, bottom margin).
+     5. Click Sidebar toggle (collapsed and expanded states).
+     6. Open and close Add Customer drawer.
+     7. Open and close Edit Customer drawer.
+     8. Open Customer Detail and return.
+     9. Navigate with keyboard Tab / Shift+Tab.
+     10. Navigate using Back / Forward.
+     11. Refresh page.
+   - Tested responsive viewports: Desktop (1440×900), Wide (1920×1080), Tablet (900×800), and Mobile (375×812).
+   - Measured computed styles:
+     - `mainFocused: true`
+     - `outlineStyle: "none"`
+     - `outlineWidth: "0px"` (or default reset)
+     - `borderTop: "0px none"`
+     - `borderLeft: "0px none"`
+     - `headerBorderBottom: "1px solid var(--color-border)"` (subtle separator preserved)
+     - `mainX` / `mainY` / `mainWidth` / `mainHeight` unchanged across all viewports.
+   - Captured and archived screenshots: `sit1_initial_load.png` through `sit11_refreshed.png`, `diag_main_focused_outline_visible.png`, `vp_desktop_1440_main_focused.png`, `vp_wide_1920_main_focused.png`, `vp_tablet_900_main_focused.png`, `vp_mobile_375_main_focused.png`.
+
+4. **Regression Test Infrastructure**:
+   - Extended `scripts/workspace-geometry-checks.mjs` with `assertWorkspaceGeometry` outline/border validation and new `verifyMainFocusOutlineContract({ evaluate })` check.
+   - Extended `scripts/workspace-geometry-checks.test.mjs` unit assertions.
+   - Integrated `verifyMainFocusOutlineContract` into canonical browser checks in `scripts/customer-browser-checks.mjs`.
+   - Quality gates: format, lint, typecheck, unit tests, and docs checks PASS.

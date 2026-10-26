@@ -339,3 +339,7 @@ with inline clear action and truthful counts. Missing pagination shows unavailab
 than invented zero totals. Persistent Toast errors remain dismissible across reads;
 essential errors use data-customer-error and actual API-error readiness also requires
 an active Toast alert. Do not restore obsolete global-alert assumptions.
+
+### Workspace layout and main focus regression checks
+
+`workspace-geometry-checks.mjs` verifies that the workspace frame maintains exact Header/Main alignment, gutter dimensions, sticky header height (56px), and zero horizontal document overflow. Additionally, `verifyMainFocusOutlineContract` validates that the `<main>` container (`#workspace-content`) retains `tabIndex={-1}`, accepts programmatic focus without JavaScript errors, displays no unintended visual outline (`outlineStyle === 'none' || outlineWidth === 0`), and has zero top/left border width, while interactive child controls retain their keyboard focus indications.

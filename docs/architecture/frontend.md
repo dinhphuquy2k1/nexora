@@ -33,6 +33,7 @@ Components dedicated to Nexora's application shell, layout frame, and cross-rout
 - **`Breadcrumb` (`Breadcrumb.tsx`)**: Pathname-driven breadcrumbs consuming shared navigation metadata.
 - **`NavigationItem` (`NavigationItem.tsx`)**: Distinguishes available routes (Next.js `Link`) from planned features (disabled action button with "Chưa triển khai" label).
 - **Popover Semantics (`use-dismissable.ts`)**: Reusable disclosure hook managing outside pointer dismissal and Escape key closing with focus restoration.
+- **Main Content Frame (`ShellClient.tsx`, `AppShell.module.css`)**: Renders `<main className={`${frame.frame} ${styles.contentArea}`} id="workspace-content" tabIndex={-1}>`, establishing a landmark destination for skip-navigation links and programmatic route transitions. To prevent UA focus rings from creating unintended border artifacts around the layout surface when focus is placed on the container, `.contentArea:focus { outline: none; }` is applied at the shell level. Interactive child controls maintain their own `:focus-visible` rings.
 
 ### Tier C: Feature-Level Components (`apps/web/features/<feature>/`)
 

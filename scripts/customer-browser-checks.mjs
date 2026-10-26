@@ -2,6 +2,7 @@
 import {
   verifyWorkspaceGeometry,
   verifyCustomerTableGeometry,
+  verifyMainFocusOutlineContract,
 } from "./workspace-geometry-checks.mjs";
 import {
   verifyCustomerControls,
@@ -359,6 +360,7 @@ export async function verifyCustomerBrowser({
         evaluate,
         width: viewport.width,
       });
+      await verifyMainFocusOutlineContract({ evaluate });
       const tableGeometry = (await evaluate(
         "Boolean(document.querySelector('main table'))",
       ))
