@@ -1217,3 +1217,43 @@ Executed all confirmed P1/P2 findings for PR #28 under approved revision `rev-20
 14. **Finding 14 — Single Reconciliation Owner for Address Deletion**: Delegated read reconciliation solely to `useCustomerMutation`. Removed duplicate manual `refresh()` calls from `DeleteAddressModal.tsx`, ensuring exactly one authoritative revalidation per ambiguous or partial deletion.
 15. **Finding 15 — Foundation CI Lint Fix**: Fixed unnecessary escape character in `scripts/customer-browser-checks.test.mjs:54`. All lint checks PASS.
 16. **Finding 16 — Canonical Documentation & Review Threads Synchronized**: Updated self-contained Design System documentation, test suites, and verified review threads. All 58 unit/contract tests PASS. Live browser CDP suite PASS across all viewports. Status: READY FOR OWNER REVIEW.
+
+### Customer Table Skeleton Alignment & Loading Stability Verification — 2026-10-27
+
+Executed and verified all 4 findings for Customer Table Skeleton Alignment and Loading Stability under task NEXORA-031:
+
+1. **Finding 1 — Unequal Horizontal Skeleton Margins Resolved**:
+   - Replaced uniform `display: block; width: 75%` with per-column semantic placeholder classes and appropriate margin rules.
+   - For centered columns (`detail`, `addresses`, `status`, `created`, `actions`), placeholders use `margin-inline: auto` inside their respective centered table cells, achieving exact horizontal margin balance.
+   - Computed CDP measurements confirm that placeholder centers and cell centers agree within `< 0.25px` (0.00px on `detail`, `addresses`, and `actions`; 0.01px on `status` and `created`), eliminating the previous 7.5px–17.6px horizontal jump when loading completes.
+
+2. **Finding 2 — Semantic Skeleton Shapes by Cell Role**:
+   - Reused existing `customerColumns` from `columns.ts` as the single source of truth for column geometry; no independent sizing or duplicate definitions.
+   - `detail`: 26px × 26px rounded square (`var(--radius-sm)`), centered.
+   - `code`: 72px × 16px bar (`var(--radius-sm)`), left-aligned, matching monospace customer code.
+   - `name`: 70% width (max 168px, min 120px) × 16px bar (`var(--radius-sm)`), left-aligned.
+   - `phone`: 96px × 16px bar (`var(--radius-sm)`), left-aligned, matching phone format.
+   - `email`: 65% width (max 140px, min 100px) × 16px bar (`var(--radius-sm)`), left-aligned.
+   - `addresses`: 44px × 20px pill (`var(--radius-full)`), centered, matching MapPin badge.
+   - `status`: 104px × 22px chip (`var(--radius-sm)`), centered, matching status chip.
+   - `created`: 76px × 16px bar (`var(--radius-sm)`), centered, matching date string.
+   - `actions`: Two 32px × 32px button placeholders (`var(--control-radius)`) inside `.actionGroup` with 4px gap (`var(--space-1)`), centered (`vertical-align: middle`), matching Edit and Power buttons.
+
+3. **Finding 3 — Fixed 5-Row Skeleton vs. Variable Result Sets**:
+   - Measured transitions across 0, 1, 2, 3, 5, and 10 results across viewports (1440px desktop, 1024px tablet, 768px tablet, 375px mobile).
+   - Proved that the footer position remains perfectly fixed at exactly 588px (0px shift) across all result set transitions because `.dataCard` uses `display: flex; flex-direction: column` with `.tableViewport` set to `flex: 1; min-height: 0; overflow: auto`.
+   - Verified that the approved 5-row contract is structurally stable and causes zero external layout shifts. Retained 5 rows per governance without unverified count heuristics.
+
+4. **Finding 4 — Row Height & Scrollbar Stability**:
+   - Fixed skeleton row height at 44.5px, exactly matching real data rows (44.5px).
+   - Removed vertical margins on `.skeletonCell` (`margin-block: 0`) and added `vertical-align: middle` to `.actionGroup`, preventing the 5px font descent strut that previously caused skeleton rows to expand to 49.5px.
+   - Added `padding: 6px var(--space-1)` on `.table td.detailCell` to guarantee identical content insets between real and skeleton detail cells.
+   - Table viewport clientWidth and scrollWidth remain identical during loading transitions (1390px on 1440px desktop; 974px clientW / 1312px scrollW on 1024px tablet; 718px / 1312px on 768px tablet; 930px / 1312px on 375px mobile).
+   - Verified that long customer names (up to 200 chars) and emails (up to 254 chars) wrap naturally without horizontal column overflow or text clipping.
+   - Verified that same-query revalidation retains active real rows with `data-stale` styling, while query changes invalidate immediately and never display stale records.
+
+5. **Automated Test & Contract Verification**:
+   - Node unit tests extended in `customer-table.test.mjs` verifying all 9 columns render semantic classes, variant placeholders, action button pairs, and column alignment.
+   - Chromium CDP assertions added to `workspace-geometry-checks.mjs` verifying `fits`, `balanced`, and `column boundaries < 1px`.
+   - All 39 customer unit tests PASS; Preflight check PASS; Prettier format:check PASS; ESLint PASS; Typecheck PASS across all 6 projects; docs check PASS.
+   - Visual screenshots captured and archived under viewports 1440x900, 1024x768, and 375x812. Ready for owner review.

@@ -334,9 +334,9 @@
 .table td:last-child {
   border-right: 0;
 }
+.table td.detailCell,
 .detailCell {
   text-align: center;
-
   padding: 6px var(--space-1);
 }
 .detailLink {
@@ -454,6 +454,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
+  vertical-align: middle;
 }
 .actionGroup .powerDeactivate {
   color: var(--color-action-deactivate);
@@ -1050,11 +1051,80 @@
 
 .skeletonCell {
   display: block;
-  width: 75%;
-  min-height: var(--space-4);
-  margin-block: var(--space-2);
+  margin-block: 0;
   border-radius: var(--radius-sm);
   background: var(--color-surface-subtle);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+.skeleton_detail {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  margin-inline: auto;
+}
+.skeleton_code {
+  width: 72px;
+  height: 16px;
+  margin-inline-start: 0;
+  margin-inline-end: auto;
+}
+.skeleton_name {
+  width: 70%;
+  max-width: 168px;
+  min-width: 120px;
+  height: 16px;
+  margin-inline-start: 0;
+  margin-inline-end: auto;
+}
+.skeleton_phone {
+  width: 96px;
+  height: 16px;
+  margin-inline-start: 0;
+  margin-inline-end: auto;
+}
+.skeleton_email {
+  width: 65%;
+  max-width: 140px;
+  min-width: 100px;
+  height: 16px;
+  margin-inline-start: 0;
+  margin-inline-end: auto;
+}
+.skeleton_addresses {
+  width: 44px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  margin-inline: auto;
+}
+.skeleton_status {
+  width: 104px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  margin-inline: auto;
+}
+.skeleton_created {
+  width: 76px;
+  height: 16px;
+  margin-inline: auto;
+}
+.skeletonActionBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--control-radius);
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeletonCell {
+    animation: none;
+  }
 }
 .staleFeedback {
   display: flex;

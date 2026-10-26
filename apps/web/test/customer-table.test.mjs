@@ -111,3 +111,54 @@ test("Finding 10: table row retains native link semantics, accessible detail lin
   assert.match(html, /<button[^>]*aria-label="Sửa KH000001"/);
   assert.match(html, /<button[^>]*aria-label="Tạm ngừng hoạt động KH000001"/);
 });
+
+test("NEXORA-031 Finding 1 & 2: Skeleton placeholders reflect real cell roles and semantic column classes", () => {
+  const html = render(
+    React.createElement(CustomerTable, { ...props, loading: true }),
+  );
+
+  // Each skeleton row renders all 9 semantic data-column cells
+  for (const col of [
+    "detail",
+    "code",
+    "name",
+    "phone",
+    "email",
+    "addresses",
+    "status",
+    "created",
+    "actions",
+  ]) {
+    assert.match(html, new RegExp(`data-column="${col}"`));
+  }
+
+  // Matches corresponding real cell classes
+  assert.match(html, /class="[^"]*detailCell[^"]*"[^>]*data-column="detail"/);
+  assert.match(html, /class="[^"]*codeCell[^"]*"[^>]*data-column="code"/);
+  assert.match(html, /class="[^"]*customerName[^"]*"[^>]*data-column="name"/);
+  assert.match(html, /class="[^"]*phoneCell[^"]*"[^>]*data-column="phone"/);
+  assert.match(html, /class="[^"]*emailCell[^"]*"[^>]*data-column="email"/);
+  assert.match(
+    html,
+    /class="[^"]*addressCountCell[^"]*"[^>]*data-column="addresses"/,
+  );
+  assert.match(html, /class="[^"]*statusCell[^"]*"[^>]*data-column="status"/);
+  assert.match(html, /class="[^"]*dateCell[^"]*"[^>]*data-column="created"/);
+  assert.match(html, /class="[^"]*actionCell[^"]*"[^>]*data-column="actions"/);
+
+  // Semantic variant classes for placeholders
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_detail[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_code[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_name[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_phone[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_email[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_addresses[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_status[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_created[^"]*"/);
+
+  // Action column renders two action button placeholders inside actionGroup
+  assert.match(
+    html,
+    /<div class="[^"]*actionGroup[^"]*"><span class="[^"]*skeletonCell[^"]*skeletonActionBtn[^"]*"><\/span><span class="[^"]*skeletonCell[^"]*skeletonActionBtn[^"]*"><\/span><\/div>/,
+  );
+});

@@ -31,7 +31,7 @@ export async function verifyWorkspaceGeometry({ evaluate, width }) {
 }
 export async function verifyCustomerTableGeometry({ evaluate }) {
   const value = await evaluate(
-    `(()=>{const table=document.querySelector('main table'),row=table?.querySelector('tbody tr');if(!table||!row)return null;const headers=Array.from(table.querySelectorAll('thead th')).map(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),range=document.createRange();range.selectNodeContents(e);const text=range.getBoundingClientRect();return {left:r.left,right:r.right,textLeft:text.left,textRight:text.right,paddingLeft:parseFloat(s.paddingLeft),paddingRight:parseFloat(s.paddingRight)}}),cells=Array.from(row.children).map(e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,colspan:e.colSpan}});return {cols:table.querySelectorAll('colgroup col').length,headers,cells,skeleton:row.hasAttribute('data-skeleton'),bodyContentFits:Array.from(table.querySelectorAll('tbody tr:not([data-skeleton])')).filter(row=>row.children.length===9).every(row=>Array.from(row.children).every(cell=>{const r=cell.getBoundingClientRect(),s=getComputedStyle(cell),range=document.createRange();range.selectNodeContents(cell);const content=range.getBoundingClientRect();return content.left>=r.left+parseFloat(s.paddingLeft)-1&&content.right<=r.right-parseFloat(s.paddingRight)+1;}))};})()`,
+    `(()=>{const table=document.querySelector('main table'),row=table?.querySelector('tbody tr');if(!table||!row)return null;const headers=Array.from(table.querySelectorAll('thead th')).map(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e),range=document.createRange();range.selectNodeContents(e);const text=range.getBoundingClientRect();return {left:r.left,right:r.right,textLeft:text.left,textRight:text.right,paddingLeft:parseFloat(s.paddingLeft),paddingRight:parseFloat(s.paddingRight)}}),cells=Array.from(row.children).map(e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,colspan:e.colSpan}});const skeletonRows=Array.from(table.querySelectorAll('tbody tr[data-skeleton]')).map(tr=>{const cList=Array.from(tr.children);return {cellCount:cList.length,fits:cList.every(td=>{const r=td.getBoundingClientRect(),s=getComputedStyle(td),ch=td.firstElementChild;if(!ch)return true;const cr=ch.getBoundingClientRect();return cr.left>=r.left+parseFloat(s.paddingLeft)-1&&cr.right<=r.right-parseFloat(s.paddingRight)+1;}),balanced:[0,5,6,7,8].every(idx=>{const td=cList[idx];if(!td)return true;const r=td.getBoundingClientRect(),ch=td.firstElementChild;if(!ch)return true;const cr=ch.getBoundingClientRect();return Math.abs((cr.left+cr.width/2)-(r.left+r.width/2))<1;})};});return {cols:table.querySelectorAll('colgroup col').length,headers,cells,skeleton:row.hasAttribute('data-skeleton'),skeletonRows,bodyContentFits:Array.from(table.querySelectorAll('tbody tr:not([data-skeleton])')).filter(row=>row.children.length===9).every(row=>Array.from(row.children).every(cell=>{const r=cell.getBoundingClientRect(),s=getComputedStyle(cell),range=document.createRange();range.selectNodeContents(cell);const content=range.getBoundingClientRect();return content.left>=r.left+parseFloat(s.paddingLeft)-1&&content.right<=r.right-parseFloat(s.paddingRight)+1;}))};})()`,
   );
   assert.ok(value, "real table must exist");
   assert.equal(value.cols, 9);
@@ -59,6 +59,17 @@ export async function verifyCustomerTableGeometry({ evaluate }) {
   for (let i = 0; i < 9; i++) {
     assert.ok(Math.abs(value.headers[i].left - value.cells[i].left) < 1);
     assert.ok(Math.abs(value.headers[i].right - value.cells[i].right) < 1);
+  }
+  if (value.skeleton) {
+    assert.ok(value.skeletonRows.length === 5, "Skeleton must render 5 rows");
+    assert.ok(
+      value.skeletonRows.every((r) => r.fits),
+      "Skeleton placeholders must remain inside cell padding box",
+    );
+    assert.ok(
+      value.skeletonRows.every((r) => r.balanced),
+      "Skeleton horizontal margins must be balanced in centered columns",
+    );
   }
   return value;
 }

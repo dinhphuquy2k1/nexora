@@ -206,3 +206,35 @@ Disabled Input/Textarea presentation takes precedence when readonly and invalid 
 Fixed-column Customer name/email text wraps within the column and retains complete DOM text plus keyboard Detail links; it cannot paint over neighboring columns. The same native colgroup owns row/Skeleton/header widths. Browser Range checks validate both padded header text and actual data-cell content, including long fixtures.
 
 Pending/inactive status text uses its semantic pending foreground mapped to gray-600 (`#475569`), with light background `#F1F5F9` and border `#CBD5E1`. Active status uses emerald-50 (`#ECFDF5`), emerald-700 (`#047857`) text, and emerald-200 (`#A7F3D0`) border.
+
+### Customer Table Skeleton & Loading Presentation Contract (NEXORA-031)
+
+The Customer table skeleton loading state is governed by a unified geometry and semantic placeholder contract that eliminates visual movement, jumps, and layout shifts during transitions between loading and loaded data:
+
+1. **Geometry Single Source of Truth**:
+   - `columns.ts` (`customerColumns`) owns the 9-column widths (`detail: 80px`, `code: 144px`, `name: 240px`, `phone: 152px`, `email: 200px`, `addresses: 104px`, `status: 156px`, `created: 128px`, `actions: 104px`; min-width 1312px).
+   - Real rows, empty state, and skeleton rows share the exact same `<colgroup>` and `<th>` boundaries (verified agreement within < 0.5px).
+   - The approved contract specifies a fixed 5-row skeleton (`Array.from({ length: 5 })`). Measured across 0, 1, 2, 3, 5, and 10 result sets, the card-anchored footer remains stable at exactly 588px (0px shift).
+
+2. **Per-Column Semantic Shape & Alignment Registry**:
+   - **Detail Icon (`detail`, 80px)**: 26px × 26px square (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`), matching the 26px Eye icon button.
+   - **Customer Code (`code`, 144px)**: 72px × 16px bar (`var(--radius-sm)`), left-aligned (`margin-inline-start: 0`), matching monospace code links.
+   - **Customer Name (`name`, 240px)**: 70% width (min 120px, max 168px) × 16px bar (`var(--radius-sm)`), left-aligned, matching primary customer names.
+   - **Phone Number (`phone`, 152px)**: 96px × 16px bar (`var(--radius-sm)`), left-aligned, matching tabular-nums telephone format.
+   - **Email (`email`, 200px)**: 65% width (min 100px, max 140px) × 16px bar (`var(--radius-sm)`), left-aligned, matching customer email strings.
+   - **Address Count (`addresses`, 104px)**: 44px × 20px pill (`var(--radius-full)`), centered horizontally (`margin-inline: auto`), matching the MapPin count badge.
+   - **Status Badge (`status`, 156px)**: 104px × 22px chip (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`), matching the status badge.
+   - **Created Date (`created`, 128px)**: 76px × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`), matching tabular-nums date text.
+   - **Actions (`actions`, 104px)**: Two 32px × 32px button placeholders (`var(--control-radius)`) inside `.actionGroup` with 4px gap (`var(--space-1)`), centered horizontally (`vertical-align: middle`), matching Edit and Power controls.
+
+3. **Row Height & Layout Invariants**:
+   - Both skeleton and real data rows compute to exactly 44.5px height (zero vertical row shift).
+   - Skeleton placeholders use `margin-block: 0`, resting inside cell padding boxes (`padding: 6px var(--space-3)`, and `padding: 6px var(--space-1)` for detail).
+   - Centered column centers agree with real cell content centers within < 0.25px (0.00px shift on detail, addresses, actions; 0.01px on status, created).
+   - Long text rows (name up to 200 characters, email up to 254 characters) wrap cleanly via `overflow-wrap: anywhere` and expand vertically as needed without clipping or horizontal column leakage.
+
+4. **Lifecycle & State Fencing**:
+   - Initial query execution renders the 5-row skeleton.
+   - Same-query revalidation retains active real rows with `data-stale` styling, preventing skeleton flicker.
+   - Query modifications (search key, status filter, pagination) invalidate stale records immediately; prior query data is never displayed.
+   - Responsive scrolling is contained inside `.tableViewport`, preventing body horizontal overflow while preserving footer stability.

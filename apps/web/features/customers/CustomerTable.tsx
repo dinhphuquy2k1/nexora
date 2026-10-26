@@ -172,11 +172,39 @@ export function CustomerTable({
           {skeleton ? (
             Array.from({ length: 5 }, (_, index) => (
               <tr key={index} data-skeleton="true" aria-hidden="true">
-                {customerColumns.map((column) => (
-                  <td key={column.key}>
-                    <span className={styles.skeletonCell} />
-                  </td>
-                ))}
+                {customerColumns.map((column) => {
+                  let cellClass = styles[`${column.key}Cell`];
+                  if (column.key === "name") cellClass = styles.customerName;
+                  else if (column.key === "created")
+                    cellClass = styles.dateCell;
+                  else if (column.key === "addresses")
+                    cellClass = styles.addressCountCell;
+                  else if (column.key === "actions")
+                    cellClass = styles.actionCell;
+
+                  return (
+                    <td
+                      key={column.key}
+                      className={cellClass}
+                      data-column={column.key}
+                    >
+                      {column.key === "actions" ? (
+                        <div className={styles.actionGroup}>
+                          <span
+                            className={`${styles.skeletonCell} ${styles.skeletonActionBtn}`}
+                          />
+                          <span
+                            className={`${styles.skeletonCell} ${styles.skeletonActionBtn}`}
+                          />
+                        </div>
+                      ) : (
+                        <span
+                          className={`${styles.skeletonCell} ${styles[`skeleton_${column.key}`]}`}
+                        />
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))
           ) : empty ? (
