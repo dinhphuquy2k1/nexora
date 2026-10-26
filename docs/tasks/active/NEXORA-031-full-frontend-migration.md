@@ -10,15 +10,41 @@ Documentation Impact: REQUIRED
 
 - **Task ID**: NEXORA-031
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-24-customer-ui-m2-v2
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-24-customer-ui-m2-v2.md
-- **Design SHA-256**: 1deef061d631c24a4170ce295deaa912cfb69ca7f5a552e43ae75ae1496b38a7
-- **Reviewed baseline**: 55e3c1595d2b90a8cd85f5e3c06ab1f0552933f5
+- **Plan revision**: rev-2026-10-26-design-system-m2-v3
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md
+- **Design SHA-256**: c25703baddc79bf3955a6d58e15092a9e0ac2a15f401ee34431ee6f91ef2c939
+- **Reviewed baseline**: b44c3c4178c34492f6c8f52b70795bcdaff04846
 - **Approval authority**: dinhphuquy2k1
-- **Approval status**: APPROVED
-- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/28#issuecomment-6385229351
+- **Approval status**: PENDING_REVIEW
+- **Approval evidence**: Awaiting authenticated ADR-009 owner decision on https://github.com/dinhphuquy2k1/nexora/pull/28 for this revision and raw-byte digest; no matching v3 approval exists in the fetched complete comments/reviews.
 
-Current delivery decision (2026-10-25): M1 is merged in PR27; owner explicitly approved Customer UI/M2 on branch feat/customer-management-ui, PR #28 (comment 6385229351). M2 capability is IMPLEMENTED with P2 debounce reload and runtime token override findings resolved, and Customer navigation activated. Overall capability remains PLANNED because M3–M5 are not implemented. M3–M5 remain NOT STARTED. No new task ID is allocated for this existing milestone.
+## Current Design System and M2 correction checkpoint — 2026-10-26
+
+Owner directive fixes default32px/medium40px/large48px globally, including Login/MFA; shared typography/spacing/radius/icons/states; no separate stats hook/request; nine-column colgroup/Skeleton; shared Toast; table-wide Power single-flight; standard/wide layout; accessible ZIP fidelity and unchanged backend contracts. These preferences are settled, but implementation awaits authenticated approval for the concrete v3 snapshot. All production/test/CI/dependency changes for this amendment are NOT STARTED. Overall task remains IN PROGRESS, overall capability PLANNED and Verification NOT VERIFIED because M3–M5 and current M2 acceptance are unfinished. Existing M1/M2 code is distinct from the proposed amendment.
+
+Comprehensive read-only inventory, eight-field reuse matrix, alternatives, exact public API/type/override migration, consumer impact, security/race/state policies, modal Toast viewport, layout/column geometry, seven-stage commits, parser enforcement and test/rollback strategy are in the linked snapshot. Canonical Design System documentation and rule/router/registry migrations are planned there; this planning checkpoint does not change today's runtime defaults or claim the new contract is implemented.
+
+- [ ] Stage1: shared size API/tokens and all actual consumers, including Login/MFA/Setup and native shell actions; retire --control-height and local28/32px shadows only after approval.
+- [ ] Stage2: generic keyed read lifecycle plus List-owned validated q/phone/owner-scoped statistics snapshot, no new hook/request.
+- [ ] Stage3: centralized nine-column colgroup, same-width Skeleton, honest unavailable address count and stable footer.
+- [ ] Stage4: neutral modal-aware Toast provider and table-wide synchronous Power lock; separate write/read settlement.
+- [ ] Stage5: standard/wide metadata and shared Header/content frame/gutters; preserve SSR/sidebar/security.
+- [ ] Stage6: measured AA/shared emphasis variant, reference comparison/focus and ten-viewport geometry acceptance.
+- [ ] Stage7: canonical design-system.md, router/rules/registry/frontend/testing/index, full final-head hosted checks and independent implementation review.
+
+Read-only findings at b44c3c4: root --control-height44px is shadowed by Customer scopes32/28px, confirmed against actual computed-style Foundation failure (input32 vs root override40); invalidation discards read.data and loading hides counts; table has9 headers but no colgroup/Skeleton; Power guards with React state, disables only active row and awaits void refresh; Header/content gutters and Customer pathname CSS differ. Native date/time/datetime-local/number/radio/switch/multi-select/Toast consumers were not found; do not invent them. SDK and actual Customer adapter confirm stats owner/q/phone scope, independent of status/page/pageSize; Summary has no addressCount and q excludes email.
+
+Repository inspection: initial local5ce8061 with one pre-existing helper delta; saved binary patch at /tmp/nexora-m2-preserved-readiness.patch (SHA2567d2f4aa16217fc7ccc03909215f012e8be8731bd96ae11f496f038530724ea6d) and git stash entry named Preserve pre-design M2 readiness refinement 2026-10-26 before fast-forward to b44c3c4. Do not apply/discard it blindly: remote56a56b9 already adds post-delete settlement/focus corrections; reassess the preserved delta under approved implementation. No unrelated work staged.
+
+Baseline GitHub evidence: Preflight40243318231 SUCCESS; Foundation40243318223 FAILURE at CUSTOMER_admin_TOKEN_OVERRIDE_VERIFY / ASSERTION_FAILED, actual input32px expected40px. Checkout merge3f9ec58 contains PR headb44c3c4 on55e3c15. Quality/migrated integration PASS; runtime failed, HTTPS/data/dev SKIPPED. These results concern that baseline only, not the future planning or implementation head. Existing PR description had stale5ce8061/Draft claims while actual PR was Ready; update metadata/status truthfully for this pending revision.
+
+Reference ZIP SHA25617e7d68fccf654fac306f9fbde49fa4646cd770191f3922a77962776e0b1b3e5 and actual List/Detail source hashes match v2. Reference sources were read, never executed. All prior approved snapshots remain byte-identical. Repository pre-implementation-review skill and ADR-009 forbid code/test changes while pending. Optional external UI/UX skill reference resources could not be read; repository rules/source and explicit owner requirements govern this review instead. Independent read-only design review found no confirmed P1/P2 contradiction; this is not owner approval or runtime acceptance.
+
+## Historical v2 delivery and implementation record
+
+Historical v2 approval: comment6385229351 by authenticated owner dinhphuquy2k1, https://github.com/dinhphuquy2k1/nexora/pull/28#issuecomment-6385229351, revision rev-2026-10-24-customer-ui-m2-v2, digest1deef061d631c24a4170ce295deaa912cfb69ca7f5a552e43ae75ae1496b38a7, baseline55e3c1595d2b90a8cd85f5e3c06ab1f0552933f5. It does not authorize v3. Dated checklists, failures and earlier parity claims below are historical records, not acceptance evidence for the current amendment.
+
+Historical delivery decision (2026-10-25): M1 is merged in PR27; owner explicitly approved Customer UI/M2 on branch feat/customer-management-ui, PR #28 (comment 6385229351). M2 capability is IMPLEMENTED with P2 debounce reload and runtime token override findings resolved, and Customer navigation activated. Overall capability remains PLANNED because M3–M5 are not implemented. M3–M5 remain NOT STARTED. No new task ID is allocated for this existing milestone.
 
 ## Baseline and interface preflight
 
@@ -70,7 +96,7 @@ Every milestone stays on this branch and PR. After verified approval and explici
 - [x] Preserve available/planned navigation states; truthful empty notifications and profile presentation.
 - [x] Targeted native/auth + genuine CDP keyboard/six-viewports; sync canonical frontend/Testing and milestone evidence, review diff, commit/push/report. See M1 execution checkpoint below; final documentation-head CI is reconciled in PR metadata.
 
-### M2 — Customer Management and CustomerStatsBar
+### Historical M2 implementation checklist — Customer Management and CustomerStatsBar
 
 - [x] Functional protected /customers and /customers/[id], all eight real SDK operations and actual deployed test-runtime stats dependency.
 - [x] Loading/empty/unavailable/error stats, canonical q/phone/status/page query, trim/omit blank q, 300ms debounce/immediate latest-generation invalidation/abort/unmount protection; search reload flushes uncommitted draft to canonical query.
@@ -128,11 +154,15 @@ Run docs:check, local/static preflight, raw-byte digest/PR-task binding, format:
 
 ## Evidence
 
-| Claim                                        | Evidence                                                                                                                                       | Date       | Result |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
-| Current baseline and allocation              | fetch main ee83912; GitHub PR26 merge matches; no031 main task or complete26-item GitHub inventory reference; separate new branch/worktree     | 2026-10-23 | PASS   |
-| Reference provenance and selected dependency | Read-only archive30 source hashes/manifest vs v8; actual merged CustomerStatsDto and generated SDK at current main; no reference code executed | 2026-10-23 | PASS   |
-| Immutable selected design                    | Prettier-formatted snapshot then Node raw UTF-8 SHA-256, digest bound in metadata                                                              | 2026-10-23 | PASS   |
+| Claim                                        | Evidence                                                                                                                                                                                            | Date       | Result |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| v3 planning document and binding checks      | corepack pnpm format:check; node scripts/docs-check.mjs; node scripts/preflight-policy-check.mjs; validatePrTaskBinding with actual proposed PR body and raw snapshot digest: PASS, structural only | 2026-10-26 | PASS   |
+| v3 existing governance regressions           | node --test scripts/docs-check.test.mjs scripts/preflight-policy-check.test.mjs: 35/35 PASS, no skips; no test files changed                                                                        | 2026-10-26 | PASS   |
+| v3 independent read-only design review       | Existing independent reviewer checked b44c3c4 and the v3 artifact: no confirmed P1/P2 contradiction; no approval or implementation/runtime claim                                                    | 2026-10-26 | PASS   |
+| b44c3c4 hosted baseline                      | Preflight40243318231 PASS; Foundation40243318223 quality/integration PASS but runtime TOKEN_OVERRIDE_VERIFY input32 vs expected40; downstream HTTPS/data/dev skipped; overall Foundation FAIL       | 2026-10-26 | FAIL   |
+| Current baseline and allocation              | fetch main ee83912; GitHub PR26 merge matches; no031 main task or complete26-item GitHub inventory reference; separate new branch/worktree                                                          | 2026-10-23 | PASS   |
+| Reference provenance and selected dependency | Read-only archive30 source hashes/manifest vs v8; actual merged CustomerStatsDto and generated SDK at current main; no reference code executed                                                      | 2026-10-23 | PASS   |
+| Immutable selected design                    | Prettier-formatted snapshot then Node raw UTF-8 SHA-256, digest bound in metadata                                                                                                                   | 2026-10-23 | PASS   |
 
 M0 verification execution will be recorded below and exact pushed-head hosted status in PR metadata. Planning/static PASS does not establish frontend verification or authenticated design approval. Task/Implementation remain PLANNED; Verification NOT VERIFIED. Agent behavioral evaluation and independent implementation-code-review NOT RUN.
 
