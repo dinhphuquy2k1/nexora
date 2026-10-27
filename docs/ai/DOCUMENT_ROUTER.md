@@ -28,7 +28,7 @@ Before proposing or modifying code for any new task:
 1. Follow the **Pre-Implementation Review Skill** (`.github/skills/pre-implementation-review/SKILL.md`) and use the **Pre-Implementation Review Template** (`docs/ai/templates/pre-implementation-review.md`).
 2. Consult the **Reusable Components Registry** (`docs/architecture/reusable-components.md`) to identify existing canonical primitives (`isUuid`, `isLowercaseHex64`, `PhoneNumber`, `CountryCode`, `GENERIC_ERROR_MESSAGE`, `CustomerStatus`).
 3. Read [ADR-009](../decisions/mandatory-pre-code-design-review.md) for pre-code gate requirements, reuse audit guidelines, and scaled review depths (`BOUNDED`, `SIGNIFICANT`, `SPIKE`).
-4. After implementation, run the **Implementation Code Review Skill** (`.github/skills/implementation-code-review/SKILL.md`) to verify alignment with the approved design and detect unwanted duplication.
+4. After implementation, run the **Implementation Code Review Skill** (`.github/skills/implementation-code-review/SKILL.md`) to verify alignment with the recorded plan and detect unwanted duplication.
 
 ## Tactical DDD reading route
 
@@ -53,4 +53,4 @@ Use this table as a review guide after classifying Documentation Impact:
 
 For shared vocabulary/status changes, inspect packages/shared exports and canonical code/label leaves, then read [API/SDK contract](../architecture/api-contract.md), [Backend Domain boundaries](../architecture/backend.md), [Frontend presentation](../architecture/frontend.md) and the dated [ADR-008 amendment](../decisions/tactical-ddd.md). Verify both runtime consumers and generated SDK agreement; do not move Domain models into shared.
 
-For digest-bound approval hardening, read ADR-009, Task Workflow and scripts/preflight-policy-check.mjs; immutable artifacts are under docs/tasks/design-reviews/, while active task/PR retain execution evidence.
+For versioned plan/snapshot integrity, read ADR-009, Task Workflow and scripts/preflight-policy-check.mjs; immutable artifacts are under docs/tasks/design-reviews/, while active task/PR retain execution evidence.
