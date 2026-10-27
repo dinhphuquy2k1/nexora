@@ -18,6 +18,14 @@ Documentation Impact: REQUIRED
 - **Approval status**: APPROVED
 - **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/28#issuecomment-6407149976 — authenticated owner dinhphuquy2k1, created/updated2026-10-26T02:52:26Z; canonical ADR-009 verifier accepted complete connector-authenticated comment/review payload, exact task/revision/recomputed raw-byte digest and chronology; no later relevant revocation.
 
+## Governance policy update — 2026-10-27 (plan-first, no owner approval gate)
+
+Project owner removed the owner-approval/comment/review requirement for starting implementation. The mandatory process remains read-only inspection → documented plan/reuse audit → implementation → tests → independent review. Preflight checks task identity, plan revision, snapshot/digest binding, documentation and reuse consistency; it no longer queries GitHub approval provenance or requires `Approval status: APPROVED`. Previously published design approvals and immutable snapshots remain historical evidence only.
+
+**COLOR_POLICY_V4_SOURCE_MISSING is no longer an owner-approval or merge gate under the new project-wide governance rule.** The unverified historical v4 comment does not authorize a new color implementation or overwrite the recorded v3 design. Any actual new color-policy change must first be documented in a revised plan and verified against accessibility/design tests, but does not require another owner comment. Previous logs describing v4 as BLOCKED are historical, not the current acceptance decision.
+
+The governance revision itself requires normal final-HEAD CI and independent review; do not infer acceptance from earlier green runs.
+
 ## Current Design System and M2 correction checkpoint — 2026-10-26
 
 Owner directive fixes default32px/medium40px/large48px globally, including Login/MFA; shared typography/spacing/radius/icons/states; no separate stats hook/request; nine-column colgroup/Skeleton; shared Toast; table-wide Power single-flight; standard/wide layout; accessible ZIP fidelity and unchanged backend contracts. These preferences are settled. Authenticated v3 approval was verified on2026-10-26; source implementation stages1–6 and stage7 automation/docs are committed. Final runtime/visual verification is in progress. Completion and verification remain gated by executed stage/final-head evidence. Overall task remains IN PROGRESS, overall capability PLANNED and Verification NOT VERIFIED because M3–M5 and current M2 acceptance are unfinished. Existing M1/M2 plus the v3 correction are implemented; acceptance remains pending.
