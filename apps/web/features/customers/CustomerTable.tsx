@@ -134,7 +134,7 @@ export function CustomerTable({
       role="region"
       aria-label="Bảng khách hàng có thể cuộn"
     >
-      {loading && (
+      {(loading || pendingFilter) && (
         <span role="status" className={styles.srOnly}>
           Đang tải khách hàng…
         </span>
