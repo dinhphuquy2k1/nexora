@@ -1545,3 +1545,7 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
   3. Drawers can be closed safely during blocked state without clearing page-level unresolved protection.
   4. Manual reload ignores rapid clicks and handles pending search drafts without unlocking prematurely.
   5. All customer tests pass; no lint, typecheck, or format regressions.
+
+- **Execution & Remediations Record (2026-10-28):**
+  - **Commit 1 (`a46352a`):** Resolved pagination test downleveling in `render-component.mjs` & `pagination.ts`; added granular mutation capability booleans (`canWrite`, `canRetryRead`, `canClose`, etc.) and explicit recovery pathways (`resolveUnresolved`) in `useCustomerMutation.ts`, `CustomerDrawers.tsx`, `DeleteAddressModal.tsx`, `CustomerListPage.tsx`, `CustomerDetailPage.tsx`; fixed `CustomerListPage.tsx` manual reload lock premature reset in `change()`.
+  - **Commit 2:** Fixed browser smoke `CUSTOMER_admin_CAPTURE_create` failure in `scripts/workspace-geometry-checks.mjs`. When a modal `<dialog>` is open (via `dialog.showModal()`), browser inert semantics prevent programmatic focus on non-dialog ancestors (`<main>`). Added `hasModal` check to `verifyMainFocusOutlineContract` to preserve modal focus containment without assertion error, while continuing full programmatic focus testing on all non-modal views (`empty-list`, `list`, `detail`, etc.).

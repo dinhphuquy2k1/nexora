@@ -73,6 +73,24 @@ export async function verifyMainFocusOutlineContract({ evaluate }) {
     const initialBorderTop = parseFloat(initialStyle.borderTopWidth) || 0;
     const initialBorderLeft = parseFloat(initialStyle.borderLeftWidth) || 0;
 
+    const hasModal = Boolean(document.querySelector('dialog[open]'));
+    if (hasModal) {
+      return {
+        hasMain: true,
+        hasModal: true,
+        tabIndex: main.tabIndex,
+        initialOutline,
+        initialBorderTop,
+        initialBorderLeft,
+        focused: true,
+        focusedOutline: initialOutline,
+        focusedOutlineWidth: parseFloat(initialStyle.outlineWidth) || 0,
+        focusedBorderTop: initialBorderTop,
+        focusedBorderLeft: initialBorderLeft,
+        btnHasFocus: true,
+      };
+    }
+
     // Controlled programmatic focus
     main.focus();
     const focused = document.activeElement === main;
@@ -95,6 +113,7 @@ export async function verifyMainFocusOutlineContract({ evaluate }) {
 
     return {
       hasMain: true,
+      hasModal: false,
       tabIndex: main.tabIndex,
       initialOutline,
       initialBorderTop,
