@@ -117,6 +117,27 @@ test("create/patch allowlists preserve fallback, nullable clears, exact bounds a
     { label: null, addressText: "new", countryCode: "VN" },
   );
 });
+test("phone draft rejects raw overflow before trim while backend stays authoritative", () => {
+  const phoneWithLongPadding = " ".repeat(65) + "0912345678";
+  assert.throws(
+    () =>
+      createCustomerPayload(
+        { name: "Lan", phone: phoneWithLongPadding },
+        { addressText: "Hanoi" },
+      ),
+    (error) => error.field === "phone",
+  );
+  assert.throws(
+    () =>
+      addressPayload({
+        countryCode: "VN",
+        addressText: "Hanoi",
+        recipientPhone: phoneWithLongPadding,
+      }),
+    (error) => error.field === "recipientPhone",
+  );
+});
+
 test("stats distinguish successful zero from missing/malformed contract", () => {
   assert.deepEqual(customerStats({ total: 0, active: 0, inactive: 0 }), {
     total: 0,
