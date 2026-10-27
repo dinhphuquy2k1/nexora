@@ -76,6 +76,16 @@ export function checkFileImports(p, content) {
         (target && under(target, resolve("packages/database"))))
     )
       throw Error(`Shared browser boundary: ${p}`);
+    // Domain-approved shared validation must not gain dependencies on UI,
+    // deployment policies, other package modules, or third-party runtimes.
+    // Every validation source is visited by the repository walk below.
+    if (
+      p.startsWith("packages/shared/src/validation/") &&
+      (!spec.startsWith(".") ||
+        !target ||
+        !under(target, resolve("packages/shared/src/validation")))
+    )
+      throw Error(`Shared validation purity boundary: ${p}`);
     const apiDomain = /^apps\/api\/src\/[^/]+\/domain\//.test(p);
     const targetLayer =
       target &&
@@ -128,6 +138,26 @@ export function runNegativeTests() {
     "apps/api/src/customer/domain/example.ts",
     "import { normalizeBoundedText } from '@nexora/shared/validation';",
   );
+  checkFileImports(
+    "packages/shared/src/validation/index.ts",
+    "export { parsePagination } from './pagination';",
+  );
+  for (const spec of [
+    "../deployment",
+    "../../customer-status-labels",
+    "@nexora/ui",
+    "zod",
+    "node:crypto",
+    "@nexora/shared/customer-status",
+  ])
+    assert.throws(
+      () =>
+        checkFileImports(
+          "packages/shared/src/validation/index.ts",
+          `export * from '${spec}';`,
+        ),
+      /Shared validation purity boundary/,
+    );
   for (const spec of [
     "@nexora/shared",
     "@nexora/shared/customer-status-labels",
