@@ -26,7 +26,6 @@ const UUID_PATTERN_REGEX =
   /\[[0-9a-fA-F-]+\]\{8\}-\[[0-9a-fA-F-]+\]\{4\}-\[[0-9a-fA-F-]+\]\{4\}/;
 const HEX64_PATTERN_REGEX = /\[[0-9a-fA-F-]+\]\{64\}/;
 
-export const AUTHORIZED_APPROVAL_AUTHORITIES = ["dinhphuquy2k1"];
 
 export const EXPECTED_SKILL_SCENARIOS = [
   {
@@ -75,7 +74,7 @@ export const EXPECTED_SKILL_SCENARIOS = [
     id: "significant-domain",
     scenario: "Significant new domain (e.g. Shipments)",
     expectedDecision: "REQUIRE_FULL_MODELING_PREFLIGHT",
-    rule: "Require full DDD Modeling Preflight (ADR-008) and explicit owner design approval before implementation.",
+    rule: "Require full DDD Modeling Preflight (ADR-008) and a recorded design/reuse plan before implementation.",
   },
   {
     id: "approved-design-handed",
@@ -418,33 +417,6 @@ export function validateTaskDesignGovernance(
 }
 
 /**
- * Parses an explicit machine-readable design approval decision block from a review or comment body.
- *
- * Recognized format:
- * NEXORA DESIGN APPROVAL
- * Task: <taskId>
- * Plan revision: <planRevision>
- * Design SHA-256: <computed lowercase digest>
- * Decision: <APPROVED | REVISION_REQUIRED | REVOKED>
- */
-export function parseApprovalDecisionBlock(text) {
-  if (typeof text !== "string") return null;
-  const match = text
-    .replace(/\r\n/g, "\n")
-    .trim()
-    .match(
-      /^NEXORA DESIGN APPROVAL\nTask: ([A-Z]+-\d+)\nPlan revision: ([A-Za-z0-9][A-Za-z0-9_.-]*)\nDesign SHA-256: ([0-9a-f]{64})\nDecision: (APPROVED|REVISION_REQUIRED|REVOKED)$/,
-    );
-  if (!match) return null;
-  return {
-    taskId: match[1],
-    planRevision: match[2],
-    designDigest: match[3],
-    decision: match[4],
-  };
-}
-
-/**
  * Parses the canonical preflight block from a PR description.
  */
 export function parsePrPreflightBlock(prBody) {
@@ -636,234 +608,6 @@ export function validatePrTaskBinding(prBody, rootDir) {
   };
 }
 
-/**
- * Historical GitHub approval verification helper (not called by PR preflight).
- */
-export async function verifyGitHubApprovalEvidence({
-  prNumber,
-  repoOwner = "dinhphuquy2k1",
-  repoName = "nexora",
-  taskRecord,
-  designDigest,
-  githubToken = process.env.GITHUB_TOKEN,
-  isCi = false,
-  fetchFn = fetch,
-}) {
-  const taskId = taskRecord?.fields?.taskId;
-  const planRevision = taskRecord?.fields?.planRevision;
-  const designDecisionRecorded = Boolean(
-    taskRecord?.fields?.approvalStatus === "APPROVED",
-  );
-
-  if (!isCi) {
-    return {
-      designDecisionRecorded,
-      approvalVerified: false,
-      verificationMode: "local_static",
-      policyExceptionGranted: false,
-      message:
-        "Local/static mode: Authenticated GitHub approval verification not performed.",
-      verified: false,
-    };
-  }
-
-  if (!githubToken) {
-    return {
-      designDecisionRecorded,
-      approvalVerified: false,
-      verificationMode: "github_ci",
-      policyExceptionGranted: false,
-      message: "CI mode requires GITHUB_TOKEN to verify approval provenance.",
-      verified: false,
-    };
-  }
-
-  if (!prNumber) {
-    return {
-      designDecisionRecorded,
-      approvalVerified: false,
-      verificationMode: "github_ci",
-      policyExceptionGranted: false,
-      message:
-        "CI mode requires a valid PR number to verify approval provenance.",
-      verified: false,
-    };
-  }
-
-  if (
-    !isDesignDigest(designDigest) ||
-    taskRecord?.fields?.designDigest !== designDigest
-  ) {
-    return {
-      designDecisionRecorded,
-      approvalVerified: false,
-      verified: false,
-      verificationMode: "github_ci",
-      policyExceptionGranted: false,
-      message: "Missing or mismatched computed Design SHA-256.",
-    };
-  }
-
-  const headers = {
-    Authorization: `Bearer ${githubToken}`,
-    Accept: "application/vnd.github+json",
-    "User-Agent": "nexora-preflight-check",
-  };
-
-  try {
-    async function fetchAllPages(endpoint) {
-      const items = [];
-      let page = 1;
-      const maxPages = 5;
-
-      while (page <= maxPages) {
-        const separator = endpoint.includes("?") ? "&" : "?";
-        const url = `https://api.github.com/repos/${repoOwner}/${repoName}/${endpoint}${separator}per_page=100&page=${page}`;
-        const res = await fetchFn(url, {
-          headers,
-          signal: AbortSignal.timeout(10000),
-        });
-
-        if (!res.ok) {
-          throw new Error(
-            `GitHub API request to '${endpoint}' failed: HTTP ${res.status}`,
-          );
-        }
-
-        const data = await res.json();
-        if (!Array.isArray(data)) {
-          throw new Error(
-            `GitHub API returned non-array payload for '${endpoint}'.`,
-          );
-        }
-
-        items.push(...data);
-        if (data.length < 100) break;
-        page++;
-      }
-      if (page > maxPages)
-        throw new Error("GitHub approval pagination exceeded safe limit.");
-      return items;
-    }
-
-    const [reviews, comments] = await Promise.all([
-      fetchAllPages(`pulls/${prNumber}/reviews`),
-      fetchAllPages(`issues/${prNumber}/comments`),
-    ]);
-
-    const formalDecisions = [];
-
-    function parseTimestamp(rawDate, context) {
-      if (
-        typeof rawDate !== "string" ||
-        !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(rawDate)
-      )
-        throw Error(`Missing or invalid timestamp on ${context}.`);
-      const ts = Date.parse(rawDate);
-      if (
-        !Number.isFinite(ts) ||
-        new Date(ts).toISOString().slice(0, 19) !== rawDate.slice(0, 19)
-      )
-        throw Error(`Invalid timestamp on ${context}.`);
-      return ts;
-    }
-    function addDecision(item, source) {
-      if (
-        !AUTHORIZED_APPROVAL_AUTHORITIES.includes(item.user?.login) ||
-        item.user?.type !== "User" ||
-        item.user.login.endsWith("[bot]")
-      )
-        return;
-      if (
-        source === "review" &&
-        !["APPROVED", "CHANGES_REQUESTED"].includes(item.state)
-      )
-        return;
-      const block = parseApprovalDecisionBlock(item.body);
-      if (
-        !block ||
-        block.taskId !== taskId ||
-        block.planRevision !== planRevision ||
-        block.designDigest !== designDigest
-      )
-        return;
-      const created = parseTimestamp(
-        source === "comment" ? item.created_at : item.submitted_at,
-        source,
-      );
-      const updated =
-        item.updated_at === undefined
-          ? created
-          : parseTimestamp(item.updated_at, source + " edit");
-      if (updated < created)
-        throw Error("Invalid timestamp ordering: edit precedes creation.");
-      formalDecisions.push({
-        source,
-        author: item.user.login,
-        submittedAt: updated,
-        decision:
-          source === "review" && item.state === "CHANGES_REQUESTED"
-            ? "REVISION_REQUIRED"
-            : block.decision,
-      });
-    }
-    for (const review of reviews) addDecision(review, "review");
-    for (const comment of comments) addDecision(comment, "comment");
-
-    if (formalDecisions.length === 0) {
-      return {
-        designDecisionRecorded,
-        approvalVerified: false,
-        verificationMode: "github_ci",
-        policyExceptionGranted: false,
-        message: `No authorized design approval found on PR #${prNumber} for task ${taskId} (plan revision ${planRevision}).`,
-        verified: false,
-      };
-    }
-
-    // Chronological order ascending
-    formalDecisions.sort((a, b) => a.submittedAt - b.submittedAt);
-    const latestDecision = formalDecisions[formalDecisions.length - 1];
-
-    const latestTies = formalDecisions.filter(
-      (item) => item.submittedAt === latestDecision.submittedAt,
-    );
-    if (new Set(latestTies.map((item) => item.decision)).size > 1)
-      throw Error("Ambiguous timestamp ordering of latest design decisions.");
-    if (latestDecision.decision !== "APPROVED") {
-      return {
-        designDecisionRecorded,
-        approvalVerified: false,
-        verificationMode: "github_ci",
-        policyExceptionGranted: false,
-        message: `Latest design decision on PR #${prNumber} by @${latestDecision.author} is '${latestDecision.decision}' (not APPROVED).`,
-        verified: false,
-      };
-    }
-
-    return {
-      designDecisionRecorded,
-      approvalVerified: true,
-      verificationMode: "github_ci",
-      policyExceptionGranted: false,
-      message: `Verified design approval by @${latestDecision.author} via ${latestDecision.source} for task ${taskId} (plan revision ${planRevision}).`,
-      verified: true,
-    };
-  } catch (err) {
-    return {
-      designDecisionRecorded,
-      approvalVerified: false,
-      verificationMode: "github_ci",
-      policyExceptionGranted: false,
-      message: `GitHub approval verification failed (fail closed): ${err.message}`,
-      verified: false,
-    };
-  }
-}
-
-/**
- * Validates .github/instructions/backend.instructions.md for valid applyTo frontmatter.
- */
 export async function validateCopilotInstructions(rootDir) {
   const failures = [];
   const filePath = resolve(
@@ -1225,7 +969,7 @@ export async function runPreflightCheck(rootDir, options = {}) {
           }
         }
         console.log(
-          "  ℹ Local/static mode: PR-to-task binding validated structurally. Authenticated GitHub approval not performed.",
+          "  ℹ Local/static mode: PR-to-task plan/snapshot binding validated.",
         );
       }
     } else {
@@ -1247,7 +991,7 @@ export async function runPreflightCheck(rootDir, options = {}) {
           }
         }
         console.log(
-          "  ℹ Local/static mode: active tasks scanned structurally. No PR approval claimed.",
+          "  ℹ Local/static mode: active tasks scanned structurally.",
         );
       } catch (err) {
         taskFailures.push(
