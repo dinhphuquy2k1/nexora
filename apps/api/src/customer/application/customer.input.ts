@@ -1,3 +1,4 @@
+import { parsePagination, CustomerInputLimits } from "@nexora/shared";
 import { isUuid } from "../../common/validation/uuid";
 import { CustomerStatusVO } from "../domain/customer-status.vo";
 import {
@@ -93,19 +94,12 @@ export function addressInput(
 }
 export function listQuery(input: unknown): CustomerQuery {
   const query = record(input, ["page", "pageSize", "q", "status", "phone"]);
-  function integer(value: unknown, fallback: number, max: number) {
-    if (value === undefined) return fallback;
-    if (typeof value !== "string" || !/^[1-9][0-9]*$/.test(value)) invalid();
-    const n = Number(value);
-    if (!Number.isSafeInteger(n) || n > max) invalid();
-    return n;
-  }
-  const page = integer(query.page, 1, 2147483647),
-    pageSize = integer(query.pageSize, 20, 100);
-  if ((page - 1) * pageSize > 2147483647) invalid();
+  const pagination = parsePagination(query.page, query.pageSize);
+  if (!pagination) invalid();
+  const { page, pageSize } = pagination;
   const out: CustomerQuery = { page, pageSize };
   if (Object.hasOwn(query, "q")) {
-    out.q = text(query.q, 200);
+    out.q = text(query.q, CustomerInputLimits.QUERY_TEXT);
     try {
       out.searchPhone = normalizePhone(out.q);
     } catch {
