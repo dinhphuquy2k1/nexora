@@ -67,15 +67,6 @@ export function checkFileImports(p, content) {
       !p.includes("/infrastructure/")
     )
       throw Error(`Prisma boundary: ${p}`);
-    if (
-      p.startsWith("packages/shared/") &&
-      (builtinModules.includes(spec) ||
-        /^(?:node:|@nestjs\/|@prisma\/|@nexora\/(?:database|sdk)(?:\/|$))/.test(
-          spec,
-        ) ||
-        (target && under(target, resolve("packages/database"))))
-    )
-      throw Error(`Shared browser boundary: ${p}`);
     // Domain-approved shared validation must not gain dependencies on UI,
     // deployment policies, other package modules, or third-party runtimes.
     // Every validation source is visited by the repository walk below.
@@ -86,6 +77,15 @@ export function checkFileImports(p, content) {
         !under(target, resolve("packages/shared/src/validation")))
     )
       throw Error(`Shared validation purity boundary: ${p}`);
+    if (
+      p.startsWith("packages/shared/") &&
+      (builtinModules.includes(spec) ||
+        /^(?:node:|@nestjs\/|@prisma\/|@nexora\/(?:database|sdk)(?:\/|$))/.test(
+          spec,
+        ) ||
+        (target && under(target, resolve("packages/database"))))
+    )
+      throw Error(`Shared browser boundary: ${p}`);
     const apiDomain = /^apps\/api\/src\/[^/]+\/domain\//.test(p);
     const targetLayer =
       target &&
