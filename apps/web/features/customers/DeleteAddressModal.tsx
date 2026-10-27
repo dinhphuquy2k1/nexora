@@ -39,7 +39,11 @@ export function DeleteAddressModal({
 }) {
   const [replacement, setReplacement] = useState("");
   const [partial, setPartial] = useState(false);
-  const mutation = useCustomerMutation(settlement ?? refresh, onDenied, onUnresolved);
+  const mutation = useCustomerMutation(
+    settlement ?? refresh,
+    onDenied,
+    onUnresolved,
+  );
   const others = addresses.filter((a) => a.id !== target.id);
   const isReconciling = reconciling || mutation.phase === "blocked";
   return (
@@ -108,7 +112,12 @@ export function DeleteAddressModal({
                 <p>Chưa đối chiếu xong dữ liệu. Chưa thể thử xóa lại.</p>
                 <Button
                   variant="secondary"
-                  disabled={mutation.phase === "reconciling" || (reconciling && mutation.phase === "idle" && settlement?.outcome !== "error")}
+                  disabled={
+                    mutation.phase === "reconciling" ||
+                    (reconciling &&
+                      mutation.phase === "idle" &&
+                      settlement?.outcome !== "error")
+                  }
                   onClick={() => {
                     if (mutation.canRetryRead) mutation.retryReconciliation();
                     else refresh();
@@ -122,7 +131,11 @@ export function DeleteAddressModal({
         )}
       </div>
       <footer className={styles.drawerFooter}>
-        <Button variant="secondary" disabled={!mutation.canClose} onClick={onClose}>
+        <Button
+          variant="secondary"
+          disabled={!mutation.canClose}
+          onClick={onClose}
+        >
           Hủy
         </Button>
         <Button

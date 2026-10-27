@@ -34,7 +34,9 @@ export function CustomerDetailPage({ id }: { id: string }) {
   const toast = useToast();
   const read = useCustomerRead(id, (signal) => customerApi.get(id, signal));
   const [writeUnresolved, setWriteUnresolved] = useState(false);
-  const mutation = useCustomerMutation(read, read.deny, () => setWriteUnresolved(true));
+  const mutation = useCustomerMutation(read, read.deny, () =>
+    setWriteUnresolved(true),
+  );
   useReadNotice(read);
   const [mode, setMode] = useState<Mode | null>(null);
   const [notice, setNotice] = useState("");
@@ -133,11 +135,18 @@ export function CustomerDetailPage({ id }: { id: string }) {
       </div>
       {writeUnresolved && (
         <div role="alert" className={styles.notice}>
-          Kết quả thao tác ghi chưa xác định. Không gửi lại thao tác; hãy kiểm tra dữ liệu đã tải lại.
-          <Button variant="secondary" disabled={read.loading} onClick={() => {
-            if (mutation.canRetryRead) mutation.retryReconciliation();
-            else read.refresh();
-          }}>Đối chiếu lại dữ liệu</Button>
+          Kết quả thao tác ghi chưa xác định. Không gửi lại thao tác; hãy kiểm
+          tra dữ liệu đã tải lại.
+          <Button
+            variant="secondary"
+            disabled={read.loading}
+            onClick={() => {
+              if (mutation.canRetryRead) mutation.retryReconciliation();
+              else read.refresh();
+            }}
+          >
+            Đối chiếu lại dữ liệu
+          </Button>
         </div>
       )}
       {notice && (

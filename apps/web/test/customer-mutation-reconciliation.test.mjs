@@ -28,7 +28,11 @@ class MutationReconciliationController {
       this.target.settledId >= target
     ) {
       const outcome = this.target.denied ? "denied" : this.target.outcome;
-      if (outcome === "success" || outcome === "error" || outcome === "denied") {
+      if (
+        outcome === "success" ||
+        outcome === "error" ||
+        outcome === "denied"
+      ) {
         this.phase = settleMutationRead(this.writeOutcome, outcome);
         this.busy = this.phase !== "idle";
         if (this.phase === "idle") {
@@ -275,7 +279,13 @@ test("Finding 13: ambiguous write error (500) triggers reconciliation and preven
 
   assert.equal(ctrl.phase, "blocked");
   assert.equal(ctrl.busy, true);
-  assert.equal(await ctrl.run(async () => {}, () => {}), false);
+  assert.equal(
+    await ctrl.run(
+      async () => {},
+      () => {},
+    ),
+    false,
+  );
 });
 
 test("Finding 14: address deletion triggers exactly one reconciliation per outcome and prevents duplicate calls", async () => {

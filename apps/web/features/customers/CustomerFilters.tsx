@@ -82,7 +82,11 @@ export function CustomerFilters({
           aria-busy={reloading}
           aria-label="Làm mới"
         >
-          <RefreshCw size={14} className={reloading ? styles.spin : undefined} aria-hidden="true" />
+          <RefreshCw
+            size={14}
+            className={reloading ? styles.spin : undefined}
+            aria-hidden="true"
+          />
           <span>Làm mới</span>
         </Button>
       </div>

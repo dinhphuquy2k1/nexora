@@ -1195,6 +1195,7 @@ Customer chip/dot consume that role, without darkening all muted text. Shared br
 contrast expression reused for actual status chips and selected counts in initial
 and Power retained rows; no duplicate color algorithm. Genuine final-head AA still
 requires hosted probe execution. This is approved semantic-color/accessibility scope.
+
 ### Final correction and acceptance reassessment — 2026-10-27
 
 Baseline fetched HEAD f8b2b8eeab1cf39ca132ff6324d83474603e42dd matches the
@@ -1501,7 +1502,6 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
    - Updated `scripts/workspace-geometry-checks.mjs` (`verifyCustomerTableGeometry`) to enforce balanced alignment across all 9 columns, 80–92% text width ratios, and 44.5px stable row height.
    - All quality gates PASS (preflight, prettier format, eslint lint, typecheck across 6 packages, 55 unit tests, docs check).
 
-
 ### PR #28 follow-up reliability remediation plan — 2026-10-27
 
 - **Classification:** SIGNIFICANT corrective follow-up within M2; Plan-first under ADR-009. Baseline: `f8bbaf37f83dd317a1b2d5c5b242c4696dc46314`. Branch: `feat/customer-management-ui`.
@@ -1513,4 +1513,3 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
 - **Plan issue:** Without a backend operation identifier or idempotency key, an ambiguous create cannot be conclusively matched to a GET response. UI must not report it as confirmed or silently allow automatic resubmission. A complete cross-session idempotent retry contract requires a separate, reviewed backend design.
 - **Documentation Impact:** REQUIRED; record execution and limitations here, update canonical frontend/design/testing documents only for changed durable behavior. Existing versioned plan/snapshot and historical approval evidence remain unchanged because this is a corrective M2 delta, not a replacement of an accepted API or visual design contract.
 - **Acceptance:** No unchecked repeat writes on ambiguous outcomes within the mounted feature; Retry remains accessible but GET-only; no double refresh; stable search/pagination/skeleton; correct manual Reload indication; no known SSR/client class mismatch; default pageSize20; final-head Preflight/Foundation PASS before any merge-ready statement.
-

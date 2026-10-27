@@ -178,7 +178,9 @@ test("estimated pagination renders stable numbers but disallows navigation after
   assert.deepEqual(model.pages, [1, 2]);
   assert.equal(model.canNext, false);
   assert.equal(model.canLast, false);
-  const html = render(React.createElement(CustomerPagination, { ...input, onQuery() {} }));
+  const html = render(
+    React.createElement(CustomerPagination, { ...input, onQuery() {} }),
+  );
   assert.match(html, /aria-label="Trang 2"[^>]*disabled/);
   assert.match(html, /aria-label="Trang sau"[^>]*disabled/);
 });

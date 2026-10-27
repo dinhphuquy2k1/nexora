@@ -87,7 +87,11 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     stats = read.data?.stats ?? undefined;
   const rows = compatible && !read.denied ? read.data?.customers : undefined;
   useEffect(() => {
-    if (manualReloadId !== null && read.settledId >= manualReloadId && !read.loading) {
+    if (
+      manualReloadId !== null &&
+      read.settledId >= manualReloadId &&
+      !read.loading
+    ) {
       manualReloadLock.current = false;
       setManualReloadId(null);
     }
@@ -150,7 +154,10 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     try {
       current = parseCustomerQuery(new URLSearchParams(location.search));
     } catch {
-      current = { page: PaginationLimits.DEFAULT_PAGE, pageSize: PaginationLimits.DEFAULT_PAGE_SIZE };
+      current = {
+        page: PaginationLimits.DEFAULT_PAGE,
+        pageSize: PaginationLimits.DEFAULT_PAGE_SIZE,
+      };
     }
     const next = { ...current, ...patch };
     const sameKey = customerQueryString(current) === customerQueryString(next);
@@ -181,7 +188,10 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     try {
       current = parseCustomerQuery(new URLSearchParams(location.search));
     } catch {
-      current = { page: PaginationLimits.DEFAULT_PAGE, pageSize: PaginationLimits.DEFAULT_PAGE_SIZE };
+      current = {
+        page: PaginationLimits.DEFAULT_PAGE,
+        pageSize: PaginationLimits.DEFAULT_PAGE_SIZE,
+      };
     }
     const currentQ = (current.q ?? "").trim();
     let requestId: number | undefined;
@@ -327,8 +337,11 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
       </section>
       {writeUnresolved && (
         <p role="alert" className={styles.notice}>
-          Kết quả lưu chưa xác định. Hãy đối chiếu dữ liệu, không gửi lại thao tác cũ.
-          <Button variant="secondary" onClick={read.refresh}>Đối chiếu lại dữ liệu</Button>
+          Kết quả lưu chưa xác định. Hãy đối chiếu dữ liệu, không gửi lại thao
+          tác cũ.
+          <Button variant="secondary" onClick={read.refresh}>
+            Đối chiếu lại dữ liệu
+          </Button>
         </p>
       )}
       {powerState?.phase === "blocked" && (
@@ -393,7 +406,11 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
                 : null
             }
             powerUnavailable={
-              !compatible || !!powerState || !!read.error || read.loading || writeUnresolved
+              !compatible ||
+              !!powerState ||
+              !!read.error ||
+              read.loading ||
+              writeUnresolved
             }
             onClear={clearFilters}
             onRetry={handleReload}

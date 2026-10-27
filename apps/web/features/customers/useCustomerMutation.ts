@@ -60,7 +60,11 @@ export function useCustomerMutation(
     const target = targetRequestId.current;
     if (settledId !== undefined && settledId >= target) {
       if (outcome === "success" || outcome === "error" || denied) {
-        const readOutcome = denied ? "denied" : outcome === "success" ? "success" : "error";
+        const readOutcome = denied
+          ? "denied"
+          : outcome === "success"
+            ? "success"
+            : "error";
         const settled = settleMutationRead(writeOutcome.current, readOutcome);
         if (settled === "idle") {
           targetRequestId.current = null;

@@ -154,7 +154,11 @@ export function CustomerDrawer({
     status: customer?.status,
   }));
   const [address, setAddress] = useState(emptyAddress);
-  const mutation = useCustomerMutation(settlement ?? refresh, onDenied, onUnresolved);
+  const mutation = useCustomerMutation(
+    settlement ?? refresh,
+    onDenied,
+    onUnresolved,
+  );
   return (
     <DrawerFrame
       title={customer ? "Sửa khách hàng" : "Thêm khách hàng"}
@@ -261,7 +265,12 @@ export function CustomerDrawer({
           )}
           {(reconciling || mutation.phase === "blocked") && (
             <ReconcileNotice
-              disabled={mutation.phase === "reconciling" || (reconciling && mutation.phase === "idle" && settlement?.outcome !== "error")}
+              disabled={
+                mutation.phase === "reconciling" ||
+                (reconciling &&
+                  mutation.phase === "idle" &&
+                  settlement?.outcome !== "error")
+              }
               onRetry={() => {
                 if (mutation.canRetryRead) mutation.retryReconciliation();
                 else refresh();
@@ -339,7 +348,11 @@ export function AddressDrawer({
         }
       : emptyAddress(),
   );
-  const mutation = useCustomerMutation(settlement ?? refresh, onDenied, onUnresolved);
+  const mutation = useCustomerMutation(
+    settlement ?? refresh,
+    onDenied,
+    onUnresolved,
+  );
   return (
     <DrawerFrame
       title={address ? "Sửa địa chỉ" : "Thêm địa chỉ"}
@@ -385,7 +398,12 @@ export function AddressDrawer({
           </fieldset>
           {(reconciling || mutation.phase === "blocked") && (
             <ReconcileNotice
-              disabled={mutation.phase === "reconciling" || (reconciling && mutation.phase === "idle" && settlement?.outcome !== "error")}
+              disabled={
+                mutation.phase === "reconciling" ||
+                (reconciling &&
+                  mutation.phase === "idle" &&
+                  settlement?.outcome !== "error")
+              }
               onRetry={() => {
                 if (mutation.canRetryRead) mutation.retryReconciliation();
                 else refresh();

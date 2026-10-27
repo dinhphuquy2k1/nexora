@@ -86,8 +86,13 @@ test("CustomerFilters communicates active URL phone filter and supports clear ac
 
 test("CustomerFilters manual reload exposes pending state without changing label width", () => {
   const tree = CustomerFilters({
-    query: { page: 1, pageSize: 20 }, draft: "", reloading: true,
-    onSearch() {}, onClear() {}, onReload() {}, onClearFilters() {},
+    query: { page: 1, pageSize: 20 },
+    draft: "",
+    reloading: true,
+    onSearch() {},
+    onClear() {},
+    onReload() {},
+    onClearFilters() {},
   });
   const btn = find(tree, (n) => n.props?.["aria-label"] === "Làm mới");
   assert.ok(btn);
