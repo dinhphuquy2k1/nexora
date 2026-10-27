@@ -1,6 +1,6 @@
 ---
 name: pre-implementation-review
-description: Conducts mandatory pre-code design reviews, read-only repository inspections, reuse audits, and verifies owner approval before code modification.
+description: Conducts mandatory pre-code design reviews, read-only repository inspections, reuse audits, and verifies a recorded implementation plan before code modification.
 ---
 
 # Pre-Implementation Review & Reuse Audit Skill
@@ -60,4 +60,4 @@ Generate the review document using the template at [pre-implementation-review.md
 
 - Verify that explicit **Design Approval** from the project owner (or authorized independent reviewer) is documented.
 - **STOP BEFORE MODIFYING CODE**: If approval is missing or pending, the agent MUST NOT begin editing code or tests.
-- When an owner-approved design has already been supplied (as in NEXORA-027), implement the approved design directly without restarting discovery.
+- When a scoped design is already recorded (as in NEXORA-027), implement the plan without restarting architectural discovery.
