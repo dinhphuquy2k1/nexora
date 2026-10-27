@@ -106,18 +106,18 @@ export function DrawerFrame({
   );
 }
 function ReconcileNotice({
-  busy,
-  refresh,
+  disabled,
+  onRetry,
 }: {
-  busy: boolean;
-  refresh: () => void;
+  disabled: boolean;
+  onRetry: () => void;
 }) {
   return (
     <div role="status" className={styles.notice}>
       <p>
         Chưa đối chiếu xong dữ liệu. Chỉ thử lưu lại sau khi tải thành công.
       </p>
-      <Button variant="secondary" disabled={busy} onClick={refresh}>
+      <Button variant="secondary" disabled={disabled} onClick={onRetry}>
         Đối chiếu lại dữ liệu
       </Button>
     </div>
@@ -131,6 +131,8 @@ export function CustomerDrawer({
   onDenied,
   reconciling = false,
   settlement,
+  writeBlocked = false,
+  onUnresolved,
 }: {
   customer?: Customer | Summary;
   onClose: () => void;
@@ -139,6 +141,8 @@ export function CustomerDrawer({
   onDenied: () => void;
   reconciling?: boolean;
   settlement?: SettlementTarget;
+  writeBlocked?: boolean;
+  onUnresolved?: () => void;
 }) {
   const [baseline] = useState(customer);
   const router = useRouter();
@@ -150,7 +154,7 @@ export function CustomerDrawer({
     status: customer?.status,
   }));
   const [address, setAddress] = useState(emptyAddress);
-  const mutation = useCustomerMutation(settlement ?? refresh, onDenied);
+  const mutation = useCustomerMutation(settlement ?? refresh, onDenied, onUnresolved);
   return (
     <DrawerFrame
       title={customer ? "Sửa khách hàng" : "Thêm khách hàng"}
@@ -160,14 +164,14 @@ export function CustomerDrawer({
           : "Tạo hồ sơ và địa chỉ nhận hàng đầu tiên."
       }
       icon={customer ? <Edit3 size={19} /> : <UserPlus size={19} />}
-      busy={mutation.busy}
+      busy={!mutation.canClose}
       onClose={onClose}
     >
       <form
         aria-busy={mutation.busy}
         onSubmit={(e) => {
           e.preventDefault();
-          if (reconciling) return;
+          if (reconciling || writeBlocked) return;
           const openAfter =
             !customer &&
             (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") ===
@@ -196,7 +200,7 @@ export function CustomerDrawer({
       >
         <div className={styles.drawerBody} data-customer-form-body>
           <fieldset
-            disabled={mutation.busy || reconciling}
+            disabled={mutation.busy || reconciling || writeBlocked}
             className={styles.fieldset}
           >
             <section className={styles.formSection}>
@@ -255,8 +259,14 @@ export function CustomerDrawer({
               )}
             </section>
           )}
-          {reconciling && (
-            <ReconcileNotice busy={mutation.busy} refresh={refresh} />
+          {(reconciling || mutation.phase === "blocked") && (
+            <ReconcileNotice
+              disabled={mutation.phase === "reconciling" || (reconciling && mutation.phase === "idle" && settlement?.outcome !== "error")}
+              onRetry={() => {
+                if (mutation.canRetryRead) mutation.retryReconciliation();
+                else refresh();
+              }}
+            />
           )}
           <div id="customer-field-error">
             <Feedback error={mutation.error} />
@@ -265,7 +275,7 @@ export function CustomerDrawer({
         <footer className={styles.drawerFooter}>
           <Button
             variant="secondary"
-            disabled={mutation.busy}
+            disabled={!mutation.canClose}
             onClick={onClose}
           >
             Hủy
@@ -274,7 +284,7 @@ export function CustomerDrawer({
             <Button
               variant={customer ? "emphasis" : "secondary"}
               type="submit"
-              disabled={mutation.busy || reconciling}
+              disabled={mutation.busy || reconciling || writeBlocked}
             >
               {mutation.busy ? "Đang lưu…" : "Lưu khách hàng"}
             </Button>
@@ -283,7 +293,7 @@ export function CustomerDrawer({
                 variant="emphasis"
                 type="submit"
                 value="open"
-                disabled={mutation.busy || reconciling}
+                disabled={mutation.busy || reconciling || writeBlocked}
               >
                 Lưu và mở hồ sơ
               </Button>
@@ -303,6 +313,8 @@ export function AddressDrawer({
   onDenied,
   reconciling = false,
   settlement,
+  writeBlocked = false,
+  onUnresolved,
 }: {
   id: string;
   address?: Address;
@@ -312,6 +324,8 @@ export function AddressDrawer({
   onDenied: () => void;
   reconciling?: boolean;
   settlement?: SettlementTarget;
+  writeBlocked?: boolean;
+  onUnresolved?: () => void;
 }) {
   const [baseline] = useState(address);
   const [draft, setDraft] = useState<AddressDraft>(() =>
@@ -325,7 +339,7 @@ export function AddressDrawer({
         }
       : emptyAddress(),
   );
-  const mutation = useCustomerMutation(settlement ?? refresh, onDenied);
+  const mutation = useCustomerMutation(settlement ?? refresh, onDenied, onUnresolved);
   return (
     <DrawerFrame
       title={address ? "Sửa địa chỉ" : "Thêm địa chỉ"}
@@ -335,7 +349,7 @@ export function AddressDrawer({
           : "Thông tin người nhận và địa chỉ giao hàng."
       }
       icon={<MapPin size={19} />}
-      busy={mutation.busy}
+      busy={!mutation.canClose}
       onClose={onClose}
       address
     >
@@ -343,7 +357,7 @@ export function AddressDrawer({
         aria-busy={mutation.busy}
         onSubmit={(e) => {
           e.preventDefault();
-          if (reconciling) return;
+          if (reconciling || writeBlocked) return;
           void mutation.run(
             () =>
               address
@@ -359,7 +373,7 @@ export function AddressDrawer({
       >
         <div className={styles.drawerBody} data-customer-form-body>
           <fieldset
-            disabled={mutation.busy || reconciling}
+            disabled={mutation.busy || reconciling || writeBlocked}
             className={styles.fieldset}
           >
             <AddressForm
@@ -369,8 +383,14 @@ export function AddressDrawer({
               errorField={mutation.error?.field}
             />
           </fieldset>
-          {reconciling && (
-            <ReconcileNotice busy={mutation.busy} refresh={refresh} />
+          {(reconciling || mutation.phase === "blocked") && (
+            <ReconcileNotice
+              disabled={mutation.phase === "reconciling" || (reconciling && mutation.phase === "idle" && settlement?.outcome !== "error")}
+              onRetry={() => {
+                if (mutation.canRetryRead) mutation.retryReconciliation();
+                else refresh();
+              }}
+            />
           )}
           <div id="customer-field-error">
             <Feedback error={mutation.error} />
@@ -379,7 +399,7 @@ export function AddressDrawer({
         <footer className={styles.drawerFooter}>
           <Button
             variant="secondary"
-            disabled={mutation.busy}
+            disabled={!mutation.canClose}
             onClick={onClose}
           >
             Hủy
@@ -387,7 +407,7 @@ export function AddressDrawer({
           <Button
             variant="emphasis"
             type="submit"
-            disabled={mutation.busy || reconciling}
+            disabled={mutation.busy || reconciling || writeBlocked}
           >
             {mutation.busy ? "Đang lưu…" : "Lưu địa chỉ"}
           </Button>
