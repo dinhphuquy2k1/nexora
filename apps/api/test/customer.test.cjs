@@ -15,6 +15,9 @@ test("VN/international phones normalize and invalid numbering is rejected", () =
   assert.equal(normalizePhone("0912345678"), "+84912345678");
   assert.equal(normalizePhone("+84912345678"), "+84912345678");
   assert.equal(normalizePhone("+1 202 555 0123"), "+12025550123");
+  // API intentionally trims before its 64-character bound. Preserve this
+  // backend contract; the browser has a stricter raw-length UX guard.
+  assert.equal(normalizePhone(" ".repeat(65) + "0912345678"), "+84912345678");
   for (const v of [
     null,
     123,
