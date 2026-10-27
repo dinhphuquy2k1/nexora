@@ -1,6 +1,36 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assertWorkspaceGeometry } from "./workspace-geometry-checks.mjs";
+import {
+  assertWorkspaceGeometry,
+  assertCustomerDetailGeometry,
+} from "./workspace-geometry-checks.mjs";
+test("detail geometry rejects single-character labels and collapsed back links", () => {
+  const good = {
+    labels: Array.from({ length: 7 }, () => ({
+      width: 100,
+      height: 36,
+      lineHeight: 18,
+    })),
+    back: { width: 140, height: 20, lineHeight: 20 },
+  };
+  assert.doesNotThrow(() => assertCustomerDetailGeometry(good));
+  assert.throws(() =>
+    assertCustomerDetailGeometry({
+      ...good,
+      labels: [
+        ...good.labels.slice(1),
+        { width: 10, height: 90, lineHeight: 18 },
+      ],
+    }),
+  );
+  assert.throws(() =>
+    assertCustomerDetailGeometry({
+      ...good,
+      back: { width: 10, height: 80, lineHeight: 20 },
+    }),
+  );
+  assert.throws(() => assertCustomerDetailGeometry({ ...good, labels: [] }));
+});
 test("geometry fails either mismatched edge, wrong gutter, overflow and wrong max-width", () => {
   const good = {
     variant: "standard",

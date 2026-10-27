@@ -75,7 +75,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
       data-stale={!!c && (read.loading || !!read.error)}
     >
       <div className={styles.toolbar}>
-        <div className={styles.titleGroup}>
+        <div className={`${styles.titleGroup} ${styles.detailHeading}`}>
           <Link
             className={styles.backLink}
             href="/customers"

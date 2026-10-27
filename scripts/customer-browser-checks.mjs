@@ -2,6 +2,7 @@
 import {
   verifyWorkspaceGeometry,
   verifyCustomerTableGeometry,
+  verifyCustomerDetailGeometry,
 } from "./workspace-geometry-checks.mjs";
 import {
   verifyCustomerControls,
@@ -364,6 +365,11 @@ export async function verifyCustomerBrowser({
       ))
         ? await verifyCustomerTableGeometry({ evaluate })
         : null;
+      const detailGeometry = (await evaluate(
+        "Boolean(document.querySelector('main dl'))",
+      ))
+        ? await verifyCustomerDetailGeometry({ evaluate })
+        : null;
       const shot = await send("Page.captureScreenshot", {
         format: "png",
         captureBeyondViewport: false,
@@ -378,6 +384,7 @@ export async function verifyCustomerBrowser({
         fonts,
         geometry,
         tableGeometry,
+        detailGeometry,
       });
     }
     await send("Emulation.clearDeviceMetricsOverride");

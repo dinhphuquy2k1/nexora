@@ -1,4 +1,27 @@
 import assert from "node:assert/strict";
+export function assertCustomerDetailGeometry(value) {
+  assert.ok(value, "actual Customer profile must exist");
+  assert.equal(value.labels.length, 7);
+  for (const label of value.labels) {
+    assert.ok(label.width > 0 && Number.isFinite(label.lineHeight));
+    assert.ok(
+      label.height <= label.lineHeight * 2 + 1,
+      "profile labels must remain readable within two lines",
+    );
+  }
+  assert.ok(value.back.width > 0 && Number.isFinite(value.back.lineHeight));
+  assert.ok(
+    value.back.height <= value.back.lineHeight + 1,
+    "back-link text must not collapse into a vertical column",
+  );
+}
+export async function verifyCustomerDetailGeometry({ evaluate }) {
+  const value = await evaluate(
+    `(()=>{const profile=document.querySelector('main dl'),back=document.querySelector('main a[aria-label="Danh sách khách hàng"] span');if(!profile||!back)return null;const measure=e=>{const r=e.getBoundingClientRect();return {width:r.width,height:r.height,lineHeight:parseFloat(getComputedStyle(e).lineHeight)};};return {labels:Array.from(profile.querySelectorAll('dt')).map(measure),back:measure(back)};})()`,
+  );
+  assertCustomerDetailGeometry(value);
+  return value;
+}
 export function assertWorkspaceGeometry(value, width) {
   assert.ok(value, "workspace frames must exist");
   assert.ok(["standard", "wide"].includes(value.variant));

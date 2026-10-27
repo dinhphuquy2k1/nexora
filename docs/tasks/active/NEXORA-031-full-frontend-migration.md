@@ -1304,3 +1304,18 @@ recommendation BLOCKED solely on COLOR_POLICY_V4_SOURCE_MISSING pending owner
 publication evidence/ADR-009 disposition; no retroactive approval. Overall task
 IN PROGRESS, capability PLANNED for M1–M5, Verification NOT VERIFIED. M3–M5 not
 implemented here. Disposable HTTPS PASS does not verify public production release.
+
+#### Actual visual review follow-up — long Detail mobile
+
+Independent artifact review opened admin-detail-long-375x812.png and found a real
+P2 despite the prior no-overflow PASS: flexible profile labels and the back link
+shrink to near single-character columns under an allowed long Customer name.
+This supersedes any implication that source89c1343 completed visual acceptance.
+BOUNDED approved-v3 responsive correction reserves one-third of each profile row
+for its label with a native grid, preserves a nonshrinking back link and wraps the
+Detail-only heading into separate rows on narrow screens. No API/business change.
+Existing CDP capture now measures all seven label rectangles and back-link text
+at every Detail viewport, rejects labels beyond two lines or multiline back text,
+and records geometry beside screenshot hashes. Negative unit geometry fixtures
+reject the observed failure. Full final-head hosted execution and newly opened
+mobile screenshots remain required. Color v4 source PLAN ISSUE stays open.
