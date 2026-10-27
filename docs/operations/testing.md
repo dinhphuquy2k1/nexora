@@ -343,3 +343,15 @@ an active Toast alert. Do not restore obsolete global-alert assumptions.
 ### Workspace layout and main focus regression checks
 
 `workspace-geometry-checks.mjs` verifies that the workspace frame maintains exact Header/Main alignment, gutter dimensions, sticky header height (56px), and zero horizontal document overflow. Additionally, `verifyMainFocusOutlineContract` validates that the `<main>` container (`#workspace-content`) retains `tabIndex={-1}`, accepts programmatic focus without JavaScript errors, displays no unintended visual outline (`outlineStyle === 'none' || outlineWidth === 0`), and has zero top/left border width, while interactive child controls retain their keyboard focus indications.
+
+### Customer table skeleton and computed layout geometry regression checks
+
+`workspace-geometry-checks.mjs` (`verifyCustomerTableGeometry`) asserts the geometric and loading stability contract of the Customer table across both loading (skeleton) and data states:
+
+- Exactly 9 columns match `customerColumns` order and shared `<colgroup>`.
+- Header boundaries and body cell boundaries agree within `< 1px` across all columns and viewports (375px, 768px, 900px, 1440px, 1920px).
+- Fixed 5-row skeleton contract is asserted (`skeletonRows.length === 5`).
+- All 9 columns have balanced horizontal margins (`abs(leftGap - rightGap) <= 1px` relative to cell usable content area).
+- Text placeholders (`code`, `name`, `phone`, `email`, `created`) occupy 80–92% of usable cell width (measured: 84.18% to 89.58%).
+- Row height stability: both skeleton rows and normal single-line real data rows measure 44.5px height (difference <= 1.5px, verified 0.0px).
+- Table horizontal overflow is contained inside `.tableViewport` (`scrollWidth === 1312px`, `noBodyOverflow: true`), preventing viewport jitter during loading-to-settled transitions across 0, 1, 2, 3, 5, and 10 records.

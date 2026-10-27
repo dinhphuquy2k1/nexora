@@ -219,17 +219,18 @@ The Customer table skeleton loading state is governed by a unified geometry and 
 
 2. **Per-Column Semantic Shape & Alignment Registry**:
    - **Detail Icon (`detail`, 80px)**: 26px × 26px square (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`), matching the 26px Eye icon button.
-   - **Customer Code (`code`, 144px)**: 72px × 16px bar (`var(--radius-sm)`), left-aligned (`margin-inline-start: 0`), matching monospace code links.
-   - **Customer Name (`name`, 240px)**: 70% width (min 120px, max 168px) × 16px bar (`var(--radius-sm)`), left-aligned, matching primary customer names.
-   - **Phone Number (`phone`, 152px)**: 96px × 16px bar (`var(--radius-sm)`), left-aligned, matching tabular-nums telephone format.
-   - **Email (`email`, 200px)**: 65% width (min 100px, max 140px) × 16px bar (`var(--radius-sm)`), left-aligned, matching customer email strings.
-   - **Address Count (`addresses`, 104px)**: 44px × 20px pill (`var(--radius-full)`), centered horizontally (`margin-inline: auto`), matching the MapPin count badge.
-   - **Status Badge (`status`, 156px)**: 104px × 22px chip (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`), matching the status badge.
-   - **Created Date (`created`, 128px)**: 76px × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`), matching tabular-nums date text.
-   - **Actions (`actions`, 104px)**: Two 32px × 32px button placeholders (`var(--control-radius)`) inside `.actionGroup` with 4px gap (`var(--space-1)`), centered horizontally (`vertical-align: middle`), matching Edit and Power controls.
+   - **Customer Code (`code`, 144px)**: 88% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 105.1px on 120.4px usable content box, gap diff 0.00px), matching monospace code links.
+   - **Customer Name (`name`, 240px)**: 90% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 194.1px on 216.7px usable content box, gap diff 0.015px), matching primary customer names.
+   - **Phone Number (`phone`, 152px)**: 88% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 112.2px on 128.5px usable content box, gap diff 0.015px), matching tabular-nums telephone format.
+   - **Email (`email`, 200px)**: 90% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 158.0px on 176.6px usable content box, gap diff 0.00px), matching customer email strings.
+   - **Address Count (`addresses`, 104px)**: 44px × 20px pill (`var(--radius-full)`), centered horizontally (`margin-inline: auto`, gap diff 0.00px), matching the MapPin count badge.
+   - **Status Badge (`status`, 156px)**: 104px × 22px chip (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, gap diff 0.00px), matching the status badge.
+   - **Created Date (`created`, 128px)**: 85% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 87.9px on 104.4px usable content box, gap diff 0.015px), matching tabular-nums date text.
+   - **Actions (`actions`, 104px)**: Two 32px × 32px button placeholders (`var(--control-radius)`) inside `.actionGroup` with 4px gap (`var(--space-1)`), centered horizontally (`vertical-align: middle`, gap diff 0.50px), matching Edit and Power controls.
 
 3. **Row Height & Layout Invariants**:
    - Both skeleton and real data rows compute to exactly 44.5px height (zero vertical row shift).
+   - All 9 columns maintain balanced horizontal margins (`abs(leftGap - rightGap) <= 1px`, verified <= 0.52px in Chromium CDP) relative to the usable content box excluding cell padding.
    - Skeleton placeholders use `margin-block: 0`, resting inside cell padding boxes (`padding: 6px var(--space-3)`, and `padding: 6px var(--space-1)` for detail).
    - Centered column centers agree with real cell content centers within < 0.25px (0.00px shift on detail, addresses, actions; 0.01px on status, created).
    - Long text rows (name up to 200 characters, email up to 254 characters) wrap cleanly via `overflow-wrap: anywhere` and expand vertically as needed without clipping or horizontal column leakage.

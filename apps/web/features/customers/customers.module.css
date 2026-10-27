@@ -1063,32 +1063,24 @@
   margin-inline: auto;
 }
 .skeleton_code {
-  width: 72px;
+  width: 88%;
   height: 16px;
-  margin-inline-start: 0;
-  margin-inline-end: auto;
+  margin-inline: auto;
 }
 .skeleton_name {
-  width: 70%;
-  max-width: 168px;
-  min-width: 120px;
+  width: 90%;
   height: 16px;
-  margin-inline-start: 0;
-  margin-inline-end: auto;
+  margin-inline: auto;
 }
 .skeleton_phone {
-  width: 96px;
+  width: 88%;
   height: 16px;
-  margin-inline-start: 0;
-  margin-inline-end: auto;
+  margin-inline: auto;
 }
 .skeleton_email {
-  width: 65%;
-  max-width: 140px;
-  min-width: 100px;
+  width: 90%;
   height: 16px;
-  margin-inline-start: 0;
-  margin-inline-end: auto;
+  margin-inline: auto;
 }
 .skeleton_addresses {
   width: 44px;
@@ -1103,7 +1095,7 @@
   margin-inline: auto;
 }
 .skeleton_created {
-  width: 76px;
+  width: 85%;
   height: 16px;
   margin-inline: auto;
 }

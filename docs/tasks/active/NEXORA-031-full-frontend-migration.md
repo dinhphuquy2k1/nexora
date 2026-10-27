@@ -1311,3 +1311,41 @@ Investigated and resolved intermittent dark Main Content border and focus outlin
    - Extended `scripts/workspace-geometry-checks.test.mjs` unit assertions.
    - Integrated `verifyMainFocusOutlineContract` into canonical browser checks in `scripts/customer-browser-checks.mjs`.
    - Quality gates: format, lint, typecheck, unit tests, and docs checks PASS.
+
+### Customer Table Skeleton Width, Alignment & Loading Stability Verification — 2026-10-27
+
+Resolved Customer Table Skeleton width, alignment, and loading stability findings under task NEXORA-031:
+
+1. **Confirmed Root Causes**:
+   - **Finding 01 (Skeleton text width too short)**: Prior CSS used narrow fixed widths (`width: 72px` on 120px code column = 60.0%; `width: 96px` on 128px phone column = 75.0%; `width: 76px` on 104px created column = 73.1%) and restrictive max-widths (`max-width: 168px` on 216px name column = 77.8%; `max-width: 140px` on 176px email column = 79.5%), leaving excessive whitespace.
+   - **Finding 02 (Horizontal alignment imbalance)**: Text placeholders used `margin-inline-start: 0; margin-inline-end: auto;`, dumping all unused cell space on the right (up to 48px gap difference), violating the balanced alignment contract.
+
+2. **Selected Corrections**:
+   - In `apps/web/features/customers/customers.module.css`:
+     - Widened text placeholders to approved 85–90% targets: `.skeleton_code` (88%), `.skeleton_name` (90%, removed max-width cap), `.skeleton_phone` (88%), `.skeleton_email` (90%, removed max-width cap), `.skeleton_created` (85%).
+     - Centered text placeholders using `margin-inline: auto`, achieving `abs(leftGap - rightGap) <= 0.52px <= 1px` across all columns.
+     - Preserved semantic shapes: detail (26px × 26px square), addresses (44px × 20px pill), status (104px × 22px chip), actions (two 32px × 32px buttons with 4px gap in `.actionGroup`).
+     - Maintained `margin-block: 0` on `.skeletonCell` to guarantee stable 44.5px single-line row height matching real data rows (0.0px difference).
+     - Preserved fixed 5-row skeleton contract (`Array.from({ length: 5 })`) without artificial vertical stretching.
+     - Preserved shared 9-column `<colgroup>` registry from `columns.ts`.
+
+3. **Chromium CDP Measurements & Evidence**:
+   - Measured widths & alignment across all 9 columns in Chromium CDP:
+     - `detail`: width 26.0px (36.0%), leftGap 22.86px, rightGap 23.38px, diff 0.52px.
+     - `code`: usable 120.44px, placeholder 105.09px (87.26%), leftGap 7.67px, rightGap 7.67px, diff 0.00px.
+     - `name`: usable 216.72px, placeholder 194.14px (89.58%), leftGap 11.28px, rightGap 11.30px, diff 0.015px.
+     - `phone`: usable 128.45px, placeholder 112.16px (87.31%), leftGap 8.14px, rightGap 8.16px, diff 0.015px.
+     - `email`: usable 176.61px, placeholder 158.05px (89.49%), leftGap 9.28px, rightGap 9.28px, diff 0.00px.
+     - `addresses`: width 44.0px (54.79%), leftGap 18.16px, rightGap 18.16px, diff 0.00px.
+     - `status`: width 104.0px (78.51%), leftGap 14.23px, rightGap 14.23px, diff 0.00px.
+     - `created`: usable 104.39px, placeholder 87.88px (84.18%), leftGap 8.25px, rightGap 8.27px, diff 0.015px.
+     - `actions`: width 68.0px (84.60%), leftGap 6.44px, rightGap 5.94px, diff 0.50px.
+   - Row height: skeleton row = 44.5px, real data row = 44.5px (0.0px vertical shift).
+   - Column boundary agreement: header, skeleton, and real data column edges agree within < 0.5px (< 1px tolerance) across viewports 1440, 1920, 900, 768, and 375.
+   - Result cardinality transitions: 0, 1, 2, 3, 5, 10 records tested; viewport scrollWidth remains 1312px, clientWidth remains 1150px (zero horizontal shift).
+   - Captured screenshots: `skeleton_desktop_1440x900.png`, `skeleton_wide_1920x1080.png`, `skeleton_tablet-900_900x800.png`, `skeleton_tablet-768_768x1024.png`, `skeleton_mobile-375_375x812.png`, `customer-count-0-1440x900.png` through `customer-count-10-1440x900.png`.
+
+4. **Automated Test Infrastructure**:
+   - Extended `apps/web/test/customer-table.test.mjs` with CSS token and percentage width assertions.
+   - Updated `scripts/workspace-geometry-checks.mjs` (`verifyCustomerTableGeometry`) to enforce balanced alignment across all 9 columns, 80–92% text width ratios, and 44.5px stable row height.
+   - All quality gates PASS (preflight, prettier format, eslint lint, typecheck across 6 packages, 55 unit tests, docs check).

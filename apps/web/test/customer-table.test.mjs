@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
 import { loadComponent, React, render } from "./helpers/render-component.mjs";
 const { CustomerTable } = loadComponent(
   new URL("../features/customers/CustomerTable.tsx", import.meta.url).pathname,
@@ -161,4 +162,27 @@ test("NEXORA-031 Finding 1 & 2: Skeleton placeholders reflect real cell roles an
     html,
     /<div class="[^"]*actionGroup[^"]*"><span class="[^"]*skeletonCell[^"]*skeletonActionBtn[^"]*"><\/span><span class="[^"]*skeletonCell[^"]*skeletonActionBtn[^"]*"><\/span><\/div>/,
   );
+});
+
+test("NEXORA-031 Finding 1 & 2: Skeleton CSS enforces wide 85-90% placeholders and balanced margin-inline: auto", async () => {
+  const css = await fs.readFile(
+    new URL("../features/customers/customers.module.css", import.meta.url),
+    "utf8",
+  );
+  // Code & Phone use 88% width
+  assert.match(css, /\.skeleton_code\s*\{[^}]*width:\s*88%/);
+  assert.match(css, /\.skeleton_phone\s*\{[^}]*width:\s*88%/);
+  // Name & Email use 90% width
+  assert.match(css, /\.skeleton_name\s*\{[^}]*width:\s*90%/);
+  assert.match(css, /\.skeleton_email\s*\{[^}]*width:\s*90%/);
+  // Created date uses 85% width
+  assert.match(css, /\.skeleton_created\s*\{[^}]*width:\s*85%/);
+  // All text placeholders use margin-inline: auto for balanced horizontal margins
+  assert.match(css, /\.skeleton_code\s*\{[^}]*margin-inline:\s*auto/);
+  assert.match(css, /\.skeleton_name\s*\{[^}]*margin-inline:\s*auto/);
+  assert.match(css, /\.skeleton_phone\s*\{[^}]*margin-inline:\s*auto/);
+  assert.match(css, /\.skeleton_email\s*\{[^}]*margin-inline:\s*auto/);
+  assert.match(css, /\.skeleton_created\s*\{[^}]*margin-inline:\s*auto/);
+  // Row height stability: margin-block: 0 on .skeletonCell
+  assert.match(css, /\.skeletonCell\s*\{[^}]*margin-block:\s*0/);
 });
