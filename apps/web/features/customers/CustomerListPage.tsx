@@ -28,9 +28,9 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   const params = useSearchParams();
   const search = params.toString();
   let query: Query = {
-    page: PaginationLimits.DEFAULT_PAGE,
-    pageSize: PaginationLimits.DEFAULT_PAGE_SIZE,
-  },
+      page: PaginationLimits.DEFAULT_PAGE,
+      pageSize: PaginationLimits.DEFAULT_PAGE_SIZE,
+    },
     invalid = false;
   try {
     query = parseCustomerQuery(new URLSearchParams(search));
