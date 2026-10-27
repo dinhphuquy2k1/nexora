@@ -753,14 +753,27 @@ test("agent skills: portable relative links and metadata valid in .github/skills
 });
 
 test("recorded-plan skill guidance is consistent with ADR-009", () => {
-  const skillText = readFileSync(resolve(root, ".github/skills/pre-implementation-review/SKILL.md"), "utf8");
-  const adrText = readFileSync(resolve(root, "docs/decisions/mandatory-pre-code-design-review.md"), "utf8");
+  const skillText = readFileSync(
+    resolve(root, ".github/skills/pre-implementation-review/SKILL.md"),
+    "utf8",
+  );
+  const adrText = readFileSync(
+    resolve(root, "docs/decisions/mandatory-pre-code-design-review.md"),
+    "utf8",
+  );
   assert.ok(skillText.includes("Plan Readiness Check"));
   assert.ok(skillText.includes("Do not request or wait for owner approval"));
   assert.equal(skillText.includes("Approval Check — Mandatory Stop"), false);
   assert.ok(adrText.includes("superseded; non-normative"));
-  assert.equal(adrText.includes("stops before code editing if approval is missing"), false);
-  assert.ok(EXPECTED_SKILL_SCENARIOS.some((item) => item.id === "recorded-design-handed"));
+  assert.equal(
+    adrText.includes("stops before code editing if approval is missing"),
+    false,
+  );
+  assert.ok(
+    EXPECTED_SKILL_SCENARIOS.some(
+      (item) => item.id === "recorded-design-handed",
+    ),
+  );
 });
 
 test("skill scenario fixtures validate expected decisions", () => {
