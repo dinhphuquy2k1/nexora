@@ -423,6 +423,10 @@ test(
       );
       assert.ok(generated.every((x) => x.status === 201));
       assert.equal(new Set(generated.map((x) => x.body.customer.code)).size, 8);
+      const defaultPage = await request();
+      assert.equal(defaultPage.status, 200);
+      assert.equal(defaultPage.body.pagination.page, 1);
+      assert.equal(defaultPage.body.pagination.pageSize, 20);
       const page = await request("?pageSize=2");
       assert.equal(page.body.customers.length, 2);
       assert.equal(
