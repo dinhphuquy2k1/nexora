@@ -26,7 +26,6 @@ const UUID_PATTERN_REGEX =
   /\[[0-9a-fA-F-]+\]\{8\}-\[[0-9a-fA-F-]+\]\{4\}-\[[0-9a-fA-F-]+\]\{4\}/;
 const HEX64_PATTERN_REGEX = /\[[0-9a-fA-F-]+\]\{64\}/;
 
-
 export const EXPECTED_SKILL_SCENARIOS = [
   {
     id: "uuid-reuse",
