@@ -23,3 +23,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run preflight policy check tests
         run: node --test scripts/preflight-policy-check.test.mjs
+      - name: Temporary deterministic formatter diagnostics
+        run: |
+          npx --yes prettier@3.6.2 --write docs/decisions/mandatory-pre-code-design-review.md scripts/preflight-policy-check.mjs scripts/preflight-policy-check.test.mjs
+          for path in docs/decisions/mandatory-pre-code-design-review.md scripts/preflight-policy-check.mjs scripts/preflight-policy-check.test.mjs; do
+            printf 'NEXORA_FORMAT_BEGIN %s\n' "$path"
+            base64 -w0 "$path"
+            printf '\nNEXORA_FORMAT_END %s\n' "$path"
+          done
