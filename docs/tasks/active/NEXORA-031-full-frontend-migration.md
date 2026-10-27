@@ -10,13 +10,19 @@ Documentation Impact: REQUIRED
 
 - **Task ID**: NEXORA-031
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-26-design-system-m2-v3
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md
-- **Design SHA-256**: c25703baddc79bf3955a6d58e15092a9e0ac2a15f401ee34431ee6f91ef2c939
-- **Reviewed baseline**: b44c3c4178c34492f6c8f52b70795bcdaff04846
+- **Plan revision**: rev-2026-10-27-shared-validation-v1
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-27-shared-validation-v1.md
+- **Design SHA-256**: 2d149651c19dbeabb56b6850adeb3c80ea93db6dfe67ec49d28dcd04a362116a
+- **Reviewed baseline**: d9f8cbdec06fa264ecf35bf0ddae53452dc55beb
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: APPROVED
 - **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/28#issuecomment-6407149976 — authenticated owner dinhphuquy2k1, created/updated2026-10-26T02:52:26Z; canonical ADR-009 verifier accepted complete connector-authenticated comment/review payload, exact task/revision/recomputed raw-byte digest and chronology; no later relevant revocation.
+
+## Shared validation amendment — 2026-10-27
+
+The owner settled the final list default at **pageSize 20** for both API and Web (max 100). The immutable shared validation design amendment is `docs/tasks/design-reviews/NEXORA-031-rev-2026-10-27-shared-validation-v1.md` with SHA-256 `2d149651c19dbeabb56b6850adeb3c80ea93db6dfe67ec49d28dcd04a362116a`. This scoped architecture/reuse plan supersedes only pagination and input-validation implementation choices from v3; historical Design System M2 v3 snapshot `docs/tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md` (digest `c25703baddc79bf3955a6d58e15092a9e0ac2a15f401ee34431ee6f91ef2c939`) is retained unchanged for the visual contract.
+
+Read-only audit inspected `apps/api/src/customer/application/customer.input.ts`, `apps/api/src/customer/domain/customer.value-objects.ts`, `apps/api/src/common/value-objects/phone-number.ts`, `apps/web/features/customers/query.ts`, `payload.ts`, `packages/shared`, Customer API DTO/SDK and docs. Selected pure shared decimal pagination and bounded-text primitives plus Customer-specific input bounds in existing `@nexora/shared`. Reuse alternatives, domain ownership, risks and verification are in the new snapshot's eight-field matrix. No phone parsing dependencies cross to browser; API remains E.164 authority. No speculative date utility; no Customer domain, schema, security/session or M3–M5 change. Documentation Impact: REQUIRED (shared registry, frontend architecture, API contract, task/PR). Verification: pinned checks, Customer integration, contracts and final-head Docker CI; preserve negative and boundary test coverage.
 
 ## Governance policy update — 2026-10-27 (plan-first, no owner approval gate)
 
