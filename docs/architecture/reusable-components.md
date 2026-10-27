@@ -276,7 +276,7 @@ and all size/color contracts are owned by [Design System](design-system.md).
 
 ## Shared BE/FE validation (NEXORA-031, 2026-10-27)
 
-- **Canonical owners**: `packages/shared/src/validation/pagination.ts`, `text.ts`, and `customer-limits.ts`, exported through `@nexora/shared`.
+- **Canonical owners**: `packages/shared/src/validation/pagination.ts`, `text.ts`, and `customer-limits.ts`, exported through `@nexora/shared`. The domain-safe pure functions are also explicitly exported through `@nexora/shared/validation`; only this narrow subpath is allowed by the API domain purity boundary (in addition to the historical CustomerStatus import).
 - **Consumers**: Customer frontend URL/form parsing and backend Customer input/query validation; future modules may reuse the pure primitives but must declare their own domain policies.
 - **Pagination**: `page` defaults to 1, `pageSize` defaults to **20** in both API and UI; maximum page size 100, page/offset maximum 2147483647. Canonical positive decimal syntax, safe integer and offset guards are shared. Duplicate/unknown HTTP query parameter checks remain at the corresponding boundary.
 - **Text**: pure trimmed string bounds and optional raw-length-before-trim checks. `CustomerInputLimits` describes Customer transport policy, not a global limit for every domain.
