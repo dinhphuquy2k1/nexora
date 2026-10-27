@@ -174,5 +174,4 @@ CustomerPage in Application owns CustomerStats. Adapter runs filtered count, bou
 
 OpenAPI/SDK are generated from required CustomerStatsDto and CustomersResponseDto.stats. Backend-first deployment must coordinate generated SDK/Web versions. The actual SDK transport tolerates additive fields and leaves stats absent with an old server; it does not fabricate zeros. Four old/new transport combinations are covered by the representative SDK test. Frontend M2 must still verify actual loading/unavailable/error states and deployment skew; it is not implemented or deployment-certified here.
 
-
 Customer query `page/pageSize` is parsed by the pure `@nexora/shared` pagination validator used in both API and Web; the default remains `page=1,pageSize=20`. Limits and error mapping are unchanged. The FE performs only basic raw phone input checks; backend PhoneNumber E.164 validation remains authoritative.
