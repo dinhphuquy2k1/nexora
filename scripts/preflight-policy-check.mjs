@@ -76,16 +76,16 @@ export const EXPECTED_SKILL_SCENARIOS = [
     rule: "Require full DDD Modeling Preflight (ADR-008) and a recorded design/reuse plan before implementation.",
   },
   {
-    id: "approved-design-handed",
-    scenario: "Existing owner-approved design handed to coding agent",
-    expectedDecision: "IMPLEMENT_APPROVED_DESIGN_DIRECTLY",
-    rule: "Implement the approved design directly; do not restart the discovery process or generate new alternatives.",
+    id: "recorded-design-handed",
+    scenario: "Existing recorded design handed to coding agent",
+    expectedDecision: "IMPLEMENT_RECORDED_DESIGN_DIRECTLY",
+    rule: "Implement the recorded design plan without requiring owner approval or restarting discovery.",
   },
   {
     id: "unexpected-conflict",
     scenario: "Unexpected architectural conflict detected during inspection",
     expectedDecision: "DOCUMENT_PLAN_ISSUE_AND_STOP",
-    rule: "Stop and document a concrete PLAN ISSUE rather than silently overriding the approved design or project rules.",
+    rule: "Stop and document a concrete PLAN ISSUE rather than silently overriding the recorded plan or project rules.",
   },
 ];
 
