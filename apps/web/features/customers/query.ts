@@ -1,24 +1,19 @@
-import { CustomerStatus } from "@nexora/shared";
+import { CustomerStatus, parsePagination, CustomerInputLimits } from "@nexora/shared";
 import type { Query } from "./types.ts";
 const keys = ["page", "pageSize", "q", "status", "phone"] as const;
 export function parseCustomerQuery(params: URLSearchParams): Query {
   for (const key of keys)
     if (params.getAll(key).length > 1) throw Error("INVALID_FILTER");
-  const integer = (key: string, fallback: number, max: number) => {
-    const s = params.get(key);
-    if (s === null) return fallback;
-    if (!/^[1-9][0-9]*$/.test(s)) throw Error("INVALID_FILTER");
-    const n = Number(s);
-    if (!Number.isSafeInteger(n) || n > max) throw Error("INVALID_FILTER");
-    return n;
-  };
-  const page = integer("page", 1, 2147483647),
-    pageSize = integer("pageSize", 10, 100);
-  if ((page - 1) * pageSize > 2147483647) throw Error("INVALID_FILTER");
+  const pagination = parsePagination(
+    params.get("page") ?? undefined,
+    params.get("pageSize") ?? undefined,
+  );
+  if (!pagination) throw Error("INVALID_FILTER");
+  const { page, pageSize } = pagination;
   const out: Query = { page, pageSize };
   const q = params.get("q")?.trim();
   if (q) {
-    if (q.length > 200) throw Error("INVALID_FILTER");
+    if (q.length > CustomerInputLimits.QUERY_TEXT) throw Error("INVALID_FILTER");
     out.q = q;
   }
   const status = params.get("status");
@@ -29,7 +24,7 @@ export function parseCustomerQuery(params: URLSearchParams): Query {
   }
   const phone = params.get("phone");
   if (phone !== null) {
-    if (!phone.trim() || phone.length > 64) throw Error("INVALID_FILTER");
+    if (!phone.trim() || phone.length > CustomerInputLimits.PHONE_RAW) throw Error("INVALID_FILTER");
     out.phone = phone;
   }
   return out;
