@@ -689,7 +689,9 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
     },
     // Authentication is deliberately unavailable; plan integrity alone is enforced.
     githubToken: undefined,
-    fetchFn: () => { throw Error("Approval API must not be called"); },
+    fetchFn: () => {
+      throw Error("Approval API must not be called");
+    },
   });
   assert.equal(validCiResult.success, true);
   assert.deepEqual(validCiResult.failures, []);
@@ -712,7 +714,9 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
       repository: { full_name: "dinhphuquy2k1/nexora" },
     },
     githubToken: "",
-    fetchFn: () => { throw Error("Approval fetch is not permitted"); },
+    fetchFn: () => {
+      throw Error("Approval fetch is not permitted");
+    },
   });
   assert.equal(unapprovedCiResult.success, true, unapprovedCiResult.failures.join("\n"));
 
@@ -1006,7 +1010,9 @@ test("runPreflightCheck: explicit event inputs override isolated environment fal
     isCi: true,
     eventName: "pull_request",
     githubToken: "mock-token",
-    fetchFn: () => { throw Error("Owner approval API must not be called"); },
+    fetchFn: () => {
+      throw Error("Owner approval API must not be called");
+    },
   };
   try {
     writeFileSync(eventPath, JSON.stringify(event));
