@@ -60,7 +60,8 @@ export function useCustomerMutation(
     const target = targetRequestId.current;
     if (settledId !== undefined && settledId >= target) {
       if (outcome === "success" || outcome === "error" || denied) {
-        const settled = settleMutationRead(writeOutcome.current, denied ? "denied" : outcome);
+        const readOutcome = denied ? "denied" : outcome === "success" ? "success" : "error";
+        const settled = settleMutationRead(writeOutcome.current, readOutcome);
         if (settled === "idle") {
           targetRequestId.current = null;
           lock.current = false;
@@ -144,11 +145,7 @@ export function useCustomerMutation(
 
         const isAmbiguous =
           Boolean((e as { isPartial?: boolean })?.isPartial) ||
-          (e instanceof CustomerApiError &&
-            (e.status === 403 ||
-              e.status === 409 ||
-              e.status === 404 ||
-              e.status >= 500)) ||
+          (e instanceof CustomerApiError && e.status >= 500) ||
           (!local && !(e instanceof CustomerApiError));
 
         if (isAmbiguous) {
