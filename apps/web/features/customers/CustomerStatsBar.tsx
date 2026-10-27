@@ -101,18 +101,11 @@ export function CustomerStatsBar({
           );
         })}
       </div>
-      {stale && (
-        <span className={styles.statsHint}>
-          {error
-            ? "Thống kê cũ · chưa đối chiếu được"
-            : "Thống kê cũ · đang tải lại"}
-        </span>
-      )}
       <span role="status" className={styles.srOnly}>
         {loading
           ? "Đang tải thống kê…"
           : error
-            ? "Không tải được thống kê."
+            ? "Không tải được thống kê. Các số đã giữ lại chưa được đối chiếu."
             : !stats
               ? "Thống kê chưa khả dụng từ máy chủ."
               : ""}
