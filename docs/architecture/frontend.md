@@ -251,3 +251,8 @@ Customer list follows the approved reference ZIP (`CustomerListView.tsx` and `sr
 - **Address Count in List**: `DISABLED` — Rendered as neutral `—` marker with tooltip; real address management and counts are accessible via Customer Detail page; avoids N+1 API requests.
 - **Power Status Toggle**: `SUPPORTED` — Powered by authorized `customerApi.update(id, { status })` contract; toggles `ACTIVE` ↔ `INACTIVE` with pending spinner, refreshed backend stats, and error recovery.
 - **Backend Statistics**: `SUPPORTED` — Driven by real `CustomerStatsDto` via `CustomerStatsBar`, preserving query, cache, and stale-response protections. Real counts are never substituted with current-page counts.
+
+
+## Shared validation boundary (NEXORA-031)
+
+The Customer URL query and draft input validation reuse pure `@nexora/shared` primitives for positive decimal pagination, overflow checks, bounded text and raw-length-before-trim. Pagination defaults to 20 rows in both API and UI (maximum 100). Customer-only bounds remain `CustomerInputLimits`; display labels and `INVALID_FILTER`/`DraftError` remain feature-owned. Phone input UX is basic only: the API backend `PhoneNumber` Value Object is authoritative for country-specific validation and E.164 normalization. Shared validation has no React, Next, NestJS, Prisma or phone-metadata dependency.
