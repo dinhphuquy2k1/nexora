@@ -1247,3 +1247,60 @@ must still run. This fixture regression is not real Docker/PostgreSQL evidence.
 Final test-only3177c51 additionally asserts actual search copy and compares actual
 tablist/tab DOM bounds before/after failed same-scope refresh. Independent reviewer
 found no P1/P2 in that delta, focused4/4 PASS; full runtime remains separate.
+
+### Executed v3 correction acceptance checkpoint — 2026-10-27
+
+Source89c1343adb15cdb657f8da8fd88fb4a7f81cf361:
+Foundation40453733127 SUCCESS and Preflight40453733179 SUCCESS. Actual checkout is
+merge aef6103614b2fad6a8c67c3379940c27ce0c95a1, whose parents are
+main55e3c1595d2b90a8cd85f5e3c06ab1f0552933f5 and that PR HEAD; not direct-head checkout.
+Docker quality/migrated integration, LOCAL release/provisioning/TTY/browser,
+disposable HTTPS/onboarding/ingress, DB/storage persistence and development
+HMR/drift all executed PASS. Cleanup PASS; failure-only Diagnostics SKIPPED.
+Hosted Preflight independently verified the exact v3 approval. This checkpoint
+supersedes earlier open execution gates for that source only; later heads require
+their own hosted results, recorded in PR metadata without recursive SHA-only edits.
+
+Local executed evidence: format/lint/boundaries, UI/Web typecheck, docs/static
+preflight PASS; Web100/100, root Node126/126, lint52/52, cluster fixture8/8 PASS,
+no skipped tests in those counts. Contract reproduction initially FAIL because a
+nested command selected system pnpm11; retry with pinned pnpm10.34.6 PATH PASS.
+Earlier host quality ENOSPC/DNS failures remain separate from hosted Docker PASS.
+
+Final real LOCAL browser passes both ADMIN and second-OPERATOR Customer CRUD,
+address default/delete, history, debounce/generation/unmount, unavailable stats,
+controlled failure/Retry, Toast timing/keyboard/focus and single-flight Power.
+New response-loss scenario continued a real PATCH, intercepted its HTTP200 response,
+proved committed status via independent owner GET, required failed List GET to keep
+actions blocked and explicit GET-only Retry with no repeated PATCH. Actual tablist
+and tab rectangles remained identical before/after failed same-scope refresh.
+All three existing review threads4373591069/4373591071/4373591073 received technical
+commit/executed-test evidence and were resolved after this source's LOCAL PASS.
+
+Downloaded artifacts12711878752 (Customer) and12711758667 (M1), checked all400 PNG
+hashes against five canonical manifests and merge lineage. Opened10 actual images:
+ADMIN final List1440×900/375×812, Power-error1440×900, Create390×844, long Detail1440×900,
+table focus375×812, Login375×812, MFA1440×900, standard collapsed shell1920×1080,
+second-OPERATOR List768×1024. This is sample visual inspection plus full matrix
+geometry, not a claim that all400 images were manually reviewed or pixel-perfect ZIP.
+Ten widths1920/1440/1280/1100/1024/901/900/768/390/375 executed. Header56px;
+Header/main edges match; gutters24/16/12; standard max1600; wide fills wrapper;
+no document horizontal overflow. Nine measured List/Skeleton columns at1440px:
+80/144/204/152/200/104/156/128/104, unchanged at375px within table scrolling.
+Actual long text remains inside cells. Final AA status/count ratios5.94897/9.01167
+and selected count4.58177 exceed4.5. Default/hover emphasis/secondary/ghost,
+control32/40/48, overrides/restoration, native Checkbox/Textarea and combined
+focus/invalid/disabled assertions executed PASS. Keyboard table outline retained.
+
+Independent implementation reviews found no confirmed P1/P2 across correction
+source and tests, including the atomic fixture regression; focused results9/9,
+4/4 and8/8 are overlapping, not additive totals. Existing unrelated Settings copy
+still describes pre-auth foundation capabilities; it is not evidence about actual
+security and was not expanded into this correction.
+
+Documentation Impact: REQUIRED — canonical Design System feedback and this task
+record updated. Immutable snapshots unchanged. PR remains Draft and final
+recommendation BLOCKED solely on COLOR_POLICY_V4_SOURCE_MISSING pending owner
+publication evidence/ADR-009 disposition; no retroactive approval. Overall task
+IN PROGRESS, capability PLANNED for M1–M5, Verification NOT VERIFIED. M3–M5 not
+implemented here. Disposable HTTPS PASS does not verify public production release.
