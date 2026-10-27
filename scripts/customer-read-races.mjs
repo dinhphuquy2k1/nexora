@@ -238,6 +238,7 @@ export async function verifyCustomerPower({
 }) {
   let patches = 0,
     failRead = false,
+    losePatchResponse = false,
     interceptError;
   const patchIds = [];
   const patchStatuses = new Map();
@@ -252,8 +253,20 @@ export async function verifyCustomerPower({
       return;
     }
     if (message.method !== "Fetch.requestPaused") return;
-    const { requestId, request } = message.params;
+    const { requestId, request, responseStatusCode } = message.params;
     void (async () => {
+      if (responseStatusCode !== undefined) {
+        if (losePatchResponse && request.method === "PATCH") {
+          assert.equal(
+            responseStatusCode,
+            200,
+            "server completed the genuine write before response loss",
+          );
+          losePatchResponse = false;
+          await send("Fetch.failRequest", { requestId, errorReason: "Failed" });
+        } else await send("Fetch.continueResponse", { requestId });
+        return;
+      }
       if (request.method === "PATCH") {
         patches++;
         patchIds.push(message.params.networkId);
@@ -294,6 +307,7 @@ export async function verifyCustomerPower({
   await send("Fetch.enable", {
     patterns: [
       { urlPattern: baseUrl + "/api/customers*", requestStage: "Request" },
+      { urlPattern: baseUrl + "/api/customers/*", requestStage: "Response" },
     ],
   });
   try {
@@ -437,6 +451,41 @@ export async function verifyCustomerPower({
       `document.querySelectorAll('${powerSelector}').length>=2&&Array.from(document.querySelectorAll('${powerSelector}')).every(b=>!b.disabled)`,
     );
     assert.equal(patches, 2, "Retry reconciles GET without repeating PATCH");
+    checks.step("CUSTOMER_POWER_AMBIGUOUS_COMMITTED_WRITE");
+    await dismissCustomerToasts({ evaluate });
+    const beforeLostResponse = await readTarget();
+    failRead = true;
+    losePatchResponse = true;
+    await evaluate(`document.querySelector('${powerSelector}').click();true`);
+    await until(
+      `!!document.querySelector('main [data-customer-error]')&&document.querySelectorAll('${powerSelector}').length>=2&&Array.from(document.querySelectorAll('${powerSelector}')).every(b=>b.disabled)`,
+    );
+    assert.equal(patches, 3);
+    assert.equal(
+      losePatchResponse,
+      false,
+      "actual PATCH response was intercepted",
+    );
+    const afterLostResponse = await readTarget();
+    assert.equal(afterLostResponse.status, 200);
+    assert.equal(
+      afterLostResponse.value,
+      beforeLostResponse.value === "ACTIVE" ? "INACTIVE" : "ACTIVE",
+    );
+    assert.equal(
+      await evaluate(
+        `Array.from(document.querySelectorAll('[data-toast-message][role=alert]')).some(e=>e.textContent.includes('Chưa xác định được kết quả'))`,
+      ),
+      true,
+    );
+    await dismissCustomerToasts({ evaluate });
+    failRead = false;
+    await click("Đối chiếu lại dữ liệu");
+    await ready();
+    await until(
+      `document.querySelectorAll('${powerSelector}').length>=2&&Array.from(document.querySelectorAll('${powerSelector}')).every(b=>!b.disabled)`,
+    );
+    assert.equal(patches, 3, "ambiguous-write Retry performs GET only");
     assert.equal(interceptError, undefined);
   } finally {
     socket.removeEventListener("message", handler);

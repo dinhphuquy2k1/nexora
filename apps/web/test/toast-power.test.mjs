@@ -101,3 +101,56 @@ test("Toast view preserves semantic announcements, safe text and keyboard dismis
     assert.match(html, /data-size="default"/);
   }
 });
+
+test("Power distinguishes ambiguous writes from confirmed rejection without retrying writes", async () => {
+  const { CustomerApiError, customerPowerFailure } = await import(
+    "../features/customers/errors.ts"
+  );
+  for (const error of [
+    new TypeError("response lost"),
+    new CustomerApiError(500, {}),
+  ]) {
+    const failure = customerPowerFailure(error);
+    assert.equal(failure.reconcile, true);
+    assert.match(failure.message, /Chưa xác định được kết quả/);
+    const gate = new CustomerPowerFlight();
+    const token = gate.begin("A");
+    assert.equal(gate.begin("A"), null);
+    gate.reconcile(token, 10);
+    assert.equal(gate.begin("B"), null);
+    gate.observe(
+      {
+        key: "q",
+        requestId: 10,
+        settledId: 10,
+        loading: false,
+        outcome: "error",
+      },
+      "q",
+    );
+    assert.equal(gate.snapshot().phase, "blocked");
+    assert.equal(gate.begin("A"), null);
+    gate.reconcile(token, 11);
+    gate.observe(
+      {
+        key: "q",
+        requestId: 11,
+        settledId: 11,
+        loading: false,
+        outcome: "success",
+      },
+      "q",
+    );
+    assert.equal(gate.snapshot(), null);
+  }
+  for (const status of [400, 429])
+    assert.equal(
+      customerPowerFailure(new CustomerApiError(status, {})).reconcile,
+      false,
+    );
+  for (const status of [403, 404, 409])
+    assert.equal(
+      customerPowerFailure(new CustomerApiError(status, {})).reconcile,
+      true,
+    );
+});

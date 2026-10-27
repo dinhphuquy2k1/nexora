@@ -9,7 +9,7 @@ import {
   type StatisticsSnapshot,
 } from "./list-statistics.ts";
 import { CustomerPowerFlight } from "./power-flight.ts";
-import { customerError, CustomerApiError } from "./errors.ts";
+import { customerError, customerPowerFailure } from "./errors.ts";
 import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 import { useReadNotice } from "./useReadNotice.ts";
 import { CustomerStatus } from "@nexora/shared";
@@ -235,17 +235,13 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           from ? `/login?from=${encodeURIComponent(from)}` : "/login",
         );
       } else {
+        const failure = customerPowerFailure(error);
         toast.enqueue({
           id: `${powerInstance}-power-${token}-error`,
           tone: "error",
-          message: safe.message,
+          message: failure.message,
         });
-        if (
-          !(error instanceof CustomerApiError) ||
-          error.status >= 500 ||
-          [403, 404, 409].includes(error.status)
-        )
-          power.current.reconcile(token, read.refresh());
+        if (failure.reconcile) power.current.reconcile(token, read.refresh());
         else power.current.reject(token);
       }
       setPowerState(power.current.snapshot());

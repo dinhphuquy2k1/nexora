@@ -14,6 +14,19 @@ export class CustomerApiError extends Error {
       this.requestId = b.requestId;
   }
 }
+/** A missing/5xx response cannot prove that the server rejected the write. */
+export function customerPowerFailure(error: unknown) {
+  const ambiguous = !(error instanceof CustomerApiError) || error.status >= 500;
+  return {
+    reconcile:
+      ambiguous ||
+      (error instanceof CustomerApiError &&
+        [403, 404, 409].includes(error.status)),
+    message: ambiguous
+      ? "Chưa xác định được kết quả cập nhật. Đang đối chiếu dữ liệu từ máy chủ; không gửi lại thao tác."
+      : customerError(error).message,
+  };
+}
 export function customerError(error: unknown): {
   message: string;
   field?: string;
