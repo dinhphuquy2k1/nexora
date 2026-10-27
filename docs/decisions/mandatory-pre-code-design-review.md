@@ -113,8 +113,8 @@ Syntactic resemblance does not imply semantic equivalence. The following must re
 Engineering governance is sustained through:
 
 1. **Agent Skills**:
-   - `pre-implementation-review`: Enforces read-only inspection, reuse matrix preparation, and stops before code editing if approval is missing.
-   - `implementation-code-review`: Audits implemented diffs against approved designs, detects duplicate patterns, and issues structured P1/P2/P3 findings.
+   - `pre-implementation-review`: Enforces read-only inspection, reuse matrix preparation, and requires a recorded plan and reuse audit before code editing, without owner approval.
+   - `implementation-code-review`: Audits implemented diffs against recorded design plans, detects duplicate patterns, and issues structured P1/P2/P3 findings.
 2. **Instruction Routing**: Root `AGENTS.md`, `.github/copilot-instructions.md`, and `.github/instructions/backend.instructions.md`.
 3. **Static Preflight Checker (`scripts/preflight-policy-check.mjs`)**: Verifies task references, structured design reviews, and reuse documentation on pull requests.
 4. **Duplication Screening & Enforcement**:
