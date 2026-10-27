@@ -1233,3 +1233,17 @@ PR remains Draft; overall task IN PROGRESS / Verification NOT VERIFIED, M3–M5 
 
 Documentation Impact: REQUIRED. This evidence record and canonical Design System
 statistics feedback contract are synchronized. Preserve earlier FAIL history.
+
+Foundation40453059439 (bcfafeb) passed the repaired lint gate, then failed the
+controlled cluster-timeout unit fixture: JSON.parse saw an unterminated state
+snapshot at byte4096. Its shortened readiness deadline can SIGKILL a fixture
+process during in-place fs.writeFileSync; this does not establish a genuine
+PostgreSQL failure. BOUNDED correction: reuse the existing private Docker fixture,
+publish state using same-directory temporary write + atomic rename; change no
+production launcher, timeout, ownership or cleanup assertion. Deterministic
+multi-page-write SIGKILL regression reproduces RED with the old in-place write
+(exit1) and GREEN with atomic publication. Full fixture suite and hosted quality
+must still run. This fixture regression is not real Docker/PostgreSQL evidence.
+Final test-only3177c51 additionally asserts actual search copy and compares actual
+tablist/tab DOM bounds before/after failed same-scope refresh. Independent reviewer
+found no P1/P2 in that delta, focused4/4 PASS; full runtime remains separate.

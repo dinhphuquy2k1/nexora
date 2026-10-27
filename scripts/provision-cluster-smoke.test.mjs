@@ -97,6 +97,47 @@ function clean(s) {
   assert.equal(s.network, null);
   assert.ok(s.calls.every((c) => !c.includes("prune")));
 }
+test("fixture state remains complete when killed during a multi-page snapshot write", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "nexora-cluster-atomic-"));
+  try {
+    const state = join(dir, "state.json");
+    const original = JSON.stringify({
+      calls: [],
+      containers: {},
+      network: null,
+      padding: "x".repeat(8192),
+    });
+    await writeFile(state, original);
+    const hook = join(dir, "interrupt.cjs");
+    await writeFile(
+      hook,
+      `const fs=require('node:fs');const write=fs.writeFileSync;fs.writeFileSync=(file,data,...args)=>{if(String(file).startsWith(process.env.FIXTURE_STATE)){write(file,String(data).slice(0,4096),...args);process.kill(process.pid,'SIGKILL');}else write(file,data,...args);};`,
+    );
+    const child = spawn(
+      process.execPath,
+      [
+        "--require",
+        hook,
+        new URL("./fixtures/cluster/docker.cjs", import.meta.url).pathname,
+        "network",
+        "create",
+        "--label",
+        "nexora.cluster-test=owned",
+        "owned-network",
+      ],
+      { env: { ...process.env, FIXTURE_STATE: state }, stdio: "ignore" },
+    );
+    const result = await new Promise((resolve, reject) => {
+      child.on("error", reject);
+      child.on("close", (code, signal) => resolve({ code, signal }));
+    });
+    assert.equal(result.signal, "SIGKILL");
+    assert.equal(await readFile(state, "utf8"), original);
+    assert.equal(JSON.parse(await readFile(state, "utf8")).calls.length, 0);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 test("cluster normal/selectors/TCP-only temporary startup", async () => {
   for (const [suite, count] of [
     [undefined, 2],
