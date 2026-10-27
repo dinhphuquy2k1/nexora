@@ -8,7 +8,12 @@ import type {
   Create,
   Patch,
 } from "./types.ts";
-import { CustomerStatus, CustomerInputLimits, normalizeBoundedText, normalizeRawBoundedText } from "@nexora/shared";
+import {
+  CustomerStatus,
+  CustomerInputLimits,
+  normalizeBoundedText,
+  normalizeRawBoundedText,
+} from "@nexora/shared";
 export class DraftError extends Error {
   field: string;
   constructor(field: string) {
@@ -27,7 +32,11 @@ function text(
   return v;
 }
 function phone(value: string | undefined, field: string, required = true) {
-  const v = normalizeRawBoundedText(value ?? "", CustomerInputLimits.PHONE_RAW, required);
+  const v = normalizeRawBoundedText(
+    value ?? "",
+    CustomerInputLimits.PHONE_RAW,
+    required,
+  );
   if (v === null) throw new DraftError(field);
   return v;
 }
@@ -81,10 +90,15 @@ export function addressPayload(
   d: Partial<AddressDraft>,
   old?: Address,
 ): AddressCreate | AddressPatch {
-  const countryCode = text(d.countryCode ?? "VN", CustomerInputLimits.COUNTRY_CODE, "countryCode");
+  const countryCode = text(
+    d.countryCode ?? "VN",
+    CustomerInputLimits.COUNTRY_CODE,
+    "countryCode",
+  );
   if (countryCode.length !== 2) throw new DraftError("countryCode");
   const values = {
-    label: text(d.label, CustomerInputLimits.ADDRESS_LABEL, "label", false) || null,
+    label:
+      text(d.label, CustomerInputLimits.ADDRESS_LABEL, "label", false) || null,
     recipientName: text(
       d.recipientName,
       CustomerInputLimits.RECIPIENT_NAME,
@@ -96,7 +110,11 @@ export function addressPayload(
       "recipientPhone",
       !old ? false : true,
     ),
-    addressText: text(d.addressText, CustomerInputLimits.ADDRESS_TEXT, "addressText"),
+    addressText: text(
+      d.addressText,
+      CustomerInputLimits.ADDRESS_TEXT,
+      "addressText",
+    ),
   };
   if (!old) {
     const out: AddressCreate = { countryCode, addressText: values.addressText };
