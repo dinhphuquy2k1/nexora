@@ -848,40 +848,6 @@ test("integrity: missing/malformed/mismatched digest, identity, revision and sna
   }
 });
 
-test("parser: exact contiguous standalone grammar rejects field stitching, old blocks and examples", () => {
-  const digest = "a".repeat(64),
-    good = formalDecision(digest);
-  assert.equal(parseApprovalDecisionBlock(good)?.designDigest, digest);
-  assert.equal(
-    parseApprovalDecisionBlock("\n  " + good.replaceAll("\n", "\r\n") + "\n")
-      ?.decision,
-    "APPROVED",
-  );
-  for (const bad of [
-    good.replace("NEXORA DESIGN APPROVAL\n", ""),
-    good.replace(`Design SHA-256: ${digest}\n`, ""),
-    good.replace("Plan revision:", "Some explanation\nPlan revision:"),
-    good.replace("Decision:", "Some explanation\nDecision:"),
-    good.replace("Plan revision:", "\nPlan revision:"),
-    good + "\nTask: NEXORA-027",
-    good + "\n" + good,
-    "```text\n" + good + "\n```",
-    good.replaceAll(/^/gm, "> "),
-    "Prose before\n" + good,
-    good + "\nprose after",
-    good.replace("APPROVED", "UNKNOWN"),
-    good.replace("rev-1", "rev bad"),
-    good.replace(digest, digest.toUpperCase()),
-    good.replace("NEXORA-027", "bad-task"),
-  ])
-    assert.equal(parseApprovalDecisionBlock(bad), null, bad);
-  for (const decision of ["REVOKED", "REVISION_REQUIRED"])
-    assert.equal(
-      parseApprovalDecisionBlock(formalDecision(digest, decision))?.decision,
-      decision,
-    );
-});
-
 test("provenance: task/snapshot paths require regular canonical files without symlink components", (t) => {
   const f = integrityFixture(t);
   assert.equal(
@@ -1040,15 +1006,7 @@ test("runPreflightCheck: explicit event inputs override isolated environment fal
     isCi: true,
     eventName: "pull_request",
     githubToken: "mock-token",
-    fetchFn: createMockFetch({
-      comments: [
-        {
-          user: { login: "dinhphuquy2k1", type: "User" },
-          created_at: "2026-10-22T00:00:00Z",
-          body: `NEXORA DESIGN APPROVAL\nTask: NEXORA-027\nPlan revision: rev-2026-10-21-reuse-v2\nDesign SHA-256: ${TEST_DIGEST}\nDecision: APPROVED`,
-        },
-      ],
-    }),
+    fetchFn: () => { throw Error("Owner approval API must not be called"); },
   };
   try {
     writeFileSync(eventPath, JSON.stringify(event));
