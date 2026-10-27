@@ -23,3 +23,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run preflight policy check tests
         run: node --test scripts/preflight-policy-check.test.mjs
+      - name: Temporary pinned Prettier output capture
+        run: |
+          npx --yes prettier@3.6.2 --write scripts/preflight-policy-check.test.mjs
+          echo NEXORA_PRETTIER_BEGIN
+          base64 -w0 scripts/preflight-policy-check.test.mjs
+          echo
+          echo NEXORA_PRETTIER_END
