@@ -1,5 +1,4 @@
 import { Button, Select } from "@nexora/ui";
-import { PaginationLimits } from "@nexora/shared";
 import {
   ChevronsLeft,
   ChevronLeft,
