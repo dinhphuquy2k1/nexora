@@ -109,21 +109,21 @@ Use this template to document the pre-code design review for all implementation 
 
 ---
 
-## 11. Approval Evidence & Governance
+## 11. Plan Readiness & Governance
 
-- **Review Authority**: `<Repository Owner or Authorized Independent Reviewer>`
-- **Approval Reference**: `<Documented directive, decision log, or PR review reference>`
-- **Approval Status**: `<APPROVED | PENDING_REVIEW | REVISION_REQUIRED>`
-- **Approval Date**: `<YYYY-MM-DD>`
+- **Plan Revision**: `<versioned design revision>`
+- **Reviewed Baseline**: `<commit SHA>`
+- **Review Completed**: `<YYYY-MM-DD>`
+- **Material Design Changes**: `<none or links to documented amended plan>`
+- **Owner Approval**: Not required. No PR comment/review attestation gate.
 
----
 
 ## 12. Unresolved PLAN ISSUES
 
 - `<List any concrete architectural conflicts or unresolved questions. If none, state NONE.>`
 
-## Snapshot pinning and approval
+## Snapshot pinning and plan integrity
 
-Before attestation, capture the selected design (identity/revision, baseline, objectives, scope/reuse/ownership/alternatives, non-goals, security/compatibility, risks and acceptance/test strategy) in the versioned snapshot. Do not include mutable execution/test/CI/review logs. Compute actual raw UTF-8 SHA-256 with Node crypto or computeDesignDigest from scripts/preflight-policy-check.mjs; never hash the mutable task or a digest-containing section. Put the same path/digest in task and PR metadata, then run structural binding validation.
+Before implementation, record the selected design (identity/revision, baseline, objectives, scope/reuse/ownership/alternatives, non-goals, security/compatibility, risks and acceptance/test strategy) in the versioned snapshot. Exclude mutable execution/test/CI/review logs. Compute raw UTF-8 SHA-256 with Node crypto or `computeDesignDigest` from `scripts/preflight-policy-check.mjs`. Record matching path/digest in task and PR metadata and run the structural binding check.
 
-The authorized owner/reviewer posts a standalone five-line decision: NEXORA DESIGN APPROVAL; Task; Plan revision; Design SHA-256; Decision (each on its own line, no prose/fence). Positive review requires GitHub APPROVED state; owner issue-comment authority is independent. Do not post/fabricate approval as the coding agent. Structural PASS is not authenticated approval. Material changes create a new version/snapshot and new attestation; update execution evidence separately without modifying approved design content. Record actual capture/attestation timing truthfully during migrations such as PR23.
+**Do not request, invent or wait for owner approval or a GitHub comment.** A material change requires updating the plan/snapshot and verifying integrity, without a new approval. Preserve previously approved snapshots and historical evidence as immutable records.
