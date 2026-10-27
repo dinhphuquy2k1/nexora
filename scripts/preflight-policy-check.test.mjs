@@ -373,8 +373,6 @@ test("parsePrPreflightBlock: parses canonical PR plan fields", () => {
     "docs/tasks/active/NEXORA-027-customer-management-backend.md",
   );
   assert.equal(parsed.fields.planRevision, "rev-2026-10-21-reuse-v2");
-
-
 });
 
 // ============================================================================
@@ -718,7 +716,11 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
       throw Error("Approval fetch is not permitted");
     },
   });
-  assert.equal(unapprovedCiResult.success, true, unapprovedCiResult.failures.join("\n"));
+  assert.equal(
+    unapprovedCiResult.success,
+    true,
+    unapprovedCiResult.failures.join("\n"),
+  );
 
   // 6. Push to main CI mode succeeds with static checks without PR body
   const pushMainResult = await runPreflightCheck(root, {
