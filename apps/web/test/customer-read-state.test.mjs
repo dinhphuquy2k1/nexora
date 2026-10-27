@@ -96,6 +96,62 @@ test("statistics retain only validated backend values for the same owner/q/phone
   );
 });
 
+test("status tab and pagination changes keep statistics valid and not stale; mutation and same-scope errors flag stale", () => {
+  const scope = statisticsScope("ownerA", { q: "" });
+  const stats = { total: 50, active: 30, inactive: 20 };
+  const snapshot = captureStatistics(undefined, stats, scope, 1);
+
+  // Switching status tab: owner, q, phone unchanged -> scope identical
+  const statusTabQueries = [
+    { page: 1, pageSize: 10, status: undefined },
+    { page: 1, pageSize: 10, status: "ACTIVE" },
+    { page: 1, pageSize: 10, status: "INACTIVE" },
+  ];
+  for (const q of statusTabQueries) {
+    const tabScope = statisticsScope("ownerA", q);
+    assert.equal(tabScope, scope);
+    assert.deepEqual(visibleStatistics(snapshot, tabScope, false), stats);
+  }
+
+  // Changing page or pageSize: scope identical
+  const paginationQueries = [
+    { page: 2, pageSize: 10 },
+    { page: 1, pageSize: 50 },
+  ];
+  for (const q of paginationQueries) {
+    const pageScope = statisticsScope("ownerA", q);
+    assert.equal(pageScope, scope);
+    assert.deepEqual(visibleStatistics(snapshot, pageScope, false), stats);
+  }
+
+  // Stale calculation logic verification
+  function computeStale(statsSnapshot, powerPhase, readError, isCompatible) {
+    const isRevalidating =
+      powerPhase === "revalidating" || powerPhase === "blocked";
+    return Boolean(
+      statsSnapshot && (isRevalidating || (readError && isCompatible)),
+    );
+  }
+
+  // Ordinary tab navigation: reading rows is in flight (readLoading=true, readError=null, powerPhase=null)
+  assert.equal(computeStale(stats, null, null, true), false);
+
+  // Changing page: readLoading=true, readError=null, powerPhase=null
+  assert.equal(computeStale(stats, null, null, true), false);
+
+  // Mutation in flight (revalidating)
+  assert.equal(computeStale(stats, "revalidating", null, true), true);
+
+  // Mutation reconciliation failed (blocked)
+  assert.equal(computeStale(stats, "blocked", { message: "err" }, true), true);
+
+  // Same-scope read failed
+  assert.equal(
+    computeStale(stats, null, { message: "network error" }, true),
+    true,
+  );
+});
+
 test("explicit denied reset immediately clears retained data and fences earlier completions", async () => {
   const { denyRead } = await import("../features/customers/read-state.ts");
   const old = {

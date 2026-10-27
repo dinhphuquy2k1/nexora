@@ -13,46 +13,73 @@ function find(node, predicate) {
     if (match) return match;
   }
 }
-test("exact-phone typing stays a local draft until explicit Apply; no invalid prefix request storm", () => {
-  const requests = [],
-    drafts = [];
+test("CustomerFilters toolbar renders search and refresh without secondary phone control", () => {
+  let cleared = false;
+  let reloaded = false;
+  const searches = [];
   const tree = CustomerFilters({
     query: { page: 1, pageSize: 10 },
+    draft: "Alice",
+    onSearch: (value) => searches.push(value),
+    onClear: () => {
+      cleared = true;
+    },
+    onReload: () => {
+      reloaded = true;
+    },
+    onClearFilters() {},
+  });
+
+  // Verify secondary phone filter control is NOT present in toolbar
+  const phoneInput = find(tree, (n) => n.props?.name === "phone");
+  assert.equal(phoneInput, undefined, "phone input must not exist in toolbar");
+  const phoneSummary = find(tree, (n) => n.type === "summary");
+  assert.equal(phoneSummary, undefined, "summary tag must not exist");
+
+  // Verify search input exists with draft
+  const searchInput = find(tree, (n) => n.props?.name === "q");
+  assert.ok(searchInput, "search input exists");
+  assert.equal(searchInput.props.value, "Alice");
+  searchInput.props.onChange({ target: { value: "Bob" } });
+  assert.deepEqual(searches, ["Bob"]);
+
+  // Verify clear search button works
+  const clearBtn = find(
+    tree,
+    (n) => n.props?.["aria-label"] === "Xóa từ khóa tìm kiếm",
+  );
+  assert.ok(clearBtn, "clear search button exists when draft is present");
+  clearBtn.props.onClick();
+  assert.equal(cleared, true);
+
+  // Verify reload button works
+  const reloadBtn = find(tree, (n) => n.props?.["aria-label"] === "Làm mới");
+  assert.ok(reloadBtn, "reload button exists");
+  reloadBtn.props.onClick();
+  assert.equal(reloaded, true);
+});
+
+test("CustomerFilters communicates active URL phone filter and supports clear action", () => {
+  let filtersCleared = false;
+  const tree = CustomerFilters({
+    query: { page: 1, pageSize: 10, phone: "0912345678" },
     draft: "",
-    phoneDraft: "0912345678",
-    onPhoneDraft: (value) => drafts.push(value),
-    onQuery: (value) => requests.push(value),
     onSearch() {},
     onClear() {},
     onReload() {},
-    onClearFilters() {},
-  });
-  const input = find(tree, (n) => n.props?.name === "phone");
-  const search = find(tree, (n) => n.props?.name === "q");
-  assert.equal(
-    search.props.placeholder,
-    "Tìm mã khách hàng, họ tên, số điện thoại...",
-  );
-  assert.equal(
-    find(
-      tree,
-      (n) => n.props?.htmlFor === "customer-search",
-    ).props.children.trim(),
-    "Tìm mã khách hàng, họ tên, số điện thoại",
-  );
-  for (const value of ["0", "09", "091"])
-    input.props.onChange({ target: { value } });
-  assert.deepEqual(drafts, ["0", "09", "091"]);
-  assert.equal(requests.length, 0);
-  let prevented = false;
-  find(tree, (n) => n.type === "form").props.onSubmit({
-    preventDefault() {
-      prevented = true;
+    onClearFilters: () => {
+      filtersCleared = true;
     },
+    filteredTotal: 1,
+    statsTotal: 42,
   });
-  assert.equal(prevented, true);
-  assert.equal(requests.length, 1);
-  assert.equal(requests[0].phone, "0912345678");
-  assert.equal(requests[0].page, 1);
-  assert.deepEqual(Object.keys(requests[0]).sort(), ["page", "phone"]);
+
+  // Verify filter badge renders when phone filter is active in URL query
+  const clearFilterBtn = find(
+    tree,
+    (n) => n.props?.["aria-label"] === "Xóa các điều kiện lọc hiện tại",
+  );
+  assert.ok(clearFilterBtn, "filter badge with clear action is displayed");
+  clearFilterBtn.props.onClick();
+  assert.equal(filtersCleared, true, "clicking clear removes active filters");
 });

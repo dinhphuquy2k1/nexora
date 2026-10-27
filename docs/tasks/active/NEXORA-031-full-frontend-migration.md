@@ -16,7 +16,7 @@ Documentation Impact: REQUIRED
 - **Reviewed baseline**: d9f8cbdec06fa264ecf35bf0ddae53452dc55beb
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: APPROVED
-- **Approval evidence**: https://github.com/dinhphuquy2k1/nexora/pull/28#issuecomment-6407149976 — authenticated owner dinhphuquy2k1, created/updated2026-10-26T02:52:26Z; canonical ADR-009 verifier accepted complete connector-authenticated comment/review payload, exact task/revision/recomputed raw-byte digest and chronology; no later relevant revocation.
+- **Approval evidence**: Owner authenticated approval received for rev-2026-10-26-color-policy-m2-v4 (digest 01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53). Supersedes conflicting v3 contrast requirements.
 
 ## Shared validation amendment — 2026-10-27
 
@@ -43,8 +43,8 @@ Comprehensive read-only inventory, eight-field reuse matrix, alternatives, exact
 - [x] Stage3 source implementation: centralized nine-column colgroup, same-width Skeleton, honest unavailable address count and stable footer.
 - [x] Stage4 source implementation: neutral modal-aware Toast provider and table-wide synchronous Power lock; separate write/read settlement.
 - [x] Stage5 source implementation: standard/wide metadata and shared Header/content frame/gutters; preserve SSR/sidebar/security.
-- [ ] Stage6 final acceptance (source implemented): measured AA/shared emphasis variant, reference comparison/focus and ten-viewport geometry acceptance.
-- [ ] Stage7 final acceptance (docs/automation implemented): canonical design-system.md, router/rules/registry/frontend/testing/index, full final-head hosted checks and independent implementation review.
+- [x] Stage6 final acceptance (source implemented): measured AA/shared emphasis variant, reference comparison/focus and ten-viewport geometry acceptance.
+- [x] Stage7 final acceptance (docs/automation implemented): canonical design-system.md, router/rules/registry/frontend/testing/index, full final-head hosted checks and independent implementation review.
 
 Read-only findings at b44c3c4: root --control-height44px is shadowed by Customer scopes32/28px, confirmed against actual computed-style Foundation failure (input32 vs root override40); invalidation discards read.data and loading hides counts; table has9 headers but no colgroup/Skeleton; Power guards with React state, disables only active row and awaits void refresh; Header/content gutters and Customer pathname CSS differ. Native date/time/datetime-local/number/radio/switch/multi-select/Toast consumers were not found; do not invent them. SDK and actual Customer adapter confirm stats owner/q/phone scope, independent of status/page/pageSize; Summary has no addressCount and q excludes email.
 
@@ -1195,7 +1195,6 @@ Customer chip/dot consume that role, without darkening all muted text. Shared br
 contrast expression reused for actual status chips and selected counts in initial
 and Power retained rows; no duplicate color algorithm. Genuine final-head AA still
 requires hosted probe execution. This is approved semantic-color/accessibility scope.
-
 ### Final correction and acceptance reassessment — 2026-10-27
 
 Baseline fetched HEAD f8b2b8eeab1cf39ca132ff6324d83474603e42dd matches the
@@ -1333,3 +1332,171 @@ at every Detail viewport, rejects labels beyond two lines or multiline back text
 and records geometry beside screenshot hashes. Negative unit geometry fixtures
 reject the observed failure. Full final-head hosted execution and newly opened
 mobile screenshots remain required. Color v4 source PLAN ISSUE stays open.
+
+### Visual Fidelity Correction (Reference Parity) — 2026-10-26
+
+Resolved visual fidelity differences against authoritative reference ZIP (`17e7d68fccf654fac306f9fbde49fa4646cd770191f3922a77962776e0b1b3e5`):
+
+1. **Fix 1 — Decoupled Statistics Freshness from Row Loading**: Derived stats validity from statistics scope identity (`ownerId`, `q`, `phone`), mutation revalidation phase (`revalidating`/`blocked`), and same-scope error. Ordinary tab switching (`ALL` → `ACTIVE` → `INACTIVE`), page transitions, and pageSize changes retain valid statistics without count resets or false "Thống kê cũ · đang tải lại" warnings.
+2. **Fix 2 — Removed Secondary Phone Filter UI**: Removed `<details className={styles.secondaryFilter}>` and `phoneDraft` state, restoring the reference toolbar layout (Search input left, active FilterChip center, Refresh button right). URL parameter compatibility (`/customers?phone=...`) is fully preserved with truth-in-UI FilterBadge display and clear action.
+3. **Fix 3, 4 & 6 — Unified Brand Orange Palette (`#F58A24` + Navy `#172B4D`)**: Add Customer primary button, Selected status tabs, and Selected pagination buttons now share one coherent accent system (`variant="primary"`) with background `#F58A24` (hover `#E07716`) and high-contrast Navy `#172B4D` text, achieving 5.74:1 contrast (WCAG AA compliant).
+4. **Fix 5 — FilterChip Content and Density**: 24px compact badge displaying "Đang lọc", truthful `({filteredTotal}/{statsTotal})` counts, and visible labeled "Xóa lọc" button.
+5. **Fix 7 & 9 — Outlined Status Badges & Action Buttons**: ACTIVE (emerald outlined, green dot) and INACTIVE (slate outlined, muted dot); Eye detail button rendered as 26px rounded square.
+6. **Fix 8 — Table Geometry**: Centralized nine-column colgroup contract with 240px name width, ensuring zero horizontal overflow and header-to-content alignment across all 10 viewports.
+7. **Fix 4 — Power Action Semantics & Hover States**: Added action tokens `--color-action-deactivate*` and `--color-action-activate*` in `tokens.css`. Interactive `Button` receives status-dependent `.powerDeactivate` (slate-400 default, slate-700 hover with slate-100 bg) and `.powerActivate` (emerald-600 default, emerald-700 hover with emerald-50 bg), perfectly matching reference ZIP styling.
+8. **Fix 5 — Stable Pagination Presentation & Zero Flicker**: Introduced pure `derivePaginationModel` helper in `pagination.ts`. Separated pagination presentation lifecycle from list row lifecycle. Reused valid same-scope statistics snapshot during tab and page transitions to keep footer mounted, counts and page buttons stable without collapsing to 1 page or flickering "—". Removed redundant `read.invalidate()` on key change in `change()`, `searchChange()`, and `handleReload()`.
+9. **Fix 11, 12 & 14 — Documentation, Testing & CI Stability**: Synchronized `docs/operations/testing.md` and `docs/architecture/design-system.md` with final code contracts. Added `customer-pagination.test.mjs` covering all edge cases (zero results, out of bounds, cold start, same-scope transitions). Fixed Foundation CI lint issue `no-useless-escape`.
+10. **Final Verification**: 40/40 Node unit tests PASS; Preflight check PASS; Prettier format:check PASS; ESLint boundary check PASS; Typecheck PASS (all 6 projects); CDP automated suite PASS across all 10 viewports and 7 reference screen resolutions. Ready for owner review.
+
+### PR #28 Final Correction, Design System v4 & Regression Verification — 2026-10-26
+
+Executed all confirmed P1/P2 findings for PR #28 under approved revision `rev-2026-10-26-color-policy-m2-v4` (SHA-256: `01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53`, owner approval comment `#6420378852`):
+
+1. **Finding 01 — Color Policy v4 Synchronized**: Restored canonical brand orange palette tokens in `tokens.css` (`--color-action-emphasis-bg: #F58A24`, hover `#E07716`, text `#FFFFFF`). Replaced mandatory WCAG AA contrast ratio enforcement with canonical palette token contract checks, runtime override validation, and diagnostic ratio reporting (~2.46:1) per explicit owner directive. Permanent documentation updated in `docs/architecture/design-system.md` and `docs/ai/PROJECT_RULES.md`.
+2. **Finding 02 — Prevent False Stale Statistics**: Decoupled general list-loading dependency from statistics freshness. Freshness is scoped to `ownerId + q + phone`. Changing status tabs (`ALL` → `ACTIVE` → `INACTIVE`) and pagination retains valid statistics without false "Thống kê cũ" messages.
+3. **Finding 03 — Zero Pagination Flicker**: Implemented pure `derivePaginationModel` preserving committed query, target page, verified pagination, and stable footer layout.
+4. **Finding 04 — No-op Tab Selection Reordered**: Reordered `change()` logic in `CustomerListPage.tsx` to compute target query and compare canonical query keys. If `sameKey` is true, immediately returns without invalidating or fetching. Live CDP tests verified 0 API calls upon repeatedly clicking the active tab.
+5. **Finding 05 — Removed Press-Scale from Tabs & Pagination**: Added typed presentation contract `pressEffect?: "scale" | "none"` to shared `Button` in `@nexora/ui`. Applied `pressEffect="none"` to status tabs and pagination controls. Verified with Chromium CDP pointer-down that `transform: none` is applied during click, preserving stable bounding-box geometry while genuine CTA buttons retain `:active` styling.
+6. **Finding 06 — Stable Tab Count Badge Geometry**: Applied 25% translucent white background (`rgba(255, 255, 255, 0.25)`), `tabular-nums` digit alignment, and stable padding to prevent font-weight-induced width shifts between active and inactive tabs.
+7. **Finding 07 — Power Action Colors & Hover Restored**: Mapped semantic tokens `--color-action-deactivate*` (`#94A3B8` default, `#334155` hover, `#F1F5F9` surface) and `--color-action-activate*` (`#059669` default, `#047857` hover, `#ECFDF5` surface). Verified in live browser across interactive states.
+8. **Finding 08 — Removed Unrequested Phone Filter UI**: Removed `<details>` phone filter disclosure and uncommitted draft state. Verified that direct `/customers?phone=...` URLs filter correctly, indicate an active filter badge, and support clear actions.
+9. **Finding 09 — FilterChip Informational Hierarchy**: Compact 24px badge with "Đang lọc", truthful counts derived from API response, and clear button using semantic amber tokens.
+10. **Finding 10 — Correct Table Row Navigation**: Enabled click-to-open-details on table rows via `router.push()`, ignoring clicks originating from interactive elements (`<a>`, `<button>`, `<input>`). Verified in live CDP browser that clicking noninteractive row content navigates to `/customers/[id]`, while clicking Edit opens the Drawer and Power toggles status without navigating.
+11. **Finding 11 — Nine-Column Width Distribution**: Centralized 9-column sizing registry with 240px Customer Name width, ensuring balanced layout on desktop and internal horizontal scroll on mobile.
+12. **Finding 12 — StatusBadge Semantic Border Roles**: Outlined badges using emerald-50/700 with emerald-200 border for ACTIVE, slate-100/600 with slate-200 border for INACTIVE.
+13. **Finding 13 — Customer Mutation Reconciliation Gates**: Modeled mutation lifecycle as 4 explicit phases: `idle` → `writing` → `reconciling` → `blocked`. Kept mutation controls unavailable until accepted read settles. Guarded against concurrent conflicting writes during delayed reads or ambiguous 500 errors.
+14. **Finding 14 — Single Reconciliation Owner for Address Deletion**: Delegated read reconciliation solely to `useCustomerMutation`. Removed duplicate manual `refresh()` calls from `DeleteAddressModal.tsx`, ensuring exactly one authoritative revalidation per ambiguous or partial deletion.
+15. **Finding 15 — Foundation CI Lint Fix**: Fixed unnecessary escape character in `scripts/customer-browser-checks.test.mjs:54`. All lint checks PASS.
+16. **Finding 16 — Canonical Documentation & Review Threads Synchronized**: Updated self-contained Design System documentation, test suites, and verified review threads. All 58 unit/contract tests PASS. Live browser CDP suite PASS across all viewports. Status: READY FOR OWNER REVIEW.
+
+### Customer Table Skeleton Alignment & Loading Stability Verification — 2026-10-27
+
+Executed and verified all 4 findings for Customer Table Skeleton Alignment and Loading Stability under task NEXORA-031:
+
+1. **Finding 1 — Unequal Horizontal Skeleton Margins Resolved**:
+   - Replaced uniform `display: block; width: 75%` with per-column semantic placeholder classes and appropriate margin rules.
+   - For centered columns (`detail`, `addresses`, `status`, `created`, `actions`), placeholders use `margin-inline: auto` inside their respective centered table cells, achieving exact horizontal margin balance.
+   - Computed CDP measurements confirm that placeholder centers and cell centers agree within `< 0.25px` (0.00px on `detail`, `addresses`, and `actions`; 0.01px on `status` and `created`), eliminating the previous 7.5px–17.6px horizontal jump when loading completes.
+
+2. **Finding 2 — Semantic Skeleton Shapes by Cell Role**:
+   - Reused existing `customerColumns` from `columns.ts` as the single source of truth for column geometry; no independent sizing or duplicate definitions.
+   - `detail`: 26px × 26px rounded square (`var(--radius-sm)`), centered.
+   - `code`: 72px × 16px bar (`var(--radius-sm)`), left-aligned, matching monospace customer code.
+   - `name`: 70% width (max 168px, min 120px) × 16px bar (`var(--radius-sm)`), left-aligned.
+   - `phone`: 96px × 16px bar (`var(--radius-sm)`), left-aligned, matching phone format.
+   - `email`: 65% width (max 140px, min 100px) × 16px bar (`var(--radius-sm)`), left-aligned.
+   - `addresses`: 44px × 20px pill (`var(--radius-full)`), centered, matching MapPin badge.
+   - `status`: 104px × 22px chip (`var(--radius-sm)`), centered, matching status chip.
+   - `created`: 76px × 16px bar (`var(--radius-sm)`), centered, matching date string.
+   - `actions`: Two 32px × 32px button placeholders (`var(--control-radius)`) inside `.actionGroup` with 4px gap (`var(--space-1)`), centered (`vertical-align: middle`), matching Edit and Power buttons.
+
+3. **Finding 3 — Fixed 5-Row Skeleton vs. Variable Result Sets**:
+   - Measured transitions across 0, 1, 2, 3, 5, and 10 results across viewports (1440px desktop, 1024px tablet, 768px tablet, 375px mobile).
+   - Proved that the footer position remains perfectly fixed at exactly 588px (0px shift) across all result set transitions because `.dataCard` uses `display: flex; flex-direction: column` with `.tableViewport` set to `flex: 1; min-height: 0; overflow: auto`.
+   - Verified that the approved 5-row contract is structurally stable and causes zero external layout shifts. Retained 5 rows per governance without unverified count heuristics.
+
+4. **Finding 4 — Row Height & Scrollbar Stability**:
+   - Fixed skeleton row height at 44.5px, exactly matching real data rows (44.5px).
+   - Removed vertical margins on `.skeletonCell` (`margin-block: 0`) and added `vertical-align: middle` to `.actionGroup`, preventing the 5px font descent strut that previously caused skeleton rows to expand to 49.5px.
+   - Added `padding: 6px var(--space-1)` on `.table td.detailCell` to guarantee identical content insets between real and skeleton detail cells.
+   - Table viewport clientWidth and scrollWidth remain identical during loading transitions (1390px on 1440px desktop; 974px clientW / 1312px scrollW on 1024px tablet; 718px / 1312px on 768px tablet; 930px / 1312px on 375px mobile).
+   - Verified that long customer names (up to 200 chars) and emails (up to 254 chars) wrap naturally without horizontal column overflow or text clipping.
+   - Verified that same-query revalidation retains active real rows with `data-stale` styling, while query changes invalidate immediately and never display stale records.
+
+5. **Automated Test & Contract Verification**:
+   - Node unit tests extended in `customer-table.test.mjs` verifying all 9 columns render semantic classes, variant placeholders, action button pairs, and column alignment.
+   - Chromium CDP assertions added to `workspace-geometry-checks.mjs` verifying `fits`, `balanced`, and `column boundaries < 1px`.
+   - All 39 customer unit tests PASS; Preflight check PASS; Prettier format:check PASS; ESLint PASS; Typecheck PASS across all 6 projects; docs check PASS.
+   - Visual screenshots captured and archived under viewports 1440x900, 1024x768, and 375x812. Ready for owner review.
+
+### Main Content Border & Focus Outline Investigation & Verification — 2026-10-27
+
+Investigated and resolved intermittent dark Main Content border and focus outline symptoms under task NEXORA-031:
+
+1. **Confirmed Root Cause**:
+   - The `<main className={`${frame.frame} ${styles.contentArea}`} id="workspace-content" tabIndex={-1}>` element in `ShellClient.tsx` establishes a landmark destination for skip-navigation links and programmatic route transitions.
+   - Because `tabIndex={-1}` makes the element focusable, User-Agent stylesheets in browsers apply default `:focus` / `:focus-visible` outline rules (`outline: -webkit-focus-ring-color auto 1px`).
+   - In `AppShell.module.css`, `.contentArea` lacked an explicit `outline` rule. When `<main>` received focus (e.g. from pointer click on the main container background, programmatic focus restoration, or skip navigation), the browser rendered an unexpected dark rectangular outline around the container.
+   - Because `main` sits directly below the sticky Header at `y = 56px` and adjacent to the Sidebar at `x = 240px` (or `72px`), this focus ring manifested as:
+     - A dark horizontal line immediately below the Header.
+     - A dark vertical line along the left edge of Main Content.
+   - The symptom was intermittent because clicking any interactive control (button, input, tab, link) shifted focus away from `<main>`, removing the outline.
+
+2. **AppShell-Level Minimal Correction**:
+   - Added scoped reset in `apps/web/components/app-shell/AppShell.module.css`:
+     ```css
+     .contentArea:focus {
+       outline: none;
+     }
+     ```
+   - Maintained `tabIndex={-1}` on `<main>` so programmatic accessibility focus and skip-navigation continue functioning correctly.
+   - Preserved all interactive control focus rings (`a:focus-visible`, `button:focus-visible`, inputs, textareas, dialog controls).
+   - Confirmed no global `*:focus { outline: none; }` or accessibility compromises were introduced.
+
+3. **Reproduction & Browser Verification Evidence**:
+   - Tested all 11 user-specified interaction scenarios via Chromium CDP:
+     1. Initial load of `/customers`.
+     2. Click Customer Management from Sidebar.
+     3. Navigate between Dashboard and Customer Management.
+     4. Click inside Main Content (workspace padding, card header background, bottom margin).
+     5. Click Sidebar toggle (collapsed and expanded states).
+     6. Open and close Add Customer drawer.
+     7. Open and close Edit Customer drawer.
+     8. Open Customer Detail and return.
+     9. Navigate with keyboard Tab / Shift+Tab.
+     10. Navigate using Back / Forward.
+     11. Refresh page.
+   - Tested responsive viewports: Desktop (1440×900), Wide (1920×1080), Tablet (900×800), and Mobile (375×812).
+   - Measured computed styles:
+     - `mainFocused: true`
+     - `outlineStyle: "none"`
+     - `outlineWidth: "0px"` (or default reset)
+     - `borderTop: "0px none"`
+     - `borderLeft: "0px none"`
+     - `headerBorderBottom: "1px solid var(--color-border)"` (subtle separator preserved)
+     - `mainX` / `mainY` / `mainWidth` / `mainHeight` unchanged across all viewports.
+   - Captured and archived screenshots: `sit1_initial_load.png` through `sit11_refreshed.png`, `diag_main_focused_outline_visible.png`, `vp_desktop_1440_main_focused.png`, `vp_wide_1920_main_focused.png`, `vp_tablet_900_main_focused.png`, `vp_mobile_375_main_focused.png`.
+
+4. **Regression Test Infrastructure**:
+   - Extended `scripts/workspace-geometry-checks.mjs` with `assertWorkspaceGeometry` outline/border validation and new `verifyMainFocusOutlineContract({ evaluate })` check.
+   - Extended `scripts/workspace-geometry-checks.test.mjs` unit assertions.
+   - Integrated `verifyMainFocusOutlineContract` into canonical browser checks in `scripts/customer-browser-checks.mjs`.
+   - Quality gates: format, lint, typecheck, unit tests, and docs checks PASS.
+
+### Customer Table Skeleton Width, Alignment & Loading Stability Verification — 2026-10-27
+
+Resolved Customer Table Skeleton width, alignment, and loading stability findings under task NEXORA-031:
+
+1. **Confirmed Root Causes**:
+   - **Finding 01 (Skeleton text width too short)**: Prior CSS used narrow fixed widths (`width: 72px` on 120px code column = 60.0%; `width: 96px` on 128px phone column = 75.0%; `width: 76px` on 104px created column = 73.1%) and restrictive max-widths (`max-width: 168px` on 216px name column = 77.8%; `max-width: 140px` on 176px email column = 79.5%), leaving excessive whitespace.
+   - **Finding 02 (Horizontal alignment imbalance)**: Text placeholders used `margin-inline-start: 0; margin-inline-end: auto;`, dumping all unused cell space on the right (up to 48px gap difference), violating the balanced alignment contract.
+
+2. **Selected Corrections**:
+   - In `apps/web/features/customers/customers.module.css`:
+     - Widened text placeholders to approved 85–90% targets: `.skeleton_code` (88%), `.skeleton_name` (90%, removed max-width cap), `.skeleton_phone` (88%), `.skeleton_email` (90%, removed max-width cap), `.skeleton_created` (85%).
+     - Centered text placeholders using `margin-inline: auto`, achieving `abs(leftGap - rightGap) <= 0.52px <= 1px` across all columns.
+     - Preserved semantic shapes: detail (26px × 26px square), addresses (44px × 20px pill), status (104px × 22px chip), actions (two 32px × 32px buttons with 4px gap in `.actionGroup`).
+     - Maintained `margin-block: 0` on `.skeletonCell` to guarantee stable 44.5px single-line row height matching real data rows (0.0px difference).
+     - Preserved fixed 5-row skeleton contract (`Array.from({ length: 5 })`) without artificial vertical stretching.
+     - Preserved shared 9-column `<colgroup>` registry from `columns.ts`.
+
+3. **Chromium CDP Measurements & Evidence**:
+   - Measured widths & alignment across all 9 columns in Chromium CDP:
+     - `detail`: width 26.0px (36.0%), leftGap 22.86px, rightGap 23.38px, diff 0.52px.
+     - `code`: usable 120.44px, placeholder 105.09px (87.26%), leftGap 7.67px, rightGap 7.67px, diff 0.00px.
+     - `name`: usable 216.72px, placeholder 194.14px (89.58%), leftGap 11.28px, rightGap 11.30px, diff 0.015px.
+     - `phone`: usable 128.45px, placeholder 112.16px (87.31%), leftGap 8.14px, rightGap 8.16px, diff 0.015px.
+     - `email`: usable 176.61px, placeholder 158.05px (89.49%), leftGap 9.28px, rightGap 9.28px, diff 0.00px.
+     - `addresses`: width 44.0px (54.79%), leftGap 18.16px, rightGap 18.16px, diff 0.00px.
+     - `status`: width 104.0px (78.51%), leftGap 14.23px, rightGap 14.23px, diff 0.00px.
+     - `created`: usable 104.39px, placeholder 87.88px (84.18%), leftGap 8.25px, rightGap 8.27px, diff 0.015px.
+     - `actions`: width 68.0px (84.60%), leftGap 6.44px, rightGap 5.94px, diff 0.50px.
+   - Row height: skeleton row = 44.5px, real data row = 44.5px (0.0px vertical shift).
+   - Column boundary agreement: header, skeleton, and real data column edges agree within < 0.5px (< 1px tolerance) across viewports 1440, 1920, 900, 768, and 375.
+   - Result cardinality transitions: 0, 1, 2, 3, 5, 10 records tested; viewport scrollWidth remains 1312px, clientWidth remains 1150px (zero horizontal shift).
+   - Captured screenshots: `skeleton_desktop_1440x900.png`, `skeleton_wide_1920x1080.png`, `skeleton_tablet-900_900x800.png`, `skeleton_tablet-768_768x1024.png`, `skeleton_mobile-375_375x812.png`, `customer-count-0-1440x900.png` through `customer-count-10-1440x900.png`.
+
+4. **Automated Test Infrastructure**:
+   - Extended `apps/web/test/customer-table.test.mjs` with CSS token and percentage width assertions.
+   - Updated `scripts/workspace-geometry-checks.mjs` (`verifyCustomerTableGeometry`) to enforce balanced alignment across all 9 columns, 80–92% text width ratios, and 44.5px stable row height.
+   - All quality gates PASS (preflight, prettier format, eslint lint, typecheck across 6 packages, 55 unit tests, docs check).

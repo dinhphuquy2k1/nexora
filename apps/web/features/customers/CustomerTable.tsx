@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button, StatusBadge, buttonClassName } from "@nexora/ui";
 import {
   Eye,
@@ -67,6 +68,12 @@ export function CustomerTable({
   onClear: () => void;
   onRetry: () => void;
 }) {
+  let router: ReturnType<typeof useRouter> | null = null;
+  try {
+    router = useRouter();
+  } catch {
+    router = null;
+  }
   let state;
   if (pendingFilter)
     state = (
@@ -165,11 +172,39 @@ export function CustomerTable({
           {skeleton ? (
             Array.from({ length: 5 }, (_, index) => (
               <tr key={index} data-skeleton="true" aria-hidden="true">
-                {customerColumns.map((column) => (
-                  <td key={column.key}>
-                    <span className={styles.skeletonCell} />
-                  </td>
-                ))}
+                {customerColumns.map((column) => {
+                  let cellClass = styles[`${column.key}Cell`];
+                  if (column.key === "name") cellClass = styles.customerName;
+                  else if (column.key === "created")
+                    cellClass = styles.dateCell;
+                  else if (column.key === "addresses")
+                    cellClass = styles.addressCountCell;
+                  else if (column.key === "actions")
+                    cellClass = styles.actionCell;
+
+                  return (
+                    <td
+                      key={column.key}
+                      className={cellClass}
+                      data-column={column.key}
+                    >
+                      {column.key === "actions" ? (
+                        <div className={styles.actionGroup}>
+                          <span
+                            className={`${styles.skeletonCell} ${styles.skeletonActionBtn}`}
+                          />
+                          <span
+                            className={`${styles.skeletonCell} ${styles.skeletonActionBtn}`}
+                          />
+                        </div>
+                      ) : (
+                        <span
+                          className={`${styles.skeletonCell} ${styles[`skeleton_${column.key}`]}`}
+                        />
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))
           ) : empty ? (
@@ -182,7 +217,27 @@ export function CustomerTable({
             </tr>
           ) : (
             rows.map((c) => (
-              <tr key={c.id} className={styles.tableRow}>
+              <tr
+                key={c.id}
+                className={styles.tableRow}
+                onClick={(e) => {
+                  const target = e.target as HTMLElement;
+                  if (
+                    target.closest(
+                      "a, button, input, select, textarea, [data-no-row-click]",
+                    )
+                  ) {
+                    return;
+                  }
+                  if (router) {
+                    router.push(`/customers/${encodeURIComponent(c.id)}`);
+                  } else if (typeof window !== "undefined") {
+                    window.location.assign(
+                      `/customers/${encodeURIComponent(c.id)}`,
+                    );
+                  }
+                }}
+              >
                 <td className={styles.detailCell}>
                   <Link
                     data-size="default"
@@ -243,6 +298,11 @@ export function CustomerTable({
                     <Button
                       icon
                       variant="ghost"
+                      className={
+                        c.status === CustomerStatus.ACTIVE
+                          ? styles.powerDeactivate
+                          : styles.powerActivate
+                      }
                       onClick={() => onToggleStatus?.(c)}
                       disabled={powerUnavailable}
                       aria-busy={togglingId === c.id}
@@ -260,11 +320,7 @@ export function CustomerTable({
                       <Power
                         size={14}
                         className={
-                          togglingId === c.id
-                            ? styles.spin
-                            : c.status === CustomerStatus.ACTIVE
-                              ? styles.powerActive
-                              : styles.powerInactive
+                          togglingId === c.id ? styles.spin : undefined
                         }
                       />
                     </Button>

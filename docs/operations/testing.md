@@ -276,14 +276,14 @@ Testing avoids rigid implementation syntax locking (such as asserting exact impl
    - Verifies zero `!important` overrides in form controls and ensures `@nexora/ui` primitives are reused across `LoginForm` and `SetupForm`.
    - Runtime Adaptability: Overriding a selected public size token or control radius updates actual consumers; probes compare the override and restore its exact value/priority. Base32/40/48 acceptance is an explicit approved contract, so an unapproved base-size change must fail rather than silently update expectations.
 
-3. **Real WCAG AA Contrast Testing**:
-   - Evaluates contrast dynamically using real rendered computed styles from `getComputedStyle()` (foreground `color` and composited `background-color`) in both default and real `:hover` states.
-   - In unit contract tests (`apps/web/test/form-control-contracts.test.mjs`), hover contrast calculates relative luminance and contrast using `--color-text-on-accent-hover` over `--color-accent-hover`, ensuring the test suite exercises the dedicated hover foreground token rather than reusing default foreground.
-   - In browser CDP suite (`scripts/m1-p2-regression.mjs`), renders the actual shared Button, dispatches genuine CDP pointer moves (`Input.dispatchMouseEvent` with `type: 'mouseMoved'`), confirms genuine `:hover` matching, awaits CSS transition completion (0.15s), and accounts for alpha/opacity compositing over underlying card background.
-   - Calculates relative luminance and contrast ratio per WCAG 2.1 formulas against the 4.5:1 AA threshold for normal text.
-   - Button foreground text consumes the semantic token `--color-text-on-accent: var(--brand-navy)` on `--color-accent` background, achieving a verified **5.74:1** contrast ratio. On real hover (`--color-accent-hover`), text consumes `--color-text-on-accent-hover`, achieving **4.58:1** (>= 4.5:1).
+3. **Canonical Palette and Token Fidelity Testing**:
+   - Evaluates rendered colors dynamically using real rendered computed styles from `getComputedStyle()` (foreground `color` and composited `background-color`) in both default and real `:hover` states.
+   - In unit contract tests (`apps/web/test/form-control-contracts.test.mjs`), verifies that public semantic tokens resolve to their canonical foundation palette values without circular references or invalid fallbacks.
+   - Replaces mandatory WCAG AA contrast gates with canonical palette token fidelity verification per authorized owner decision. Normal text on `#F58A24` background with `#FFFFFF` foreground is verified for exact token conformance across all states, logging diagnostic contrast ratios without blocking on contrast thresholds.
+   - In browser CDP suite (`scripts/m1-p2-regression.mjs` and `scripts/customer-control-checks.mjs`), renders actual shared controls, dispatches genuine CDP pointer moves (`Input.dispatchMouseEvent` with `type: 'mouseMoved'`), confirms genuine `:hover` matching, awaits CSS transition completion (0.15s), and verifies rendered colors match canonical tokens across states.
+   - Button foreground text consumes the semantic token `--color-text-on-accent: var(--color-white)` on `--color-accent` background (`#F58A24`). On real hover (`--color-accent-hover`: `#E07716`), text consumes `--color-text-on-accent-hover` (`#FFFFFF`).
    - Distinct Foreground Token Regression: Overrides `--color-text-on-accent` and `--color-text-on-accent-hover` to distinct contrasting values (e.g. dark navy `#102a43` vs dark red `#610404`), moves the real CDP pointer over the real Button, asserts computed styles transition to the distinct hover foreground token, and asserts clean restoration in `finally`.
-   - Negative Accessibility Regression: Deliberately makes the real hovered Button inaccessible (matching foreground to hover background) and proves the accessibility assertion fails closed, without hardcoding RGB values or simulating hover via dummy elements.
+   - Negative Accessibility Regression: Deliberately makes the real hovered Button inaccessible (matching foreground to hover background, yielding 1:1 contrast) and proves the minimum discernibility check fails closed, without hardcoding theme assumptions.
 
 4. **Runtime Token Override**:
    - Verifies that form controls bind dynamically to root CSS custom properties rather than fixed values.
@@ -334,9 +334,24 @@ restoring exact attributes/token values/priorities in finally; Textarea remains
 multiline and native Checkbox labels are preserved. These scripts require genuine
 browser execution; static syntax PASS does not certify their assertions.
 
-Exact-phone filter typing is local until Apply or explicit Reload. It does not
-send incomplete prefixes, and unapplied incompatible draft displays an instruction,
-never a successful empty list. Missing pagination shows unavailable markers rather
+Exact-phone URL filtering (/customers?phone=...) renders an accessible filter badge
+with inline clear action and truthful counts. Missing pagination shows unavailable markers rather
 than invented zero totals. Persistent Toast errors remain dismissible across reads;
 essential errors use data-customer-error and actual API-error readiness also requires
 an active Toast alert. Do not restore obsolete global-alert assumptions.
+
+### Workspace layout and main focus regression checks
+
+`workspace-geometry-checks.mjs` verifies that the workspace frame maintains exact Header/Main alignment, gutter dimensions, sticky header height (56px), and zero horizontal document overflow. Additionally, `verifyMainFocusOutlineContract` validates that the `<main>` container (`#workspace-content`) retains `tabIndex={-1}`, accepts programmatic focus without JavaScript errors, displays no unintended visual outline (`outlineStyle === 'none' || outlineWidth === 0`), and has zero top/left border width, while interactive child controls retain their keyboard focus indications.
+
+### Customer table skeleton and computed layout geometry regression checks
+
+`workspace-geometry-checks.mjs` (`verifyCustomerTableGeometry`) asserts the geometric and loading stability contract of the Customer table across both loading (skeleton) and data states:
+
+- Exactly 9 columns match `customerColumns` order and shared `<colgroup>`.
+- Header boundaries and body cell boundaries agree within `< 1px` across all columns and viewports (375px, 768px, 900px, 1440px, 1920px).
+- Fixed 5-row skeleton contract is asserted (`skeletonRows.length === 5`).
+- All 9 columns have balanced horizontal margins (`abs(leftGap - rightGap) <= 1px` relative to cell usable content area).
+- Text placeholders (`code`, `name`, `phone`, `email`, `created`) occupy 80–92% of usable cell width (measured: 84.18% to 89.58%).
+- Row height stability: both skeleton rows and normal single-line real data rows measure 44.5px height (difference <= 1.5px, verified 0.0px).
+- Table horizontal overflow is contained inside `.tableViewport` (`scrollWidth === 1312px`, `noBodyOverflow: true`), preventing viewport jitter during loading-to-settled transitions across 0, 1, 2, 3, 5, and 10 records.

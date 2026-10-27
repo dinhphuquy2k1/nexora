@@ -16,3 +16,25 @@ test("pagination window stays bounded at huge populations and empty/edge pages",
     }
   assert.deepEqual(customerPageWindow(5, 10), [1, 4, 5, 6, 10]);
 });
+
+test("Finding 05: CustomerStatsBar tabs render with data-press-effect='none'", async () => {
+  const { loadComponent, React, render } = await import(
+    "./helpers/render-component.mjs"
+  );
+  const { CustomerStatsBar } = loadComponent(
+    new URL("../features/customers/CustomerStatsBar.tsx", import.meta.url)
+      .pathname,
+  );
+  const html = render(
+    React.createElement(CustomerStatsBar, {
+      stats: { total: 10, active: 8, inactive: 2 },
+      loading: false,
+      status: undefined,
+      onChange() {},
+    }),
+  );
+  const tabMatches =
+    html.match(/role="tab"[^>]*data-press-effect="none"/g) || [];
+  // All 3 tabs (All, Active, Inactive) must have data-press-effect="none"
+  assert.equal(tabMatches.length, 3);
+});

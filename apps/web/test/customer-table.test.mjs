@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
 import { loadComponent, React, render } from "./helpers/render-component.mjs";
 const { CustomerTable } = loadComponent(
   new URL("../features/customers/CustomerTable.tsx", import.meta.url).pathname,
@@ -89,4 +90,99 @@ test("long name/email retain their complete accessible DOM contents", () => {
   assert.ok(html.includes(name));
   assert.ok(html.includes(email));
   assert.match(html, /aria-label="Xem KH000001"/);
+});
+
+test("Finding 10: table row retains native link semantics, accessible detail links and noninteractive click navigation", () => {
+  const html = render(
+    React.createElement(CustomerTable, {
+      ...props,
+      rows: [row],
+    }),
+  );
+  // Row has tableRow class
+  assert.match(html, /class="[^"]*tableRow[^"]*"/);
+  // Native Eye link exists with href pointing to /customers/one
+  assert.match(
+    html,
+    /<a[^>]*aria-label="Xem KH000001"[^>]*href="\/customers\/one"/,
+  );
+  // Native code link exists with href pointing to /customers/one
+  assert.match(html, /<a[^>]*href="\/customers\/one"[^>]*>KH000001<\/a>/);
+  // Action buttons (Edit, Power) are separate buttons inside actionCell
+  assert.match(html, /<button[^>]*aria-label="Sửa KH000001"/);
+  assert.match(html, /<button[^>]*aria-label="Tạm ngừng hoạt động KH000001"/);
+});
+
+test("NEXORA-031 Finding 1 & 2: Skeleton placeholders reflect real cell roles and semantic column classes", () => {
+  const html = render(
+    React.createElement(CustomerTable, { ...props, loading: true }),
+  );
+
+  // Each skeleton row renders all 9 semantic data-column cells
+  for (const col of [
+    "detail",
+    "code",
+    "name",
+    "phone",
+    "email",
+    "addresses",
+    "status",
+    "created",
+    "actions",
+  ]) {
+    assert.match(html, new RegExp(`data-column="${col}"`));
+  }
+
+  // Matches corresponding real cell classes
+  assert.match(html, /class="[^"]*detailCell[^"]*"[^>]*data-column="detail"/);
+  assert.match(html, /class="[^"]*codeCell[^"]*"[^>]*data-column="code"/);
+  assert.match(html, /class="[^"]*customerName[^"]*"[^>]*data-column="name"/);
+  assert.match(html, /class="[^"]*phoneCell[^"]*"[^>]*data-column="phone"/);
+  assert.match(html, /class="[^"]*emailCell[^"]*"[^>]*data-column="email"/);
+  assert.match(
+    html,
+    /class="[^"]*addressCountCell[^"]*"[^>]*data-column="addresses"/,
+  );
+  assert.match(html, /class="[^"]*statusCell[^"]*"[^>]*data-column="status"/);
+  assert.match(html, /class="[^"]*dateCell[^"]*"[^>]*data-column="created"/);
+  assert.match(html, /class="[^"]*actionCell[^"]*"[^>]*data-column="actions"/);
+
+  // Semantic variant classes for placeholders
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_detail[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_code[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_name[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_phone[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_email[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_addresses[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_status[^"]*"/);
+  assert.match(html, /class="[^"]*skeletonCell[^"]*skeleton_created[^"]*"/);
+
+  // Action column renders two action button placeholders inside actionGroup
+  assert.match(
+    html,
+    /<div class="[^"]*actionGroup[^"]*"><span class="[^"]*skeletonCell[^"]*skeletonActionBtn[^"]*"><\/span><span class="[^"]*skeletonCell[^"]*skeletonActionBtn[^"]*"><\/span><\/div>/,
+  );
+});
+
+test("NEXORA-031 Finding 1 & 2: Skeleton CSS enforces wide 85-90% placeholders and balanced margin-inline: auto", async () => {
+  const css = await fs.readFile(
+    new URL("../features/customers/customers.module.css", import.meta.url),
+    "utf8",
+  );
+  // Code & Phone use 88% width
+  assert.match(css, /\.skeleton_code\s*\{[^}]*width:\s*88%/);
+  assert.match(css, /\.skeleton_phone\s*\{[^}]*width:\s*88%/);
+  // Name & Email use 90% width
+  assert.match(css, /\.skeleton_name\s*\{[^}]*width:\s*90%/);
+  assert.match(css, /\.skeleton_email\s*\{[^}]*width:\s*90%/);
+  // Created date uses 85% width
+  assert.match(css, /\.skeleton_created\s*\{[^}]*width:\s*85%/);
+  // All text placeholders use margin-inline: auto for balanced horizontal margins
+  assert.match(css, /\.skeleton_code\s*\{[^}]*margin-inline:\s*auto/);
+  assert.match(css, /\.skeleton_name\s*\{[^}]*margin-inline:\s*auto/);
+  assert.match(css, /\.skeleton_phone\s*\{[^}]*margin-inline:\s*auto/);
+  assert.match(css, /\.skeleton_email\s*\{[^}]*margin-inline:\s*auto/);
+  assert.match(css, /\.skeleton_created\s*\{[^}]*margin-inline:\s*auto/);
+  // Row height stability: margin-block: 0 on .skeletonCell
+  assert.match(css, /\.skeletonCell\s*\{[^}]*margin-block:\s*0/);
 });

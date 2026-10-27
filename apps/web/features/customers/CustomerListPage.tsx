@@ -45,17 +45,9 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   );
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [draft, setDraft] = useState(query.q ?? "");
-  const [phoneDraft, setPhoneDraft] = useState(query.phone ?? "");
-  useEffect(() => {
-    setPhoneDraft(query.phone ?? "");
-  }, [query.phone]);
   const [statistics, setStatistics] = useState<StatisticsSnapshot>();
   const committedScope = statisticsScope(ownerId, query);
-  const displayScope = statisticsScope(
-    ownerId,
-    { ...query, phone: phoneDraft },
-    draft,
-  );
+  const displayScope = statisticsScope(ownerId, query, draft);
   useEffect(() => {
     if (read.denied || invalid) {
       setStatistics(undefined);
@@ -145,8 +137,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     };
   }, [search, read.invalidate, read.refresh]);
   function change(patch: Partial<Query>, replace = false) {
-    cancel();
-    read.invalidate();
     let current: Query;
     try {
       current = parseCustomerQuery(new URLSearchParams(location.search));
@@ -155,14 +145,15 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     }
     const next = { ...current, ...patch };
     const sameKey = customerQueryString(current) === customerQueryString(next);
+    if (sameKey) return;
+    cancel();
+    read.invalidate();
     const url = "/customers?" + customerQueryString(next);
     if (url !== location.pathname + location.search)
       window.history[replace ? "replaceState" : "pushState"](null, "", url);
-    if (sameKey) read.refresh();
   }
   function searchChange(q: string) {
     cancel();
-    read.invalidate();
     setDraft(q);
     timer.current = setTimeout(
       () => change({ q: q.trim() || undefined, page: 1 }, true),
@@ -171,7 +162,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   }
   function handleReload() {
     cancel();
-    read.invalidate();
     const trimmedDraft = draft.trim();
     let current: Query;
     try {
@@ -180,15 +170,10 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
       current = { page: 1, pageSize: 10 };
     }
     const currentQ = (current.q ?? "").trim();
-    const trimmedPhone = phoneDraft.trim();
-    if (
-      trimmedDraft !== currentQ ||
-      trimmedPhone !== (current.phone ?? "").trim()
-    ) {
+    if (trimmedDraft !== currentQ) {
       change(
         {
           q: trimmedDraft || undefined,
-          phone: trimmedPhone || undefined,
           page: 1,
         },
         true,
@@ -252,7 +237,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   }
   const clearFilters = () => {
     setDraft("");
-    setPhoneDraft("");
     change({ q: undefined, status: undefined, phone: undefined, page: 1 });
   };
   return (
@@ -286,7 +270,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
               <span className={styles.exportLabel}>Xuất Excel</span>
             </Button>
             <Button
-              variant="emphasis"
+              variant="primary"
               onClick={() => setOverlay("create")}
               aria-label="Thêm khách hàng"
             >
@@ -297,25 +281,29 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
         </div>
         <CustomerStatsBar
           stats={stats}
-          stale={!!stats && (read.loading || !!read.error)}
-          loading={read.loading}
-          error={!!read.error}
+          stale={Boolean(
+            stats &&
+              (powerState?.phase === "revalidating" ||
+                powerState?.phase === "blocked" ||
+                (read.error && compatible)),
+          )}
+          loading={!stats && read.loading && compatible}
+          error={Boolean(read.error && compatible)}
           status={query.status}
           onChange={(status) => change({ status, page: 1 })}
         />
         <CustomerFilters
           query={query}
           draft={draft}
-          phoneDraft={phoneDraft}
-          onPhoneDraft={setPhoneDraft}
           onSearch={searchChange}
-          onQuery={(p) => change(p)}
           onClear={() => {
             setDraft("");
             change({ q: undefined, page: 1 });
           }}
           onClearFilters={clearFilters}
           onReload={handleReload}
+          filteredTotal={compatible ? read.data?.pagination?.total : undefined}
+          statsTotal={stats?.total}
         />
       </section>
       {powerState?.phase === "blocked" && (
@@ -387,6 +375,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           />
           <CustomerPagination
             pagination={compatible ? read.data?.pagination : undefined}
+            stats={stats}
             query={query}
             rowCount={rows?.length ?? 0}
             onQuery={(p) => change(p)}
@@ -400,6 +389,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           reconciling={read.loading || !!read.error}
           onClose={() => setOverlay(null)}
           refresh={read.refresh}
+          settlement={read}
           onDenied={() => {
             read.deny();
             setStatistics(undefined);

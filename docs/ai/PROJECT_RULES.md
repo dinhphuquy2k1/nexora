@@ -123,8 +123,7 @@ Prefer Node built-ins for test orchestration; preserve exact ownership, timeout/
 - **Canonical state and sizing contract**: Compatible shared controls use default32px/medium40px/large48px and their typed size API, including Login/MFA. Public --control-size-default/medium/large, --control-radius and --control-font-size replace retired --control-height; Textarea stays multiline and Checkbox indicator/target remain separate. Before any frontend modification, inspect [Design System](../architecture/design-system.md) and [Reusable Components](../architecture/reusable-components.md), reuse their contracts, and justify/approve material exceptions. Shared default changes require consumer-impact and regression checks.
 - **Shared primitive reuse**: Feature components must reuse shared primitives from `packages/ui` rather than duplicate their styling or render raw HTML form controls.
 - **Layout vs defaults**: Feature-specific CSS may control layout and genuine exceptions (e.g. inner icon padding, layout width) but must not redefine shared control defaults or use `!important`.
-- **CSS Modules scoping**: Component styling must remain in CSS Modules; avoid broad global selectors.
-- **Mandatory contract-based tests**: Frontend tests must enforce Token Contracts (presence, resolution, acyclicity, semantic ownership), Component Consistency (shared variables across controls), dynamic WCAG AA contrast, and Runtime Overrides (dynamic updates via computed styles).
+- **Mandatory contract-based tests**: Frontend tests must enforce Token Contracts (presence, resolution, acyclicity, semantic ownership), Component Consistency (shared variables across controls), Canonical Palette Fidelity (rendered styles match canonical tokens across states without mandatory WCAG AA contrast rejection for the selected palette), and Runtime Overrides (dynamic updates via computed styles).
 - **Mandatory testing of actual interactive states**: Interactive states (such as `:hover`, `:focus`, `:focus-visible`) must be verified on actual rendered UI primitives using real user/pointer interaction (e.g. Chromium CDP `Input.dispatchMouseEvent` with `mouseMoved`), confirming genuine pseudo-class matches (`matches(':hover')`), awaiting CSS transition completion, and accounting for alpha/opacity compositing. Tests must never simulate interactive states by directly assigning expected styles to dummy elements or hardcoding theme RGB values, and must include negative regression cases proving that inaccessible styles fail closed.
 - **Disallow tests duplicating configurable token constants**: Tests must never lock implementation defaults (such as hardcoding 44px, 12px, or exact RGB arrays) merely to match default token values. Tests must remain resilient to token reconfigurations, and exact-value assertions are permitted only where an absolute dimension is an explicit, justified acceptance invariant.
 - **Comprehensive CSS policy discovery**: CSS policy validation must scan all production CSS across `apps/web`, `packages/ui`, and future `apps/web/features/**` CSS modules.
@@ -132,8 +131,13 @@ Prefer Node built-ins for test orchestration; preserve exact ownership, timeout/
 - **Documented exceptions**: Any intentional visual exception must document its reason, scope, and compatibility impact per [Frontend Architecture](../architecture/frontend.md).
 - **Demonstrated need**: Do not create unused generic components or introduce new UI frameworks without demonstrated need.
 
+### Visual Fidelity Rule for Reference Migrations
+
+When implementing a UI from a supplied design/source reference, the agent must preserve the reference's approved visual intent. Shared components and design tokens must serve that intent, not silently replace it. All differences must be traced to source, explained, and verified. Unrequested visible features must not be introduced.
+
 Canonical ownership:
 
 - [Engineering Policy](PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule): Mandatory engineering policy and governance.
 - [Frontend Architecture](../architecture/frontend.md): Canonical Styling Policy, token hierarchy, semantic ownership, fallback rules, and form control contract.
 - [Reusable Components Registry](../architecture/reusable-components.md): Canonical shared control registry and component ownership.
+- [Design System](../architecture/design-system.md): Canonical visual fidelity matrix, token contracts, and reference migration guidelines.

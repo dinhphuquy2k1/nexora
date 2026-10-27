@@ -33,6 +33,7 @@ Components dedicated to Nexora's application shell, layout frame, and cross-rout
 - **`Breadcrumb` (`Breadcrumb.tsx`)**: Pathname-driven breadcrumbs consuming shared navigation metadata.
 - **`NavigationItem` (`NavigationItem.tsx`)**: Distinguishes available routes (Next.js `Link`) from planned features (disabled action button with "Chưa triển khai" label).
 - **Popover Semantics (`use-dismissable.ts`)**: Reusable disclosure hook managing outside pointer dismissal and Escape key closing with focus restoration.
+- **Main Content Frame (`ShellClient.tsx`, `AppShell.module.css`)**: Renders `<main className={`${frame.frame} ${styles.contentArea}`} id="workspace-content" tabIndex={-1}>`, establishing a landmark destination for skip-navigation links and programmatic route transitions. To prevent UA focus rings from creating unintended border artifacts around the layout surface when focus is placed on the container, `.contentArea:focus { outline: none; }` is applied at the shell level. Interactive child controls maintain their own `:focus-visible` rings.
 
 ### Tier C: Feature-Level Components (`apps/web/features/<feature>/`)
 
@@ -48,7 +49,7 @@ The frontend enforces a strict Design Token and CSS Modules architecture. `apps/
 
 ### Shared visual contract owner
 
-[Design System](design-system.md) now owns the foundation→semantic→component token architecture, size/state/typography/spacing/radius/icon/color/density/layout contracts and migration guidance. The root theme remains apps/web/styles/tokens.css; neutral UI maps sizes at actual consumers. Public default/medium/large sizes are32/40/48px, including Login/MFA/Setup; --control-height and Customer-scoped28/32px overrides are retired. Input/Select numeric native size conflicts are resolved by the shared typed size API. Textarea remains multiline and Checkbox retains a separate indicator/target.
+[Design System](design-system.md) now owns the foundation→semantic→component token architecture, size/state/typography/spacing/radius/icon/color/density/layout contracts, the canonical [Visual Fidelity Contract](design-system.md#visual-fidelity-contract-reference-migration) for reference migrations, and migration guidance. The root theme remains apps/web/styles/tokens.css; neutral UI maps sizes at actual consumers. Public default/medium/large sizes are32/40/48px, including Login/MFA/Setup; --control-height and Customer-scoped28/32px overrides are retired. Input/Select numeric native size conflicts are resolved by the shared typed size API. Textarea remains multiline and Checkbox retains a separate indicator/target.
 
 Use shared components and explicit size/variant APIs. Native refs/attrs remain; input icon positions and genuine feature widths are layout exceptions, not authority to override control min-height or interaction states. Root public size/font/radius overrides must affect actual shared consumers and restore cleanly. Button default colors preserve Login/MFA; emphasis is the approved accessible Customer color option. Shared typography aliases reuse existing scales.
 
@@ -242,6 +243,7 @@ Customer list follows the approved reference ZIP (`CustomerListView.tsx` and `sr
   7. `TRẠNG THÁI` (Status chip with dot indicator)
   8. `NGÀY TẠO` (Localized date `vi-VN`)
   9. `THAO TÁC` (Action group containing both `Edit` and `Power` status toggle button)
+     Header, 5-row Skeleton, and real data rows share the authoritative `customerColumns` registry (`columns.ts`) and persistent `<colgroup>`. During loading transitions, the header and `<colgroup>` remain mounted and fixed; text placeholders occupy 85–90% of usable cell width with balanced `margin-inline: auto` margins, and both skeleton and real single-line rows measure 44.5px height. Content-height changes (e.g. 5 skeleton rows becoming 1 real row) are expected content transitions; table geometry and column positions maintain zero horizontal movement across all result counts (0, 1, 2, 3, 5, 10) and responsive viewports (375px to 1920px).
 - **Pagination**: Default `pageSize: 10` across query parser, state initialization, fallback, and selector. Options: `[5, 10, 20, 50, 100]`.
 - **Shared Workspace Frames**: Navigation metadata selects standard/wide. Header inner and main share centered1600px standard frame or unlimited wide frame, with24/16/12px responsive gutters. MainWrapper scrolls both together; Customer-only pathname padding is removed. See [Design System](design-system.md).
 

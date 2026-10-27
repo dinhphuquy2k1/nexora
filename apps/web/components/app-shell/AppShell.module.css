@@ -22,6 +22,10 @@
   padding-block: var(--workspace-padding-block);
 }
 
+.contentArea:focus {
+  outline: none;
+}
+
 .desktopSidebar {
   flex-shrink: 0;
 }

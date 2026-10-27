@@ -3,11 +3,23 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import vm from "node:vm";
 import { setTimeout, clearTimeout } from "node:timers";
-import { URLSearchParams } from "node:url";
+import { URLSearchParams, fileURLToPath } from "node:url";
 import ts from "typescript";
 const require = createRequire(new URL("../../package.json", import.meta.url));
+
+function normalizePath(target) {
+  if (!target) return target;
+  if (target instanceof URL) return fileURLToPath(target);
+  if (typeof target === "string") {
+    if (target.startsWith("file:")) return fileURLToPath(target);
+    if (/^\/[A-Za-z]:[\\/]/.test(target)) return target.slice(1);
+  }
+  return target;
+}
+
 /** Execute actual local TSX for native SSR assertions; CSS modules supply class identities only. */
-export function loadComponent(filename, cache = new Map()) {
+export function loadComponent(rawFilename, cache = new Map()) {
+  const filename = normalizePath(rawFilename);
   if (cache.has(filename)) return cache.get(filename).exports;
   const module = { exports: {} };
   cache.set(filename, module);
@@ -26,8 +38,9 @@ export function loadComponent(filename, cache = new Map()) {
       );
     let file;
     if (name === "@nexora/ui")
-      file = new URL("../../../../packages/ui/src/index.tsx", import.meta.url)
-        .pathname;
+      file = fileURLToPath(
+        new URL("../../../../packages/ui/src/index.tsx", import.meta.url),
+      );
     else if (name.startsWith(".")) file = resolve(dirname(filename), name);
     if (file) {
       if (!existsSync(file))

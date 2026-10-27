@@ -55,19 +55,128 @@ Use spacing2 for control gaps/field-label separation; spacing4 for form groups; 
 
 Panel/Card/Overlay/Drawer use semantic surface density, automatic content height and appropriate border/elevation. StatusBadge/Toast use semantic typography/padding and automatic height, not input-height constraints. Native Overlay remains the focus/top-layer/body-lock authority; no parallel trap.
 
-## Colors and interaction
+## Canonical Color System
 
-Text, surfaces, borders, focus and status tokens keep separate roles. Root palette is the only owner of raw colors; no app fallbacks. Documented standalone Panel/Badge fallbacks remain narrowly scoped. Existing primary keeps navy-on-bright-orange; emphasis selects white on accessible darker orange with a distinct hover surface, preserving Login/MFA color behavior. Customer visual migration and actual AA acceptance remain staged, not certified by these declarations.
+The canonical project color specification is owned by this document, and the actual runtime color definitions are owned by `apps/web/styles/tokens.css`. Components and shared UI primitives consume these semantic tokens.
 
-Applicable states: default, genuine hover, focus-visible, pressed/selected, disabled, readonly, invalid and loading. Native Select has no invented readonly. Focus/invalid supersede hover. Disabled actions remain unavailable with truthful state; reduced-motion removes animation without removing readiness checks. Icons/text must meet relevant contrast on final composed backgrounds; inactive controls are identified as such rather than misreported as enabled contrast PASS.
+### 1. Design Principles & Color Policy
 
-All default targets are32px, above WCAG2.2 target24px; validate spacing and real hit testing, not only visual icon dimensions. Maintain labels, native keyboard behavior, modal containment/Escape/return focus, font glyphs and no page-level horizontal overflow. A focused scroll region retains a clear focus-visible outline; never remove keyboard access merely to improve a screenshot.
+- **Palette Fidelity Over Mandatory Contrast Gates**: The owner has explicitly decided to prioritize fidelity to the selected brand visual palette over mandatory WCAG AA color-contrast compliance. The combination of `#F58A24` background and `#FFFFFF` foreground text (contrast ~2.46:1) is an authorized design contract and must not be rejected on contrast thresholds alone.
+- **Strict Role-Based Semantics**: Every production color has an explicit design role. Raw colors belong solely in the root foundation palette (`tokens.css`) and must never be hardcoded in feature CSS.
+- **Three-Tier Token Architecture**: Foundation (raw values) → Semantic (application roles) → Component (private consumer mappings).
+- **Prohibition of Automatic Palette Shifting**: Do not automatically darken backgrounds or change white text to navy to satisfy WCAG AA.
+- **Non-Color Accessibility Invariant**: All other accessibility requirements remain strictly enforced: semantic HTML, accessible ARIA labels and states, keyboard navigation (Tab/Shift+Tab/Arrow navigation), 32px standard click targets, visible focus rings (`:focus-visible`), modal focus traps, and screen reader announcements.
+- **Focus Indication & Non-Interactive Layout Surfaces**: Visible focus rings (`:focus-visible`) belong strictly to interactive controls (buttons, links, inputs, selects, textareas). Non-interactive programmatic focus containers, such as `<main id="workspace-content" tabIndex={-1}>` (`.contentArea`), receive programmatic focus during route transitions and skip-navigation without rendering visual focus outlines (`.contentArea:focus { outline: none; }`). This prevents unintended rectangular border artifacts around the main workspace surface while maintaining accessibility focus management and keyboard navigation flow.
+- **Self-Contained Contract**: This specification is self-contained and independent of any external files or temporary archives.
+
+### 2. Foundation Palette
+
+| Color Role                   | Foundation Token      | Hex / Value               | Usage Intent                                           |
+| :--------------------------- | :-------------------- | :------------------------ | :----------------------------------------------------- |
+| **Brand Navy**               | `--brand-navy`        | `#172B4D`                 | Brand primary color, table headers, dark surfaces      |
+| **Brand Orange**             | `--brand-orange`      | `#F58A24`                 | Primary brand accent, Add action, selected tab/page    |
+| **Brand Orange Hover**       | `--brand-orange-dark` | `#E07716`                 | Hover state for orange actions                         |
+| **White**                    | `--color-white`       | `#FFFFFF`                 | Surface default, action foreground text, badge text    |
+| **Dark Heading**             | `--gray-900`          | `#0F172A`                 | Primary typography and headings                        |
+| **Standard Body Text**       | `--gray-800`          | `#1F2937`                 | Standard readable text                                 |
+| **Secondary Text**           | `--gray-600`          | `#475569`                 | Unselected tab/page text, inactive status text         |
+| **Muted Text**               | `--gray-500`          | `#64748B`                 | Secondary metadata, dates, table subtitles             |
+| **Placeholder / Muted Icon** | `--gray-400`          | `#94A3B8`                 | Input placeholder, deactivate power icon, inactive dot |
+| **Light Surface**            | `--gray-50`           | `#F8FAFC`                 | Surface muted, table hover, subtle card background     |
+| **Light Neutral Surface**    | `--gray-100`          | `#F1F5F9`                 | Surface subtle, inactive badge bg, deactivate hover bg |
+| **Segmented Surface**        | `--gray-100`          | `#F1F5F9`                 | Segmented tab bar container background                 |
+| **Standard Border**          | `--gray-300`          | `#CBD5E1`                 | Standard control borders, unselected page border       |
+| **Subtle Border**            | `--gray-200`          | `#E2E8F0`                 | Subtle card borders, table dividers                    |
+| **Emerald 50**               | `--emerald-50`        | `#ECFDF5`                 | Active status badge bg, activate power hover bg        |
+| **Emerald 200**              | `--emerald-200`       | `#A7F3D0`                 | Active status badge border                             |
+| **Emerald 500**              | `--emerald-500`       | `#10B981`                 | Active status dot                                      |
+| **Emerald 600**              | `--emerald-600`       | `#059669`                 | Inactive customer power activate icon                  |
+| **Emerald 700**              | `--emerald-700`       | `#047857`                 | Active status text, activate power hover fg            |
+| **Slate 700**                | `--gray-700`          | `#334155`                 | Deactivate power hover fg                              |
+| **Amber 50**                 | `--amber-50`          | `#FFFBEB`                 | Filter chip background                                 |
+| **Amber 400 (60%)**          | `--amber-400-60`      | `rgba(251, 191, 36, 0.6)` | Filter chip border                                     |
+| **Amber 700**                | `--amber-700`         | `#B45309`                 | Filter clear action text                               |
+| **Amber 800**                | `--amber-800`         | `#92400E`                 | Filter chip text                                       |
+| **Amber 900**                | `--amber-900`         | `#78350F`                 | Filter clear action hover text                         |
+
+### 3. Semantic Component Color Contracts
+
+#### Primary Accent Action (Add Customer / Primary Button)
+
+| Property               | Token                          | Value                     |
+| :--------------------- | :----------------------------- | :------------------------ |
+| **Default Background** | `--color-accent`               | `#F58A24`                 |
+| **Default Foreground** | `--color-text-on-accent`       | `#FFFFFF`                 |
+| **Hover Background**   | `--color-accent-hover`         | `#E07716`                 |
+| **Hover Foreground**   | `--color-text-on-accent-hover` | `#FFFFFF`                 |
+| **Border**             | —                              | `transparent` (1px solid) |
+| **Border Radius**      | `--control-radius`             | `6px` (`--radius-sm`)     |
+| **Standard Height**    | `--control-size-default`       | `32px`                    |
+
+#### Status Segmented Tabs
+
+| State / Element                   | Background Token                  | Background Value            | Foreground Token                    | Foreground Value |
+| :-------------------------------- | :-------------------------------- | :-------------------------- | :---------------------------------- | :--------------- |
+| **Selected Tab**                  | `--color-tab-selected-bg`         | `#F58A24`                   | `--color-tab-selected-text`         | `#FFFFFF`        |
+| **Selected Tab Dot**              | —                                 | `#FFFFFF` (`--color-white`) | —                                   | —                |
+| **Selected Count Badge**          | `--color-count-selected-bg`       | `rgba(255, 255, 255, 0.25)` | `--color-count-selected-text`       | `#FFFFFF`        |
+| **Unselected Tab**                | `transparent`                     | `transparent`               | `--color-tab-unselected-text`       | `#475569`        |
+| **Unselected Tab Hover**          | `--color-tab-unselected-hover-bg` | `rgba(255, 255, 255, 0.8)`  | `--color-tab-unselected-hover-text` | `#172B4D`        |
+| **Unselected Count Badge**        | `--color-count-unselected-bg`     | `#FFFFFF`                   | `--color-count-unselected-text`     | `#475569`        |
+| **Active Tab Dot (Unselected)**   | —                                 | `#10B981` (`--emerald-500`) | —                                   | —                |
+| **Inactive Tab Dot (Unselected)** | —                                 | `#94A3B8` (`--gray-400`)    | —                                   | —                |
+
+#### Pagination Page Controls
+
+| State / Element           | Background Token                   | Background Value | Foreground Token                     | Foreground Value | Border Token / Value           |
+| :------------------------ | :--------------------------------- | :--------------- | :----------------------------------- | :--------------- | :----------------------------- |
+| **Selected Page**         | `--color-pagination-selected-bg`   | `#F58A24`        | `--color-pagination-selected-text`   | `#FFFFFF`        | `#F58A24`                      |
+| **Selected Page Hover**   | `--color-action-emphasis-hover`    | `#E07716`        | `--color-pagination-selected-text`   | `#FFFFFF`        | `#E07716`                      |
+| **Unselected Page**       | `--color-pagination-unselected-bg` | `#FFFFFF`        | `--color-pagination-unselected-text` | `#475569`        | `#CBD5E1` (`--gray-300`)       |
+| **Unselected Page Hover** | `--color-surface-muted`            | `#F8FAFC`        | `--brand-navy`                       | `#172B4D`        | `#CBD5E1`                      |
+| **Navigation Buttons**    | `--color-surface`                  | `#FFFFFF`        | `--color-text`                       | `#1F2937`        | `--control-border` (`#CBD5E1`) |
+
+#### Power Status Actions
+
+| Customer Status                         | State   | Icon Color Token                  | Icon Value | Background Token                     | Background Value |
+| :-------------------------------------- | :------ | :-------------------------------- | :--------- | :----------------------------------- | :--------------- |
+| **ACTIVE Customer** (Deactivate action) | Default | `--color-action-deactivate`       | `#94A3B8`  | `transparent`                        | `transparent`    |
+| **ACTIVE Customer** (Deactivate action) | Hover   | `--color-action-deactivate-hover` | `#334155`  | `--color-action-deactivate-hover-bg` | `#F1F5F9`        |
+| **INACTIVE Customer** (Activate action) | Default | `--color-action-activate`         | `#059669`  | `transparent`                        | `transparent`    |
+| **INACTIVE Customer** (Activate action) | Hover   | `--color-action-activate-hover`   | `#047857`  | `--color-action-activate-hover-bg`   | `#ECFDF5`        |
+
+#### Status Badges
+
+| Status       | Background Token            | Background Value | Text Token                    | Text Value | Border Token                    | Border Value | Dot Token / Value           |
+| :----------- | :-------------------------- | :--------------- | :---------------------------- | :--------- | :------------------------------ | :----------- | :-------------------------- |
+| **Active**   | `--color-status-success-bg` | `#ECFDF5`        | `--color-status-success-text` | `#047857`  | `--color-status-success-border` | `#A7F3D0`    | `#10B981` (`--emerald-500`) |
+| **Inactive** | `--color-status-pending-bg` | `#F1F5F9`        | `--color-status-pending-text` | `#475569`  | `--color-status-pending-border` | `#CBD5E1`    | `#94A3B8` (`--gray-400`)    |
+
+#### Search, Filter Chip & Table Geometry
+
+| Element                      | Background Token         | Background Value            | Foreground Token            | Foreground Value            | Border Token / Value                 |
+| :--------------------------- | :----------------------- | :-------------------------- | :-------------------------- | :-------------------------- | :----------------------------------- |
+| **Search Input**             | `--gray-50`              | `#F8FAFC`                   | `--color-text` (`#1F2937`)  | Placeholder `#94A3B8`       | `--gray-300` (`#CBD5E1`)             |
+| **Filter Chip ("Đang lọc")** | `--color-filter-chip-bg` | `#FFFBEB`                   | `--color-filter-chip-text`  | `#92400E`                   | `rgba(251, 191, 36, 0.6)`            |
+| **Filter Clear Action**      | `transparent`            | `transparent`               | `--color-filter-chip-clear` | `#B45309` (hover `#78350F`) | `none`                               |
+| **Detail Link (Eye)**        | `--gray-100`             | `#F1F5F9` (hover `#172B4D`) | `--gray-500`                | `#64748B` (hover `#FFFFFF`) | `none` (radius 6px)                  |
+| **Table Header**             | `--color-primary`        | `#172B4D`                   | `--color-text-on-dark`      | `#FFFFFF`                   | `1px solid rgba(255, 255, 255, 0.1)` |
+| **Table Rows**               | `--color-surface`        | `#FFFFFF` (hover `#F8FAFC`) | `--color-text`              | `#1F2937`                   | `1px solid var(--color-border)`      |
+
+### 4. Governance & Token Change Approval
+
+1. **Token Authority**: Root `apps/web/styles/tokens.css` is the sole source of raw colors and public semantic variables. Feature CSS modules must consume `var(--token)`.
+2. **Approval Mandate (ADR-009)**: Any modification to foundation or semantic color tokens requires an ADR-009 design revision and authenticated owner approval before implementation.
+3. **Automated Regression Verification**:
+   - `apps/web/test/form-control-contracts.test.mjs` verifies token acyclicity, CSS policy compliance (zero raw colors in CSS modules), and canonical palette token bindings.
+   - `scripts/customer-control-checks.mjs` verifies actual rendered computed styles match canonical tokens for all default and hover interaction states.
+   - Dynamic runtime overrides verify that altering a root custom property propagates to all consumers.
 
 ## Shared workspace and asynchronous feedback migration
 
-Keyed read/statistics retention, nine-column colgroup/Skeleton and modal-aware Toast are implemented in v3 stages2–4; browser verification remains pending. Standard/wide frame migration is implemented in stage5; final browser geometry remains required. Source implementation is not runtime PASS. Do not create LayoutProvider/global state manager, Customer-only Toast or stats hook/request.
+Keyed read/statistics retention, nine-column colgroup/Skeleton and modal-aware Toast are implemented in v3 stages 2–4; browser verification remains pending. Standard/wide frame migration is implemented in stage 5; final browser geometry remains required. Source implementation is not runtime PASS. Do not create LayoutProvider/global state manager, Customer-only Toast or stats hook/request.
 
-The frame contract uses the same Header/content inline gutters24 desktop/16≤900/12≤600, standard max-width1600 including gutters and wide unrestricted; preserve sidebar240/72, Header56 and SSR/mobile behavior. Customer owns column geometry and backend-field truth; shared UI owns generic interaction. Exact backend row/address/status/session rules remain outside this document.
+The frame contract uses the same Header/content inline gutters 24 desktop / 16 ≤ 900 / 12 ≤ 600, standard max-width 1600 including gutters and wide unrestricted; preserve sidebar 240/72, Header 56 and SSR/mobile behavior. Customer owns column geometry and backend-field truth; shared UI owns generic interaction. Exact backend row/address/status/session rules remain outside this document.
 
 ## Reuse, policy and verification
 
@@ -75,61 +184,61 @@ Before any UI change inspect this document and the registry, search actual consu
 
 Use native Node discovery and existing Chromium CDP session. Test three sizes/omission, type/ref compatibility, native fields, multiline/checkbox behavior, real pointer/keyboard states, public overrides and negative contrast/ownership cases. Full quality/contracts/build/genuine Docker/API/DB/MFA/runtime/HTTPS/data/dev and final-head hosted evidence remain mandatory. Visual acceptance requires opening actual images and DOM measurements at the ten approved viewports, with source/merge lineage and explicit reference differences. Unit or overflow PASS is insufficient.
 
-Exceptions need a concrete consumer/rationale, owner/path, compatibility impact, tests and approved design delta where material. Do not edit approved snapshots. Rollback uses focused source/test/doc commits together, never security assertions, keys or data resets. Current stage outcomes and failures are recorded in task031 and PR28.
+Exceptions need a concrete consumer/rationale, owner/path, compatibility impact, tests and approved design delta where material. Do not edit approved snapshots. Rollback uses focused source/test/doc commits together, never security assertions, keys or data resets. Current stage outcomes and failures are recorded in task 031 and PR 28.
 
 ### Shared Toast and asynchronous outcomes
 
 ToastProvider/useToast/Toast/ToastViewport are neutral UI exports. Workspace owner-keyed provider keeps one bounded/deduplicated queue (3 visible/6 queued), safe text, explicit dismissal, persistent errors and pausable success timers. An open native Overlay registers the sole active viewport so notifications remain inside its top-layer/inert boundary; no provider preserves existing Overlay behavior. Toast does not steal focus. Modal notification placement, pointer/keyboard dismissal, timers and session cleanup require actual browser acceptance.
 
-Customer List/Detail/forms classify API errors with their existing safe mapper and preserve essential inline descriptions. Toast announces API errors once; inline Feedback uses a non-live data-customer-error marker when already announced. Browser gates still assert surface errors and, in API negative cases, an actual error Toast; persistent historical Toasts do not make an otherwise settled surface erroneous.401 clears retained rows/stats/dialogs/notifications before redirect; generic denial stays latched through failed refresh until accepted success. Power uses a synchronous table-wide gate, not React state as a lock; confirmed write and read reconciliation have separate outcomes and Retry.
+Customer List/Detail/forms classify API errors with their existing safe mapper and preserve essential inline descriptions. Toast announces API errors once; inline Feedback uses a non-live data-customer-error marker when already announced. Browser gates still assert surface errors and, in API negative cases, an actual error Toast; persistent historical Toasts do not make an otherwise settled surface erroneous. 401 clears retained rows/stats/dialogs/notifications before redirect; generic denial stays latched through failed refresh until accepted success. Power uses a synchronous table-wide gate, not React state as a lock; confirmed write and read reconciliation have separate outcomes and Retry.
 
 ### Workspace frame implementation (v3 stage 5)
 
-Canonical navigation metadata supplies `contentVariant`: Customer list/detail use
-`wide`; Overview/System/Settings use `standard`. Resolution uses the longest available
-ancestor and rejects prefix near-matches. Unknown routes fall back to standard.
-`WorkspaceFrame.module.css` owns both Header inner and main frames, centered at
-1600px including gutters for standard, unlimited for wide. Root gutter tokens are
-24px desktop, 16px at ≤900px and 12px at ≤600px. MainWrapper owns vertical scrolling,
-so its scrollbar reduces both frames together; Header remains sticky at 56px.
-Customer no longer selects padding through a pathname-specific CSS class. Sidebar
-widths/breakpoints and mobile Overlay behavior remain the existing contract.
-Browser geometry across variants and Sidebar states remains required evidence.
+Canonical navigation metadata supplies `contentVariant`: Customer list/detail use `wide`; Overview/System/Settings use `standard`. Resolution uses the longest available ancestor and rejects prefix near-matches. Unknown routes fall back to standard. `WorkspaceFrame.module.css` owns both Header inner and main frames, centered at 1600px including gutters for standard, unlimited for wide. Root gutter tokens are 24px desktop, 16px at ≤900px and 12px at ≤600px. MainWrapper owns vertical scrolling, so its scrollbar reduces both frames together; Header remains sticky at 56px. Customer no longer selects padding through a pathname-specific CSS class. Sidebar widths/breakpoints and mobile Overlay behavior remain the existing contract. Browser geometry across variants and Sidebar states remains required evidence.
 
 ### Customer emphasis and Panel composition (v3 stage 6)
 
-Customer Create, selected tabs, selected pagination and primary drawer/confirmation
-controls use shared `emphasis` (dark orange/white); Login/MFA keep default primary.
-Selected count/dot colors follow emphasis foreground rather than the legacy navy
-accent foreground. Actual composed-color, hover and focus measurements are still
-required; palette calculations alone are not browser evidence.
+Customer Create, selected tabs, selected pagination and primary drawer/confirmation controls use shared `primary` / `emphasis` (`#F58A24` orange background, `#FFFFFF` white foreground); Login/MFA keep default primary. Selected count/dot colors follow the canonical white foreground contract. Actual composed-color, hover and focus measurements are still required; palette calculations alone are not browser evidence.
 
-Panel accepts existing title/children/className plus optional `density` and `actions`.
-`standard` remains the default; `compact` uses the shared compact surface spacing
-and heading divider, without outer margin. Customer profile and address sections
-consume this shared composition; their duplicate card/heading paint was removed.
-The search field advertises only name/code/phone. Exact phone uses a secondary native
-filter disclosure and the existing URL/query contract, without another API.
+Panel accepts existing title/children/className plus optional `density` and `actions`. `standard` remains the default; `compact` uses the shared compact surface spacing and heading divider, without outer margin. Customer profile and address sections consume this shared composition; their duplicate card/heading paint was removed. The search field advertises name, code, phone.
 
-Disabled Input/Textarea presentation takes precedence when readonly and invalid are
-also present; those enabled-state rules exclude :disabled. Genuine state probes
-wait real CSS transitions, verify focus/invalid-focus distinction and compare the
-combined disabled presentation, restoring native attributes/focus afterward.
+Disabled Input/Textarea presentation takes precedence when readonly and invalid are also present; those enabled-state rules exclude `:disabled`. Genuine state probes wait real CSS transitions, verify focus/invalid-focus distinction and compare the combined disabled presentation, restoring native attributes/focus afterward.
 
-Fixed-column Customer name/email text wraps within the column and retains complete
-DOM text plus keyboard Detail links; it cannot paint over neighboring columns.
-The same native colgroup owns row/Skeleton/header widths. Browser Range checks
-validate both padded header text and actual data-cell content, including long fixtures.
+Fixed-column Customer name/email text wraps within the column and retains complete DOM text plus keyboard Detail links; it cannot paint over neighboring columns. The same native colgroup owns row/Skeleton/header widths. Browser Range checks validate both padded header text and actual data-cell content, including long fixtures.
 
-Pending/inactive status text uses its semantic pending foreground mapped to gray700,
-including the decorative dot. The previous muted gray500 against pending background
-was4.14:1 and failed normal-text AA; root palette calculation and genuine status/count
-composed-color probes enforce4.5. Active semantics remain unchanged.
+Pending/inactive status text uses its semantic pending foreground mapped to gray-600 (`#475569`), with light background `#F1F5F9` and border `#CBD5E1`. Active status uses emerald-50 (`#ECFDF5`), emerald-700 (`#047857`) text, and emerald-200 (`#A7F3D0`) border.
 
-Retained Customer statistics keep fresh/stale/unavailable metadata without adding
-visible stale text to the tabbar. Tab contents remain geometrically identical on
-same-scope refresh; sr-only status and existing table/Toast errors communicate
-loading or failed reconciliation. Counts remain backend-authoritative and cannot
-cross owner/search/phone scope. An ambiguous Power response does not establish
-write failure: retain the table gate through authoritative GET settlement, block
-on read failure and offer GET-only reconciliation rather than repeating PATCH.
+Retained Customer statistics keep fresh/stale/unavailable metadata without adding visible stale text to the tabbar. Tab contents remain geometrically identical on same-scope refresh; sr-only status and existing table/Toast errors communicate loading or failed reconciliation. Counts remain backend-authoritative and cannot cross owner/search/phone scope. An ambiguous Power response does not establish write failure: retain the table gate through authoritative GET settlement, block on read failure and offer GET-only reconciliation rather than repeating PATCH.
+
+### Customer Table Skeleton & Loading Presentation Contract (NEXORA-031)
+
+The Customer table skeleton loading state is governed by a unified geometry and semantic placeholder contract that eliminates visual movement, jumps, and layout shifts during transitions between loading and loaded data:
+
+1. **Geometry Single Source of Truth**:
+   - `columns.ts` (`customerColumns`) owns the 9-column widths (`detail: 80px`, `code: 144px`, `name: 240px`, `phone: 152px`, `email: 200px`, `addresses: 104px`, `status: 156px`, `created: 128px`, `actions: 104px`; min-width 1312px).
+   - Real rows, empty state, and skeleton rows share the exact same `<colgroup>` and `<th>` boundaries (verified agreement within < 0.5px).
+   - The approved contract specifies a fixed 5-row skeleton (`Array.from({ length: 5 })`). Measured across 0, 1, 2, 3, 5, and 10 result sets, the card-anchored footer remains stable at exactly 588px (0px shift).
+
+2. **Per-Column Semantic Shape & Alignment Registry**:
+   - **Detail Icon (`detail`, 80px)**: 26px × 26px square (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`), matching the 26px Eye icon button.
+   - **Customer Code (`code`, 144px)**: 88% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 105.1px on 120.4px usable content box, gap diff 0.00px), matching monospace code links.
+   - **Customer Name (`name`, 240px)**: 90% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 194.1px on 216.7px usable content box, gap diff 0.015px), matching primary customer names.
+   - **Phone Number (`phone`, 152px)**: 88% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 112.2px on 128.5px usable content box, gap diff 0.015px), matching tabular-nums telephone format.
+   - **Email (`email`, 200px)**: 90% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 158.0px on 176.6px usable content box, gap diff 0.00px), matching customer email strings.
+   - **Address Count (`addresses`, 104px)**: 44px × 20px pill (`var(--radius-full)`), centered horizontally (`margin-inline: auto`, gap diff 0.00px), matching the MapPin count badge.
+   - **Status Badge (`status`, 156px)**: 104px × 22px chip (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, gap diff 0.00px), matching the status badge.
+   - **Created Date (`created`, 128px)**: 85% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 87.9px on 104.4px usable content box, gap diff 0.015px), matching tabular-nums date text.
+   - **Actions (`actions`, 104px)**: Two 32px × 32px button placeholders (`var(--control-radius)`) inside `.actionGroup` with 4px gap (`var(--space-1)`), centered horizontally (`vertical-align: middle`, gap diff 0.50px), matching Edit and Power controls.
+
+3. **Row Height & Layout Invariants**:
+   - Both skeleton and real data rows compute to exactly 44.5px height (zero vertical row shift).
+   - All 9 columns maintain balanced horizontal margins (`abs(leftGap - rightGap) <= 1px`, verified <= 0.52px in Chromium CDP) relative to the usable content box excluding cell padding.
+   - Skeleton placeholders use `margin-block: 0`, resting inside cell padding boxes (`padding: 6px var(--space-3)`, and `padding: 6px var(--space-1)` for detail).
+   - Centered column centers agree with real cell content centers within < 0.25px (0.00px shift on detail, addresses, actions; 0.01px on status, created).
+   - Long text rows (name up to 200 characters, email up to 254 characters) wrap cleanly via `overflow-wrap: anywhere` and expand vertically as needed without clipping or horizontal column leakage.
+
+4. **Lifecycle & State Fencing**:
+   - Initial query execution renders the 5-row skeleton.
+   - Same-query revalidation retains active real rows with `data-stale` styling, preventing skeleton flicker.
+   - Query modifications (search key, status filter, pagination) invalidate stale records immediately; prior query data is never displayed.
+   - Responsive scrolling is contained inside `.tableViewport`, preventing body horizontal overflow while preserving footer stability.

@@ -13,6 +13,7 @@
   --brand-orange-light: #fff7ed;
   --brand-orange-text: #c2410c;
   --brand-orange-text-hover: #9a3412;
+  --color-white: #ffffff;
 
   --gray-50: #f8fafc;
   --gray-100: #f1f5f9;
@@ -20,9 +21,22 @@
   --gray-300: #cbd5e1;
   --gray-400: #94a3b8;
   --gray-500: #64748b;
+  --gray-600: #475569;
   --gray-700: #334155;
   --gray-800: #1f2937;
   --gray-900: #0f172a;
+
+  --emerald-50: #ecfdf5;
+  --emerald-200: #a7f3d0;
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  --emerald-700: #047857;
+
+  --amber-50: #fffbeb;
+  --amber-400-60: rgba(251, 191, 36, 0.6);
+  --amber-700: #b45309;
+  --amber-800: #92400e;
+  --amber-900: #78350f;
 
   /* ==========================================================================
      2. Semantic Application Tokens (Mapped to Foundation Palette)
@@ -33,10 +47,46 @@
 
   --color-accent: var(--brand-orange);
   --color-accent-hover: var(--brand-orange-dark);
-  --color-action-emphasis-bg: #bf570b;
-  --color-action-emphasis-hover: #b94e08;
-  --color-action-emphasis-text: #ffffff;
+  --color-action-emphasis-bg: var(--brand-orange);
+  --color-action-emphasis-hover: var(--brand-orange-dark);
+  --color-action-emphasis-text: var(--color-white);
   --color-accent-light: var(--brand-orange-light);
+
+  /* Status tab semantics */
+  --color-tab-selected-bg: var(--brand-orange);
+  --color-tab-selected-text: var(--color-white);
+  --color-tab-unselected-text: var(--gray-600);
+  --color-tab-unselected-hover-bg: rgba(255, 255, 255, 0.8);
+  --color-tab-unselected-hover-text: var(--brand-navy);
+
+  /* Count badge semantics */
+  --color-count-selected-bg: rgba(255, 255, 255, 0.25);
+  --color-count-selected-text: var(--color-white);
+  --color-count-unselected-bg: var(--color-white);
+  --color-count-unselected-text: var(--gray-600);
+
+  /* Pagination semantics */
+  --color-pagination-selected-bg: var(--brand-orange);
+  --color-pagination-selected-text: var(--color-white);
+  --color-pagination-selected-border: var(--brand-orange);
+  --color-pagination-unselected-bg: var(--color-white);
+  --color-pagination-unselected-text: var(--gray-600);
+  --color-pagination-unselected-border: var(--gray-300);
+
+  /* Filter chip semantics */
+  --color-filter-chip-bg: var(--amber-50);
+  --color-filter-chip-border: var(--amber-400-60);
+  --color-filter-chip-text: var(--amber-800);
+  --color-filter-chip-clear: var(--amber-700);
+  --color-filter-chip-clear-hover: var(--amber-900);
+
+  /* Action-specific semantic tokens (Power status toggling) */
+  --color-action-deactivate: var(--gray-400);
+  --color-action-deactivate-hover: var(--gray-700);
+  --color-action-deactivate-hover-bg: var(--gray-100);
+  --color-action-activate: var(--emerald-600);
+  --color-action-activate-hover: var(--emerald-700);
+  --color-action-activate-hover-bg: var(--emerald-50);
 
   --color-background: #f5f7fa;
   --color-surface: #ffffff;
@@ -48,24 +98,26 @@
   --color-border: var(--gray-200);
   --color-border-subtle: var(--gray-300);
 
-  /* Context-aware semantic tokens for WCAG AA compliance */
+  /* Context-aware semantic tokens */
   --color-accent-text: var(--brand-orange-text);
   --color-accent-text-hover: var(--brand-orange-text-hover);
-  --color-text-on-accent: var(--brand-navy);
-  --color-text-on-accent-hover: var(--brand-navy);
+  --color-text-on-accent: var(--color-white);
+  --color-text-on-accent-hover: var(--color-white);
   --color-text-accent-on-dark: var(--brand-orange);
   --color-border-accent: var(--brand-orange);
   --focus-ring-on-light: var(--brand-orange-text);
   --focus-ring-on-dark: var(--brand-orange);
 
   /* Status semantic colors */
-  --color-status-success-bg: #e2f2e6;
-  --color-status-success-text: #24663b;
+  --color-status-success-bg: var(--emerald-50);
+  --color-status-success-text: var(--emerald-700);
+  --color-status-success-border: var(--emerald-200);
   --color-status-error-bg: #fbe8e3;
   --color-status-error-text: #973d2b;
   --color-status-error-border: rgba(151, 61, 43, 0.2);
-  --color-status-pending-bg: #edf0ec;
-  --color-status-pending-text: var(--gray-700);
+  --color-status-pending-bg: var(--gray-100);
+  --color-status-pending-text: var(--gray-600);
+  --color-status-pending-border: var(--gray-300);
 
   /* Dark-surface context tokens (Sidebar, Monograms, Dark Overlays) */
   --color-text-on-dark: var(--color-surface);

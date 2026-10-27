@@ -1,12 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { loadComponent, React, render } from "./helpers/render-component.mjs";
 const { createElement } = React;
 const renderToStaticMarkup = render;
 const controls = () =>
   loadComponent(
-    new URL("../../../packages/ui/src/Controls.tsx", import.meta.url).pathname,
+    fileURLToPath(
+      new URL("../../../packages/ui/src/Controls.tsx", import.meta.url),
+    ),
   );
 test("all compatible controls render omitted/default/medium/large sizes without leaking a numeric native size", () => {
   const exports = controls();
@@ -32,10 +35,12 @@ test("all compatible controls render omitted/default/medium/large sizes without 
   assert.match(html, /line1\nline2/);
 });
 test("size and refs have a checked public TypeScript contract, rejecting native numeric size", () => {
-  const filename = new URL(
-    "../../../packages/ui/src/__size-contract.fixture.tsx",
-    import.meta.url,
-  ).pathname;
+  const filename = fileURLToPath(
+    new URL(
+      "../../../packages/ui/src/__size-contract.fixture.tsx",
+      import.meta.url,
+    ),
+  );
   const source = `import {createRef} from 'react'; import {Button,TextInput,Select,Textarea,Checkbox} from './Controls';
   const b=<Button size="medium" ref={createRef<HTMLButtonElement>()}/>;
   const i=<TextInput size="large" type="number" ref={createRef<HTMLInputElement>()}/>;
@@ -47,21 +52,22 @@ test("size and refs have a checked public TypeScript contract, rejecting native 
   const m=<Select size={4}/>;
   // @ts-expect-error unsupported variant
   const x=<Button size="small"/>;`;
-  const configPath = new URL(
-    "../../../packages/ui/tsconfig.json",
-    import.meta.url,
-  ).pathname;
+  const configPath = fileURLToPath(
+    new URL("../../../packages/ui/tsconfig.json", import.meta.url),
+  );
   const config = ts.readConfigFile(configPath, ts.sys.readFile);
   const parsed = ts.parseJsonConfigFileContent(
     config.config,
     ts.sys,
-    new URL("../../../packages/ui/", import.meta.url).pathname,
+    fileURLToPath(new URL("../../../packages/ui/", import.meta.url)),
   );
   const host = ts.createCompilerHost(parsed.options);
   const read = host.readFile.bind(host),
     exists = host.fileExists.bind(host);
-  host.readFile = (p) => (p === filename ? source : read(p));
-  host.fileExists = (p) => p === filename || exists(p);
+  const isFixture = (p) =>
+    p === filename || p.replace(/\\/g, "/") === filename.replace(/\\/g, "/");
+  host.readFile = (p) => (isFixture(p) ? source : read(p));
+  host.fileExists = (p) => isFixture(p) || exists(p);
   const program = ts.createProgram(
     [...parsed.fileNames, filename],
     { ...parsed.options, incremental: false, noEmit: true },

@@ -33,7 +33,7 @@ function getMonogram(name: string) {
 export function CustomerDetailPage({ id }: { id: string }) {
   const toast = useToast();
   const read = useCustomerRead(id, (signal) => customerApi.get(id, signal));
-  const mutation = useCustomerMutation(read.refresh, read.deny);
+  const mutation = useCustomerMutation(read, read.deny);
   useReadNotice(read);
   const [mode, setMode] = useState<Mode | null>(null);
   const [notice, setNotice] = useState("");
@@ -342,6 +342,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           refresh={read.refresh}
           onDenied={read.deny}
           reconciling={read.loading || !!read.error}
+          settlement={read}
         />
       )}
       {mode?.kind === "add" && !read.denied && (
@@ -352,6 +353,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           refresh={read.refresh}
           onDenied={read.deny}
           reconciling={read.loading || !!read.error}
+          settlement={read}
         />
       )}
       {mode?.kind === "address" && target && (
@@ -363,6 +365,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           refresh={read.refresh}
           onDenied={read.deny}
           reconciling={read.loading || !!read.error}
+          settlement={read}
         />
       )}
       {mode?.kind === "delete" && data && target && (
@@ -375,6 +378,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           onClose={() => setMode(null)}
           onSaved={saved}
           reconciling={read.loading || !!read.error}
+          settlement={read}
         />
       )}
     </div>

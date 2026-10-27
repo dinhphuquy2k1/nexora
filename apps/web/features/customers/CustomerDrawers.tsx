@@ -19,7 +19,10 @@ import {
   addressPayload,
 } from "./payload.ts";
 import { customerApi } from "./api.ts";
-import { useCustomerMutation } from "./useCustomerMutation.ts";
+import {
+  useCustomerMutation,
+  type SettlementTarget,
+} from "./useCustomerMutation.ts";
 import { Feedback } from "./Feedback.tsx";
 import styles from "./customers.module.css";
 const emptyAddress = (): AddressDraft => ({
@@ -127,6 +130,7 @@ export function CustomerDrawer({
   refresh,
   onDenied,
   reconciling = false,
+  settlement,
 }: {
   customer?: Customer | Summary;
   onClose: () => void;
@@ -134,6 +138,7 @@ export function CustomerDrawer({
   refresh: () => void;
   onDenied: () => void;
   reconciling?: boolean;
+  settlement?: SettlementTarget;
 }) {
   const [baseline] = useState(customer);
   const router = useRouter();
@@ -145,7 +150,7 @@ export function CustomerDrawer({
     status: customer?.status,
   }));
   const [address, setAddress] = useState(emptyAddress);
-  const mutation = useCustomerMutation(refresh, onDenied);
+  const mutation = useCustomerMutation(settlement ?? refresh, onDenied);
   return (
     <DrawerFrame
       title={customer ? "Sửa khách hàng" : "Thêm khách hàng"}
@@ -297,6 +302,7 @@ export function AddressDrawer({
   refresh,
   onDenied,
   reconciling = false,
+  settlement,
 }: {
   id: string;
   address?: Address;
@@ -305,6 +311,7 @@ export function AddressDrawer({
   refresh: () => void;
   onDenied: () => void;
   reconciling?: boolean;
+  settlement?: SettlementTarget;
 }) {
   const [baseline] = useState(address);
   const [draft, setDraft] = useState<AddressDraft>(() =>
@@ -318,7 +325,7 @@ export function AddressDrawer({
         }
       : emptyAddress(),
   );
-  const mutation = useCustomerMutation(refresh, onDenied);
+  const mutation = useCustomerMutation(settlement ?? refresh, onDenied);
   return (
     <DrawerFrame
       title={address ? "Sửa địa chỉ" : "Thêm địa chỉ"}

@@ -4,7 +4,10 @@ import { Button, Select } from "@nexora/ui";
 import { AlertTriangle } from "lucide-react";
 import type { Address } from "./types.ts";
 import { DrawerFrame } from "./CustomerDrawers.tsx";
-import { useCustomerMutation } from "./useCustomerMutation.ts";
+import {
+  useCustomerMutation,
+  type SettlementTarget,
+} from "./useCustomerMutation.ts";
 import { customerApi } from "./api.ts";
 import { deleteCustomerAddress } from "./address-actions.ts";
 import { Feedback } from "./Feedback.tsx";
@@ -18,6 +21,7 @@ export function DeleteAddressModal({
   onClose,
   onSaved,
   reconciling,
+  settlement,
 }: {
   id: string;
   target: Address;
@@ -27,11 +31,13 @@ export function DeleteAddressModal({
   onClose: () => void;
   onSaved: () => void;
   reconciling: boolean;
+  settlement?: SettlementTarget;
 }) {
   const [replacement, setReplacement] = useState("");
   const [partial, setPartial] = useState(false);
-  const mutation = useCustomerMutation(refresh, onDenied);
+  const mutation = useCustomerMutation(settlement ?? refresh, onDenied);
   const others = addresses.filter((a) => a.id !== target.id);
+  const isReconciling = reconciling || mutation.phase === "blocked";
   return (
     <DrawerFrame
       title="Xóa địa chỉ"
@@ -93,13 +99,16 @@ export function DeleteAddressModal({
               </p>
             )}
             <Feedback error={mutation.error} />
-            {reconciling && (
+            {isReconciling && (
               <div role="status" className={styles.notice}>
                 <p>Chưa đối chiếu xong dữ liệu. Chưa thể thử xóa lại.</p>
                 <Button
                   variant="secondary"
                   disabled={mutation.busy}
-                  onClick={refresh}
+                  onClick={() => {
+                    mutation.retryReconciliation();
+                    refresh();
+                  }}
                 >
                   Đối chiếu lại dữ liệu
                 </Button>
@@ -117,7 +126,7 @@ export function DeleteAddressModal({
           disabled={
             !others.length ||
             mutation.busy ||
-            reconciling ||
+            isReconciling ||
             (target.isDefault && !others.some((a) => a.id === replacement))
           }
           onClick={() =>
@@ -131,11 +140,15 @@ export function DeleteAddressModal({
               );
               if (result.kind === "partial") {
                 setPartial(true);
-                refresh();
-                throw result.error;
+                const partialErr =
+                  result.error instanceof Error
+                    ? Object.assign(result.error, { isPartial: true })
+                    : Object.assign(new Error("PARTIAL_MUTATION"), {
+                        isPartial: true,
+                      });
+                throw partialErr;
               }
               if (result.kind === "failed") {
-                refresh();
                 throw result.error;
               }
               if (result.kind !== "deleted") throw Error("RECONCILE");

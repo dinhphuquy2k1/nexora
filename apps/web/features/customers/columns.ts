@@ -2,7 +2,7 @@
 export const customerColumns = [
   { key: "detail", label: "CHI TIẾT", width: 80 },
   { key: "code", label: "MÃ KHÁCH HÀNG", width: 144 },
-  { key: "name", label: "HỌ VÀ TÊN", width: undefined, minimum: 200 },
+  { key: "name", label: "HỌ VÀ TÊN", width: 240 },
   { key: "phone", label: "SỐ ĐIỆN THOẠI", width: 152 },
   { key: "email", label: "EMAIL", width: 200 },
   { key: "addresses", label: "SỐ ĐỊA CHỈ", width: 104 },
@@ -11,6 +11,4 @@ export const customerColumns = [
   { key: "actions", label: "THAO TÁC", width: 104 },
 ] as const;
 export const customerTableMinWidth =
-  Math.ceil(
-    customerColumns.reduce((total, c) => total + (c.width ?? c.minimum), 0) / 8,
-  ) * 8;
+  Math.ceil(customerColumns.reduce((total, c) => total + c.width, 0) / 8) * 8;
