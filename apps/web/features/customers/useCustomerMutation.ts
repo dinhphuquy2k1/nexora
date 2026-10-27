@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@nexora/ui";
 import { customerError, CustomerApiError } from "./errors.ts";
 import { DraftError } from "./payload.ts";
+import { settleMutationRead, type WriteOutcome } from "./mutation-policy.ts";
 import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 
 export type MutationPhase = "idle" | "writing" | "reconciling" | "blocked";
@@ -20,8 +21,10 @@ export interface SettlementTarget {
 export function useCustomerMutation(
   targetOrRefresh: SettlementTarget | (() => number | void),
   onDenied?: () => void,
+  onUnresolved?: () => void,
 ) {
   const lock = useRef(false);
+  const writeOutcome = useRef<WriteOutcome>("confirmed");
   const mounted = useRef(true);
   const sequence = useRef(0);
   const instance = useId();
@@ -56,19 +59,23 @@ export function useCustomerMutation(
     if (phase !== "reconciling" || targetRequestId.current === null) return;
     const target = targetRequestId.current;
     if (settledId !== undefined && settledId >= target) {
-      if (outcome === "success" && !denied) {
-        targetRequestId.current = null;
-        lock.current = false;
-        setPhase("idle");
-        setBusy(false);
-      } else if (outcome === "error" || denied) {
-        setPhase("blocked");
-        setBusy(true);
+      if (outcome === "success" || outcome === "error" || denied) {
+        const settled = settleMutationRead(writeOutcome.current, denied ? "denied" : outcome);
+        if (settled === "idle") {
+          targetRequestId.current = null;
+          lock.current = false;
+          setPhase("idle");
+          setBusy(false);
+        } else {
+          setPhase("blocked");
+          setBusy(true);
+        }
       }
     }
   }, [phase, settledId, outcome, denied]);
 
   const retryReconciliation = useCallback(() => {
+    if (phase !== "blocked") return;
     try {
       const reqId = refreshFn();
       if (typeof reqId === "number") {
@@ -79,9 +86,10 @@ export function useCustomerMutation(
     } catch {
       // scheduled refresh error
     }
-  }, [refreshFn]);
+  }, [refreshFn, phase]);
 
   const reset = useCallback(() => {
+    if (writeOutcome.current === "unknown") return;
     targetRequestId.current = null;
     lock.current = false;
     setPhase("idle");
@@ -92,6 +100,7 @@ export function useCustomerMutation(
   async function run(operation: () => Promise<unknown>, success: () => void) {
     if (lock.current || phase !== "idle") return;
     lock.current = true;
+    writeOutcome.current = "confirmed";
     const id = ++sequence.current;
     setPhase("writing");
     setBusy(true);
@@ -143,6 +152,8 @@ export function useCustomerMutation(
           (!local && !(e instanceof CustomerApiError));
 
         if (isAmbiguous) {
+          writeOutcome.current = "unknown";
+          onUnresolved?.();
           try {
             const reqId = refreshFn();
             if (typeof reqId === "number") {
@@ -164,6 +175,7 @@ export function useCustomerMutation(
       }
 
       if (!mounted.current) return;
+      writeOutcome.current = "confirmed";
       toast.enqueue({
         id: `${instance}-write-${id}`,
         tone: "success",
@@ -208,6 +220,8 @@ export function useCustomerMutation(
   return {
     run,
     busy: busy || phase !== "idle",
+    canRetryRead: phase === "blocked",
+    canClose: phase !== "writing",
     phase,
     error,
     retryReconciliation,
