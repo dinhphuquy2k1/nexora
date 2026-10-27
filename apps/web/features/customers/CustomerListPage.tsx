@@ -12,7 +12,7 @@ import { CustomerPowerFlight } from "./power-flight.ts";
 import { customerError, customerPowerFailure } from "./errors.ts";
 import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 import { useReadNotice } from "./useReadNotice.ts";
-import { CustomerStatus } from "@nexora/shared";
+import { CustomerStatus, PaginationLimits } from "@nexora/shared";
 import { parseCustomerQuery, customerQueryString } from "./query.ts";
 import type { Query, Summary } from "./types.ts";
 import { customerApi } from "./api.ts";
@@ -27,7 +27,10 @@ import styles from "./customers.module.css";
 export function CustomerListPage({ ownerId }: { ownerId: string }) {
   const params = useSearchParams();
   const search = params.toString();
-  let query: Query = { page: 1, pageSize: 10 },
+  let query: Query = {
+    page: PaginationLimits.DEFAULT_PAGE,
+    pageSize: PaginationLimits.DEFAULT_PAGE_SIZE,
+  },
     invalid = false;
   try {
     query = parseCustomerQuery(new URLSearchParams(search));
