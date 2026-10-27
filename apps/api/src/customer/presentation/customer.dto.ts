@@ -4,7 +4,7 @@ import {
   OmitType,
   PartialType,
 } from "@nestjs/swagger";
-import { CustomerStatus, type CustomerStatusCode } from "@nexora/shared";
+import { CustomerStatus, PaginationLimits, type CustomerStatusCode } from "@nexora/shared";
 export class AddressInputDto {
   @ApiPropertyOptional({ type: String, nullable: true, maxLength: 100 })
   label?: string | null;
