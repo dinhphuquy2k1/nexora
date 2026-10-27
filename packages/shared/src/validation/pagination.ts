@@ -1,7 +1,7 @@
 /** Canonical page/pageSize validation shared by API and Web; no transport errors. */
 export const PaginationLimits = {
   DEFAULT_PAGE: 1,
-  DEFAULT_PAGE_SIZE: 10,
+  DEFAULT_PAGE_SIZE: 20,
   MAX_PAGE: 2147483647,
   MAX_PAGE_SIZE: 100,
   MAX_OFFSET: 2147483647,
