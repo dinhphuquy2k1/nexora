@@ -1,4 +1,4 @@
-import { CustomerInputLimits, normalizeBoundedText } from "@nexora/shared";
+import { CustomerInputLimits, normalizeBoundedText } from "@nexora/shared/validation";
 import { CustomerStatusVO } from "./customer-status.vo";
 import {
   customerRecord,
