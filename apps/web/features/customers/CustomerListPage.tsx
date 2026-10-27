@@ -94,6 +94,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   }, [manualReloadId, read.settledId, read.loading]);
 
   const [overlay, setOverlay] = useState<Summary | "create" | null>(null);
+  const [writeUnresolved, setWriteUnresolved] = useState(false);
   const power = useRef(new CustomerPowerFlight());
   const powerInstance = useId();
   const mounted = useRef(true);
@@ -202,7 +203,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     else manualReloadLock.current = false;
   }
   async function handleToggleStatus(c: Summary) {
-    if (read.isDenied()) return;
+    if (read.isDenied() || writeUnresolved) return;
     const token = power.current.begin(c.id);
     if (token === null) return;
     setPowerState(power.current.snapshot());
@@ -288,6 +289,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
             <Button
               variant="primary"
               onClick={() => setOverlay("create")}
+              disabled={writeUnresolved}
               aria-label="Thêm khách hàng"
             >
               <Plus size={16} aria-hidden="true" />
@@ -323,6 +325,12 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           statsTotal={stats?.total}
         />
       </section>
+      {writeUnresolved && (
+        <p role="alert" className={styles.notice}>
+          Kết quả lưu chưa xác định. Hãy đối chiếu dữ liệu, không gửi lại thao tác cũ.
+          <Button variant="secondary" onClick={read.refresh}>Đối chiếu lại dữ liệu</Button>
+        </p>
+      )}
       {powerState?.phase === "blocked" && (
         <p className={styles.notice}>
           Thao tác đã kết thúc nhưng dữ liệu chưa đối chiếu được. Các nút trạng
@@ -385,7 +393,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
                 : null
             }
             powerUnavailable={
-              !compatible || !!powerState || !!read.error || read.loading
+              !compatible || !!powerState || !!read.error || read.loading || writeUnresolved
             }
             onClear={clearFilters}
             onRetry={handleReload}
@@ -407,6 +415,8 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           onClose={() => setOverlay(null)}
           refresh={read.refresh}
           settlement={read}
+          writeBlocked={writeUnresolved}
+          onUnresolved={() => setWriteUnresolved(true)}
           onDenied={() => {
             read.deny();
             setStatistics(undefined);

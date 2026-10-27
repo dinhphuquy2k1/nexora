@@ -33,7 +33,8 @@ function getMonogram(name: string) {
 export function CustomerDetailPage({ id }: { id: string }) {
   const toast = useToast();
   const read = useCustomerRead(id, (signal) => customerApi.get(id, signal));
-  const mutation = useCustomerMutation(read, read.deny);
+  const [writeUnresolved, setWriteUnresolved] = useState(false);
+  const mutation = useCustomerMutation(read, read.deny, () => setWriteUnresolved(true));
   useReadNotice(read);
   const [mode, setMode] = useState<Mode | null>(null);
   const [notice, setNotice] = useState("");
@@ -121,7 +122,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           {c && (
             <Button
               variant="emphasis"
-              disabled={mutation.busy}
+              disabled={mutation.busy || writeUnresolved}
               onClick={() => setMode({ kind: "profile" })}
             >
               <Edit3 size={15} aria-hidden="true" />
@@ -130,6 +131,15 @@ export function CustomerDetailPage({ id }: { id: string }) {
           )}
         </div>
       </div>
+      {writeUnresolved && (
+        <div role="alert" className={styles.notice}>
+          Kết quả thao tác ghi chưa xác định. Không gửi lại thao tác; hãy kiểm tra dữ liệu đã tải lại.
+          <Button variant="secondary" disabled={read.loading} onClick={() => {
+            if (mutation.canRetryRead) mutation.retryReconciliation();
+            else read.refresh();
+          }}>Đối chiếu lại dữ liệu</Button>
+        </div>
+      )}
       {notice && (
         <p role="status" className={styles.notice}>
           {notice}
@@ -153,7 +163,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
             actions={
               <Button
                 variant="ghost"
-                disabled={mutation.busy}
+                disabled={mutation.busy || writeUnresolved}
                 onClick={() => setMode({ kind: "profile" })}
               >
                 Sửa
@@ -212,7 +222,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
               <Button
                 variant="emphasis"
                 aria-label="Thêm địa chỉ"
-                disabled={mutation.busy}
+                disabled={mutation.busy || writeUnresolved}
                 onClick={() => setMode({ kind: "add" })}
               >
                 <Plus size={16} aria-hidden="true" />
@@ -232,7 +242,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                 </p>
                 <Button
                   variant="secondary"
-                  disabled={mutation.busy}
+                  disabled={mutation.busy || writeUnresolved}
                   onClick={() => setMode({ kind: "add" })}
                 >
                   <Plus size={15} aria-hidden="true" />
@@ -278,7 +288,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                     {!a.isDefault && (
                       <Button
                         variant="secondary"
-                        disabled={mutation.busy || !!mode}
+                        disabled={mutation.busy || writeUnresolved || !!mode}
                         onClick={() =>
                           void mutation.run(
                             () => customerApi.setDefault(id, a.id),
@@ -295,7 +305,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                       icon
                       aria-label="Sửa địa chỉ"
                       title="Chỉnh sửa địa chỉ"
-                      disabled={mutation.busy}
+                      disabled={mutation.busy || writeUnresolved}
                       onClick={() => setMode({ kind: "address", id: a.id })}
                     >
                       <Edit3 size={15} />
@@ -343,6 +353,8 @@ export function CustomerDetailPage({ id }: { id: string }) {
           onDenied={read.deny}
           reconciling={read.loading || !!read.error}
           settlement={read}
+          writeBlocked={writeUnresolved}
+          onUnresolved={() => setWriteUnresolved(true)}
         />
       )}
       {mode?.kind === "add" && !read.denied && (
@@ -354,6 +366,8 @@ export function CustomerDetailPage({ id }: { id: string }) {
           onDenied={read.deny}
           reconciling={read.loading || !!read.error}
           settlement={read}
+          writeBlocked={writeUnresolved}
+          onUnresolved={() => setWriteUnresolved(true)}
         />
       )}
       {mode?.kind === "address" && target && (
@@ -366,6 +380,8 @@ export function CustomerDetailPage({ id }: { id: string }) {
           onDenied={read.deny}
           reconciling={read.loading || !!read.error}
           settlement={read}
+          writeBlocked={writeUnresolved}
+          onUnresolved={() => setWriteUnresolved(true)}
         />
       )}
       {mode?.kind === "delete" && data && target && (
@@ -379,6 +395,8 @@ export function CustomerDetailPage({ id }: { id: string }) {
           onSaved={saved}
           reconciling={read.loading || !!read.error}
           settlement={read}
+          writeBlocked={writeUnresolved}
+          onUnresolved={() => setWriteUnresolved(true)}
         />
       )}
     </div>
