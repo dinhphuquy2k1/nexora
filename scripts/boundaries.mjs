@@ -89,6 +89,9 @@ export function checkFileImports(p, content) {
       ) ||
         targetLayer ||
         spec === "@nexora/shared" ||
+        (spec.startsWith("@nexora/shared/") &&
+          spec !== "@nexora/shared/customer-status" &&
+          spec !== "@nexora/shared/validation") ||
         spec.includes("customer-status-labels") ||
         (target &&
           under(target, resolve("packages/shared")) &&
@@ -120,6 +123,10 @@ export function runNegativeTests() {
   checkFileImports(
     "apps/api/src/customer/domain/example.ts",
     "import { CustomerStatus } from '@nexora/shared/customer-status';",
+  );
+  checkFileImports(
+    "apps/api/src/customer/domain/example.ts",
+    "import { normalizeBoundedText } from '@nexora/shared/validation';",
   );
   for (const spec of [
     "@nexora/shared",
