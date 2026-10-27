@@ -6,7 +6,7 @@ applyTo: "apps/api/src/**/*.ts"
 
 When editing API production TypeScript files:
 
-1. **Pre-Code Governance**: Verify that the task has an approved pre-implementation review and reuse matrix ([ADR-009](../../docs/decisions/mandatory-pre-code-design-review.md)).
+1. **Pre-Code Governance**: Verify that the task has a recorded pre-implementation review and reuse matrix (no owner approval required) ([ADR-009](../../docs/decisions/mandatory-pre-code-design-review.md)).
 2. **Canonical Reusable Primitives**: Always reuse canonical primitives in `apps/api/src/common/` instead of duplicating validation logic:
    - UUID validation: `isUuid` from `apps/api/src/common/validation/uuid.ts`
    - Lowercase 64-char hex format: `isLowercaseHex64` from `apps/api/src/common/validation/hex.ts`
