@@ -1,4 +1,5 @@
 import { Button, Select } from "@nexora/ui";
+import { PaginationLimits } from "@nexora/shared";
 import {
   ChevronsLeft,
   ChevronLeft,
@@ -25,8 +26,8 @@ export function CustomerPagination({
     1,
     Math.min(
       pagination?.totalPages ?? 1,
-      Math.floor(2147483647 / query.pageSize) + 1,
-      2147483647,
+      Math.floor(PaginationLimits.MAX_OFFSET / query.pageSize) + 1,
+      PaginationLimits.MAX_PAGE,
     ),
   );
   const pages = customerPageWindow(query.page, last);
