@@ -4,7 +4,7 @@ This workflow is a mandatory repository rule for AI-assisted development in Nexo
 
 ```text
 REQUEST → READ DOCS → READ-ONLY REPOSITORY INSPECTION → REUSE & DESIGN AUDIT
-→ ARCHITECTURE REVIEW → APPROVAL → TEST-FIRST IMPLEMENTATION → VERIFICATION
+→ ARCHITECTURE REVIEW → RECORDED PLAN → TEST-FIRST IMPLEMENTATION → VERIFICATION
 → INDEPENDENT CODE REVIEW → REPORT
 ```
 
@@ -45,22 +45,11 @@ A statement such as "no reusable code found" is invalid without describing the s
 
 For every new business domain and SIGNIFICANT domain feature, follow [ADR-008](../decisions/tactical-ddd.md) before code. Record domain ownership/responsibility and ubiquitous language; bounded context/module; Aggregate Root/consistency boundary (or reviewed omission rationale); entities and identity/lifecycle; meaningful Value Objects; invariants; commands/use cases; application ports/infrastructure adapters; transport contracts; cross-domain dependencies; transaction/locking/concurrency strategy; and isolated domain plus genuine integration tests. If ownership or aggregate consistency is unresolved, record and resolve PLAN ISSUE before implementing business operations.
 
-## 4. Pre-Code Architecture Review & Approval Gate
+## 4. Pre-Code Design Review & Recorded Plan
 
-No agent or contributor may begin writing implementation code, test-code modifications, database schema changes, scaffolding, dependency additions, or CI workflow changes for any new implementation task until:
+Before starting implementation, complete a read-only inspection, reuse audit and a versioned plan in the task record. For SIGNIFICANT changes, include public contracts, alternatives, risks, migration and verification strategy. The plan-first gate does **not** require explicit owner approval, a GitHub PR review or a GitHub comment.
 
-1. The Pre-Implementation Review artifact (using `docs/ai/templates/pre-implementation-review.md`) has been completed.
-2. The required **Design Approval** has been obtained and recorded.
-
-Approval semantics:
-
-- Design approval is strictly separate from Task Lifecycle, Code Review, Test PASS, and Merge Readiness.
-- A coding agent must never approve its own design on behalf of the owner.
-- Approval binds Task ID and a concrete immutable snapshot/revision with recomputed raw-byte SHA-256, independently matched to authenticated GitHub evidence per ADR-009.
-- A material design amendment requires a new revision/snapshot/digest and renewed approval of the delta; routine execution evidence updates do not require a new design approval.
-- For tasks where an owner-approved implementation specification is provided (such as PR #23 / NEXORA-027), the agent implements the approved architecture directive directly without restarting architectural discovery.
-- Pre-code design review and explicit approval requirements remain fully mandatory for all future implementation tasks.
-- Static or local preflight validation PASS only proves local structural compliance; it does not prove or substitute for authenticated GitHub approval provenance.
+When implementation uncovers a material change, update the plan and document the delta before implementing that change; no new owner attestation is required. Historical design snapshots/approvals remain immutable and citable. The PR preflight continues to validate task/revision/snapshot/digest binding and documentation completeness, not owner authorization. Code review and merge-readiness verification are separate gates. See [ADR-009](../decisions/mandatory-pre-code-design-review.md).
 
 ## 5. Assess Documentation Impact
 
