@@ -115,4 +115,4 @@ Documentation Impact: NONE
 
 Tasks completed before NEXORA-003 (`NEXORA-001`, `NEXORA-002`) retain their historical record format in `docs/tasks/completed/`. They are recognized as historical task records; their original commands, dates, and claims are preserved without retroactive rewrites.
 
-Completed historical tasks are exempt from retroactive ADR-009 design review enforcement. For active tasks, any new implementation scope or material design change must comply with the current pre-code design review policy and provide an approved design decision for the applicable plan revision, regardless of historical task numbering.
+Completed historical tasks are exempt from retroactive ADR-009 design review enforcement. For active tasks, any new implementation scope or material design change must comply with the current pre-code design review policy and record a versioned design plan and reuse review for the applicable revision, without an owner approval requirement, regardless of historical task numbering.
