@@ -125,3 +125,11 @@ Pending/inactive status text uses its semantic pending foreground mapped to gray
 including the decorative dot. The previous muted gray500 against pending background
 was4.14:1 and failed normal-text AA; root palette calculation and genuine status/count
 composed-color probes enforce4.5. Active semantics remain unchanged.
+
+Retained Customer statistics keep fresh/stale/unavailable metadata without adding
+visible stale text to the tabbar. Tab contents remain geometrically identical on
+same-scope refresh; sr-only status and existing table/Toast errors communicate
+loading or failed reconciliation. Counts remain backend-authoritative and cannot
+cross owner/search/phone scope. An ambiguous Power response does not establish
+write failure: retain the table gate through authoritative GET settlement, block
+on read failure and offer GET-only reconciliation rather than repeating PATCH.

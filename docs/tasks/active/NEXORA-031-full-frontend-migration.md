@@ -1181,3 +1181,55 @@ Customer chip/dot consume that role, without darkening all muted text. Shared br
 contrast expression reused for actual status chips and selected counts in initial
 and Power retained rows; no duplicate color algorithm. Genuine final-head AA still
 requires hosted probe execution. This is approved semantic-color/accessibility scope.
+
+### Final correction and acceptance reassessment — 2026-10-27
+
+Baseline fetched HEAD f8b2b8eeab1cf39ca132ff6324d83474603e42dd matches the
+reviewed baseline; worktree clean. Foundation40289786382 FAIL is the real
+no-useless-escape lint defect, not a browser failure. String.raw preserves the
+quoted CSS selector fixture without suppression; targeted lint/test3/3 and full
+lint/boundaries PASS. Earlier Foundation40289002096 (8e54224) and40289506912
+(9b10092) actually completed SUCCESS; earlier HTTPS timeout is historical,
+not an unresolved deterministic defect. None of these runs certifies this final
+correction HEAD. Final-head workflow evidence belongs in PR metadata after execution.
+
+Statistics presentation removes the visible stale hint and obsolete CSS, retaining
+fresh/stale/unavailable state, backend-scoped snapshots, counts and sr-only loading/
+failed-reconciliation feedback. Actual SSR regression proves identical tab markup
+across fresh/loading/failure and unavailable values remain dashes; scope/generation
+regressions remain unchanged. No new hook, endpoint or row-derived counts.
+
+Power retains CustomerPowerFlight. Unknown/5xx write results now explicitly say the
+outcome is not known and GET reconciliation is underway; confirmed rejections keep
+the existing safe message. Existing401 denial/navigation fencing remains. Tests
+cover rejection/ambiguous classification and blocked/read-success transitions.
+The genuine browser regression additionally drops a real HTTP200 PATCH response
+at CDP response stage, verifies committed status through an unfaulted owner Detail
+GET, faults List GET, requires blocked controls and an ambiguous-outcome Toast,
+then requires GET-only Retry with exactly three total PATCHes across the scenarios.
+This new regression is NOT VERIFIED until final-head hosted execution succeeds.
+Search copy already excludes email; clear/reload/profile/address selectors already
+match actual current UI. Do not rewrite working labels to historical selectors.
+
+#### PLAN ISSUE — COLOR_POLICY_V4_SOURCE_MISSING
+
+Authenticated owner/User dinhphuquy2k1 comment6420378852 was created and last edited
+2026-10-26T15:46:57Z. It binds NEXORA-031 /
+rev-2026-10-26-color-policy-m2-v4 /
+01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53 /
+APPROVED. Complete PR comments (4) and reviews (1) contain no snapshot content or
+publication link for v4. Fetched all existing refs; current tree search, all-ref
+snapshot history and git log --all -S revision search find no NEXORA-031 v4 snapshot.
+The only v4 snapshot filename found is unrelated NEXORA-029. Consequently raw bytes,
+physical regular-file provenance, publication-before-approval and amendment content
+cannot be verified; approval text alone is insufficient. No v4 snapshot was created
+retroactively and no v4-only policy was applied. Governing implementation remains
+approved v3, whose raw digest recomputes c25703baddc79bf3955a6d58e15092a9e0ac2a15f401ee34431ee6f91ef2c939.
+Canonical verifyGitHubApprovalEvidence replayed the complete connector-authenticated
+payload and accepted v3; no matching later revocation. This replay is distinct from
+hosted Preflight. Owner must identify the pre-existing immutable v4 publication or
+withdraw/replace that unbound decision through ADR-009 before v4 acceptance can close.
+PR remains Draft; overall task IN PROGRESS / Verification NOT VERIFIED, M3–M5 untouched.
+
+Documentation Impact: REQUIRED. This evidence record and canonical Design System
+statistics feedback contract are synchronized. Preserve earlier FAIL history.
