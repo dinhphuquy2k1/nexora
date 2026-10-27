@@ -452,14 +452,18 @@ try {
       '!!document.querySelector("input[name=mfa-code]:not(:disabled)")',
     );
   } catch (error) {
-    console.error(
-      "PUBLIC_LOGIN_FORM_DIAGNOSTIC",
-      JSON.stringify(
-        await evaluate(
-          '({focused:document.hasFocus(),usernamePresent:!!document.querySelector("input[name=username]")?.value,passwordPresent:!!document.querySelector("input[name=password]")?.value,alertPresent:!!document.querySelector("[role=alert]"),missingCredentials:document.querySelector("[role=alert]")?.textContent.includes("Vui lòng nhập đầy đủ")??false,networkFailure:document.querySelector("[role=alert]")?.textContent.includes("Không thể kết nối")??false,invalidCredentials:document.querySelector("[role=alert]")?.textContent.includes("không chính xác")??false,enrollmentRequired:document.querySelector("[role=alert]")?.textContent.includes("thiết lập MFA")??false,invalidOutcome:document.querySelector("[role=alert]")?.textContent.includes("Phản hồi đăng nhập không hợp lệ")??false})',
-        ),
-      ),
-    );
+    // Diagnostics must never replace the original browser condition failure.
+    try {
+      const snapshot = await evaluate(
+        '({pathname:location.pathname,readyState:document.readyState,focused:document.hasFocus(),usernamePresent:!!document.querySelector("input[name=username]"),passwordPresent:!!document.querySelector("input[name=password]"),mfaInputPresent:!!document.querySelector("input[name=mfa-code]"),mfaInputDisabled:!!document.querySelector("input[name=mfa-code]:disabled"),alertPresent:!!document.querySelector("[role=alert]"),missingCredentials:document.querySelector("[role=alert]")?.textContent.includes("Vui lòng nhập đầy đủ")??false,networkFailure:document.querySelector("[role=alert]")?.textContent.includes("Không thể kết nối")??false,invalidCredentials:document.querySelector("[role=alert]")?.textContent.includes("không chính xác")??false,enrollmentRequired:document.querySelector("[role=alert]")?.textContent.includes("thiết lập MFA")??false,invalidOutcome:document.querySelector("[role=alert]")?.textContent.includes("Phản hồi đăng nhập không hợp lệ")??false})',
+      );
+      console.error("PUBLIC_LOGIN_FORM_DIAGNOSTIC", JSON.stringify(snapshot));
+    } catch (diagnosticError) {
+      console.error(
+        "PUBLIC_LOGIN_FORM_DIAGNOSTIC_UNAVAILABLE",
+        diagnosticError instanceof Error ? diagnosticError.name : "unknown",
+      );
+    }
     throw error;
   }
   assert.equal(await evaluate("location.pathname"), "/login");
