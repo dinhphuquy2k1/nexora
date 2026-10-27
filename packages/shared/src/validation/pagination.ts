@@ -13,8 +13,7 @@ export function parsePositiveInteger(
   maximum: number,
 ): number | null {
   if (value === undefined) return fallback;
-  if (typeof value !== "string" || !/^[1-9][0-9]*$/.test(value))
-    return null;
+  if (typeof value !== "string" || !/^[1-9][0-9]*$/.test(value)) return null;
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed <= maximum ? parsed : null;
 }
