@@ -1,0 +1,31 @@
+name: PR28 one-time pinned formatting
+on:
+  push:
+    branches: [feat/customer-management-ui]
+permissions:
+  contents: write
+jobs:
+  format-once:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/customer-management-ui
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Use pinned workspace formatter
+        run: |
+          npm install --global pnpm@10.34.6
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm exec prettier --write apps/web/features/customers/CustomerDetailPage.tsx apps/web/features/customers/CustomerDrawers.tsx apps/web/features/customers/CustomerFilters.tsx apps/web/features/customers/CustomerListPage.tsx apps/web/features/customers/DeleteAddressModal.tsx apps/web/features/customers/useCustomerMutation.ts apps/web/features/customers/mutation-policy.ts apps/web/test/customer-filters.test.mjs apps/web/test/customer-pagination.test.mjs apps/web/test/customer-mutation-reconciliation.test.mjs docs/tasks/active/NEXORA-031-full-frontend-migration.md
+      - name: Commit formatting only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- apps/web/features/customers/CustomerDetailPage.tsx apps/web/features/customers/CustomerDrawers.tsx apps/web/features/customers/CustomerFilters.tsx apps/web/features/customers/CustomerListPage.tsx apps/web/features/customers/DeleteAddressModal.tsx apps/web/features/customers/useCustomerMutation.ts apps/web/features/customers/mutation-policy.ts apps/web/test/customer-filters.test.mjs apps/web/test/customer-pagination.test.mjs apps/web/test/customer-mutation-reconciliation.test.mjs docs/tasks/active/NEXORA-031-full-frontend-migration.md
+          if ! git diff --cached --quiet; then
+            git commit -m "style(customer): apply pinned Prettier to PR28 remediation"
+            git push origin HEAD:feat/customer-management-ui
+          fi
