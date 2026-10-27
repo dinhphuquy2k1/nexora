@@ -108,18 +108,40 @@ export function DrawerFrame({
 function ReconcileNotice({
   disabled,
   onRetry,
+  isUnresolved,
+  canRecover,
+  onAcknowledge,
+  onDiscard,
 }: {
   disabled: boolean;
   onRetry: () => void;
+  isUnresolved?: boolean;
+  canRecover?: boolean;
+  onAcknowledge?: () => void;
+  onDiscard?: () => void;
 }) {
   return (
     <div role="status" className={styles.notice}>
       <p>
-        Chưa đối chiếu xong dữ liệu. Chỉ thử lưu lại sau khi tải thành công.
+        {isUnresolved
+          ? "Kết quả thao tác chưa thể xác nhận từ máy chủ. Dữ liệu mới nhất đã được tải lại. Vui lòng kiểm tra kỹ trước khi quyết định tiếp tục."
+          : "Chưa đối chiếu xong dữ liệu. Chỉ thử lưu lại sau khi tải thành công."}
       </p>
-      <Button variant="secondary" disabled={disabled} onClick={onRetry}>
-        Đối chiếu lại dữ liệu
-      </Button>
+      <div className={styles.actions}>
+        <Button variant="secondary" disabled={disabled} onClick={onRetry}>
+          Đối chiếu lại dữ liệu
+        </Button>
+        {isUnresolved && canRecover && onDiscard && (
+          <Button variant="secondary" onClick={onDiscard}>
+            Thử lưu lại
+          </Button>
+        )}
+        {isUnresolved && canRecover && onAcknowledge && (
+          <Button variant="emphasis" onClick={onAcknowledge}>
+            Đã lưu thành công
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -172,10 +194,10 @@ export function CustomerDrawer({
       onClose={onClose}
     >
       <form
-        aria-busy={mutation.busy}
+        aria-busy={mutation.isWriting || mutation.isReconciling}
         onSubmit={(e) => {
           e.preventDefault();
-          if (reconciling || writeBlocked) return;
+          if (reconciling || writeBlocked || !mutation.canWrite) return;
           const openAfter =
             !customer &&
             (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") ===
@@ -204,7 +226,7 @@ export function CustomerDrawer({
       >
         <div className={styles.drawerBody} data-customer-form-body>
           <fieldset
-            disabled={mutation.busy || reconciling || writeBlocked}
+            disabled={!mutation.canWrite || reconciling || writeBlocked}
             className={styles.fieldset}
           >
             <section className={styles.formSection}>
@@ -275,6 +297,13 @@ export function CustomerDrawer({
                 if (mutation.canRetryRead) mutation.retryReconciliation();
                 else refresh();
               }}
+              isUnresolved={mutation.isUnresolved}
+              canRecover={settlement?.outcome === "success" && !reconciling}
+              onDiscard={() => mutation.resolveUnresolved("discard")}
+              onAcknowledge={() => {
+                mutation.resolveUnresolved("acknowledged");
+                onSaved();
+              }}
             />
           )}
           <div id="customer-field-error">
@@ -293,16 +322,16 @@ export function CustomerDrawer({
             <Button
               variant={customer ? "emphasis" : "secondary"}
               type="submit"
-              disabled={mutation.busy || reconciling || writeBlocked}
+              disabled={!mutation.canWrite || reconciling || writeBlocked}
             >
-              {mutation.busy ? "Đang lưu…" : "Lưu khách hàng"}
+              {mutation.isWriting ? "Đang lưu…" : "Lưu khách hàng"}
             </Button>
             {!customer && (
               <Button
                 variant="emphasis"
                 type="submit"
                 value="open"
-                disabled={mutation.busy || reconciling || writeBlocked}
+                disabled={!mutation.canWrite || reconciling || writeBlocked}
               >
                 Lưu và mở hồ sơ
               </Button>
@@ -367,10 +396,10 @@ export function AddressDrawer({
       address
     >
       <form
-        aria-busy={mutation.busy}
+        aria-busy={mutation.isWriting || mutation.isReconciling}
         onSubmit={(e) => {
           e.preventDefault();
-          if (reconciling || writeBlocked) return;
+          if (reconciling || writeBlocked || !mutation.canWrite) return;
           void mutation.run(
             () =>
               address
@@ -386,7 +415,7 @@ export function AddressDrawer({
       >
         <div className={styles.drawerBody} data-customer-form-body>
           <fieldset
-            disabled={mutation.busy || reconciling || writeBlocked}
+            disabled={!mutation.canWrite || reconciling || writeBlocked}
             className={styles.fieldset}
           >
             <AddressForm
@@ -408,6 +437,13 @@ export function AddressDrawer({
                 if (mutation.canRetryRead) mutation.retryReconciliation();
                 else refresh();
               }}
+              isUnresolved={mutation.isUnresolved}
+              canRecover={settlement?.outcome === "success" && !reconciling}
+              onDiscard={() => mutation.resolveUnresolved("discard")}
+              onAcknowledge={() => {
+                mutation.resolveUnresolved("acknowledged");
+                onSaved();
+              }}
             />
           )}
           <div id="customer-field-error">
@@ -425,9 +461,9 @@ export function AddressDrawer({
           <Button
             variant="emphasis"
             type="submit"
-            disabled={mutation.busy || reconciling || writeBlocked}
+            disabled={!mutation.canWrite || reconciling || writeBlocked}
           >
-            {mutation.busy ? "Đang lưu…" : "Lưu địa chỉ"}
+            {mutation.isWriting ? "Đang lưu…" : "Lưu địa chỉ"}
           </Button>
         </footer>
       </form>

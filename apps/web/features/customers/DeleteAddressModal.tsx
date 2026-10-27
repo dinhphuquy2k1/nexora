@@ -109,22 +109,41 @@ export function DeleteAddressModal({
             <Feedback error={mutation.error} />
             {isReconciling && (
               <div role="status" className={styles.notice}>
-                <p>Chưa đối chiếu xong dữ liệu. Chưa thể thử xóa lại.</p>
-                <Button
-                  variant="secondary"
-                  disabled={
-                    mutation.phase === "reconciling" ||
-                    (reconciling &&
-                      mutation.phase === "idle" &&
-                      settlement?.outcome !== "error")
-                  }
-                  onClick={() => {
-                    if (mutation.canRetryRead) mutation.retryReconciliation();
-                    else refresh();
-                  }}
-                >
-                  Đối chiếu lại dữ liệu
-                </Button>
+                <p>
+                  {mutation.isUnresolved
+                    ? "Kết quả xóa địa chỉ chưa thể xác nhận với máy chủ. Hãy kiểm tra dữ liệu đã tải lại."
+                    : "Chưa đối chiếu xong dữ liệu. Chưa thể thử xóa lại."}
+                </p>
+                <div className={styles.actions}>
+                  <Button
+                    variant="secondary"
+                    disabled={
+                      mutation.phase === "reconciling" ||
+                      (reconciling &&
+                        mutation.phase === "idle" &&
+                        settlement?.outcome !== "error")
+                    }
+                    onClick={() => {
+                      if (mutation.canRetryRead) mutation.retryReconciliation();
+                      else refresh();
+                    }}
+                  >
+                    Đối chiếu lại dữ liệu
+                  </Button>
+                  {mutation.isUnresolved &&
+                    settlement?.outcome === "success" &&
+                    !reconciling && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          mutation.resolveUnresolved("discard");
+                          onClose();
+                        }}
+                      >
+                        Bỏ qua và đóng
+                      </Button>
+                    )}
+                </div>
               </div>
             )}
           </>
@@ -142,7 +161,7 @@ export function DeleteAddressModal({
           variant="emphasis"
           disabled={
             !others.length ||
-            mutation.busy ||
+            !mutation.canWrite ||
             writeBlocked ||
             isReconciling ||
             (target.isDefault && !others.some((a) => a.id === replacement))

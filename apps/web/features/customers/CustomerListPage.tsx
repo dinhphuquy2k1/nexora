@@ -163,8 +163,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     const sameKey = customerQueryString(current) === customerQueryString(next);
     if (sameKey) return;
     cancel();
-    manualReloadLock.current = false;
-    setManualReloadId(null);
     const requestId = read.invalidate();
     const url = "/customers?" + customerQueryString(next);
     if (url !== location.pathname + location.search)
@@ -336,13 +334,29 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
         />
       </section>
       {writeUnresolved && (
-        <p role="alert" className={styles.notice}>
-          Kết quả lưu chưa xác định. Hãy đối chiếu dữ liệu, không gửi lại thao
-          tác cũ.
-          <Button variant="secondary" onClick={read.refresh}>
-            Đối chiếu lại dữ liệu
-          </Button>
-        </p>
+        <div role="alert" className={styles.notice}>
+          <p>
+            Kết quả lưu chưa xác định. Hãy đối chiếu dữ liệu, không gửi lại thao
+            tác cũ.
+          </p>
+          <div className={styles.actions}>
+            <Button
+              variant="secondary"
+              disabled={read.loading}
+              onClick={read.refresh}
+            >
+              Đối chiếu lại dữ liệu
+            </Button>
+            {read.outcome === "success" && !read.loading && (
+              <Button
+                variant="secondary"
+                onClick={() => setWriteUnresolved(false)}
+              >
+                Đã kiểm tra xong
+              </Button>
+            )}
+          </div>
+        </div>
       )}
       {powerState?.phase === "blocked" && (
         <p className={styles.notice}>

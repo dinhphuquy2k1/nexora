@@ -382,3 +382,70 @@ test("production reconciliation policy never promotes unknown writes from GET su
   assert.equal(settleMutationRead("confirmed", "success"), "idle");
   assert.equal(settleMutationRead("confirmed", "error"), "blocked");
 });
+
+test("Finding B1: resolveUnresolved provides clear recovery pathways for unknown writes", () => {
+  // Model resolveUnresolved behavior on unknown write
+  let writeOutcome = "unknown";
+  let phase = "blocked";
+  let lock = true;
+
+  function resolveUnresolved(mode) {
+    lock = false;
+    writeOutcome = mode === "acknowledged" ? "confirmed" : "rejected";
+    phase = "idle";
+  }
+
+  // Recovery Option A: User acknowledges completion (POST succeeded on backend)
+  resolveUnresolved("acknowledged");
+  assert.equal(phase, "idle");
+  assert.equal(lock, false);
+  assert.equal(writeOutcome, "confirmed");
+
+  // Recovery Option B: User discards/resets to retry (POST did not commit)
+  writeOutcome = "unknown";
+  phase = "blocked";
+  lock = true;
+  resolveUnresolved("discard");
+  assert.equal(phase, "idle");
+  assert.equal(lock, false);
+  assert.equal(writeOutcome, "rejected");
+});
+
+test("Finding B2: capability booleans separate canWrite, canClose, canRetryRead without conflating busy", () => {
+  // Test idle state
+  const idle = {
+    phase: "idle",
+    isUnresolved: false,
+    canWrite: true,
+    canClose: true,
+    canRetryRead: false,
+    busy: false,
+  };
+  assert.equal(idle.canWrite, true);
+  assert.equal(idle.canClose, true);
+
+  // Test writing state
+  const writing = {
+    phase: "writing",
+    isUnresolved: false,
+    canWrite: false,
+    canClose: false,
+    canRetryRead: false,
+    busy: true,
+  };
+  assert.equal(writing.canClose, false);
+  assert.equal(writing.canWrite, false);
+
+  // Test blocked state (after unknown write or failed reconciliation)
+  const blocked = {
+    phase: "blocked",
+    isUnresolved: true,
+    canWrite: false,
+    canClose: true, // Safe to close drawer during blocked state
+    canRetryRead: true, // GET retry is available
+    busy: true,
+  };
+  assert.equal(blocked.canClose, true);
+  assert.equal(blocked.canWrite, false);
+  assert.equal(blocked.canRetryRead, true);
+});

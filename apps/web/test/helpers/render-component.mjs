@@ -25,6 +25,7 @@ export function loadComponent(rawFilename, cache = new Map()) {
   cache.set(filename, module);
   const { outputText } = ts.transpileModule(readFileSync(filename, "utf8"), {
     compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
       module: ts.ModuleKind.CommonJS,
       jsx: ts.JsxEmit.ReactJSX,
       esModuleInterop: true,

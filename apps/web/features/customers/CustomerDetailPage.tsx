@@ -135,18 +135,33 @@ export function CustomerDetailPage({ id }: { id: string }) {
       </div>
       {writeUnresolved && (
         <div role="alert" className={styles.notice}>
-          Kết quả thao tác ghi chưa xác định. Không gửi lại thao tác; hãy kiểm
-          tra dữ liệu đã tải lại.
-          <Button
-            variant="secondary"
-            disabled={read.loading}
-            onClick={() => {
-              if (mutation.canRetryRead) mutation.retryReconciliation();
-              else read.refresh();
-            }}
-          >
-            Đối chiếu lại dữ liệu
-          </Button>
+          <p>
+            Kết quả thao tác ghi chưa xác định. Không gửi lại thao tác; hãy kiểm
+            tra dữ liệu đã tải lại.
+          </p>
+          <div className={styles.actions}>
+            <Button
+              variant="secondary"
+              disabled={read.loading}
+              onClick={() => {
+                if (mutation.canRetryRead) mutation.retryReconciliation();
+                else read.refresh();
+              }}
+            >
+              Đối chiếu lại dữ liệu
+            </Button>
+            {read.outcome === "success" && !read.loading && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setWriteUnresolved(false);
+                  mutation.reset();
+                }}
+              >
+                Đã kiểm tra xong
+              </Button>
+            )}
+          </div>
         </div>
       )}
       {notice && (

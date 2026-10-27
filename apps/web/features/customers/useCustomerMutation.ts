@@ -169,6 +169,7 @@ export function useCustomerMutation(
           return;
         }
 
+        writeOutcome.current = "rejected";
         lock.current = false;
         setPhase("idle");
         setBusy(false);
@@ -218,14 +219,34 @@ export function useCustomerMutation(
     }
   }
 
+  const resolveUnresolved = useCallback(
+    (mode: "acknowledged" | "discard" = "discard") => {
+      targetRequestId.current = null;
+      lock.current = false;
+      writeOutcome.current = mode === "acknowledged" ? "confirmed" : "rejected";
+      setPhase("idle");
+      setBusy(false);
+      setError(undefined);
+    },
+    [],
+  );
+
+  const isUnresolved = writeOutcome.current === "unknown";
+
   return {
     run,
     busy: busy || phase !== "idle",
+    canWrite: phase === "idle" && !isUnresolved,
     canRetryRead: phase === "blocked",
     canClose: phase !== "writing",
+    isWriting: phase === "writing",
+    isReconciling: phase === "reconciling",
+    isUnresolved,
+    writeOutcome: writeOutcome.current,
     phase,
     error,
     retryReconciliation,
     reset,
+    resolveUnresolved,
   };
 }
