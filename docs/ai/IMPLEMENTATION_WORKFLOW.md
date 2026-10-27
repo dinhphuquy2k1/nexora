@@ -92,7 +92,7 @@ When Documentation Impact is `REQUIRED`, update the canonical owner in the same 
 
 Future SIGNIFICANT tasks require an independent code review evaluating:
 
-- Compliance against the approved design.
+- Compliance against the recorded implementation plan.
 - Detection of newly introduced duplicate implementations.
 - API / schema / SDK contract drift.
 - Transaction and concurrency regressions.
