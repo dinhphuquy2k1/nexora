@@ -165,3 +165,20 @@ test("Finding 05: CustomerPagination renders navigation buttons with data-press-
   // Must render on First, Prev, Next, Last and individual page buttons
   assert.ok(matches.length >= 4);
 });
+
+test("estimated pagination renders stable numbers but disallows navigation after failed read", () => {
+  const input = {
+    query: { page: 1, pageSize: 20, status: "ACTIVE" },
+    stats: { total: 35, active: 25, inactive: 10 },
+    rowCount: 0,
+    loading: false,
+  };
+  const model = derivePaginationModel(input);
+  assert.equal(model.isEstimated, true);
+  assert.deepEqual(model.pages, [1, 2]);
+  assert.equal(model.canNext, false);
+  assert.equal(model.canLast, false);
+  const html = render(React.createElement(CustomerPagination, { ...input, onQuery() {} }));
+  assert.match(html, /aria-label="Trang 2"[^>]*disabled/);
+  assert.match(html, /aria-label="Trang sau"[^>]*disabled/);
+});

@@ -8,6 +8,7 @@ export function CustomerFilters({
   onSearch,
   onClear,
   onReload,
+  reloading = false,
   onClearFilters,
   filteredTotal,
   statsTotal,
@@ -17,6 +18,7 @@ export function CustomerFilters({
   onSearch: (q: string) => void;
   onClear: () => void;
   onReload: () => void;
+  reloading?: boolean;
   onClearFilters: () => void;
   filteredTotal?: number;
   statsTotal?: number;
@@ -73,8 +75,14 @@ export function CustomerFilters({
             </button>
           </div>
         )}
-        <Button variant="secondary" onClick={onReload} aria-label="Làm mới">
-          <RefreshCw size={14} aria-hidden="true" />
+        <Button
+          variant="secondary"
+          onClick={onReload}
+          disabled={reloading}
+          aria-busy={reloading}
+          aria-label="Làm mới"
+        >
+          <RefreshCw size={14} className={reloading ? styles.spin : undefined} aria-hidden="true" />
           <span>Làm mới</span>
         </Button>
       </div>

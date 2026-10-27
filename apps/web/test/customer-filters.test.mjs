@@ -83,3 +83,14 @@ test("CustomerFilters communicates active URL phone filter and supports clear ac
   clearFilterBtn.props.onClick();
   assert.equal(filtersCleared, true, "clicking clear removes active filters");
 });
+
+test("CustomerFilters manual reload exposes pending state without changing label width", () => {
+  const tree = CustomerFilters({
+    query: { page: 1, pageSize: 20 }, draft: "", reloading: true,
+    onSearch() {}, onClear() {}, onReload() {}, onClearFilters() {},
+  });
+  const btn = find(tree, (n) => n.props?.["aria-label"] === "Làm mới");
+  assert.ok(btn);
+  assert.equal(btn.props.disabled, true);
+  assert.equal(btn.props["aria-busy"], true);
+});

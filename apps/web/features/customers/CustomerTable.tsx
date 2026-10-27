@@ -78,9 +78,9 @@ export function CustomerTable({
   if (pendingFilter)
     state = (
       <>
-        <h2 className={styles.stateTitle}>Bộ lọc chưa áp dụng</h2>
+        <h2 className={styles.stateTitle}>Đang cập nhật tìm kiếm</h2>
         <p className={styles.stateDesc}>
-          Chọn Áp dụng hoặc Làm mới để tải danh sách theo số điện thoại đã nhập.
+          Danh sách sẽ tự cập nhật theo từ khóa tìm kiếm vừa nhập.
         </p>
       </>
     );

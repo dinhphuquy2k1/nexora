@@ -69,7 +69,8 @@ test("unapplied filter draft is explicit and never reported as successful empty"
   const html = render(
     React.createElement(CustomerTable, { ...props, pendingFilter: true }),
   );
-  assert.match(html, /Bộ lọc chưa áp dụng/);
+  assert.match(html, /Đang cập nhật tìm kiếm/);
+  assert.doesNotMatch(html, /số điện thoại đã nhập|Chọn Áp dụng/);
   assert.doesNotMatch(
     html,
     /Chưa có khách hàng|Không tìm thấy khách hàng phù hợp/,

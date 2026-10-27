@@ -102,7 +102,7 @@ export function CustomerPagination({
               }
               aria-label={`Trang ${n}`}
               aria-current={model.page === n ? "page" : undefined}
-              disabled={loading}
+              disabled={loading || !model.isAuthoritative}
               onClick={() => onQuery({ page: n })}
             >
               {n}

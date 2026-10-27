@@ -118,10 +118,11 @@ export function derivePaginationModel({
   }
 
   const pages = customerPageWindow(page, totalPages);
-  const canPrev = !loading && page > 1;
-  const canNext = !loading && page < totalPages;
-  const canFirst = !loading && page > 1;
-  const canLast = !loading && page < totalPages;
+  // Estimated statistics stabilize presentation but are not permission to navigate.
+  const canPrev = isAuthoritative && !loading && page > 1;
+  const canNext = isAuthoritative && !loading && page < totalPages;
+  const canFirst = isAuthoritative && !loading && page > 1;
+  const canLast = isAuthoritative && !loading && page < totalPages;
 
   return {
     page,

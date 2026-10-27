@@ -45,6 +45,8 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   );
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [draft, setDraft] = useState(query.q ?? "");
+  const [manualReloadId, setManualReloadId] = useState<number | null>(null);
+  const manualReloadLock = useRef(false);
   const [statistics, setStatistics] = useState<StatisticsSnapshot>();
   const committedScope = statisticsScope(ownerId, query);
   const displayScope = statisticsScope(ownerId, query, draft);
@@ -84,6 +86,12 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   if (read.outcome === "success" && compatible && !read.denied)
     stats = read.data?.stats ?? undefined;
   const rows = compatible && !read.denied ? read.data?.customers : undefined;
+  useEffect(() => {
+    if (manualReloadId !== null && read.settledId >= manualReloadId && !read.loading) {
+      manualReloadLock.current = false;
+      setManualReloadId(null);
+    }
+  }, [manualReloadId, read.settledId, read.loading]);
 
   const [overlay, setOverlay] = useState<Summary | "create" | null>(null);
   const power = useRef(new CustomerPowerFlight());
@@ -141,16 +149,19 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     try {
       current = parseCustomerQuery(new URLSearchParams(location.search));
     } catch {
-      current = { page: 1, pageSize: 10 };
+      current = { page: PaginationLimits.DEFAULT_PAGE, pageSize: PaginationLimits.DEFAULT_PAGE_SIZE };
     }
     const next = { ...current, ...patch };
     const sameKey = customerQueryString(current) === customerQueryString(next);
     if (sameKey) return;
     cancel();
-    read.invalidate();
+    manualReloadLock.current = false;
+    setManualReloadId(null);
+    const requestId = read.invalidate();
     const url = "/customers?" + customerQueryString(next);
     if (url !== location.pathname + location.search)
       window.history[replace ? "replaceState" : "pushState"](null, "", url);
+    return requestId;
   }
   function searchChange(q: string) {
     cancel();
@@ -161,17 +172,20 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
     );
   }
   function handleReload() {
+    if (manualReloadLock.current) return;
+    manualReloadLock.current = true;
     cancel();
     const trimmedDraft = draft.trim();
     let current: Query;
     try {
       current = parseCustomerQuery(new URLSearchParams(location.search));
     } catch {
-      current = { page: 1, pageSize: 10 };
+      current = { page: PaginationLimits.DEFAULT_PAGE, pageSize: PaginationLimits.DEFAULT_PAGE_SIZE };
     }
     const currentQ = (current.q ?? "").trim();
+    let requestId: number | undefined;
     if (trimmedDraft !== currentQ) {
-      change(
+      requestId = change(
         {
           q: trimmedDraft || undefined,
           page: 1,
@@ -182,8 +196,10 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
       if (draft !== trimmedDraft) {
         setDraft(trimmedDraft);
       }
-      read.refresh();
+      requestId = read.refresh();
     }
+    if (requestId !== undefined) setManualReloadId(requestId);
+    else manualReloadLock.current = false;
   }
   async function handleToggleStatus(c: Summary) {
     if (read.isDenied()) return;
@@ -302,6 +318,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           }}
           onClearFilters={clearFilters}
           onReload={handleReload}
+          reloading={manualReloadId !== null}
           filteredTotal={compatible ? read.data?.pagination?.total : undefined}
           statsTotal={stats?.total}
         />
