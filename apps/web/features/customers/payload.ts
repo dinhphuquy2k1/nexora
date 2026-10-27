@@ -8,7 +8,7 @@ import type {
   Create,
   Patch,
 } from "./types.ts";
-import { CustomerStatus } from "@nexora/shared";
+import { CustomerStatus, CustomerInputLimits, normalizeBoundedText, normalizeRawBoundedText } from "@nexora/shared";
 export class DraftError extends Error {
   field: string;
   constructor(field: string) {
@@ -22,19 +22,20 @@ function text(
   field: string,
   required = true,
 ) {
-  const v = (value ?? "").trim();
-  if ((required && !v) || v.length > max) throw new DraftError(field);
+  const v = normalizeBoundedText(value ?? "", max, required);
+  if (v === null) throw new DraftError(field);
   return v;
 }
 function phone(value: string | undefined, field: string, required = true) {
-  if ((value?.length ?? 0) > 64) throw new DraftError(field);
-  return text(value, 64, field, required);
+  const v = normalizeRawBoundedText(value ?? "", CustomerInputLimits.PHONE_RAW, required);
+  if (v === null) throw new DraftError(field);
+  return v;
 }
 const profile = (d: ProfileDraft) => ({
-  name: text(d.name, 200, "name"),
+  name: text(d.name, CustomerInputLimits.NAME, "name"),
   phone: phone(d.phone, "phone"),
-  email: text(d.email, 254, "email", false),
-  note: text(d.note, 5000, "note", false),
+  email: text(d.email, CustomerInputLimits.EMAIL, "email", false),
+  note: text(d.note, CustomerInputLimits.NOTE, "note", false),
 });
 export function createCustomerPayload(
   d: ProfileDraft,
@@ -80,13 +81,13 @@ export function addressPayload(
   d: Partial<AddressDraft>,
   old?: Address,
 ): AddressCreate | AddressPatch {
-  const countryCode = text(d.countryCode ?? "VN", 2, "countryCode");
+  const countryCode = text(d.countryCode ?? "VN", CustomerInputLimits.COUNTRY_CODE, "countryCode");
   if (countryCode.length !== 2) throw new DraftError("countryCode");
   const values = {
-    label: text(d.label, 100, "label", false) || null,
+    label: text(d.label, CustomerInputLimits.ADDRESS_LABEL, "label", false) || null,
     recipientName: text(
       d.recipientName,
-      200,
+      CustomerInputLimits.RECIPIENT_NAME,
       "recipientName",
       !old ? false : true,
     ),
@@ -95,7 +96,7 @@ export function addressPayload(
       "recipientPhone",
       !old ? false : true,
     ),
-    addressText: text(d.addressText, 2000, "addressText"),
+    addressText: text(d.addressText, CustomerInputLimits.ADDRESS_TEXT, "addressText"),
   };
   if (!old) {
     const out: AddressCreate = { countryCode, addressText: values.addressText };
