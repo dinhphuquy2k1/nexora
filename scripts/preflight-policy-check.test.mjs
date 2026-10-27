@@ -919,13 +919,25 @@ test("integrity: new plan revision requires matching snapshot/digest, not anothe
   const nextDigest = digestOf(nextSnapshot);
   const nextPath = f.snapshotPath.replace("rev-1", "rev-2");
   writeFileSync(resolve(f.dir, nextPath), nextSnapshot);
-  const nextTask = f.task.replaceAll("rev-1", "rev-2").replaceAll(f.digest, nextDigest);
+  const nextTask = f.task
+    .replaceAll("rev-1", "rev-2")
+    .replaceAll(f.digest, nextDigest);
   writeFileSync(resolve(f.dir, f.taskPath), nextTask);
-  const nextPr = f.pr.replaceAll("rev-1", "rev-2").replaceAll(f.digest, nextDigest);
+  const nextPr = f.pr
+    .replaceAll("rev-1", "rev-2")
+    .replaceAll(f.digest, nextDigest);
   assert.equal(validatePrTaskBinding(nextPr, f.dir).valid, true);
   assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
-  assert.deepEqual(validateTaskDesignGovernance(nextTask, f.taskPath, { mode: "implementation" }), []);
-  writeFileSync(resolve(f.dir, f.taskPath), f.task + `\nDesign SHA-256: ${f.digest}\n`);
+  assert.deepEqual(
+    validateTaskDesignGovernance(nextTask, f.taskPath, {
+      mode: "implementation",
+    }),
+    [],
+  );
+  writeFileSync(
+    resolve(f.dir, f.taskPath),
+    f.task + `\nDesign SHA-256: ${f.digest}\n`,
+  );
   assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
 });
 
@@ -963,10 +975,22 @@ test("plan-first: fresh task without approval metadata passes implementation gov
     .filter((line) => !/^Approval (?:authority|status|evidence):/.test(line))
     .join("\n");
   writeFileSync(resolve(f.dir, f.taskPath), cleanPlan);
-  assert.deepEqual(validateTaskDesignGovernance(cleanPlan, f.taskPath, { mode: "implementation" }), []);
+  assert.deepEqual(
+    validateTaskDesignGovernance(cleanPlan, f.taskPath, {
+      mode: "implementation",
+    }),
+    [],
+  );
   assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, true);
-  const noMatrix = cleanPlan.replace("component existing implementations domain owner reuse alternatives selected approach rationale risks verification", "");
-  assert.ok(validateTaskDesignGovernance(noMatrix, f.taskPath, { mode: "implementation" }).length > 0);
+  const noMatrix = cleanPlan.replace(
+    "component existing implementations domain owner reuse alternatives selected approach rationale risks verification",
+    "",
+  );
+  assert.ok(
+    validateTaskDesignGovernance(noMatrix, f.taskPath, {
+      mode: "implementation",
+    }).length > 0,
+  );
 });
 
 test("plan-first: a pending historical record may omit snapshot structurally but implementation requires plan snapshot", (t) => {
