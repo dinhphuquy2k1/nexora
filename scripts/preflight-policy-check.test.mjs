@@ -194,7 +194,7 @@ test("structured design record parser: accurately extracts fields and rejects ma
 // Task Design Governance: Structural vs Implementation Modes
 // ============================================================================
 
-test("task governance: distinguishes structural validation from implementation approval enforcement", () => {
+test("task governance: validates the implementation plan without requiring owner approval", () => {
   const validReuseMatrix = `
 | Component | Existing implementations | Domain owner | Reuse alternatives | Selected approach | Rationale | Risks | Verification |
 | isUuid | customer.input.ts | Common | Extract | Extract | Simplicity | None | Unit tests |
@@ -253,27 +253,21 @@ ${validReuseMatrix}
   );
   assert.equal(structuralApproved.length, 0);
 
-  // 4. Implementation mode: PENDING_REVIEW must FAIL
+  // 4. Implementation mode: historical PENDING_REVIEW does not block the plan
   const implPending = validateTaskDesignGovernance(
     pendingTask,
     "docs/tasks/active/NEXORA-027-test.md",
     { mode: "implementation" },
   );
-  assert.ok(
-    implPending.some((f) => f.includes("Approval status is 'PENDING_REVIEW'")),
-  );
+  assert.deepEqual(implPending, []);
 
-  // 5. Implementation mode: REVISION_REQUIRED must FAIL
+  // 5. A recorded historical REVISION_REQUIRED does not block a new planned revision
   const implRevision = validateTaskDesignGovernance(
     revisionTask,
     "docs/tasks/active/NEXORA-027-test.md",
     { mode: "implementation" },
   );
-  assert.ok(
-    implRevision.some((f) =>
-      f.includes("Approval status is 'REVISION_REQUIRED'"),
-    ),
-  );
+  assert.deepEqual(implRevision, []);
 
   // 6. Implementation mode: APPROVED passes task governance
   const implApproved = validateTaskDesignGovernance(
@@ -351,7 +345,7 @@ test("task governance grandfathering: completed tasks exempt, old active task wi
     ),
   );
 
-  // 4. Old active task with unapproved PENDING_REVIEW amendment fails in implementation mode
+  // 4. Historical pending approval does not block a structurally valid new plan
   const validReuseMatrix = `
 | Component | Existing implementations | Domain owner | Reuse alternatives | Selected approach | Rationale | Risks | Verification |
 | isUuid | customer.input.ts | Common | Extract | Extract | Simplicity | None | Unit tests |
@@ -376,11 +370,7 @@ ${validReuseMatrix}
     "docs/tasks/active/NEXORA-012-admin-staff-management.md",
     { mode: "implementation" },
   );
-  assert.ok(
-    unapprovedFailures.some((f) =>
-      f.includes("Approval status is 'PENDING_REVIEW'"),
-    ),
-  );
+  assert.deepEqual(unapprovedFailures, []);
 
   // 5. Old active task with properly approved revision PASSES
   const approvedOldAmendment = unapprovedOldAmendment.replace(
@@ -1261,7 +1251,7 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
     ),
   );
 
-  // 5. Valid PR CI run with mocked owner approval succeeds
+  // 5. Valid PR CI plan binding succeeds without owner approval
   const mockApprovedFetch = createMockFetch({
     comments: [
       {
@@ -1288,11 +1278,34 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
       },
       repository: { full_name: "dinhphuquy2k1/nexora" },
     },
-    githubToken: "mock-token",
-    fetchFn: mockApprovedFetch,
+    // Authentication is deliberately unavailable; plan integrity alone is enforced.
+    githubToken: undefined,
+    fetchFn: () => { throw Error("Approval API must not be called"); },
   });
   assert.equal(validCiResult.success, true);
   assert.deepEqual(validCiResult.failures, []);
+
+  // Owner approval is not needed even for tasks that retain historical pending metadata.
+  const unapprovedCiResult = await runPreflightCheck(root, {
+    isCi: true,
+    eventName: "pull_request",
+    eventPayload: {
+      pull_request: {
+        number: 23,
+        body: [
+          "Task ID: NEXORA-027",
+          "Task Reference: docs/tasks/active/NEXORA-027-customer-management-backend.md",
+          "Plan revision: rev-2026-10-21-reuse-v2",
+          "Design Snapshot: ${TEST_SNAPSHOT}",
+          "Design SHA-256: ${TEST_DIGEST}",
+        ].join("\n"),
+      },
+      repository: { full_name: "dinhphuquy2k1/nexora" },
+    },
+    githubToken: "",
+    fetchFn: () => { throw Error("Approval fetch is not permitted"); },
+  });
+  assert.equal(unapprovedCiResult.success, true, unapprovedCiResult.failures.join("\n"));
 
   // 6. Push to main CI mode succeeds with static checks without PR body
   const pushMainResult = await runPreflightCheck(root, {
@@ -1729,7 +1742,7 @@ test("approval: truncated API pagination cannot certify an older approval", asyn
   assert.match(result.message, /pagination/);
 });
 
-test("structural mode: pending task without snapshot remains representable, but implementation fails", (t) => {
+test("plan-first: a pending historical record may omit snapshot structurally but implementation requires plan snapshot", (t) => {
   const f = integrityFixture(t);
   const pending = f.task
     .replace(/^Design (?:Snapshot|SHA-256):.*\n/gm, "")
