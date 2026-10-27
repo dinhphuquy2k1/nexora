@@ -273,3 +273,13 @@ Panel now supports optional standard/compact density and actions; Customer Detai
 uses compact panels for profile/addresses. Workspace frame CSS is shared by Header
 inner/main and is selected by canonical route metadata. ToastProvider/Viewport API
 and all size/color contracts are owned by [Design System](design-system.md).
+
+## Shared BE/FE validation (NEXORA-031, 2026-10-27)
+
+- **Canonical owners**: `packages/shared/src/validation/pagination.ts`, `text.ts`, and `customer-limits.ts`, exported through `@nexora/shared`.
+- **Consumers**: Customer frontend URL/form parsing and backend Customer input/query validation; future modules may reuse the pure primitives but must declare their own domain policies.
+- **Pagination**: `page` defaults to 1, `pageSize` defaults to **20** in both API and UI; maximum page size 100, page/offset maximum 2147483647. Canonical positive decimal syntax, safe integer and offset guards are shared. Duplicate/unknown HTTP query parameter checks remain at the corresponding boundary.
+- **Text**: pure trimmed string bounds and optional raw-length-before-trim checks. `CustomerInputLimits` describes Customer transport policy, not a global limit for every domain.
+- **Phone (option A)**: Frontend validates raw requiredness/length/trim only. `apps/api/src/common/value-objects/phone-number.ts` remains the authoritative backend E.164 parser/validator with pinned country metadata. No phone-number parsing library is added to browser/shared bundles.
+- **Boundaries**: shared never throws NestJS/React/Customer errors or imports application packages; backend retains Domain VOs, Zod email format, owner invariants and HTTP error mapping; frontend retains field messages and safe UX.
+- **Date validation**: no speculative date utility; extract only when a concrete BE/FE consumer appears.
