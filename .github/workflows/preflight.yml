@@ -17,15 +17,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
-      - name: Temporary format snapshot and digest
-        run: |
-          npx --yes prettier@3.6.2 --write docs/tasks/design-reviews/NEXORA-031-rev-2026-10-27-shared-validation-v1.md
-          echo SNAPSHOT_FORMAT_BEGIN
-          base64 -w0 docs/tasks/design-reviews/NEXORA-031-rev-2026-10-27-shared-validation-v1.md
-          echo
-          echo SNAPSHOT_FORMAT_SHA256
-          sha256sum docs/tasks/design-reviews/NEXORA-031-rev-2026-10-27-shared-validation-v1.md
-          echo SNAPSHOT_FORMAT_END
       - name: Run deterministic preflight policy check
         run: node scripts/preflight-policy-check.mjs
         env:
