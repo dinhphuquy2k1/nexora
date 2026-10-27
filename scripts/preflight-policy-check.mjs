@@ -287,15 +287,8 @@ export function parseStructuredDesignRecord(content) {
     }
   }
 
-  // Validate status value
-  const validStatuses = ["APPROVED", "PENDING_REVIEW", "REVISION_REQUIRED"];
-  if (fields.approvalStatus) {
-    if (!validStatuses.includes(fields.approvalStatus)) {
-      failures.push(
-        `Invalid Approval status '${fields.approvalStatus}'. Allowed values: ${validStatuses.join(", ")}.`,
-      );
-    }
-  }
+  // Approval metadata is historical provenance only. Preserve it verbatim;
+  // do not turn an old decision/status into a Plan-first execution gate.
 
   return {
     exists: true,
