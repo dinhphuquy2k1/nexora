@@ -156,6 +156,43 @@ test("structured design record parser: accurately extracts fields and rejects ma
   );
 });
 
+test("historical approval states never gate a valid recorded plan", () => {
+  for (const status of ["REVOKED", "DECLINED", "LEGACY_STATUS"]) {
+    const task = [
+      "# Task",
+      "Documentation Impact: REQUIRED",
+      "## Design Review & Reuse Decision",
+      "Task ID: NEXORA-027",
+      "Classification: BOUNDED",
+      "Plan revision: rev-1",
+      `Design Snapshot: ${TEST_SNAPSHOT}`,
+      `Design SHA-256: ${TEST_DIGEST}`,
+      "Reviewed baseline: 42833752f76948aae7f1fad378291eedd288557b",
+      `Approval status: ${status}`,
+      "| Component | Existing implementations | Domain owner | Reuse alternatives | Selected approach | Rationale | Risks | Verification |",
+      "| --- | --- | --- | --- | --- | --- | --- | --- |",
+      "| isUuid | common | Common | Reuse | Reuse | Single source | None | Unit tests |",
+    ].join("\n");
+    const parsed = parseStructuredDesignRecord(task);
+    assert.equal(parsed.fields.approvalStatus, status);
+    assert.deepEqual(parsed.failures, []);
+    assert.deepEqual(
+      validateTaskDesignGovernance(task, "docs/tasks/active/NEXORA-027.md", {
+        mode: "implementation",
+      }),
+      [],
+    );
+    const invalid = task.replace("Plan revision: rev-1", "Plan revision: TODO");
+    assert.ok(
+      validateTaskDesignGovernance(
+        invalid,
+        "docs/tasks/active/NEXORA-027.md",
+        { mode: "implementation" },
+      ).length > 0,
+    );
+  }
+});
+
 // ============================================================================
 // Task Design Governance: Structural vs Implementation Modes
 // ============================================================================
