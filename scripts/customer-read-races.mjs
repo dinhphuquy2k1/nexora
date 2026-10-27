@@ -353,6 +353,11 @@ export async function verifyCustomerPower({
     await until("!document.querySelector('[data-toast-message][role=status]')");
     checks.step("CUSTOMER_POWER_COMMITTED_WRITE_FAILED_READ");
     await dismissCustomerToasts({ evaluate });
+    const tabGeometry = () =>
+      evaluate(
+        `(()=>{const list=document.querySelector('[role=tablist][aria-label="Trạng thái khách hàng"]');if(!list)throw Error('CUSTOMER_TABS_MISSING');return [list,...list.querySelectorAll('[role=tab]')].map(e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};});})()`,
+      );
+    const acceptedTabGeometry = await tabGeometry();
     const target = await evaluate(
       `document.querySelector('${powerSelector}').closest('tr').querySelector('a[href]').getAttribute('href')`,
     );
@@ -370,6 +375,11 @@ export async function verifyCustomerPower({
       `!!document.querySelector('main [data-customer-error]')&&document.querySelectorAll('${powerSelector}').length>=2&&Array.from(document.querySelectorAll('${powerSelector}')).every(b=>b.disabled)`,
     );
     assert.equal(patches, 2);
+    assert.deepEqual(
+      await tabGeometry(),
+      acceptedTabGeometry,
+      "failed same-scope refresh cannot move or resize statistics tabs",
+    );
     assert.equal(
       patchStatuses.get(patchIds[1]),
       200,

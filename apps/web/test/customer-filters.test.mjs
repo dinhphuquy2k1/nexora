@@ -28,6 +28,18 @@ test("exact-phone typing stays a local draft until explicit Apply; no invalid pr
     onClearFilters() {},
   });
   const input = find(tree, (n) => n.props?.name === "phone");
+  const search = find(tree, (n) => n.props?.name === "q");
+  assert.equal(
+    search.props.placeholder,
+    "Tìm mã khách hàng, họ tên, số điện thoại...",
+  );
+  assert.equal(
+    find(
+      tree,
+      (n) => n.props?.htmlFor === "customer-search",
+    ).props.children.trim(),
+    "Tìm mã khách hàng, họ tên, số điện thoại",
+  );
   for (const value of ["0", "09", "091"])
     input.props.onChange({ target: { value } });
   assert.deepEqual(drafts, ["0", "09", "091"]);
