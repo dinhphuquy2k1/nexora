@@ -22,6 +22,8 @@ export function DeleteAddressModal({
   onSaved,
   reconciling,
   settlement,
+  writeBlocked = false,
+  onUnresolved,
 }: {
   id: string;
   target: Address;
@@ -32,10 +34,12 @@ export function DeleteAddressModal({
   onSaved: () => void;
   reconciling: boolean;
   settlement?: SettlementTarget;
+  writeBlocked?: boolean;
+  onUnresolved?: () => void;
 }) {
   const [replacement, setReplacement] = useState("");
   const [partial, setPartial] = useState(false);
-  const mutation = useCustomerMutation(settlement ?? refresh, onDenied);
+  const mutation = useCustomerMutation(settlement ?? refresh, onDenied, onUnresolved);
   const others = addresses.filter((a) => a.id !== target.id);
   const isReconciling = reconciling || mutation.phase === "blocked";
   return (
@@ -43,7 +47,7 @@ export function DeleteAddressModal({
       title="Xóa địa chỉ"
       description="Kiểm tra thông tin trước khi xác nhận."
       icon={<AlertTriangle size={20} />}
-      busy={mutation.busy}
+      busy={!mutation.canClose}
       onClose={onClose}
       side={false}
     >
@@ -104,10 +108,10 @@ export function DeleteAddressModal({
                 <p>Chưa đối chiếu xong dữ liệu. Chưa thể thử xóa lại.</p>
                 <Button
                   variant="secondary"
-                  disabled={mutation.busy}
+                  disabled={mutation.phase === "reconciling" || (reconciling && mutation.phase === "idle" && settlement?.outcome !== "error")}
                   onClick={() => {
-                    mutation.retryReconciliation();
-                    refresh();
+                    if (mutation.canRetryRead) mutation.retryReconciliation();
+                    else refresh();
                   }}
                 >
                   Đối chiếu lại dữ liệu
@@ -118,7 +122,7 @@ export function DeleteAddressModal({
         )}
       </div>
       <footer className={styles.drawerFooter}>
-        <Button variant="secondary" disabled={mutation.busy} onClick={onClose}>
+        <Button variant="secondary" disabled={!mutation.canClose} onClick={onClose}>
           Hủy
         </Button>
         <Button
@@ -126,6 +130,7 @@ export function DeleteAddressModal({
           disabled={
             !others.length ||
             mutation.busy ||
+            writeBlocked ||
             isReconciling ||
             (target.isDefault && !others.some((a) => a.id === replacement))
           }
