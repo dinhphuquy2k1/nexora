@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { deleteCustomerAddress } from "../features/customers/address-actions.ts";
+import { settleMutationRead } from "../features/customers/mutation-policy.ts";
 
 /**
  * Pure simulation model of useCustomerMutation reconciliation state machine
@@ -14,6 +15,7 @@ class MutationReconciliationController {
     this.lock = false;
     this.targetRequestId = null;
     this.writeSucceeded = false;
+    this.writeOutcome = "confirmed";
     this.error = undefined;
     this.operationsRun = 0;
   }
@@ -25,14 +27,14 @@ class MutationReconciliationController {
       this.target.settledId !== undefined &&
       this.target.settledId >= target
     ) {
-      if (this.target.outcome === "success" && !this.target.denied) {
-        this.targetRequestId = null;
-        this.lock = false;
-        this.phase = "idle";
-        this.busy = false;
-      } else if (this.target.outcome === "error" || this.target.denied) {
-        this.phase = "blocked";
-        this.busy = true;
+      const outcome = this.target.denied ? "denied" : this.target.outcome;
+      if (outcome === "success" || outcome === "error" || outcome === "denied") {
+        this.phase = settleMutationRead(this.writeOutcome, outcome);
+        this.busy = this.phase !== "idle";
+        if (this.phase === "idle") {
+          this.targetRequestId = null;
+          this.lock = false;
+        }
       }
     }
   }
@@ -41,6 +43,7 @@ class MutationReconciliationController {
     if (this.lock || this.phase !== "idle") return false;
     this.lock = true;
     this.phase = "writing";
+    this.writeOutcome = "confirmed";
     this.busy = true;
     this.error = undefined;
     this.operationsRun++;
@@ -57,6 +60,7 @@ class MutationReconciliationController {
           (!isLocal && !e?.status);
 
         if (isAmbiguous) {
+          this.writeOutcome = "unknown";
           const reqId = this.target.refresh();
           if (typeof reqId === "number") {
             this.targetRequestId = reqId;
@@ -264,13 +268,14 @@ test("Finding 13: ambiguous write error (500) triggers reconciliation and preven
   );
   assert.equal(second, false);
 
-  // When reconciliation succeeds, unblocks
+  // A successful GET does not prove that an unknown write committed.
   target.settledId = target.requestId;
   target.outcome = "success";
   ctrl.observeReadSettlement();
 
-  assert.equal(ctrl.phase, "idle");
-  assert.equal(ctrl.busy, false);
+  assert.equal(ctrl.phase, "blocked");
+  assert.equal(ctrl.busy, true);
+  assert.equal(await ctrl.run(async () => {}, () => {}), false);
 });
 
 test("Finding 14: address deletion triggers exactly one reconciliation per outcome and prevents duplicate calls", async () => {
@@ -333,7 +338,7 @@ test("Finding 14: address deletion triggers exactly one reconciliation per outco
   target.settledId = target.requestId;
   target.outcome = "success";
   ctrl.observeReadSettlement();
-  assert.equal(ctrl.phase, "idle");
+  assert.equal(ctrl.phase, "blocked");
 
   // Case 2: Clean delete triggers exactly one reconciliation refresh
   const cleanApi = {
@@ -348,7 +353,8 @@ test("Finding 14: address deletion triggers exactly one reconciliation per outco
   );
   assert.equal(cleanResult.kind, "deleted");
 
-  await ctrl.run(
+  const cleanCtrl = new MutationReconciliationController(target);
+  await cleanCtrl.run(
     async () => {
       assert.equal(cleanResult.kind, "deleted");
     },
@@ -357,4 +363,12 @@ test("Finding 14: address deletion triggers exactly one reconciliation per outco
 
   // Total refresh calls incremented by exactly 1 (from 1 to 2)
   assert.equal(refreshCalls, 2);
+});
+
+test("production reconciliation policy never promotes unknown writes from GET success", () => {
+  assert.equal(settleMutationRead("unknown", "success"), "blocked");
+  assert.equal(settleMutationRead("unknown", "error"), "blocked");
+  assert.equal(settleMutationRead("unknown", "denied"), "blocked");
+  assert.equal(settleMutationRead("confirmed", "success"), "idle");
+  assert.equal(settleMutationRead("confirmed", "error"), "blocked");
 });
