@@ -117,7 +117,6 @@ Use this template to document the pre-code design review for all implementation 
 - **Material Design Changes**: `<none or links to documented amended plan>`
 - **Owner Approval**: Not required. No PR comment/review attestation gate.
 
-
 ## 12. Unresolved PLAN ISSUES
 
 - `<List any concrete architectural conflicts or unresolved questions. If none, state NONE.>`
