@@ -1,3 +1,4 @@
+import { CustomerInputLimits, normalizeBoundedText } from "@nexora/shared";
 import { CustomerStatusVO } from "./customer-status.vo";
 import {
   customerRecord,
@@ -17,16 +18,15 @@ import {
 } from "./customer";
 
 export function text(value: unknown, max: number): string {
-  if (typeof value !== "string") invalid();
-  const trimmed = value.trim();
-  if (!trimmed || trimmed.length > max) invalid();
-  return trimmed;
+  const normalized = normalizeBoundedText(value, max);
+  if (normalized === null) invalid();
+  return normalized;
 }
 function nullable(value: unknown, max: number): string | null {
   return value === null ? null : text(value, max);
 }
 export function parseCustomerPhone(value: unknown): CommonPhoneNumber {
-  const input = text(value, 64);
+  const input = text(value, CustomerInputLimits.PHONE_RAW);
   try {
     return CommonPhoneNumber.parse(input, "VN");
   } catch {
@@ -35,7 +35,7 @@ export function parseCustomerPhone(value: unknown): CommonPhoneNumber {
 }
 
 export function parseCustomerCountryCode(value: unknown): CommonCountryCode {
-  const code = text(value, 2);
+  const code = text(value, CustomerInputLimits.COUNTRY_CODE);
   try {
     return CommonCountryCode.parse(code);
   } catch {
@@ -51,15 +51,15 @@ export const CountryCode = { create: parseCustomerCountryCode };
 export function normalizeProfilePatch(input: CustomerPatch): CustomerPatch {
   customerRecord(input, CUSTOMER_PATCH_FIELDS);
   const out: CustomerPatch = {};
-  if (Object.hasOwn(input, "name")) out.name = text(input.name, 200);
+  if (Object.hasOwn(input, "name")) out.name = text(input.name, CustomerInputLimits.NAME);
   if (Object.hasOwn(input, "phone"))
     out.phone = parseCustomerPhone(input.phone).value;
   if (Object.hasOwn(input, "email")) {
-    out.email = nullable(input.email, 254);
+    out.email = nullable(input.email, CustomerInputLimits.EMAIL);
     if (out.email !== null && !z.email().safeParse(out.email).success)
       invalid();
   }
-  if (Object.hasOwn(input, "note")) out.note = nullable(input.note, 5000);
+  if (Object.hasOwn(input, "note")) out.note = nullable(input.note, CustomerInputLimits.NOTE);
   if (Object.hasOwn(input, "status"))
     out.status = CustomerStatusVO.from(input.status).value;
   if (!Object.keys(out).length) invalid();
@@ -80,15 +80,15 @@ export function normalizeAddressPatch(
 ): Partial<AddressFields> {
   customerRecord(input, CUSTOMER_ADDRESS_FIELDS);
   const out: Partial<AddressFields> = {};
-  if (Object.hasOwn(input, "label")) out.label = nullable(input.label, 100);
+  if (Object.hasOwn(input, "label")) out.label = nullable(input.label, CustomerInputLimits.ADDRESS_LABEL);
   if (Object.hasOwn(input, "recipientName"))
-    out.recipientName = text(input.recipientName, 200);
+    out.recipientName = text(input.recipientName, CustomerInputLimits.RECIPIENT_NAME);
   if (Object.hasOwn(input, "recipientPhone"))
     out.recipientPhone = parseCustomerPhone(input.recipientPhone).value;
   if (Object.hasOwn(input, "countryCode"))
     out.countryCode = parseCustomerCountryCode(input.countryCode).value;
   if (Object.hasOwn(input, "addressText"))
-    out.addressText = text(input.addressText, 2000);
+    out.addressText = text(input.addressText, CustomerInputLimits.ADDRESS_TEXT);
   if (!Object.keys(out).length) invalid();
   return out;
 }
