@@ -17,18 +17,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
-      - name: Temporary formatting evidence (remove before acceptance)
-        run: |
-          npx --yes prettier@3.6.2 --write apps/api/src/customer/domain/customer.value-objects.ts apps/api/src/customer/presentation/customer.dto.ts apps/web/features/customers/CustomerListPage.tsx apps/web/features/customers/payload.ts apps/web/features/customers/query.ts docs/architecture/api-contract.md docs/architecture/frontend.md packages/shared/src/index.ts packages/shared/src/validation/pagination.ts scripts/preflight-policy-check.test.mjs scripts/shared-validation.test.mjs
-          for f in apps/api/src/customer/domain/customer.value-objects.ts apps/api/src/customer/presentation/customer.dto.ts apps/web/features/customers/CustomerListPage.tsx apps/web/features/customers/payload.ts apps/web/features/customers/query.ts packages/shared/src/index.ts packages/shared/src/validation/pagination.ts scripts/preflight-policy-check.test.mjs scripts/shared-validation.test.mjs; do
-            echo "FORMAT_START $f"
-            base64 -w0 "$f"
-            echo
-            echo "FORMAT_END $f"
-          done
-          echo FORMAT_DOCS_DIFF_START
-          git diff -- docs/architecture/api-contract.md docs/architecture/frontend.md
-          echo FORMAT_DOCS_DIFF_END
       - name: Run deterministic preflight policy check
         run: node scripts/preflight-policy-check.mjs
         env:
