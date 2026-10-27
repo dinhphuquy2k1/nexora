@@ -93,23 +93,18 @@ A task classified as `REQUIRED` cannot be completed while its canonical document
 - Never claim workflow or verification success from a YAML file, open port, process ID, or source inspection alone.
 - Verification requires executed command output, runtime HTTP probes, or test results recorded with exact timestamps and PASS/FAIL outcomes.
 
-## 6. Mandatory Pre-Code Design Review & Reuse Governance
+## 6. Mandatory Plan-First Design Review & Reuse Governance
 
-No agent or contributor may begin writing implementation code, test-code modifications, database schema changes, scaffolding, dependency additions, or CI workflow changes for any new implementation task until a design review and reuse audit have been completed and explicit approval has been obtained. Read-only repository inspection and preparing the review artifact remain permitted. See [ADR-009](../decisions/mandatory-pre-code-design-review.md).
+No new implementation begins before a read-only repository inspection, scoped plan and reuse audit are recorded. **Owner approval, an `APPROVED` GitHub review and a `NEXORA DESIGN APPROVAL` comment are not required.** Agents do not invent approval evidence. Material changes to scope, architecture, public contracts, security or business rules require updating and assessing the plan before code, without asking for a new approval. Ordinary implementation changes, bug fixes, tests and CI corrections within the plan proceed directly.
 
-- **Scaled Review Depth**:
-  - **BOUNDED**: Concise review covering existing implementation search, minimal intended change, reuse decisions, contract impact, risk assessment, and approval reference before editing.
-  - **SIGNIFICANT**: Comprehensive review covering scope, existing implementation inventory, repository-wide reuse search matrix, DDD/domain ownership, alternative designs and trade-offs, feasibility, correctness, security/concurrency invariants, performance/query costs, maintainability/YAGNI, compatibility (API/DB/SDK), risk mitigations, verification plan, and approval reference.
-  - **SPIKE**: Formulate an approved investigation question, bounded hypothesis, and evidence procedure. Never disguise a production implementation as a SPIKE.
-- **Approval Separation**:
-  - Design approval is strictly separate from the 4-stage Task Lifecycle (`PLANNED → IN PROGRESS → VERIFICATION PENDING → COMPLETED`), Code Review, Test PASS, and Merge Readiness.
-  - Do not create a `DESIGN_APPROVED` task lifecycle status. Record design approval in the task's design review decision record.
-  - An agent must never approve its own design on behalf of the owner. Approval must reference an identifiable decision, PR review, or instruction revision.
-  - On pull requests, PR metadata (`Task ID`, `Task Reference`, `Plan revision`, `Design Snapshot`, `Design SHA-256`) must match the active task, filename, and plan revision exactly; traversal paths and URLs fail closed. GitHub CI independently verifies approval provenance from authorized logins (`dinhphuquy2k1`) via an `APPROVED` review or owner comment with mandatory header `NEXORA DESIGN APPROVAL`. In PR CI mode, missing tokens, malformed payloads, or unverified approvals fail closed. Local and push-to-main static runs validate structural conformance without claiming authenticated GitHub approval.
-- **Mandatory Reuse Audit Matrix**:
-  - Every review artifact must include a structured component reuse matrix documenting: Component, Existing Implementations, Domain Owner, Reuse Alternatives, Selected Approach, Rationale, Risks, and Verification. Blank or unevidenced "no reusable code found" claims are rejected.
+- **BOUNDED**: concise inventory, intended change, reuse, impact and tests.
+- **SIGNIFICANT**: comprehensive inventory/reuse matrix, options and tradeoffs, invariants, interface/security impact, risks, migration and verification.
+- **SPIKE**: explicit investigation question, bounded hypothesis and evidence; cannot disguise undocumented implementation.
+- **PR consistency**: Task ID, reference, revision, versioned snapshot and raw SHA-256 (where declared/required) must match, with safe repository-relative file paths. CI verifies plan integrity and implementation tests **without authenticated design approval**.
+- **Mandatory Reuse Audit Matrix**: Component, Existing Implementations, Domain Owner, Reuse Alternatives, Selected Approach, Rationale, Risks, Verification.
+- **History**: preserve immutable approved design snapshots and existing approval evidence. They do not become recurring gates.
 
-Design approval integrity follows [ADR-009](../decisions/mandatory-pre-code-design-review.md) and [Task Workflow](TASK_WORKFLOW.md): immutable raw-byte snapshot digest, strict standalone authenticated decision, physical regular-file provenance with no symlinks, and separate static/implementation enforcement. Material designs require new revision/snapshot approval; routine execution evidence does not. Never self-attest or backdate approval.
+See [ADR-009](../decisions/mandatory-pre-code-design-review.md) and [Task Workflow](TASK_WORKFLOW.md). Security, independent review, CI and owner-controlled merge/deploy decisions are unchanged.
 
 ## Test discovery and infrastructure conventions
 
