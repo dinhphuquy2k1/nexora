@@ -274,9 +274,6 @@ export function parseStructuredDesignRecord(content) {
     ["classification", "Classification"],
     ["planRevision", "Plan revision"],
     ["reviewedBaseline", "Reviewed baseline"],
-    ["approvalAuthority", "Approval authority"],
-    ["approvalStatus", "Approval status"],
-    ["approvalEvidence", "Approval evidence"],
   ];
 
   for (const [key, label] of required) {
@@ -312,7 +309,7 @@ export function parseStructuredDesignRecord(content) {
 }
 
 /**
- * Validates task markdown content for required design governance, reuse audit matrix, and approval evidence.
+ * Validates task markdown content for plan-first governance and reuse audit.
  */
 export function validateTaskDesignGovernance(
   taskContent,
@@ -359,19 +356,12 @@ export function validateTaskDesignGovernance(
     failures.push(`Invalid Task Classification: '${fields.classification}'.`);
   }
 
-  // 3. Status validation:
-  // In implementation mode, status MUST be APPROVED (PENDING_REVIEW and REVISION_REQUIRED fail).
-  // In structural mode, PENDING_REVIEW and REVISION_REQUIRED are valid task states.
+  // 3. Plan-first implementation requires a valid snapshot, never owner approval.
   if (mode === "implementation") {
     if (!fields.designSnapshot || !isDesignDigest(fields.designDigest))
       failures.push(
         "Implementation requires Design Snapshot and valid Design SHA-256.",
       );
-    if (fields.approvalStatus && fields.approvalStatus !== "APPROVED") {
-      failures.push(
-        `Approval status is '${fields.approvalStatus}'; task cannot proceed until approved.`,
-      );
-    }
   }
 
   // 4. Validate Documentation Impact declaration
@@ -647,7 +637,7 @@ export function validatePrTaskBinding(prBody, rootDir) {
 }
 
 /**
- * Validates GitHub-backed approval evidence in CI mode.
+ * Historical GitHub approval verification helper (not called by PR preflight).
  */
 export async function verifyGitHubApprovalEvidence({
   prNumber,
@@ -1174,24 +1164,8 @@ export async function runPreflightCheck(rootDir, options = {}) {
                 taskFailures.push(`${task.relPath}: ${gf}`);
               }
 
-              if (govFailures.length === 0) {
-                const parsed = task.taskRecord;
-                const approvalCheck = await verifyGitHubApprovalEvidence({
-                  prNumber,
-                  taskRecord: parsed,
-                  designDigest: task.designDigest,
-                  isCi: true,
-                  fetchFn: options.fetchFn,
-                  githubToken: options.githubToken,
-                });
-                if (!approvalCheck.approvalVerified) {
-                  taskFailures.push(
-                    `${task.relPath}: ${approvalCheck.message}`,
-                  );
-                } else {
-                  console.log(`  ✓ ${approvalCheck.message}`);
-                }
-              }
+              // Plan, reuse and immutable snapshot binding are sufficient.
+              // No GitHub owner approval/comment is required for implementation.
             } catch (err) {
               taskFailures.push(
                 `Failed to read referenced task '${task.relPath}': ${err.message}`,
