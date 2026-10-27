@@ -124,8 +124,24 @@ try {
     requestUrls = new Map();
   let loginStatus;
   let loginUrl;
+  let hydrationMismatchCount = 0;
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
+    if (
+      message.method === "Runtime.consoleAPICalled" &&
+      message.params.type === "error"
+    ) {
+      const text = message.params.args
+        .map((arg) => arg.value ?? arg.description ?? "")
+        .filter((value) => typeof value === "string")
+        .join(" ");
+      if (
+        /A tree hydrated but some attributes|Hydration failed because|server rendered HTML didn.t match|Text content does not match server-rendered HTML/i.test(
+          text,
+        )
+      )
+        hydrationMismatchCount++;
+    }
     if (message.id) {
       const operation = pending.get(message.id);
       if (operation) {
@@ -230,6 +246,7 @@ try {
   };
   checks.step("LOGIN_PAGE_RENDER");
   await send("Network.enable");
+  await send("Runtime.enable");
   await send("Page.bringToFront");
   await send("Page.navigate", { url: `${baseUrl}/login?from=%2Fsettings` });
   let ready = false;
@@ -964,6 +981,12 @@ try {
       "Setup token leaked into server logs",
     );
   }
+  checks.step("SSR_CLIENT_HYDRATION");
+  assert.equal(
+    hydrationMismatchCount,
+    0,
+    "React reported server/client hydration mismatch in the actual browser",
+  );
   console.log(
     "Actual browser unified Login, fragment Setup privacy, no auto-login, OPERATOR login, cookies and Logout PASS",
   );
