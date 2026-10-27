@@ -56,8 +56,9 @@ For new business domains or SIGNIFICANT domain features, verify [ADR-008](../../
 
 Generate the review document using the template at [pre-implementation-review.md](../../../docs/ai/templates/pre-implementation-review.md) and attach it to the active task record.
 
-### 6. Approval Check — Mandatory Stop
+### 6. Plan Readiness Check — Mandatory
 
-- Verify that explicit **Design Approval** from the project owner (or authorized independent reviewer) is documented.
-- **STOP BEFORE MODIFYING CODE**: If approval is missing or pending, the agent MUST NOT begin editing code or tests.
-- When a scoped design is already recorded (as in NEXORA-027), implement the plan without restarting architectural discovery.
+- Verify that the task records a scoped plan, read-only inspection, reuse matrix, affected contracts, risks and tests.
+- If material scope changes, update the plan and impact review before code.
+- **Do not request or wait for owner approval, GitHub review or a design approval comment.** Historical approval metadata does not block implementation.
+- When a scoped design is already recorded (as in NEXORA-027), implement that plan without repeating architectural discovery.
