@@ -1,4 +1,8 @@
-import { CustomerStatus, parsePagination, CustomerInputLimits } from "@nexora/shared";
+import {
+  CustomerStatus,
+  parsePagination,
+  CustomerInputLimits,
+} from "@nexora/shared";
 import type { Query } from "./types.ts";
 const keys = ["page", "pageSize", "q", "status", "phone"] as const;
 export function parseCustomerQuery(params: URLSearchParams): Query {
@@ -13,7 +17,8 @@ export function parseCustomerQuery(params: URLSearchParams): Query {
   const out: Query = { page, pageSize };
   const q = params.get("q")?.trim();
   if (q) {
-    if (q.length > CustomerInputLimits.QUERY_TEXT) throw Error("INVALID_FILTER");
+    if (q.length > CustomerInputLimits.QUERY_TEXT)
+      throw Error("INVALID_FILTER");
     out.q = q;
   }
   const status = params.get("status");
@@ -24,7 +29,8 @@ export function parseCustomerQuery(params: URLSearchParams): Query {
   }
   const phone = params.get("phone");
   if (phone !== null) {
-    if (!phone.trim() || phone.length > CustomerInputLimits.PHONE_RAW) throw Error("INVALID_FILTER");
+    if (!phone.trim() || phone.length > CustomerInputLimits.PHONE_RAW)
+      throw Error("INVALID_FILTER");
     out.phone = phone;
   }
   return out;
