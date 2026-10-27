@@ -20,7 +20,7 @@ No agent or contributor may begin writing implementation code, test modification
 1. A **Read-Only Repository Inspection** has surveyed existing implementations, related domain models, and established patterns.
 2. A structured **Reuse & Design Audit** has evaluated reuse candidates, domain ownership, and explicit non-goals.
 3. A **Pre-Implementation Review** artifact matching task classification depth has been generated.
-4. Explicit **Design Approval** has been recorded by the repository owner (or authorized independent reviewer).
+4. A versioned, reviewable implementation plan has been recorded. No owner approval/comment is required to start code.
 
 Read-only inspection and preparing review artifacts remain unrestricted.
 
@@ -34,7 +34,7 @@ Review depth scales deterministically with task classification:
   - Component reuse decisions.
   - Contract and interface impact.
   - Risk assessment and regression test plan.
-  - Explicit approval reference before editing.
+  - Plan revision and impact reference before editing.
 
 - **SIGNIFICANT**: Comprehensive review covering:
   - Requirements and boundary scope.
@@ -46,11 +46,17 @@ Review depth scales deterministically with task classification:
   - Performance and query costs (hydration efficiency, N+1 avoidance).
   - Backward compatibility (API, OpenAPI contracts, SDK, database, historical data hydration).
   - Mitigation strategies and test-first verification plan.
-  - Specific approval reference.
+  - Specific plan/review reference.
 
 - **SPIKE**: Explicitly formulated investigation question, bounded hypothesis, and reproducible evidence procedure. A SPIKE must never be used to bypass design governance for production code.
 
-## Approval Semantics
+## Plan-first execution policy (owner decision, 2026-10-27)
+
+**No owner approval, GitHub approval review, or five-line approval comment is required to start or continue implementation.** Before code, the agent must inspect the repository, prepare and record a scoped plan/reuse audit, identify affected contracts and tests, and follow that plan. A material scope/architecture change requires an updated plan and impact review, **not another owner attestation**. Existing owner decisions remain binding unless the owner changes them; do not falsely claim an unrecorded design was approved.
+
+PR preflight enforces task identity, plan revision, snapshot/digest integrity, reuse audit, documentation impact, and CI verification; it **must not** query GitHub comments/reviews for design approval or fail merely because an approval status/comment is absent or pending. Historical approval fields and immutable approved snapshots are preserved for provenance, not ongoing execution gates. Code review, test evidence, security controls, and owner merge decision remain separate and required where applicable.
+
+## Historical Approval Semantics (retained for audit, no longer an execution gate)
 
 Design approval is an independent governance decision:
 
