@@ -184,11 +184,9 @@ test("historical approval states never gate a valid recorded plan", () => {
     );
     const invalid = task.replace("Plan revision: rev-1", "Plan revision: TODO");
     assert.ok(
-      validateTaskDesignGovernance(
-        invalid,
-        "docs/tasks/active/NEXORA-027.md",
-        { mode: "implementation" },
-      ).length > 0,
+      validateTaskDesignGovernance(invalid, "docs/tasks/active/NEXORA-027.md", {
+        mode: "implementation",
+      }).length > 0,
     );
   }
 });
