@@ -51,7 +51,8 @@ export const CountryCode = { create: parseCustomerCountryCode };
 export function normalizeProfilePatch(input: CustomerPatch): CustomerPatch {
   customerRecord(input, CUSTOMER_PATCH_FIELDS);
   const out: CustomerPatch = {};
-  if (Object.hasOwn(input, "name")) out.name = text(input.name, CustomerInputLimits.NAME);
+  if (Object.hasOwn(input, "name"))
+    out.name = text(input.name, CustomerInputLimits.NAME);
   if (Object.hasOwn(input, "phone"))
     out.phone = parseCustomerPhone(input.phone).value;
   if (Object.hasOwn(input, "email")) {
@@ -59,7 +60,8 @@ export function normalizeProfilePatch(input: CustomerPatch): CustomerPatch {
     if (out.email !== null && !z.email().safeParse(out.email).success)
       invalid();
   }
-  if (Object.hasOwn(input, "note")) out.note = nullable(input.note, CustomerInputLimits.NOTE);
+  if (Object.hasOwn(input, "note"))
+    out.note = nullable(input.note, CustomerInputLimits.NOTE);
   if (Object.hasOwn(input, "status"))
     out.status = CustomerStatusVO.from(input.status).value;
   if (!Object.keys(out).length) invalid();
@@ -80,9 +82,13 @@ export function normalizeAddressPatch(
 ): Partial<AddressFields> {
   customerRecord(input, CUSTOMER_ADDRESS_FIELDS);
   const out: Partial<AddressFields> = {};
-  if (Object.hasOwn(input, "label")) out.label = nullable(input.label, CustomerInputLimits.ADDRESS_LABEL);
+  if (Object.hasOwn(input, "label"))
+    out.label = nullable(input.label, CustomerInputLimits.ADDRESS_LABEL);
   if (Object.hasOwn(input, "recipientName"))
-    out.recipientName = text(input.recipientName, CustomerInputLimits.RECIPIENT_NAME);
+    out.recipientName = text(
+      input.recipientName,
+      CustomerInputLimits.RECIPIENT_NAME,
+    );
   if (Object.hasOwn(input, "recipientPhone"))
     out.recipientPhone = parseCustomerPhone(input.recipientPhone).value;
   if (Object.hasOwn(input, "countryCode"))
