@@ -223,7 +223,7 @@ test("NEXORA-031 Task 1: tableViewport decouples focus indicator from detailLink
   );
 });
 
-test("Customer table keeps horizontal row dividers without vertical grid borders", async () => {
+test("Customer table keeps horizontal dividers only", async () => {
   const css = await fs.readFile(
     new URL("../features/customers/customers.module.css", import.meta.url),
     "utf8",
@@ -235,16 +235,21 @@ test("Customer table keeps horizontal row dividers without vertical grid borders
     assert.doesNotMatch(block, /border-(?:left|right)\s*:/);
     assert.match(block, /border-bottom:\s*1px solid var\(--color-border\)/);
   }
-  assert.doesNotMatch(css, /\.table (?:th|td):last-child\s*\{\s*border-right:/);
+  assert.doesNotMatch(
+    css,
+    /\.table (?:th|td):last-child\s*\{\s*border-right:/,
+  );
   assert.match(css, /\.tableViewport:focus-visible\s*\{[^}]*outline:/);
 });
 
-test("Customer color consumers use semantic roles without changing the established palette", async () => {
+test("Customer colors use semantic tokens", async () => {
   const css = await fs.readFile(
-    new URL("../features/customers/customers.module.css", import.meta.url), "utf8",
+    new URL("../features/customers/customers.module.css", import.meta.url),
+    "utf8",
   );
   const tokens = await fs.readFile(
-    new URL("../styles/tokens.css", import.meta.url), "utf8",
+    new URL("../styles/tokens.css", import.meta.url),
+    "utf8",
   );
   for (const [selector, role] of [
     ["tabDotActive", "color-status-success-dot"],
@@ -253,7 +258,9 @@ test("Customer color consumers use semantic roles without changing the establish
     ["chipDotInactive", "color-status-pending-dot"],
     ["searchIcon", "color-search-icon"],
   ]) {
-    const body = css.match(new RegExp("\\." + selector + "\\s*\\{([^}]*)\\}"))?.[1];
+    const body = css.match(
+      new RegExp("\\." + selector + "\\s*\\{([^}]*)\\}"),
+    )?.[1];
     assert.ok(body, selector);
     assert.match(body, new RegExp("var\\(--" + role + "\\)"), selector);
   }
@@ -266,6 +273,9 @@ test("Customer color consumers use semantic roles without changing the establish
     ["color-status-pending-dot", "gray-400"],
     ["color-search-icon", "gray-400"],
   ]) {
-    assert.match(tokens, new RegExp("--" + role + ":\\s*var\\(--" + foundation + "\\)"));
+    assert.match(
+      tokens,
+      new RegExp("--" + role + ":\\s*var\\(--" + foundation + "\\)"),
+    );
   }
 });
