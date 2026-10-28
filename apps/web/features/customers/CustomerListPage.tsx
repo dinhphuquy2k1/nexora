@@ -127,7 +127,9 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
       if (scope.customerId) {
         await verifyCustomerRecoveryById(scope.customerId, customerApi.get);
       }
-      setWriteUnresolvedScope((current) => (current === scope ? null : current));
+      setWriteUnresolvedScope((current) =>
+        current === scope ? null : current,
+      );
     } catch (error) {
       const safe = customerError(error);
       if (safe.unauthenticated) {
