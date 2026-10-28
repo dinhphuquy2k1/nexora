@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { deleteCustomerAddress } from "../features/customers/address-actions.ts";
-import { settleMutationRead } from "../features/customers/mutation-policy.ts";
+import {
+  settleMutationRead,
+  isAmbiguousCustomerWriteFailure,
+} from "../features/customers/mutation-policy.ts";
+import { CustomerApiError } from "../features/customers/errors.ts";
+import { DraftError } from "../features/customers/payload.ts";
+import fs from "node:fs/promises";
 
 /**
  * Pure simulation model of useCustomerMutation reconciliation state machine
@@ -57,11 +63,7 @@ class MutationReconciliationController {
         await operation();
         this.writeSucceeded = true;
       } catch (e) {
-        const isLocal = e && e.name === "DraftError";
-        const isAmbiguous =
-          Boolean(e?.isPartial) ||
-          (e?.status && [403, 404, 409, 500].includes(e.status)) ||
-          (!isLocal && !e?.status);
+        const isAmbiguous = isAmbiguousCustomerWriteFailure(e);
 
         if (isAmbiguous) {
           this.writeOutcome = "unknown";
@@ -448,4 +450,87 @@ test("Finding B2: capability booleans separate canWrite, canClose, canRetryRead 
   assert.equal(blocked.canClose, true);
   assert.equal(blocked.canWrite, false);
   assert.equal(blocked.canRetryRead, true);
+});
+
+test("failed address DELETE and default PUT with lost responses require GET-only reconciliation", async () => {
+  for (const operation of ["delete", "put"]) {
+    const calls = [];
+    const api = {
+      async setDefault() {
+        calls.push("PUT");
+        if (operation === "put") throw new TypeError("response lost");
+      },
+      async remove() {
+        calls.push("DELETE");
+        if (operation === "delete") throw new TypeError("response lost");
+      },
+    };
+    const targetAddress = { id: "old", isDefault: operation === "put" };
+    const result = await deleteCustomerAddress(
+      api,
+      "customer",
+      targetAddress,
+      2,
+      "new",
+    );
+    assert.equal(result.kind, "failed");
+    assert.equal(isAmbiguousCustomerWriteFailure(result.error), true);
+    assert.deepEqual(calls, operation === "put" ? ["PUT"] : ["DELETE"]);
+
+    let reads = 0;
+    const target = {
+      requestId: 0,
+      settledId: 0,
+      outcome: "success",
+      refresh() {
+        reads++;
+        this.requestId++;
+        this.outcome = "pending";
+        return this.requestId;
+      },
+    };
+    const ctrl = new MutationReconciliationController(target);
+    assert.equal(
+      await ctrl.run(async () => { throw result.error; }, () => {}),
+      "reconciling",
+    );
+    assert.equal(reads, 1);
+    assert.equal(ctrl.phase, "reconciling");
+    let extraWrites = 0;
+    assert.equal(
+      await ctrl.run(async () => { extraWrites++; }, () => {}),
+      false,
+    );
+    assert.equal(extraWrites, 0);
+    target.settledId = target.requestId;
+    target.outcome = "success";
+    ctrl.observeReadSettlement();
+    assert.equal(ctrl.phase, "blocked");
+    assert.equal(reads, 1);
+    assert.equal(extraWrites, 0);
+  }
+});
+
+test("production write classifier distinguishes confirmed 4xx rejection, lost response, 5xx and partial delete", async () => {
+  assert.equal(isAmbiguousCustomerWriteFailure(new DraftError("unchanged")), false);
+  for (const status of [400, 403, 404, 409, 422]) {
+    assert.equal(
+      isAmbiguousCustomerWriteFailure(new CustomerApiError(status, {})),
+      false,
+      String(status),
+    );
+  }
+  for (const error of [
+    new TypeError("Failed to fetch"),
+    new Error("MALFORMED_RESPONSE"),
+    new CustomerApiError(500, {}),
+    new CustomerApiError(503, {}),
+    Object.assign(new CustomerApiError(409, {}), { isPartial: true }),
+  ]) assert.equal(isAmbiguousCustomerWriteFailure(error), true);
+
+  const modalSource = await fs.readFile(
+    new URL("../features/customers/DeleteAddressModal.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(modalSource, /isAmbiguous:\s*false/);
 });
