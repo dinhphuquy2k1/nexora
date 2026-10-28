@@ -154,8 +154,10 @@ export function CustomerDetailPage({ id }: { id: string }) {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  if (mutation.isUnresolved && !mutation.resolveUnresolved("acknowledged")) return;
-                  setWriteUnresolved(false);
+                  const recovered =
+                    !mutation.isUnresolved ||
+                    mutation.resolveUnresolved("acknowledged");
+                  if (recovered) setWriteUnresolved(false);
                 }}
               >
                 Đã kiểm tra xong
