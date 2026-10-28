@@ -54,8 +54,7 @@ export function DeleteAddressModal({
       settlement?.outcome === "success" &&
       !reconciling
     ) {
-      mutation.resolveUnresolved("discard");
-      onResolved?.();
+      if (mutation.resolveUnresolved("discard")) onResolved?.();
     }
   }, [
     partial,
@@ -152,13 +151,12 @@ export function DeleteAddressModal({
                   >
                     Đối chiếu lại dữ liệu
                   </Button>
-                  {mutation.isUnresolved &&
-                    settlement?.outcome === "success" &&
-                    !reconciling && (
+                  {mutation.canResolveUnresolved && !reconciling && (
                       <Button
                         variant="secondary"
                         onClick={() => {
-                          mutation.resolveUnresolved("discard");
+                          if (!mutation.resolveUnresolved("discard")) return;
+                          onResolved?.();
                           onClose();
                         }}
                       >
