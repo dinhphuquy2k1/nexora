@@ -222,3 +222,50 @@ test("NEXORA-031 Task 1: tableViewport decouples focus indicator from detailLink
     /<div[^>]*class="[^"]*tableViewport[^"]*"[^>]*tabindex="0"[^>]*role="region"[^>]*aria-label="Bảng khách hàng có thể cuộn"/i,
   );
 });
+
+test("Customer table keeps horizontal row dividers without vertical grid borders", async () => {
+  const css = await fs.readFile(
+    new URL("../features/customers/customers.module.css", import.meta.url),
+    "utf8",
+  );
+  const header = css.match(/\.table th\s*\{([^}]*)\}/)?.[1];
+  const cells = css.match(/\.table td\s*\{([^}]*)\}/)?.[1];
+  assert.ok(header && cells);
+  for (const block of [header, cells]) {
+    assert.doesNotMatch(block, /border-(?:left|right)\s*:/);
+    assert.match(block, /border-bottom:\s*1px solid var\(--color-border\)/);
+  }
+  assert.doesNotMatch(css, /\.table (?:th|td):last-child\s*\{\s*border-right:/);
+  assert.match(css, /\.tableViewport:focus-visible\s*\{[^}]*outline:/);
+});
+
+test("Customer color consumers use semantic roles without changing the established palette", async () => {
+  const css = await fs.readFile(
+    new URL("../features/customers/customers.module.css", import.meta.url), "utf8",
+  );
+  const tokens = await fs.readFile(
+    new URL("../styles/tokens.css", import.meta.url), "utf8",
+  );
+  for (const [selector, role] of [
+    ["tabDotActive", "color-status-success-dot"],
+    ["tabDotInactive", "color-status-pending-dot"],
+    ["chipDotActive", "color-status-success-dot"],
+    ["chipDotInactive", "color-status-pending-dot"],
+    ["searchIcon", "color-search-icon"],
+  ]) {
+    const body = css.match(new RegExp("\\." + selector + "\\s*\\{([^}]*)\\}"))?.[1];
+    assert.ok(body, selector);
+    assert.match(body, new RegExp("var\\(--" + role + "\\)"), selector);
+  }
+  const search = css.match(/\.searchInput\s*\{([^}]*)\}/)?.[1];
+  assert.ok(search);
+  assert.match(search, /background-color:\s*var\(--control-bg\)/);
+  assert.match(search, /border-color:\s*var\(--control-border\)/);
+  for (const [role, foundation] of [
+    ["color-status-success-dot", "emerald-500"],
+    ["color-status-pending-dot", "gray-400"],
+    ["color-search-icon", "gray-400"],
+  ]) {
+    assert.match(tokens, new RegExp("--" + role + ":\\s*var\\(--" + foundation + "\\)"));
+  }
+});
