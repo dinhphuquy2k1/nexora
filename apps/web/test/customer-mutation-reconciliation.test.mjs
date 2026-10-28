@@ -608,10 +608,22 @@ test("list recovery after drawer closes requires a fresh read in the original fi
   const origin = { key: "all", settledId: 10 };
   const read = { key: "all", settledId: 11, outcome: "success", loading: false };
   assert.equal(isFreshCustomerRecoveryRead(origin, read), true);
-  assert.equal(isFreshCustomerRecoveryRead(origin, { ...read, key: "inactive" }), false);
-  assert.equal(isFreshCustomerRecoveryRead(origin, { ...read, settledId: 10 }), false);
-  assert.equal(isFreshCustomerRecoveryRead(origin, { ...read, outcome: "error" }), false);
-  assert.equal(isFreshCustomerRecoveryRead(origin, { ...read, loading: true }), false);
+  assert.equal(
+    isFreshCustomerRecoveryRead(origin, { ...read, key: "inactive" }),
+    false,
+  );
+  assert.equal(
+    isFreshCustomerRecoveryRead(origin, { ...read, settledId: 10 }),
+    false,
+  );
+  assert.equal(
+    isFreshCustomerRecoveryRead(origin, { ...read, outcome: "error" }),
+    false,
+  );
+  assert.equal(
+    isFreshCustomerRecoveryRead(origin, { ...read, loading: true }),
+    false,
+  );
 });
 
 test("partial address DELETE does not auto-acknowledge a GET without user choice", async () => {
@@ -619,7 +631,10 @@ test("partial address DELETE does not auto-acknowledge a GET without user choice
     new URL("../features/customers/DeleteAddressModal.tsx", import.meta.url),
     "utf8",
   );
-  assert.doesNotMatch(source, /useEffect\(\(\) => \{[\s\S]*?mutation\.resolveUnresolved\("discard"\)/);
+  assert.doesNotMatch(
+    source,
+    /useEffect\(\(\) => \{[\s\S]*?mutation\.resolveUnresolved\("discard"\)/,
+  );
   assert.match(source, /Bỏ qua và đóng/);
 });
 
@@ -633,6 +648,8 @@ test("page-level recovery controls are unavailable while an editor owns the writ
     "utf8",
   );
   assert.match(list, /canAcknowledgeWrite && !overlay/);
-  assert.match(detail, /read\.outcome === "success" && !read\.loading && !mode/);
+  assert.match(
+    detail,
+    /read\.outcome === "success" && !read\.loading && !mode/,
+  );
 });
-
