@@ -207,15 +207,7 @@ export function DeleteAddressModal({
                       });
                 throw partialErr;
               }
-              if (result.kind === "failed") {
-                const failedErr =
-                  result.error instanceof Error
-                    ? Object.assign(result.error, { isAmbiguous: false })
-                    : Object.assign(new Error("FAILED_MUTATION"), {
-                        isAmbiguous: false,
-                      });
-                throw failedErr;
-              }
+              if (result.kind === "failed") throw result.error;
               if (result.kind !== "deleted") throw Error("RECONCILE");
             }, onSaved)
           }
