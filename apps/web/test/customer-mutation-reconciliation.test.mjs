@@ -589,7 +589,10 @@ test("Customer recovery wiring unlocks page and its active drawer together", asy
   assert.match(detail, /mutation\.resolveUnresolved\("acknowledged"\)/);
   assert.match(detail, /onResolved=\{\(\) => setWriteUnresolved\(false\)\}/);
   assert.match(list, /onResolved=\{\(\) => setWriteUnresolvedScope\(null\)\}/);
-  assert.match(drawers, /onDiscard=\{\(\) => void completeRecovery\("discard"\)\}/);
+  assert.match(
+    drawers,
+    /onDiscard=\{\(\) => void completeRecovery\("discard"\)\}/,
+  );
   assert.match(
     drawers,
     /onAcknowledge=\{\(\) => void completeRecovery\("acknowledged"\)\}/,
@@ -665,7 +668,7 @@ test("page recovery is hidden while an editor owns the write", async () => {
   );
 });
 
-test("identity-scoped recovery checks exact Customer ID and propagates read failure", async () => {
+test("ID-scoped recovery propagates wrong ID and failed GET", async () => {
   const id = "customer-a";
   let reads = 0;
   await verifyCustomerRecoveryById(id, async (requested) => {
@@ -687,7 +690,7 @@ test("identity-scoped recovery checks exact Customer ID and propagates read fail
   );
 });
 
-test("existing Customer recovery uses direct ID GET; CREATE cannot guess an ID", async () => {
+test("Existing Customer recovery uses ID GET", async () => {
   const list = await fs.readFile(
     new URL("../features/customers/CustomerListPage.tsx", import.meta.url),
     "utf8",
