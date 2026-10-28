@@ -2,9 +2,13 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@nexora/ui";
-import { customerError, CustomerApiError } from "./errors.ts";
+import { customerError } from "./errors.ts";
 import { DraftError } from "./payload.ts";
-import { settleMutationRead, type WriteOutcome } from "./mutation-policy.ts";
+import {
+  settleMutationRead,
+  isAmbiguousCustomerWriteFailure,
+  type WriteOutcome,
+} from "./mutation-policy.ts";
 import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 
 export type MutationPhase = "idle" | "writing" | "reconciling" | "blocked";
@@ -147,14 +151,7 @@ export function useCustomerMutation(
           return;
         }
 
-        const isAmbiguous =
-          (e as { isAmbiguous?: boolean })?.isAmbiguous === false
-            ? false
-            : Boolean((e as { isPartial?: boolean })?.isPartial) ||
-              (e instanceof CustomerApiError && e.status >= 500) ||
-              (!local && !(e instanceof CustomerApiError));
-
-        if (isAmbiguous) {
+        if (isAmbiguousCustomerWriteFailure(e)) {
           writeOutcome.current = "unknown";
           onUnresolved?.();
           try {
