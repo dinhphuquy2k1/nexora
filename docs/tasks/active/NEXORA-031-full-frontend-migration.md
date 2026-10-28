@@ -1635,3 +1635,11 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
 
 - **Documentation Impact: REQUIRED**; canonical owner `docs/architecture/frontend.md`, execution task `NEXORA-031`. No visual ZIP parity change, backend business rules, security or carrier contract changes.
 - **Test-first acceptance:** Add focused policy tests and actual CDP regression covering mismatched list query scope, explicit partial DELETE, response-stage committed DELETE with GET-only recovery. Verify Preflight, Docker quality, authenticated browser runtime (ADMIN and OPERATOR) and no duplicate writes on exact final HEAD. Keep PR Draft until verification; independent reviewer/owner merge decision separate.
+
+### Scoped reconciliation-scope follow-up implementation — 2026-10-28
+
+- Added key-and-generation verification in the existing Customer mutation read lane; the List page captures original filter scope and settled-read floor for safe acknowledgement even if a drawer closes. Unrelated newer GETs can no longer unlock a pending unknown write.
+- Removed partial-DELETE automatic recovery effect; successful GET still requires the user to choose “Bỏ qua và đóng” before a fresh dialog may submit again. Existing server-side last/default-address protections are unchanged.
+- Expanded Node policy regressions and authenticated CDP flows: List filter switch while committed PATCH response is lost, partial PUT-then-DELETE failure with explicit recovery, and completed DELETE response loss (single server commit, GET-only read reconciliation, manual parent acknowledgement).
+- **Verification pending:** exact-HEAD Preflight, Docker quality, browser runtime for both actors; no PASS is asserted until CI completes. Documentation Impact: REQUIRED; canonical frontend architecture updated. PR remains Draft.
+
