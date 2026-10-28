@@ -849,6 +849,7 @@ export async function verifyCustomerBrowser({
     await click("Lưu địa chỉ");
     await until('!document.querySelector("dialog[open]")');
     await ready();
+    step("SET_DEFAULT");
     step("SET_DEFAULT_LOST_RESPONSE_RECOVERY");
     await loseOneCommittedResponse("PUT", async (counts) => {
       await click("Đặt làm mặc định");
@@ -960,7 +961,7 @@ export async function verifyCustomerBrowser({
       await click("Bỏ qua và đóng");
       await until('!document.querySelector("dialog[open]")');
       await until(
-        'Array.from(document.querySelectorAll("article[aria-label=\\"Địa chỉ mặc định\\"] button[aria-label=\\"Xóa địa chỉ\\"]")).some(b=>!b.disabled)',
+        'Array.from(document.querySelectorAll("button[aria-label]")).some(b=>b.getAttribute("aria-label")==="Xóa địa chỉ"&&!b.disabled)',
       );
       await evaluate(
         `document.querySelector('article[aria-label="Địa chỉ mặc định"] button[aria-label="Xóa địa chỉ"]').click();true`,
