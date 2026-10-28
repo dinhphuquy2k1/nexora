@@ -808,9 +808,13 @@ export async function verifyCustomerBrowser({
       // Native showModal() makes the page inert. Close the Drawer before changing filters.
       await click("Đóng biểu mẫu");
       await until('!document.querySelector("dialog[open]")');
-      await fill("q", "không chứa khách hàng này");
-      await delay(350);
-      await until('location.search.includes("q=")');
+      await until('!!document.getElementById("customer-tab-INACTIVE")');
+      await evaluate(
+        'document.getElementById("customer-tab-INACTIVE").click();true',
+      );
+      await until(
+        'new URLSearchParams(location.search).get("status")==="INACTIVE"',
+      );
       await ready();
       assert.equal(
         await evaluate(
@@ -819,7 +823,8 @@ export async function verifyCustomerBrowser({
         false,
         "An unrelated filtered GET must not unlock the page-level write guard",
       );
-      await click("Xóa từ khóa tìm kiếm");
+      await evaluate('document.getElementById("customer-tab-all").click();true');
+      await until('!new URLSearchParams(location.search).has("status")');
       await ready();
       await until(
         'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
