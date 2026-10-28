@@ -47,10 +47,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
   }, [c]);
   const data = read.denied ? undefined : (c ?? retained);
   const detailReadUnavailable =
-    read.loading ||
-    !!read.error ||
-    read.denied ||
-    read.outcome !== "success";
+    read.loading || !!read.error || read.denied || read.outcome !== "success";
   const mutationDisabled =
     mutation.busy || writeUnresolved || detailReadUnavailable;
   useEffect(() => {
@@ -350,9 +347,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                       icon
                       aria-label="Xóa địa chỉ"
                       disabled={
-                        mutationDisabled ||
-                        !!mode ||
-                        c.addresses.length <= 1
+                        mutationDisabled || !!mode || c.addresses.length <= 1
                       }
                       title={
                         c.addresses.length <= 1
