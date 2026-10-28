@@ -17,6 +17,7 @@ import { parseCustomerQuery, customerQueryString } from "./query.ts";
 import type { Query, Summary } from "./types.ts";
 import { customerApi } from "./api.ts";
 import { useCustomerRead } from "./useCustomerRead.ts";
+import { isFreshCustomerRecoveryRead } from "./mutation-policy.ts";
 import { Users, Plus, FileSpreadsheet } from "lucide-react";
 import { CustomerPagination } from "./CustomerPagination.tsx";
 import { CustomerStatsBar } from "./CustomerStatsBar.tsx";
@@ -98,7 +99,15 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   }, [manualReloadId, read.settledId, read.loading]);
 
   const [overlay, setOverlay] = useState<Summary | "create" | null>(null);
-  const [writeUnresolved, setWriteUnresolved] = useState(false);
+  const [writeUnresolvedScope, setWriteUnresolvedScope] = useState<{
+    key: string;
+    settledId: number;
+  } | null>(null);
+  const writeUnresolved = writeUnresolvedScope !== null;
+  const canAcknowledgeWrite = isFreshCustomerRecoveryRead(
+    writeUnresolvedScope,
+    read,
+  );
   const power = useRef(new CustomerPowerFlight());
   const powerInstance = useId();
   const mounted = useRef(true);
@@ -347,10 +356,10 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
             >
               Đối chiếu lại dữ liệu
             </Button>
-            {read.outcome === "success" && !read.loading && (
+            {canAcknowledgeWrite && (
               <Button
                 variant="secondary"
-                onClick={() => setWriteUnresolved(false)}
+                onClick={() => setWriteUnresolvedScope(null)}
               >
                 Đã kiểm tra xong
               </Button>
@@ -447,8 +456,10 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           refresh={read.refresh}
           settlement={read}
           writeBlocked={writeUnresolved}
-          onUnresolved={() => setWriteUnresolved(true)}
-          onResolved={() => setWriteUnresolved(false)}
+          onUnresolved={() =>
+            setWriteUnresolvedScope({ key, settledId: read.settledId })
+          }
+          onResolved={() => setWriteUnresolvedScope(null)}
           onDenied={() => {
             read.deny();
             setStatistics(undefined);
