@@ -154,8 +154,8 @@ export function CustomerDetailPage({ id }: { id: string }) {
               <Button
                 variant="secondary"
                 onClick={() => {
+                  if (mutation.isUnresolved && !mutation.resolveUnresolved("acknowledged")) return;
                   setWriteUnresolved(false);
-                  mutation.reset();
                 }}
               >
                 Đã kiểm tra xong
@@ -381,6 +381,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           settlement={read}
           writeBlocked={writeUnresolved}
           onUnresolved={() => setWriteUnresolved(true)}
+          onResolved={() => setWriteUnresolved(false)}
         />
       )}
       {mode?.kind === "add" && !read.denied && (
@@ -394,6 +395,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           settlement={read}
           writeBlocked={writeUnresolved}
           onUnresolved={() => setWriteUnresolved(true)}
+          onResolved={() => setWriteUnresolved(false)}
         />
       )}
       {mode?.kind === "address" && target && (
@@ -408,6 +410,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           settlement={read}
           writeBlocked={writeUnresolved}
           onUnresolved={() => setWriteUnresolved(true)}
+          onResolved={() => setWriteUnresolved(false)}
         />
       )}
       {mode?.kind === "delete" && data && target && (
