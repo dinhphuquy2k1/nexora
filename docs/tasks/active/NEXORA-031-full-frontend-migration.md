@@ -1592,4 +1592,3 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
 
 - Source and test changes committed on PR #28 branch: shared pure ambiguous-write classifier; remove unconditional rejected marker from failed address PUT/DELETE; direct network/HTTP/partial regression tests and controller simulation aligned with production classification; row-divider-only Customer table and semantic color roles with CSS regressions.
 - Canonical frontend/design-system docs synchronized. Existing Customer backend/API, generated SDK, schema and immutable approved snapshots unchanged. Keep PR Draft; final-head Preflight/Foundation and independent browser review are required for acceptance. Earlier green runs cannot certify the new HEAD.
-
