@@ -1587,3 +1587,9 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
   | Documentation | design-system.md, active task | Docs frontend owner | Leave stale; modify immutable plan; update canonical owner | Update canonical border/color/error descriptions and task evidence | Up-to-date contract | Preflight drift | Docs/Preflight/CI checks |
 
 - **Test-first acceptance**: Node test discovery, lint, typecheck, CSS semantic policy, Customer browser/CDP flows and canonical Docker Foundation/Preflight on final HEAD; record executed evidence before claiming PASS. Documentation Impact: REQUIRED for table/color roles and Customer UI error semantics. M3-M5 untouched. PR remains Draft pending verification and independent acceptance.
+
+### Scoped review follow-up implementation record — 2026-10-28
+
+- Source and test changes committed on PR #28 branch: shared pure ambiguous-write classifier; remove unconditional rejected marker from failed address PUT/DELETE; direct network/HTTP/partial regression tests and controller simulation aligned with production classification; row-divider-only Customer table and semantic color roles with CSS regressions.
+- Canonical frontend/design-system docs synchronized. Existing Customer backend/API, generated SDK, schema and immutable approved snapshots unchanged. Keep PR Draft; final-head Preflight/Foundation and independent browser review are required for acceptance. Earlier green runs cannot certify the new HEAD.
+
