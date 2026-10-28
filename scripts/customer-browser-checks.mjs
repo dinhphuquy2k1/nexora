@@ -993,6 +993,26 @@ export async function verifyCustomerBrowser({
         partial.customer.addresses.find((a) => a.id === replacement).isDefault,
         true,
       );
+      step("DELETE_PARTIAL_REQUIRES_ACKNOWLEDGEMENT");
+      assert.equal(
+        await evaluate(
+          'Array.from(document.querySelectorAll("dialog[open] button")).find(b=>b.textContent.trim()==="Xác nhận xóa")?.disabled === true',
+        ),
+        true,
+      );
+      await until(
+        'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Bỏ qua và đóng"&&!b.disabled)',
+      );
+      assert.equal(deleteRequests, 1, "GET cannot repeat the failed DELETE");
+      await click("Bỏ qua và đóng");
+      await until('!document.querySelector("dialog[open]")');
+      await until(
+        `!document.querySelector('article[data-address-id="${currentDefault}"] button[aria-label="Xóa địa chỉ"]').disabled`,
+      );
+      await evaluate(
+        `document.querySelector('article[data-address-id="${currentDefault}"] button[aria-label="Xóa địa chỉ"]').click();true`,
+      );
+      await until('!!document.querySelector("dialog[open]")');
       await click("Xác nhận xóa");
       await until('!document.querySelector("dialog[open]")');
       assert.equal(deleteRequests, 2);
@@ -1051,6 +1071,55 @@ export async function verifyCustomerBrowser({
     assert.equal(uiStatus.isDefault, true);
     assert.equal(uiStatus.buttonCount, 1);
     assert.equal(uiStatus.buttonDisabled, true);
+
+    step("DELETE_COMMITTED_RESPONSE_LOSS");
+    await click("Thêm địa chỉ");
+    await until(
+      '!!document.querySelector("dialog[open] textarea[name=addressText]")',
+    );
+    await fill("addressText", "Địa chỉ kiểm thử mất phản hồi DELETE");
+    await click("Lưu địa chỉ");
+    await until('!document.querySelector("dialog[open]")');
+    await ready();
+    const deletionFixture = await evaluate(
+      `fetch('/api/customers/'+${JSON.stringify(customer.id)}).then(r=>r.json())`,
+    );
+    const toDelete = deletionFixture.customer.addresses.find(
+      (a) => !a.isDefault,
+    );
+    assert.ok(toDelete, "A nondefault address is available for a committed DELETE");
+    await evaluate(
+      `document.querySelector('article[data-address-id="${toDelete.id}"] button[aria-label="Xóa địa chỉ"]').click();true`,
+    );
+    await until('!!document.querySelector("dialog[open]")');
+    await loseOneCommittedResponse("DELETE", async (counts) => {
+      await click("Xác nhận xóa");
+      await until(
+        'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
+      );
+      assert.equal(counts().responses, 1, "Only one committed DELETE was sent");
+      const deleted = await evaluate(
+        `fetch('/api/customers/'+${JSON.stringify(customer.id)}).then(r=>r.json())`,
+      );
+      assert.equal(
+        deleted.customer.addresses.some((a) => a.id === toDelete.id),
+        false,
+        "Server committed the DELETE before its response was lost",
+      );
+      assert.equal(
+        await evaluate(
+          'Array.from(document.querySelectorAll("main button")).find(b=>b.textContent.trim()==="Thêm địa chỉ")?.disabled === true',
+        ),
+        true,
+        "Parent mutations stay blocked pending user acknowledgement",
+      );
+      await click("Đã kiểm tra xong");
+      await until(
+        'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Thêm địa chỉ"&&!b.disabled)',
+      );
+      assert.equal(counts().responses, 1, "GET and acknowledgement never repeat DELETE");
+    });
+    await ready();
 
     step("FOCUS_ADD_ADDRESS_OPENED");
     // Ensure initial focus is on another control (heading) before user clicks trigger
