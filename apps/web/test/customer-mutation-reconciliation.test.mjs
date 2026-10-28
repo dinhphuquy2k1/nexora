@@ -589,11 +589,16 @@ test("Customer recovery wiring unlocks page and its active drawer together", asy
   assert.match(detail, /mutation\.resolveUnresolved\("acknowledged"\)/);
   assert.match(detail, /onResolved=\{\(\) => setWriteUnresolved\(false\)\}/);
   assert.match(list, /onResolved=\{\(\) => setWriteUnresolvedScope\(null\)\}/);
+  assert.match(drawers, /onDiscard=\{\(\) => void completeRecovery\("discard"\)\}/);
+  assert.match(
+    drawers,
+    /onAcknowledge=\{\(\) => void completeRecovery\("acknowledged"\)\}/,
+  );
   assert.match(drawers, /onDiscard=\{\(\) => \{/);
   assert.match(drawers, /onAcknowledge=\{\(\) => \{/);
   assert.ok(
-    (drawers.match(/onResolved\?\.\(\)/g) ?? []).length >= 4,
-    "Both CustomerDrawer and AddressDrawer must resolve the parent for both user decisions",
+    (drawers.match(/onResolved\?\.\(\)/g) ?? []).length >= 3,
+    "Both Drawer implementations must release the owning page after safe recovery",
   );
 });
 
@@ -694,4 +699,3 @@ test("existing Customer recovery uses direct ID GET; CREATE cannot guess an ID",
   assert.match(list, /verifyCustomerRecoveryById\(/);
   assert.match(drawers, /if \(customer\)[\s\S]*?verifyCustomerRecoveryById\(/);
 });
-
