@@ -7,6 +7,7 @@ import { DraftError } from "./payload.ts";
 import {
   settleMutationRead,
   isAmbiguousCustomerWriteFailure,
+  shouldRevalidateRejectedCustomerWriteFailure,
   type WriteOutcome,
 } from "./mutation-policy.ts";
 import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
@@ -169,6 +170,20 @@ export function useCustomerMutation(
         }
 
         writeOutcome.current = "rejected";
+        if (shouldRevalidateRejectedCustomerWriteFailure(e)) {
+          try {
+            const reqId = refreshFn();
+            if (typeof reqId === "number") {
+              targetRequestId.current = reqId;
+              setPhase("reconciling");
+              return;
+            }
+          } catch {
+            // Unable to schedule authoritative revalidation.
+          }
+          setPhase("blocked");
+          return;
+        }
         lock.current = false;
         setPhase("idle");
         setBusy(false);
@@ -218,19 +233,29 @@ export function useCustomerMutation(
     }
   }
 
+  const isUnresolved = writeOutcome.current === "unknown";
+  const canResolveUnresolved =
+    isUnresolved &&
+    phase === "blocked" &&
+    !denied &&
+    outcome === "success" &&
+    targetRequestId.current !== null &&
+    settledId !== undefined &&
+    settledId >= targetRequestId.current;
+
   const resolveUnresolved = useCallback(
-    (mode: "acknowledged" | "discard" = "discard") => {
+    (mode: "acknowledged" | "discard" = "discard"): boolean => {
+      if (!canResolveUnresolved) return false;
       targetRequestId.current = null;
       lock.current = false;
       writeOutcome.current = mode === "acknowledged" ? "confirmed" : "rejected";
       setPhase("idle");
       setBusy(false);
       setError(undefined);
+      return true;
     },
-    [],
+    [canResolveUnresolved],
   );
-
-  const isUnresolved = writeOutcome.current === "unknown";
 
   return {
     run,
@@ -241,6 +266,7 @@ export function useCustomerMutation(
     isWriting: phase === "writing",
     isReconciling: phase === "reconciling",
     isUnresolved,
+    canResolveUnresolved,
     writeOutcome: writeOutcome.current,
     phase,
     error,
