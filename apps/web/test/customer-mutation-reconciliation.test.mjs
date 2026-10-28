@@ -551,20 +551,20 @@ test("Customer write failures classify rejected and unknown", async () => {
   assert.doesNotMatch(modalSource, /isAmbiguous:\s*false/);
 });
 
-test("rejected 403/404/409 writes revalidate GET without repeating writes", () => {
+test("rejected 403/404/409 writes require GET", () => {
   for (const status of [403, 404, 409]) {
     const error = new CustomerApiError(status, {});
     assert.equal(isAmbiguousCustomerWriteFailure(error), false);
     assert.equal(shouldRevalidateRejectedCustomerWriteFailure(error), true);
   }
   for (const status of [400, 422, 429, 500]) {
-    assert.equal(
-      shouldRevalidateRejectedCustomerWriteFailure(new CustomerApiError(status, {})),
-      false,
-    );
+    const error = new CustomerApiError(status, {});
+    assert.equal(shouldRevalidateRejectedCustomerWriteFailure(error), false);
   }
-  assert.equal(shouldRevalidateRejectedCustomerWriteFailure(new TypeError("offline")), false);
-  assert.equal(shouldRevalidateRejectedCustomerWriteFailure(new DraftError("invalid")), false);
+  const offline = new TypeError("offline");
+  const invalid = new DraftError("invalid");
+  assert.equal(shouldRevalidateRejectedCustomerWriteFailure(offline), false);
+  assert.equal(shouldRevalidateRejectedCustomerWriteFailure(invalid), false);
   assert.equal(settleMutationRead("rejected", "success"), "idle");
   assert.equal(settleMutationRead("rejected", "error"), "blocked");
   assert.equal(settleMutationRead("rejected", "denied"), "blocked");
@@ -593,4 +593,3 @@ test("Customer recovery wiring unlocks page and its active drawer together", asy
     "Both CustomerDrawer and AddressDrawer must resolve the parent for both user decisions",
   );
 });
-
