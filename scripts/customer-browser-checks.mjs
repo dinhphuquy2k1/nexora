@@ -819,8 +819,6 @@ export async function verifyCustomerBrowser({
         false,
         "An unrelated filtered GET must not unlock the page-level write guard",
       );
-
-
       await click("Xóa từ khóa tìm kiếm");
       await ready();
       await until(
