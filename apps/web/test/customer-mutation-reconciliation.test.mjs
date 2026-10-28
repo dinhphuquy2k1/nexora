@@ -623,3 +623,16 @@ test("partial address DELETE does not auto-acknowledge a GET without user choice
   assert.match(source, /Bỏ qua và đóng/);
 });
 
+test("page-level recovery controls are unavailable while an editor owns the write", async () => {
+  const list = await fs.readFile(
+    new URL("../features/customers/CustomerListPage.tsx", import.meta.url),
+    "utf8",
+  );
+  const detail = await fs.readFile(
+    new URL("../features/customers/CustomerDetailPage.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(list, /canAcknowledgeWrite && !overlay/);
+  assert.match(detail, /read\.outcome === "success" && !read\.loading && !mode/);
+});
+
