@@ -235,10 +235,7 @@ test("Customer table keeps horizontal dividers only", async () => {
     assert.doesNotMatch(block, /border-(?:left|right)\s*:/);
     assert.match(block, /border-bottom:\s*1px solid var\(--color-border\)/);
   }
-  assert.doesNotMatch(
-    css,
-    /\.table (?:th|td):last-child\s*\{\s*border-right:/,
-  );
+  assert.doesNotMatch(css, /\.table (?:th|td):last-child\s*\{\s*border-right:/);
   assert.match(css, /\.tableViewport:focus-visible\s*\{[^}]*outline:/);
 });
 
