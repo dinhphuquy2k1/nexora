@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, Select } from "@nexora/ui";
 import { AlertTriangle } from "lucide-react";
 import type { Address } from "./types.ts";
@@ -46,24 +46,6 @@ export function DeleteAddressModal({
     onDenied,
     onUnresolved,
   );
-
-  useEffect(() => {
-    if (
-      partial &&
-      mutation.phase === "blocked" &&
-      settlement?.outcome === "success" &&
-      !reconciling
-    ) {
-      if (mutation.resolveUnresolved("discard")) onResolved?.();
-    }
-  }, [
-    partial,
-    mutation.phase,
-    settlement?.outcome,
-    reconciling,
-    mutation,
-    onResolved,
-  ]);
 
   const others = addresses.filter((a) => a.id !== target.id);
   const isReconciling = reconciling || mutation.phase === "blocked";
