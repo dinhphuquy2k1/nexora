@@ -359,4 +359,3 @@ an active Toast alert. Do not restore obsolete global-alert assumptions.
 ### Customer recovery and Chromium readiness evidence (2026-10-28)
 
 The existing authenticated CDP Customer smoke uses real server writes with response-stage failure injection (completed PATCH/PUT response loss) to verify a GET-only reconciliation and explicit user recovery; it must never treat synthetic request-stage HTTP 500 as proof that a genuine write committed. The default-address delete negative-path browser fixture requires acknowledgement and a fresh editor before retrying after an ambiguous 500 response. Login browser startup retains the required Chromium/DevTools gate with a bounded 20-second cold-runner startup window; a missing DevTools port remains an explicit failure with safe diagnostic categories, not a skipped test.
-
