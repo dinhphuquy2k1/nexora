@@ -356,7 +356,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
             >
               Đối chiếu lại dữ liệu
             </Button>
-            {canAcknowledgeWrite && (
+            {canAcknowledgeWrite && !overlay && (
               <Button
                 variant="secondary"
                 onClick={() => setWriteUnresolvedScope(null)}
