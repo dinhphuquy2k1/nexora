@@ -17,7 +17,10 @@ import { parseCustomerQuery, customerQueryString } from "./query.ts";
 import type { Query, Summary } from "./types.ts";
 import { customerApi } from "./api.ts";
 import { useCustomerRead } from "./useCustomerRead.ts";
-import { isFreshCustomerRecoveryRead } from "./mutation-policy.ts";
+import {
+  isFreshCustomerRecoveryRead,
+  verifyCustomerRecoveryById,
+} from "./mutation-policy.ts";
 import { Users, Plus, FileSpreadsheet } from "lucide-react";
 import { CustomerPagination } from "./CustomerPagination.tsx";
 import { CustomerStatsBar } from "./CustomerStatsBar.tsx";
@@ -102,12 +105,47 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
   const [writeUnresolvedScope, setWriteUnresolvedScope] = useState<{
     key: string;
     settledId: number;
+    customerId?: string;
   } | null>(null);
+  const [recoveryPending, setRecoveryPending] = useState(false);
+  const [recoveryError, setRecoveryError] = useState("");
+  const recoveryLock = useRef(false);
   const writeUnresolved = writeUnresolvedScope !== null;
   const canAcknowledgeWrite = isFreshCustomerRecoveryRead(
     writeUnresolvedScope,
     read,
   );
+  async function acknowledgeWrite() {
+    const scope = writeUnresolvedScope;
+    if (!scope || !canAcknowledgeWrite || overlay || recoveryLock.current)
+      return;
+    recoveryLock.current = true;
+    setRecoveryPending(true);
+    setRecoveryError("");
+    try {
+      // Pagination and status filters may omit the changed customer.
+      if (scope.customerId) {
+        await verifyCustomerRecoveryById(scope.customerId, customerApi.get);
+      }
+      setWriteUnresolvedScope((current) => (current === scope ? null : current));
+    } catch (error) {
+      const safe = customerError(error);
+      if (safe.unauthenticated) {
+        read.deny();
+        const from = sanitizeReturnUrl(location.pathname + location.search);
+        router.replace(
+          from ? `/login?from=${encodeURIComponent(from)}` : "/login",
+        );
+      } else {
+        setRecoveryError(
+          "Không thể xác minh hồ sơ khách hàng. Hãy tải lại và thử tiếp.",
+        );
+      }
+    } finally {
+      recoveryLock.current = false;
+      setRecoveryPending(false);
+    }
+  }
   const power = useRef(new CustomerPowerFlight());
   const powerInstance = useId();
   const mounted = useRef(true);
@@ -359,12 +397,14 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
             {canAcknowledgeWrite && !overlay && (
               <Button
                 variant="secondary"
-                onClick={() => setWriteUnresolvedScope(null)}
+                disabled={recoveryPending}
+                onClick={() => void acknowledgeWrite()}
               >
                 Đã kiểm tra xong
               </Button>
             )}
           </div>
+          {recoveryError && <p role="alert">{recoveryError}</p>}
         </div>
       )}
       {powerState?.phase === "blocked" && (
@@ -456,9 +496,15 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           refresh={read.refresh}
           settlement={read}
           writeBlocked={writeUnresolved}
-          onUnresolved={() =>
-            setWriteUnresolvedScope({ key, settledId: read.settledId })
-          }
+          onUnresolved={() => {
+            setRecoveryError("");
+            setWriteUnresolvedScope({
+              key,
+              settledId: read.settledId,
+              customerId:
+                overlay !== "create" && overlay ? overlay.id : undefined,
+            });
+          }}
           onResolved={() => setWriteUnresolvedScope(null)}
           onDenied={() => {
             read.deny();
