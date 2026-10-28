@@ -246,7 +246,7 @@ Customer list follows the approved reference ZIP (`CustomerListView.tsx` and `sr
   8. `NGÀY TẠO` (Localized date `vi-VN`)
   9. `THAO TÁC` (Action group containing both `Edit` and `Power` status toggle button)
      Header, 5-row Skeleton, and real data rows share the authoritative `customerColumns` registry (`columns.ts`) and persistent `<colgroup>`. During loading transitions, the header and `<colgroup>` remain mounted and fixed; text placeholders occupy 85–90% of usable cell width with balanced `margin-inline: auto` margins, and both skeleton and real single-line rows measure 44.5px height. Content-height changes (e.g. 5 skeleton rows becoming 1 real row) are expected content transitions; table geometry and column positions maintain zero horizontal movement across all result counts (0, 1, 2, 3, 5, 10) and responsive viewports (375px to 1920px).
-- **Pagination**: Default `pageSize: 10` across query parser, state initialization, fallback, and selector. Options: `[5, 10, 20, 50, 100]`.
+- **Pagination**: Default `pageSize: 20` across query parser, state initialization, fallback, and selector. Options: `[5, 10, 20, 50, 100]`.
 - **Shared Workspace Frames**: Navigation metadata selects standard/wide. Header inner and main share centered1600px standard frame or unlimited wide frame, with24/16/12px responsive gutters. MainWrapper scrolls both together; Customer-only pathname padding is removed. See [Design System](design-system.md).
 
 #### Feature compatibility ledger:
@@ -259,3 +259,5 @@ Customer list follows the approved reference ZIP (`CustomerListView.tsx` and `sr
 ## Shared validation boundary (NEXORA-031)
 
 The Customer URL query and draft input validation reuse pure `@nexora/shared` primitives for positive decimal pagination, overflow checks, bounded text and raw-length-before-trim. Pagination defaults to 20 rows in both API and UI (maximum 100). Customer-only bounds remain `CustomerInputLimits`; display labels and `INVALID_FILTER`/`DraftError` remain feature-owned. Phone input UX is basic only: the API backend `PhoneNumber` Value Object is authoritative for country-specific validation and E.164 normalization. Shared validation has no React, Next, NestJS, Prisma or phone-metadata dependency.
+
+Customer Edit admission requires a successful current-scope GET and settled manual Reload; retained rows on a pending/failed GET remain visible but cannot open a writable stale editor. The List page owns optional row navigation and native customer links remain. For a confirmed Customer/Address write, a Drawer stays mounted through its authoritative same-scope GET; the saved/close callback runs only on successful read. Failed/unscheduled GET retains the confirmed-write guard and permits GET-only Retry without repeating a mutation. Unknown write recovery still requires separate explicit user acknowledgement.

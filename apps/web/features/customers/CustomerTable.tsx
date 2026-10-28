@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button, StatusBadge, buttonClassName } from "@nexora/ui";
 import {
   Eye,
@@ -46,6 +45,8 @@ export function customerDate(value: string) {
 export function CustomerTable({
   rows,
   onEdit,
+  onView,
+  editUnavailable = false,
   onToggleStatus,
   togglingId,
   powerUnavailable = false,
@@ -58,6 +59,8 @@ export function CustomerTable({
 }: {
   rows: Summary[];
   onEdit: (c: Summary) => void;
+  onView?: (id: string) => void;
+  editUnavailable?: boolean;
   onToggleStatus?: (c: Summary) => void;
   togglingId?: string | null;
   powerUnavailable?: boolean;
@@ -68,12 +71,6 @@ export function CustomerTable({
   onClear: () => void;
   onRetry: () => void;
 }) {
-  let router: ReturnType<typeof useRouter> | null = null;
-  try {
-    router = useRouter();
-  } catch {
-    router = null;
-  }
   let state;
   if (pendingFilter)
     state = (
@@ -229,13 +226,7 @@ export function CustomerTable({
                   ) {
                     return;
                   }
-                  if (router) {
-                    router.push(`/customers/${encodeURIComponent(c.id)}`);
-                  } else if (typeof window !== "undefined") {
-                    window.location.assign(
-                      `/customers/${encodeURIComponent(c.id)}`,
-                    );
-                  }
+                  onView?.(c.id);
                 }}
               >
                 <td className={styles.detailCell}>
@@ -290,6 +281,7 @@ export function CustomerTable({
                       icon
                       variant="ghost"
                       onClick={() => onEdit(c)}
+                      disabled={editUnavailable}
                       aria-label={`Sửa ${c.code}`}
                       title="Chỉnh sửa thông tin khách hàng"
                     >

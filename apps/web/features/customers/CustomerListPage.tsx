@@ -309,6 +309,19 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
       setPowerState(power.current.snapshot());
     }
   }
+  const editUnavailable =
+    read.denied ||
+    read.outcome !== "success" ||
+    read.loading ||
+    !!read.error ||
+    !compatible ||
+    writeUnresolved ||
+    !!powerState ||
+    manualReloadId !== null;
+  function handleEdit(customer: Summary) {
+    if (read.isDenied() || editUnavailable || manualReloadLock.current) return;
+    setOverlay(customer);
+  }
   const clearFilters = () => {
     setDraft("");
     change({ q: undefined, status: undefined, phone: undefined, page: 1 });
@@ -346,7 +359,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
             <Button
               variant="primary"
               onClick={() => setOverlay("create")}
-              disabled={writeUnresolved}
+              disabled={editUnavailable}
               aria-label="Thêm khách hàng"
             >
               <Plus size={16} aria-hidden="true" />
@@ -463,7 +476,9 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
                 : undefined)
             }
             filtered={!!(query.q || query.status || query.phone)}
-            onEdit={setOverlay}
+            onEdit={handleEdit}
+            onView={(id) => router.push(`/customers/${encodeURIComponent(id)}`)}
+            editUnavailable={editUnavailable}
             onToggleStatus={handleToggleStatus}
             togglingId={
               powerState && powerState.phase !== "blocked"

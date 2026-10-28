@@ -33,6 +33,7 @@ export function useCustomerMutation(
   const lock = useRef(false);
   const writeOutcome = useRef<WriteOutcome>("confirmed");
   const writeKey = useRef<string | undefined>(undefined);
+  const pendingSuccess = useRef<(() => void) | null>(null);
   const mounted = useRef(true);
   const sequence = useRef(0);
   const instance = useId();
@@ -83,10 +84,19 @@ export function useCustomerMutation(
             : "error";
         const settled = settleMutationRead(writeOutcome.current, readOutcome);
         if (settled === "idle") {
+          const onSettledSuccess =
+            writeOutcome.current === "confirmed" ? pendingSuccess.current : null;
+          pendingSuccess.current = null;
           targetRequestId.current = null;
           lock.current = false;
           setPhase("idle");
           setBusy(false);
+          // A confirmed write cannot close its drawer before its in-scope GET.
+          try {
+            onSettledSuccess?.();
+          } catch {
+            // A presentation callback cannot relabel an already committed write.
+          }
         } else {
           setPhase("blocked");
           setBusy(true);
@@ -110,18 +120,20 @@ export function useCustomerMutation(
   }, [refreshFn, phase]);
 
   const reset = useCallback(() => {
-    if (writeOutcome.current === "unknown") return;
+    if (writeOutcome.current === "unknown" || phase !== "idle") return;
+    pendingSuccess.current = null;
     targetRequestId.current = null;
     lock.current = false;
     setPhase("idle");
     setBusy(false);
     setError(undefined);
-  }, []);
+  }, [phase]);
 
   async function run(operation: () => Promise<unknown>, success: () => void) {
     if (lock.current || phase !== "idle") return;
     lock.current = true;
     writeOutcome.current = "confirmed";
+    pendingSuccess.current = null;
     writeKey.current = readKey;
     const id = ++sequence.current;
     setPhase("writing");
@@ -210,13 +222,8 @@ export function useCustomerMutation(
         message: "Đã lưu thay đổi.",
       });
 
-      // The write is confirmed. Scheduling/read failure cannot relabel it as a failed mutation.
-      try {
-        success();
-      } catch {
-        // success handler error
-      }
-
+      // Defer saved/close until an authoritative GET, not merely HTTP 2xx.
+      pendingSuccess.current = success;
       try {
         const reqId = refreshFn();
         if (typeof reqId === "number") {
@@ -235,9 +242,9 @@ export function useCustomerMutation(
         return;
       }
 
-      lock.current = false;
-      setPhase("idle");
-      setBusy(false);
+      // A confirmed write without a scheduled GET must remain blocked.
+      setPhase("blocked");
+      setBusy(true);
     } catch {
       lock.current = false;
       setPhase("idle");
@@ -277,7 +284,9 @@ export function useCustomerMutation(
     busy: busy || phase !== "idle",
     canWrite: phase === "idle" && !isUnresolved,
     canRetryRead: phase === "blocked",
-    canClose: phase !== "writing",
+    canClose:
+      phase === "idle" ||
+      (phase === "blocked" && writeOutcome.current !== "confirmed"),
     isWriting: phase === "writing",
     isReconciling: phase === "reconciling",
     isUnresolved,

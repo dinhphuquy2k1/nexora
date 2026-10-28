@@ -15,8 +15,8 @@ Documentation Impact: REQUIRED
 - **Design SHA-256**: a7bc4e9ad1b680350442bb6f1b02499738a8244f5e1a7abd32d4cacda6b91522
 - **Reviewed baseline**: d9f8cbdec06fa264ecf35bf0ddae53452dc55beb
 - **Approval authority**: dinhphuquy2k1
-- **Approval status**: APPROVED
-- **Approval evidence**: Owner authenticated approval received for rev-2026-10-26-color-policy-m2-v4 (digest 01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53). Supersedes conflicting v3 contrast requirements.
+- **Approval status**: APPROVED (historical metadata only; no current approval gate)
+- **Approval evidence**: Historical owner comment for rev-2026-10-26-color-policy-m2-v4 (digest 01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53). This comment does not independently validate its snapshot or supersede governing documentation; v3 still governs unrelated visual choices.
 
 ## Shared validation amendment — 2026-10-27
 
@@ -1672,3 +1672,10 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
 - **Reuse audit:** Component: docs and UI smoke; existing: `frontend.md`, `design-system.md`, this task, `customer-browser-checks.mjs`; owner: Customer Web/architecture/testing; alternatives: relax selector, increase timeout, or wait for actual enabled Editor; **selected:** assert enabled edit and input state, retain full CDP coverage; reconcile outdated 10-row frontend prose against approved 20-row default; risk: flaky transitions; verification: Preflight, Docker quality, browser smoke, HTTPS/data/dev gates.
 - **Scope exclusion:** no new APIs, SDK, domain rule, database migration, color policy, ZIP redesign, package dependency, or security relaxation. Preserve the existing v3/v4 historical snapshots; historical approval metadata is not a current merge gate under ADR-009.
 - **Acceptance:** tests-first regressions, implementation on the existing PR branch, exact-HEAD CI with browser/runtime evidence and independent review before marking PR ready. No merge/deploy in this fix.
+
+### Scoped Edit/reconciliation implementation checkpoint — 2026-10-28
+
+- List Edit is disabled on retained rows while current GET is pending, failed, denied, or in a different filter scope, including an unsettled manual refresh. Detail controls reject stale reads. List owns row navigation; no conditional React Router Hook or hard-navigation fallback.
+- A confirmed write defers Drawer saved/close callbacks until the authoritative in-scope GET succeeds. A failed/unscheduled GET keeps a confirmed-write guard and GET-only Retry in the still-mounted Drawer, instead of unmounting before reconciliation. Unknown write recovery remains explicit.
+- Browser smoke requires an enabled editor after the read-race fixture, not merely a retained row. New table test covers stale edit guards. Frontend docs align with the approved default 20 rows.
+- Documentation Impact: REQUIRED; verification pending final-head Preflight, Foundation, actual browser/runtime and independent review. No merge or deployment.

@@ -790,12 +790,14 @@ export async function verifyCustomerBrowser({
     await click("Làm mới");
     await ready();
     await until(
-      `!!document.querySelector('main tbody button[aria-label="Sửa ${customer.code}"]') && !document.querySelector('main [data-customer-error]')`,
+      `(()=>{const edit=document.querySelector('main tbody button[aria-label="Sửa ${customer.code}"]');const reload=document.querySelector('main button[aria-label="Làm mới"]');return !!edit&&!edit.matches(':disabled')&&reload?.getAttribute('aria-busy')==='false'&&!document.querySelector('main [data-customer-error]');})()`,
     );
     await evaluate(
       `document.querySelector('main tbody button[aria-label="Sửa ${customer.code}"]').click();true`,
     );
-    await until('!!document.querySelector("dialog[open] textarea[name=note]")');
+    await until(
+      '!!document.querySelector("dialog[open] textarea[name=note]") && !document.querySelector("dialog[open] fieldset[disabled]")',
+    );
     await fill("note", "Kiểm tra đối chiếu theo bộ lọc");
     await loseOneCommittedResponse("PATCH", async (counts) => {
       await click("Lưu khách hàng");
