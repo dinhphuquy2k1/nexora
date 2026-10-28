@@ -808,20 +808,44 @@ export async function verifyCustomerBrowser({
     try {
       await fill("note", "Kiểm tra đối chiếu theo bộ lọc");
     } catch (error) {
-      const state = await evaluate(
-        `(()=>{const el=document.querySelector('dialog[open] textarea[name=note]');const panel=document.getElementById('customer-results');return{dialog:!!document.querySelector('dialog[open]'),found:!!el,disabled:el?.matches(':disabled')??false,focused:document.activeElement===el,readOutcome:panel?.dataset.readOutcome??null,settledId:panel?.dataset.readSettledId??null};})()`,
-      );
       console.error(
-        "Customer note fill diagnostic",
-        JSON.stringify({ code: error?.code ?? "UNKNOWN", state }),
+        "Customer note fill error",
+        JSON.stringify({ code: error?.code ?? "UNKNOWN" }),
       );
+      try {
+        const state = await evaluate(
+          `(()=>{const el=document.querySelector('dialog[open] textarea[name=note]');const panel=document.getElementById('customer-results');return{dialog:!!document.querySelector('dialog[open]'),found:!!el,disabled:el?.matches(':disabled')??false,focused:document.activeElement===el,readOutcome:panel?.dataset.readOutcome??null,settledId:panel?.dataset.readSettledId??null};})()`,
+        );
+        console.error("Customer note fill state", JSON.stringify(state));
+      } catch {
+        console.error("Customer note fill state unavailable");
+      }
       throw error;
     }
+    step("LIST_MUTATION_PATCH_RESPONSE_LOSS");
     await loseOneCommittedResponse("PATCH", async (counts) => {
+      step("LIST_MUTATION_PATCH_SUBMIT");
       await click("Lưu khách hàng");
-      await until(
-        'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Thử lưu lại"&&!b.disabled)',
-      );
+      step("LIST_MUTATION_PATCH_RECOVERY_READY");
+      try {
+        await until(
+          'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Thử lưu lại"&&!b.disabled)',
+        );
+      } catch (error) {
+        console.error(
+          "Customer PATCH recovery error",
+          JSON.stringify({ code: error?.code ?? "UNKNOWN" }),
+        );
+        try {
+          const state = await evaluate(
+            `(()=>{const d=document.querySelector('dialog[open]');const p=document.getElementById('customer-results');return{dialog:!!d,notice:d?.querySelector('[role=status]')?.textContent?.slice(0,120)??null,writeDisabled:d?.querySelector('button[type=submit]')?.disabled??null,readOutcome:p?.dataset.readOutcome??null,settledId:p?.dataset.readSettledId??null,recoverButtons:Array.from(d?.querySelectorAll('button')??[]).filter(b=>['Thử lưu lại','Đã lưu thành công'].includes(b.textContent.trim())).map(b=>({label:b.textContent.trim(),disabled:b.disabled}))};})()`,
+          );
+          console.error("Customer PATCH recovery state", JSON.stringify(state));
+        } catch {
+          console.error("Customer PATCH recovery state unavailable");
+        }
+        throw error;
+      }
       assert.equal(counts().responses, 1);
       assert.equal(
         await evaluate(
