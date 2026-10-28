@@ -276,3 +276,38 @@ test("Customer colors use semantic tokens", async () => {
     );
   }
 });
+
+test("retained rows remain visible but Edit is disabled until their read is authoritative", () => {
+  const fresh = render(
+    React.createElement(CustomerTable, {
+      ...props,
+      rows: [row],
+      editUnavailable: false,
+    }),
+  );
+  const pending = render(
+    React.createElement(CustomerTable, {
+      ...props,
+      rows: [row],
+      loading: true,
+      editUnavailable: true,
+    }),
+  );
+  const failed = render(
+    React.createElement(CustomerTable, {
+      ...props,
+      rows: [row],
+      error: { message: "GET failed" },
+      editUnavailable: true,
+    }),
+  );
+  for (const html of [pending, failed]) {
+    assert.match(html, /KH000001/);
+    const button = html.match(/<button(?=[^>]*aria-label="Sửa KH000001")[^>]*>/)?.[0];
+    assert.ok(button, "The retained customer must still have an edit affordance");
+    assert.match(button, /\bdisabled(?:=""|(?=\s|>))/);
+  }
+  const active = fresh.match(/<button(?=[^>]*aria-label="Sửa KH000001")[^>]*>/)?.[0];
+  assert.ok(active);
+  assert.doesNotMatch(active, /\bdisabled(?:=""|(?=\s|>))/);
+});
