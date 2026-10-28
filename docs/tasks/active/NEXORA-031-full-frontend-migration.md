@@ -1571,3 +1571,19 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
     - Main `#workspace-content` remains unaffected (`outline: none`).
     - Zero layout shift: 9 columns, 5-row skeleton, and pagination footer dimensions remain unchanged.
   - **Verification plan:** Unit test in `apps/web/test/customer-table.test.mjs`, geometry test in `scripts/workspace-geometry-checks.test.mjs`, and full local verification suite.
+
+## Scoped review follow-up plan — 2026-10-28 (PR #28, post-7ea1626)
+
+- **Task / classification / baseline**: NEXORA-031, BOUNDED fixes within recorded Customer M2 design; inspected HEAD 7ea16269c835cf37b8db266898c68e5cff300361 read-only before code. Preserve plan revision, snapshot and digest; no API, schema, public component sizing, security or business contract changes.
+- **Findings**: A lost response to default-address PUT or non-default DELETE is returned as failed and unconditionally marked isAmbiguous:false by DeleteAddressModal, suppressing GET reconciliation. Customer table has unnecessary vertical header/body borders; some Customer CSS uses foundation palette tokens instead of semantic roles.
+- **Selected approach**: Reuse existing CustomerApiError/DraftError, useCustomerMutation, settleMutationRead, CustomerPowerFlight, @nexora/ui and tokens.css. Explicit rejected 4xx remains rejected; network/malformed response/5xx and partial PUT-then-DELETE remain unknown and require GET reconciliation; never auto-retry writes. Remove only vertical th/td borders; keep row dividers, card/surface frames, scroll region and keyboard focus. Map foundation palette references to correct semantic roles with no visual palette change.
+- **Mandatory eight-field reuse audit**:
+
+  | Component | Existing implementations | Domain owner | Reuse alternatives | Selected approach | Rationale | Risks | Verification |
+  | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+  | Delete error/reconciliation | address-actions.ts, DeleteAddressModal.tsx, useCustomerMutation.ts, mutation-policy.ts, CustomerApiError | Customer Web | Force rejected; modal GET; existing mutation policy | Remove unconditional deterministic marker and centralize pure classification in existing mutation policy | Avoid stale UI/duplicate writes after lost response | False unblock or permanent lock | Lost DELETE/PUT response, 4xx, 5xx, partial; GET-only browser |
+  | Table focus and grid | customers.module.css, CustomerTable.tsx, customerColumns | Customer Web | Delete all borders/focus; keep grid lines; row divider | Remove vertical borders only, preserve row dividers and focus-visible | Parity without focus regression | Layout/focus movement | CSS assertions, nine-column Skeleton, browser focus/scroll |
+  | Semantic colors | tokens.css, customers.module.css, Design System | Web theme | Raw hex; mismatched semantic token; specific semantic alias | Reuse appropriate roles/add only missing aliases, retain same computed colors | Theme consistency | Color/cascade change | CSS token checks and computed browser colors |
+  | Documentation | design-system.md, active task | Docs frontend owner | Leave stale; modify immutable plan; update canonical owner | Update canonical border/color/error descriptions and task evidence | Up-to-date contract | Preflight drift | Docs/Preflight/CI checks |
+
+- **Test-first acceptance**: Node test discovery, lint, typecheck, CSS semantic policy, Customer browser/CDP flows and canonical Docker Foundation/Preflight on final HEAD; record executed evidence before claiming PASS. Documentation Impact: REQUIRED for table/color roles and Customer UI error semantics. M3-M5 untouched. PR remains Draft pending verification and independent acceptance.
