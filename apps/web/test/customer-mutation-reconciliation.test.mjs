@@ -596,7 +596,7 @@ test("Customer recovery wiring unlocks page and its active drawer together", asy
   );
 });
 
-test("reconciliation accepts only the matching query key and current request generation", () => {
+test("mutation reconciliation requires the original query scope", () => {
   assert.equal(isMutationReadInScope("all", "filtered", 5, 6), false);
   assert.equal(isMutationReadInScope("all", "all", 5, 4), false);
   assert.equal(isMutationReadInScope("all", "all", 5, 5), true);
@@ -604,9 +604,14 @@ test("reconciliation accepts only the matching query key and current request gen
   assert.equal(isMutationReadInScope(undefined, undefined, 5, 5), true);
 });
 
-test("list recovery after drawer closes requires a fresh read in the original filter", () => {
+test("list acknowledgement needs a fresh GET in the original scope", () => {
   const origin = { key: "all", settledId: 10 };
-  const read = { key: "all", settledId: 11, outcome: "success", loading: false };
+  const read = {
+    key: "all",
+    settledId: 11,
+    outcome: "success",
+    loading: false,
+  };
   assert.equal(isFreshCustomerRecoveryRead(origin, read), true);
   assert.equal(
     isFreshCustomerRecoveryRead(origin, { ...read, key: "inactive" }),
@@ -626,7 +631,7 @@ test("list recovery after drawer closes requires a fresh read in the original fi
   );
 });
 
-test("partial address DELETE does not auto-acknowledge a GET without user choice", async () => {
+test("partial DELETE needs explicit user recovery", async () => {
   const source = await fs.readFile(
     new URL("../features/customers/DeleteAddressModal.tsx", import.meta.url),
     "utf8",
@@ -638,7 +643,7 @@ test("partial address DELETE does not auto-acknowledge a GET without user choice
   assert.match(source, /Bỏ qua và đóng/);
 });
 
-test("page-level recovery controls are unavailable while an editor owns the write", async () => {
+test("page recovery is hidden while an editor owns the write", async () => {
   const list = await fs.readFile(
     new URL("../features/customers/CustomerListPage.tsx", import.meta.url),
     "utf8",
