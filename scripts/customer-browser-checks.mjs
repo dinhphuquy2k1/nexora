@@ -823,7 +823,9 @@ export async function verifyCustomerBrowser({
         false,
         "An unrelated filtered GET must not unlock the page-level write guard",
       );
-      await evaluate('document.getElementById("customer-tab-all").click();true');
+      await evaluate(
+        'document.getElementById("customer-tab-all").click();true',
+      );
       await until('!new URLSearchParams(location.search).has("status")');
       await ready();
       await until(
