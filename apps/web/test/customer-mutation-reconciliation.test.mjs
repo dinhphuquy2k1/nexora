@@ -452,7 +452,7 @@ test("Finding B2: capability booleans separate canWrite, canClose, canRetryRead 
   assert.equal(blocked.canRetryRead, true);
 });
 
-test("lost address DELETE and PUT responses require GET-only reconciliation", async () => {
+test("lost PUT and DELETE responses require GET reconciliation", async () => {
   for (const operation of ["delete", "put"]) {
     const calls = [];
     const api = {
@@ -521,7 +521,7 @@ test("lost address DELETE and PUT responses require GET-only reconciliation", as
   }
 });
 
-test("Customer write classifier distinguishes rejected and ambiguous results", async () => {
+test("Customer write failures classify rejected and unknown", async () => {
   assert.equal(
     isAmbiguousCustomerWriteFailure(new DraftError("unchanged")),
     false,
