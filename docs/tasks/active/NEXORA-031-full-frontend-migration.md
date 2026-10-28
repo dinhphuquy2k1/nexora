@@ -1658,6 +1658,6 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
 ### Customer-ID recovery follow-up implementation — 2026-10-28
 
 - Updated the stale recovery callback assertion to the List page's scoped guard. The focused unit test also covers exact-ID reads, mismatched identities and GET failures.
-- The authenticated CDP filter-switch fixture now closes the native modal after the first reconciliation GET, changes filters only on the interactive List page and verifies a separate ID-specific read before the final manual acknowledgement.
+- The authenticated CDP filter-switch fixture closes the native modal after the first reconciliation GET, switches the existing INACTIVE and TẤT CẢ tabs on the interactive List page (not a search input behind a modal), and verifies a separate ID-specific read before the final manual acknowledgement. The earlier browser run failed at CUSTOMER_admin_FILL_QUERY; this replaces the unstable fixture interaction without relaxing the query-key assertion.
 - CustomerDrawer verifies an existing Customer ID immediately before explicit recovery; the List page repeats this safeguard for a Drawer that was closed. The read must succeed for the same owner-scoped ID; no mutation is automatically repeated. Lost-response CREATE has no reliable ID and retains conservative list-based manual reconciliation.
 - **Documentation Impact:** REQUIRED; canonical frontend contract updated. **Verification:** pending exact-head Preflight and Foundation including browser smoke. PR remains Draft.
