@@ -8,6 +8,7 @@ import {
   settleMutationRead,
   isAmbiguousCustomerWriteFailure,
   shouldRevalidateRejectedCustomerWriteFailure,
+  isMutationReadInScope,
   type WriteOutcome,
 } from "./mutation-policy.ts";
 import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
@@ -16,6 +17,7 @@ export type MutationPhase = "idle" | "writing" | "reconciling" | "blocked";
 
 export interface SettlementTarget {
   refresh: () => number | void;
+  key?: string;
   requestId?: number;
   settledId?: number;
   outcome?: "idle" | "pending" | "success" | "error";
@@ -30,6 +32,7 @@ export function useCustomerMutation(
 ) {
   const lock = useRef(false);
   const writeOutcome = useRef<WriteOutcome>("confirmed");
+  const writeKey = useRef<string | undefined>(undefined);
   const mounted = useRef(true);
   const sequence = useRef(0);
   const instance = useId();
@@ -48,6 +51,7 @@ export function useCustomerMutation(
     ? () => targetOrRefresh.refresh()
     : () => targetOrRefresh();
   const settledId = isTargetObject ? targetOrRefresh.settledId : undefined;
+  const readKey = isTargetObject ? targetOrRefresh.key : undefined;
   const outcome = isTargetObject ? targetOrRefresh.outcome : undefined;
   const denied = isTargetObject
     ? (targetOrRefresh.denied ?? targetOrRefresh.isDenied?.() ?? false)
@@ -65,6 +69,11 @@ export function useCustomerMutation(
     const target = targetRequestId.current;
     if (settledId !== undefined && settledId >= target) {
       if (outcome === "success" || outcome === "error" || denied) {
+        if (!isMutationReadInScope(writeKey.current, readKey, target, settledId)) {
+          setPhase("blocked");
+          setBusy(true);
+          return;
+        }
         const readOutcome = denied
           ? "denied"
           : outcome === "success"
@@ -82,7 +91,7 @@ export function useCustomerMutation(
         }
       }
     }
-  }, [phase, settledId, outcome, denied]);
+  }, [phase, settledId, outcome, denied, readKey]);
 
   const retryReconciliation = useCallback(() => {
     if (phase !== "blocked") return;
@@ -111,6 +120,7 @@ export function useCustomerMutation(
     if (lock.current || phase !== "idle") return;
     lock.current = true;
     writeOutcome.current = "confirmed";
+    writeKey.current = readKey;
     const id = ++sequence.current;
     setPhase("writing");
     setBusy(true);
@@ -239,9 +249,12 @@ export function useCustomerMutation(
     phase === "blocked" &&
     !denied &&
     outcome === "success" &&
-    targetRequestId.current !== null &&
-    settledId !== undefined &&
-    settledId >= targetRequestId.current;
+    isMutationReadInScope(
+      writeKey.current,
+      readKey,
+      targetRequestId.current,
+      settledId,
+    );
 
   const resolveUnresolved = useCallback(
     (mode: "acknowledged" | "discard" = "discard"): boolean => {
