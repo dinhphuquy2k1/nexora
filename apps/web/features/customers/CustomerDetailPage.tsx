@@ -74,8 +74,8 @@ export function CustomerDetailPage({ id }: { id: string }) {
   return (
     <div
       className={`${styles.page} ${styles.detailPage}`}
-      aria-busy={read.loading}
-      data-stale={!!c && (read.loading || !!read.error)}
+      aria-busy={read.loading || mutation.busy}
+      data-stale={!!c && (read.loading || mutation.busy || !!read.error)}
     >
       <div className={styles.toolbar}>
         <div className={`${styles.titleGroup} ${styles.detailHeading}`}>
@@ -171,7 +171,9 @@ export function CustomerDetailPage({ id }: { id: string }) {
       )}
       <Feedback live={false} error={read.error} />
       <Feedback error={mutation.error} />
-      {read.loading && <p role="status">Đang tải khách hàng…</p>}
+      {(read.loading || mutation.busy) && (
+        <p role="status">Đang tải khách hàng…</p>
+      )}
       {c && (
         <div className={styles.detailGrid}>
           <Panel
