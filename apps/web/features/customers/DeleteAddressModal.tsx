@@ -152,17 +152,17 @@ export function DeleteAddressModal({
                     Đối chiếu lại dữ liệu
                   </Button>
                   {mutation.canResolveUnresolved && !reconciling && (
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          if (!mutation.resolveUnresolved("discard")) return;
-                          onResolved?.();
-                          onClose();
-                        }}
-                      >
-                        Bỏ qua và đóng
-                      </Button>
-                    )}
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        if (!mutation.resolveUnresolved("discard")) return;
+                        onResolved?.();
+                        onClose();
+                      }}
+                    >
+                      Bỏ qua và đóng
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
