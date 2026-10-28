@@ -821,7 +821,11 @@ export async function verifyCustomerBrowser({
       await until(
         'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Lưu khách hàng"&&!b.disabled)',
       );
-      assert.equal(counts().responses, 1, "No automatic retry of the committed PATCH");
+      assert.equal(
+        counts().responses,
+        1,
+        "No automatic retry of the committed PATCH",
+      );
       await click("Lưu khách hàng");
       await until('!document.querySelector("dialog[open]")');
       await ready();
@@ -867,7 +871,11 @@ export async function verifyCustomerBrowser({
       await until(
         'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Chỉnh sửa thông tin"&&!b.disabled)',
       );
-      assert.equal(counts().responses, 1, "Acknowledging the GET must not repeat PUT");
+      assert.equal(
+        counts().responses,
+        1,
+        "Acknowledging the GET must not repeat PUT",
+      );
     });
     await ready();
     await until(
@@ -966,7 +974,9 @@ export async function verifyCustomerBrowser({
       await evaluate(
         `document.querySelector('article[aria-label="Địa chỉ mặc định"] button[aria-label="Xóa địa chỉ"]').click();true`,
       );
-      await until('!!document.querySelector("dialog[open] select[name=replacement]")');
+      await until(
+        '!!document.querySelector("dialog[open] select[name=replacement]")',
+      );
       await evaluate(
         `(()=>{const s=document.querySelector('select[name=replacement]');s.value=${JSON.stringify(replacement)};s.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`,
       );
