@@ -65,6 +65,9 @@
   --color-count-unselected-bg: var(--color-white);
   --color-count-unselected-text: var(--gray-600);
 
+  /* Customer search presentation */
+  --color-search-icon: var(--gray-400);
+
   /* Pagination semantics */
   --color-pagination-selected-bg: var(--brand-orange);
   --color-pagination-selected-text: var(--color-white);
@@ -112,12 +115,14 @@
   --color-status-success-bg: var(--emerald-50);
   --color-status-success-text: var(--emerald-700);
   --color-status-success-border: var(--emerald-200);
+  --color-status-success-dot: var(--emerald-500);
   --color-status-error-bg: #fbe8e3;
   --color-status-error-text: #973d2b;
   --color-status-error-border: rgba(151, 61, 43, 0.2);
   --color-status-pending-bg: var(--gray-100);
   --color-status-pending-text: var(--gray-600);
   --color-status-pending-border: var(--gray-300);
+  --color-status-pending-dot: var(--gray-400);
 
   /* Dark-surface context tokens (Sidebar, Monograms, Dark Overlays) */
   --color-text-on-dark: var(--color-surface);
