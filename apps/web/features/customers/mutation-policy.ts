@@ -16,7 +16,7 @@ export function settleMutationRead(
 ): "idle" | "blocked" {
   // Only confirmed writes that settle with GET 200 return automatically to idle.
   // Unknown writes or failed GET settlements fail closed and remain blocked.
-  return write === "confirmed" && read === "success" ? "idle" : "blocked";
+  return write !== "unknown" && read === "success" ? "idle" : "blocked";
 }
 
 /** Treat missing responses as unknown; an HTTP 4xx proves rejection, except after a committed pre-step. */
@@ -30,4 +30,14 @@ export function isAmbiguousCustomerWriteFailure(error: unknown): boolean {
     return true;
   if (error instanceof DraftError) return false;
   return !(error instanceof CustomerApiError) || error.status >= 500;
+}
+
+/** Rejected concurrent/permission changes still invalidate the editor snapshot. */
+export function shouldRevalidateRejectedCustomerWriteFailure(
+  error: unknown,
+): boolean {
+  return (
+    error instanceof CustomerApiError &&
+    [403, 404, 409].includes(error.status)
+  );
 }
