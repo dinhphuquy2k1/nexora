@@ -68,3 +68,12 @@ export function isFreshCustomerRecoveryRead(
     !read.loading
   );
 }
+
+/** An owner-scoped detail GET confirms identity, not the result of a lost write. */
+export async function verifyCustomerRecoveryById(
+  id: string,
+  get: (id: string) => Promise<{ id: string }>,
+): Promise<void> {
+  const customer = await get(id);
+  if (customer.id !== id) throw new Error("CUSTOMER_RECOVERY_ID_MISMATCH");
+}
