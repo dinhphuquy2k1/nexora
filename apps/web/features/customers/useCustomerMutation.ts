@@ -69,7 +69,9 @@ export function useCustomerMutation(
     const target = targetRequestId.current;
     if (settledId !== undefined && settledId >= target) {
       if (outcome === "success" || outcome === "error" || denied) {
-        if (!isMutationReadInScope(writeKey.current, readKey, target, settledId)) {
+        if (
+          !isMutationReadInScope(writeKey.current, readKey, target, settledId)
+        ) {
           setPhase("blocked");
           setBusy(true);
           return;
