@@ -820,7 +820,7 @@ export async function verifyCustomerBrowser({
       await until(
         'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
       );
-      assert.equal(counts().responses, 1, "Filter switches cannot repeat PATCH");
+      assert.equal(counts().responses, 1, "No duplicated PATCH");
       await click("Đã kiểm tra xong");
       await until(
         '!Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong")',
