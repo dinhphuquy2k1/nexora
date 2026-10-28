@@ -785,8 +785,12 @@ export async function verifyCustomerBrowser({
     step("LIST_MUTATION_QUERY_SCOPE");
     await navigate("/customers");
     await ready();
+    // The preceding read-race fixture may leave a retained read error in the
+    // mounted list. Require a fresh successful read before opening the editor.
+    await click("Làm mới");
+    await ready();
     await until(
-      `!!document.querySelector('main tbody button[aria-label="Sửa ${customer.code}"]')`,
+      `!!document.querySelector('main tbody button[aria-label="Sửa ${customer.code}"]') && !document.querySelector('main [data-customer-error]')`,
     );
     await evaluate(
       `document.querySelector('main tbody button[aria-label="Sửa ${customer.code}"]').click();true`,
