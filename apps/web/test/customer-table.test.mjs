@@ -187,3 +187,38 @@ test("NEXORA-031 Finding 1 & 2: Skeleton CSS enforces wide 85-90% placeholders a
   // Row height stability: margin-block: 0 on .skeletonCell
   assert.match(css, /\.skeletonCell\s*\{[^}]*margin-block:\s*0/);
 });
+
+test("NEXORA-031 Task 1: tableViewport decouples focus indicator from detailLink and uses neutral focus token", async () => {
+  const css = await fs.readFile(
+    new URL("../features/customers/customers.module.css", import.meta.url),
+    "utf8",
+  );
+  // detailLink retains standard action focus ring
+  assert.match(
+    css,
+    /\.detailLink:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--focus-ring-on-light\);[^}]*outline-offset:\s*-2px;/,
+  );
+  // tableViewport:focus-visible uses neutral token var(--color-primary)
+  assert.match(
+    css,
+    /\.tableViewport:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--color-primary\);[^}]*outline-offset:\s*-2px;/,
+  );
+  // Verify tableViewport and detailLink are not grouped together
+  assert.doesNotMatch(
+    css,
+    /\.tableViewport:focus-visible\s*,\s*\.detailLink:focus-visible/,
+  );
+  assert.doesNotMatch(
+    css,
+    /\.detailLink:focus-visible\s*,\s*\.tableViewport:focus-visible/,
+  );
+
+  // Render check: CustomerTable retains accessible attributes
+  const html = render(
+    React.createElement(CustomerTable, { ...props, rows: [row] }),
+  );
+  assert.match(
+    html,
+    /<div[^>]*class="[^"]*tableViewport[^"]*"[^>]*tabindex="0"[^>]*role="region"[^>]*aria-label="Bảng khách hàng có thể cuộn"/i,
+  );
+});

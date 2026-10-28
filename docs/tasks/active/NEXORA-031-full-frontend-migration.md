@@ -1548,4 +1548,26 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
 
 - **Execution & Remediations Record (2026-10-28):**
   - **Commit 1 (`a46352a`):** Resolved pagination test downleveling in `render-component.mjs` & `pagination.ts`; added granular mutation capability booleans (`canWrite`, `canRetryRead`, `canClose`, etc.) and explicit recovery pathways (`resolveUnresolved`) in `useCustomerMutation.ts`, `CustomerDrawers.tsx`, `DeleteAddressModal.tsx`, `CustomerListPage.tsx`, `CustomerDetailPage.tsx`; fixed `CustomerListPage.tsx` manual reload lock premature reset in `change()`.
-  - **Commit 2:** Fixed browser smoke `CUSTOMER_admin_CAPTURE_create` failure in `scripts/workspace-geometry-checks.mjs`. When a modal `<dialog>` is open (via `dialog.showModal()`), browser inert semantics prevent programmatic focus on non-dialog ancestors (`<main>`). Added `hasModal` check to `verifyMainFocusOutlineContract` to preserve modal focus containment without assertion error, while continuing full programmatic focus testing on all non-modal views (`empty-list`, `list`, `detail`, etc.).
+  - **Commit 2 (`4bae9d7`):** Fixed browser smoke `CUSTOMER_admin_CAPTURE_create` failure in `scripts/workspace-geometry-checks.mjs`. When a modal `<dialog>` is open (via `dialog.showModal()`), browser inert semantics prevent programmatic focus on non-dialog ancestors (`<main>`). Added `hasModal` check to `verifyMainFocusOutlineContract` to preserve modal focus containment without assertion error, while continuing full programmatic focus testing on all non-modal views (`empty-list`, `list`, `detail`, etc.).
+  - **Commit 3 (`5692ccd`):** Announce loading status to screen readers during debounced search query (`(loading || pendingFilter) && <span role="status">Đang tải khách hàng…</span>`) in `CustomerTable.tsx`, satisfying race condition smoke assertions immediately upon typing.
+  - **Commit 4 (`ed8f0e5`):** Differentiated clean pre-step failure (`committed === false` in `deleteCustomerAddress`) as rejected write (`isAmbiguous: false`) in `DeleteAddressModal.tsx` and `useCustomerMutation.ts`, enabling user retry without unneeded lock; added automated unblocking for reconciled partial address deletions after GET 200 confirms updated default address.
+  - **Commit 5 (`b4f6845`):** Synchronized mutation busy state with `aria-busy` and live status announcements on `CustomerDetailPage.tsx`, preventing race conditions where test harnesses probed the backend before mutations settled.
+
+- **Task 1: Customer Table Focus Outline Remediation Plan (2026-10-28):**
+  - **Problem & Root Cause:** In `customers.module.css`, `.tableViewport:focus-visible` was grouped with `.detailLink:focus-visible` using `outline: 2px solid var(--focus-ring-on-light); outline-offset: -2px;`. Because `--focus-ring-on-light` is `#c2410c` (brand orange), focusing the 1400px x 600px scrollable viewport created an alarming 2px orange rectangle surrounding the entire data table, resembling a card border or active error state.
+  - **Investigation & Computed Style Evidence:**
+    - Initial state: `.tableViewport` outline: none (`outlineStyle: "none"`).
+    - Mouse click: `matchesFocus: true, matchesFocusVisible: false`, outline remains none (`outlineStyle: "none"`).
+    - Keyboard Tab focus: `matchesFocus: true, matchesFocusVisible: true`, outline resolves to `rgb(194, 65, 12) solid 2px` (`--focus-ring-on-light`).
+    - Arrow navigation: `scrollLeft` correctly advances 30-35px during horizontal overflow.
+    - Child controls: `.detailLink` Eye action button requires distinct focus ring without affecting the container.
+  - **Selected Approach (per ADR-009 / Design Review v3 §H):**
+    - Decouple `.detailLink:focus-visible` from `.tableViewport:focus-visible`.
+    - Retain `outline: 2px solid var(--focus-ring-on-light); outline-offset: -2px;` on `.detailLink:focus-visible`.
+    - Apply a clearly visible neutral-focus treatment (`outline: 2px solid var(--color-primary); outline-offset: -2px;`) to `.tableViewport:focus-visible`.
+    - Navy (`var(--color-primary)` = `#172b4d`) has 12.6:1 contrast ratio against light backgrounds (exceeding WCAG AA 3:1), harmonizes with the navy `th` header, eliminates visual noise, and distinguishes focus from warning/error states.
+  - **Invariants Preserved:**
+    - `tabIndex={0}`, `role="region"`, `aria-label="Bảng khách hàng có thể cuộn"` retained.
+    - Main `#workspace-content` remains unaffected (`outline: none`).
+    - Zero layout shift: 9 columns, 5-row skeleton, and pagination footer dimensions remain unchanged.
+  - **Verification plan:** Unit test in `apps/web/test/customer-table.test.mjs`, geometry test in `scripts/workspace-geometry-checks.test.mjs`, and full local verification suite.
