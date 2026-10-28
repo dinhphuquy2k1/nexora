@@ -448,6 +448,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
           settlement={read}
           writeBlocked={writeUnresolved}
           onUnresolved={() => setWriteUnresolved(true)}
+          onResolved={() => setWriteUnresolved(false)}
           onDenied={() => {
             read.deny();
             setStatistics(undefined);
