@@ -806,19 +806,24 @@ export async function verifyCustomerBrowser({
         false,
         "A filtered GET must not unlock the drawer mutation",
       );
-      await click("Xóa từ khóa tìm kiếm");
-      await ready();
-      await until(
-        'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Đã lưu thành công"&&!b.disabled)',
-      );
-      assert.equal(counts().responses, 1, "Filter switches cannot repeat PATCH");
-      await click("Đã lưu thành công");
+      await click("Đóng biểu mẫu");
       await until('!document.querySelector("dialog[open]")');
       assert.equal(
         await evaluate(
-          'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong")',
+          'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
         ),
         false,
+        "Closing the drawer cannot turn a filtered GET into an accepted recovery",
+      );
+      await click("Xóa từ khóa tìm kiếm");
+      await ready();
+      await until(
+        'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
+      );
+      assert.equal(counts().responses, 1, "Filter switches cannot repeat PATCH");
+      await click("Đã kiểm tra xong");
+      await until(
+        '!Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong")',
       );
     });
     await ready();
