@@ -7,6 +7,7 @@ import {
   shouldRevalidateRejectedCustomerWriteFailure,
   isMutationReadInScope,
   isFreshCustomerRecoveryRead,
+  verifyCustomerRecoveryById,
 } from "../features/customers/mutation-policy.ts";
 import { CustomerApiError } from "../features/customers/errors.ts";
 import { DraftError } from "../features/customers/payload.ts";
@@ -587,7 +588,7 @@ test("Customer recovery wiring unlocks page and its active drawer together", asy
   );
   assert.match(detail, /mutation\.resolveUnresolved\("acknowledged"\)/);
   assert.match(detail, /onResolved=\{\(\) => setWriteUnresolved\(false\)\}/);
-  assert.match(list, /onResolved=\{\(\) => setWriteUnresolved\(false\)\}/);
+  assert.match(list, /onResolved=\{\(\) => setWriteUnresolvedScope\(null\)\}/);
   assert.match(drawers, /onDiscard=\{\(\) => \{/);
   assert.match(drawers, /onAcknowledge=\{\(\) => \{/);
   assert.ok(
@@ -658,3 +659,39 @@ test("page recovery is hidden while an editor owns the write", async () => {
     /read\.outcome === "success" && !read\.loading && !mode/,
   );
 });
+
+test("identity-scoped recovery checks exact Customer ID and propagates read failure", async () => {
+  const id = "customer-a";
+  let reads = 0;
+  await verifyCustomerRecoveryById(id, async (requested) => {
+    assert.equal(requested, id);
+    reads++;
+    return { id };
+  });
+  assert.equal(reads, 1);
+  await assert.rejects(
+    () => verifyCustomerRecoveryById(id, async () => ({ id: "customer-b" })),
+    /CUSTOMER_RECOVERY_ID_MISMATCH/,
+  );
+  await assert.rejects(
+    () =>
+      verifyCustomerRecoveryById(id, async () => {
+        throw new Error("GET_UNAVAILABLE");
+      }),
+    /GET_UNAVAILABLE/,
+  );
+});
+
+test("existing Customer recovery uses direct ID GET; CREATE cannot guess an ID", async () => {
+  const list = await fs.readFile(
+    new URL("../features/customers/CustomerListPage.tsx", import.meta.url),
+    "utf8",
+  );
+  const drawers = await fs.readFile(
+    new URL("../features/customers/CustomerDrawers.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(list, /verifyCustomerRecoveryById\(/);
+  assert.match(drawers, /if \(customer\)[\s\S]*?verifyCustomerRecoveryById\(/);
+});
+
