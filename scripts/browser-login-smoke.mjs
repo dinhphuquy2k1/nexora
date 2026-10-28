@@ -82,7 +82,8 @@ let restartMfaSession;
 try {
   checks.step("BROWSER_LAUNCH");
   let port;
-  for (let i = 0; i < 100; i++) {
+  // Cold GitHub runners can initialize Chromium DevTools slowly; keep the launch gate bounded.
+  for (let i = 0; i < 200; i++) {
     try {
       port = (
         await readFile(join(profile, "DevToolsActivePort"), "utf8")
