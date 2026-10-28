@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Select } from "@nexora/ui";
 import { AlertTriangle } from "lucide-react";
 import type { Address } from "./types.ts";
@@ -24,6 +24,7 @@ export function DeleteAddressModal({
   settlement,
   writeBlocked = false,
   onUnresolved,
+  onResolved,
 }: {
   id: string;
   target: Address;
@@ -36,6 +37,7 @@ export function DeleteAddressModal({
   settlement?: SettlementTarget;
   writeBlocked?: boolean;
   onUnresolved?: () => void;
+  onResolved?: () => void;
 }) {
   const [replacement, setReplacement] = useState("");
   const [partial, setPartial] = useState(false);
@@ -44,6 +46,26 @@ export function DeleteAddressModal({
     onDenied,
     onUnresolved,
   );
+
+  useEffect(() => {
+    if (
+      partial &&
+      mutation.phase === "blocked" &&
+      settlement?.outcome === "success" &&
+      !reconciling
+    ) {
+      mutation.resolveUnresolved("discard");
+      onResolved?.();
+    }
+  }, [
+    partial,
+    mutation.phase,
+    settlement?.outcome,
+    reconciling,
+    mutation,
+    onResolved,
+  ]);
+
   const others = addresses.filter((a) => a.id !== target.id);
   const isReconciling = reconciling || mutation.phase === "blocked";
   return (
@@ -186,7 +208,13 @@ export function DeleteAddressModal({
                 throw partialErr;
               }
               if (result.kind === "failed") {
-                throw result.error;
+                const failedErr =
+                  result.error instanceof Error
+                    ? Object.assign(result.error, { isAmbiguous: false })
+                    : Object.assign(new Error("FAILED_MUTATION"), {
+                        isAmbiguous: false,
+                      });
+                throw failedErr;
               }
               if (result.kind !== "deleted") throw Error("RECONCILE");
             }, onSaved)

@@ -416,11 +416,15 @@ export function CustomerDetailPage({ id }: { id: string }) {
           refresh={read.refresh}
           onDenied={read.deny}
           onClose={() => setMode(null)}
-          onSaved={saved}
+          onSaved={() => {
+            setWriteUnresolved(false);
+            saved();
+          }}
           reconciling={read.loading || !!read.error}
           settlement={read}
           writeBlocked={writeUnresolved}
           onUnresolved={() => setWriteUnresolved(true)}
+          onResolved={() => setWriteUnresolved(false)}
         />
       )}
     </div>

@@ -148,9 +148,11 @@ export function useCustomerMutation(
         }
 
         const isAmbiguous =
-          Boolean((e as { isPartial?: boolean })?.isPartial) ||
-          (e instanceof CustomerApiError && e.status >= 500) ||
-          (!local && !(e instanceof CustomerApiError));
+          (e as { isAmbiguous?: boolean })?.isAmbiguous === false
+            ? false
+            : Boolean((e as { isPartial?: boolean })?.isPartial) ||
+              (e instanceof CustomerApiError && e.status >= 500) ||
+              (!local && !(e instanceof CustomerApiError));
 
         if (isAmbiguous) {
           writeOutcome.current = "unknown";
