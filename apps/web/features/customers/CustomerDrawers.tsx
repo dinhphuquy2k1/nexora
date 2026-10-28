@@ -339,7 +339,9 @@ export function CustomerDrawer({
               }}
               isUnresolved={mutation.isUnresolved}
               canRecover={
-                mutation.canResolveUnresolved && !reconciling && !recoveryPending
+                mutation.canResolveUnresolved &&
+                !reconciling &&
+                !recoveryPending
               }
               onDiscard={() => void completeRecovery("discard")}
               onAcknowledge={() => void completeRecovery("acknowledged")}
