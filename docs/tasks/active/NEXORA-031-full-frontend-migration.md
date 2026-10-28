@@ -1638,7 +1638,7 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
 
 ### Scoped reconciliation-scope follow-up implementation — 2026-10-28
 
-- Added key-and-generation verification in the existing Customer mutation read lane; the List page captures original filter scope and settled-read floor for safe acknowledgement even if a drawer closes. Unrelated newer GETs can no longer unlock a pending unknown write.
+- Added key-and-generation verification in the existing Customer mutation read lane; the List page captures original filter scope and settled-read floor for safe acknowledgement after its drawer closes. While a Drawer/Modal remains open, only its own recovery action may resolve the mutation; the parent acknowledgement stays hidden. Detail delete actions also respect the page-level unresolved lock. Unrelated newer GETs can no longer unlock a pending unknown write.
 - Removed partial-DELETE automatic recovery effect; successful GET still requires the user to choose “Bỏ qua và đóng” before a fresh dialog may submit again. Existing server-side last/default-address protections are unchanged.
 - Expanded Node policy regressions and authenticated CDP flows: List filter switch while committed PATCH response is lost, partial PUT-then-DELETE failure with explicit recovery, and completed DELETE response loss (single server commit, GET-only read reconciliation, manual parent acknowledgement).
 - **Verification pending:** exact-HEAD Preflight, Docker quality, browser runtime for both actors; no PASS is asserted until CI completes. Documentation Impact: REQUIRED; canonical frontend architecture updated. PR remains Draft.
