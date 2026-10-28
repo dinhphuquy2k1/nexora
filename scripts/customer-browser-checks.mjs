@@ -771,6 +771,57 @@ export async function verifyCustomerBrowser({
       list: list.data,
       checks,
     });
+    step("LIST_MUTATION_QUERY_SCOPE");
+    await navigate("/customers");
+    await ready();
+    await until(
+      `!!document.querySelector('main tbody button[aria-label="Sửa ${customer.code}"]')`,
+    );
+    await evaluate(
+      `document.querySelector('main tbody button[aria-label="Sửa ${customer.code}"]').click();true`,
+    );
+    await until('!!document.querySelector("dialog[open] textarea[name=note]")');
+    await fill("note", "Kiểm tra đối chiếu theo bộ lọc");
+    await loseOneCommittedResponse("PATCH", async (counts) => {
+      await click("Lưu khách hàng");
+      await until(
+        'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Thử lưu lại"&&!b.disabled)',
+      );
+      assert.equal(counts().responses, 1);
+      await fill("q", "không chứa khách hàng này");
+      await delay(350);
+      await until('location.search.includes("q=")');
+      await ready();
+      assert.equal(
+        await evaluate(
+          'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
+        ),
+        false,
+        "An unrelated filtered GET must not unlock the page-level write guard",
+      );
+      assert.equal(
+        await evaluate(
+          'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Thử lưu lại"&&!b.disabled)',
+        ),
+        false,
+        "A filtered GET must not unlock the drawer mutation",
+      );
+      await click("Xóa từ khóa tìm kiếm");
+      await ready();
+      await until(
+        'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Đã lưu thành công"&&!b.disabled)',
+      );
+      assert.equal(counts().responses, 1, "Filter switches cannot repeat PATCH");
+      await click("Đã lưu thành công");
+      await until('!document.querySelector("dialog[open]")');
+      assert.equal(
+        await evaluate(
+          'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong")',
+        ),
+        false,
+      );
+    });
+    await ready();
     step("DETAIL_RENDER");
     await navigate("/customers/" + customer.id);
     await until(`${button("Thêm địa chỉ")}`);
