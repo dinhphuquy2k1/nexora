@@ -1138,7 +1138,10 @@ export async function verifyCustomerBrowser({
     const toDelete = deletionFixture.customer.addresses.find(
       (a) => !a.isDefault,
     );
-    assert.ok(toDelete, "A nondefault address is available for a committed DELETE");
+    assert.ok(
+      toDelete,
+      "A nondefault address is available for a committed DELETE",
+    );
     await evaluate(
       `document.querySelector('article[data-address-id="${toDelete.id}"] button[aria-label="Xóa địa chỉ"]').click();true`,
     );
@@ -1168,7 +1171,11 @@ export async function verifyCustomerBrowser({
       await until(
         'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Thêm địa chỉ"&&!b.disabled)',
       );
-      assert.equal(counts().responses, 1, "GET and acknowledgement never repeat DELETE");
+      assert.equal(
+        counts().responses,
+        1,
+        "GET and acknowledgement never repeat DELETE",
+      );
     });
     await ready();
 
