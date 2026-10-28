@@ -155,6 +155,7 @@ export function CustomerDrawer({
   settlement,
   writeBlocked = false,
   onUnresolved,
+  onResolved,
 }: {
   customer?: Customer | Summary;
   onClose: () => void;
@@ -165,6 +166,7 @@ export function CustomerDrawer({
   settlement?: SettlementTarget;
   writeBlocked?: boolean;
   onUnresolved?: () => void;
+  onResolved?: () => void;
 }) {
   const [baseline] = useState(customer);
   const router = useRouter();
@@ -298,10 +300,13 @@ export function CustomerDrawer({
                 else refresh();
               }}
               isUnresolved={mutation.isUnresolved}
-              canRecover={settlement?.outcome === "success" && !reconciling}
-              onDiscard={() => mutation.resolveUnresolved("discard")}
+              canRecover={mutation.canResolveUnresolved && !reconciling}
+              onDiscard={() => {
+                if (mutation.resolveUnresolved("discard")) onResolved?.();
+              }}
               onAcknowledge={() => {
-                mutation.resolveUnresolved("acknowledged");
+                if (!mutation.resolveUnresolved("acknowledged")) return;
+                onResolved?.();
                 onSaved();
               }}
             />
@@ -353,6 +358,7 @@ export function AddressDrawer({
   settlement,
   writeBlocked = false,
   onUnresolved,
+  onResolved,
 }: {
   id: string;
   address?: Address;
@@ -364,6 +370,7 @@ export function AddressDrawer({
   settlement?: SettlementTarget;
   writeBlocked?: boolean;
   onUnresolved?: () => void;
+  onResolved?: () => void;
 }) {
   const [baseline] = useState(address);
   const [draft, setDraft] = useState<AddressDraft>(() =>
@@ -438,10 +445,13 @@ export function AddressDrawer({
                 else refresh();
               }}
               isUnresolved={mutation.isUnresolved}
-              canRecover={settlement?.outcome === "success" && !reconciling}
-              onDiscard={() => mutation.resolveUnresolved("discard")}
+              canRecover={mutation.canResolveUnresolved && !reconciling}
+              onDiscard={() => {
+                if (mutation.resolveUnresolved("discard")) onResolved?.();
+              }}
               onAcknowledge={() => {
-                mutation.resolveUnresolved("acknowledged");
+                if (!mutation.resolveUnresolved("acknowledged")) return;
+                onResolved?.();
                 onSaved();
               }}
             />
