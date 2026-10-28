@@ -5,6 +5,8 @@ import {
   settleMutationRead,
   isAmbiguousCustomerWriteFailure,
   shouldRevalidateRejectedCustomerWriteFailure,
+  isMutationReadInScope,
+  isFreshCustomerRecoveryRead,
 } from "../features/customers/mutation-policy.ts";
 import { CustomerApiError } from "../features/customers/errors.ts";
 import { DraftError } from "../features/customers/payload.ts";
@@ -593,3 +595,31 @@ test("Customer recovery wiring unlocks page and its active drawer together", asy
     "Both CustomerDrawer and AddressDrawer must resolve the parent for both user decisions",
   );
 });
+
+test("reconciliation accepts only the matching query key and current request generation", () => {
+  assert.equal(isMutationReadInScope("all", "filtered", 5, 6), false);
+  assert.equal(isMutationReadInScope("all", "all", 5, 4), false);
+  assert.equal(isMutationReadInScope("all", "all", 5, 5), true);
+  assert.equal(isMutationReadInScope("all", "all", null, 6), false);
+  assert.equal(isMutationReadInScope(undefined, undefined, 5, 5), true);
+});
+
+test("list recovery after drawer closes requires a fresh read in the original filter", () => {
+  const origin = { key: "all", settledId: 10 };
+  const read = { key: "all", settledId: 11, outcome: "success", loading: false };
+  assert.equal(isFreshCustomerRecoveryRead(origin, read), true);
+  assert.equal(isFreshCustomerRecoveryRead(origin, { ...read, key: "inactive" }), false);
+  assert.equal(isFreshCustomerRecoveryRead(origin, { ...read, settledId: 10 }), false);
+  assert.equal(isFreshCustomerRecoveryRead(origin, { ...read, outcome: "error" }), false);
+  assert.equal(isFreshCustomerRecoveryRead(origin, { ...read, loading: true }), false);
+});
+
+test("partial address DELETE does not auto-acknowledge a GET without user choice", async () => {
+  const source = await fs.readFile(
+    new URL("../features/customers/DeleteAddressModal.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(source, /useEffect\(\(\) => \{[\s\S]*?mutation\.resolveUnresolved\("discard"\)/);
+  assert.match(source, /Bỏ qua và đóng/);
+});
+
