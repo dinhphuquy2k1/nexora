@@ -14,8 +14,8 @@ export function settleMutationRead(
   write: WriteOutcome,
   read: "success" | "error" | "denied",
 ): "idle" | "blocked" {
-  // Only confirmed writes that settle with GET 200 return automatically to idle.
-  // Unknown writes or failed GET settlements fail closed and remain blocked.
+  // Confirmed or rejected writes settle after successful GET; unknown writes never auto-unlock.
+  // Failed GET settlements fail closed and remain blocked.
   return write !== "unknown" && read === "success" ? "idle" : "blocked";
 }
 
@@ -36,8 +36,6 @@ export function isAmbiguousCustomerWriteFailure(error: unknown): boolean {
 export function shouldRevalidateRejectedCustomerWriteFailure(
   error: unknown,
 ): boolean {
-  return (
-    error instanceof CustomerApiError &&
-    [403, 404, 409].includes(error.status)
-  );
+  if (!(error instanceof CustomerApiError)) return false;
+  return [403, 404, 409].includes(error.status);
 }
