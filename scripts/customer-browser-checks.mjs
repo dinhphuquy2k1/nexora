@@ -69,8 +69,9 @@ export async function verifyCustomerBrowser({
     }
     throw Error("CUSTOMER_BROWSER_CONDITION");
   }
-  async function loseOneCommittedResponse(method, run) {
+  async function loseOneCommittedResponse(method, run, customerId) {
     let responses = 0;
+    let detailReads = 0;
     let dropped = 0;
     let interceptionError;
     const intercept = (event) => {
@@ -81,6 +82,13 @@ export async function verifyCustomerBrowser({
         if (paused.responseStatusCode === undefined) {
           await send("Fetch.continueRequest", { requestId: paused.requestId });
           return;
+        }
+        if (
+          customerId &&
+          paused.request.method === "GET" &&
+          new URL(paused.request.url).pathname === `/api/customers/${customerId}`
+        ) {
+          detailReads++;
         }
         if (paused.request.method === method) {
           responses++;
@@ -112,7 +120,7 @@ export async function verifyCustomerBrowser({
     try {
       const counts = () => {
         if (interceptionError) throw interceptionError;
-        return { responses, dropped };
+        return { responses, dropped, detailReads };
       };
       await run(counts);
       assert.equal(counts().dropped, 1);
@@ -788,6 +796,15 @@ export async function verifyCustomerBrowser({
         'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Thử lưu lại"&&!b.disabled)',
       );
       assert.equal(counts().responses, 1);
+      assert.equal(
+        await evaluate(
+          'Array.from(document.querySelectorAll("dialog[open] button")).find(b=>b.textContent.trim()==="Lưu khách hàng")?.disabled === true',
+        ),
+        true,
+      );
+      // Native showModal() makes the page inert. Close the Drawer before changing filters.
+      await click("Đóng biểu mẫu");
+      await until('!document.querySelector("dialog[open]")');
       await fill("q", "không chứa khách hàng này");
       await delay(350);
       await until('location.search.includes("q=")');
@@ -799,15 +816,7 @@ export async function verifyCustomerBrowser({
         false,
         "An unrelated filtered GET must not unlock the page-level write guard",
       );
-      assert.equal(
-        await evaluate(
-          'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Thử lưu lại"&&!b.disabled)',
-        ),
-        false,
-        "A filtered GET must not unlock the drawer mutation",
-      );
-      await click("Đóng biểu mẫu");
-      await until('!document.querySelector("dialog[open]")');
+
       assert.equal(
         await evaluate(
           'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
@@ -825,7 +834,8 @@ export async function verifyCustomerBrowser({
       await until(
         '!Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong")',
       );
-    });
+      assert.equal(counts().detailReads, 1, "Recovery reads the exact Customer ID");
+    }, customer.id);
     await ready();
     step("DETAIL_RENDER");
     await navigate("/customers/" + customer.id);
