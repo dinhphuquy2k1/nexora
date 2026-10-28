@@ -84,8 +84,7 @@ export function useCustomerMutation(
             : "error";
         const settled = settleMutationRead(writeOutcome.current, readOutcome);
         if (settled === "idle") {
-          const onSettledSuccess =
-            writeOutcome.current === "confirmed" ? pendingSuccess.current : null;
+          const onSettledSuccess = pendingSuccess.current;
           pendingSuccess.current = null;
           targetRequestId.current = null;
           lock.current = false;

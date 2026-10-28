@@ -51,6 +51,8 @@ export function CustomerDetailPage({ id }: { id: string }) {
     !!read.error ||
     read.denied ||
     read.outcome !== "success";
+  const mutationDisabled =
+    mutation.busy || writeUnresolved || detailReadUnavailable;
   useEffect(() => {
     if (read.denied) {
       setRetained(undefined);
@@ -129,7 +131,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
           {c && (
             <Button
               variant="emphasis"
-              disabled={mutation.busy || writeUnresolved || detailReadUnavailable}
+              disabled={mutationDisabled}
               onClick={() => setMode({ kind: "profile" })}
             >
               <Edit3 size={15} aria-hidden="true" />
@@ -196,7 +198,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
             actions={
               <Button
                 variant="ghost"
-                disabled={mutation.busy || writeUnresolved || detailReadUnavailable}
+                disabled={mutationDisabled}
                 onClick={() => setMode({ kind: "profile" })}
               >
                 Sửa
@@ -255,7 +257,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
               <Button
                 variant="emphasis"
                 aria-label="Thêm địa chỉ"
-                disabled={mutation.busy || writeUnresolved || detailReadUnavailable}
+                disabled={mutationDisabled}
                 onClick={() => setMode({ kind: "add" })}
               >
                 <Plus size={16} aria-hidden="true" />
@@ -275,7 +277,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                 </p>
                 <Button
                   variant="secondary"
-                  disabled={mutation.busy || writeUnresolved || detailReadUnavailable}
+                  disabled={mutationDisabled}
                   onClick={() => setMode({ kind: "add" })}
                 >
                   <Plus size={15} aria-hidden="true" />
@@ -321,7 +323,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                     {!a.isDefault && (
                       <Button
                         variant="secondary"
-                        disabled={mutation.busy || writeUnresolved || detailReadUnavailable || !!mode}
+                        disabled={mutationDisabled || !!mode}
                         onClick={() =>
                           void mutation.run(
                             () => customerApi.setDefault(id, a.id),
@@ -338,7 +340,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                       icon
                       aria-label="Sửa địa chỉ"
                       title="Chỉnh sửa địa chỉ"
-                      disabled={mutation.busy || writeUnresolved || detailReadUnavailable}
+                      disabled={mutationDisabled}
                       onClick={() => setMode({ kind: "address", id: a.id })}
                     >
                       <Edit3 size={15} />
@@ -348,9 +350,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                       icon
                       aria-label="Xóa địa chỉ"
                       disabled={
-                        mutation.busy ||
-                        writeUnresolved ||
-                        detailReadUnavailable ||
+                        mutationDisabled ||
                         !!mode ||
                         c.addresses.length <= 1
                       }

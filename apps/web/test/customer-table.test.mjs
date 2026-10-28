@@ -301,13 +301,14 @@ test("retained rows remain visible but Edit is disabled until their read is auth
       editUnavailable: true,
     }),
   );
+  const editButton = /<button(?=[^>]*aria-label="Sửa KH000001")[^>]*>/;
   for (const html of [pending, failed]) {
     assert.match(html, /KH000001/);
-    const button = html.match(/<button(?=[^>]*aria-label="Sửa KH000001")[^>]*>/)?.[0];
-    assert.ok(button, "The retained customer must still have an edit affordance");
+    const button = html.match(editButton)?.[0];
+    assert.ok(button, "Retained row keeps Edit");
     assert.match(button, /\bdisabled(?:=""|(?=\s|>))/);
   }
-  const active = fresh.match(/<button(?=[^>]*aria-label="Sửa KH000001")[^>]*>/)?.[0];
+  const active = fresh.match(editButton)?.[0];
   assert.ok(active);
   assert.doesNotMatch(active, /\bdisabled(?:=""|(?=\s|>))/);
 });
