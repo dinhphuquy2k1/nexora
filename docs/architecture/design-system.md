@@ -133,7 +133,7 @@ The canonical project color specification is owned by this document, and the act
 | **Selected Page**         | `--color-pagination-selected-bg`   | `#F58A24`        | `--color-pagination-selected-text`   | `#FFFFFF`        | `#F58A24`                      |
 | **Selected Page Hover**   | `--color-action-emphasis-hover`    | `#E07716`        | `--color-pagination-selected-text`   | `#FFFFFF`        | `#E07716`                      |
 | **Unselected Page**       | `--color-pagination-unselected-bg` | `#FFFFFF`        | `--color-pagination-unselected-text` | `#475569`        | `#CBD5E1` (`--gray-300`)       |
-| **Unselected Page Hover** | `--color-surface-muted`            | `#F8FAFC`        | `--brand-navy`                       | `#172B4D`        | `#CBD5E1`                      |
+| **Unselected Page Hover** | `--color-surface-muted`            | `#F8FAFC`        | `--color-primary`                       | `#172B4D`        | `#CBD5E1`                      |
 | **Navigation Buttons**    | `--color-surface`                  | `#FFFFFF`        | `--color-text`                       | `#1F2937`        | `--control-border` (`#CBD5E1`) |
 
 #### Power Status Actions
@@ -149,24 +149,26 @@ The canonical project color specification is owned by this document, and the act
 
 | Status       | Background Token            | Background Value | Text Token                    | Text Value | Border Token                    | Border Value | Dot Token / Value           |
 | :----------- | :-------------------------- | :--------------- | :---------------------------- | :--------- | :------------------------------ | :----------- | :-------------------------- |
-| **Active**   | `--color-status-success-bg` | `#ECFDF5`        | `--color-status-success-text` | `#047857`  | `--color-status-success-border` | `#A7F3D0`    | `#10B981` (`--emerald-500`) |
-| **Inactive** | `--color-status-pending-bg` | `#F1F5F9`        | `--color-status-pending-text` | `#475569`  | `--color-status-pending-border` | `#CBD5E1`    | `#94A3B8` (`--gray-400`)    |
+| **Active**   | `--color-status-success-bg` | `#ECFDF5`        | `--color-status-success-text` | `#047857`  | `--color-status-success-border` | `#A7F3D0`    | `#10B981` (`--color-status-success-dot`) |
+| **Inactive** | `--color-status-pending-bg` | `#F1F5F9`        | `--color-status-pending-text` | `#475569`  | `--color-status-pending-border` | `#CBD5E1`    | `#94A3B8` (`--color-status-pending-dot`)    |
 
 #### Search, Filter Chip & Table Geometry
 
+Customer search icon uses `--color-search-icon` (`#94A3B8`); search input uses shared `--control-bg` and `--control-border` (with normal shared focus semantics). Customer status dots use `--color-status-success-dot`/`--color-status-pending-dot`; these are semantic roles mapped to the same existing foundation colors. Table header and cells retain only horizontal bottom-row separators; no vertical gridlines. The table's scroll region keeps its `:focus-visible` indicator, separate from non-interactive main content.
+
 | Element                      | Background Token         | Background Value            | Foreground Token            | Foreground Value            | Border Token / Value                 |
 | :--------------------------- | :----------------------- | :-------------------------- | :-------------------------- | :-------------------------- | :----------------------------------- |
-| **Search Input**             | `--gray-50`              | `#F8FAFC`                   | `--color-text` (`#1F2937`)  | Placeholder `#94A3B8`       | `--gray-300` (`#CBD5E1`)             |
+| **Search Input**             | `--control-bg`              | `#F8FAFC`                   | `--color-text` (`#1F2937`)  | Placeholder `#94A3B8`       | `--control-border` (`#CBD5E1`)             |
 | **Filter Chip ("Đang lọc")** | `--color-filter-chip-bg` | `#FFFBEB`                   | `--color-filter-chip-text`  | `#92400E`                   | `rgba(251, 191, 36, 0.6)`            |
 | **Filter Clear Action**      | `transparent`            | `transparent`               | `--color-filter-chip-clear` | `#B45309` (hover `#78350F`) | `none`                               |
-| **Detail Link (Eye)**        | `--gray-100`             | `#F1F5F9` (hover `#172B4D`) | `--gray-500`                | `#64748B` (hover `#FFFFFF`) | `none` (radius 6px)                  |
-| **Table Header**             | `--color-primary`        | `#172B4D`                   | `--color-text-on-dark`      | `#FFFFFF`                   | `1px solid rgba(255, 255, 255, 0.1)` |
-| **Table Rows**               | `--color-surface`        | `#FFFFFF` (hover `#F8FAFC`) | `--color-text`              | `#1F2937`                   | `1px solid var(--color-border)`      |
+| **Detail Link (Eye)**        | `--color-surface-subtle`             | `#F1F5F9` (hover `#172B4D`) | `--color-text-muted`                | `#64748B` (hover `#FFFFFF`) | `none` (radius 6px)                  |
+| **Table Header**             | `--color-primary`        | `#172B4D`                   | `--color-text-on-dark`      | `#FFFFFF`                   | Bottom divider: `1px solid var(--color-border)`; no vertical cell borders |
+| **Table Rows**               | `--color-surface`        | `#FFFFFF` (hover `#F8FAFC`) | `--color-text`              | `#1F2937`                   | Bottom divider only: `1px solid var(--color-border)`      |
 
 ### 4. Governance & Token Change Approval
 
 1. **Token Authority**: Root `apps/web/styles/tokens.css` is the sole source of raw colors and public semantic variables. Feature CSS modules must consume `var(--token)`.
-2. **Approval Mandate (ADR-009)**: Any modification to foundation or semantic color tokens requires an ADR-009 design revision and authenticated owner approval before implementation.
+2. **Plan-first change governance (ADR-009)**: Record scoped inspection, reuse audit, implementation plan and verification; no authenticated owner approval or GitHub comment is required. Preserve immutable historical snapshots and existing plan/digest bindings.
 3. **Automated Regression Verification**:
    - `apps/web/test/form-control-contracts.test.mjs` verifies token acyclicity, CSS policy compliance (zero raw colors in CSS modules), and canonical palette token bindings.
    - `scripts/customer-control-checks.mjs` verifies actual rendered computed styles match canonical tokens for all default and hover interaction states.
