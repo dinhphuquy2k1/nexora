@@ -39,3 +39,32 @@ export function shouldRevalidateRejectedCustomerWriteFailure(
   if (!(error instanceof CustomerApiError)) return false;
   return [403, 404, 409].includes(error.status);
 }
+
+/** A newer GET of another filter is not an authoritative mutation reconciliation. */
+export function isMutationReadInScope(
+  originalKey: string | undefined,
+  readKey: string | undefined,
+  targetId: number | null,
+  settledId: number | undefined,
+): boolean {
+  return (
+    targetId !== null &&
+    settledId !== undefined &&
+    settledId >= targetId &&
+    (originalKey === undefined || originalKey === readKey)
+  );
+}
+
+/** After a drawer unmounts, the page may acknowledge only a new GET in its original scope. */
+export function isFreshCustomerRecoveryRead(
+  origin: { key: string; settledId: number } | null,
+  read: { key: string; settledId: number; outcome?: string; loading: boolean },
+): boolean {
+  return (
+    origin !== null &&
+    read.key === origin.key &&
+    read.settledId > origin.settledId &&
+    read.outcome === "success" &&
+    !read.loading
+  );
+}
