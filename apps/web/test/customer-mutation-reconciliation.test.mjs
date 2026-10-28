@@ -452,7 +452,7 @@ test("Finding B2: capability booleans separate canWrite, canClose, canRetryRead 
   assert.equal(blocked.canRetryRead, true);
 });
 
-test("failed address DELETE and default PUT with lost responses require GET-only reconciliation", async () => {
+test("lost address DELETE and PUT responses require GET-only reconciliation", async () => {
   for (const operation of ["delete", "put"]) {
     const calls = [];
     const api = {
@@ -491,14 +491,24 @@ test("failed address DELETE and default PUT with lost responses require GET-only
     };
     const ctrl = new MutationReconciliationController(target);
     assert.equal(
-      await ctrl.run(async () => { throw result.error; }, () => {}),
+      await ctrl.run(
+        async () => {
+          throw result.error;
+        },
+        () => {},
+      ),
       "reconciling",
     );
     assert.equal(reads, 1);
     assert.equal(ctrl.phase, "reconciling");
     let extraWrites = 0;
     assert.equal(
-      await ctrl.run(async () => { extraWrites++; }, () => {}),
+      await ctrl.run(
+        async () => {
+          extraWrites++;
+        },
+        () => {},
+      ),
       false,
     );
     assert.equal(extraWrites, 0);
@@ -511,8 +521,11 @@ test("failed address DELETE and default PUT with lost responses require GET-only
   }
 });
 
-test("production write classifier distinguishes confirmed 4xx rejection, lost response, 5xx and partial delete", async () => {
-  assert.equal(isAmbiguousCustomerWriteFailure(new DraftError("unchanged")), false);
+test("Customer write classifier distinguishes rejected and ambiguous results", async () => {
+  assert.equal(
+    isAmbiguousCustomerWriteFailure(new DraftError("unchanged")),
+    false,
+  );
   for (const status of [400, 403, 404, 409, 422]) {
     assert.equal(
       isAmbiguousCustomerWriteFailure(new CustomerApiError(status, {})),
@@ -526,7 +539,9 @@ test("production write classifier distinguishes confirmed 4xx rejection, lost re
     new CustomerApiError(500, {}),
     new CustomerApiError(503, {}),
     Object.assign(new CustomerApiError(409, {}), { isPartial: true }),
-  ]) assert.equal(isAmbiguousCustomerWriteFailure(error), true);
+  ]) {
+    assert.equal(isAmbiguousCustomerWriteFailure(error), true);
+  }
 
   const modalSource = await fs.readFile(
     new URL("../features/customers/DeleteAddressModal.tsx", import.meta.url),
