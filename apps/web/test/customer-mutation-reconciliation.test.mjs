@@ -4,6 +4,7 @@ import { deleteCustomerAddress } from "../features/customers/address-actions.ts"
 import {
   settleMutationRead,
   isAmbiguousCustomerWriteFailure,
+  shouldRevalidateRejectedCustomerWriteFailure,
 } from "../features/customers/mutation-policy.ts";
 import { CustomerApiError } from "../features/customers/errors.ts";
 import { DraftError } from "../features/customers/payload.ts";
@@ -549,3 +550,47 @@ test("Customer write failures classify rejected and unknown", async () => {
   );
   assert.doesNotMatch(modalSource, /isAmbiguous:\s*false/);
 });
+
+test("rejected 403/404/409 writes revalidate GET without repeating writes", () => {
+  for (const status of [403, 404, 409]) {
+    const error = new CustomerApiError(status, {});
+    assert.equal(isAmbiguousCustomerWriteFailure(error), false);
+    assert.equal(shouldRevalidateRejectedCustomerWriteFailure(error), true);
+  }
+  for (const status of [400, 422, 429, 500]) {
+    assert.equal(
+      shouldRevalidateRejectedCustomerWriteFailure(new CustomerApiError(status, {})),
+      false,
+    );
+  }
+  assert.equal(shouldRevalidateRejectedCustomerWriteFailure(new TypeError("offline")), false);
+  assert.equal(shouldRevalidateRejectedCustomerWriteFailure(new DraftError("invalid")), false);
+  assert.equal(settleMutationRead("rejected", "success"), "idle");
+  assert.equal(settleMutationRead("rejected", "error"), "blocked");
+  assert.equal(settleMutationRead("rejected", "denied"), "blocked");
+});
+
+test("Customer recovery wiring unlocks page and its active drawer together", async () => {
+  const detail = await fs.readFile(
+    new URL("../features/customers/CustomerDetailPage.tsx", import.meta.url),
+    "utf8",
+  );
+  const drawers = await fs.readFile(
+    new URL("../features/customers/CustomerDrawers.tsx", import.meta.url),
+    "utf8",
+  );
+  const list = await fs.readFile(
+    new URL("../features/customers/CustomerListPage.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(detail, /mutation\.resolveUnresolved\("acknowledged"\)/);
+  assert.match(detail, /onResolved=\{\(\) => setWriteUnresolved\(false\)\}/);
+  assert.match(list, /onResolved=\{\(\) => setWriteUnresolved\(false\)\}/);
+  assert.match(drawers, /onDiscard=\{\(\) => \{/);
+  assert.match(drawers, /onAcknowledge=\{\(\) => \{/);
+  assert.ok(
+    (drawers.match(/onResolved\?\.\(\)/g) ?? []).length >= 4,
+    "Both CustomerDrawer and AddressDrawer must resolve the parent for both user decisions",
+  );
+});
+
