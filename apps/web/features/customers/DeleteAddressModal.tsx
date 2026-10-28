@@ -192,7 +192,7 @@ export function DeleteAddressModal({
             }, onSaved)
           }
         >
-          {mutation.busy ? "Đang xóa…" : "Xác nhận xóa"}
+          {mutation.isWriting ? "Đang xóa…" : "Xác nhận xóa"}
         </Button>
       </footer>
     </DrawerFrame>

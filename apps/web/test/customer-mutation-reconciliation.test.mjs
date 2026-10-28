@@ -814,3 +814,15 @@ test("closing an unconfirmed Drawer preserves parent writeUnresolvedScope withou
   );
   assert.match(list, /onResolved=\{\(\) => setWriteUnresolvedScope\(null\)\}/);
 });
+
+test("DeleteAddressModal action button displays 'Xác nhận xóa' when blocked/reconciling and 'Đang xóa…' only when actively writing", async () => {
+  const modal = await fs.readFile(
+    new URL("../features/customers/DeleteAddressModal.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    modal,
+    /\{mutation\.isWriting \? "Đang xóa…" : "Xác nhận xóa"\}/,
+    "DeleteAddressModal must use isWriting so that button remains 'Xác nhận xóa' (disabled) in blocked phase",
+  );
+});
