@@ -1654,3 +1654,10 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
   - Component: CREATE unknown response; Existing: `customerApi.create` and current list reconciling; Domain owner: Customer Web; Alternatives: guess customer ID/phone or leave unknown; Selected: no guessed ID, preserve list GET plus explicit acknowledgement; Rationale: avoid false identity proof; Risks: user cannot know whether POST committed; Verification: existing create/write recovery test and docs.
 - **Documentation Impact:** REQUIRED, canonical owner `docs/architecture/frontend.md` and execution notes here. No new feature, visual ZIP parity change, domain aggregate, API/schema, dependency or security relaxation.
 - **Verification:** Test-first Node assert updates and browser scenario changes, then Preflight, Docker quality, real browser smoke and no duplicate-writes evidence on final HEAD. Keep Draft until mandatory gates pass; independent owner review remains separate.
+
+### Customer-ID recovery follow-up implementation — 2026-10-28
+
+- Updated the stale recovery callback assertion to the List page's scoped guard. The focused unit test also covers exact-ID reads, mismatched identities and GET failures.
+- The authenticated CDP filter-switch fixture now closes the native modal after the first reconciliation GET, changes filters only on the interactive List page and verifies a separate ID-specific read before the final manual acknowledgement.
+- CustomerDrawer verifies an existing Customer ID immediately before explicit recovery; the List page repeats this safeguard for a Drawer that was closed. The read must succeed for the same owner-scoped ID; no mutation is automatically repeated. Lost-response CREATE has no reliable ID and retains conservative list-based manual reconciliation.
+- **Documentation Impact:** REQUIRED; canonical frontend contract updated. **Verification:** pending exact-head Preflight and Foundation including browser smoke. PR remains Draft.
