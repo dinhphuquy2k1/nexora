@@ -150,7 +150,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
             >
               Đối chiếu lại dữ liệu
             </Button>
-            {read.outcome === "success" && !read.loading && (
+            {read.outcome === "success" && !read.loading && !mode && (
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -342,7 +342,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                       variant="ghost"
                       icon
                       aria-label="Xóa địa chỉ"
-                      disabled={mutation.busy || c.addresses.length <= 1}
+                      disabled={mutation.busy || writeUnresolved || !!mode || c.addresses.length <= 1}
                       title={
                         c.addresses.length <= 1
                           ? "Không thể xóa địa chỉ cuối cùng"
