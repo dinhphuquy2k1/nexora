@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { FOUNDATION_VERSION } from "@nexora/shared";
-import { Panel } from "@nexora/ui";
+import { Panel, buttonClassName } from "@nexora/ui";
 import { getCachedServerSession } from "../../lib/api/session.ts";
 
 export const dynamic = "force-dynamic";
@@ -57,7 +57,11 @@ export default async function Home() {
           Xem trạng thái các dịch vụ API, cơ sở dữ liệu và nơi lưu trữ tệp cục
           bộ trước khi bắt đầu.
         </p>
-        <Link className="button" href="/system">
+        <Link
+          className={buttonClassName("secondary")}
+          data-size="default"
+          href="/system"
+        >
           Xem trạng thái hệ thống →
         </Link>
       </Panel>

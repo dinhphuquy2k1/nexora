@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Overlay } from "@nexora/ui";
+import { Button, Overlay } from "@nexora/ui";
 import { X } from "lucide-react";
 import { Sidebar } from "./Sidebar.tsx";
 import { Header } from "./Header.tsx";
 import type { DeploymentPresentation } from "../../lib/auth/deployment-presentation.ts";
+import { resolveWorkspaceVariant } from "../../lib/navigation/resolve-active.ts";
+import frame from "./WorkspaceFrame.module.css";
 import styles from "./AppShell.module.css";
 interface ShellClientProps {
   children: ReactNode;
@@ -55,6 +57,7 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
   return (
     <div
       className={styles.container}
+      data-layout-variant={resolveWorkspaceVariant(pathname)}
       data-hydrated={mounted ? "true" : undefined}
     >
       <div className={styles.desktopSidebar}>
@@ -75,7 +78,9 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
             if ((e.target as HTMLElement).closest("a[href]")) dismiss();
           }}
         >
-          <button
+          <Button
+            variant="ghost"
+            icon
             type="button"
             className={styles.mobileCloseButton}
             onClick={dismiss}
@@ -83,7 +88,7 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
             title="Đóng menu di động"
           >
             <X size={18} aria-hidden="true" />
-          </button>
+          </Button>
           <Sidebar isCollapsed={false} isResponsive={false} />
         </div>
       </Overlay>
@@ -107,7 +112,8 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
         />
 
         <main
-          className={styles.contentArea}
+          className={`${frame.frame} ${styles.contentArea}`}
+          data-workspace-frame="content"
           id="workspace-content"
           tabIndex={-1}
         >

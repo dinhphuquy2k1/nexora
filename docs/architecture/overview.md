@@ -1,12 +1,12 @@
 # Architecture overview
 
 IMPLEMENTED: pnpm/Turbo monorepo, NestJS modular monolith, Next.js UI and same-origin HTTP transport, PostgreSQL storage catalog, local file adapter, generated OpenAPI SDK, local Scrypt identities, PostgreSQL-backed opaque sessions and owner-scoped Customer Backend V1 (verification pending).
-PLANNED: Customer frontend, shipment tracking & status history, weights/estimated fees, XLSX import, conditional provider integration/synchronization.
+PLANNED: Customer frontend acceptance/navigation activation, shipment tracking & status history, weights/estimated fees, XLSX import, conditional provider integration/synchronization.
 
 | Workspace         | Actual responsibility                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | apps/api          | Config, HTTP errors/logs, health, storage/catalog adapters, local identity, compiled provisioning CLI and Customer/Address APIs |
-| apps/web          | Vietnamese shell, Login/AccountMenu, protected workspace, system/settings                                                       |
+| apps/web          | Vietnamese shell, Login/AccountMenu, protected workspace, system/settings and Customer UI M2 (verification pending)             |
 | packages/database | Prisma client/schema/explicit migrations; infrastructure only                                                                   |
 | packages/sdk      | OpenAPI-generated types and typed fetch client                                                                                  |
 | packages/ui       | Panel and status badge used by web                                                                                              |

@@ -1,50 +1,106 @@
-import type {
-  ButtonHTMLAttributes,
-  InputHTMLAttributes,
-  TextareaHTMLAttributes,
-  ReactNode,
-} from "react";
+import type { ComponentPropsWithRef, ReactNode } from "react";
 import styles from "./Controls.module.css";
-
+export type ControlSize = "default" | "medium" | "large";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "emphasis";
+type SizeProps = { size?: ControlSize };
+export type PressEffect = "scale" | "none";
+export type ButtonProps = ComponentPropsWithRef<"button"> &
+  SizeProps & {
+    variant?: ButtonVariant;
+    icon?: boolean;
+    pressEffect?: PressEffect;
+  };
+export type TextInputProps = Omit<ComponentPropsWithRef<"input">, "size"> &
+  SizeProps;
+export type SelectProps = Omit<ComponentPropsWithRef<"select">, "size"> &
+  SizeProps;
+export type TextareaProps = ComponentPropsWithRef<"textarea"> & SizeProps;
+export type CheckboxProps = Omit<TextInputProps, "type"> & {
+  children?: ReactNode;
+};
+/** Same presentation for real navigation links; consumers retain native link semantics. */
+export function buttonClassName(
+  variant: ButtonVariant = "primary",
+  icon = false,
+  className = "",
+  pressEffect: PressEffect = "scale",
+) {
+  return `${styles.size} ${styles.button} ${variant !== "primary" ? styles[variant] : ""} ${icon ? styles.icon : ""} ${pressEffect === "none" ? styles.noPress : ""} ${className}`.trim();
+}
 export function Button({
   className = "",
   type = "button",
+  variant = "primary",
+  size = "default",
+  icon = false,
+  pressEffect = "scale",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement>) {
+}: ButtonProps) {
   return (
     <button
       {...props}
       type={type}
-      className={`${styles.button} ${className}`}
+      data-size={size}
+      data-variant={variant}
+      data-press-effect={pressEffect}
+      className={buttonClassName(variant, icon, className, pressEffect)}
     />
   );
 }
-
 export function TextInput({
   className = "",
+  size = "default",
   ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`${styles.input} ${className}`} />;
+}: TextInputProps) {
+  return (
+    <input
+      {...props}
+      data-size={size}
+      className={`${styles.size} ${styles.input} ${className}`}
+    />
+  );
 }
-
 export function Textarea({
   className = "",
+  size = "default",
+  rows = 3,
   ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={`${styles.textarea} ${className}`} />;
+}: TextareaProps) {
+  return (
+    <textarea
+      {...props}
+      rows={rows}
+      data-size={size}
+      className={`${styles.size} ${styles.textarea} ${className}`}
+    />
+  );
 }
-
 export function Checkbox({
   children,
   className = "",
+  size = "default",
   ...props
-}: Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "children"> & {
-  children: ReactNode;
-}) {
+}: CheckboxProps) {
   return (
-    <label className={`${styles.checkbox} ${className}`}>
+    <label
+      data-size={size}
+      className={`${styles.size} ${styles.checkbox} ${className}`}
+    >
       <input {...props} type="checkbox" />
       <span>{children}</span>
     </label>
+  );
+}
+export function Select({
+  className = "",
+  size = "default",
+  ...props
+}: SelectProps) {
+  return (
+    <select
+      {...props}
+      data-size={size}
+      className={`${styles.size} ${styles.input} ${props.multiple ? styles.multiple : ""} ${className}`}
+    />
   );
 }

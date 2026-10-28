@@ -269,25 +269,25 @@ Testing avoids rigid implementation syntax locking (such as asserting exact impl
    - Enforces Semantic Ownership: strictly forbids role mismatches across all token properties (text color, surface/background, border, outline/focus ring, and elevation/box-shadow). Negative unit tests prove violations in standard paths and future `features/` modules are detected.
 
 2. **Component Consistency & Computed-Style Parity**:
-   - Asserts shared primitives (`TextInput`, `Textarea`, `Button`, `Checkbox`) bind sizing, typography, and states to canonical contract tokens (`--control-height`, `--control-radius`, `--control-font-size`) without hardcoding implementation constants.
+   - Asserts shared primitives (`TextInput`, `Textarea`, `Button`, `Checkbox`) bind sizing, typography, and states to canonical contract tokens (`--control-size-default/medium/large`, `--control-radius`, `--control-font-size`) without hardcoding implementation constants.
    - Verifies geometric and typography parity: `inputHeight === buttonHeight`, `inputRadius === buttonRadius`, and `inputFontSize === buttonFontSize` across shared controls.
    - Verifies state parity: `TextInput` and `Textarea` share identical border, focus, disabled, readonly, and invalid (`aria-invalid="true"`) semantics.
    - Enforces CSS specificity rules: hover states must not override active focus states (`:not(:focus)`).
    - Verifies zero `!important` overrides in form controls and ensures `@nexora/ui` primitives are reused across `LoginForm` and `SetupForm`.
-   - Theme Independence: Changing `--control-height` from 44px to 48px or `--control-radius` from 12px to 8px in `tokens.css` updates all consumers in lockstep and does not require updating tests.
+   - Runtime Adaptability: Overriding a selected public size token or control radius updates actual consumers; probes compare the override and restore its exact value/priority. Base32/40/48 acceptance is an explicit approved contract, so an unapproved base-size change must fail rather than silently update expectations.
 
-3. **Real WCAG AA Contrast Testing**:
-   - Evaluates contrast dynamically using real rendered computed styles from `getComputedStyle()` (foreground `color` and composited `background-color`) in both default and real `:hover` states.
-   - In unit contract tests (`apps/web/test/form-control-contracts.test.mjs`), hover contrast calculates relative luminance and contrast using `--color-text-on-accent-hover` over `--color-accent-hover`, ensuring the test suite exercises the dedicated hover foreground token rather than reusing default foreground.
-   - In browser CDP suite (`scripts/m1-p2-regression.mjs`), renders the actual shared Button, dispatches genuine CDP pointer moves (`Input.dispatchMouseEvent` with `type: 'mouseMoved'`), confirms genuine `:hover` matching, awaits CSS transition completion (0.15s), and accounts for alpha/opacity compositing over underlying card background.
-   - Calculates relative luminance and contrast ratio per WCAG 2.1 formulas against the 4.5:1 AA threshold for normal text.
-   - Button foreground text consumes the semantic token `--color-text-on-accent: var(--brand-navy)` on `--color-accent` background, achieving a verified **5.74:1** contrast ratio. On real hover (`--color-accent-hover`), text consumes `--color-text-on-accent-hover`, achieving **4.58:1** (>= 4.5:1).
+3. **Canonical Palette and Token Fidelity Testing**:
+   - Evaluates rendered colors dynamically using real rendered computed styles from `getComputedStyle()` (foreground `color` and composited `background-color`) in both default and real `:hover` states.
+   - In unit contract tests (`apps/web/test/form-control-contracts.test.mjs`), verifies that public semantic tokens resolve to their canonical foundation palette values without circular references or invalid fallbacks.
+   - Replaces mandatory WCAG AA contrast gates with canonical palette token fidelity verification per authorized owner decision. Normal text on `#F58A24` background with `#FFFFFF` foreground is verified for exact token conformance across all states, logging diagnostic contrast ratios without blocking on contrast thresholds.
+   - In browser CDP suite (`scripts/m1-p2-regression.mjs` and `scripts/customer-control-checks.mjs`), renders actual shared controls, dispatches genuine CDP pointer moves (`Input.dispatchMouseEvent` with `type: 'mouseMoved'`), confirms genuine `:hover` matching, awaits CSS transition completion (0.15s), and verifies rendered colors match canonical tokens across states.
+   - Button foreground text consumes the semantic token `--color-text-on-accent: var(--color-white)` on `--color-accent` background (`#F58A24`). On real hover (`--color-accent-hover`: `#E07716`), text consumes `--color-text-on-accent-hover` (`#FFFFFF`).
    - Distinct Foreground Token Regression: Overrides `--color-text-on-accent` and `--color-text-on-accent-hover` to distinct contrasting values (e.g. dark navy `#102a43` vs dark red `#610404`), moves the real CDP pointer over the real Button, asserts computed styles transition to the distinct hover foreground token, and asserts clean restoration in `finally`.
-   - Negative Accessibility Regression: Deliberately makes the real hovered Button inaccessible (matching foreground to hover background) and proves the accessibility assertion fails closed, without hardcoding RGB values or simulating hover via dummy elements.
+   - Negative Accessibility Regression: Deliberately makes the real hovered Button inaccessible (matching foreground to hover background, yielding 1:1 contrast) and proves the minimum discernibility check fails closed, without hardcoding theme assumptions.
 
 4. **Runtime Token Override**:
    - Verifies that form controls bind dynamically to root CSS custom properties rather than fixed values.
-   - Automated browser CDP regression suite (`scripts/m1-p2-regression.mjs`) navigates to rendered form controls, reads initial computed styles via `window.getComputedStyle()`, dynamically modifies `--control-height: 52px`, `--control-radius: 6px`, and `--control-font-size: 16px` at `document.documentElement`, verifies that both `TextInput` and `Button` update computed styles synchronously in lockstep, and restores original values.
+   - Automated browser CDP regression suite (`scripts/m1-p2-regression.mjs`) navigates to rendered form controls, reads initial computed styles via `window.getComputedStyle()`, dynamically modifies `--control-size-default: 52px`, `--control-radius: 6px`, and `--control-font-size: 16px` at `document.documentElement`, verifies that both `TextInput` and `Button` update computed styles synchronously in lockstep, and restores original values.
 
 5. **Pre/Post-Hydration First-Paint Accessibility**:
    - At compact desktop viewports (901–1100px), Header renders a CSS-first responsive button triad (`.desktopExpandedToggle`, `.desktopCompactToggle`, `.mobileToggle`).
@@ -297,3 +297,65 @@ Testing avoids rigid implementation syntax locking (such as asserting exact impl
 
 6. **Legitimate Invariant Exact-Value Boundaries**:
    - Exact-value assertions are permitted only where an absolute dimension or threshold is an explicit, justified acceptance invariant (e.g. 0 layout shifts, WCAG AA thresholds, brand monogram visibility, maximum 420px login card width, 0 horizontal scroll overflow) rather than a configurable theme default.
+
+## NEXORA-031 M2 Customer UI verification
+
+Automatically discovered customer-ui-model.test.mjs covers query bounds/blank/repeated values, payload allowlists/nulls/fallback/exact text limits, stats contract, generation fencing and sequential default deletion. customer-ui-api.test.mjs executes the actual generated SDK against an owned loopback HTTP server for all eight method/path/body contracts, including old-server missing stats; this is controlled transport, not PostgreSQL evidence. Existing customer-integration.test.cjs remains the genuine migrated Nest/PostgreSQL authority for owner/ADMIN non-bypass, stats population/filter independence, Origin/session, defaults/concurrency and legacy data.
+
+M2_EVIDENCE_DIR extends the existing authenticated browser-login-smoke session via customer-browser-checks.mjs for real ADMIN/fresh OPERATOR same-phone ownership, foreign404, list/create/profile/detail/add/edit/default/explicit replacement-delete, history/clear and keyboard/focus. PNG/JSON capture uses task-owned synthetic Customer fixtures only, blank secret-field guard, hash/viewport/tested-merge lineage and six M1 viewport sizes. Foundation retains customer-ui-evidence with pinned upload action. No second launcher/framework/new Python; existing process/profile/disposable Compose cleanup remains mandatory. The helper's presence is not PASS, and partial artifacts do not certify every assertion. Read actual final-head logs and compare reference hierarchy; native Select/runtime token parity and deliberate race/fault cases require executed browser acceptance. Customer menu (/customers) is activated to available upon genuine route acceptance and contract test synchronization.
+
+### Customer visual fidelity acceptance
+
+Before correction, task031 records pinned reference section→component→gap→fix→exception for command deck, segmented counts, bounded search/advanced phone, persistent navy table/state body, attached pagination,5/7 detail and fixed-footer drawers/centered confirmation. Capture actual empty/populated/filtered-empty/loading/error/stats-unavailable and list/detail/Create/Edit/Address/Delete at the six canonical viewports; open representative images across all regions/sizes, verify hashes and actual source/merge lineage. Source-based hierarchy comparison is used where a safe reference screenshot is unavailable; overflow/unit PASS alone is not visual fidelity or pixel-perfect proof.
+
+Browser selectors follow accessible action names and stable heading identity rather than copy/PII. Native input resolves the open dialog scope before global page fields, respects inherited :disabled, verifies focus/value with booleans/lengths only. Expected-error readiness requires an alert; successful readiness still forbids one. Actual empty-list baseline captures precede form entry; capture-only manifests/partial PNGs never certify the flow. Preserve the pre300ms reload-draft, same-key/history/stale/finally/reconciliation regressions. Token override verifies each actual Input/Button/Select differs from baseline and equals its override, then restores exact values/priorities and checks computed baseline; detached-consumer negative test remains.
+
+User interaction tests prioritize genuine CDP pointer (`Input.dispatchMouseEvent`) and keyboard events on actual rendered, visible, and enabled controls. When an intentional helper uses programmatic focus + click, it must explicitly verify trigger visibility, enabled state, and activeElement focus before opening the dialog. Dialog dismissal via Escape verifies that focus is restored to the exact trigger element identity and accessible name without relying on fixed sleeps; if the trigger was removed from the DOM, focus reliably falls back to the live page heading (`main h1`). Modal Tab and Shift+Tab navigation strictly enforce focus containment within the open dialog.
+
+Post-mutation UI verification adheres to a strict settled contract: backend confirmation (e.g. via direct API GET) does not guarantee that the page's separate asynchronous refresh and React reconciliation have rendered. Assertions require awaiting an explicit UI settled condition: correct route pathname, dialog closure, clearance of loading and pending reconciliation indicators (`[role=status]`), absence of error alerts, exact remaining card cardinality matching stable DOM identity (`data-address-id`), correct default status, and disabled single-card delete action. Independent assertions on committed backend state and UI DOM properties are evaluated strictly after the settled condition passes.
+
+### v3 shared control size contract migration
+
+Public --control-size-default/medium/large replace --control-height; verify exact approved32/40/48 and omission, plus dynamic variant-isolated overrides and restoration. Existing m1-p2-regression and customer browser probes target the new authoritative default token, retaining detached-consumer/contrast/security assertions. control-sizes.test.mjs executes real compiled React controls through SSR and checks native attrs/rows plus in-memory TypeScript ref/size compatibility; it is not browser geometry evidence. The existing declaration parser now checks component-owned private mappings and rejects future feature shadows/retired height aliases, with negative cases. Native Login/MFA/shell action migrations require genuine final-head CDP, not only unit PASS.
+
+### v3 read/Toast/Power regression contracts
+
+customer-read-state tests exercise actual generic keyed policies, owner/q/phone snapshot compatibility and sticky explicit denial across failed refresh; toast-power tests cover real queue bounds/dedupe/copies and synchronous write/read gate, plus actual SSR safe text/roles/dismiss action. They are not substitutes for React/browser timing. Extend existing CDP with same-tick two-row writes, denied mutation resets, true mutation success plus failed reconciliation, modal Toast registration/dismissal and error/success distinction. Surface readiness tests query data-customer-error as well as non-Toast alerts, and API-error readiness additionally requires an actual Toast alert; this preserves error assertions while avoiding obsolete global-alert assumptions about persistent dismissible notifications.
+
+### Approved v3 acceptance extensions
+
+The existing CDP session now covers ten widths:1920,1440,1280,1100,1024,901,900,
+768,390,375. Workspace measurements assert both Header/main inner edges, gutter,
+Header height, standard max-width/wide fill and body overflow; Customer captures
+also assert nine colgroup/header/body boundaries. Negative Node tests reject wrong
+edges/gutters/max-width/overflow. Captures store these measurements with hashes.
+Actual modal Input/Button/Select exercise32/40/48 and isolated public overrides,
+restoring exact attributes/token values/priorities in finally; Textarea remains
+multiline and native Checkbox labels are preserved. These scripts require genuine
+browser execution; static syntax PASS does not certify their assertions.
+
+Exact-phone URL filtering (/customers?phone=...) renders an accessible filter badge
+with inline clear action and truthful counts. Missing pagination shows unavailable markers rather
+than invented zero totals. Persistent Toast errors remain dismissible across reads;
+essential errors use data-customer-error and actual API-error readiness also requires
+an active Toast alert. Do not restore obsolete global-alert assumptions.
+
+### Workspace layout and main focus regression checks
+
+`workspace-geometry-checks.mjs` verifies that the workspace frame maintains exact Header/Main alignment, gutter dimensions, sticky header height (56px), and zero horizontal document overflow. Additionally, `verifyMainFocusOutlineContract` validates that the `<main>` container (`#workspace-content`) retains `tabIndex={-1}`, accepts programmatic focus without JavaScript errors, displays no unintended visual outline (`outlineStyle === 'none' || outlineWidth === 0`), and has zero top/left border width, while interactive child controls retain their keyboard focus indications.
+
+### Customer table skeleton and computed layout geometry regression checks
+
+`workspace-geometry-checks.mjs` (`verifyCustomerTableGeometry`) asserts the geometric and loading stability contract of the Customer table across both loading (skeleton) and data states:
+
+- Exactly 9 columns match `customerColumns` order and shared `<colgroup>`.
+- Header boundaries and body cell boundaries agree within `< 1px` across all columns and viewports (375px, 768px, 900px, 1440px, 1920px).
+- Fixed 5-row skeleton contract is asserted (`skeletonRows.length === 5`).
+- All 9 columns have balanced horizontal margins (`abs(leftGap - rightGap) <= 1px` relative to cell usable content area).
+- Text placeholders (`code`, `name`, `phone`, `email`, `created`) occupy 80–92% of usable cell width (measured: 84.18% to 89.58%).
+- Row height stability: both skeleton rows and normal single-line real data rows measure 44.5px height (difference <= 1.5px, verified 0.0px).
+- Table horizontal overflow is contained inside `.tableViewport` (`scrollWidth === 1312px`, `noBodyOverflow: true`), preventing viewport jitter during loading-to-settled transitions across 0, 1, 2, 3, 5, and 10 records.
+
+### Customer recovery and Chromium readiness evidence (2026-10-28)
+
+The existing authenticated CDP Customer smoke uses real server writes with response-stage failure injection (completed PATCH/PUT response loss) to verify a GET-only reconciliation and explicit user recovery; it must never treat synthetic request-stage HTTP 500 as proof that a genuine write committed. The default-address delete negative-path browser fixture requires acknowledgement and a fresh editor before retrying after an ambiguous 500 response. Login browser startup retains the required Chromium/DevTools gate with a bounded 20-second cold-runner startup window; a missing DevTools port remains an explicit failure with safe diagnostic categories, not a skipped test.

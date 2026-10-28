@@ -1,0 +1,519 @@
+"use client";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button, Overlay } from "@nexora/ui";
+import { X, UserPlus, Edit3, MapPin, CheckCircle2 } from "lucide-react";
+import type {
+  Customer,
+  Address,
+  ProfileDraft,
+  AddressDraft,
+  Summary,
+} from "./types.ts";
+import { CustomerProfileFields } from "./CustomerProfileFields.tsx";
+import { AddressForm } from "./AddressForm.tsx";
+import {
+  createCustomerPayload,
+  patchCustomerPayload,
+  addressPayload,
+} from "./payload.ts";
+import { customerApi } from "./api.ts";
+import { customerError } from "./errors.ts";
+import { verifyCustomerRecoveryById } from "./mutation-policy.ts";
+import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
+import {
+  useCustomerMutation,
+  type SettlementTarget,
+} from "./useCustomerMutation.ts";
+import { Feedback } from "./Feedback.tsx";
+import styles from "./customers.module.css";
+const emptyAddress = (): AddressDraft => ({
+  label: "",
+  recipientName: "",
+  recipientPhone: "",
+  countryCode: "VN",
+  addressText: "",
+});
+export function DrawerFrame({
+  title,
+  busy,
+  onClose,
+  children,
+  side = true,
+  description,
+  icon,
+  address = false,
+}: {
+  title: string;
+  busy: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  side?: boolean;
+  description?: string;
+  icon?: ReactNode;
+  address?: boolean;
+}) {
+  const trigger = useRef<HTMLElement | null>(
+    typeof document !== "undefined" &&
+      document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null,
+  );
+  useEffect(
+    () => () => {
+      queueMicrotask(() => {
+        if (trigger.current?.isConnected) trigger.current.focus();
+        else document.querySelector<HTMLElement>("main h1")?.focus();
+      });
+    },
+    [],
+  );
+  let layout = styles.confirmOverlay;
+  if (side)
+    layout = address
+      ? `${styles.formOverlay} ${styles.addressOverlay}`
+      : styles.formOverlay;
+  return (
+    <Overlay
+      open
+      side={side}
+      label={title}
+      className={layout}
+      onDismiss={() => {
+        if (!busy) onClose();
+      }}
+    >
+      <div className={side ? styles.drawer : styles.confirmation}>
+        <header className={styles.drawerHeader}>
+          <div className={styles.titleGroup}>
+            {icon && <span className={styles.brandIcon}>{icon}</span>}
+            <div>
+              <h2>{title}</h2>
+              {description && <p className={styles.muted}>{description}</p>}
+            </div>
+          </div>
+          <Button
+            icon
+            variant="ghost"
+            disabled={busy}
+            onClick={onClose}
+            aria-label="Đóng biểu mẫu"
+          >
+            <X size={18} />
+          </Button>
+        </header>
+        {children}
+      </div>
+    </Overlay>
+  );
+}
+function ReconcileNotice({
+  disabled,
+  onRetry,
+  isUnresolved,
+  canRecover,
+  onAcknowledge,
+  onDiscard,
+}: {
+  disabled: boolean;
+  onRetry: () => void;
+  isUnresolved?: boolean;
+  canRecover?: boolean;
+  onAcknowledge?: () => void;
+  onDiscard?: () => void;
+}) {
+  return (
+    <div role="status" className={styles.notice}>
+      <p>
+        {isUnresolved
+          ? "Kết quả thao tác chưa thể xác nhận từ máy chủ. Dữ liệu mới nhất đã được tải lại. Vui lòng kiểm tra kỹ trước khi quyết định tiếp tục."
+          : "Chưa đối chiếu xong dữ liệu. Chỉ thử lưu lại sau khi tải thành công."}
+      </p>
+      <div className={styles.actions}>
+        <Button variant="secondary" disabled={disabled} onClick={onRetry}>
+          Đối chiếu lại dữ liệu
+        </Button>
+        {isUnresolved && canRecover && onDiscard && (
+          <Button variant="secondary" onClick={onDiscard}>
+            Thử lưu lại
+          </Button>
+        )}
+        {isUnresolved && canRecover && onAcknowledge && (
+          <Button variant="emphasis" onClick={onAcknowledge}>
+            Đã lưu thành công
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+export function CustomerDrawer({
+  customer,
+  onClose,
+  onSaved,
+  refresh,
+  onDenied,
+  reconciling = false,
+  settlement,
+  writeBlocked = false,
+  onUnresolved,
+  onResolved,
+}: {
+  customer?: Customer | Summary;
+  onClose: () => void;
+  onSaved: () => void;
+  refresh: () => void;
+  onDenied: () => void;
+  reconciling?: boolean;
+  settlement?: SettlementTarget;
+  writeBlocked?: boolean;
+  onUnresolved?: () => void;
+  onResolved?: () => void;
+}) {
+  const [baseline] = useState(customer);
+  const router = useRouter();
+  const [profile, setProfile] = useState<ProfileDraft>(() => ({
+    name: customer?.name ?? "",
+    phone: customer?.phone ?? "",
+    email: customer?.email ?? "",
+    note: customer?.note ?? "",
+    status: customer?.status,
+  }));
+  const [address, setAddress] = useState(emptyAddress);
+  const mutation = useCustomerMutation(
+    settlement ?? refresh,
+    onDenied,
+    onUnresolved,
+  );
+  const recoveryLock = useRef(false);
+  const [recoveryPending, setRecoveryPending] = useState(false);
+  const [recoveryError, setRecoveryError] = useState("");
+  async function completeRecovery(mode: "discard" | "acknowledged") {
+    if (!mutation.canResolveUnresolved || recoveryLock.current) return;
+    recoveryLock.current = true;
+    setRecoveryPending(true);
+    setRecoveryError("");
+    try {
+      // The list read may exclude the edited customer; verify its identity directly.
+      // An unknown CREATE has no ID and retains the conservative list-only recovery.
+      if (customer) {
+        await verifyCustomerRecoveryById(customer.id, customerApi.get);
+      }
+      if (!mutation.resolveUnresolved(mode)) return;
+      onResolved?.();
+      if (mode === "acknowledged") onSaved();
+    } catch (error) {
+      const safe = customerError(error);
+      if (safe.unauthenticated) {
+        onDenied();
+        const from = sanitizeReturnUrl(location.pathname + location.search);
+        router.replace(
+          from ? `/login?from=${encodeURIComponent(from)}` : "/login",
+        );
+      } else {
+        setRecoveryError(
+          "Không thể xác minh hồ sơ khách hàng. Hãy đối chiếu lại và thử tiếp.",
+        );
+      }
+    } finally {
+      recoveryLock.current = false;
+      setRecoveryPending(false);
+    }
+  }
+  return (
+    <DrawerFrame
+      title={customer ? "Sửa khách hàng" : "Thêm khách hàng"}
+      description={
+        customer
+          ? `${customer.code} · Cập nhật hồ sơ, giữ nguyên người nhận của địa chỉ.`
+          : "Tạo hồ sơ và địa chỉ nhận hàng đầu tiên."
+      }
+      icon={customer ? <Edit3 size={19} /> : <UserPlus size={19} />}
+      busy={!mutation.canClose}
+      onClose={onClose}
+    >
+      <form
+        aria-busy={mutation.isWriting || mutation.isReconciling}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (reconciling || writeBlocked || !mutation.canWrite) return;
+          const openAfter =
+            !customer &&
+            (e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") ===
+              "open";
+          let createdId: string | undefined;
+          void mutation.run(
+            async () => {
+              if (customer)
+                return customerApi.update(
+                  customer.id,
+                  patchCustomerPayload(profile, baseline!),
+                );
+              const result = await customerApi.create(
+                createCustomerPayload(profile, address),
+              );
+              createdId = result.id;
+              return result;
+            },
+            () => {
+              onSaved();
+              if (openAfter && createdId)
+                router.push(`/customers/${encodeURIComponent(createdId)}`);
+            },
+          );
+        }}
+      >
+        <div className={styles.drawerBody} data-customer-form-body>
+          <fieldset
+            disabled={!mutation.canWrite || reconciling || writeBlocked}
+            className={styles.fieldset}
+          >
+            <section className={styles.formSection}>
+              <div className={styles.sectionHeading}>
+                <span className={styles.sectionNumber}>1</span>
+                <h3>Thông tin khách hàng</h3>
+              </div>
+              <CustomerProfileFields
+                value={profile}
+                onChange={setProfile}
+                edit={!!customer}
+                errorField={mutation.error?.field}
+              />
+            </section>
+            {!customer && (
+              <section className={styles.formSection}>
+                <div className={styles.sectionHeading}>
+                  <span className={styles.sectionNumber}>2</span>
+                  <h3>Địa chỉ nhận hàng đầu tiên</h3>
+                </div>
+                <p className={styles.muted}>
+                  Địa chỉ là bắt buộc và được lưu đồng thời với hồ sơ khách
+                  hàng.
+                </p>
+                <AddressForm
+                  value={address}
+                  onChange={setAddress}
+                  errorField={mutation.error?.field}
+                />
+                <p className={styles.notice}>
+                  <CheckCircle2 size={16} aria-hidden="true" /> Địa chỉ này sẽ
+                  là địa chỉ mặc định đầu tiên.
+                </p>
+              </section>
+            )}
+          </fieldset>
+          {customer && (
+            <section className={styles.formSection}>
+              <h3 className={styles.muted}>Địa chỉ nhận hàng</h3>
+              <p className={styles.muted}>
+                Sửa hồ sơ không thay đổi người nhận của các địa chỉ đã lưu.
+              </p>
+              {"addresses" in customer &&
+                customer.addresses.map((a) => (
+                  <p className={styles.targetSummary} key={a.id}>
+                    {a.label ?? "Địa chỉ"}
+                    {a.isDefault ? " · Mặc định" : ""}
+                    <br />
+                    {a.addressText}
+                  </p>
+                ))}
+              {!mutation.busy && !reconciling && (
+                <Link href={`/customers/${encodeURIComponent(customer.id)}`}>
+                  Mở hồ sơ để quản lý địa chỉ
+                </Link>
+              )}
+            </section>
+          )}
+          {(reconciling || mutation.phase === "blocked") && (
+            <ReconcileNotice
+              disabled={
+                mutation.phase === "reconciling" ||
+                (reconciling &&
+                  mutation.phase === "idle" &&
+                  settlement?.outcome !== "error")
+              }
+              onRetry={() => {
+                if (mutation.canRetryRead) mutation.retryReconciliation();
+                else refresh();
+              }}
+              isUnresolved={mutation.isUnresolved}
+              canRecover={
+                mutation.canResolveUnresolved &&
+                !reconciling &&
+                !recoveryPending
+              }
+              onDiscard={() => void completeRecovery("discard")}
+              onAcknowledge={() => void completeRecovery("acknowledged")}
+            />
+          )}
+          {recoveryError && <p role="alert">{recoveryError}</p>}
+          <div id="customer-field-error">
+            <Feedback error={mutation.error} />
+          </div>
+        </div>
+        <footer className={styles.drawerFooter}>
+          <Button
+            variant="secondary"
+            disabled={!mutation.canClose}
+            onClick={onClose}
+          >
+            Hủy
+          </Button>
+          <div className={styles.actions}>
+            <Button
+              variant={customer ? "emphasis" : "secondary"}
+              type="submit"
+              disabled={!mutation.canWrite || reconciling || writeBlocked}
+            >
+              {mutation.isWriting ? "Đang lưu…" : "Lưu khách hàng"}
+            </Button>
+            {!customer && (
+              <Button
+                variant="emphasis"
+                type="submit"
+                value="open"
+                disabled={!mutation.canWrite || reconciling || writeBlocked}
+              >
+                Lưu và mở hồ sơ
+              </Button>
+            )}
+          </div>
+        </footer>
+      </form>
+    </DrawerFrame>
+  );
+}
+export function AddressDrawer({
+  id,
+  address,
+  onClose,
+  onSaved,
+  refresh,
+  onDenied,
+  reconciling = false,
+  settlement,
+  writeBlocked = false,
+  onUnresolved,
+  onResolved,
+}: {
+  id: string;
+  address?: Address;
+  onClose: () => void;
+  onSaved: () => void;
+  refresh: () => void;
+  onDenied: () => void;
+  reconciling?: boolean;
+  settlement?: SettlementTarget;
+  writeBlocked?: boolean;
+  onUnresolved?: () => void;
+  onResolved?: () => void;
+}) {
+  const [baseline] = useState(address);
+  const [draft, setDraft] = useState<AddressDraft>(() =>
+    address
+      ? {
+          label: address.label ?? "",
+          recipientName: address.recipientName,
+          recipientPhone: address.recipientPhone,
+          countryCode: address.countryCode,
+          addressText: address.addressText,
+        }
+      : emptyAddress(),
+  );
+  const mutation = useCustomerMutation(
+    settlement ?? refresh,
+    onDenied,
+    onUnresolved,
+  );
+  return (
+    <DrawerFrame
+      title={address ? "Sửa địa chỉ" : "Thêm địa chỉ"}
+      description={
+        address?.isDefault
+          ? "Địa chỉ mặc định · Cập nhật thông tin người nhận."
+          : "Thông tin người nhận và địa chỉ giao hàng."
+      }
+      icon={<MapPin size={19} />}
+      busy={!mutation.canClose}
+      onClose={onClose}
+      address
+    >
+      <form
+        aria-busy={mutation.isWriting || mutation.isReconciling}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (reconciling || writeBlocked || !mutation.canWrite) return;
+          void mutation.run(
+            () =>
+              address
+                ? customerApi.patchAddress(
+                    id,
+                    address.id,
+                    addressPayload(draft, baseline!),
+                  )
+                : customerApi.add(id, addressPayload(draft)),
+            onSaved,
+          );
+        }}
+      >
+        <div className={styles.drawerBody} data-customer-form-body>
+          <fieldset
+            disabled={!mutation.canWrite || reconciling || writeBlocked}
+            className={styles.fieldset}
+          >
+            <AddressForm
+              value={draft}
+              onChange={setDraft}
+              edit={!!address}
+              errorField={mutation.error?.field}
+            />
+          </fieldset>
+          {(reconciling || mutation.phase === "blocked") && (
+            <ReconcileNotice
+              disabled={
+                mutation.phase === "reconciling" ||
+                (reconciling &&
+                  mutation.phase === "idle" &&
+                  settlement?.outcome !== "error")
+              }
+              onRetry={() => {
+                if (mutation.canRetryRead) mutation.retryReconciliation();
+                else refresh();
+              }}
+              isUnresolved={mutation.isUnresolved}
+              canRecover={mutation.canResolveUnresolved && !reconciling}
+              onDiscard={() => {
+                if (mutation.resolveUnresolved("discard")) onResolved?.();
+              }}
+              onAcknowledge={() => {
+                if (!mutation.resolveUnresolved("acknowledged")) return;
+                onResolved?.();
+                onSaved();
+              }}
+            />
+          )}
+          <div id="customer-field-error">
+            <Feedback error={mutation.error} />
+          </div>
+        </div>
+        <footer className={styles.drawerFooter}>
+          <Button
+            variant="secondary"
+            disabled={!mutation.canClose}
+            onClick={onClose}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="emphasis"
+            type="submit"
+            disabled={!mutation.canWrite || reconciling || writeBlocked}
+          >
+            {mutation.isWriting ? "Đang lưu…" : "Lưu địa chỉ"}
+          </Button>
+        </footer>
+      </form>
+    </DrawerFrame>
+  );
+}

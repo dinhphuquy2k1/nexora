@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
 import styles from "./Overlay.module.css";
+import { ToastViewport } from "./Toast";
 /** Native modal supplies the top layer, inert background and keyboard focus containment. */
 export function Overlay({
   open,
@@ -8,12 +9,14 @@ export function Overlay({
   label,
   children,
   side = false,
+  className = "",
 }: {
   open: boolean;
   onDismiss: () => void;
   label: string;
   children: ReactNode;
   side?: boolean;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -34,7 +37,7 @@ export function Overlay({
       ref={ref}
       aria-label={label}
       aria-modal="true"
-      className={`${styles.overlay} ${side ? styles.side : ""}`}
+      className={`${styles.overlay} ${side ? styles.side : ""} ${className}`}
       onKeyDown={(e) => {
         if (e.key !== "Tab") return;
         const stops = Array.from(
@@ -91,6 +94,7 @@ export function Overlay({
       }}
     >
       {children}
+      <ToastViewport modal active={open} />
     </dialog>
   );
 }

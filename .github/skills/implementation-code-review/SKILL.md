@@ -1,19 +1,19 @@
 ---
 name: implementation-code-review
-description: Conducts post-implementation code review, auditing git diffs against approved designs, detecting duplicate patterns, checking boundary compliance, and issuing structured P1/P2/P3 findings.
+description: Conducts post-implementation code review, auditing git diffs against recorded design plans, detecting duplicate patterns, checking boundary compliance, and issuing structured P1/P2/P3 findings.
 ---
 
 # Implementation Code Review Skill
 
 ## Purpose & Scope
 
-This skill performs rigorous post-implementation code review for Nexora, ensuring pull requests comply with approved designs, maintain tactical DDD boundaries, avoid unintended duplication, and preserve database transaction integrity per [ADR-008](../../../docs/decisions/tactical-ddd.md) and [ADR-009](../../../docs/decisions/mandatory-pre-code-design-review.md).
+This skill performs rigorous post-implementation code review for Nexora, ensuring pull requests comply with recorded design plans, maintain tactical DDD boundaries, avoid unintended duplication, and preserve database transaction integrity per [ADR-008](../../../docs/decisions/tactical-ddd.md) and [ADR-009](../../../docs/decisions/mandatory-pre-code-design-review.md).
 
 ## Review Checklist
 
-### 1. Approved Design Compliance
+### 1. Recorded Design Compliance
 
-- Compare the active git diff (`git diff HEAD~1` or working tree) directly against the approved design review artifact.
+- Compare the active git diff (`git diff HEAD~1` or working tree) directly against the recorded design review artifact.
 - Flag any out-of-scope modifications or scope creep.
 - Verify that intentionally preserved differences (non-goals) remained separate.
 

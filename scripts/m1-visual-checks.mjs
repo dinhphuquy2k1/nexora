@@ -1,14 +1,19 @@
 // Extends the existing CDP session; never receives credentials or session tokens.
 import { waitForInteractiveLogin } from "./browser-login-ready.mjs";
+import { verifyWorkspaceGeometry } from "./workspace-geometry-checks.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 export const M1_VIEWPORTS = [
+  { width: 1920, height: 1080 },
   { width: 1440, height: 900 },
   { width: 1280, height: 800 },
+  { width: 1100, height: 800 },
   { width: 1024, height: 768 },
+  { width: 901, height: 768 },
+  { width: 900, height: 768 },
   { width: 768, height: 1024 },
   { width: 390, height: 844 },
   { width: 375, height: 812 },
@@ -56,6 +61,10 @@ export async function verifyM1Visuals({
       "new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true))))",
     );
     const before = phase === "shell" ? await shellGeometry() : null;
+    const geometry =
+      phase === "shell"
+        ? await verifyWorkspaceGeometry({ evaluate, width: viewport.width })
+        : null;
     const shot = await send("Page.captureScreenshot", {
       format: "png",
       // Evidence is of the specified viewport, not a full-page resize. A capture
@@ -82,11 +91,51 @@ export async function verifyM1Visuals({
       width: viewport.width,
       height: viewport.height,
       state,
+      geometry,
       sha256: createHash("sha256").update(bytes).digest("hex"),
     });
   }
   try {
-    if (phase === "login") await waitForInteractiveLogin({ until, evaluate });
+    if (phase === "login") {
+      await waitForInteractiveLogin({ until, evaluate });
+      const checkboxSizes = await evaluate(`(()=>{
+        const input=document.querySelector('input[name="remember-username"]');
+        const label=input?.closest('label[data-size]');
+        if(!input||!label||!input.labels?.length)return null;
+        const previous=label.getAttribute('data-size');
+        const root=document.documentElement;
+        const tokens=['--control-size-default','--control-size-medium','--control-size-large'];
+        const saved=tokens.map(t=>[root.style.getPropertyValue(t),root.style.getPropertyPriority(t)]);
+        try {
+          const rows=[];
+          for(const [i,size] of ['default','medium','large'].entries()){
+            label.setAttribute('data-size',size);
+            const measure=()=>({target:label.getBoundingClientRect().height,indicator:input.getBoundingClientRect().height});
+            const baseline=measure();
+            root.style.setProperty(tokens[i],String([36,44,52][i])+'px','important');
+            const override=measure();
+            if(saved[i][0])root.style.setProperty(tokens[i],...saved[i]);else root.style.removeProperty(tokens[i]);
+            rows.push({baseline,override});
+          }
+          return rows;
+        }finally{
+          if(previous===null)label.removeAttribute('data-size');else label.setAttribute('data-size',previous);
+          tokens.forEach((t,i)=>saved[i][0]?root.style.setProperty(t,...saved[i]):root.style.removeProperty(t));
+          if(label.getAttribute('data-size')!==previous||!tokens.every((t,i)=>root.style.getPropertyValue(t)===saved[i][0]&&root.style.getPropertyPriority(t)===saved[i][1]))throw Error('CHECKBOX_RESTORATION');
+        }
+      })()`);
+      assert.ok(checkboxSizes, "actual Login Checkbox and label required");
+      for (const [i, row] of checkboxSizes.entries()) {
+        assert.equal(row.baseline.target, [32, 40, 48][i]);
+        assert.equal(row.baseline.indicator, [16, 18, 20][i]);
+        assert.equal(row.override.target, [36, 44, 52][i]);
+        assert.equal(
+          row.override.indicator,
+          row.baseline.indicator,
+          "height override keeps indicator independent",
+        );
+      }
+    }
     for (const viewport of M1_VIEWPORTS) {
       console.log(
         `M1 ${prefix} ${phase} viewport ${viewport.width}x${viewport.height}`,
@@ -106,6 +155,7 @@ export async function verifyM1Visuals({
         await until(
           'Math.round(document.querySelector("header").getBoundingClientRect().height)===56',
         );
+        await verifyWorkspaceGeometry({ evaluate, width: viewport.width });
         const mobile = viewport.width <= 900;
         if (mobile) {
           await until(
@@ -382,6 +432,6 @@ export async function verifyM1Visuals({
     await send("Emulation.clearDeviceMetricsOverride");
   }
   console.log(
-    `M1 ${prefix} ${phase}: six viewport geometry/keyboard/font evidence PASS`,
+    `M1 ${prefix} ${phase}: ten viewport geometry/keyboard/font evidence PASS`,
   );
 }

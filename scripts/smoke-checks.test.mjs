@@ -66,3 +66,26 @@ test("status diagnostics never stringify unexpected payload objects", () => {
   assert.ok(lines.includes("Actual HTTP status: NOT_OBSERVED"));
   assert.equal(lines.join("\n").includes("private"), false);
 });
+
+test("browser diagnostics map fixed diagnostic vocabulary codes without payload leakage", () => {
+  const codes = [
+    "SELECTOR_NOT_FOUND",
+    "CONTROL_DISABLED",
+    "FOCUS_MISMATCH",
+    "PROTOCOL_EXCEPTION",
+    "VALUE_MISMATCH",
+  ];
+  for (const code of codes) {
+    const lines = [];
+    const checks = createSmokeChecks((line) => lines.push(line));
+    checks.step("TEST_STEP");
+    const err = new Error("diagnostic failure");
+    err.code = code;
+    checks.failure(err);
+    assert.deepEqual(lines, [
+      "AUTH_RUNTIME_SMOKE_FAILED",
+      "Step: TEST_STEP",
+      `Category: ${code}`,
+    ]);
+  }
+});

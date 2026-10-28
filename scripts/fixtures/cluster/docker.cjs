@@ -5,8 +5,14 @@ const path = process.env.FIXTURE_STATE,
   a = process.argv.slice(2),
   mode = process.env.FIXTURE_MODE || "normal";
 const id = (k) => ({ pg: "a", node: "b", net: "c" })[k].repeat(64);
+// A deadline can kill this process mid-write; readers must see a complete snapshot.
+const save = () => {
+  const temporary = `${path}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, JSON.stringify(s));
+  fs.renameSync(temporary, path);
+};
 const end = (code = 0, out = "", err = "") => {
-  fs.writeFileSync(path, JSON.stringify(s));
+  save();
   process.stdout.write(out);
   process.stderr.write(err);
   process.exit(code);
@@ -64,7 +70,7 @@ if (a[0] === "start") {
   c.running = true;
   if (!c.pg) {
     s.suites++;
-    fs.writeFileSync(path, JSON.stringify(s));
+    save();
     if (mode === "signal") setTimeout(() => end(), 5000);
     else if (["suite-fail", "both-fail", "redaction"].includes(mode))
       end(

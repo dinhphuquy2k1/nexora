@@ -33,7 +33,15 @@ export function createSmokeChecks(
                 ? "DOCKER_FAILURE"
                 : error?.name === "AssertionError"
                   ? "ASSERTION_FAILED"
-                  : "CHECK_FAILED";
+                  : [
+                        "SELECTOR_NOT_FOUND",
+                        "CONTROL_DISABLED",
+                        "FOCUS_MISMATCH",
+                        "PROTOCOL_EXCEPTION",
+                        "VALUE_MISMATCH",
+                      ].includes(code)
+                    ? code
+                    : "CHECK_FAILED";
       write(label);
       write(`Step: ${step}`);
       if (statuses) {

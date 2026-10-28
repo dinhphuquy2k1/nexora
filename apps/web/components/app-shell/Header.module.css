@@ -2,10 +2,8 @@
   height: var(--header-height);
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  padding: 0 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-shrink: 0;
+
   position: sticky;
   top: 0;
   z-index: 20;
@@ -20,29 +18,15 @@
 }
 
 .toggleButton {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  border: none;
-  background-color: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  padding: 0;
   flex-shrink: 0;
 }
 
 .toggleButton:hover {
-  background-color: var(--color-background);
-  color: var(--color-primary);
+  text-decoration: none;
 }
 
 .toggleButton:focus-visible {
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 2px;
+  text-decoration: none;
 }
 
 .collapsedBrand {
@@ -55,15 +39,15 @@
   flex-shrink: 0;
 }
 
-.desktopExpandedToggle {
+.header .desktopExpandedToggle {
   display: flex;
 }
 
-.desktopCompactToggle {
+.header .desktopCompactToggle {
   display: none;
 }
 
-.mobileToggle {
+.header .mobileToggle {
   display: none;
 }
 
@@ -76,15 +60,15 @@
     display: flex;
   }
 
-  .desktopExpandedToggle {
+  .header .desktopExpandedToggle {
     display: none;
   }
 
-  .desktopCompactToggle {
+  .header .desktopCompactToggle {
     display: flex;
   }
 
-  .mobileToggle {
+  .header .mobileToggle {
     display: none;
   }
 }
@@ -95,15 +79,15 @@
     display: none;
   }
 
-  .desktopExpandedToggle {
+  .header .desktopExpandedToggle {
     display: none;
   }
 
-  .desktopCompactToggle {
+  .header .desktopCompactToggle {
     display: none;
   }
 
-  .mobileToggle {
+  .header .mobileToggle {
     display: flex;
   }
 }
@@ -206,30 +190,15 @@
 }
 
 .iconButton {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  background-color: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  padding: 0;
-  text-decoration: none;
+  flex-shrink: 0;
 }
 
 .iconButton:hover {
-  background-color: var(--color-background);
-  color: var(--color-primary);
-  border-color: var(--color-border);
+  text-decoration: none;
 }
 
 .iconButton:focus-visible {
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 2px;
+  text-decoration: none;
 }
 
 .dropdownMenu {
@@ -307,18 +276,10 @@
   border-radius: var(--radius-xs);
 }
 
-@media (max-width: 768px) {
-  .header {
-    padding: 0 16px;
-  }
-}
 .dropdownMenu {
   width: min(280px, calc(100vw - 32px));
 }
 @media (max-width: 600px) {
-  .header {
-    padding: 0 var(--space-3);
-  }
   .leftSection {
     gap: var(--space-2);
   }
@@ -329,4 +290,12 @@
   .rightSection {
     gap: var(--space-1);
   }
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  gap: var(--space-2);
 }

@@ -308,6 +308,7 @@ function parseCssDeclarations(css) {
             "";
           declarations.push({
             selector: currentSelector,
+            context: selectorStack.filter((s) => s.startsWith("@")).join(" "),
             property: currentProp.toLowerCase(),
             value: val,
           });
@@ -356,6 +357,7 @@ function parseCssDeclarations(css) {
           "";
         declarations.push({
           selector: currentSelector,
+          context: selectorStack.filter((s) => s.startsWith("@")).join(" "),
           property: currentProp.toLowerCase(),
           value: val,
         });
@@ -603,6 +605,7 @@ function analyzeCssPolicy(fileList, declaredTokens, allowlist = new Set()) {
     semanticMisuse: [],
     importantOverrides: [],
     rawColors: [],
+    sizingOverrides: [],
   };
 
   for (const { filePath, content } of fileList) {
@@ -629,16 +632,65 @@ function analyzeCssPolicy(fileList, declaredTokens, allowlist = new Set()) {
 
     // 2. Parse declarations with robust state machine
     const declarations = parseCssDeclarations(content);
+    const privateMappings = new Map([
+      ["--_control-height", "--control-size-"],
+      ["--_control-padding-x", "--control-padding-"],
+      ["--_control-padding-y", "--control-padding-block-"],
+      ["--_control-icon", "--icon-control-"],
+      ["--_control-indicator", "--checkbox-indicator-"],
+    ]);
+    const ownsControls =
+      /(?:^|\/)packages\/ui\/src\/Controls\.module\.css$/.test(normPath);
+    const localTokens = new Set();
+    if (ownsControls) {
+      for (const [local, target] of privateMappings) {
+        const valid = ["default", "medium", "large"].every((size) =>
+          declarations.some(
+            (d) =>
+              d.selector.trim() === `.size[data-size="${size}"]` &&
+              d.property === local &&
+              d.value.trim() === `var(${target}${size})`,
+          ),
+        );
+        if (valid) localTokens.add(local);
+      }
+    }
 
     for (const decl of declarations) {
       const { selector, property: prop, value: val } = decl;
       const isTokenDefinition = isCanonicalTokensFile && prop.startsWith("--");
+      const variant = ["default", "medium", "large"].find(
+        (size) => selector.trim() === `.size[data-size="${size}"]`,
+      );
+      const validPrivateDeclaration =
+        ownsControls &&
+        variant &&
+        privateMappings.has(prop) &&
+        val.trim() === `var(${privateMappings.get(prop)}${variant})`;
+
+      if (
+        prop === "--control-height" ||
+        (!isCanonicalTokensFile &&
+          /^(?:--control-(?:size-|radius$|font-size$|padding-))/.test(prop)) ||
+        (prop.startsWith("--_control-") &&
+          (!localTokens.has(prop) || !validPrivateDeclaration))
+      ) {
+        violations.sizingOverrides.push({
+          file: filePath,
+          selector,
+          property: prop,
+        });
+      }
 
       // 2a. Check for invalid token references
       const varRefs = val.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g);
       for (const match of varRefs) {
         const token = match[1];
-        if (!declaredTokens.has(token) && !allowlist.has(token)) {
+        if (
+          !declaredTokens.has(token) &&
+          !allowlist.has(token) &&
+          !localTokens.has(token)
+        ) {
           violations.invalidTokens.push({ file: filePath, token });
         }
       }
@@ -943,10 +995,12 @@ test("Token Contract: mandatory design tokens defined in tokens.css", () => {
 
   // Mandatory Form Control Contract tokens
   const requiredControlTokens = [
-    "--control-height",
+    "--control-size-default",
+    "--control-size-medium",
+    "--control-size-large",
     "--control-radius",
-    "--control-padding-x",
-    "--control-padding-y",
+    "--control-padding-default",
+    "--control-padding-block-default",
     "--control-font-size",
     "--control-bg",
     "--control-bg-focus",
@@ -1016,58 +1070,64 @@ test("Token Contract: mandatory design tokens defined in tokens.css", () => {
   }
 });
 
-test("Token Contract: token references graph is valid with no circular dependencies", () => {
-  const tokensPath = path.join(webRoot, "styles/tokens.css");
-  const content = fs.readFileSync(tokensPath, "utf8");
-  const stripped = stripCssComments(content);
-
-  const declarations = new Map();
-  const lines = stripped.split("\n");
-
-  for (const line of lines) {
-    const match = line.match(/^\s*(--[a-zA-Z0-9_-]+)\s*:\s*([^;]+);/);
-    if (match) {
-      const token = match[1];
-      const value = match[2];
-      const refs = [...value.matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)/g)].map(
-        (m) => m[1],
-      );
-      declarations.set(token, refs);
-    }
+function validateTokenDefinitions(css) {
+  const scopes = new Map();
+  for (const { selector, context, property, value } of parseCssDeclarations(
+    css,
+  )) {
+    if (!property.startsWith("--")) continue;
+    const key = `${context}::${selector}`;
+    if (!scopes.has(key)) scopes.set(key, new Map());
+    const scope = scopes.get(key);
+    if (scope.has(property) && scope.get(property) !== value)
+      throw Error(`Conflicting token definition ${property} in ${key}`);
+    scope.set(property, value);
   }
-
-  // Cycle detection via DFS
-  const visited = new Set();
-  const recursionStack = new Set();
-
-  function detectCycle(token, pathTrail = []) {
-    visited.add(token);
-    recursionStack.add(token);
-    pathTrail.push(token);
-
-    const dependencies = declarations.get(token) || [];
-    for (const dep of dependencies) {
-      if (!visited.has(dep)) {
-        detectCycle(dep, [...pathTrail]);
-      } else if (recursionStack.has(dep)) {
-        throw new Error(
-          `Circular token reference detected: ${[...pathTrail, dep].join(" -> ")}`,
-        );
-      }
+  const root = scopes.get(":::root") ?? new Map();
+  for (const scope of scopes.values()) {
+    const definitions = new Map([...root, ...scope]);
+    const visited = new Set(),
+      active = new Set();
+    function visit(token) {
+      if (active.has(token)) throw Error(`Circular token reference: ${token}`);
+      if (visited.has(token)) return;
+      active.add(token);
+      for (const [, dep] of (definitions.get(token) ?? "").matchAll(
+        /var\(\s*(--[a-zA-Z0-9_-]+)/g,
+      ))
+        visit(dep);
+      active.delete(token);
+      visited.add(token);
     }
-
-    recursionStack.delete(token);
+    for (const token of definitions.keys()) visit(token);
   }
-
-  for (const token of declarations.keys()) {
-    if (!visited.has(token)) {
-      detectCycle(token);
-    }
-  }
-
-  assert.ok(
-    declarations.size > 20,
-    "Token graph must contain all declared tokens without cycles",
+  return scopes;
+}
+test("Token Contract: parser detects conflicts and cycles without flattening media overrides", () => {
+  const content = fs.readFileSync(
+    path.join(webRoot, "styles/tokens.css"),
+    "utf8",
+  );
+  assert.ok(validateTokenDefinitions(content).size >= 3);
+  assert.throws(
+    () => validateTokenDefinitions(":root{--a:1px;--a:2px;}"),
+    /Conflicting/,
+  );
+  assert.throws(
+    () => validateTokenDefinitions(":root{--a:var(--b);--b:var(--a);}"),
+    /Circular/,
+  );
+  assert.throws(
+    () =>
+      validateTokenDefinitions(
+        ":root{--a:var(--b);--b:1px;} @media(max-width:900px){:root{--b:var(--a);}}",
+      ),
+    /Circular/,
+  );
+  assert.doesNotThrow(() =>
+    validateTokenDefinitions(
+      ':root{--a:1px;--b:calc(var(--a) * 2);--text:"a;b:c";} @media(max-width:900px){:root{--a:2px;}} .size[data-size="default"]{--_control:var(--b);}',
+    ),
   );
 });
 
@@ -1890,16 +1950,16 @@ test("Component Consistency: Form controls share canonical contract tokens for s
 
   const css = fs.readFileSync(controlsCssPath, "utf8");
 
-  // Input & Button bind sizing to --control-height and --control-radius
+  // Input & Button bind sizing to --_control-height and --control-radius
   assert.match(
     css,
-    /\.input\s*\{[^}]*height:\s*var\(--control-height/s,
-    "Input binds height to --control-height",
+    /\.input\s*\{[^}]*height:\s*var\(--_control-height/s,
+    "Input binds height to --_control-height",
   );
   assert.match(
     css,
-    /\.button\s*\{[^}]*height:\s*var\(--control-height/s,
-    "Button binds height to --control-height",
+    /\.button\s*\{[^}]*height:\s*var\(--_control-height/s,
+    "Button binds height to --_control-height",
   );
   assert.match(
     css,
@@ -1987,7 +2047,7 @@ test("Component Consistency: Form controls share canonical contract tokens for s
   );
 });
 
-test("Component Consistency: Button WCAG AA contrast compliance (>= 4.5:1) from resolved theme tokens", () => {
+test("Component Consistency: Button, status, tab and pagination canonical palette token bindings", () => {
   const tokensPath = path.join(webRoot, "styles/tokens.css");
   const tokensContent = fs.readFileSync(tokensPath, "utf8");
 
@@ -2006,47 +2066,87 @@ test("Component Consistency: Button WCAG AA contrast compliance (>= 4.5:1) from 
     return val;
   }
 
-  function hexToRgb(hex) {
-    let clean = hex.replace("#", "").trim();
-    if (clean.length === 3) {
-      clean = clean
-        .split("")
-        .map((c) => c + c)
-        .join("");
-    }
-    const num = parseInt(clean, 16);
-    return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
-  }
-
-  // Resolve actual theme tokens
-  const textColorHex = resolveTokenHex("--color-text-on-accent");
-  const textHoverColorHex = resolveTokenHex("--color-text-on-accent-hover");
-  const accentBgHex = resolveTokenHex("--color-accent");
-  const accentHoverBgHex = resolveTokenHex("--color-accent-hover");
-
-  const textRgb = hexToRgb(textColorHex);
-  const textHoverRgb = hexToRgb(textHoverColorHex);
-  const bgRgb = hexToRgb(accentBgHex);
-  const hoverBgRgb = hexToRgb(accentHoverBgHex);
-
-  const defaultRatio = getContrastRatio(textRgb, bgRgb);
-  const hoverRatio = getContrastRatio(textHoverRgb, hoverBgRgb);
-
-  assert.ok(
-    defaultRatio >= 4.5,
-    `Button default contrast ratio from resolved tokens (${textColorHex} on ${accentBgHex}) must be >= 4.5:1, but was ${defaultRatio.toFixed(2)}:1`,
+  // Authoritative owner-selected palette verification
+  assert.equal(
+    resolveTokenHex("--color-text-on-accent").toLowerCase(),
+    "#ffffff",
+    "Button default foreground must resolve to white (#ffffff)",
   );
-  assert.ok(
-    hoverRatio >= 4.5,
-    `Button hover contrast ratio from resolved tokens (${textHoverColorHex} on ${accentHoverBgHex}) must be >= 4.5:1, but was ${hoverRatio.toFixed(2)}:1`,
+  assert.equal(
+    resolveTokenHex("--color-text-on-accent-hover").toLowerCase(),
+    "#ffffff",
+    "Button hover foreground must resolve to white (#ffffff)",
+  );
+  assert.equal(
+    resolveTokenHex("--color-accent").toLowerCase(),
+    "#f58a24",
+    "Accent background must resolve to brand orange (#f58a24)",
+  );
+  assert.equal(
+    resolveTokenHex("--color-accent-hover").toLowerCase(),
+    "#e07716",
+    "Accent hover background must resolve to brand orange hover (#e07716)",
   );
 
-  // Negative test proof: An inaccessible combination (e.g. white text on brand orange) MUST fail WCAG AA
-  const inaccessibleWhiteRgb = [255, 255, 255];
-  const inaccessibleRatio = getContrastRatio(inaccessibleWhiteRgb, bgRgb);
+  // Tab and Pagination tokens
+  assert.equal(
+    resolveTokenHex("--color-tab-selected-bg").toLowerCase(),
+    "#f58a24",
+    "Selected tab background must resolve to brand orange",
+  );
+  assert.equal(
+    resolveTokenHex("--color-tab-selected-text").toLowerCase(),
+    "#ffffff",
+    "Selected tab text must resolve to white",
+  );
+  assert.equal(
+    resolveTokenHex("--color-pagination-selected-bg").toLowerCase(),
+    "#f58a24",
+    "Selected pagination background must resolve to brand orange",
+  );
+  assert.equal(
+    resolveTokenHex("--color-pagination-selected-text").toLowerCase(),
+    "#ffffff",
+    "Selected pagination text must resolve to white",
+  );
+
+  // Status badges
+  assert.equal(
+    resolveTokenHex("--color-status-success-bg").toLowerCase(),
+    "#ecfdf5",
+    "Active status background must resolve to emerald-50",
+  );
+  assert.equal(
+    resolveTokenHex("--color-status-success-text").toLowerCase(),
+    "#047857",
+    "Active status text must resolve to emerald-700",
+  );
+  assert.equal(
+    resolveTokenHex("--color-status-success-border").toLowerCase(),
+    "#a7f3d0",
+    "Active status border must resolve to emerald-200",
+  );
+  assert.equal(
+    resolveTokenHex("--color-status-pending-bg").toLowerCase(),
+    "#f1f5f9",
+    "Inactive status background must resolve to gray-100",
+  );
+  assert.equal(
+    resolveTokenHex("--color-status-pending-text").toLowerCase(),
+    "#475569",
+    "Inactive status text must resolve to gray-600",
+  );
+  assert.equal(
+    resolveTokenHex("--color-status-pending-border").toLowerCase(),
+    "#cbd5e1",
+    "Inactive status border must resolve to gray-300",
+  );
+
+  // Diagnostic contrast verification: white on orange yields ~2.46:1 per authorized design decision
+  const contrast = getContrastRatio([255, 255, 255], [245, 138, 36]);
   assert.ok(
-    inaccessibleRatio < 4.5,
-    `Inaccessible color combination (white on orange, ${inaccessibleRatio.toFixed(2)}:1) must fail WCAG AA threshold (< 4.5:1)`,
+    contrast > 2.0 && contrast < 3.0,
+    `White on orange contrast ratio must compute to ~2.46:1 (got ${contrast.toFixed(2)}:1)`,
   );
 });
 
@@ -2098,16 +2198,16 @@ test("Runtime Token Override: Controls cascade directly from root CSS custom pro
   const buttonBlock = controlsCss.match(/\.button\s*\{([^}]+)\}/)?.[1] || "";
   const inputBlock = controlsCss.match(/\.input\s*\{([^}]+)\}/)?.[1] || "";
 
-  // The height property must consume var(--control-height)
+  // The height property must consume var(--_control-height)
   assert.match(
     buttonBlock,
-    /height:\s*var\(--control-height\)/,
-    "Button height must be dynamically bound to var(--control-height)",
+    /height:\s*var\(--_control-height\)/,
+    "Button height must be dynamically bound to var(--_control-height)",
   );
   assert.match(
     inputBlock,
-    /height:\s*var\(--control-height\)/,
-    "Input height must be dynamically bound to var(--control-height)",
+    /height:\s*var\(--_control-height\)/,
+    "Input height must be dynamically bound to var(--_control-height)",
   );
 
   // The border-radius property must consume var(--control-radius)
@@ -2133,4 +2233,52 @@ test("Runtime Token Override: Controls cascade directly from root CSS custom pro
     /font-size:\s*var\(--control-font-size\)/,
     "Input font-size must be dynamically bound to var(--control-font-size)",
   );
+});
+
+test("Size policy rejects feature-level public token shadows and retired height aliases", () => {
+  const declared = getDeclaredTokens(path.join(webRoot, "styles/tokens.css"));
+  for (const content of [
+    ".page { --control-size-default:48px; }",
+    ".page { --control-height:32px; }",
+  ]) {
+    const result = analyzeCssPolicy(
+      [{ filePath: "apps/web/features/future/page.module.css", content }],
+      declared,
+    );
+    assert.ok(result.sizingOverrides?.length > 0);
+  }
+  const valid = analyzeCssPolicy(
+    [
+      {
+        filePath: "apps/web/features/future/page.module.css",
+        content: ".page { width:calc(100% - 4px); padding:var(--space-4); }",
+      },
+    ],
+    declared,
+  );
+  assert.equal(valid.sizingOverrides?.length, 0);
+});
+
+test("Private mappings cannot be bypassed by extra declarations beside valid mappings", () => {
+  const declared = getDeclaredTokens(path.join(webRoot, "styles/tokens.css"));
+  const valid = fs.readFileSync(
+    path.join(uiPackageRoot, "src/Controls.module.css"),
+    "utf8",
+  );
+  for (const rogue of [
+    ".input { --_control-height: 44px; }",
+    '.size[data-size="default"] { --_control-height: 44px; }',
+    '@media (min-width: 600px) { .size[data-size="default"] { --_control-height: 28px; } }',
+  ]) {
+    const result = analyzeCssPolicy(
+      [
+        {
+          filePath: "packages/ui/src/Controls.module.css",
+          content: valid + rogue,
+        },
+      ],
+      declared,
+    );
+    assert.ok(result.sizingOverrides.length > 0);
+  }
 });

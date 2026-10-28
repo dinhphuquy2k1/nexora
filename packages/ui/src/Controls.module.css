@@ -1,3 +1,24 @@
+.size[data-size="default"] {
+  --_control-height: var(--control-size-default);
+  --_control-padding-x: var(--control-padding-default);
+  --_control-padding-y: var(--control-padding-block-default);
+  --_control-icon: var(--icon-control-default);
+  --_control-indicator: var(--checkbox-indicator-default);
+}
+.size[data-size="medium"] {
+  --_control-height: var(--control-size-medium);
+  --_control-padding-x: var(--control-padding-medium);
+  --_control-padding-y: var(--control-padding-block-medium);
+  --_control-icon: var(--icon-control-medium);
+  --_control-indicator: var(--checkbox-indicator-medium);
+}
+.size[data-size="large"] {
+  --_control-height: var(--control-size-large);
+  --_control-padding-x: var(--control-padding-large);
+  --_control-padding-y: var(--control-padding-block-large);
+  --_control-icon: var(--icon-control-large);
+  --_control-indicator: var(--checkbox-indicator-large);
+}
 /* ==========================================================================
    Canonical Form Controls & Primitives Presentation
    Owned by packages/ui per Tier A architecture
@@ -8,20 +29,21 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  height: var(--control-height);
-  min-height: var(--control-height);
-  padding: 0 var(--control-padding-x);
+  height: var(--_control-height);
+  min-height: var(--_control-height);
+  padding: 0 var(--_control-padding-x);
   border: 1px solid transparent;
   border-radius: var(--control-radius);
   font: inherit;
   font-size: var(--control-font-size);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   background-color: var(--color-accent);
   color: var(--color-text-on-accent);
   cursor: pointer;
   box-sizing: border-box;
   text-decoration: none;
   user-select: none;
+  white-space: nowrap;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
@@ -43,6 +65,11 @@
   transform: scale(0.99);
 }
 
+.button[data-press-effect="none"]:active:not(:disabled),
+.noPress:active:not(:disabled) {
+  transform: none;
+}
+
 .button:disabled {
   opacity: 0.65;
   cursor: not-allowed;
@@ -54,9 +81,9 @@
 
 .input {
   width: 100%;
-  height: var(--control-height);
-  min-height: var(--control-height);
-  padding: 0 var(--control-padding-x);
+  height: var(--_control-height);
+  min-height: var(--_control-height);
+  padding: 0 var(--_control-padding-x);
   border: 1px solid var(--control-border);
   border-radius: var(--control-radius);
   font: inherit;
@@ -98,19 +125,19 @@
   opacity: 0.8;
 }
 
-.input[readonly] {
+.input[readonly]:not(:disabled) {
   background-color: var(--control-readonly-bg);
   cursor: default;
 }
 
-.input[aria-invalid="true"],
-.input[aria-invalid="true"]:hover {
+.input[aria-invalid="true"]:not(:disabled),
+.input[aria-invalid="true"]:not(:disabled):hover {
   border-color: var(--control-invalid-border);
 }
 
-.input[aria-invalid="true"]:focus,
-.input[aria-invalid="true"]:focus-visible,
-.input[aria-invalid="true"]:focus:hover {
+.input[aria-invalid="true"]:not(:disabled):focus,
+.input[aria-invalid="true"]:not(:disabled):focus-visible,
+.input[aria-invalid="true"]:not(:disabled):focus:hover {
   border-color: var(--control-invalid-border);
   box-shadow: 0 0 0 2px var(--control-invalid-focus-ring);
 }
@@ -121,8 +148,12 @@
 
 .textarea {
   width: 100%;
-  min-height: 88px;
-  padding: var(--control-padding-y) var(--control-padding-x);
+  min-height: calc(
+    var(--control-font-size) * 3 + var(--_control-padding-y) * 2
+  );
+  height: auto;
+  line-height: var(--line-height-normal);
+  padding: var(--_control-padding-y) var(--_control-padding-x);
   border: 1px solid var(--control-border);
   border-radius: var(--control-radius);
   font: inherit;
@@ -165,19 +196,19 @@
   opacity: 0.8;
 }
 
-.textarea[readonly] {
+.textarea[readonly]:not(:disabled) {
   background-color: var(--control-readonly-bg);
   cursor: default;
 }
 
-.textarea[aria-invalid="true"],
-.textarea[aria-invalid="true"]:hover {
+.textarea[aria-invalid="true"]:not(:disabled),
+.textarea[aria-invalid="true"]:not(:disabled):hover {
   border-color: var(--control-invalid-border);
 }
 
-.textarea[aria-invalid="true"]:focus,
-.textarea[aria-invalid="true"]:focus-visible,
-.textarea[aria-invalid="true"]:focus:hover {
+.textarea[aria-invalid="true"]:not(:disabled):focus,
+.textarea[aria-invalid="true"]:not(:disabled):focus-visible,
+.textarea[aria-invalid="true"]:not(:disabled):focus:hover {
   border-color: var(--control-invalid-border);
   box-shadow: 0 0 0 2px var(--control-invalid-focus-ring);
 }
@@ -192,13 +223,13 @@
   gap: var(--space-2);
   font: inherit;
   cursor: pointer;
-  min-height: var(--control-height);
+  min-height: var(--_control-height);
   user-select: none;
 }
 
 .checkbox input {
-  width: 18px;
-  height: 18px;
+  width: var(--_control-indicator);
+  height: var(--_control-indicator);
   accent-color: var(--color-primary);
   border-radius: var(--radius-xs);
   cursor: pointer;
@@ -207,4 +238,53 @@
 .checkbox input:focus-visible {
   outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 2px;
+}
+
+/* Neutral variants share sizing, focus and disabled behavior; primary remains default. */
+.secondary {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--control-border);
+}
+.secondary:hover:not(:disabled) {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+  border-color: var(--control-border-hover);
+}
+.ghost {
+  background-color: transparent;
+  color: var(--color-text);
+}
+.ghost:hover:not(:disabled) {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+}
+.icon {
+  width: var(--_control-height);
+  min-width: var(--_control-height);
+  padding: 0;
+}
+
+.size svg {
+  width: var(--_control-icon);
+  height: var(--_control-icon);
+  flex-shrink: 0;
+}
+.multiple {
+  height: auto;
+}
+.emphasis {
+  background-color: var(--color-action-emphasis-bg);
+  color: var(--color-action-emphasis-text);
+}
+.emphasis:hover:not(:disabled) {
+  background-color: var(--color-action-emphasis-hover);
+  color: var(--color-action-emphasis-text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .input,
+  .textarea {
+    transition: none;
+  }
 }

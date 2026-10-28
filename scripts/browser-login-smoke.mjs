@@ -1,4 +1,5 @@
 import { browserStartupSummary } from "./browser-startup-diagnostics.mjs";
+import { verifyCustomerBrowser } from "./customer-browser-checks.mjs";
 import { verifyM1Visuals } from "./m1-visual-checks.mjs";
 import { createHmac } from "node:crypto";
 import { URLSearchParams } from "node:url";
@@ -81,7 +82,8 @@ let restartMfaSession;
 try {
   checks.step("BROWSER_LAUNCH");
   let port;
-  for (let i = 0; i < 100; i++) {
+  // Cold GitHub runners can initialize Chromium DevTools slowly; keep the launch gate bounded.
+  for (let i = 0; i < 200; i++) {
     try {
       port = (
         await readFile(join(profile, "DevToolsActivePort"), "utf8")
@@ -123,8 +125,24 @@ try {
     requestUrls = new Map();
   let loginStatus;
   let loginUrl;
+  let hydrationMismatchCount = 0;
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
+    if (
+      message.method === "Runtime.consoleAPICalled" &&
+      message.params.type === "error"
+    ) {
+      const text = message.params.args
+        .map((arg) => arg.value ?? arg.description ?? "")
+        .filter((value) => typeof value === "string")
+        .join(" ");
+      if (
+        /A tree hydrated but some attributes|Hydration failed because|server rendered HTML didn.t match|Text content does not match server-rendered HTML/i.test(
+          text,
+        )
+      )
+        hydrationMismatchCount++;
+    }
     if (message.id) {
       const operation = pending.get(message.id);
       if (operation) {
@@ -210,16 +228,26 @@ try {
       });
       socket.send(JSON.stringify({ id: current, method, params }));
     });
-  const evaluate = async (expression) =>
-    (
-      await send("Runtime.evaluate", {
-        expression,
-        awaitPromise: true,
-        returnByValue: true,
-      })
-    ).result.value;
+  const evaluate = async (expression) => {
+    const res = await send("Runtime.evaluate", {
+      expression,
+      awaitPromise: true,
+      returnByValue: true,
+    });
+    if (res.exceptionDetails) {
+      const desc =
+        res.exceptionDetails.exception?.description ||
+        res.exceptionDetails.text ||
+        "Browser evaluation failed";
+      const err = new Error(`Browser evaluation failed: ${desc}`);
+      err.code = "PROTOCOL_EXCEPTION";
+      throw err;
+    }
+    return res.result?.value;
+  };
   checks.step("LOGIN_PAGE_RENDER");
   await send("Network.enable");
+  await send("Runtime.enable");
   await send("Page.bringToFront");
   await send("Page.navigate", { url: `${baseUrl}/login?from=%2Fsettings` });
   let ready = false;
@@ -676,6 +704,15 @@ try {
     phase: "shell",
     prefix: mfaSetupKey ? "admin" : "operator",
   });
+  checks.step("CUSTOMER_ADMIN_UI");
+  const customerOwnerProof = await verifyCustomerBrowser({
+    send,
+    evaluate,
+    baseUrl,
+    prefix: mfaSetupKey ? "admin" : "operator",
+    checks,
+    socket,
+  });
   checks.step("SESSION_COOKIE");
   const cookies = (await send("Network.getCookies", { urls: [baseUrl] }))
     .cookies;
@@ -813,6 +850,16 @@ try {
     ),
     200,
   );
+  checks.step("CUSTOMER_OPERATOR_UI");
+  await verifyCustomerBrowser({
+    send,
+    evaluate,
+    baseUrl,
+    prefix: "second-operator",
+    foreignId: customerOwnerProof,
+    checks,
+    socket,
+  });
   checks.step("OPERATOR_ACCOUNT_MENU_LOGOUT");
   await send("Page.navigate", { url: baseUrl + "/settings" });
   let accountReady = false;
@@ -935,6 +982,12 @@ try {
       "Setup token leaked into server logs",
     );
   }
+  checks.step("SSR_CLIENT_HYDRATION");
+  assert.equal(
+    hydrationMismatchCount,
+    0,
+    "React reported server/client hydration mismatch in the actual browser",
+  );
   console.log(
     "Actual browser unified Login, fragment Setup privacy, no auto-login, OPERATOR login, cookies and Logout PASS",
   );

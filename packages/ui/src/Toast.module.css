@@ -1,0 +1,45 @@
+.viewport {
+  position: fixed;
+  inset-inline-end: var(--space-4);
+  top: calc(var(--header-height) + var(--space-4));
+  width: min(360px, calc(100vw - 32px));
+  display: grid;
+  gap: var(--space-2);
+  z-index: 100;
+  pointer-events: none;
+}
+.modal {
+  top: calc(var(--header-height) + var(--space-4));
+}
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  pointer-events: auto;
+}
+.toast p {
+  margin: 0;
+  font-size: var(--type-body-size);
+  line-height: var(--line-height-normal);
+  overflow-wrap: anywhere;
+}
+.error {
+  background: var(--color-status-error-bg);
+  color: var(--color-status-error-text);
+  border-color: var(--color-status-error-border);
+}
+.success {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+}
+.info {
+  background: var(--color-surface);
+  color: var(--color-text);
+}

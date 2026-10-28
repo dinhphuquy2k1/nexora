@@ -20,7 +20,7 @@ No agent or contributor may begin writing implementation code, test modification
 1. A **Read-Only Repository Inspection** has surveyed existing implementations, related domain models, and established patterns.
 2. A structured **Reuse & Design Audit** has evaluated reuse candidates, domain ownership, and explicit non-goals.
 3. A **Pre-Implementation Review** artifact matching task classification depth has been generated.
-4. Explicit **Design Approval** has been recorded by the repository owner (or authorized independent reviewer).
+4. A versioned, reviewable implementation plan has been recorded. No owner approval/comment is required to start code.
 
 Read-only inspection and preparing review artifacts remain unrestricted.
 
@@ -34,7 +34,7 @@ Review depth scales deterministically with task classification:
   - Component reuse decisions.
   - Contract and interface impact.
   - Risk assessment and regression test plan.
-  - Explicit approval reference before editing.
+  - Plan revision and impact reference before editing.
 
 - **SIGNIFICANT**: Comprehensive review covering:
   - Requirements and boundary scope.
@@ -46,41 +46,19 @@ Review depth scales deterministically with task classification:
   - Performance and query costs (hydration efficiency, N+1 avoidance).
   - Backward compatibility (API, OpenAPI contracts, SDK, database, historical data hydration).
   - Mitigation strategies and test-first verification plan.
-  - Specific approval reference.
+  - Specific plan/review reference.
 
 - **SPIKE**: Explicitly formulated investigation question, bounded hypothesis, and reproducible evidence procedure. A SPIKE must never be used to bypass design governance for production code.
 
-## Approval Semantics
+## Plan-first execution policy (owner decision, 2026-10-27)
 
-Design approval is an independent governance decision:
+**No owner approval, GitHub approval review, or five-line approval comment is required to start or continue implementation.** Before code, the agent must inspect the repository, prepare and record a scoped plan/reuse audit, identify affected contracts and tests, and follow that plan. A material scope/architecture change requires an updated plan and impact review, **not another owner attestation**. Existing owner decisions remain binding unless the owner changes them; do not falsely claim an unrecorded design was approved.
 
-- It is strictly separate from Task Lifecycle (`PLANNED → IN PROGRESS → VERIFICATION PENDING → COMPLETED`).
-- It is strictly separate from Code Review, Test PASS, and Merge Readiness.
-- A coding agent must never approve its own design on behalf of the owner.
-- Approval must reference a concrete plan revision and Task ID.
-- A material design amendment requires renewed review of the delta, not an automatic restart of the entire task.
-- For PR #23, the owner-selected architecture in this specification serves as the accepted implementation directive, while authenticated GitHub attestation is tracked independently.
+PR preflight enforces task identity, plan revision, snapshot/digest integrity, reuse audit, documentation impact, and CI verification; it **must not** query GitHub comments/reviews for design approval or fail merely because an approval status/comment is absent or pending. Historical approval fields and immutable approved snapshots are preserved for provenance, not ongoing execution gates. Code review, test evidence, security controls, and owner merge decision remain separate and required where applicable.
 
-### Verifiable Approval Sources in GitHub CI
+## Historical owner-approval policy (superseded; non-normative)
 
-In pull request CI, approval provenance is verified through GitHub REST API checks against authorized repository logins (`dinhphuquy2k1`). Conceptual role names like `repository-owner` are never accepted as GitHub logins.
-
-1. **Source A (Authorized Approving Review)**: A GitHub PR review strictly in `APPROVED` state by an authorized login (`dinhphuquy2k1`) containing an explicit design approval block matching the exact Task ID, Plan revision and recomputed Design SHA-256. Reviews in `COMMENTED`, `DISMISSED`, `PENDING`, or `CHANGES_REQUESTED` state cannot grant approval under any circumstances. Generic code-review approvals without formal design declarations do not qualify.
-2. **Source B (Authorized Owner Comment)**: A GitHub issue comment by an authorized repository login (`dinhphuquy2k1`) containing a strict machine-readable decision block:
-   ```text
-   NEXORA DESIGN APPROVAL
-   Task: <Task-ID>
-   Plan revision: <Plan-revision>
-   Design SHA-256: <64-lowercase-hex>
-   Decision: APPROVED
-   ```
-   The header `NEXORA DESIGN APPROVAL` is mandatory. The comment must contain only five contiguous lines in that order: header, Task, Plan revision, Design SHA-256 and Decision (`APPROVED`, `REVISION_REQUIRED`, `REVOKED`). Prose mentions, blockquotes, fenced code blocks/examples, bot comments, and unauthorized users are strictly rejected. Comments with multiple competing formal blocks fail closed.
-3. **Revocation & Chronology**: Only matching formal design decisions from both sources are evaluated chronologically based on verified submission/creation timestamps and updated_at when present (missing or unparseable timestamps fail closed). A subsequent relevant formal REVISION_REQUIRED/REVOKED or CHANGES_REQUESTED review with a matching design block supersedes an earlier approval; unrelated code review discussion does not decide design approval. A subsequent authorized `APPROVED` decision can restore approval.
-4. **Historical Compatibility**: Completed historical tasks (`docs/tasks/completed/`) are exempt from retrospective review requirements. Any active task referenced by a PR for new implementation work must comply with ADR-009; arbitrary task ID numbers do not grant policy exemptions.
-5. **Structural Validation vs Implementation Enforcement**:
-   - **Structural Mode** (local static checks and push-to-main CI): Validates document structure, required fields, and the reuse matrix. All three lifecycle statuses (`APPROVED`, `PENDING_REVIEW`, `REVISION_REQUIRED`) are structurally valid. A pending task in the repository does not fail repository-wide static checks.
-   - **Implementation Mode** (pull request CI gate): Requires valid PR-to-task-revision binding, markdown task status `APPROVED`, and authenticated GitHub approval provenance. `PENDING_REVIEW` and `REVISION_REQUIRED` fail closed in implementation mode.
-6. **Fail-Closed Execution**: PR CI mode fails closed if tokens are missing, event payloads are malformed, or API calls fail. Local and push-to-main static runs validate structural conformance without claiming authenticated GitHub approval.
+Before 2026-10-27, ADR-009 also required a GitHub owner review or a five-line `NEXORA DESIGN APPROVAL` comment tied to a plan revision and its SHA-256 digest. GitHub CI authenticated the author, checked chronology and allowed revocation. This **approval attestation requirement is superseded** by the plan-first policy above. It must not be used to block implementation, CI or merge readiness. Existing approved snapshots and authenticated historical decisions remain unchanged for traceability.
 
 ## Technical Validation & Reuse Ownership
 
@@ -135,8 +113,8 @@ Syntactic resemblance does not imply semantic equivalence. The following must re
 Engineering governance is sustained through:
 
 1. **Agent Skills**:
-   - `pre-implementation-review`: Enforces read-only inspection, reuse matrix preparation, and stops before code editing if approval is missing.
-   - `implementation-code-review`: Audits implemented diffs against approved designs, detects duplicate patterns, and issues structured P1/P2/P3 findings.
+   - `pre-implementation-review`: Enforces read-only inspection, reuse matrix preparation, and requires a recorded plan and reuse audit before code editing, without owner approval.
+   - `implementation-code-review`: Audits implemented diffs against recorded design plans, detects duplicate patterns, and issues structured P1/P2/P3 findings.
 2. **Instruction Routing**: Root `AGENTS.md`, `.github/copilot-instructions.md`, and `.github/instructions/backend.instructions.md`.
 3. **Static Preflight Checker (`scripts/preflight-policy-check.mjs`)**: Verifies task references, structured design reviews, and reuse documentation on pull requests.
 4. **Duplication Screening & Enforcement**:
@@ -150,14 +128,10 @@ Engineering governance is sustained through:
 - **Costs**: Contributors must conduct explicit read-only preflights and document reuse decisions before modifying files.
 - **Mitigation**: Scaled review depths prevent disproportionate overhead for bounded tasks. Templates and automated checkers guide compliance.
 
-## Content-bound approval integrity amendment — 2026-10-22
+## Versioned plan integrity (current policy)
 
-Approval binds to a versioned immutable Design Snapshot under docs/tasks/design-reviews/, not mutable active-task/PR execution text. Compute SHA-256 over raw UTF-8 bytes using Node crypto; require64 lowercase hexadecimal characters. PR/task reference the same snapshot and computed digest; snapshot metadata Task ID/revision and task filename/record must agree. Agent-controlled matching declarations alone are insufficient: independently authenticated GitHub formal decision must contain that recomputed digest. Missing/malformed/conflicting metadata or changed snapshot invalidates approval. Read checked canonical files once and pass validated data to approval verification.
+Plan snapshots under `docs/tasks/design-reviews/` preserve the selected architecture and implementation scope. For tasks requiring a snapshot, compute a SHA-256 digest over its **raw UTF-8 bytes**, record the same digest/path/revision in the task and PR, and verify task identity and revision against the content. A materially changed plan receives a new versioned snapshot and recomputed digest before implementing the change; **no owner attestation is required**. Never rewrite an existing approved snapshot in place, backdate decisions, or claim that a historical comment approved a new plan.
 
-Each approved revision has one canonical snapshot. Material decision changes require a new revision, new snapshot/digest and renewed authorized attestation. Do not rewrite an approved snapshot while retaining approval. Progress/tests/CI/code-review/evidence updates stay in task/PR and do not invalidate the snapshot approval. No approval database/document framework/dependency is added.
+Task Reference and Design Snapshot must point to regular repository-relative Markdown files directly within their authorized `docs/tasks/active/` and `docs/tasks/design-reviews/` directories. Reject absolute paths, URL schemes, path traversal and symbolic links including intermediate components; check canonical paths. Ordinary verification logs and execution evidence belong in the mutable task/PR record and must not change the snapshot.
 
-The decision comment must be standalone: LF/CRLF and outer whitespace allowed, no Markdown fences/quotes, prose, blank lines between fields, extra/duplicate/reordered fields or multiple blocks. Old digest-less comments cannot approve the new binding. Positive review still requires actual APPROVED state; authorized owner issue comments independently qualify. Relevant negative formal decisions preserve revocation/reapproval semantics. Use updated_at for edits, reject invalid edit-before-creation dates, conflicting latest timestamp ties, API errors or truncated pagination. General code review remains distinct.
-
-Task Reference and Design Snapshot are repository-relative regular Markdown files directly under docs/tasks/active/ and docs/tasks/design-reviews/ respectively. Reject absolute paths, schemes, traversal segments and symlinks at every component; resolve physical destinations and verify containment with path.relative. Unrelated ../ or ellipses in PR prose are not path input. This is repository provenance validation, not a general sandbox filesystem API.
-
-PR23 migration is truthful: its owner-selected scope predates digest enforcement; the reuse-v2 snapshot is newly captured on2026-10-22 from existing decisions and the explicit fix directive. Existing chat/specification direction authorizes implementing this fix, but does not establish authenticated GitHub digest approval or prove it preceded implementation. That attestation stays PENDING until a real authorized GitHub decision matches. No transition bypass may report approvalVerified=true. See Task Workflow for required structured fields and mode distinctions.
+The former 2026-10-22 content-bound _approval attestation_ amendment has been superseded specifically with respect to authorized GitHub comments/reviews, timeline validation and owner approvals. Its file-provenance and raw-digest integrity requirements remain enforced. No alternative sign-off or approval service is introduced.

@@ -93,23 +93,18 @@ A task classified as `REQUIRED` cannot be completed while its canonical document
 - Never claim workflow or verification success from a YAML file, open port, process ID, or source inspection alone.
 - Verification requires executed command output, runtime HTTP probes, or test results recorded with exact timestamps and PASS/FAIL outcomes.
 
-## 6. Mandatory Pre-Code Design Review & Reuse Governance
+## 6. Mandatory Plan-First Design Review & Reuse Governance
 
-No agent or contributor may begin writing implementation code, test-code modifications, database schema changes, scaffolding, dependency additions, or CI workflow changes for any new implementation task until a design review and reuse audit have been completed and explicit approval has been obtained. Read-only repository inspection and preparing the review artifact remain permitted. See [ADR-009](../decisions/mandatory-pre-code-design-review.md).
+No new implementation begins before a read-only repository inspection, scoped plan and reuse audit are recorded. **Owner approval, an `APPROVED` GitHub review and a `NEXORA DESIGN APPROVAL` comment are not required.** Agents do not invent approval evidence. Material changes to scope, architecture, public contracts, security or business rules require updating and assessing the plan before code, without asking for a new approval. Ordinary implementation changes, bug fixes, tests and CI corrections within the plan proceed directly.
 
-- **Scaled Review Depth**:
-  - **BOUNDED**: Concise review covering existing implementation search, minimal intended change, reuse decisions, contract impact, risk assessment, and approval reference before editing.
-  - **SIGNIFICANT**: Comprehensive review covering scope, existing implementation inventory, repository-wide reuse search matrix, DDD/domain ownership, alternative designs and trade-offs, feasibility, correctness, security/concurrency invariants, performance/query costs, maintainability/YAGNI, compatibility (API/DB/SDK), risk mitigations, verification plan, and approval reference.
-  - **SPIKE**: Formulate an approved investigation question, bounded hypothesis, and evidence procedure. Never disguise a production implementation as a SPIKE.
-- **Approval Separation**:
-  - Design approval is strictly separate from the 4-stage Task Lifecycle (`PLANNED → IN PROGRESS → VERIFICATION PENDING → COMPLETED`), Code Review, Test PASS, and Merge Readiness.
-  - Do not create a `DESIGN_APPROVED` task lifecycle status. Record design approval in the task's design review decision record.
-  - An agent must never approve its own design on behalf of the owner. Approval must reference an identifiable decision, PR review, or instruction revision.
-  - On pull requests, PR metadata (`Task ID`, `Task Reference`, `Plan revision`, `Design Snapshot`, `Design SHA-256`) must match the active task, filename, and plan revision exactly; traversal paths and URLs fail closed. GitHub CI independently verifies approval provenance from authorized logins (`dinhphuquy2k1`) via an `APPROVED` review or owner comment with mandatory header `NEXORA DESIGN APPROVAL`. In PR CI mode, missing tokens, malformed payloads, or unverified approvals fail closed. Local and push-to-main static runs validate structural conformance without claiming authenticated GitHub approval.
-- **Mandatory Reuse Audit Matrix**:
-  - Every review artifact must include a structured component reuse matrix documenting: Component, Existing Implementations, Domain Owner, Reuse Alternatives, Selected Approach, Rationale, Risks, and Verification. Blank or unevidenced "no reusable code found" claims are rejected.
+- **BOUNDED**: concise inventory, intended change, reuse, impact and tests.
+- **SIGNIFICANT**: comprehensive inventory/reuse matrix, options and tradeoffs, invariants, interface/security impact, risks, migration and verification.
+- **SPIKE**: explicit investigation question, bounded hypothesis and evidence; cannot disguise undocumented implementation.
+- **PR consistency**: Task ID, reference, revision, versioned snapshot and raw SHA-256 (where declared/required) must match, with safe repository-relative file paths. CI verifies plan integrity and implementation tests **without authenticated design approval**.
+- **Mandatory Reuse Audit Matrix**: Component, Existing Implementations, Domain Owner, Reuse Alternatives, Selected Approach, Rationale, Risks, Verification.
+- **History**: preserve immutable approved design snapshots and existing approval evidence. They do not become recurring gates.
 
-Design approval integrity follows [ADR-009](../decisions/mandatory-pre-code-design-review.md) and [Task Workflow](TASK_WORKFLOW.md): immutable raw-byte snapshot digest, strict standalone authenticated decision, physical regular-file provenance with no symlinks, and separate static/implementation enforcement. Material designs require new revision/snapshot approval; routine execution evidence does not. Never self-attest or backdate approval.
+See [ADR-009](../decisions/mandatory-pre-code-design-review.md) and [Task Workflow](TASK_WORKFLOW.md). Security, independent review, CI and owner-controlled merge/deploy decisions are unchanged.
 
 ## Test discovery and infrastructure conventions
 
@@ -122,14 +117,13 @@ Prefer Node built-ins for test orchestration; preserve exact ownership, timeout/
 ### NEXORA UI TOKEN & COMPONENT REUSE RULE
 
 - **Reuse semantic CSS tokens**: Reuse an existing semantic CSS token instead of replacing it with an equivalent hardcoded value.
-- **Central definition**: All design tokens must be defined centrally in `apps/web/styles/tokens.css` as the Single Source of Truth before being consumed.
+- **Central definition**: Public theme tokens are defined centrally in `apps/web/styles/tokens.css`. Private component mappings may be declared only by the owning shared UI module and must resolve to public tokens; they are not feature override points.
 - **Semantic correctness**: Tokens must be used strictly for their intended semantic role (text tokens for text, surface tokens for backgrounds, border tokens for borders, elevation tokens for shadows, focus tokens for focus rings). Never reuse tokens across roles purely based on identical values.
 - **Avoid unnecessary fallbacks**: In `apps/web`, mandatory tokens are guaranteed by the root theme; do not write unnecessary fallbacks in `var()`. In `packages/ui`, direct token consumption is standard; standalone fallbacks are permitted only under an explicit standalone consumer contract, without nested fallback chains or duplicating default raw values.
-- **Canonical state and sizing contract**: All standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) must share one canonical state and sizing contract (`--control-height`, `--control-radius`, hover, focus, disabled, readonly, aria-invalid, placeholder).
+- **Canonical state and sizing contract**: Compatible shared controls use default32px/medium40px/large48px and their typed size API, including Login/MFA. Public --control-size-default/medium/large, --control-radius and --control-font-size replace retired --control-height; Textarea stays multiline and Checkbox indicator/target remain separate. Before any frontend modification, inspect [Design System](../architecture/design-system.md) and [Reusable Components](../architecture/reusable-components.md), reuse their contracts, and justify/approve material exceptions. Shared default changes require consumer-impact and regression checks.
 - **Shared primitive reuse**: Feature components must reuse shared primitives from `packages/ui` rather than duplicate their styling or render raw HTML form controls.
 - **Layout vs defaults**: Feature-specific CSS may control layout and genuine exceptions (e.g. inner icon padding, layout width) but must not redefine shared control defaults or use `!important`.
-- **CSS Modules scoping**: Component styling must remain in CSS Modules; avoid broad global selectors.
-- **Mandatory contract-based tests**: Frontend tests must enforce Token Contracts (presence, resolution, acyclicity, semantic ownership), Component Consistency (shared variables across controls), dynamic WCAG AA contrast, and Runtime Overrides (dynamic updates via computed styles).
+- **Mandatory contract-based tests**: Frontend tests must enforce Token Contracts (presence, resolution, acyclicity, semantic ownership), Component Consistency (shared variables across controls), Canonical Palette Fidelity (rendered styles match canonical tokens across states without mandatory WCAG AA contrast rejection for the selected palette), and Runtime Overrides (dynamic updates via computed styles).
 - **Mandatory testing of actual interactive states**: Interactive states (such as `:hover`, `:focus`, `:focus-visible`) must be verified on actual rendered UI primitives using real user/pointer interaction (e.g. Chromium CDP `Input.dispatchMouseEvent` with `mouseMoved`), confirming genuine pseudo-class matches (`matches(':hover')`), awaiting CSS transition completion, and accounting for alpha/opacity compositing. Tests must never simulate interactive states by directly assigning expected styles to dummy elements or hardcoding theme RGB values, and must include negative regression cases proving that inaccessible styles fail closed.
 - **Disallow tests duplicating configurable token constants**: Tests must never lock implementation defaults (such as hardcoding 44px, 12px, or exact RGB arrays) merely to match default token values. Tests must remain resilient to token reconfigurations, and exact-value assertions are permitted only where an absolute dimension is an explicit, justified acceptance invariant.
 - **Comprehensive CSS policy discovery**: CSS policy validation must scan all production CSS across `apps/web`, `packages/ui`, and future `apps/web/features/**` CSS modules.
@@ -137,8 +131,13 @@ Prefer Node built-ins for test orchestration; preserve exact ownership, timeout/
 - **Documented exceptions**: Any intentional visual exception must document its reason, scope, and compatibility impact per [Frontend Architecture](../architecture/frontend.md).
 - **Demonstrated need**: Do not create unused generic components or introduce new UI frameworks without demonstrated need.
 
+### Visual Fidelity Rule for Reference Migrations
+
+When implementing a UI from a supplied design/source reference, the agent must preserve the reference's approved visual intent. Shared components and design tokens must serve that intent, not silently replace it. All differences must be traced to source, explained, and verified. Unrequested visible features must not be introduced.
+
 Canonical ownership:
 
 - [Engineering Policy](PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule): Mandatory engineering policy and governance.
 - [Frontend Architecture](../architecture/frontend.md): Canonical Styling Policy, token hierarchy, semantic ownership, fallback rules, and form control contract.
 - [Reusable Components Registry](../architecture/reusable-components.md): Canonical shared control registry and component ownership.
+- [Design System](../architecture/design-system.md): Canonical visual fidelity matrix, token contracts, and reference migration guidelines.

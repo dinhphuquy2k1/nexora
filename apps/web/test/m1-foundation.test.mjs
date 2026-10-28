@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import ts from "typescript";
 const source = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 test("M1 approved geometry and self-hosted licensed font are wired without remote font dependencies", () => {
   assert.match(source("../styles/tokens.css"), /--header-height:\s*56px/);
@@ -26,6 +27,20 @@ test("M1 approved geometry and self-hosted licensed font are wired without remot
 });
 test("M1 exports only shared controls with actual shell/login consumers", () => {
   const exports = source("../../../packages/ui/src/index.tsx");
+  const file = ts.createSourceFile(
+    "index.tsx",
+    exports,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  const names = file.statements
+    .filter(ts.isExportDeclaration)
+    .flatMap((node) =>
+      node.exportClause && ts.isNamedExports(node.exportClause)
+        ? node.exportClause.elements.map((item) => item.name.text)
+        : [],
+    );
   for (const component of ["Button", "TextInput", "Checkbox", "Overlay"])
-    assert.match(exports, new RegExp(`export.*\\b${component}\\b`));
+    assert.ok(names.includes(component));
 });

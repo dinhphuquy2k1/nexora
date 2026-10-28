@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@nexora/ui";
 
 import type { DeploymentPresentation } from "../../lib/auth/deployment-presentation.ts";
 import { useEffect, useId, useRef, useState } from "react";
@@ -72,7 +73,8 @@ export function AccountMenu({ initialUser, deployment }: AccountMenuProps) {
 
   return (
     <div className={styles.menuContainer}>
-      <button
+      <Button
+        variant="ghost"
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -97,7 +99,7 @@ export function AccountMenu({ initialUser, deployment }: AccountMenuProps) {
         >
           <ChevronDown size={14} />
         </div>
-      </button>
+      </Button>
 
       {isOpen && (
         <div
@@ -132,7 +134,8 @@ export function AccountMenu({ initialUser, deployment }: AccountMenuProps) {
 
             {user && (
               <>
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   className={styles.logoutButton}
                   onClick={handleLogout}
@@ -141,7 +144,7 @@ export function AccountMenu({ initialUser, deployment }: AccountMenuProps) {
                 >
                   <LogOut size={16} aria-hidden="true" />
                   {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
-                </button>
+                </Button>
                 {logoutError && (
                   <p className={styles.logoutError} role="alert">
                     {logoutError}

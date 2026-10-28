@@ -4,7 +4,11 @@ import {
   OmitType,
   PartialType,
 } from "@nestjs/swagger";
-import { CustomerStatus, type CustomerStatusCode } from "@nexora/shared";
+import {
+  CustomerStatus,
+  PaginationLimits,
+  type CustomerStatusCode,
+} from "@nexora/shared";
 export class AddressInputDto {
   @ApiPropertyOptional({ type: String, nullable: true, maxLength: 100 })
   label?: string | null;
@@ -116,7 +120,7 @@ export class CustomerListQueryDto {
     type: "integer",
     minimum: 1,
     maximum: 100,
-    default: 20,
+    default: PaginationLimits.DEFAULT_PAGE_SIZE,
   })
   pageSize?: string;
   @ApiPropertyOptional({ maxLength: 200 }) q?: string;

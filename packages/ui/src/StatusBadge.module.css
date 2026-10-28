@@ -1,24 +1,28 @@
 .badge {
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 12px;
+  font-size: var(--type-status-size);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-full, 9999px);
   display: inline-flex;
   align-items: center;
-  line-height: 1.4;
+  line-height: var(--line-height-snug);
+  border: 1px solid transparent;
 }
 
 .good {
-  background-color: var(--color-status-success-bg, #e2f2e6);
-  color: var(--color-status-success-text, #24663b);
+  background-color: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border-color: var(--color-status-success-border);
 }
 
 .bad {
-  background-color: var(--color-status-error-bg, #fbe8e3);
-  color: var(--color-status-error-text, #973d2b);
+  background-color: var(--color-status-error-bg);
+  color: var(--color-status-error-text);
+  border-color: var(--color-status-error-border);
 }
 
 .pending {
-  background-color: var(--color-status-pending-bg, #edf0ec);
-  color: var(--color-status-pending-text, #64748b);
+  background-color: var(--color-status-pending-bg);
+  color: var(--color-status-pending-text);
+  border-color: var(--color-status-pending-border);
 }

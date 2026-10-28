@@ -16,7 +16,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
-  padding: 28px;
+  padding: var(--space-6);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -89,7 +89,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-4);
 }
 
 .fieldGroup {
@@ -134,28 +134,16 @@
 
 .togglePasswordBtn {
   position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  padding: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--color-text-muted);
-  border-radius: var(--radius-xs);
-  z-index: 1;
+  right: 0;
+  top: 0;
 }
 
 .togglePasswordBtn:hover {
-  color: var(--color-text);
+  text-decoration: underline;
 }
 
 .togglePasswordBtn:focus-visible {
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 1px;
+  text-decoration: underline;
 }
 
 .submitBtn {
@@ -169,30 +157,15 @@
 }
 
 .modeToggleLink {
-  background: transparent;
-  border: 0;
-  color: var(--color-accent-text);
-  font-family: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  min-height: 40px;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.15s ease;
+  text-decoration: underline;
 }
 
 .modeToggleLink:hover {
-  color: var(--color-accent-text-hover);
   text-decoration: underline;
 }
 
 .modeToggleLink:focus-visible {
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 2px;
-  border-radius: var(--radius-xs);
+  text-decoration: underline;
 }
 
 .preferenceRow {
@@ -206,29 +179,15 @@
 }
 
 .helpLink {
-  background: transparent;
-  border: 0;
-  padding: var(--space-2) 0;
-  min-height: 40px;
-  color: var(--color-accent-text);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  transition: color 0.15s ease;
-  display: inline-flex;
-  align-items: center;
+  text-decoration: underline;
 }
 
 .helpLink:hover {
-  color: var(--color-accent-text-hover);
   text-decoration: underline;
 }
 
 .helpLink:focus-visible {
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 2px;
-  border-radius: var(--radius-xs);
+  text-decoration: underline;
 }
 
 .fallbackPlaceholder {
@@ -256,4 +215,9 @@
   .form * {
     transition: none;
   }
+}
+
+.inputIcon svg {
+  width: var(--icon-control-default);
+  height: var(--icon-control-default);
 }

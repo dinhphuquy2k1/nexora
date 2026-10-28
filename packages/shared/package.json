@@ -15,6 +15,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./validation": {
+      "types": "./dist/validation/index.d.ts",
+      "default": "./dist/validation/index.js"
+    },
     "./customer-status": {
       "types": "./dist/customer-status.d.ts",
       "default": "./dist/customer-status.js"
@@ -22,6 +26,9 @@
   },
   "typesVersions": {
     "*": {
+      "validation": [
+        "dist/validation/index.d.ts"
+      ],
       "customer-status": [
         "dist/customer-status.d.ts"
       ]

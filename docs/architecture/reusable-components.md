@@ -145,21 +145,22 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Styling: `packages/ui/src/Controls.module.css`
   - Barrel: `packages/ui/src/index.tsx`
 - **Exported Contract**:
-  - `export function Button(props: ButtonHTMLAttributes<HTMLButtonElement>): JSX.Element`
-  - `export function TextInput(props: InputHTMLAttributes<HTMLInputElement>): JSX.Element`
-  - `export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>): JSX.Element`
+  - `export function Button(props: ButtonProps): JSX.Element`, extending native attributes with optional `variant: primary | secondary | ghost | emphasis` and `icon: boolean`. Primary remains the default for Login/M1.
+  - `export function TextInput(props: TextInputProps): JSX.Element`
+  - `export function Textarea(props: TextareaProps): JSX.Element`
   - `export function Checkbox(props: CheckboxProps): JSX.Element`
+  - `export function Select(props: SelectProps): JSX.Element`
 - **Intended & Active Consumers**:
-  - Login (`LoginForm`), Setup (`SetupForm`), modal dialogs, and future feature forms (Customer, Settings).
+  - Login (`LoginForm`), Setup (`SetupForm`), modal dialogs and Customer M2 forms/filters; future Settings forms.
 - **Supported Behavior**:
-  - **Canonical Sizing & Typography Contract**: `height: var(--control-height)` (default 44px), `border-radius: var(--control-radius)` (default 12px), `box-sizing: border-box`, and `font-size: var(--control-font-size)` (shared between `TextInput`, `Button`, and `Textarea` to ensure cohesive typography scaling).
+  - **Canonical Sizing & Typography Contract**: `size="default"` → shared `--control-size-default` (32px), `border-radius: var(--control-radius)` (default 8px), `box-sizing: border-box`, and `font-size: var(--control-font-size)` (shared between `TextInput`, `Button`, and `Textarea` to ensure cohesive typography scaling).
   - **State Parity**: Complete contract covering default, hover, focus/focus-visible, disabled, readonly, invalid (`aria-invalid="true"`), and placeholder.
   - **State Precedence**: Focus and invalid states strictly override hover styling via `:not(:focus):not([aria-invalid="true"])`.
   - **Button Contrast (WCAG AA)**: Standardized to semantic foreground `--color-text-on-accent: var(--brand-navy, #172b4d)` text on orange `--color-accent: var(--brand-orange, #f58a24)` background (5.74:1 contrast ratio, exceeding WCAG AA 4.5:1 requirement). On hover (`--color-accent-hover`), enabled button transitions foreground to `--color-text-on-accent-hover` (4.58:1 contrast) with `color 0.15s ease`. Disabled button preserves `--control-disabled-text`. Verified on real rendered elements in genuine `:hover` state via CDP pointer dispatch, confirming `>= 4.5:1` ratio after transition completion (0.15s) and compositing. Negative accessibility regression tests prove that deliberate inaccessible contrast fails closed, and distinct foreground token overrides prove that hover resolves its dedicated foreground token rather than reusing default foreground.
-  - **Textarea Parity**: Retained in `@nexora/ui` to guarantee domain-neutral form control contract parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, disabled/readonly/invalid states, with default 88px min-height and vertical resize.
+  - **Textarea Parity**: Retained in `@nexora/ui` to guarantee domain-neutral form control contract parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, disabled/readonly/invalid states, with default three rows, size-aware multiline minimum and vertical resize.
   - **Self-Contained Styling**: Owns all default control appearance in `Controls.module.css` through direct token consumption.
 - **Styling / Token Dependencies**:
-  - Sizing & Radius: `--control-height`, `--control-radius`, `--control-padding-x`, `--control-padding-y`, `--control-font-size`.
+  - Sizing & Radius: `--control-size-default/medium/large`, `--control-radius`, size-specific `--control-padding-default/medium/large`, `--control-padding-block-default/medium/large`, `--control-font-size`.
   - Colors & States: `--control-bg`, `--control-bg-focus`, `--control-text`, `--control-placeholder`, `--control-border`, `--control-border-hover`, `--control-focus-border`, `--control-focus-ring`, `--control-disabled-bg`, `--control-disabled-text`, `--control-disabled-border`, `--control-readonly-bg`, `--control-invalid-border`, `--control-invalid-focus-ring`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`.
 - **Fallback Policy**:
   - `apps/web`: Mandatory theme tokens guaranteed by root `tokens.css`; fallbacks in `apps/web` are prohibited.
@@ -168,9 +169,9 @@ This registry catalogues canonical, reusable technical components and shared voc
 - **Explicit Non-Goals**:
   - Does not manage form submission, data-binding, or validation logic. Consuming feature components handle validation.
   - Does not use `!important` or broad global selectors.
-- **Deferred Select Specification**:
-  - Standard established: `height: var(--control-height)`, identical borders, radius, background, and focus ring matching `TextInput`.
-  - Component implementation is deferred to M2's first consumer per YAGNI and [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule).
+- **Native Select Contract (M2)**:
+  - Standard established: `size="default"` → shared `--control-size-default` (32px), identical borders, radius, background, and focus ring matching `TextInput`.
+  - `Select` is exported from Controls.tsx and shares the input class/state tokens; actual consumers are Customer status/page-size/replacement filters. It is a native select, without a custom listbox or invented readonly state. Browser parity remains an executed acceptance gate.
 - **When to Reuse**:
   - Whenever rendering standard text inputs, textareas, primary buttons, or checkboxes across web features.
 - **When NOT to Reuse**:
@@ -190,7 +191,7 @@ This registry catalogues canonical, reusable technical components and shared voc
 - **Intended Consumers**:
   - Mobile navigation drawer (`ShellClient`), Login help dialog (`LoginForm`), and future feature confirmation/modal dialogs.
 - **Supported Behavior**:
-  - Native HTML `<dialog>` with top-layer placement, background inerting, keyboard focus trapping, Escape key closing, backdrop click dismissal, and body overflow restoration on unmount.
+  - Native HTML `<dialog>` with top-layer placement, background inerting, keyboard focus trapping, Escape key closing, backdrop click dismissal, and body overflow restoration on unmount. Optional `className` provides a neutral layout slot for Customer right-side form drawers; it does not replace native focus/close behavior.
 - **Styling / Token Dependencies**:
   - Background & Elevation: `--color-surface`, `--color-border`, `--shadow-lg`, `--radius-lg`.
   - Backdrop: `rgb(15 23 42 / 55%)` (or `rgba(15, 23, 42, 0.55)`) applied strictly to `::backdrop` or `.overlay::backdrop`; compound selector lists containing non-backdrop elements are forbidden.
@@ -243,7 +244,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - `export function StatusBadge(props: StatusBadgeProps): JSX.Element`
   - `export function resolveStatusTone(ok: boolean | null): "good" | "bad" | "pending"`
 - **Intended Consumers**:
-  - System health indicators (`/system`), session connection badges, and future Shipment/Customer status indicators.
+  - System health indicators (`/system`), session connection badges, Customer M2 badges and future Shipment indicators.
 - **Supported Behavior**:
   - Maps tri-state boolean (`true` -> `good`, `false` -> `bad`, `null` -> `pending`) to semantic status colors.
   - Renders inline-flex pill badge with uppercase styling, 12px font size, and full border radius.
@@ -255,3 +256,30 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Whenever rendering tri-state health, connectivity, or operational readiness indicators.
 - **When NOT to Reuse**:
   - Do not use for domain-specific multi-state business badges (e.g. Shipment tracking stages); use domain-specific tag components instead.
+
+### Neutral action hierarchy (Customer M2 actual consumers)
+
+Button primary(default)/secondary/ghost variants share control sizing/radius/font, focus ring and disabled behavior. Secondary uses surface/text/border semantic tokens; ghost uses transparent surface and semantic text; neither relies on feature CSS state overrides. `icon` makes width/min-width equal to the selected control size, retaining canonical hit target; consumers provide an accessible name. Actual consumers: Customer toolbar/reload/clear, segmented status, pagination, profile/address inline actions and drawer Cancel/Save. Input/Select/Textarea share the approved size API; multiline/native multiple exceptions remain. New root semantic text-on-dark accent and accent-border tokens belong to dark brand icons/default-address emphasis, not interchangeable palette shortcuts. Genuine computed-style/contrast/token-override and M1/Login regression remain acceptance requirements.
+
+### v3 shared control API migration
+
+Controls export ControlSize(default|medium|large), typed native/ref props, ButtonVariant(primary|secondary|ghost|emphasis) and buttonClassName for real navigation presentation. Input/Select omit numeric native size; Textarea rows and native multiple Select retain multiline/auto-height. Private mappings belong only to Controls.module.css; feature sizing/state overrides are retired. [Design System](design-system.md) owns defaults/public runtime points and consumer migration. Existing Login/MFA/Setup, Header/account/notifications/mobile actions and Customer form/table/pagination consumers use default32. Historical44px/scoped compact guidance is superseded by approved v3; acceptance remains in task031.
+
+## Shared Toast and modal viewport
+
+Owner: packages/ui/src/Toast.tsx, toast-state.ts and Toast.module.css. Exports ToastProvider, useToast, ToastViewport, Toast and ToastMessage. Domain/transport-neutral bounded queue and live-region/dismissal/timeout behavior; actual consumers are Customer List/Detail read feedback and profile/address/default/delete/Power mutations. AppShell keys provider by verified user identity; native Overlay registers its optional active viewport. No API calls, Customer imports, raw HTML or browser persistence. See [Design System](design-system.md); static/SSR tests do not replace native dialog/focus/session/CDP acceptance.
+
+Panel now supports optional standard/compact density and actions; Customer Detail
+uses compact panels for profile/addresses. Workspace frame CSS is shared by Header
+inner/main and is selected by canonical route metadata. ToastProvider/Viewport API
+and all size/color contracts are owned by [Design System](design-system.md).
+
+## Shared BE/FE validation (NEXORA-031, 2026-10-27)
+
+- **Canonical owners**: `packages/shared/src/validation/pagination.ts`, `text.ts`, and `customer-limits.ts`, exported through `@nexora/shared`. The domain-safe pure functions are also explicitly exported through `@nexora/shared/validation`; only this narrow subpath is allowed by the API domain purity boundary (in addition to the historical CustomerStatus import).
+- **Consumers**: Customer frontend URL/form parsing and backend Customer input/query validation; future modules may reuse the pure primitives but must declare their own domain policies.
+- **Pagination**: `page` defaults to 1, `pageSize` defaults to **20** in both API and UI; maximum page size 100, page/offset maximum 2147483647. Canonical positive decimal syntax, safe integer and offset guards are shared. Duplicate/unknown HTTP query parameter checks remain at the corresponding boundary.
+- **Text**: pure trimmed string bounds and optional raw-length-before-trim checks. `CustomerInputLimits` describes Customer transport policy, not a global limit for every domain.
+- **Phone (option A)**: Frontend validates raw requiredness/length/trim only, enforcing the Customer 64-character input limit **before** trim; backend trims first, then checks the 64-character bound and authoritatively validates/normalizes E.164 using `apps/api/src/common/value-objects/phone-number.ts`. This pre-existing UX/API difference is protected by independent Web/API compatibility tests: a padded number over 64 raw characters is rejected by Web, but can be valid directly through the API. No phone-number parsing library is added to browser/shared bundles.
+- **Boundaries**: shared never throws NestJS/React/Customer errors or imports application packages; backend retains Domain VOs, Zod email format, owner invariants and HTTP error mapping; frontend retains field messages and safe UX. `scripts/boundaries.mjs` enforces that each file under `packages/shared/src/validation/` imports/re-exports only relative modules within that directory; shared modules outside validation, framework packages and other dependencies are prohibited. Positive and negative boundary tests protect this constraint.
+- **Date validation**: no speculative date utility; extract only when a concrete BE/FE consumer appears.

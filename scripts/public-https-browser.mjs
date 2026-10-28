@@ -108,6 +108,7 @@ function totp(key) {
 const profile = await mkdtemp(join(tmpdir(), "nexora-https-browser-"));
 let chrome, socket;
 const browserStatuses = new Map();
+const browserRequests = new Set();
 const observedPaths = new Map([
   ["/api/auth/login", "LOGIN"],
   ["/api/auth/mfa/verify", "MFA_VERIFY"],
@@ -354,6 +355,9 @@ try {
     }
     if (message.method === "Network.requestWillBeSent") {
       const req = message.params.request;
+      const url = new URL(req.url);
+      const label = url.origin === origin && observedPaths.get(url.pathname);
+      if (label) browserRequests.add(label);
       for (const secret of [
         setupToken,
         f.mfaSetupKey,
@@ -448,14 +452,18 @@ try {
       '!!document.querySelector("input[name=mfa-code]:not(:disabled)")',
     );
   } catch (error) {
-    console.error(
-      "PUBLIC_LOGIN_FORM_DIAGNOSTIC",
-      JSON.stringify(
-        await evaluate(
-          '({focused:document.hasFocus(),usernamePresent:!!document.querySelector("input[name=username]")?.value,passwordPresent:!!document.querySelector("input[name=password]")?.value,alertPresent:!!document.querySelector("[role=alert]")})',
-        ),
-      ),
-    );
+    // Diagnostics must never replace the original browser condition failure.
+    try {
+      const snapshot = await evaluate(
+        '({pathname:location.pathname,readyState:document.readyState,focused:document.hasFocus(),usernamePresent:!!document.querySelector("input[name=username]"),passwordPresent:!!document.querySelector("input[name=password]"),mfaInputPresent:!!document.querySelector("input[name=mfa-code]"),mfaInputDisabled:!!document.querySelector("input[name=mfa-code]:disabled"),alertPresent:!!document.querySelector("[role=alert]"),missingCredentials:document.querySelector("[role=alert]")?.textContent.includes("Vui lòng nhập đầy đủ")??false,networkFailure:document.querySelector("[role=alert]")?.textContent.includes("Không thể kết nối")??false,invalidCredentials:document.querySelector("[role=alert]")?.textContent.includes("không chính xác")??false,enrollmentRequired:document.querySelector("[role=alert]")?.textContent.includes("thiết lập MFA")??false,invalidOutcome:document.querySelector("[role=alert]")?.textContent.includes("Phản hồi đăng nhập không hợp lệ")??false})',
+      );
+      console.error("PUBLIC_LOGIN_FORM_DIAGNOSTIC", JSON.stringify(snapshot));
+    } catch (diagnosticError) {
+      console.error(
+        "PUBLIC_LOGIN_FORM_DIAGNOSTIC_UNAVAILABLE",
+        diagnosticError instanceof Error ? diagnosticError.name : "unknown",
+      );
+    }
     throw error;
   }
   assert.equal(await evaluate("location.pathname"), "/login");
@@ -818,6 +826,14 @@ try {
   );
 } catch (error) {
   checks.failure(error);
+  console.error(
+    "PUBLIC_AUTH_REQUEST_DIAGNOSTIC",
+    JSON.stringify({
+      loginDispatched: browserRequests.has("LOGIN"),
+      mfaDispatched: browserRequests.has("MFA_VERIFY"),
+      setupDispatched: browserRequests.has("SETUP_PASSWORD"),
+    }),
+  );
   for (const [label, status] of browserStatuses)
     console.error(`Observed browser HTTP ${label}: ${status}`);
   process.exitCode = 1;

@@ -14,6 +14,7 @@ For AI-assisted development, start at the mandatory entry point [`docs/ai/README
 - [Pre-code review decision](decisions/mandatory-pre-code-design-review.md): Mandatory pre-code review gate, reuse audit matrix, and shared validation ownership.
 - [Reusable components](architecture/reusable-components.md): Canonical technical primitives (UUID, PhoneNumber, CountryCode, error messages, shared status).
 - [Backend architecture](architecture/backend.md): NestJS modular monolith, storage adapter, and HTTP contracts.
+- [Design System](architecture/design-system.md): Canonical frontend size/token/type/state/density/layout contracts and reuse rules.
 - [Frontend architecture](architecture/frontend.md): Next.js App Router, layout, UI packages, and transport.
 - [Database architecture](architecture/database.md): PostgreSQL 17.11, Prisma 7.10, and explicit migration policies.
 - [API contract](architecture/api-contract.md): OpenAPI generation, SDK client synchronization, and contract drift checks.

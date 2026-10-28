@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@nexora/ui";
 
 import { useId, useRef, useState } from "react";
 import Link from "next/link";
@@ -21,7 +22,9 @@ export function NotificationMenu() {
 
   return (
     <div className={styles.menuTrigger}>
-      <button
+      <Button
+        variant="ghost"
+        icon
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -32,7 +35,7 @@ export function NotificationMenu() {
         title="Thông báo hệ thống"
       >
         <Bell size={18} aria-hidden="true" />
-      </button>
+      </Button>
 
       {isOpen && (
         <div

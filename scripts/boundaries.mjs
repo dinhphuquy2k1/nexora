@@ -67,6 +67,16 @@ export function checkFileImports(p, content) {
       !p.includes("/infrastructure/")
     )
       throw Error(`Prisma boundary: ${p}`);
+    // Domain-approved shared validation must not gain dependencies on UI,
+    // deployment policies, other package modules, or third-party runtimes.
+    // Every validation source is visited by the repository walk below.
+    if (
+      p.startsWith("packages/shared/src/validation/") &&
+      (!spec.startsWith(".") ||
+        !target ||
+        !under(target, resolve("packages/shared/src/validation")))
+    )
+      throw Error(`Shared validation purity boundary: ${p}`);
     if (
       p.startsWith("packages/shared/") &&
       (builtinModules.includes(spec) ||
@@ -89,6 +99,9 @@ export function checkFileImports(p, content) {
       ) ||
         targetLayer ||
         spec === "@nexora/shared" ||
+        (spec.startsWith("@nexora/shared/") &&
+          spec !== "@nexora/shared/customer-status" &&
+          spec !== "@nexora/shared/validation") ||
         spec.includes("customer-status-labels") ||
         (target &&
           under(target, resolve("packages/shared")) &&
@@ -121,6 +134,30 @@ export function runNegativeTests() {
     "apps/api/src/customer/domain/example.ts",
     "import { CustomerStatus } from '@nexora/shared/customer-status';",
   );
+  checkFileImports(
+    "apps/api/src/customer/domain/example.ts",
+    "import { normalizeBoundedText } from '@nexora/shared/validation';",
+  );
+  checkFileImports(
+    "packages/shared/src/validation/index.ts",
+    "export { parsePagination } from './pagination';",
+  );
+  for (const spec of [
+    "../deployment",
+    "../../customer-status-labels",
+    "@nexora/ui",
+    "zod",
+    "node:crypto",
+    "@nexora/shared/customer-status",
+  ])
+    assert.throws(
+      () =>
+        checkFileImports(
+          "packages/shared/src/validation/index.ts",
+          `export * from '${spec}';`,
+        ),
+      /Shared validation purity boundary/,
+    );
   for (const spec of [
     "@nexora/shared",
     "@nexora/shared/customer-status-labels",

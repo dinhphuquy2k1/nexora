@@ -14,7 +14,7 @@ Nexora enforces three distinct component ownership tiers to prevent component du
 
 ### Tier A: Shared UI Primitives (`packages/ui/`)
 
-Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel`, `StatusBadge`, future `Button`, `Input`):
+Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel`, `StatusBadge`, `Button`, `TextInput`, `Textarea`, `Select`):
 
 - **Domain Agnostic**: Must never import Shipment, Customer, or Identity domain models.
 - **Transport Agnostic**: Must never call Nexora API endpoints or SDK client factories.
@@ -33,6 +33,7 @@ Components dedicated to Nexora's application shell, layout frame, and cross-rout
 - **`Breadcrumb` (`Breadcrumb.tsx`)**: Pathname-driven breadcrumbs consuming shared navigation metadata.
 - **`NavigationItem` (`NavigationItem.tsx`)**: Distinguishes available routes (Next.js `Link`) from planned features (disabled action button with "Chưa triển khai" label).
 - **Popover Semantics (`use-dismissable.ts`)**: Reusable disclosure hook managing outside pointer dismissal and Escape key closing with focus restoration.
+- **Main Content Frame (`ShellClient.tsx`, `AppShell.module.css`)**: Renders `<main className={`${frame.frame} ${styles.contentArea}`} id="workspace-content" tabIndex={-1}>`, establishing a landmark destination for skip-navigation links and programmatic route transitions. To prevent UA focus rings from creating unintended border artifacts around the layout surface when focus is placed on the container, `.contentArea:focus { outline: none; }` is applied at the shell level. Interactive child controls maintain their own `:focus-visible` rings.
 
 ### Tier C: Feature-Level Components (`apps/web/features/<feature>/`)
 
@@ -46,68 +47,13 @@ Future feature-specific modules (e.g., `ShipmentTable`, `TrackingTimeline`, `Cus
 
 The frontend enforces a strict Design Token and CSS Modules architecture. `apps/web/styles/tokens.css` is the canonical Single Source of Truth for all design tokens across the Nexora frontend.
 
-### A. Single Source of Truth & Token Architecture
+### Shared visual contract owner
 
-The token system is structured into four explicit layers:
+[Design System](design-system.md) now owns the foundation→semantic→component token architecture, size/state/typography/spacing/radius/icon/color/density/layout contracts, the canonical [Visual Fidelity Contract](design-system.md#visual-fidelity-contract-reference-migration) for reference migrations, and migration guidance. The root theme remains apps/web/styles/tokens.css; neutral UI maps sizes at actual consumers. Public default/medium/large sizes are32/40/48px, including Login/MFA/Setup; --control-height and Customer-scoped28/32px overrides are retired. Input/Select numeric native size conflicts are resolved by the shared typed size API. Textarea remains multiline and Checkbox retains a separate indicator/target.
 
-1. **Foundation Palette**: Raw brand and neutral color values (`--brand-navy`, `--brand-navy-dark`, `--brand-navy-light`, `--brand-orange`, `--brand-orange-light`, `--brand-orange-text`, `--gray-50` to `--gray-900`).
-2. **Semantic Application Tokens**: Role-based tokens describing UI function (`--color-primary`, `--color-accent`, `--color-accent-hover`, `--color-text-on-accent`, `--color-text-on-accent-hover`, `--color-surface`, `--color-border`, `--color-status-error-border`, `--color-status-*`, `--focus-ring-*`). Text rendered on accent backgrounds must bind to `--color-text-on-accent` (`var(--brand-navy)`) in default state and `--color-text-on-accent-hover` in hover state, never raw palette constants directly. Semantic error borders bind to `--color-status-error-border` (`rgba(151, 61, 43, 0.2)`), avoiding value-based conflation with text or focus tokens.
-3. **Dark-Surface Context Tokens**: Role-specific dark-theme tokens (`--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-border-on-dark`, `--color-border-on-dark-subtle`, `--color-surface-on-dark`, `--color-surface-on-dark-hover`, `--shadow-on-dark-tooltip`).
-4. **Standardized Scales**:
-   - **Typography Scale**: `--font-size-2xs` (10px), `--font-size-xs` (11px), `--font-size-sm` (12px), `--font-size-base` (13px), `--font-size-md` (14px), `--font-size-lg` (15px), `--font-size-xl` (16px), `--font-size-2xl` (20px), `--font-size-3xl` (24px).
-   - **Line Heights**: `--line-height-tight` (1.2), `--line-height-snug` (1.35), `--line-height-normal` (1.5).
-   - **Font Weights**: `--font-weight-normal` (400), `--font-weight-medium` (500), `--font-weight-semibold` (600), `--font-weight-bold` (700), `--font-weight-extrabold` (800).
-   - **Spacing Scale**: `--space-1` (4px), `--space-2` (8px), `--space-3` (12px), `--space-4` (16px), `--space-5` (20px), `--space-6` (24px), `--space-8` (32px).
-   - **Radius Scale**: `--radius-xs` (4px), `--radius-sm` (6px), `--radius-md` (8px), `--radius-lg` (12px), `--radius-xl` (16px, cards), `--radius-full` (9999px).
-   - **Elevation Shadows**: `--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-on-dark-tooltip`.
-5. **Canonical Form Control Contract Tokens (Defaults vs. Invariant Contracts)**:
-   - Configurable theme defaults in `tokens.css`:
-     - Sizing: `--control-height: 44px;`, `--control-radius: var(--radius-lg);`, `--control-padding-x: 14px;`, `--control-padding-y: 10px;`, `--control-font-size: var(--font-size-base);`.
-     - Colors: `--control-bg: var(--color-surface-muted);`, `--control-bg-focus: var(--color-surface);`, `--control-text: var(--color-text);`, `--control-placeholder: var(--gray-400);`.
-     - Borders: `--control-border: var(--color-border-subtle);`, `--control-border-hover: var(--gray-400);`, `--control-focus-border: var(--color-accent);`.
-     - Focus rings: `--control-focus-ring: rgba(245, 138, 36, 0.2);`, `--control-invalid-focus-ring: rgba(151, 61, 43, 0.2);`.
-     - States: `--control-disabled-bg: var(--gray-100);`, `--control-disabled-text: var(--gray-500);`, `--control-disabled-border: var(--gray-200);`, `--control-readonly-bg: var(--gray-50);`, `--control-invalid-border: var(--color-status-error-text);`.
-   - Invariant Contract: Standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) must consume identical contract variables. Changing `--control-height` from 44px to 48px or `--control-radius` from 12px to 8px in `tokens.css` must update all consumers consistently without breaking tests or requiring test value updates.
+Use shared components and explicit size/variant APIs. Native refs/attrs remain; input icon positions and genuine feature widths are layout exceptions, not authority to override control min-height or interaction states. Root public size/font/radius overrides must affect actual shared consumers and restore cleanly. Button default colors preserve Login/MFA; emphasis is the approved accessible Customer color option. Shared typography aliases reuse existing scales.
 
-### B. Semantic Ownership & Usage Rules
-
-Tokens must be consumed strictly according to their intended semantic role:
-
-- **Text Colors**: Use text tokens (`--color-text`, `--color-text-muted`, `--color-text-on-dark`, `--color-text-on-dark-muted`, `--color-text-on-accent`, `--color-text-on-accent-hover`, `--color-accent-text`, status text tokens). Never use surface tokens (`--color-surface`, `--color-background`) or border tokens (`--color-border-subtle`, `--color-border`) as text colors. For text rendered on dark surfaces (e.g. Navy sidebar, dark monograms, avatar initials, mobile drawer), use `--color-text-on-dark` rather than `--color-surface`.
-- **Backgrounds**: Use surface and background tokens (`--color-surface`, `--color-background`, `--color-surface-muted`, `--color-surface-on-dark`, status bg tokens). Never use text or border tokens as background colors.
-- **Borders**: Use border tokens (`--color-border`, `--color-border-subtle`, `--color-border-on-dark`, `--color-status-error-border`). Never use surface, focus ring, or text tokens for border colors.
-- **Focus Rings & Outlines**: Use focus tokens (`--focus-ring-on-light`, `--focus-ring-on-dark`, `--control-focus-ring`, `--control-invalid-focus-ring`). Never use generic border or surface tokens for focus rings.
-- **Elevations**: Use elevation shadow tokens (`--shadow-sm`, `--shadow-md`, `--shadow-lg`, `--shadow-on-dark-tooltip`).
-- **No Value-Based Conflation**: Never reuse a token solely because its current hex/pixel value happens to match. Tokens represent architectural intent and role.
-
-### C. Fallback Policy
-
-- **In `apps/web`**:
-  - CSS custom properties are guaranteed by the root theme (`apps/web/styles/tokens.css` imported in `styles.css`).
-  - Consumers must write `color: var(--color-text);` and `border-color: var(--color-border);` **without fallbacks**.
-  - Unnecessary fallbacks (e.g. `var(--space-4, 16px)`, `var(--color-surface, #ffffff)`) are strictly forbidden because they hide missing token declarations and create maintenance drift.
-- **In `packages/ui`**:
-  - Components consume canonical design tokens directly (`var(--control-border)`).
-  - Standalone fallbacks are permitted **only** where an actual standalone-consumer contract requires independent execution outside the Nexora theme (e.g. `var(--control-border, #cbd5e1)`).
-  - Deeply nested fallback chains (e.g. `var(--control-border, var(--color-border-subtle, #cbd5e1))`) and raw value duplication across components solely to echo root defaults are forbidden.
-  - If standalone use is required, it must be verified in an independent harness without the root theme.
-
-### D. Shared Component Contract & Parity
-
-Per [NEXORA UI TOKEN & COMPONENT REUSE RULE](../ai/PROJECT_RULES.md#7-mandatory-ui-design-system--component-reuse-rule), all standard form controls (`TextInput`, `Textarea`, `Button`, `Checkbox`) share one canonical state and sizing contract:
-
-- **Height, Radius & Typography**: `height: var(--control-height)` (default 44px), `box-sizing: border-box`, `border-radius: var(--control-radius)` (default 12px), `font-size: var(--control-font-size)` (shared typography token ensuring `TextInput`, `Button`, and `Textarea` scale consistently across theme configurations).
-- **Interactive State Precedence**: Focus and invalid states strictly supersede hover styling:
-  - Default: `var(--control-border)`, `var(--control-bg)`.
-  - Hover: `var(--control-border-hover)` only when not disabled, readonly, focused, or invalid (`:not(:focus):not([aria-invalid="true"])`).
-  - Focus: `var(--control-focus-border)` with 2px outer focus ring (`var(--control-focus-ring)`).
-  - Invalid (`aria-invalid="true"`): `var(--control-invalid-border)` with error focus ring (`var(--control-invalid-focus-ring)`).
-  - Disabled: `var(--control-disabled-bg)`, `var(--control-disabled-text)`, `cursor: not-allowed`.
-  - Readonly: `var(--control-readonly-bg)`, `cursor: default`.
-- **Textarea Parity**: Retained in `@nexora/ui` for domain-neutral form control parity with `TextInput`. Reuses identical colors, borders, radius, focus rings, and state semantics; default minimum height is 88px with vertical resize.
-- **Select Specification**: Standardized to `var(--control-height)`, identical border, radius, and focus parity matching `TextInput`. Implementation is deferred to M2's first consumer per YAGNI and component reuse policy.
-- **Button Contrast & WCAG AA**: Foreground text on `--color-accent` (`#F58A24`) uses the semantic token `--color-text-on-accent: var(--brand-navy, #172b4d)` providing a **5.74:1** contrast ratio (surpassing the WCAG AA 4.5:1 threshold for normal text). On hover (`--color-accent-hover: #E07716`), enabled button foreground switches dynamically to `--color-text-on-accent-hover` with `color 0.15s ease` transition, providing a verified **4.58:1** (>= 4.5:1) contrast ratio. Disabled button state preserves `--control-disabled-text`. Contrast is verified dynamically on real rendered Button primitives in genuine `:hover` state via CDP pointer dispatch, confirming `>= 4.5:1` ratio after transition completion (0.15s) and compositing. Negative accessibility regression tests prove that deliberate inaccessible contrast fails closed, and distinct foreground token overrides prove that hover resolves its dedicated foreground token rather than reusing the default.
-- **Layout Scoping**: Feature layouts (Login, Setup, Customer, Carrier) may adjust surrounding whitespace, layout width, or leading icon padding, but must **never** use `!important` or override the default states of shared controls.
+The following policy-parser implementation details remain here until final documentation consolidation; visual contract truth belongs to design-system.md.
 
 ### E. Legitimate CSS-Local Exceptions & Literal-Color Policy
 
@@ -146,7 +92,7 @@ Testing enforces contracts, behavioral consistency, and runtime adaptability rat
 4. **Runtime Token Override Tests**: Execute in browser via Chromium/CDP:
    - Render page containing form controls.
    - Record initial computed styles of controls via `window.getComputedStyle()`.
-   - Dynamically override root tokens (e.g. `--control-height: 52px;`, `--control-radius: 6px;`, `--control-font-size: 16px;`) on `document.documentElement`.
+   - Dynamically override root tokens (e.g. `--control-size-default: 52px;`, `--control-radius: 6px;`, `--control-font-size: 16px;`) on `document.documentElement`.
    - Assert all consumer controls synchronously update their computed styles in lockstep.
    - Restore root tokens and verify computed styles return cleanly to their initial values.
 5. **Legitimate Invariant Exact-Value Boundaries**: Exact-value assertions are permitted only where an absolute dimension is an explicit, justified acceptance invariant (e.g. zero layout shifts, WCAG AA thresholds, brand visibility, maximum 420px login card width) rather than a configurable theme default.
@@ -248,7 +194,7 @@ Login/MFA/setup/AccountMenu continue same-origin browser requests and generated 
 
 ## Customer shared vocabulary contract — NEXORA-027 amendment
 
-Customer frontend remains PLANNED. The owner-approved cross-package contract exposes CustomerStatus/CustomerStatusCode and exhaustive CustomerStatusLabelsVi from @nexora/shared for future filters/comparisons/badges. Use generated SDK HTTP types, never Backend Domain imports or hand-written response substitutes. A targeted Web contract fixture checks imports/types without introducing a Customer page.
+Customer UI M2 is implemented with verification pending in NEXORA-031/PR28. The owner-approved cross-package contract exposes CustomerStatus/CustomerStatusCode and exhaustive CustomerStatusLabelsVi from @nexora/shared for future filters/comparisons/badges. Use generated SDK HTTP types, never Backend Domain imports or hand-written response substitutes. A targeted Web contract fixture checks imports/types without introducing a Customer page.
 
 Filters send canonical status codes; labels are display-only. ALL/Tất cả is UI state, not a persisted status. Two static options require no metadata endpoint. Labels have one shared Vietnamese mapping, no Domain/UI color coupling or new i18n framework. API Customer Summary/Detail now include required statusLabel; see [API contract](api-contract.md). Same-revision API/Web builds/deployment are assumed; a shared source package cannot synchronize separately deployed versions automatically. Shared exports are pure/browser-safe and Next transpiles the existing package.
 
@@ -256,7 +202,7 @@ Filters send canonical status codes; labels are display-only. ALL/Tất cả is 
 
 [Active NEXORA-029](../tasks/active/NEXORA-029-full-frontend-migration.md) and its [v8 snapshot](../tasks/design-reviews/NEXORA-029-rev-2026-10-23-frontend-migration-v8.md) specify planned visual migration, not implemented routes or API behavior. Owner selected Option B: no China sourcing route/navigation/screens/showcase/product/image search/scraping/Gemini in production; ZIP sources remain provenance only. Login Quick Fill is deliberately excluded for security. Existing server session/MFA ownership and neutral UI tiers remain authoritative.
 
-CustomerStatsBar remains PLANNED in M2. Merged NEXORA-030/PR26 already implements required owner/q/phone-scoped stats on GET /api/customers and its generated SDK; status/page/pageSize do not filter stats, and the eight endpoints remain. The selected M2 test runtime must verify the actual API/SDK contract. Never derive counts from page rows/pagination.total or fabricate zeros for missing/old-server stats. NEXORA-031 has its own digest-bound approval; the owner currently authorizes M1 only. Historical NEXORA-029 snapshots remain unchanged.
+CustomerStatsBar exists in M2 code; runtime acceptance remains pending. Merged NEXORA-030/PR26 already implements required owner/q/phone-scoped stats on GET /api/customers and its generated SDK; status/page/pageSize do not filter stats, and the eight endpoints remain. The selected M2 test runtime must verify the actual API/SDK contract. Never derive counts from page rows/pagination.total or fabricate zeros for missing/old-server stats. M1 merged in PR27 at55e3c1595d2b90a8cd85f5e3c06ab1f0552933f5. The owner's 2026-10-24 directive moves Customer UI/M2 to a new branch/PR under NEXORA-031; its v2 revision/digest approval was authenticated on PR28 comment6385229351 before implementation. Customer routes now exist; verification and navigation activation remain pending. Historical NEXORA-029/031 approved snapshots remain unchanged.
 
 ## NEXORA-031 M1 foundation
 
@@ -267,3 +213,51 @@ Neutral packages/ui Button/TextInput/Checkbox are consumed by Login/MFA; Overlay
 AppShell selects only safe deployment text on the server using existing shared policy (selective PR21 helper reuse); ShellClient receives text/user props, never environment/keys or authorization responsibility. Existing workspace server guard, session verification, safe-from, Host/Origin rules, cookie/MFA/setup/logout behavior remain authoritative. Login visual changes reuse current password/MFA outcome logic and API contracts. Remember Me stores only trimmed username (<=50) under nexora_remembered_username, clears unchecked preference on valid submit, tolerates blocked storage and never changes session TTL. Password/MFA/session/recovery secrets are never persisted. Forgot-password help directs users to their administrator; there is no fake reset endpoint or Quick Fill.
 
 Native Node tests and real CDP viewport/auth evidence are tracked in [NEXORA-031](../tasks/active/NEXORA-031-full-frontend-migration.md) and PR27. Implemented UI is distinct from passing visual/runtime acceptance. Full M5 reference-image comparison and Customer/Carrier/retail consumer acceptance remain later milestones; no production deployment is claimed.
+
+## NEXORA-031 M2 Customer UI — implemented, acceptance pending
+
+Protected /customers and /customers/[id] route files delegate to apps/web/features/customers under the existing workspace server layout. Same-origin generated SDK owns eight operations and transport types; backend session determines owner for OPERATOR and ADMIN. No client owner/scope selection, API/Domain import, new token storage or backend contract change. Customer navigation remains planned until genuine route acceptance; code presence alone is not verification.
+
+CustomerListPage composes filters, CustomerStatsBar, semantic table/mobile cards and Create/Edit drawers. URL page/pageSize/q/status/phone is committed state;300ms q draft invalidates/aborts the read lane immediately. Normalized keys/generations fence data/errors/loading; same-key history transitions restart reads, Back/Forward cancels drafts, unmount invalidates. Missing/malformed stats is unavailable, never zero or a page-derived count. List Summary has no addressCount and no per-row detail fetch.
+
+Customer mutation reconciliation treats a transport/malformed-response/5xx write failure as an unknown outcome, not a proven rejection. In particular, a missing response to default-address PUT or address DELETE requires authoritative GET before the user may determine what committed; no automatic PUT/DELETE retry is permitted. Explicit 4xx rejection and local draft validation remain deterministic. Retain page-level unresolved protection and safe user-driven recovery. The unresolved page guard and the active Customer/Address Drawer hook must settle together: only a fresh accepted owner-scoped GET in the original mutation query key, at or beyond its reconciliation request generation, plus explicit user acknowledgement/discard can release both guards; closing a drawer alone never releases the page guard. On the List page, the guard remembers the original filter key and last settled read at write-failure time: an unrelated filtered GET or older cached response never authorizes page-level acknowledgement. For a known customer ID, both the open Customer Drawer and the List page after the Drawer closes additionally perform a fresh owner-scoped `GET /api/customers/:id` immediately before an explicit recovery decision; a failed read or mismatched ID retains the write guard, and the GET proves the customer identity/snapshot, not whether the lost write committed. A CREATE whose response was lost may not supply an ID, so it retains conservative keyed-list reconciliation and explicit user judgement; do not guess the customer ID from fields or automatically repeat POST. Partial default-address replacement followed by a failed/ambiguous DELETE must not auto-unlock on a successful GET; it requires explicit acknowledgement after re-reading the affected customer. The page's own mutation must use explicit resolution, not a reset that rejects unknown outcomes. Rejected 403/404/409 writes require GET revalidation of concurrent ownership/address changes before unlocking UI controls; they remain proven rejected, distinct from an unknown write, and do not trigger an automatic repeated write.
+
+CustomerDetailPage composes profile and real addresses. Shared AddressForm serves initial creation/add/edit; shared profile fields serve Create/Edit. Explicit payload allowlists preserve nullable clearing, backend recipient fallback and200/2000 text bounds. Editing baseline remains immutable while drafts survive errors/refresh. Generated AddressPatchDto requires countryCode; send current/edited countryCode only alongside a real edit, no no-op PATCH or replacement DTO.
+
+Mutations serialize in each active parent surface, retain forms on failure and gate retries while reconciliation is pending/failed. Confirmed commits trigger refetch; refresh failure does not retract the committed save. Default deletion is explicit PUT default then DELETE, never atomic across requests; PUT failure forbids DELETE, partial/ambiguous results reconcile without reverse rollback. Legacy zero/no-default remains honest and owner-directed. HTTP401 alone triggers sanitized Login;403 is not session expiry,400/404/409 and unknown errors retain safe distinct feedback without PII logging.
+
+M1 neutral controls/tokens/Overlay remain authoritative. Native Select consumes the same control class; Overlay's optional className is a neutral layout slot, with right-side Customer forms and centered confirmation. No duplicate focus trap/framework. All actual runtime/browser/reference/CI acceptance remains pending in task031/PR28; M3–M5 not implemented.
+
+### M2 reference presentation & 100% DOM parity reconciliation
+
+Customer list follows the approved reference ZIP (`CustomerListView.tsx` and `src/App.tsx`) with strict DOM structure parity:
+
+- **Command Deck Header**: Single title row without visible `border-bottom`; right-aligned action group containing disabled `Xuất Excel` (honest disabled state explaining backend export capability is unavailable) and primary `+ THÊM KHÁCH HÀNG` button.
+- **Status Tabs**: Exactly three tabs (`TẤT CẢ`, `ĐANG HOẠT ĐỘNG`, `NGỪNG HOẠT ĐỘNG`) with status dots and rounded numeric badges. No visible loading or error texts consume vertical layout height; accessibility and screen-reader announcements are maintained via `.srOnly`.
+- **Search Toolbar**: Controlled width (~460px desktop, max 480px, responsive on mobile), left-aligned; right-aligned actions cluster with conditional `Đang lọc` badge and `Làm mới` refresh button. Advanced filter accordion (`<details>`) and exact phone form are completely removed from the rendered DOM.
+- **Customer Table (9 columns)**: Exactly 9 columns in order:
+  1. `CHI TIẾT` (Eye icon navigation)
+  2. `MÃ KHÁCH HÀNG` (Monospace orange link)
+  3. `HỌ VÀ TÊN` (Bold primary text)
+  4. `SỐ ĐIỆN THOẠI` (Monospace tabular numbers)
+  5. `EMAIL` (Muted text, fallback `—`)
+  6. `SỐ ĐỊA CHỈ` (Displays neutral unavailable marker `—` with `MapPin` icon; avoids N+1 detail queries while preserving 9-column layout)
+  7. `TRẠNG THÁI` (Status chip with dot indicator)
+  8. `NGÀY TẠO` (Localized date `vi-VN`)
+  9. `THAO TÁC` (Action group containing both `Edit` and `Power` status toggle button)
+     Header, 5-row Skeleton, and real data rows share the authoritative `customerColumns` registry (`columns.ts`) and persistent `<colgroup>`. During loading transitions, the header and `<colgroup>` remain mounted and fixed; text placeholders occupy 85–90% of usable cell width with balanced `margin-inline: auto` margins, and both skeleton and real single-line rows measure 44.5px height. Content-height changes (e.g. 5 skeleton rows becoming 1 real row) are expected content transitions; table geometry and column positions maintain zero horizontal movement across all result counts (0, 1, 2, 3, 5, 10) and responsive viewports (375px to 1920px).
+- **Pagination**: Default `pageSize: 20` across query parser, state initialization, fallback, and selector. Options: `[5, 10, 20, 50, 100]`.
+- **Shared Workspace Frames**: Navigation metadata selects standard/wide. Header inner and main share centered1600px standard frame or unlimited wide frame, with24/16/12px responsive gutters. MainWrapper scrolls both together; Customer-only pathname padding is removed. See [Design System](design-system.md).
+
+#### Feature compatibility ledger:
+
+- **Excel Export**: `DISABLED` — Rendered in approved header structure as disabled with accessible explanation; no fake file download or invented backend endpoint.
+- **Address Count in List**: `DISABLED` — Rendered as neutral `—` marker with tooltip; real address management and counts are accessible via Customer Detail page; avoids N+1 API requests.
+- **Power Status Toggle**: `SUPPORTED` — Powered by authorized `customerApi.update(id, { status })` contract; toggles `ACTIVE` ↔ `INACTIVE` with pending spinner, refreshed backend stats, and error recovery.
+- **Backend Statistics**: `SUPPORTED` — Driven by real `CustomerStatsDto` via `CustomerStatsBar`, preserving query, cache, and stale-response protections. Real counts are never substituted with current-page counts.
+
+## Shared validation boundary (NEXORA-031)
+
+The Customer URL query and draft input validation reuse pure `@nexora/shared` primitives for positive decimal pagination, overflow checks, bounded text and raw-length-before-trim. Pagination defaults to 20 rows in both API and UI (maximum 100). Customer-only bounds remain `CustomerInputLimits`; display labels and `INVALID_FILTER`/`DraftError` remain feature-owned. Phone input UX is basic only: the API backend `PhoneNumber` Value Object is authoritative for country-specific validation and E.164 normalization. Shared validation has no React, Next, NestJS, Prisma or phone-metadata dependency.
+
+Customer Edit admission requires a successful current-scope GET and settled manual Reload; retained rows on a pending/failed GET remain visible but cannot open a writable stale editor. The List page owns optional row navigation and native customer links remain. For a confirmed Customer/Address write, a Drawer stays mounted through its authoritative same-scope GET; the saved/close callback runs only on successful read. Failed/unscheduled GET retains the confirmed-write guard and permits GET-only Retry without repeating a mutation. Unknown write recovery still requires separate explicit user acknowledgement.
