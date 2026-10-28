@@ -1,6 +1,6 @@
 # Nexora Design System
 
-This document owns shared frontend visual contracts. [Frontend architecture](frontend.md) owns routes/data/server boundaries, [Reusable Components](reusable-components.md) owns exported APIs and actual consumers, and [Project Rules](../ai/PROJECT_RULES.md) owns mandatory reuse. The approved [v3 design](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md) governs the migration; execution and remaining verification belong to [NEXORA-031](../tasks/active/NEXORA-031-full-frontend-migration.md).
+This document owns shared frontend visual contracts. [Frontend architecture](frontend.md) owns routes/data/server boundaries, [Reusable Components](reusable-components.md) owns exported APIs and actual consumers, and [Project Rules](../ai/PROJECT_RULES.md) owns mandatory reuse. The design architecture is governed jointly by the approved [v3 design](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md) (governing shared controls, 32px standard sizing, typography scale, spacing, 9-column customer table layout, and 5-row skeleton) and the [v4 color policy](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-color-policy-m2-v4.md) (governing the canonical color system and palette fidelity, which supersedes prior conflicting WCAG AA contrast merge gates on Brand Orange `#F58A24` and White text while strictly preserving all non-color accessibility standards); execution and remaining verification belong to [NEXORA-031](../tasks/active/NEXORA-031-full-frontend-migration.md).
 
 ## Ownership and token layers
 

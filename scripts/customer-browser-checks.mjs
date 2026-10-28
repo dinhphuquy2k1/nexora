@@ -853,9 +853,11 @@ export async function verifyCustomerBrowser({
         ),
         true,
       );
+      step("LIST_MUTATION_PATCH_RECOVERY_DRAWER_CLOSE");
       // Native showModal() makes the page inert. Close the Drawer before changing filters.
       await click("Đóng biểu mẫu");
       await until('!document.querySelector("dialog[open]")');
+      step("LIST_MUTATION_PATCH_RECOVERY_FILTER_INACTIVE");
       await until('!!document.getElementById("customer-tab-INACTIVE")');
       await evaluate(
         'document.getElementById("customer-tab-INACTIVE").click();true',
@@ -871,6 +873,7 @@ export async function verifyCustomerBrowser({
         false,
         "An unrelated filtered GET must not unlock the page-level write guard",
       );
+      step("LIST_MUTATION_PATCH_RECOVERY_FILTER_ALL");
       await evaluate(
         'document.getElementById("customer-tab-all").click();true',
       );
@@ -880,6 +883,7 @@ export async function verifyCustomerBrowser({
         'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
       );
       assert.equal(counts().responses, 1, "No duplicated PATCH");
+      step("LIST_MUTATION_PATCH_RECOVERY_ACKNOWLEDGE");
       await click("Đã kiểm tra xong");
       await until(
         '!Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong")',

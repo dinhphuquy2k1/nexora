@@ -104,7 +104,7 @@ export function DeleteAddressModal({
               </p>
             )}
             {partial && (
-              <p role="alert" className={styles.notice}>
+              <p role="status" className={styles.notice}>
                 Đã chuyển mặc định. Xóa chưa được xác nhận; dữ liệu được tải lại
                 trước khi thử lại. Không hoàn tác mặc định mới.
               </p>

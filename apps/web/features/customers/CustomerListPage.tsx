@@ -396,7 +396,7 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
         />
       </section>
       {writeUnresolved && (
-        <div role="alert" className={styles.notice}>
+        <div role="status" className={styles.notice}>
           <p>
             Kết quả lưu chưa xác định. Hãy đối chiếu dữ liệu, không gửi lại thao
             tác cũ.

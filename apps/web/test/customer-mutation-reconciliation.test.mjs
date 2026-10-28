@@ -754,3 +754,63 @@ test("confirmed writes defer saved/close through GET failure and GET-only retry"
   ctrl.observeReadSettlement();
   assert.equal(saved, 1, "Saved callback is single-flight");
 });
+
+test("unresolved write notices use role='status' for advisory accessibility and browser readiness", async () => {
+  const list = await fs.readFile(
+    new URL("../features/customers/CustomerListPage.tsx", import.meta.url),
+    "utf8",
+  );
+  const detail = await fs.readFile(
+    new URL("../features/customers/CustomerDetailPage.tsx", import.meta.url),
+    "utf8",
+  );
+  const drawers = await fs.readFile(
+    new URL("../features/customers/CustomerDrawers.tsx", import.meta.url),
+    "utf8",
+  );
+  const modal = await fs.readFile(
+    new URL("../features/customers/DeleteAddressModal.tsx", import.meta.url),
+    "utf8",
+  );
+
+  // Advisory reconciliation notices use role="status" with polite aria-live
+  assert.match(
+    list,
+    /writeUnresolved\s*&&\s*\(\s*<div\s+role="status"\s+className=\{styles\.notice\}/,
+    "List page unresolved notice must use role='status'",
+  );
+  assert.match(
+    detail,
+    /writeUnresolved\s*&&\s*\(\s*<div\s+role="status"\s+className=\{styles\.notice\}/,
+    "Detail page unresolved notice must use role='status'",
+  );
+  assert.match(
+    drawers,
+    /<div\s+role="status"\s+className=\{styles\.notice\}/,
+    "Drawer ReconcileNotice must use role='status'",
+  );
+  assert.match(
+    modal,
+    /<p\s+role="status"\s+className=\{styles\.notice\}/,
+    "Delete address modal unresolved notice must use role='status'",
+  );
+
+  // Actual error alerts retain role="alert"
+  assert.match(list, /recoveryError\s*&&\s*<p\s+role="alert"/);
+  assert.match(drawers, /recoveryError\s*&&\s*<p\s+role="alert"/);
+});
+
+test("closing an unconfirmed Drawer preserves parent writeUnresolvedScope without unlocking writes", async () => {
+  const list = await fs.readFile(
+    new URL("../features/customers/CustomerListPage.tsx", import.meta.url),
+    "utf8",
+  );
+  // onClose only clears overlay, preserving writeUnresolvedScope
+  assert.match(list, /onClose=\{\(\) => setOverlay\(null\)\}/);
+  assert.match(list, /writeBlocked=\{writeUnresolved\}/);
+  assert.match(
+    list,
+    /onUnresolved=\{\(\) => \{[\s\S]*?setWriteUnresolvedScope\(\{/,
+  );
+  assert.match(list, /onResolved=\{\(\) => setWriteUnresolvedScope\(null\)\}/);
+});

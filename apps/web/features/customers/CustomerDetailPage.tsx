@@ -138,7 +138,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
         </div>
       </div>
       {writeUnresolved && (
-        <div role="alert" className={styles.notice}>
+        <div role="status" className={styles.notice}>
           <p>
             Kết quả thao tác ghi chưa xác định. Không gửi lại thao tác; hãy kiểm
             tra dữ liệu đã tải lại.
