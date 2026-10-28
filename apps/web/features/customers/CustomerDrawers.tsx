@@ -19,6 +19,9 @@ import {
   addressPayload,
 } from "./payload.ts";
 import { customerApi } from "./api.ts";
+import { customerError } from "./errors.ts";
+import { verifyCustomerRecoveryById } from "./mutation-policy.ts";
+import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 import {
   useCustomerMutation,
   type SettlementTarget,
@@ -183,6 +186,41 @@ export function CustomerDrawer({
     onDenied,
     onUnresolved,
   );
+  const recoveryLock = useRef(false);
+  const [recoveryPending, setRecoveryPending] = useState(false);
+  const [recoveryError, setRecoveryError] = useState("");
+  async function completeRecovery(mode: "discard" | "acknowledged") {
+    if (!mutation.canResolveUnresolved || recoveryLock.current) return;
+    recoveryLock.current = true;
+    setRecoveryPending(true);
+    setRecoveryError("");
+    try {
+      // The list read may exclude the edited customer; verify its identity directly.
+      // An unknown CREATE has no ID and retains the conservative list-only recovery.
+      if (customer) {
+        await verifyCustomerRecoveryById(customer.id, customerApi.get);
+      }
+      if (!mutation.resolveUnresolved(mode)) return;
+      onResolved?.();
+      if (mode === "acknowledged") onSaved();
+    } catch (error) {
+      const safe = customerError(error);
+      if (safe.unauthenticated) {
+        onDenied();
+        const from = sanitizeReturnUrl(location.pathname + location.search);
+        router.replace(
+          from ? `/login?from=${encodeURIComponent(from)}` : "/login",
+        );
+      } else {
+        setRecoveryError(
+          "Không thể xác minh hồ sơ khách hàng. Hãy đối chiếu lại và thử tiếp.",
+        );
+      }
+    } finally {
+      recoveryLock.current = false;
+      setRecoveryPending(false);
+    }
+  }
   return (
     <DrawerFrame
       title={customer ? "Sửa khách hàng" : "Thêm khách hàng"}
@@ -300,17 +338,14 @@ export function CustomerDrawer({
                 else refresh();
               }}
               isUnresolved={mutation.isUnresolved}
-              canRecover={mutation.canResolveUnresolved && !reconciling}
-              onDiscard={() => {
-                if (mutation.resolveUnresolved("discard")) onResolved?.();
-              }}
-              onAcknowledge={() => {
-                if (!mutation.resolveUnresolved("acknowledged")) return;
-                onResolved?.();
-                onSaved();
-              }}
+              canRecover={
+                mutation.canResolveUnresolved && !reconciling && !recoveryPending
+              }
+              onDiscard={() => void completeRecovery("discard")}
+              onAcknowledge={() => void completeRecovery("acknowledged")}
             />
           )}
+          {recoveryError && <p role="alert">{recoveryError}</p>}
           <div id="customer-field-error">
             <Feedback error={mutation.error} />
           </div>
