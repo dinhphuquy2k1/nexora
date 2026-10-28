@@ -69,6 +69,61 @@ export async function verifyCustomerBrowser({
     }
     throw Error("CUSTOMER_BROWSER_CONDITION");
   }
+  async function loseOneCommittedResponse(method, run) {
+    let responses = 0;
+    let dropped = 0;
+    let interceptionError;
+    const intercept = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.method !== "Fetch.requestPaused") return;
+      const paused = message.params;
+      void (async () => {
+        if (paused.responseStatusCode === undefined) {
+          await send("Fetch.continueRequest", { requestId: paused.requestId });
+          return;
+        }
+        if (paused.request.method === method) {
+          responses++;
+          if (dropped === 0) {
+            assert.equal(
+              paused.responseStatusCode,
+              200,
+              "A response may be lost only after the genuine server write succeeds",
+            );
+            dropped++;
+            await send("Fetch.failRequest", {
+              requestId: paused.requestId,
+              errorReason: "Failed",
+            });
+            return;
+          }
+        }
+        await send("Fetch.continueResponse", { requestId: paused.requestId });
+      })().catch((error) => {
+        interceptionError = error;
+      });
+    };
+    socket.addEventListener("message", intercept);
+    await send("Fetch.enable", {
+      patterns: [
+        { urlPattern: baseUrl + "/api/customers/*", requestStage: "Response" },
+      ],
+    });
+    try {
+      const counts = () => {
+        if (interceptionError) throw interceptionError;
+        return { responses, dropped };
+      };
+      await run(counts);
+      assert.equal(counts().dropped, 1);
+    } finally {
+      try {
+        await send("Fetch.disable");
+      } finally {
+        socket.removeEventListener("message", intercept);
+      }
+    }
+  }
   const button = (text) =>
     `Array.from(document.querySelectorAll('button')).find(b=>b.getClientRects().length&&(b.getAttribute('aria-label')??b.textContent.trim())===${JSON.stringify(text)})`;
   async function clickPointer(text) {
@@ -749,9 +804,29 @@ export async function verifyCustomerBrowser({
       true,
     );
     await snapshot("edit");
-    await click("Lưu khách hàng");
-    await until('!document.querySelector("dialog[open]")');
-    await ready();
+    step("PROFILE_LOST_RESPONSE_RECOVERY");
+    await loseOneCommittedResponse("PATCH", async (counts) => {
+      await click("Lưu khách hàng");
+      await until(
+        'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Thử lưu lại"&&!b.disabled)',
+      );
+      assert.equal(counts().responses, 1);
+      assert.equal(
+        await evaluate(
+          'Array.from(document.querySelectorAll("dialog[open] button")).find(b=>b.textContent.trim()==="Lưu khách hàng")?.disabled === true',
+        ),
+        true,
+      );
+      await click("Thử lưu lại");
+      await until(
+        'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Lưu khách hàng"&&!b.disabled)',
+      );
+      assert.equal(counts().responses, 1, "No automatic retry of the committed PATCH");
+      await click("Lưu khách hàng");
+      await until('!document.querySelector("dialog[open]")');
+      await ready();
+      assert.equal(counts().responses, 2, "Exactly one explicit user retry");
+    });
     step("ADD_ADDRESS");
     await click("Thêm địa chỉ");
     await until(
@@ -774,8 +849,25 @@ export async function verifyCustomerBrowser({
     await click("Lưu địa chỉ");
     await until('!document.querySelector("dialog[open]")');
     await ready();
-    step("SET_DEFAULT");
-    await click("Đặt làm mặc định");
+    step("SET_DEFAULT_LOST_RESPONSE_RECOVERY");
+    await loseOneCommittedResponse("PUT", async (counts) => {
+      await click("Đặt làm mặc định");
+      await until(
+        'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
+      );
+      assert.equal(counts().responses, 1);
+      assert.equal(
+        await evaluate(
+          'Array.from(document.querySelectorAll("main button")).find(b=>b.textContent.trim()==="Chỉnh sửa thông tin")?.disabled === true',
+        ),
+        true,
+      );
+      await click("Đã kiểm tra xong");
+      await until(
+        'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Chỉnh sửa thông tin"&&!b.disabled)',
+      );
+      assert.equal(counts().responses, 1, "Acknowledging the GET must not repeat PUT");
+    });
     await ready();
     await until(
       `!document.querySelector('dialog[open]')&&document.querySelector('h1')`,
@@ -862,6 +954,21 @@ export async function verifyCustomerBrowser({
       await until('!!document.querySelector("dialog[open] [role=alert]")');
       await ready(true);
       assert.equal(deleteRequests, 0, "Failed PUT must not send DELETE");
+      await until(
+        'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Bỏ qua và đóng"&&!b.disabled)',
+      );
+      await click("Bỏ qua và đóng");
+      await until('!document.querySelector("dialog[open]")');
+      await until(
+        'Array.from(document.querySelectorAll("article[aria-label=\\"Địa chỉ mặc định\\"] button[aria-label=\\"Xóa địa chỉ\\"]")).some(b=>!b.disabled)',
+      );
+      await evaluate(
+        `document.querySelector('article[aria-label="Địa chỉ mặc định"] button[aria-label="Xóa địa chỉ"]').click();true`,
+      );
+      await until('!!document.querySelector("dialog[open] select[name=replacement]")');
+      await evaluate(
+        `(()=>{const s=document.querySelector('select[name=replacement]');s.value=${JSON.stringify(replacement)};s.dispatchEvent(new Event('change',{bubbles:true}));return true;})()`,
+      );
       await click("Xác nhận xóa");
       await until(
         'document.querySelector("dialog[open]")?.textContent.includes("Đã chuyển mặc định")',
