@@ -1620,7 +1620,7 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
 
 ## Scoped reconciliation-scope and committed-DELETE follow-up — 2026-10-28
 
-- **Task:** NEXORA-031, BOUNDED; inspected baseline `4f9241a225d109e0e7a7f33ebf49d3af98a80549`. Prior immutable Design Snapshot and SHA-256 are unchanged.
+- **Scoped task reference:** NEXORA-031, BOUNDED; inspected baseline `4f9241a225d109e0e7a7f33ebf49d3af98a80549`. Prior immutable Design Snapshot and SHA-256 are unchanged.
 - **Read-only inspection:** `useCustomerMutation`, `useCustomerRead`, `CustomerListPage`, `CustomerDetailPage`, `CustomerDrawers`, `DeleteAddressModal`, `customer-browser-checks`, Customer API and existing policy/power tests.
 - **Problem:** A higher GET request ID is not proof of the original query scope. The list can acknowledge an unrelated filtered GET after its drawer closes. Partial address DELETE also auto-released its mutation after GET success. Existing CDP coverage lacked a committed DELETE whose response was lost.
 - **Decision:** Reuse the Customer read lane, fence settlement by original query key and request ID, require a fresh read in that scope for page acknowledgement, and give an open Drawer sole responsibility for its own recovery.
