@@ -1610,3 +1610,11 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
 
 - **Documentation Impact: REQUIRED** for the Customer frontend recovery contract (frontend canonical doc + task execution notes). No new public component interface outside Customer feature, backend API, DB/schema, shipment/Carrier/Identity features, new dependency, or immutable design snapshot modification. Maintain reference ZIP layout, current semantics and no new UI features.
 - **Test-first verification:** expand Node tests for rejected status/read settlement and recovery callback wiring; execute existing unit test suite and Foundation at the new HEAD, including real browser response-loss after commit. Do not claim completion from historical PASS. Independent code review/owner acceptance remain separate.
+
+### Scoped recovery follow-up implementation notes — 2026-10-28
+
+- Changes to Customer Web: `mutation-policy.ts` now treats 403/404/409 as rejected writes requiring a fresh GET (unknown writes remain blocked until GET/user decision). `useCustomerMutation.ts` gates `resolveUnresolved` on the specific settled successful GET; CustomerDetail root and Customer/Address/Delete drawers synchronize page-owned and hook-owned locks through explicit resolution callbacks.
+- Actual CDP test coverage added for response-stage lost PATCH and PUT after confirmed server HTTP 200, GET-only reconciliation, blocked controls, user-triggered retry/acknowledgement and exactly-once explicit retry. Existing request-stage fake-500 address delete fixture now requires a user acknowledgement/new dialog instead of immediately writing again.
+- Browser startup investigation: Foundation run 40631951787 failed BROWSER_LAUNCH after no DevToolsActivePort in 10s, diagnostic exitCode/signal null and no crash hints. Extended **only** the bounded Chrome startup wait to 20s; no diagnostic masking or bypass of browser verification. Root cause remains unproven until current HEAD runtime evidence.
+- **Verification status:** awaiting current-head Docker quality/CI/runtime browser evidence; historical success/failure is not final acceptance. No change to API, database, immutable Design Snapshot or M3-M5.
+
