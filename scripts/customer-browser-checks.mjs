@@ -787,7 +787,14 @@ export async function verifyCustomerBrowser({
     await ready();
     // The preceding read-race fixture may leave a retained read error in the
     // mounted list. Require a fresh successful read before opening the editor.
+    const beforeReloadGeneration = await evaluate(
+      'Number(document.getElementById("customer-results")?.getAttribute("data-read-settled-id") ?? 0)',
+    );
     await click("Làm mới");
+    // A false aria-busy from the previous frame is not a completed new GET.
+    await until(
+      `(()=>{const panel=document.getElementById("customer-results");return Number(panel?.dataset.readSettledId)>${beforeReloadGeneration}&&panel.dataset.readOutcome==="success";})()`,
+    );
     await ready();
     await until(
       `(()=>{const edit=document.querySelector('main tbody button[aria-label="Sửa ${customer.code}"]');const reload=document.querySelector('main button[aria-label="Làm mới"]');return !!edit&&!edit.matches(':disabled')&&reload?.getAttribute('aria-busy')==='false'&&!document.querySelector('main [data-customer-error]');})()`,
@@ -798,7 +805,18 @@ export async function verifyCustomerBrowser({
     await until(
       '!!document.querySelector("dialog[open] textarea[name=note]") && !document.querySelector("dialog[open] fieldset[disabled]")',
     );
-    await fill("note", "Kiểm tra đối chiếu theo bộ lọc");
+    try {
+      await fill("note", "Kiểm tra đối chiếu theo bộ lọc");
+    } catch (error) {
+      const state = await evaluate(
+        `(()=>{const el=document.querySelector('dialog[open] textarea[name=note]');const panel=document.getElementById('customer-results');return{dialog:!!document.querySelector('dialog[open]'),found:!!el,disabled:el?.matches(':disabled')??false,focused:document.activeElement===el,readOutcome:panel?.dataset.readOutcome??null,settledId:panel?.dataset.readSettledId??null};})()`,
+      );
+      console.error(
+        "Customer note fill diagnostic",
+        JSON.stringify({ code: error?.code ?? "UNKNOWN", state }),
+      );
+      throw error;
+    }
     await loseOneCommittedResponse("PATCH", async (counts) => {
       await click("Lưu khách hàng");
       await until(

@@ -459,6 +459,8 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
         <section
           className={styles.dataCard}
           id="customer-results"
+          data-read-settled-id={read.settledId}
+          data-read-outcome={read.outcome}
           role="tabpanel"
           aria-labelledby={`customer-tab-${query.status ?? "all"}`}
         >

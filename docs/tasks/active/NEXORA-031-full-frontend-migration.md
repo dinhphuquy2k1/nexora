@@ -1679,3 +1679,8 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
 - A confirmed write defers Drawer saved/close callbacks until the authoritative in-scope GET succeeds. A failed/unscheduled GET keeps a confirmed-write guard and GET-only Retry in the still-mounted Drawer, instead of unmounting before reconciliation. Unknown write recovery remains explicit.
 - Browser smoke requires an enabled editor after the read-race fixture, not merely a retained row. New table test covers stale edit guards. Frontend docs align with the approved default 20 rows.
 - Documentation Impact: REQUIRED; verification pending final-head Preflight, Foundation, actual browser/runtime and independent review. No merge or deployment.
+
+### Final-head browser sequencing follow-up — 2026-10-28
+
+- Hosted Foundation run 40698452763 passed Docker quality/integration but again failed the Customer browser note fill step after the read-race fixture. The prior fixture only checked Reload's idle DOM state, which could belong to the previous frame and does not prove the newly triggered GET settled.
+- Scoped browser plan: reuse the existing read request/settlement generation and current outcome from `useCustomerRead` (no new hook/request). Expose non-sensitive generation/outcome attributes on the List table panel; require the new read to settle successfully before opening the editor. Keep native field focus/disabled assertions intact and emit bounded non-PII diagnostics for a failing note fill. Source-level render tests and final-head Docker+CDP remain acceptance gates; no changed backend, SDK, domain or auth behavior.
