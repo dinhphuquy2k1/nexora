@@ -1209,6 +1209,7 @@ export async function verifyCustomerBrowser({
     await click("Lưu địa chỉ");
     await until('!document.querySelector("dialog[open]")');
     await ready();
+    step("DELETE_LOST_RESPONSE_ADDRESS_READY");
     const deletionFixture = await evaluate(
       `fetch('/api/customers/'+${JSON.stringify(customer.id)}).then(r=>r.json())`,
     );
@@ -1219,6 +1220,7 @@ export async function verifyCustomerBrowser({
       toDelete,
       "A nondefault address is available for a committed DELETE",
     );
+    step("DELETE_LOST_RESPONSE_DRAWER_OPEN");
     await evaluate(
       `document.querySelector('article[data-address-id="${toDelete.id}"] button[aria-label="Xóa địa chỉ"]').click();true`,
     );
@@ -1228,6 +1230,7 @@ export async function verifyCustomerBrowser({
       await until(
         'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
       );
+      step("DELETE_LOST_RESPONSE_RECONCILE_READY");
       assert.equal(counts().responses, 1, "Only one committed DELETE was sent");
       const deleted = await evaluate(
         `fetch('/api/customers/'+${JSON.stringify(customer.id)}).then(r=>r.json())`,
@@ -1244,6 +1247,7 @@ export async function verifyCustomerBrowser({
         true,
         "Parent mutations stay blocked pending user acknowledgement",
       );
+      step("DELETE_LOST_RESPONSE_ACKNOWLEDGE");
       await click("Đã kiểm tra xong");
       await until(
         'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Thêm địa chỉ"&&!b.disabled)',

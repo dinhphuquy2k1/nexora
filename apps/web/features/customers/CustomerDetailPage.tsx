@@ -258,7 +258,7 @@ export function CustomerDetailPage({ id }: { id: string }) {
                 onClick={() => setMode({ kind: "add" })}
               >
                 <Plus size={16} aria-hidden="true" />
-                <span>THÊM ĐỊA CHỈ</span>
+                <span>Thêm địa chỉ</span>
               </Button>
             }
           >
