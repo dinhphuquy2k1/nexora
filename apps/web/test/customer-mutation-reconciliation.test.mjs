@@ -26,6 +26,7 @@ class MutationReconciliationController {
     this.targetRequestId = null;
     this.writeSucceeded = false;
     this.writeOutcome = "confirmed";
+    this.pendingSuccess = null;
     this.error = undefined;
     this.operationsRun = 0;
   }
@@ -48,6 +49,9 @@ class MutationReconciliationController {
         if (this.phase === "idle") {
           this.targetRequestId = null;
           this.lock = false;
+          const callback = this.pendingSuccess;
+          this.pendingSuccess = null;
+          callback?.();
         }
       }
     }
@@ -58,6 +62,7 @@ class MutationReconciliationController {
     this.lock = true;
     this.phase = "writing";
     this.writeOutcome = "confirmed";
+    this.pendingSuccess = null;
     this.busy = true;
     this.error = undefined;
     this.operationsRun++;
@@ -87,7 +92,7 @@ class MutationReconciliationController {
         return "failed";
       }
 
-      if (success) success();
+      this.pendingSuccess = success ?? null;
 
       const reqId = this.target.refresh();
       if (typeof reqId === "number") {
@@ -96,10 +101,9 @@ class MutationReconciliationController {
         return "reconciling";
       }
 
-      this.lock = false;
-      this.phase = "idle";
-      this.busy = false;
-      return "settled";
+      this.phase = "blocked";
+      this.busy = true;
+      return "blocked";
     } catch {
       this.lock = false;
       this.phase = "idle";
@@ -701,4 +705,52 @@ test("Existing Customer recovery uses ID GET", async () => {
   );
   assert.match(list, /verifyCustomerRecoveryById\(/);
   assert.match(drawers, /if \(customer\)[\s\S]*?verifyCustomerRecoveryById\(/);
+});
+
+test("confirmed writes defer saved/close through GET failure and GET-only retry", async () => {
+  let requestId = 60;
+  let writes = 0;
+  let saved = 0;
+  let reads = 0;
+  const target = {
+    settledId: 60,
+    outcome: "success",
+    denied: false,
+    refresh() {
+      reads++;
+      target.outcome = "pending";
+      return ++requestId;
+    },
+  };
+  const ctrl = new MutationReconciliationController(target);
+  await ctrl.run(
+    async () => {
+      writes++;
+    },
+    () => {
+      saved++;
+    },
+  );
+  assert.equal(writes, 1);
+  assert.equal(reads, 1);
+  assert.equal(saved, 0, "Drawer must not close before GET settles");
+  assert.equal(ctrl.phase, "reconciling");
+
+  target.settledId = requestId;
+  target.outcome = "error";
+  ctrl.observeReadSettlement();
+  assert.equal(saved, 0);
+  assert.equal(ctrl.phase, "blocked");
+  assert.equal(ctrl.lock, true);
+
+  ctrl.retryReconciliation();
+  assert.equal(writes, 1, "Retry must not repeat the successful PATCH");
+  assert.equal(reads, 2);
+  target.settledId = requestId;
+  target.outcome = "success";
+  ctrl.observeReadSettlement();
+  assert.equal(saved, 1);
+  assert.equal(ctrl.phase, "idle");
+  ctrl.observeReadSettlement();
+  assert.equal(saved, 1, "Saved callback is single-flight");
 });
