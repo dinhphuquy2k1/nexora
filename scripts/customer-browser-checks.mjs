@@ -69,7 +69,8 @@ export async function verifyCustomerBrowser({
     }
     throw Error("CUSTOMER_BROWSER_CONDITION");
   }
-  async function loseOneCommittedResponse(method, run, customerId) {
+  let expectedCustomerId;
+  async function loseOneCommittedResponse(method, run) {
     let responses = 0;
     let detailReads = 0;
     let dropped = 0;
@@ -84,9 +85,10 @@ export async function verifyCustomerBrowser({
           return;
         }
         if (
-          customerId &&
+          expectedCustomerId &&
           paused.request.method === "GET" &&
-          new URL(paused.request.url).pathname === `/api/customers/${customerId}`
+          new URL(paused.request.url).pathname ===
+            `/api/customers/${expectedCustomerId}`
         ) {
           detailReads++;
         }
@@ -686,6 +688,7 @@ export async function verifyCustomerBrowser({
       (c) => c.name === `Khách kiểm thử ${prefix}`,
     );
     assert.ok(customer);
+    expectedCustomerId = customer.id;
     assert.ok(Number.isSafeInteger(list.data.stats.total));
     assert.equal(
       list.data.stats.total,
@@ -828,8 +831,12 @@ export async function verifyCustomerBrowser({
       await until(
         '!Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong")',
       );
-      assert.equal(counts().detailReads, 1, "Recovery reads the exact Customer ID");
-    }, customer.id);
+      assert.equal(
+        counts().detailReads,
+        1,
+        "Recovery reads the exact Customer ID",
+      );
+    });
     await ready();
     step("DETAIL_RENDER");
     await navigate("/customers/" + customer.id);
@@ -894,7 +901,7 @@ export async function verifyCustomerBrowser({
       await until('!document.querySelector("dialog[open]")');
       await ready();
       assert.equal(counts().responses, 2, "Exactly one explicit user retry");
-    }, customer.id);
+    });
     step("ADD_ADDRESS");
     await click("Thêm địa chỉ");
     await until(
