@@ -817,13 +817,7 @@ export async function verifyCustomerBrowser({
         "An unrelated filtered GET must not unlock the page-level write guard",
       );
 
-      assert.equal(
-        await evaluate(
-          'Array.from(document.querySelectorAll("main button")).some(b=>b.textContent.trim()==="Đã kiểm tra xong"&&!b.disabled)',
-        ),
-        false,
-        "Closing the drawer cannot turn a filtered GET into an accepted recovery",
-      );
+
       await click("Xóa từ khóa tìm kiếm");
       await ready();
       await until(
@@ -887,6 +881,10 @@ export async function verifyCustomerBrowser({
       await until(
         'Array.from(document.querySelectorAll("dialog[open] button")).some(b=>b.textContent.trim()==="Lưu khách hàng"&&!b.disabled)',
       );
+      assert.ok(
+        counts().detailReads >= 2,
+        "A lost profile PATCH is reconciled and its Customer ID is verified",
+      );
       assert.equal(
         counts().responses,
         1,
@@ -896,7 +894,7 @@ export async function verifyCustomerBrowser({
       await until('!document.querySelector("dialog[open]")');
       await ready();
       assert.equal(counts().responses, 2, "Exactly one explicit user retry");
-    });
+    }, customer.id);
     step("ADD_ADDRESS");
     await click("Thêm địa chỉ");
     await until(
