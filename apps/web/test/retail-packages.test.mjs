@@ -313,3 +313,27 @@ it("Create uses one native dialog and no verified-looking carrier or rate; absen
     /Chưa có báo giá/,
   );
 });
+
+it("desktop and mobile distinguish unavailable data from an available empty result", () => {
+  const { RetailPackageTable } = loadComponent(
+    new URL(
+      "../features/retail-packages/RetailPackageTable.tsx",
+      import.meta.url,
+    ),
+  );
+  for (const unavailable of [true, false]) {
+    const html = render(
+      React.createElement(RetailPackageTable, {
+        paginated: [],
+        visibleColumns: RETAIL_PACKAGE_COLUMNS,
+        onDetail: () => {},
+        unavailable,
+      }),
+    );
+    const message = unavailable
+      ? "Dữ liệu kiện lẻ chưa khả dụng từ máy chủ."
+      : "Không tìm thấy kiện lẻ phù hợp với bộ lọc.";
+    assert.equal(html.split(message).length - 1, 2);
+    if (unavailable) assert.doesNotMatch(html, /Không tìm thấy kiện/);
+  }
+});

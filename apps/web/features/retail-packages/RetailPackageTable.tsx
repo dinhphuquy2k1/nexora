@@ -95,6 +95,9 @@ export function RetailPackageTable({
   onDetail: (p: RetailPackage) => void;
   unavailable: boolean;
 }) {
+  const emptyMessage = unavailable
+    ? "Dữ liệu kiện lẻ chưa khả dụng từ máy chủ."
+    : "Không tìm thấy kiện lẻ phù hợp với bộ lọc.";
   return (
     <>
       {" "}
@@ -143,9 +146,7 @@ export function RetailPackageTable({
                     color: "var(--color-text-muted)",
                   }}
                 >
-                  {unavailable
-                    ? "Dữ liệu kiện lẻ chưa khả dụng từ máy chủ."
-                    : "Không tìm thấy kiện lẻ phù hợp với bộ lọc."}
+                  {emptyMessage}
                 </td>
               </tr>
             ) : (
@@ -446,7 +447,7 @@ export function RetailPackageTable({
               padding: "var(--space-6)",
             }}
           >
-            Không tìm thấy kiện lẻ phù hợp.
+            {emptyMessage}
           </p>
         ) : (
           paginated.map((pkg) => (

@@ -1880,3 +1880,16 @@ all six sizes. Browser expression tests3/3 PASS; actual screenshot manifests ret
 per-image geometry and SHA-256. Reference tooling remains outside repository and
 product dependencies. Current hosted evidence belongs only to each recorded run's
 head; final workflow links/results are reconciled in PR metadata after completion.
+
+Final inspection found a mobile empty-state inconsistency: desktop distinguished
+unavailable data, while mobile still said no matching results. Added a real rendered
+component regression covering both layouts and both availability states; it failed
+with expected2 matching messages versus actual1 before the fix. Both layouts now
+consume one component-owned emptyMessage, avoiding duplicated decision logic. The
+first test invocation had an incorrect relative loader path (corrected before the
+behavioral RED result). Targeted/full Web and Chromium checks are rerun; final-head
+hosted verification remains pending, never inherited from the earlier correction.
+
+Mobile correction rerun: Web typecheck PASS, root lint PASS, full Web171/171 PASS
+(no skips), actual fixture rebuild and real Chromium flows/six-size captures PASS;
+docs and diff checks PASS. Await the new correction commit's hosted evidence.
