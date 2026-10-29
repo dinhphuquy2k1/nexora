@@ -1,81 +1,67 @@
-/**
- * Retail Packages — synthetic test fixtures.
- *
- * IMPORTANT: This data is used ONLY for development/test purposes.
- * Production build will NOT show these records; the page will render
- * an honest empty/planned state when connected to real backend.
- *
- * These fixtures mirror the reference ZIP's retailPackagesData.ts but with
- * proper UTF-8 encoding. No fake business logic or fabricated fees are
- * derived from these in production.
- */
-
-import type { RetailPackage } from "./types.ts";
-
-/**
- * Synthetic fixtures for automated test purposes.
- * In production, this list is always empty (no backend API implemented yet).
- */
-export const SYNTHETIC_PACKAGES: readonly RetailPackage[] = [
+// Test-only exact ZIP INITIAL_PACKAGES; source SHA df671b752b40631bb3635f9708d1f3b8778121793f51591c6e18b6c4d96fe67c.
+import type { RetailPackage } from "../../features/retail-packages/types.ts";
+export const SYNTHETIC_PACKAGES: RetailPackage[] = [
   {
     id: "pkg-1",
-    trackingCode: "NXR5725701",
+    trackingCode: "SF294810293",
     carrierConnectionId: "uniship",
     carrierProviderName: "Uniship",
     accountConnectionId: "acc-uniship-main",
     accountName: "Tài khoản chính",
-    carrierId: "carrier-nexora",
-    carrierCode: "NEX",
-    carrierName: "NEXORA Linehaul",
-    carrierService: "Chuyên tuyến TQ - VN",
-    productName: "Bàn phím cơ gaming Keychron K2 Pro không dây RGB",
+    carrierId: "carrier-sf",
+    carrierCode: "SF",
+    carrierName: "SF Express (Thuận Phong)",
+    carrierService: "Hỏa tốc hàng không",
+    productName: "Áo khoác phao nữ lông vũ phong cách Hàn Quốc",
     itemCount: 1,
     packageCount: 1,
-    originWarehouseDate: "11/10/2026",
-    originWarehouseExportDate: "12/10/2026",
+    originWarehouseDate: "12/10/2026",
+    originWarehouseExportDate: undefined,
     destWarehouseDate: undefined,
     destWarehouseExportDate: undefined,
-    weightKg: 1.2,
-    unitPriceCNY: 780.0,
-    domesticShipCNY: 12.0,
-    valueCNY: 792.0,
+    weightKg: 1.25,
+    unitPriceCNY: 85.0,
+    domesticShipCNY: 0,
+    valueCNY: 85.0,
     hasInsurance: true,
     hasInspection: false,
     hasWoodenCrate: false,
-    hasBubbleWrap: true,
-    status: "in_transit",
-    statusText: "Đang về kho nhận",
-    originWarehouseName: "Kho TMDT Quảng Châu (3-4 ngày-Không VAT)",
+    hasBubbleWrap: false,
+    status: "to_origin",
+    statusText: "Đang đến kho gửi",
+    originWarehouseName: "Kho TMĐT Quảng Châu (3-4 ngày-Không VAT)",
     destWarehouseName: "Kho Hà Nội (Tổng kho Mỹ Đình)",
-    totalAmountVND: 38000,
+    totalAmountVND: 38500,
     timeline: [
       {
-        title: "Người bán phát hàng",
-        time: "09/10/2026 14:00",
+        title: "Người bán phát hàng qua SF Express",
+        time: "11/10/2026 14:20",
         completed: true,
-        description: "Shop giao hàng cho bưu tá nội địa TQ.",
+        description: "Bưu tá SF Express đã tiếp nhận kiện hàng tại Thâm Quyến.",
       },
       {
-        title: "Nhập kho NEXORA Quảng Châu",
-        time: "11/10/2026 09:15",
-        completed: true,
-        description: "Đã cân nặng, kiểm tra và bọc bảo vệ.",
-      },
-      {
-        title: "Xuất kho gửi Linehaul về VN",
-        time: "12/10/2026 22:00",
+        title: "Đang đến kho gửi Quảng Châu (Uniship)",
+        time: "12/10/2026 09:15",
         completed: true,
         current: true,
-        description: "Xe container xuất phát qua cửa khẩu Hữu Nghị.",
+        description:
+          "Xe luân chuyển đang vận chuyển đến kho tập kết Uniship Quảng Châu.",
       },
       {
-        title: "Đang về kho nhận VN",
+        title: "Nhập kho TMĐT & Cân đo",
+        time: "Dự kiến 13/10",
+        completed: false,
+        description:
+          "Kiện hàng sẽ được cân đo và kiểm tra ngoại quan tại kho gửi.",
+      },
+      {
+        title: "Vận chuyển về Việt Nam",
         time: "Dự kiến 14/10",
         completed: false,
-        description: "Đang thông quan hàng hóa chính ngạch.",
+        description: "Thông quan chính ngạch qua cửa khẩu quốc tế.",
       },
       {
-        title: "Giao hàng thành công",
+        title: "Giao hàng cho khách",
         time: "Dự kiến 15/10",
         completed: false,
         description: "Giao tận nơi hoặc nhận tại kho Mỹ Đình.",
@@ -110,7 +96,7 @@ export const SYNTHETIC_PACKAGES: readonly RetailPackage[] = [
     hasBubbleWrap: true,
     status: "at_origin",
     statusText: "Đã về kho gửi",
-    originWarehouseName: "Kho TMDT Quảng Châu (3-4 ngày-Không VAT)",
+    originWarehouseName: "Kho TMĐT Quảng Châu (3-4 ngày-Không VAT)",
     destWarehouseName: "Kho Hà Nội (Tổng kho Mỹ Đình)",
     totalAmountVND: 245000,
     timeline: [
@@ -158,7 +144,7 @@ export const SYNTHETIC_PACKAGES: readonly RetailPackage[] = [
     carrierId: "carrier-jt",
     carrierCode: "J&T",
     carrierName: "J&T Express",
-    carrierService: "TMDT Tiêu chuẩn",
+    carrierService: "TMĐT Tiêu chuẩn",
     productName: "Giày thể thao sneaker nam đế khí êm ái",
     itemCount: 2,
     packageCount: 1,
@@ -184,14 +170,14 @@ export const SYNTHETIC_PACKAGES: readonly RetailPackage[] = [
         title: "Nhập kho Hãng B Bằng Tường",
         time: "09/10/2026 11:30",
         completed: true,
-        description: "Đã kiểm tra cân nặng và bọc màng khô.",
+        description: "Đã kiểm tra cân nặng và bọc màng khí.",
       },
       {
         title: "Đang về kho nhận TP.HCM",
         time: "10/10/2026 19:00",
         completed: true,
         current: true,
-        description: "Đang trên đường lưu chuyển xe tải về miền Nam.",
+        description: "Đang trên cung đường luân chuyển xe tải về miền Nam.",
       },
       {
         title: "Nhập kho nhận Tân Bình",
@@ -229,12 +215,12 @@ export const SYNTHETIC_PACKAGES: readonly RetailPackage[] = [
     hasBubbleWrap: false,
     status: "at_dest",
     statusText: "Đã về kho nhận",
-    originWarehouseName: "Kho Đồng Hưng (2-3 ngày)",
+    originWarehouseName: "Kho Đông Hưng (2-3 ngày)",
     destWarehouseName: "Kho Hà Nội (Tổng kho Mỹ Đình)",
     totalAmountVND: 67200,
     timeline: [
       {
-        title: "Nhập kho Uniship Đồng Hưng",
+        title: "Nhập kho Uniship Đông Hưng",
         time: "07/10/2026 15:00",
         completed: true,
         description: "Tiếp nhận kiện hàng từ xưởng.",
@@ -262,7 +248,7 @@ export const SYNTHETIC_PACKAGES: readonly RetailPackage[] = [
     carrierProviderName: "Uniship",
     accountConnectionId: "acc-uniship-branch",
     accountName: "Tài khoản chi nhánh",
-    carrierId: "carrier-yto",
+    carrierId: "carrier-zto",
     carrierCode: "YTO",
     carrierName: "YTO Express",
     carrierService: "Chuyển phát nhanh",
@@ -283,7 +269,7 @@ export const SYNTHETIC_PACKAGES: readonly RetailPackage[] = [
     hasBubbleWrap: true,
     status: "delivered",
     statusText: "Đã giao hàng",
-    originWarehouseName: "Kho Đồng Hưng (2-3 ngày)",
+    originWarehouseName: "Kho Đông Hưng (2-3 ngày)",
     destWarehouseName: "Kho Hà Nội (Tổng kho Mỹ Đình)",
     totalAmountVND: 32000,
     timeline: [
@@ -304,10 +290,10 @@ export const SYNTHETIC_PACKAGES: readonly RetailPackage[] = [
     carrierProviderName: "Hãng B",
     accountConnectionId: "acc-hangb-corp",
     accountName: "Tài khoản công ty",
-    carrierId: "carrier-hgb",
+    carrierId: "carrier-sf",
     carrierCode: "HGB",
     carrierName: "Hãng B Logistics",
-    carrierService: "Vận chuyển sàn TMDT",
+    carrierService: "Vận chuyển sàn TMĐT",
     productName: "Thùng mô hình đồ chơi lắp ráp Gundam RG 1/144",
     itemCount: 4,
     packageCount: 2,

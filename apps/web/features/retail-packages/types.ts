@@ -67,13 +67,15 @@ export interface RetailPackage {
   readonly statusText: string;
   readonly originWarehouseName: string;
   readonly destWarehouseName: string;
-  readonly totalAmountVND: number;
+  readonly totalAmountVND?: number;
   readonly timeline: readonly TrackingStep[];
 }
 
 /** Column configuration for the retail packages table. */
 export interface ColumnConfig {
   readonly id: string;
+  readonly width: number;
+  readonly basic?: boolean;
   readonly label: string;
   readonly defaultVisible: boolean;
   readonly required?: boolean;

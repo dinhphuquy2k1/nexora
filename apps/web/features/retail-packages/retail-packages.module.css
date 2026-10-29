@@ -21,9 +21,6 @@
 .commandDeck {
   flex-shrink: 0;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
 }
 
 /* Title row */
@@ -92,40 +89,18 @@
 .statusBand {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: var(--space-1);
-  padding: var(--space-2) var(--space-4);
-  border-top: 1px solid var(--color-border);
+  padding: var(--space-1);
+  margin: 0 var(--space-4) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
   overflow-x: auto;
-  scrollbar-width: none;
+  flex-wrap: nowrap;
 }
 
 .statusBand::-webkit-scrollbar {
   display: none;
-}
-
-.statusTab {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-full);
-  border: none;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-snug);
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    background 0.12s,
-    color 0.12s;
-  background: transparent;
-  color: var(--color-tab-unselected-text);
-}
-
-.statusTab:hover:not(.statusTabActive) {
-  background: var(--color-tab-unselected-hover-bg);
-  color: var(--color-tab-unselected-hover-text);
 }
 
 .statusTabActive {
@@ -171,14 +146,15 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex: 1 1 auto;
-  min-width: 180px;
-  max-width: 340px;
+  flex: 1;
+  min-width: 0;
 }
 
 .searchWrapper {
   position: relative;
-  flex: 1 1 auto;
+  flex: 1;
+  min-width: 0;
+  max-width: 340px;
 }
 
 .searchIcon {
@@ -188,37 +164,6 @@
   transform: translateY(-50%);
   color: var(--color-search-icon);
   pointer-events: none;
-}
-
-.searchInput {
-  width: 100%;
-  height: var(--control-size-default);
-  padding-left: calc(var(--space-3) + 16px + var(--space-2));
-  padding-right: var(--space-3);
-  border-radius: var(--control-radius);
-  border: 1px solid var(--control-border);
-  background: var(--control-bg);
-  color: var(--control-text);
-  font-size: var(--control-font-size);
-  font-family: inherit;
-  outline: none;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-
-.searchInput::placeholder {
-  color: var(--control-placeholder);
-}
-
-.searchInput:hover {
-  border-color: var(--control-border-hover);
-}
-
-.searchInput:focus {
-  border-color: var(--control-focus-border);
-  background: var(--control-bg-focus);
-  box-shadow: 0 0 0 3px var(--control-focus-ring);
 }
 
 .toolbarRight {
@@ -290,29 +235,29 @@
 }
 
 .table {
-  width: 100%;
-  border-collapse: collapse;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--font-size-sm);
 }
 
 .tableHead {
   position: sticky;
   top: 0;
-  z-index: 1;
-  background: var(--color-surface-subtle);
+  z-index: 3;
+  background: var(--color-primary);
 }
 
 .tableHead th {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2);
   text-align: left;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
+  color: var(--color-text-on-dark);
+  background: var(--color-primary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
   white-space: nowrap;
   border-bottom: 1px solid var(--color-border);
-  user-select: none;
 }
 
 .tableHead th.alignRight {
@@ -339,7 +284,8 @@
   padding: var(--space-2) var(--space-3);
   color: var(--color-text);
   vertical-align: middle;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .tableRow td.alignRight {
@@ -361,29 +307,6 @@
   font-weight: var(--font-weight-semibold);
   color: var(--color-primary);
   font-size: var(--font-size-xs);
-}
-
-.copyButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: var(--font-size-xs);
-  border-radius: var(--radius-xs);
-  transition: color 0.1s;
-}
-
-.copyButton:hover {
-  color: var(--color-primary);
-}
-
-.copyButton:focus-visible {
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 2px;
 }
 
 .productName {
@@ -505,34 +428,6 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-}
-
-.actionBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition:
-    background 0.1s,
-    color 0.1s,
-    border-color 0.1s;
-}
-
-.actionBtn:hover {
-  background: var(--color-primary);
-  color: var(--color-text-on-dark);
-  border-color: var(--color-primary);
-}
-
-.actionBtn:focus-visible {
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 2px;
 }
 
 /* Empty and error states */
@@ -703,17 +598,18 @@
 
 .colPickerPanel {
   position: absolute;
-  top: calc(100% + var(--space-1));
   right: 0;
+  top: calc(100% + var(--space-2));
+  width: min(340px, calc(100vw - 32px));
   z-index: 10;
-  min-width: 220px;
-  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   box-shadow: var(--shadow-lg);
-  padding: var(--space-2) 0;
-  max-height: 360px;
-  overflow-y: auto;
 }
 
 .colPickerTitle {
@@ -749,12 +645,8 @@
 
 /* Modal and Drawer Dialog styling (nested inside @nexora/ui Overlay) */
 .modalContent {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  max-width: 640px;
   width: 100%;
-  max-height: 90dvh;
+  max-height: calc(100dvh - 32px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -792,6 +684,7 @@
 
 .modalHeading {
   margin: 0;
+  color: var(--color-text-on-dark);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   display: flex;
@@ -815,32 +708,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.modalCloseBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-1);
-  border: none;
-  background: transparent;
-  color: var(--color-text-on-dark-muted);
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition:
-    color 0.1s,
-    background 0.1s;
-  flex-shrink: 0;
-}
-
-.modalCloseBtn:hover {
-  color: var(--color-text-on-dark);
-  background: var(--color-surface-on-dark-hover);
-}
-
-.modalCloseBtn:focus-visible {
-  outline: 2px solid var(--focus-ring-on-dark);
-  outline-offset: 2px;
 }
 
 .modalBody {
@@ -1052,27 +919,6 @@
   color: var(--color-primary);
 }
 
-.formInput,
-.formSelect {
-  width: 100%;
-  height: 32px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  font-size: var(--font-size-xs);
-  color: var(--color-text);
-  outline: none;
-  box-sizing: border-box;
-}
-
-.formInput:focus,
-.formSelect:focus {
-  border-color: var(--color-border-accent);
-  outline: 2px solid var(--focus-ring-on-light);
-  outline-offset: 1px;
-}
-
 .formRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1269,4 +1115,169 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   color: var(--color-accent-text);
+}
+
+.statusTab {
+  flex: 1 0 auto;
+}
+.searchInput {
+  width: 100%;
+  padding-inline-start: calc(var(--space-3) + 22px);
+}
+.popoverAnchor {
+  position: relative;
+}
+.filterPanel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  width: min(340px, calc(100vw - 32px));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+.filterPanel form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.popoverHeading,
+.popoverFooter,
+.presetRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.columnChoices {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  overflow: auto;
+}
+.availabilityNotice {
+  padding: var(--space-3);
+  margin: 0;
+  color: var(--color-text-muted);
+}
+.stickyTracking {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.tableHead .stickyTracking {
+  z-index: 4;
+  background: var(--color-primary);
+}
+
+.packageOverlay {
+  width: min(860px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  padding: 0;
+  overflow: hidden;
+}
+.formGroup > :is(input, select) {
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .toolbar {
+    align-items: stretch;
+  }
+  .searchGroup {
+    flex-basis: 100%;
+  }
+  .filterPanel {
+    left: auto;
+    right: 0;
+  }
+
+  .listPage {
+    height: auto;
+    min-height: calc(100dvh - var(--header-height));
+  }
+  .dataCard {
+    min-height: 280px;
+  }
+  .mobileCards {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+.tableRow .productName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.paginationInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.trackingActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.trackingAction {
+  padding-inline: var(--space-1);
+  flex: 1;
+  min-width: 0;
+  max-width: calc(100% - var(--control-size-default) - var(--space-1));
+}
+.trackingCode {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-accent-text);
+}
+.trackingMeta {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tableRow .indexCell {
+  padding: var(--space-1);
+}
+.modalTitleRow {
+  flex: 1;
+}
+.modalTitleRow > div {
+  min-width: 0;
+}
+.pageNumber {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+@media (max-width: 600px) {
+  .toolbar {
+    position: relative;
+  }
+  .popoverAnchor {
+    position: static;
+  }
+  .filterPanel,
+  .colPickerPanel {
+    left: var(--space-3);
+    right: auto;
+    top: calc(100% + var(--space-2));
+    width: calc(100% - 2 * var(--space-3));
+  }
 }

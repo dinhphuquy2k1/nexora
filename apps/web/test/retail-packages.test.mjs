@@ -18,9 +18,9 @@ import {
   PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
 } from "../features/retail-packages/columns.ts";
-import { SYNTHETIC_PACKAGES } from "../features/retail-packages/fixtures.ts";
+import { SYNTHETIC_PACKAGES } from "./fixtures/retail-packages.ts";
 import { NAVIGATION_ITEMS } from "../lib/navigation/nav-config.ts";
-import { loadComponent } from "./helpers/render-component.mjs";
+import { loadComponent, React, render } from "./helpers/render-component.mjs";
 
 describe("Retail Packages — column configuration", () => {
   it("has at least one required column", () => {
@@ -228,8 +228,6 @@ describe("Retail Packages — components and truthfulness", () => {
       ),
     );
     assert.strictEqual(typeof mod.CreatePackageDrawer, "function");
-    assert.ok(Array.isArray(mod.CARRIER_OPTIONS));
-    assert.strictEqual(mod.CARRIER_OPTIONS.length, 3);
   });
 
   it("PackageDetailDrawer exports valid React component", () => {
@@ -251,4 +249,67 @@ describe("Retail Packages — components and truthfulness", () => {
     );
     assert.strictEqual(typeof mod.PackageFeeSection, "function");
   });
+});
+
+it("production availability cannot become fake data, while available-empty preserves the list chrome", () => {
+  const { RetailPackageListPage } = loadComponent(
+    new URL(
+      "../features/retail-packages/RetailPackageListPage.tsx",
+      import.meta.url,
+    ),
+  );
+  const unavailable = render(
+    React.createElement(RetailPackageListPage, {
+      initialPackages: SYNTHETIC_PACKAGES,
+      availability: "unavailable",
+    }),
+  );
+  assert.match(unavailable, /Shipment API chưa khả dụng/);
+  assert.doesNotMatch(unavailable, /data-package-id/);
+  assert.equal((unavailable.match(/role="tab"/g) || []).length, 7);
+  assert.equal((unavailable.match(/<col(?=[\s/>])/g) || []).length, 19);
+  assert.doesNotMatch(unavailable, /NEXORA Linehaul|1900 8829/);
+  const empty = render(
+    React.createElement(RetailPackageListPage, {
+      initialPackages: [],
+      availability: "available",
+    }),
+  );
+  assert.doesNotMatch(empty, /Shipment API chưa khả dụng\. Chưa/);
+  assert.match(empty, /data-retail-count[^>]*>0(?:<!-- -->)? kiện lẻ/);
+  assert.equal((empty.match(/role="tab"/g) || []).length, 7);
+});
+it("Create uses one native dialog and no verified-looking carrier or rate; absent quote stays unavailable", () => {
+  const { CreatePackageDrawer } = loadComponent(
+    new URL(
+      "../features/retail-packages/CreatePackageDrawer.tsx",
+      import.meta.url,
+    ),
+  );
+  const html = render(
+    React.createElement(CreatePackageDrawer, { onClose() {} }),
+  );
+  assert.equal((html.match(/<dialog/g) || []).length, 1);
+  assert.doesNotMatch(html, /role="dialog"|NEXORA Linehaul|SLA:|3%/);
+  assert.match(html, /Chưa có dữ liệu hãng vận chuyển/);
+  const { PackageFeeSection } = loadComponent(
+    new URL(
+      "../features/retail-packages/PackageFeeSection.tsx",
+      import.meta.url,
+    ),
+  );
+  for (const value of [undefined, NaN, Infinity, -1])
+    assert.match(
+      render(
+        React.createElement(PackageFeeSection, {
+          totalAmountVND: value,
+          weightKg: 10,
+        }),
+      ),
+      /Chưa có báo giá/,
+    );
+  assert.doesNotMatch(
+    render(React.createElement(PackageFeeSection, { totalAmountVND: 0 })),
+    /Chưa có báo giá/,
+  );
 });

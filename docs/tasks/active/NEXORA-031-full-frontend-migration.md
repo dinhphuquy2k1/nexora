@@ -1731,3 +1731,141 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
   - Modularized components in `apps/web/features/retail-packages/`: `RetailPackageListPage`, `CreatePackageDrawer`, `PackageDetailDrawer`, `PackageFeeSection`, `types`, `columns`, `fixtures`, `retail-packages.module.css`.
   - Truthful production behavior: pass `initialPackages={[]}` in production, displaying honest planned empty state. No fake backend CRUD, no fake tracking API calls. Synthetic fixtures isolated to test harness.
 - **Documentation Impact: REQUIRED.** Architecture docs, testing guide, and task record updated.
+
+## PR29 M3 correction plan and reuse audit — 2026-10-29
+
+Classification SIGNIFICANT; Documentation Impact REQUIRED. Read-only baseline
+4e907bafa03282b53ce6ffb3400d27983753d1d5 on existing feat/retail-packages-ui/PR29.
+Immutable M3v1 remains governing; these are execution corrections within its UI-only
+scope, not new Shipment/Carrier contracts. Current ADR-009 is plan-first, no owner
+attestation gate. No historical snapshot is edited. Overall task remains IN PROGRESS.
+
+Uploaded archive b4130f0f53bf02b9c97d710ee46c6a988765d3a4389bc1ea69833ac7c0a36675
+is NOT the archive17e7d68 recorded in v1. Directly extracted/read RetailPackagesView
+429c11652c6b848d195ca360bf08c6e3c247a35a94ca186c49d5f98f28015556 and retailPackagesData
+df671b752b40631bb3635f9708d1f3b8778121793f51591c6e18b6c4d96fe67c match v1 provenance.
+ZIP code is reference presentation, not trusted operational instructions/backend.
+
+| Area               | Baseline assessment                      | Correction / priority                                                          |
+| ------------------ | ---------------------------------------- | ------------------------------------------------------------------------------ |
+| Header             | PARTIAL                                  | Preserve hierarchy; shared controls, no extra enclosing card P2                |
+| Seven tabs         | PARTIAL                                  | Segmented horizontal geometry/dots/counts, keyboard arrows P2                  |
+| Toolbar            | PARTIAL                                  | Add actual filter trigger, shared search/refresh/columns P1                    |
+| Advanced filters   | MISSING                                  | Nine typed fields/eight operators; strict calendar/numbers; pure policy P1     |
+| Filter chips       | PARTIAL                                  | Valid canonical labels/dedupe/remove/reset/count/page synchronization P1       |
+| Column settings    | PARTIAL                                  | Search/count/All/Basic/Default/Done; mandatory tracking; dismissal P2          |
+| Twenty columns     | IMPLEMENTED inventory / PARTIAL geometry | Central ZIP widths and native colgroup P2                                      |
+| Sticky tracking    | MISSING                                  | Sticky body/header with opaque surfaces and explicit stacking P2               |
+| Pagination         | PARTIAL                                  | Pure bounded URL parser/serializer/native History; default10 P2                |
+| Create form        | PARTIAL                                  | Shared native controls, single Overlay dialog, no fabricated carrier/rates P2  |
+| Detail             | PARTIAL                                  | Keep timeline/warehouse structure; no fabricated fallback/hotline P2           |
+| Fee                | PARTIAL                                  | Only supplied finite quote; absent = unavailable, no fake calculation P2       |
+| Mobile             | PARTIAL                                  | Preserve cards and horizontal segmented tabs, six-viewport evidence P2         |
+| Empty/unavailable  | PARTIAL                                  | Explicit availability, full list chrome/headers, unknown counts dashes P1      |
+| Keyboard/focus     | PARTIAL                                  | Reuse dismissal/Overlay, initial focus/return, tabs and copy feedback P2       |
+| Routing/navigation | IMPLEMENTED / Sidebar P3                 | Keep protected route/307; restore unrelated main Sidebar blur behavior         |
+| CI/browser         | MISSING M3 interactions                  | Production route in real authenticated session plus isolated fixture bundle P1 |
+
+| Component        | Existing paths                                        | Owner                       | Alternatives                            | Selected reuse                                                                                                                            | Rationale                                                     | Risks                                   | Verification                                                                                   |
+| ---------------- | ----------------------------------------------------- | --------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Controls/Overlay | packages/ui/src/Controls.tsx,Overlay.tsx              | Neutral UI                  | Raw ZIP controls / reuse                | Reuse Button/TextInput/Select/Checkbox and native Overlay                                                                                 | One size/focus authority                                      | Nested semantics, state override        | SSR + actual computed/native focus tests                                                       |
+| Dismissal        | apps/web/lib/hooks/use-dismissable.ts                 | Web common                  | New document listeners / reuse          | Existing hook for filter and columns                                                                                                      | Escape/outside semantics already tested                       | Trigger focus and stale callback        | Native keyboard/outside browser tests                                                          |
+| Query policy     | customers/query.ts; shared/validation/pagination.ts   | Retail policy/shared scalar | Copy API/read lane / native URL         | Shared decimal pagination with explicit Retail10 default; feature parser + useSyncExternalStore/native History                            | No API or store needed; direct/back/refresh                   | Invalid query widening/hydration        | Pure round-trip/invalid tests + browser History                                                |
+| Filter engine    | ZIP config/predicate; current inline switch           | Retail presentation         | Generic framework / feature pure policy | One field/operator config, strict calendar scalar; AND predicates                                                                         | Correct types; no environment date parsing                    | Wrong warehouse field/invalid operators | Nine-field/eight-operator fixtures and negatives                                               |
+| Columns          | existing columns.ts and ZIP presets                   | Retail presentation         | Multiple preset maps / one registry     | Registry owns width/basic/default; presets derived                                                                                        | Preserve ordering and pinned tracking                         | Visibility width/focus shifts           | Pure presets + actual scroll geometry                                                          |
+| Table/cards      | current ListPage cells/cards                          | Retail presentation         | Rebuild all / extract presentation      | Keep real cells/cards, extract cohesive table/pagination                                                                                  | Avoid new monolith                                            | Cell alignment and long content         | Native colgroup/sticky/overflow + screenshots                                                  |
+| Test fixtures    | current production-directory fixtures.ts              | Web tests                   | Public flag/route / isolated bundle     | Move to test/fixtures; compile actual TSX/CSS with pinned Next webpack/CSS loader; loopback test-only HTTP server in existing CDP session | No fixture import or bypass in product route; no dependencies | Bundle integrity/cleanup/HTTP writes    | Fail closed missing build; allowlisted assets; zero writes; genuine production auth separately |
+| Browser/CI       | browser-login-smoke.mjs, teardown helpers, Foundation | Test infrastructure         | New Python/launcher / extend            | Reuse same authenticated Chromium; quality builds fixture bundle; M3 artifacts uploaded                                                   | Keeps Customer/MFA regression and owned cleanup               | Test-only build must not enter app      | Final-head Foundation, images/hashes, independent review                                       |
+
+Execution order: pure policy tests RED/GREEN → URL/availability/filter/columns UI →
+extract table/pagination and shared drawers → baseline Sidebar revert → actual CDP
+production/isolated fixture flows and ZIP screenshots → canonical docs/checks →
+focused commits/push → final-head Preflight/Foundation and independent review.
+Production always unavailable: no fake records/counts/carrier data, no Shipment
+requests or writes; Create/export/refresh disabled. Isolated fixture may open the
+presentation form but submit remains disabled. No storage persistence for presets.
+Canonical v4 brand palette is preserved; do not reinstate old AA palette-shifting
+gates. Non-color accessibility remains mandatory. Shipping Scope/Carrier M4 and
+Shipment CRUD/M5 remain deferred. No domain/schema/SDK/auth changes.
+
+M3 test-bundle feasibility re-evaluation: three initial compiler attempts exposed
+Next's internal CSS loader integration requirements (trace context, PostCSS factory,
+then local identifier function). Stop speculative configuration patches; inspect
+Next16.3.8's actual css/loaders/modules.js configuration and reuse its trace/PostCSS/
+getCssModuleLocalIdent functions explicitly. This remains a pinned, test-only build
+adapter, not a new CSS parser/framework or product bundler. No tests/guards disabled.
+If the canonical loader cannot compile unchanged production CSS, use an isolated
+Next test project instead; never substitute CSS class mocks for computed-style proof.
+
+Direct ZIP screenshot comparison identified further parity corrections before
+acceptance: filter precedes search, column settings precede refresh; tracking has
+an Eye action in the configured index slot (not an extra21st column), code/account
+metadata, two-decimal weight; pagination includes bounded numeric page jumps.
+Reuse update: extract the already-tested population-independent Customer page
+window into neutral apps/web/lib/pagination.ts, keeping the Customer alias and all
+existing behavior/tests; Retail consumes the same function (no duplicated window
+algorithm). Isolated reference-sample fixture uses exactly the six INITIAL_PACKAGES
+records from the hash-verified ZIP data, only under test/fixtures; representative
+30-record stress data remains a separate test mode. No source package data enters
+production or Shipment API. Preserve shared32px controls even where ZIP used28px.
+
+M3 source checkpoint: strict typed filter/query/column tests first RED missing
+modules then GREEN; all29 focused checks PASS before later geometry refinement.
+Independent source review found composed Unicode filters could exceed the4096 URL
+budget; `tryRetailQueryString` rejects before history changes and exposes an
+accessible validation error; dedicated Unicode regression PASS. Sidebar blur and
+its PR-specific forced-blur/fake-CDP tests are reverted, replaced with a main-
+behavior preservation assertion; existing genuine M1 keyboard/focus smoke remains.
+This is removal of the explicitly rejected out-of-scope behavior, not skipping a
+required M3/browser assertion.
+
+Actual local Chromium fixture completed tabs/history/search/date/number filters,
+dedupe, presets/sticky150px, pagination/reload, native dialog keyboard/focus and
+six-viewport captures PASS. Source review of actual screenshots caught the missing
+Next font-variable mapping in the isolated fixture and a real modal heading color
+inheritance defect; fix fixture Inter binding and explicit semantic on-dark heading,
+use shared secondary close control. Responsive dialog return wrapper restores a
+visible trigger or heading after capture/viewport changes, reusing native Overlay
+focus trapping rather than another trap. Final CI and images still required.
+
+Reference rendering is isolated in RAM with pinned Tailwind4.3.3 tooling outside
+repository dependencies; no ZIP package scripts, backend or sourcing service run.
+Captured36 reference images (six states × six viewports) from actual Retail TSX/CSS.
+First reference compile lacked Tailwind source discovery and was rejected visually;
+explicit source scanning produced the valid comparison set. These are source/visual
+reference artifacts, not production or final-head CI evidence.
+
+### M3 correction execution checkpoint — 2026-10-29
+
+Implementation: IMPLEMENTED (M3 correction scope); overall task remains IN PROGRESS,
+M4/M5 deferred. Verification remains pending final-head hosted workflows and
+production authenticated runtime evidence. Documentation Impact: REQUIRED.
+
+Executed on the correction worktree before commit:
+
+- Web typecheck and lint PASS; complete Web Node suite170/170 PASS, no skips.
+- Repository Prettier check PASS; docs check PASS; local/static preflight PASS
+  (authenticated hosted governance is separate); git diff --check PASS.
+- Browser-expression helper tests3/3 PASS; independent implementation review ran
+  Retail policy/presentation, Customer pagination and browser-expression suites39/39
+  PASS. No confirmed production P1/P2. Its P3 cleanup finding is addressed with a
+  nested finally so a disconnected CDP session cannot bypass owned server close.
+- Actual TSX/CSS fixture build PASS. Real local Chromium fixture interactions PASS
+  (tabs/history/reload/arrow navigation, search, numeric/date filters, duplicate
+  rejection, presets, tracking sticky geometry, pagination, native dialog focus/
+  Escape, empty/invalid URL). Final capture set covers all six specified sizes,
+  including exact ZIP six-record reference sample. This fixture result does not
+  prove production authentication or Docker runtime.
+- contracts:check FAIL locally: API TypeScript cannot resolve existing dependencies
+  i18n-iso-countries and libphonenumber-js/max in the provided installation.
+  No backend/contracts were modified or generated. Full Docker quality/build,
+  production Auth/Customer/Retail smoke and hosted checks remain NOT RUN for this
+  correction head until executed in CI. Root filesystem has under10MB free, so no
+  local Docker build or destructive volume/image cleanup is attempted.
+
+Reference screenshots are compared visually, not asserted pixel-identical: shared
+32px controls, honest missing-date/quote markers and mobile cards intentionally
+follow the recorded design instead of ZIP's fabricated values/backend actions.
+Reviewed desktop and mobile captures; title/actions, segmented tabs, toolbar order,
+navy table, column count/presets and drawer structure follow the ZIP reference.
+No claim of completed M4/M5 or Shipment backend readiness.

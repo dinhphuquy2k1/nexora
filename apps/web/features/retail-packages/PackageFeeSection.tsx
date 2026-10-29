@@ -20,12 +20,11 @@ export interface PackageFeeSectionProps {
   readonly domesticShipCNY?: number;
 }
 
-export function PackageFeeSection({
-  totalAmountVND,
-  weightKg,
-}: PackageFeeSectionProps) {
+export function PackageFeeSection({ totalAmountVND }: PackageFeeSectionProps) {
   const hasAuthorizedPricing =
-    typeof totalAmountVND === "number" && totalAmountVND > 0;
+    typeof totalAmountVND === "number" &&
+    Number.isFinite(totalAmountVND) &&
+    totalAmountVND >= 0;
 
   return (
     <div className={styles.feeSection} aria-label="Báo giá cước phí">
@@ -41,7 +40,7 @@ export function PackageFeeSection({
       </div>
       <p className={styles.feeNotice}>
         {hasAuthorizedPricing
-          ? `Cước phí tính trên trọng lượng ${weightKg ?? 0} kg từ kho gửi đến kho nhận.`
+          ? "Theo dữ liệu báo giá được cung cấp."
           : "Biểu phí chính thức cho tuyến này chưa được cấu hình hoặc chưa có kết nối bảng giá từ máy chủ."}
       </p>
     </div>

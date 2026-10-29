@@ -8,9 +8,10 @@
  */
 
 import { Truck, X, Clock } from "lucide-react";
-import { Overlay, Button } from "@nexora/ui";
+import { Button } from "@nexora/ui";
 import type { RetailPackage } from "./types.ts";
 import { PackageFeeSection } from "./PackageFeeSection.tsx";
+import { RetailPackageDialog } from "./RetailPackageDialog.tsx";
 import styles from "./retail-packages.module.css";
 
 export interface PackageDetailDrawerProps {
@@ -23,13 +24,11 @@ export function PackageDetailDrawer({
   onClose,
 }: PackageDetailDrawerProps) {
   return (
-    <Overlay
-      open
-      side={false}
+    <RetailPackageDialog
       label={`Chi tiết lộ trình kiện hàng ${pkg.trackingCode}`}
-      onDismiss={onClose}
+      onClose={onClose}
     >
-      <div className={styles.modalContent} role="dialog" aria-modal="true">
+      <div className={styles.modalContent}>
         {/* Modal Header */}
         <div className={styles.modalHeader}>
           <div className={styles.modalTitleRow}>
@@ -46,14 +45,15 @@ export function PackageDetailDrawer({
               <p className={styles.modalSubheading}>{pkg.productName}</p>
             </div>
           </div>
-          <button
-            type="button"
+          <Button
+            icon
+            variant="secondary"
             onClick={onClose}
-            className={styles.modalCloseBtn}
             aria-label="Đóng chi tiết"
+            autoFocus
           >
             <X size={16} aria-hidden="true" />
-          </button>
+          </Button>
         </div>
 
         {/* Modal Content */}
@@ -77,7 +77,11 @@ export function PackageDetailDrawer({
               <span
                 className={`${styles.summaryVal} ${styles.summaryValHighlight}`}
               >
-                {pkg.totalAmountVND.toLocaleString("vi-VN")} đ
+                {typeof pkg.totalAmountVND === "number" &&
+                Number.isFinite(pkg.totalAmountVND) &&
+                pkg.totalAmountVND >= 0
+                  ? pkg.totalAmountVND.toLocaleString("vi-VN") + " đ"
+                  : "Chưa có báo giá"}
               </span>
             </div>
           </div>
@@ -96,23 +100,19 @@ export function PackageDetailDrawer({
           <div className={styles.carrierCard}>
             <div className={styles.carrierLeft}>
               <div className={styles.carrierBadge} aria-hidden="true">
-                {pkg.carrierCode || "NEX"}
+                {pkg.carrierCode || "—"}
               </div>
               <div>
                 <div className={styles.carrierTitle}>
-                  <span>{pkg.carrierName || "NEXORA Linehaul"}</span>
+                  <span>
+                    {pkg.carrierName || "Chưa có dữ liệu hãng vận chuyển"}
+                  </span>
                 </div>
                 <div className={styles.carrierSub}>
                   Gói cước:{" "}
-                  <strong>
-                    {pkg.carrierService || "Chuyên tuyến TQ - VN"}
-                  </strong>
+                  <strong>{pkg.carrierService || "Chưa có dữ liệu"}</strong>
                 </div>
               </div>
-            </div>
-            <div className={styles.carrierRight}>
-              <span className={styles.hotlineLabel}>Hotline đối tác</span>
-              <span className={styles.hotlineVal}>1900 8829</span>
             </div>
           </div>
 
@@ -128,7 +128,7 @@ export function PackageDetailDrawer({
           <div className={styles.timelineSection}>
             <h3 className={styles.timelineHeading}>
               <Clock size={14} aria-hidden="true" />
-              <span>Tiến trình vận chuyển thực tế</span>
+              <span>Tiến trình vận chuyển</span>
             </h3>
 
             <div className={styles.timelineList}>
@@ -172,6 +172,6 @@ export function PackageDetailDrawer({
           </Button>
         </div>
       </div>
-    </Overlay>
+    </RetailPackageDialog>
   );
 }

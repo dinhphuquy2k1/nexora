@@ -283,3 +283,11 @@ and all size/color contracts are owned by [Design System](design-system.md).
 - **Phone (option A)**: Frontend validates raw requiredness/length/trim only, enforcing the Customer 64-character input limit **before** trim; backend trims first, then checks the 64-character bound and authoritatively validates/normalizes E.164 using `apps/api/src/common/value-objects/phone-number.ts`. This pre-existing UX/API difference is protected by independent Web/API compatibility tests: a padded number over 64 raw characters is rejected by Web, but can be valid directly through the API. No phone-number parsing library is added to browser/shared bundles.
 - **Boundaries**: shared never throws NestJS/React/Customer errors or imports application packages; backend retains Domain VOs, Zod email format, owner invariants and HTTP error mapping; frontend retains field messages and safe UX. `scripts/boundaries.mjs` enforces that each file under `packages/shared/src/validation/` imports/re-exports only relative modules within that directory; shared modules outside validation, framework packages and other dependencies are prohibited. Positive and negative boundary tests protect this constraint.
 - **Date validation**: no speculative date utility; extract only when a concrete BE/FE consumer appears.
+
+## Bounded pagination presentation window
+
+`apps/web/lib/pagination.ts` owns the pure population-independent `pageWindow()`
+used by Customer and Retail pagination. Customer keeps its `customerPageWindow`
+alias for compatibility; the existing algorithm and tests are unchanged. This
+helper owns only bounded page-number presentation, not feature page-size defaults,
+API pagination authority, query validation or read/mutation lifecycle.

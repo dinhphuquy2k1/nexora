@@ -27,11 +27,6 @@ export function NavigationItem({
           aria-current={isActive ? "page" : undefined}
           aria-label={item.label}
           title={isCollapsed ? item.label : undefined}
-          onClick={(event) => {
-            if (event.detail > 0) {
-              event.currentTarget.blur();
-            }
-          }}
         >
           {isActive && (
             <span className={styles.activeIndicator} aria-hidden="true" />
