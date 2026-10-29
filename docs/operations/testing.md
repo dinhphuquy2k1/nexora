@@ -359,3 +359,33 @@ an active Toast alert. Do not restore obsolete global-alert assumptions.
 ### Customer recovery and Chromium readiness evidence (2026-10-28)
 
 The existing authenticated CDP Customer smoke uses real server writes with response-stage failure injection (completed PATCH/PUT response loss) to verify a GET-only reconciliation and explicit user recovery; it must never treat synthetic request-stage HTTP 500 as proof that a genuine write committed. The default-address delete negative-path browser fixture requires acknowledgement and a fresh editor before retrying after an ambiguous 500 response. Login browser startup retains the required Chromium/DevTools gate with a bounded 20-second cold-runner startup window; a missing DevTools port remains an explicit failure with safe diagnostic categories, not a skipped test.
+
+## Retail M3 browser verification
+
+`sh scripts/quality-docker.sh` additionally compiles a test-only Retail browser
+bundle with the pinned Next webpack/CSS loader and TypeScript compiler. Generated
+output is `artifacts/retail-fixture/`; source entry and synthetic data are under
+`apps/web/test/fixtures/`. No fixture production route, public environment bypass,
+mock Shipment API or persistence is introduced. Product build never imports this
+entry. The CSS adapter uses actual CSS Modules, root tokens and the local Inter
+asset, not mocked class names/computed values.
+
+`browser-login-smoke.mjs` extends its existing authenticated Chromium/CDP session
+through `retail-browser-checks.mjs`. First verify protected production route/session,
+wide AppShell, seven tabs/19 default-visible configured columns, explicit unavailable
+counts and disabled writes. Then ADMIN exercises an isolated loopback fixture
+server (allowlisted HTML/bundle/font only) with30 representative records, every tab,
+search, typed advanced filters, chips, columns/presets, sticky tracking, pagination,
+URL direct/reload/history, native dialog Tab/Shift+Tab/Escape/return focus and empty/
+invalid states. The server is closed with owned connections in finally; no new
+Chromium launcher is added. Unknown/unavailable Shipment requests and fixture writes
+fail verification. OPERATOR separately repeats the actual protected route check.
+
+Foundation sets `M3_EVIDENCE_DIR=artifacts/m3` and uploads Retail manifests/screens.
+Viewports1440×900/1280×800/1024×768/768×1024/390×844/375×812. Each capture asserts
+no document overflow, shared32px controls, seven tabs and dialog viewport fit;
+manifest records source merge SHA, image hashes and DOM geometry. Missing compiled
+fixture/evidence fails, never skips. Exact six-record ZIP reference-sample is a
+separate isolated test path, not a product query/feature flag. Screenshot comparison
+must disclose canonical AppShell/control/color contracts, unavailable operations and
+synthetic test data differences; build success is not visual acceptance.

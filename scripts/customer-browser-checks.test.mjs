@@ -38,6 +38,7 @@ test("static CDP expressions are valid JavaScript before a genuine browser run",
   for (const name of [
     "customer-browser-checks.mjs",
     "customer-read-races.mjs",
+    "retail-browser-checks.mjs",
     "workspace-geometry-checks.mjs",
     "customer-control-checks.mjs",
     "m1-visual-checks.mjs",
