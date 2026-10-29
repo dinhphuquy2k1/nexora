@@ -1869,3 +1869,14 @@ follow the recorded design instead of ZIP's fabricated values/backend actions.
 Reviewed desktop and mobile captures; title/actions, segmented tabs, toolbar order,
 navy table, column count/presets and drawer structure follow the ZIP reference.
 No claim of completed M4/M5 or Shipment backend readiness.
+
+Follow-up execution: canonical root `pnpm lint` PASS (workspace boundaries + ESLint),
+Web typecheck PASS and Web tests170/170 PASS again. `pnpm --filter @nexora/web lint`
+was an invalid invocation because this workspace has no lint script; it is not a
+code-lint failure and does not replace the successful root command. Extended real
+Chromium assertions also PASS for AND filters, individual chip removal, default
+column reset, Escape/trigger return, and open filter/column popover bounds across
+all six sizes. Browser expression tests3/3 PASS; actual screenshot manifests retain
+per-image geometry and SHA-256. Reference tooling remains outside repository and
+product dependencies. Current hosted evidence belongs only to each recorded run's
+head; final workflow links/results are reconciled in PR metadata after completion.

@@ -128,11 +128,12 @@ export async function verifyRetailBrowser({
         "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true)))))",
       );
       const geometry = await evaluate(
-        `(()=>{const list=document.querySelector('#retail-packages-list-page'),tabs=document.querySelector('[role=tablist]'),table=document.querySelector('table'),dialog=document.querySelector('dialog[open]');return{noOverflow:document.documentElement.scrollWidth<=innerWidth,tabs:tabs.querySelectorAll('[role=tab]').length,cols:table.querySelectorAll('colgroup col').length,availability:list.dataset.availability,dialog:!!dialog,dialogFits:!dialog||dialog.getBoundingClientRect().width<=innerWidth,controls:Array.from(document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')).filter(e=>e.getClientRects().length&&!e.closest('[inert]')).map(e=>e.getBoundingClientRect().height)};})()`,
+        `(()=>{const list=document.querySelector('#retail-packages-list-page'),tabs=document.querySelector('[role=tablist]'),table=document.querySelector('table'),dialog=document.querySelector('dialog[open]');return{noOverflow:document.documentElement.scrollWidth<=innerWidth,tabs:tabs.querySelectorAll('[role=tab]').length,cols:table.querySelectorAll('colgroup col').length,availability:list.dataset.availability,dialog:!!dialog,dialogFits:!dialog||dialog.getBoundingClientRect().width<=innerWidth,panelsFit:Array.from(document.querySelectorAll('[role=dialog]')).filter(e=>e.getClientRects().length).every(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth}),controls:Array.from(document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')).filter(e=>e.getClientRects().length&&!e.closest('[inert]')).map(e=>e.getBoundingClientRect().height)};})()`,
       );
       assert.equal(geometry.noOverflow, true);
       assert.equal(geometry.tabs, 7);
       assert.equal(geometry.dialogFits, true);
+      assert.equal(geometry.panelsFit, true, "popover remains within viewport");
       assert.ok(geometry.controls.length > 0);
       assert.ok(
         geometry.controls.every((h) => Math.abs(h - 32) < 1),
@@ -297,6 +298,7 @@ export async function verifyRetailBrowser({
       "document.querySelector('[data-retail-count]').textContent==='30 kiện lẻ'",
     );
     await click("Bộ lọc nâng cao");
+    await snapshot("filter-popover");
     await select("Trường lọc", "weightKg");
     await select("Toán tử", "greater_than");
     await type("Giá trị", "5");
@@ -316,6 +318,20 @@ export async function verifyRetailBrowser({
       "document.querySelector('[role=alert]')?.textContent.includes('đã tồn tại')",
     );
     await key("Escape");
+    await click("Bộ lọc nâng cao");
+    await select("Trường lọc", "weightKg");
+    await select("Toán tử", "less_than");
+    await type("Giá trị", "10");
+    await click("Thêm điều kiện");
+    await until(
+      "document.querySelector('[data-retail-count]').textContent==='4 kiện lẻ'",
+    );
+    await evaluate(
+      `document.querySelector('button[aria-label^="Xóa bộ lọc:"]').click();true`,
+    );
+    await until(
+      "document.querySelector('[data-retail-count]').textContent==='9 kiện lẻ'",
+    );
     await click("Xóa tất cả");
     await until(
       "document.querySelector('[data-retail-count]').textContent==='30 kiện lẻ'",
@@ -342,6 +358,18 @@ export async function verifyRetailBrowser({
       await evaluate("document.querySelectorAll('colgroup col').length"),
       7,
     );
+    await click("Mặc định");
+    assert.equal(
+      await evaluate("document.querySelectorAll('colgroup col').length"),
+      19,
+    );
+    await key("Escape");
+    await until("!document.querySelector('[role=dialog]')");
+    assert.equal(
+      await evaluate("document.activeElement.getAttribute('aria-label')"),
+      "Tùy chỉnh cột hiển thị",
+    );
+    await click("Tùy chỉnh cột hiển thị");
     await click("Tất cả");
     assert.equal(
       await evaluate("document.querySelectorAll('colgroup col').length"),
