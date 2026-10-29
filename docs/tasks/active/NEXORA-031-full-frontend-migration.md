@@ -10,10 +10,10 @@ Documentation Impact: REQUIRED
 
 - **Task ID**: NEXORA-031
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-27-shared-validation-v1
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-27-shared-validation-v1.md
-- **Design SHA-256**: a7bc4e9ad1b680350442bb6f1b02499738a8244f5e1a7abd32d4cacda6b91522
-- **Reviewed baseline**: d9f8cbdec06fa264ecf35bf0ddae53452dc55beb
+- **Plan revision**: rev-2026-10-29-retail-packages-m3-v1
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-29-retail-packages-m3-v1.md
+- **Design SHA-256**: 661ae87cd8f93d5995bc1a8ac36cde96ea2dd1b7b473497b79406c077798d1de
+- **Reviewed baseline**: 837e8238a91350bd741dcd3e935052f0aa2d9eb5
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: APPROVED (historical metadata only; no current approval gate)
 - **Approval evidence**: Historical owner comment for rev-2026-10-26-color-policy-m2-v4 (digest 01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53). This comment does not independently validate its snapshot or supersede governing documentation; v3 still governs unrelated visual choices.
@@ -1717,3 +1717,17 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
   - Canonical Docker verification: `sh scripts/quality-docker.sh`.
   - Real browser smoke: verify ADMIN and OPERATOR customer flows, PATCH lost-response recovery, tab filters, and drawer close/reopen.
   - Push commit to PR #28 branch and verify hosted CI Foundation workflow.
+
+## Scoped Implementation Plan — Retail Packages UI (M3) — 2026-10-29
+
+- **Task Reference & Classification:** NEXORA-031; SIGNIFICANT milestone M3 implementation on branch `feat/retail-packages-ui` targeted at `main`, baseline `837e8238a91350bd741dcd3e935052f0aa2d9eb5`.
+- **Reference Provenance:** Archive `17e7d68fccf654fac306f9fbde49fa4646cd770191f3922a77962776e0b1b3e5`; `src/components/RetailPackagesView.tsx` (`429c11652c6b848d195ca360bf08c6e3c247a35a94ca186c49d5f98f28015556`), `src/data/retailPackagesData.ts` (`df671b752b40631bb3635f9708d1f3b8778121793f51591c6e18b6c4d96fe67c`).
+- **Design Review Snapshot:** `docs/tasks/design-reviews/NEXORA-031-rev-2026-10-29-retail-packages-m3-v1.md`, SHA-256 `661ae87cd8f93d5995bc1a8ac36cde96ea2dd1b7b473497b79406c077798d1de`.
+- **Architectural Scope:**
+  - Route `/shipments/retail` with server-side session guard under existing `AppShell`.
+  - Legacy redirect `/logistics/parcels` -> `/shipments/retail` (HTTP 307 with preserved query string).
+  - Activate `shipment` item in `nav-config.ts` (`available`, `/shipments/retail`, `contentVariant: "wide"`) and update `APPROVED_NAVIGATION_CONTRACT`.
+  - 20-column model with sticky trackingCode; 7 status tabs; 9 filter fields with operator support; pagination default 10 (options: 5, 10, 20, 50, 100).
+  - Modularized components in `apps/web/features/retail-packages/`: `RetailPackageListPage`, `CreatePackageDrawer`, `PackageDetailDrawer`, `PackageFeeSection`, `types`, `columns`, `fixtures`, `retail-packages.module.css`.
+  - Truthful production behavior: pass `initialPackages={[]}` in production, displaying honest planned empty state. No fake backend CRUD, no fake tracking API calls. Synthetic fixtures isolated to test harness.
+- **Documentation Impact: REQUIRED.** Architecture docs, testing guide, and task record updated.
