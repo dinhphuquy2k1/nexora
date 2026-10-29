@@ -13,7 +13,7 @@
  * - Exports plain RetailPackageListPage component; server page.tsx wraps it.
  */
 
-import { useState, useMemo, useCallback, useId, useRef } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import {
   Package,
   Search,
@@ -23,8 +23,6 @@ import {
   Eye,
   X,
   Columns3,
-  Clock,
-  Truck,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -44,7 +42,10 @@ import {
   STATUS_TABS,
   DEFAULT_COLUMN_VISIBILITY,
   PAGE_SIZE,
+  PAGE_SIZE_OPTIONS,
 } from "./columns.ts";
+import { CreatePackageDrawer } from "./CreatePackageDrawer.tsx";
+import { PackageDetailDrawer } from "./PackageDetailDrawer.tsx";
 import styles from "./retail-packages.module.css";
 
 /** Minimal props for the page. No ownerId needed (no API). */
@@ -121,132 +122,6 @@ function StatusBadge({ status, label }: { status: string; label: string }) {
       <span className={styles.statusDot} aria-hidden="true" />
       {label}
     </span>
-  );
-}
-
-interface DetailModalProps {
-  pkg: RetailPackage;
-  onClose: () => void;
-}
-
-function DetailModal({ pkg, onClose }: DetailModalProps) {
-  const headingId = useId();
-  return (
-    <div
-      className={styles.modalOverlay}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={headingId}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className={styles.modalPanel}>
-        {/* Header */}
-        <div className={styles.modalHeader}>
-          <div className={styles.modalHeaderIcon} aria-hidden="true">
-            <Truck size={14} />
-          </div>
-          <div className={styles.modalHeaderText}>
-            <h2 id={headingId} className={styles.modalHeaderTitle}>
-              <span>Lộ trình kiện hàng:</span>
-              <span className={styles.modalTrackingBadge}>
-                {pkg.trackingCode}
-              </span>
-              <span className={styles.modalTrackingBadge}>
-                {pkg.weightKg} kg
-              </span>
-            </h2>
-            <p className={styles.modalHeaderSub}>{pkg.productName}</p>
-          </div>
-          <button
-            type="button"
-            className={styles.modalCloseBtn}
-            onClick={onClose}
-            aria-label="Đóng chi tiết"
-          >
-            <X size={16} aria-hidden="true" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className={styles.modalContent}>
-          {/* Summary strip */}
-          <div className={styles.summaryStrip}>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Trạng thái</span>
-              <span className={styles.summaryValue}>{pkg.statusText}</span>
-            </div>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Cân nặng</span>
-              <span className={styles.summaryValue}>{pkg.weightKg} kg</span>
-            </div>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Giá trị hàng</span>
-              <span className={styles.summaryValue}>
-                {formatCNY(pkg.valueCNY)}
-              </span>
-            </div>
-            <div className={styles.summaryItem}>
-              <span className={styles.summaryLabel}>Tổng cước phí</span>
-              <span
-                className={`${styles.summaryValue} ${styles.summaryValueAccent}`}
-              >
-                {formatVND(pkg.totalAmountVND)}
-              </span>
-            </div>
-          </div>
-
-          {/* Warehouse info */}
-          <div className={styles.warehouseInfo}>
-            <div>
-              <strong>Kho gửi TQ:</strong> {pkg.originWarehouseName}
-            </div>
-            <div>
-              <strong>Kho nhận VN:</strong> {pkg.destWarehouseName}
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div className={styles.timelineSection}>
-            <h3 className={styles.timelineTitle}>
-              <Clock
-                size={14}
-                aria-hidden="true"
-                style={{ color: "var(--color-accent)" }}
-              />
-              Tiến trình vận chuyển thực tế
-            </h3>
-            <div className={styles.timelineList} role="list">
-              {pkg.timeline.map((step, idx) => (
-                <div key={idx} className={styles.timelineItem} role="listitem">
-                  <div
-                    className={`${styles.timelineDot} ${step.completed ? styles.timelineDotCompleted : styles.timelineDotPending}`}
-                    aria-hidden="true"
-                  />
-                  <div className={styles.timelineItemHeader}>
-                    <span
-                      className={`${styles.timelineItemTitle} ${step.current ? styles.timelineItemTitleCurrent : ""}`}
-                    >
-                      {step.title}
-                    </span>
-                    <span className={styles.timelineItemTime}>{step.time}</span>
-                  </div>
-                  <p className={styles.timelineItemDesc}>{step.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className={styles.modalFooter}>
-          <Button variant="primary" onClick={onClose}>
-            Đóng chi tiết
-          </Button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -328,6 +203,7 @@ export function RetailPackageListPage({
   const [detailPackage, setDetailPackage] = useState<RetailPackage | null>(
     null,
   );
+  const [showCreateDrawer, setShowCreateDrawer] = useState(false);
 
   // Filter packages client-side (no API)
   const filtered = useMemo(() => {
@@ -437,13 +313,12 @@ export function RetailPackageListPage({
               <span className={styles.exportLabel}>Xuất Excel</span>
             </Button>
             <Button
-              variant="primary"
-              disabled
-              aria-label="Tạo kiện lẻ mới (chưa khả dụng)"
-              title="Chức năng tạo kiện lẻ mới chưa được triển khai."
+              variant="emphasis"
+              onClick={() => setShowCreateDrawer(true)}
+              aria-label="Tạo kiện lẻ mới"
             >
               <Plus size={16} aria-hidden="true" />
-              <span>TẠO KIỆN LẺ</span>
+              <span>Tạo kiện lẻ</span>
             </Button>
           </div>
         </div>
@@ -981,11 +856,34 @@ export function RetailPackageListPage({
 
             {/* Pagination footer */}
             <div className={styles.paginationBar} aria-label="Điều hướng trang">
-              <span className={styles.paginationInfo}>
-                {filtered.length === 0
-                  ? "Không có kết quả"
-                  : `${(currentPage - 1) * query.pageSize + 1}–${Math.min(currentPage * query.pageSize, filtered.length)} / ${filtered.length} kiện`}
-              </span>
+              <div className={styles.pageSizeWrapper}>
+                <span className={styles.paginationInfo}>
+                  {filtered.length === 0
+                    ? "Không có kết quả"
+                    : `${(currentPage - 1) * query.pageSize + 1}–${Math.min(currentPage * query.pageSize, filtered.length)} / ${filtered.length} kiện`}
+                </span>
+                <label className={styles.pageSizeLabel}>
+                  <span>Hiển thị:</span>
+                  <select
+                    className={styles.pageSizeSelect}
+                    value={query.pageSize}
+                    onChange={(e) =>
+                      setQuery((q) => ({
+                        ...q,
+                        pageSize: Number(e.target.value),
+                        page: 1,
+                      }))
+                    }
+                    aria-label="Số kiện mỗi trang"
+                  >
+                    {PAGE_SIZE_OPTIONS.map((sz) => (
+                      <option key={sz} value={sz}>
+                        {sz} / trang
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <div
                 className={styles.paginationControls}
                 role="group"
@@ -1047,12 +945,17 @@ export function RetailPackageListPage({
         )}
       </section>
 
-      {/* Detail modal */}
+      {/* Detail drawer */}
       {detailPackage && (
-        <DetailModal
+        <PackageDetailDrawer
           pkg={detailPackage}
           onClose={() => setDetailPackage(null)}
         />
+      )}
+
+      {/* Create package drawer */}
+      {showCreateDrawer && (
+        <CreatePackageDrawer onClose={() => setShowCreateDrawer(false)} />
       )}
     </div>
   );

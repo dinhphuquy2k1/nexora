@@ -497,7 +497,7 @@
 }
 
 .statusDisputed .statusDot {
-  background: var(--color-status-error-text);
+  background: var(--color-status-pending-dot);
 }
 
 /* Row action buttons */
@@ -549,7 +549,7 @@
 }
 
 .emptyIcon {
-  color: var(--color-border-subtle);
+  color: var(--color-text-muted);
 }
 
 .emptyTitle {
@@ -618,6 +618,36 @@
 .paginationInfo {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+}
+
+.pageSizeWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.pageSizeLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.pageSizeSelect {
+  height: 28px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+  outline: none;
+}
+
+.pageSizeSelect:focus {
+  border-color: var(--color-border-accent);
 }
 
 .paginationControls {
@@ -717,19 +747,8 @@
   cursor: not-allowed;
 }
 
-/* Detail modal overlay */
-.modalOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  background: rgba(15, 23, 42, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-}
-
-.modalPanel {
+/* Modal and Drawer Dialog styling (nested inside @nexora/ui Overlay) */
+.modalContent {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
@@ -752,24 +771,26 @@
   flex-shrink: 0;
 }
 
-.modalHeaderIcon {
+.modalTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.modalIconBox {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
   border-radius: var(--radius-md);
-  background: var(--color-accent);
-  color: var(--color-action-emphasis-text);
+  background: var(--brand-orange);
+  color: var(--color-white);
   flex-shrink: 0;
 }
 
-.modalHeaderText {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.modalHeaderTitle {
+.modalHeading {
   margin: 0;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
@@ -783,11 +804,11 @@
   font-size: var(--font-size-xs);
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-surface-on-dark);
   font-family: ui-monospace, monospace;
 }
 
-.modalHeaderSub {
+.modalSubheading {
   margin: 0;
   font-size: var(--font-size-xs);
   color: var(--color-text-on-dark-muted);
@@ -822,7 +843,7 @@
   outline-offset: 2px;
 }
 
-.modalContent {
+.modalBody {
   flex: 1 1 auto;
   overflow-y: auto;
   padding: var(--space-4);
@@ -831,6 +852,18 @@
   gap: var(--space-3);
 }
 
+.modalFooter {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* Detail view summary strip */
 .summaryStrip {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -848,7 +881,7 @@
   }
 }
 
-.summaryItem {
+.summaryCol {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -859,21 +892,22 @@
   color: var(--color-text-muted);
 }
 
-.summaryValue {
+.summaryVal {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
 }
 
-.summaryValueAccent {
+.summaryValHighlight {
   color: var(--color-accent-text);
 }
 
-.warehouseInfo {
+/* Warehouses box */
+.warehouseBox {
   padding: var(--space-3);
   border-radius: var(--radius-lg);
-  background: var(--brand-orange-light);
-  border: 1px solid var(--brand-orange);
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
@@ -881,10 +915,200 @@
   color: var(--color-primary);
 }
 
-.timelineSection {
+/* Carrier card */
+.carrierCard {
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.carrierLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.carrierBadge {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.carrierTitle {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+}
+
+.carrierSub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.carrierRight {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.hotlineLabel {
+  display: block;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-muted);
+}
+
+.hotlineVal {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+/* Fee section */
+.feeSection {
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
+  gap: var(--space-1);
+}
+
+.feeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
+}
+
+.feeTitle {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.feeAmount {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.feeUnavailable {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.feeNotice {
+  margin: 0;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-normal);
+}
+
+/* Create Package Form */
+.createForm {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow-y: auto;
+}
+
+.createNotice {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-normal);
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.formLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.formInput,
+.formSelect {
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.formInput:focus,
+.formSelect:focus {
+  border-color: var(--color-border-accent);
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 1px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.servicesGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border);
+}
+
+.serviceItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.carrierSyncNote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.carrierSyncIcon {
+  color: var(--color-status-success-dot);
 }
 
 .timelineTitle {
@@ -920,7 +1144,7 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 2px solid var(--color-surface);
+  border: 2px solid var(--color-border);
 }
 
 .timelineDotCompleted {
@@ -929,7 +1153,7 @@
 }
 
 .timelineDotPending {
-  background: var(--color-border-subtle);
+  background: var(--color-surface-subtle);
 }
 
 .timelineItemHeader {

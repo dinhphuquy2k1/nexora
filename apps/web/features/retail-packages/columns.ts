@@ -165,5 +165,8 @@ export const STATUS_LABELS: Record<string, string> = {
   disputed: "Khiếu nại",
 };
 
-/** Page size options for the retail packages list. */
-export const PAGE_SIZE = 20;
+/** Default page size for the retail packages list (10). */
+export const PAGE_SIZE = 10;
+
+/** Page size choices supported by the pagination selector. */
+export const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100] as const;
