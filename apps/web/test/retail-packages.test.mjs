@@ -16,9 +16,11 @@ import {
   STATUS_TABS,
   DEFAULT_COLUMN_VISIBILITY,
   PAGE_SIZE,
+  PAGE_SIZE_OPTIONS,
 } from "../features/retail-packages/columns.ts";
 import { SYNTHETIC_PACKAGES } from "../features/retail-packages/fixtures.ts";
 import { NAVIGATION_ITEMS } from "../lib/navigation/nav-config.ts";
+import { loadComponent } from "./helpers/render-component.mjs";
 
 describe("Retail Packages — column configuration", () => {
   it("has at least one required column", () => {
@@ -50,8 +52,12 @@ describe("Retail Packages — column configuration", () => {
     assert.strictEqual(RETAIL_PACKAGE_COLUMNS.length, 20);
   });
 
-  it("PAGE_SIZE is 20", () => {
-    assert.strictEqual(PAGE_SIZE, 20);
+  it("PAGE_SIZE is 10", () => {
+    assert.strictEqual(PAGE_SIZE, 10);
+  });
+
+  it("PAGE_SIZE_OPTIONS includes 5, 10, 20, 50, 100", () => {
+    assert.deepStrictEqual(PAGE_SIZE_OPTIONS, [5, 10, 20, 50, 100]);
   });
 });
 
@@ -177,5 +183,72 @@ describe("Retail Packages — navigation contract", () => {
     const item = NAVIGATION_ITEMS.find((n) => n.id === "shipment");
     assert.ok(item, "shipment nav item must exist");
     assert.strictEqual(item.contentVariant, "wide");
+  });
+});
+
+describe("Retail Packages — legacy redirect and server route", () => {
+  it("legacy redirect route exports GET handler returning 307", async () => {
+    const route = await import("../app/logistics/parcels/route.ts");
+    assert.strictEqual(typeof route.GET, "function", "route must export GET");
+
+    const req = {
+      nextUrl: new URL(
+        "http://localhost:3000/logistics/parcels?status=to_origin",
+      ),
+      url: "http://localhost:3000/logistics/parcels?status=to_origin",
+    };
+    const res = route.GET(req);
+    assert.strictEqual(res.status, 307);
+    assert.match(
+      res.headers.get("location") ?? "",
+      /\/shipments\/retail\?status=to_origin/,
+    );
+  });
+
+  it("server page at /shipments/retail imports RetailPackageListPage with empty initialPackages", async () => {
+    const fs = await import("node:fs/promises");
+    const pageContent = await fs.readFile(
+      new URL("../app/(workspace)/shipments/retail/page.tsx", import.meta.url),
+      "utf8",
+    );
+    assert.match(
+      pageContent,
+      /initialPackages=\{\[\]\}/,
+      "Production page must pass empty initialPackages array",
+    );
+  });
+});
+
+describe("Retail Packages — components and truthfulness", () => {
+  it("CreatePackageDrawer exports valid React component", () => {
+    const mod = loadComponent(
+      new URL(
+        "../features/retail-packages/CreatePackageDrawer.tsx",
+        import.meta.url,
+      ),
+    );
+    assert.strictEqual(typeof mod.CreatePackageDrawer, "function");
+    assert.ok(Array.isArray(mod.CARRIER_OPTIONS));
+    assert.strictEqual(mod.CARRIER_OPTIONS.length, 3);
+  });
+
+  it("PackageDetailDrawer exports valid React component", () => {
+    const mod = loadComponent(
+      new URL(
+        "../features/retail-packages/PackageDetailDrawer.tsx",
+        import.meta.url,
+      ),
+    );
+    assert.strictEqual(typeof mod.PackageDetailDrawer, "function");
+  });
+
+  it("PackageFeeSection exports valid React component", () => {
+    const mod = loadComponent(
+      new URL(
+        "../features/retail-packages/PackageFeeSection.tsx",
+        import.meta.url,
+      ),
+    );
+    assert.strictEqual(typeof mod.PackageFeeSection, "function");
   });
 });

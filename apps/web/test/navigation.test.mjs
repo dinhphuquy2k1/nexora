@@ -27,8 +27,9 @@ export const APPROVED_NAVIGATION_CONTRACT = [
   },
   {
     id: "shipment",
-    href: null,
-    status: "planned",
+    contentVariant: "wide",
+    href: "/shipments/retail",
+    status: "available",
     group: "Workspace",
   },
   {
@@ -150,12 +151,12 @@ test("Navigation contract negative assertions", () => {
     );
   }, /Missing approved navigation item: 'settings'/);
 
-  // Negative 3: Planned item turned into available without updating contract must fail
+  // Negative 3: Status mismatch without updating contract must fail
   assert.throws(() => {
     validateNavigationContract(
       APPROVED_NAVIGATION_CONTRACT.map((item) =>
         item.id === "shipment"
-          ? { ...item, status: "available", href: "/shipments" }
+          ? { ...item, status: "planned", href: null }
           : item,
       ),
       APPROVED_NAVIGATION_CONTRACT,
