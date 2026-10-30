@@ -279,6 +279,10 @@ export async function verifyRetailBrowser({
     await until(
       "document.querySelector('#retail-tab-disputed')?.getAttribute('aria-selected')==='true'",
     );
+    await evaluate("document.querySelector('#retail-tab-all').click();true");
+    await until(
+      "document.querySelector('#retail-tab-all').getAttribute('aria-selected')==='true'",
+    );
     await evaluate("document.querySelector('#retail-tab-all').focus();true");
     await key("ArrowRight");
     // Under manual activation, focus moves to to_origin but selected remains all until Enter is pressed
@@ -293,6 +297,13 @@ export async function verifyRetailBrowser({
       ),
       "true",
       "aria-selected remains on previous tab before Enter",
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('#retail-tab-to_origin').getAttribute('aria-selected')",
+      ),
+      "false",
+      "next tab is not yet selected before Enter",
     );
     await key("Enter");
     await until(
