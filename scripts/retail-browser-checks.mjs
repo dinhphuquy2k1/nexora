@@ -327,7 +327,10 @@ export async function verifyRetailBrowser({
         status === "all" ? "30 kiện lẻ" : "5 kiện lẻ",
       );
 
-      // Verify active tab icon color matches status tone
+      // Verify active tab icon color matches status tone (waiting for transition to complete)
+      await until(
+        `window.getComputedStyle(document.querySelector('#retail-tab-${status} span[class*="tabIcon"]')).color===${JSON.stringify(expectedIconColors[status])}`,
+      );
       const activeColor = await evaluate(
         `window.getComputedStyle(document.querySelector('#retail-tab-${status} span[class*="tabIcon"]')).color`,
       );
