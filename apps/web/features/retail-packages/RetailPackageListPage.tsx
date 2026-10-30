@@ -216,12 +216,12 @@ export function RetailPackageListPage({
 
             <Button
               variant="secondary"
-              icon
               disabled
               aria-label="Làm mới dữ liệu (chưa khả dụng)"
               title="Shipment API chưa khả dụng."
             >
               <RefreshCw size={14} />
+              <span>Làm mới</span>
             </Button>
           </div>
         </div>

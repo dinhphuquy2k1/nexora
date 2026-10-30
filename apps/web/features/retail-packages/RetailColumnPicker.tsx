@@ -37,19 +37,37 @@ export function RetailColumnPicker({
     );
     return () => cancelAnimationFrame(raf);
   }, [open]);
+  const visibleCount = visibleColumns(visibility).length;
+  const totalCount = RETAIL_PACKAGE_COLUMNS.length;
+  const isFiltered = visibleCount < totalCount;
+  const pickerState = open ? "open" : isFiltered ? "filtered" : "full";
+  const triggerClassName =
+    pickerState === "open"
+      ? styles.colPickerTrigger_open
+      : pickerState === "filtered"
+        ? styles.colPickerTrigger_filtered
+        : styles.colPickerTrigger_full;
+  const badgeClassName = `${styles.colPickerBadge} ${
+    pickerState === "open"
+      ? styles.colPickerBadge_open
+      : pickerState === "filtered"
+        ? styles.colPickerBadge_filtered
+        : styles.colPickerBadge_full
+  }`;
   return (
     <div className={styles.popoverAnchor}>
       <Button
         ref={triggerRef}
         variant="secondary"
+        className={triggerClassName}
         onClick={() => setOpen((v) => !v)}
         aria-label="Tùy chỉnh cột hiển thị"
         aria-expanded={open}
         aria-haspopup="dialog"
       >
         <Columns3 size={14} aria-hidden="true" /> Cột{" "}
-        <span>
-          {visibleColumns(visibility).length}/{RETAIL_PACKAGE_COLUMNS.length}
+        <span className={badgeClassName}>
+          {visibleCount}/{totalCount}
         </span>
       </Button>
       {open && (

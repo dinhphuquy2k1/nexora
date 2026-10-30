@@ -24,23 +24,36 @@ export function RetailPagination({
   onSize: (size: number) => void;
 }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+  const rangeDisplay = unavailable ? "—" : `${start}–${end}`;
   return (
     <div className={styles.paginationBar} aria-label="Phân trang kiện lẻ">
       <div className={styles.paginationInfo}>
-        <span data-retail-count>{unavailable ? "—" : total} kiện lẻ</span>
-        <label>
-          Số dòng:{" "}
-          <Select
-            aria-label="Số dòng mỗi trang"
-            value={pageSize}
-            onChange={(e) => onSize(Number(e.target.value))}
-          >
-            {PAGE_SIZE_OPTIONS.map((size) => (
-              <option key={size} value={size}>
-                {size} / trang
-              </option>
-            ))}
-          </Select>
+        <div className={styles.paginationSummary}>
+          <span>Hiển thị</span>{" "}
+          <strong className={styles.paginationRange}>{rangeDisplay}</strong>{" "}
+          <span>/</span>{" "}
+          <span data-retail-count>{unavailable ? "—" : total} kiện lẻ</span>
+        </div>
+        <span className={styles.paginationDivider} aria-hidden="true">
+          |
+        </span>
+        <label className={styles.pageSizeLabel}>
+          <span>Số dòng:</span>
+          <div className={styles.pageSizeSelectWrapper}>
+            <Select
+              aria-label="Số dòng mỗi trang"
+              value={pageSize}
+              onChange={(e) => onSize(Number(e.target.value))}
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size} / trang
+                </option>
+              ))}
+            </Select>
+          </div>
         </label>
       </div>
       <div

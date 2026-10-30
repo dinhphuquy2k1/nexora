@@ -348,3 +348,132 @@ it("desktop and mobile distinguish unavailable data from an available empty resu
     if (unavailable) assert.doesNotMatch(html, /Không tìm thấy kiện/);
   }
 });
+
+describe("Retail Packages — Visual Parity (M3 v4)", () => {
+  it("Reload button renders RefreshCw icon with label 'Làm mới' even when disabled", () => {
+    const { RetailPackageListPage } = loadComponent(
+      new URL(
+        "../features/retail-packages/RetailPackageListPage.tsx",
+        import.meta.url,
+      ),
+    );
+    const html = render(
+      React.createElement(RetailPackageListPage, {
+        initialPackages: [],
+        availability: "unavailable",
+      }),
+    );
+    assert.match(
+      html,
+      /<button[^>]*disabled[^>]*aria-label="Làm mới dữ liệu \(chưa khả dụng\)"|<button[^>]*aria-label="Làm mới dữ liệu \(chưa khả dụng\)"[^>]*disabled/,
+      "Reload button is disabled when unavailable",
+    );
+    assert.match(
+      html,
+      /<span>Làm mới<\/span>/,
+      "Reload button presents 'Làm mới' text label",
+    );
+  });
+
+  it("Filter button renders 'Thêm điều kiện lọc' label with 'Bộ lọc nâng cao' aria-label", () => {
+    const { RetailFilterPopover } = loadComponent(
+      new URL(
+        "../features/retail-packages/RetailFilterPopover.tsx",
+        import.meta.url,
+      ),
+    );
+    const html = render(
+      React.createElement(RetailFilterPopover, {
+        filters: [],
+        onAdd: () => {},
+      }),
+    );
+    assert.match(html, /aria-label="Bộ lọc nâng cao"/);
+    assert.match(html, /Thêm điều kiện lọc/);
+  });
+
+  it("Column Picker reflects three visual states (filtered, full, open)", () => {
+    const { RetailColumnPicker } = loadComponent(
+      new URL(
+        "../features/retail-packages/RetailColumnPicker.tsx",
+        import.meta.url,
+      ),
+    );
+    // Filtered state (19/20 columns)
+    const filteredHtml = render(
+      React.createElement(RetailColumnPicker, {
+        visibility: DEFAULT_COLUMN_VISIBILITY,
+        onChange: () => {},
+      }),
+    );
+    assert.match(filteredHtml, /colPickerTrigger_filtered/);
+    assert.match(filteredHtml, /colPickerBadge_filtered/);
+    assert.match(filteredHtml, /19\/20/);
+
+    // Full state (20/20 columns)
+    const allVisible = Object.fromEntries(
+      RETAIL_PACKAGE_COLUMNS.map((c) => [c.id, true]),
+    );
+    const fullHtml = render(
+      React.createElement(RetailColumnPicker, {
+        visibility: allVisible,
+        onChange: () => {},
+      }),
+    );
+    assert.match(fullHtml, /colPickerTrigger_full/);
+    assert.match(fullHtml, /colPickerBadge_full/);
+    assert.match(fullHtml, /20\/20/);
+  });
+
+  it("Pagination renders range calculation and inline page size wrapper", () => {
+    const { RetailPagination } = loadComponent(
+      new URL(
+        "../features/retail-packages/RetailPagination.tsx",
+        import.meta.url,
+      ),
+    );
+    // 6 items on page 1 with pageSize 10
+    const fixtureHtml = render(
+      React.createElement(RetailPagination, {
+        page: 1,
+        pageSize: 10,
+        total: 6,
+        unavailable: false,
+        onPage: () => {},
+        onSize: () => {},
+      }),
+    );
+    assert.match(fixtureHtml, /paginationRange[^>]*>1–6<\/strong>/);
+    assert.match(fixtureHtml, /data-retail-count[^>]*>6(?:<!-- -->)? kiện lẻ/);
+    assert.match(fixtureHtml, /pageSizeSelectWrapper/);
+    assert.match(fixtureHtml, /Số dòng:/);
+
+    // 0 items
+    const zeroHtml = render(
+      React.createElement(RetailPagination, {
+        page: 1,
+        pageSize: 10,
+        total: 0,
+        unavailable: false,
+        onPage: () => {},
+        onSize: () => {},
+      }),
+    );
+    assert.match(zeroHtml, /paginationRange[^>]*>0–0<\/strong>/);
+    assert.match(zeroHtml, /data-retail-count[^>]*>0(?:<!-- -->)? kiện lẻ/);
+
+    // Unavailable
+    const unavailHtml = render(
+      React.createElement(RetailPagination, {
+        page: 1,
+        pageSize: 10,
+        total: 0,
+        unavailable: true,
+        onPage: () => {},
+        onSize: () => {},
+      }),
+    );
+    assert.match(unavailHtml, /paginationRange[^>]*>—<\/strong>/);
+    assert.match(unavailHtml, /data-retail-count[^>]*>—(?:<!-- -->)? kiện lẻ/);
+  });
+});

@@ -49,7 +49,7 @@ export function RetailFilterPopover({
         aria-haspopup="dialog"
         onClick={() => setOpen((v) => !v)}
       >
-        <Filter size={14} aria-hidden="true" /> Bộ lọc{" "}
+        <Filter size={14} aria-hidden="true" /> Thêm điều kiện lọc{" "}
         {filters.length > 0 && <span>{filters.length}</span>}
       </Button>
       {open && (

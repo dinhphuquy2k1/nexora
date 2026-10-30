@@ -33,6 +33,9 @@
   --emerald-700: #047857;
 
   --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-200-80: rgba(253, 230, 138, 0.8);
   --amber-400-60: rgba(251, 191, 36, 0.6);
   --amber-700: #b45309;
   --amber-800: #92400e;
@@ -109,6 +112,30 @@
   --color-filter-chip-text: var(--amber-800);
   --color-filter-chip-clear: var(--amber-700);
   --color-filter-chip-clear-hover: var(--amber-900);
+
+  /* Column picker trigger semantics */
+  --color-colpicker-open-bg: var(--brand-navy);
+  --color-colpicker-open-border: var(--brand-navy);
+  --color-colpicker-open-text: var(--color-white);
+  --color-colpicker-open-icon: var(--brand-orange);
+  --color-colpicker-open-badge-bg: rgba(255, 255, 255, 0.2);
+  --color-colpicker-open-badge-text: var(--color-white);
+
+  --color-colpicker-filtered-bg: var(--amber-50);
+  --color-colpicker-filtered-border: var(--amber-400-60);
+  --color-colpicker-filtered-hover-bg: var(--amber-100);
+  --color-colpicker-filtered-text: var(--color-primary);
+  --color-colpicker-filtered-icon: var(--color-text-muted);
+  --color-colpicker-filtered-badge-bg: var(--amber-200-80);
+  --color-colpicker-filtered-badge-text: var(--amber-900);
+
+  --color-colpicker-full-bg: var(--color-surface);
+  --color-colpicker-full-border: var(--color-border);
+  --color-colpicker-full-text: var(--color-primary);
+  --color-colpicker-full-icon: var(--color-text-muted);
+  --color-colpicker-full-badge-bg: var(--color-surface);
+  --color-colpicker-full-badge-border: var(--color-border);
+  --color-colpicker-full-badge-text: var(--color-text-muted);
 
   /* Action-specific semantic tokens (Power status toggling) */
   --color-action-deactivate: var(--gray-400);
