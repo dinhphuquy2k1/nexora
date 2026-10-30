@@ -85,50 +85,9 @@
   }
 }
 
-/* Status tab band */
-.statusBand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1);
-  margin: 0 var(--space-4) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-muted);
-  overflow-x: auto;
-  flex-wrap: nowrap;
-}
-
-.statusBand::-webkit-scrollbar {
-  display: none;
-}
-
-.statusTabActive {
-  background: var(--color-tab-selected-bg);
-  color: var(--color-tab-selected-text);
-}
-
-.tabCount {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 18px;
-  padding: 0 var(--space-1);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-bold);
-  line-height: 1;
-}
-
-.tabCountActive {
-  background: var(--color-count-selected-bg);
-  color: var(--color-count-selected-text);
-}
-
-.tabCountInactive {
-  background: var(--color-count-unselected-bg);
-  color: var(--color-count-unselected-text);
+/* Status tab bar wrapper */
+.tabBarWrapper {
+  margin: 0 0 var(--space-2);
 }
 
 /* Toolbar (search + filter + refresh) */

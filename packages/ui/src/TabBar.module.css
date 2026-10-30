@@ -1,0 +1,188 @@
+/* ==========================================================================
+   Shared Line TabBar & TabCountBadge Presentation
+   Owned by packages/ui per Tier A architecture
+   ========================================================================== */
+
+.tabBar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-bottom: 1px solid var(--color-tab-line-border);
+  background-color: var(--color-surface);
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.scrollButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--control-size-default);
+  height: var(--control-size-default);
+  padding: 0;
+  margin: 0 var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background-color: var(--color-surface);
+  color: var(--color-tab-line-selected-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+  z-index: 2;
+}
+
+.scrollButton:hover {
+  background-color: var(--color-tab-line-hover-bg);
+}
+
+.scrollButton:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: 1px;
+}
+
+.scrollButtonLeft {
+  margin-left: var(--space-1);
+}
+
+.scrollButtonRight {
+  margin-right: var(--space-1);
+}
+
+.scrollTrack {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  touch-action: pan-x;
+}
+
+.scrollTrack::-webkit-scrollbar {
+  display: none;
+}
+
+.tabList {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: max-content;
+  padding: 0 var(--space-2);
+}
+
+.tabItem {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3);
+  border: none;
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-tab-line-unselected-text);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  text-decoration: none;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.tabItem:hover:not(:disabled) {
+  color: var(--color-tab-line-selected-text);
+  background-color: var(--color-tab-line-hover-bg);
+}
+
+.tabItem:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: -2px;
+}
+
+.tabItem:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tabItemActive {
+  color: var(--color-tab-line-selected-text);
+  font-weight: var(--font-weight-bold);
+}
+
+.tabIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--color-tab-line-unselected-text);
+  transition: color 0.15s ease;
+}
+
+.tabItemActive .tabIcon {
+  color: var(--color-tab-line-indicator);
+}
+
+.tabTitle {
+  display: inline-block;
+  line-height: 1.25;
+}
+
+.tabIndicator {
+  position: absolute;
+  bottom: 0;
+  left: var(--space-2);
+  right: var(--space-2);
+  height: 2.5px;
+  background-color: var(--color-tab-line-indicator);
+  border-top-left-radius: var(--radius-full);
+  border-top-right-radius: var(--radius-full);
+}
+
+/* ==========================================================================
+   TabCountBadge presentation
+   ========================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-2xs);
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  box-sizing: border-box;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.badgeActive {
+  background-color: var(--color-count-line-selected-bg);
+  color: var(--color-count-line-selected-text);
+  font-weight: var(--font-weight-bold);
+  border: 1px solid var(--color-tab-line-indicator);
+}
+
+.badgeInactive {
+  background-color: var(--color-count-line-unselected-bg);
+  color: var(--color-count-line-unselected-text);
+  font-weight: var(--font-weight-semibold);
+  border: 1px solid transparent;
+}

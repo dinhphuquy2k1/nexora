@@ -186,13 +186,13 @@ export interface StatusTab {
 }
 
 export const STATUS_TABS: readonly StatusTab[] = [
-  { key: "all", label: "Tất cả" },
+  { key: "all", label: "Tất cả kiện hàng" },
   { key: "to_origin", label: "Đang đến kho gửi" },
   { key: "at_origin", label: "Đã về kho gửi" },
   { key: "in_transit", label: "Đang về kho nhận" },
   { key: "at_dest", label: "Đã về kho nhận" },
   { key: "delivered", label: "Đã giao hàng" },
-  { key: "disputed", label: "Khiếu nại" },
+  { key: "disputed", label: "Khiếu nại / Xử lý" },
 ] as const;
 
 /** Human-readable label for each package status. */

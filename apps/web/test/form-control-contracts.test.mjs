@@ -1058,6 +1058,15 @@ test("Token Contract: mandatory design tokens defined in tokens.css", () => {
     "--color-surface-on-dark",
     "--color-surface-on-dark-hover",
     "--color-text-on-accent",
+    "--color-tab-line-indicator",
+    "--color-tab-line-selected-text",
+    "--color-tab-line-unselected-text",
+    "--color-tab-line-hover-bg",
+    "--color-tab-line-border",
+    "--color-count-line-selected-bg",
+    "--color-count-line-selected-text",
+    "--color-count-line-unselected-bg",
+    "--color-count-line-unselected-text",
   ];
 
   for (const token of requiredSemanticTokens) {
@@ -2108,6 +2117,53 @@ test("Component Consistency: Button, status, tab and pagination canonical palett
     resolveTokenHex("--color-pagination-selected-text").toLowerCase(),
     "#ffffff",
     "Selected pagination text must resolve to white",
+  );
+
+  // Line TabBar and CountBadge tokens
+  assert.equal(
+    resolveTokenHex("--color-tab-line-indicator").toLowerCase(),
+    "#f58a24",
+    "Line tab indicator must resolve to brand orange",
+  );
+  assert.equal(
+    resolveTokenHex("--color-tab-line-selected-text").toLowerCase(),
+    "#1f2937",
+    "Line tab selected text must resolve to dark gray",
+  );
+  assert.equal(
+    resolveTokenHex("--color-tab-line-unselected-text").toLowerCase(),
+    "#64748b",
+    "Line tab unselected text must resolve to gray-500",
+  );
+  assert.equal(
+    resolveTokenHex("--color-tab-line-hover-bg").toLowerCase(),
+    "#f8fafc",
+    "Line tab hover background must resolve to gray-50",
+  );
+  assert.equal(
+    resolveTokenHex("--color-tab-line-border").toLowerCase(),
+    "#e2e8f0",
+    "Line tab border must resolve to gray-200",
+  );
+  assert.equal(
+    resolveTokenHex("--color-count-line-selected-bg").toLowerCase(),
+    "#fff7ed",
+    "Line count selected bg must resolve to brand-orange-light",
+  );
+  assert.equal(
+    resolveTokenHex("--color-count-line-selected-text").toLowerCase(),
+    "#c2410c",
+    "Line count selected text must resolve to brand-orange-text",
+  );
+  assert.equal(
+    resolveTokenHex("--color-count-line-unselected-bg").toLowerCase(),
+    "#f1f5f9",
+    "Line count unselected bg must resolve to gray-100",
+  );
+  assert.equal(
+    resolveTokenHex("--color-count-line-unselected-text").toLowerCase(),
+    "#64748b",
+    "Line count unselected text must resolve to gray-500",
   );
 
   // Status badges

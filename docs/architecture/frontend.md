@@ -14,7 +14,7 @@ Nexora enforces three distinct component ownership tiers to prevent component du
 
 ### Tier A: Shared UI Primitives (`packages/ui/`)
 
-Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel`, `StatusBadge`, `Button`, `TextInput`, `Textarea`, `Select`):
+Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel`, `StatusBadge`, `Button`, `TextInput`, `Textarea`, `Select`, `TabBar`, `TabCountBadge`):
 
 - **Domain Agnostic**: Must never import Shipment, Customer, or Identity domain models.
 - **Transport Agnostic**: Must never call Nexora API endpoints or SDK client factories.

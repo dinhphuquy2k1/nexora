@@ -281,6 +281,20 @@ export async function verifyRetailBrowser({
     );
     await evaluate("document.querySelector('#retail-tab-all').focus();true");
     await key("ArrowRight");
+    // Under manual activation, focus moves to to_origin but selected remains all until Enter is pressed
+    assert.equal(
+      await evaluate("document.activeElement.id"),
+      "retail-tab-to_origin",
+      "ArrowRight moves DOM focus to next tab without immediate activation",
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('#retail-tab-all').getAttribute('aria-selected')",
+      ),
+      "true",
+      "aria-selected remains on previous tab before Enter",
+    );
+    await key("Enter");
     await until(
       "document.querySelector('#retail-tab-to_origin').getAttribute('aria-selected')==='true'",
     );

@@ -113,7 +113,7 @@ The canonical project color specification is owned by this document, and the act
 | **Border Radius**      | `--control-radius`             | `6px` (`--radius-sm`)     |
 | **Standard Height**    | `--control-size-default`       | `32px`                    |
 
-#### Status Segmented Tabs
+#### Status Segmented Tabs (Customer)
 
 | State / Element                   | Background Token                  | Background Value            | Foreground Token                    | Foreground Value |
 | :-------------------------------- | :-------------------------------- | :-------------------------- | :---------------------------------- | :--------------- |
@@ -125,6 +125,17 @@ The canonical project color specification is owned by this document, and the act
 | **Unselected Count Badge**        | `--color-count-unselected-bg`     | `#FFFFFF`                   | `--color-count-unselected-text`     | `#475569`        |
 | **Active Tab Dot (Unselected)**   | —                                 | `#10B981` (`--emerald-500`) | —                                   | —                |
 | **Inactive Tab Dot (Unselected)** | —                                 | `#94A3B8` (`--gray-400`)    | —                                   | —                |
+
+#### Status Line TabBar (Shared Line TabBar — Retail Packages)
+
+| State / Element            | Indicator / Underline Token  | Indicator Value | Text Token                           | Text Value | Background Token                   | Background Value |
+| :------------------------- | :--------------------------- | :-------------- | :----------------------------------- | :--------- | :--------------------------------- | :--------------- |
+| **Selected Tab**           | `--color-tab-line-indicator` | `#F58A24`       | `--color-tab-line-selected-text`     | `#1F2937`  | `transparent`                      | `transparent`    |
+| **Unselected Tab**         | —                            | —               | `--color-tab-line-unselected-text`   | `#64748B`  | `transparent`                      | `transparent`    |
+| **Unselected Tab Hover**   | —                            | —               | `--color-tab-line-selected-text`     | `#1F2937`  | `--color-tab-line-hover-bg`        | `#F8FAFC`        |
+| **Selected Count Badge**   | —                            | —               | `--color-count-line-selected-text`   | `#C2410C`  | `--color-count-line-selected-bg`   | `#FFF7ED`        |
+| **Unselected Count Badge** | —                            | —               | `--color-count-line-unselected-text` | `#64748B`  | `--color-count-line-unselected-bg` | `#F1F5F9`        |
+| **Track Border / Divider** | —                            | —               | —                                    | —          | `--color-tab-line-border`          | `#E2E8F0`        |
 
 #### Pagination Page Controls
 

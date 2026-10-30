@@ -7,8 +7,21 @@ import {
   RefreshCw,
   FileSpreadsheet,
   X,
+  Layers,
+  Truck,
+  Building2,
+  Plane,
+  Warehouse,
+  CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
-import { Button, TextInput } from "@nexora/ui";
+import {
+  Button,
+  TextInput,
+  TabBar,
+  TabCountBadge,
+  type TabBarItem,
+} from "@nexora/ui";
 import type { RetailPackage, ColumnVisibility, StatusTabKey } from "./types.ts";
 import {
   STATUS_TABS,
@@ -29,6 +42,25 @@ export interface RetailPackageListPageProps {
   availability: "unavailable" | "available";
   initialSearch?: string;
 }
+
+const TAB_ICONS: Record<StatusTabKey, React.ReactNode> = {
+  all: <Layers size={14} />,
+  to_origin: <Truck size={14} />,
+  at_origin: <Building2 size={14} />,
+  in_transit: <Plane size={14} />,
+  at_dest: <Warehouse size={14} />,
+  delivered: <CheckCircle2 size={14} />,
+  disputed: <AlertTriangle size={14} />,
+};
+
+const RETAIL_TAB_ITEMS: readonly TabBarItem<StatusTabKey>[] = STATUS_TABS.map(
+  (t) => ({
+    id: t.key,
+    title: t.label,
+    icon: TAB_ICONS[t.key],
+  }),
+);
+
 export function RetailPackageListPage({
   initialPackages,
   availability,
@@ -55,14 +87,23 @@ export function RetailPackageListPage({
     (page - 1) * query.pageSize,
     page * query.pageSize,
   );
-  const counts = useMemo(() => {
-    const out: Record<string, number> = { all: initialPackages.length };
-    for (const p of initialPackages) out[p.status] = (out[p.status] ?? 0) + 1;
+  const counts = useMemo<Record<StatusTabKey, number>>(() => {
+    const out: Record<StatusTabKey, number> = {
+      all: initialPackages.length,
+      to_origin: 0,
+      at_origin: 0,
+      in_transit: 0,
+      at_dest: 0,
+      delivered: 0,
+      disputed: 0,
+    };
+    for (const p of initialPackages) {
+      if (p.status in out) {
+        out[p.status as StatusTabKey] += 1;
+      }
+    }
     return out;
   }, [initialPackages]);
-  function status(next: StatusTabKey) {
-    change({ status: next, page: 1 });
-  }
   return (
     <div
       className={styles.listPage}
@@ -104,49 +145,23 @@ export function RetailPackageListPage({
             </Button>
           </div>
         </div>
-        <div
-          className={styles.statusBand}
-          role="tablist"
-          aria-label="Lọc theo trạng thái"
-        >
-          {STATUS_TABS.map((tab, index) => (
-            <Button
-              key={tab.key}
-              role="tab"
-              variant={query.status === tab.key ? "emphasis" : "ghost"}
-              aria-selected={query.status === tab.key}
-              tabIndex={query.status === tab.key ? 0 : -1}
-              aria-controls="retail-packages-results"
-              id={`retail-tab-${tab.key}`}
-              className={styles.statusTab}
-              onClick={() => status(tab.key)}
-              onKeyDown={(e) => {
-                let next;
-                if (e.key === "ArrowRight") next = (index + 1) % 7;
-                else if (e.key === "ArrowLeft") next = (index + 6) % 7;
-                else if (e.key === "Home") next = 0;
-                else if (e.key === "End") next = 6;
-                else return;
-                e.preventDefault();
-                const tabs =
-                  e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
-                    "[role=tab]",
-                  );
-                tabs?.[next]?.focus();
-                status(STATUS_TABS[next].key);
-              }}
-            >
-              {tab.key !== "all" && (
-                <span className={styles.statusDot} aria-hidden="true" />
-              )}
-              <span>{tab.label.toLocaleUpperCase("vi")}</span>
-              <span
-                className={`${styles.tabCount} ${query.status === tab.key ? styles.tabCountActive : styles.tabCountInactive}`}
-              >
-                {unavailable ? "—" : (counts[tab.key] ?? 0)}
-              </span>
-            </Button>
-          ))}
+        <div className={styles.tabBarWrapper}>
+          <TabBar
+            items={RETAIL_TAB_ITEMS}
+            value={query.status}
+            onValueChange={(status) => {
+              change({ status, page: 1 });
+            }}
+            renderTrailing={(item, { active }) => (
+              <TabCountBadge
+                value={unavailable ? undefined : counts[item.id]}
+                active={active}
+              />
+            )}
+            idPrefix="retail-tab"
+            panelId="retail-packages-results"
+            ariaLabel="Trạng thái kiện hàng"
+          />
         </div>
         <div className={styles.toolbar}>
           <div className={styles.searchGroup}>

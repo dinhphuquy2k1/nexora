@@ -52,18 +52,31 @@
   --color-action-emphasis-text: var(--color-white);
   --color-accent-light: var(--brand-orange-light);
 
-  /* Status tab semantics */
+  /* Status tab semantics (Segmented - Customer) */
   --color-tab-selected-bg: var(--brand-orange);
   --color-tab-selected-text: var(--color-white);
   --color-tab-unselected-text: var(--gray-600);
   --color-tab-unselected-hover-bg: rgba(255, 255, 255, 0.8);
   --color-tab-unselected-hover-text: var(--brand-navy);
 
-  /* Count badge semantics */
+  /* Status tab semantics (Line - Shared Line TabBar) */
+  --color-tab-line-indicator: var(--color-accent);
+  --color-tab-line-selected-text: var(--color-text);
+  --color-tab-line-unselected-text: var(--color-text-muted);
+  --color-tab-line-hover-bg: var(--color-surface-muted);
+  --color-tab-line-border: var(--color-border);
+
+  /* Count badge semantics (Segmented - Customer) */
   --color-count-selected-bg: rgba(255, 255, 255, 0.25);
   --color-count-selected-text: var(--color-white);
   --color-count-unselected-bg: var(--color-white);
   --color-count-unselected-text: var(--gray-600);
+
+  /* Count badge semantics (Line - Shared TabCountBadge) */
+  --color-count-line-selected-bg: var(--color-accent-light);
+  --color-count-line-selected-text: var(--brand-orange-text);
+  --color-count-line-unselected-bg: var(--color-surface-subtle);
+  --color-count-line-unselected-text: var(--color-text-muted);
 
   /* Customer search presentation */
   --color-search-icon: var(--gray-400);

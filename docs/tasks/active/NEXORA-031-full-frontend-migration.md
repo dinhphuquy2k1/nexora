@@ -10,10 +10,10 @@ Documentation Impact: REQUIRED
 
 - **Task ID**: NEXORA-031
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-29-retail-packages-m3-v1
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-29-retail-packages-m3-v1.md
-- **Design SHA-256**: 661ae87cd8f93d5995bc1a8ac36cde96ea2dd1b7b473497b79406c077798d1de
-- **Reviewed baseline**: 837e8238a91350bd741dcd3e935052f0aa2d9eb5
+- **Plan revision**: rev-2026-10-30-retail-packages-m3-v2
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-30-retail-packages-m3-v2.md
+- **Design SHA-256**: ab0898cb81ba276db0298c76fd5e5b9904974e115984a139d6034268d03d0ab7
+- **Reviewed baseline**: ea4fcfaa6d94516cb2e7dc90700f8d5a7c69cfee
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: APPROVED (historical metadata only; no current approval gate)
 - **Approval evidence**: Historical owner comment for rev-2026-10-26-color-policy-m2-v4 (digest 01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53). This comment does not independently validate its snapshot or supersede governing documentation; v3 still governs unrelated visual choices.

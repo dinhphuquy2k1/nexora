@@ -19,3 +19,6 @@ export { Overlay } from "./Overlay";
 
 export { ToastProvider, ToastViewport, Toast, useToast } from "./Toast";
 export type { ToastMessage } from "./toast-state";
+
+export { TabBar, type TabBarProps, type TabBarItem } from "./TabBar";
+export { TabCountBadge, type TabCountBadgeProps } from "./TabCountBadge";

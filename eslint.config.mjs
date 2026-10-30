@@ -9,6 +9,7 @@ export default ts.config(
       "**/.next/**",
       "**/node_modules/**",
       "**/generated/**",
+      "artifacts/**",
       "apps/web/next-env.d.ts",
     ],
   },
