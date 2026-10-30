@@ -137,6 +137,18 @@ The canonical project color specification is owned by this document, and the act
 | **Unselected Count Badge** | —                            | —               | `--color-count-line-unselected-text` | `#64748B`  | `--color-count-line-unselected-bg` | `#F1F5F9`        |
 | **Track Border / Divider** | —                            | —               | —                                    | —          | `--color-tab-line-border`          | `#E2E8F0`        |
 
+##### Active Status Icon Palette (Retail Status Tabs)
+
+| Tab Key      | Status Name       | Lucide Icon     | Active Color Token                   | Active Resolved Hex     | Inactive Color Token                           |
+| :----------- | :---------------- | :-------------- | :----------------------------------- | :---------------------- | :--------------------------------------------- |
+| `all`        | Tất cả kiện hàng  | `Layers`        | `--color-retail-tab-all-icon`        | `#172B4D` (Navy)        | `--color-tab-line-unselected-text` (`#64748B`) |
+| `to_origin`  | Đang đến kho gửi  | `Truck`         | `--color-retail-tab-to-origin-icon`  | `#B45309` (Amber 700)   | `--color-tab-line-unselected-text` (`#64748B`) |
+| `at_origin`  | Đã về kho gửi     | `Building2`     | `--color-retail-tab-at-origin-icon`  | `#1D4ED8` (Blue 700)    | `--color-tab-line-unselected-text` (`#64748B`) |
+| `in_transit` | Đang về kho nhận  | `Plane`         | `--color-retail-tab-in-transit-icon` | `#4338CA` (Indigo 700)  | `--color-tab-line-unselected-text` (`#64748B`) |
+| `at_dest`    | Đã về kho nhận    | `Warehouse`     | `--color-retail-tab-at-dest-icon`    | `#047857` (Emerald 700) | `--color-tab-line-unselected-text` (`#64748B`) |
+| `delivered`  | Đã giao hàng      | `CheckCircle2`  | `--color-retail-tab-delivered-icon`  | `#0F766E` (Teal 700)    | `--color-tab-line-unselected-text` (`#64748B`) |
+| `disputed`   | Khiếu nại / Xử lý | `AlertTriangle` | `--color-retail-tab-disputed-icon`   | `#BE123C` (Rose 700)    | `--color-tab-line-unselected-text` (`#64748B`) |
+
 #### Pagination Page Controls
 
 | State / Element           | Background Token                   | Background Value | Foreground Token                     | Foreground Value | Border Token / Value           |

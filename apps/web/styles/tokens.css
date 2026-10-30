@@ -38,6 +38,11 @@
   --amber-800: #92400e;
   --amber-900: #78350f;
 
+  --blue-700: #1d4ed8;
+  --indigo-700: #4338ca;
+  --teal-700: #0f766e;
+  --rose-700: #be123c;
+
   /* ==========================================================================
      2. Semantic Application Tokens (Mapped to Foundation Palette)
      ========================================================================== */
@@ -65,6 +70,15 @@
   --color-tab-line-unselected-text: var(--color-text-muted);
   --color-tab-line-hover-bg: var(--color-surface-muted);
   --color-tab-line-border: var(--color-border);
+
+  /* Retail status tab active icon tokens */
+  --color-retail-tab-all-icon: var(--brand-navy);
+  --color-retail-tab-to-origin-icon: var(--amber-700);
+  --color-retail-tab-at-origin-icon: var(--blue-700);
+  --color-retail-tab-in-transit-icon: var(--indigo-700);
+  --color-retail-tab-at-dest-icon: var(--emerald-700);
+  --color-retail-tab-delivered-icon: var(--teal-700);
+  --color-retail-tab-disputed-icon: var(--rose-700);
 
   /* Count badge semantics (Segmented - Customer) */
   --color-count-selected-bg: rgba(255, 255, 255, 0.25);

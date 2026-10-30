@@ -16,6 +16,7 @@ export interface TabBarItem<T extends string> {
   id: T;
   title: string;
   icon?: ReactNode;
+  activeIconColor?: string;
   disabled?: boolean;
 }
 
@@ -268,7 +269,15 @@ export function TabBar<T extends string>({
                 onKeyDown={(e) => handleKeyDown(e, item)}
               >
                 {item.icon && (
-                  <span className={styles.tabIcon} aria-hidden="true">
+                  <span
+                    className={styles.tabIcon}
+                    style={
+                      isActive && item.activeIconColor
+                        ? { color: item.activeIconColor }
+                        : undefined
+                    }
+                    aria-hidden="true"
+                  >
                     {item.icon}
                   </span>
                 )}

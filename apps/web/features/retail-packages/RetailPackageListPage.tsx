@@ -44,13 +44,23 @@ export interface RetailPackageListPageProps {
 }
 
 const TAB_ICONS: Record<StatusTabKey, React.ReactNode> = {
-  all: <Layers size={14} />,
-  to_origin: <Truck size={14} />,
-  at_origin: <Building2 size={14} />,
-  in_transit: <Plane size={14} />,
-  at_dest: <Warehouse size={14} />,
-  delivered: <CheckCircle2 size={14} />,
-  disputed: <AlertTriangle size={14} />,
+  all: <Layers size={16} />,
+  to_origin: <Truck size={16} />,
+  at_origin: <Building2 size={16} />,
+  in_transit: <Plane size={16} />,
+  at_dest: <Warehouse size={16} />,
+  delivered: <CheckCircle2 size={16} />,
+  disputed: <AlertTriangle size={16} />,
+};
+
+const TAB_ACTIVE_ICON_COLORS: Record<StatusTabKey, string> = {
+  all: "var(--color-retail-tab-all-icon)",
+  to_origin: "var(--color-retail-tab-to-origin-icon)",
+  at_origin: "var(--color-retail-tab-at-origin-icon)",
+  in_transit: "var(--color-retail-tab-in-transit-icon)",
+  at_dest: "var(--color-retail-tab-at-dest-icon)",
+  delivered: "var(--color-retail-tab-delivered-icon)",
+  disputed: "var(--color-retail-tab-disputed-icon)",
 };
 
 const RETAIL_TAB_ITEMS: readonly TabBarItem<StatusTabKey>[] = STATUS_TABS.map(
@@ -58,6 +68,7 @@ const RETAIL_TAB_ITEMS: readonly TabBarItem<StatusTabKey>[] = STATUS_TABS.map(
     id: t.key,
     title: t.label,
     icon: TAB_ICONS[t.key],
+    activeIconColor: TAB_ACTIVE_ICON_COLORS[t.key],
   }),
 );
 
@@ -154,8 +165,16 @@ export function RetailPackageListPage({
             }}
             renderTrailing={(item, { active }) => (
               <TabCountBadge
-                value={unavailable ? undefined : counts[item.id]}
+                value={unavailable ? 0 : counts[item.id]}
                 active={active}
+                title={
+                  unavailable
+                    ? "Chưa đồng bộ từ máy chủ (tạm tính: 0)"
+                    : undefined
+                }
+                ariaLabel={
+                  unavailable ? `${item.title} (chưa đồng bộ: 0)` : undefined
+                }
               />
             )}
             idPrefix="retail-tab"

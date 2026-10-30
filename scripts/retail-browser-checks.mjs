@@ -184,6 +184,13 @@ export async function verifyRetailBrowser({
         7,
       );
       assert.equal(
+        await evaluate(
+          "Array.from(document.querySelectorAll('[role=tab] span[class*=\"badge\"]')).every(b => b.textContent.trim() === '0')",
+        ),
+        true,
+        "Production unavailable badges present placeholder 0",
+      );
+      assert.equal(
         await evaluate("document.querySelectorAll('colgroup col').length"),
         19,
       );
@@ -244,6 +251,60 @@ export async function verifyRetailBrowser({
     );
     await snapshot("all");
     checks.step("RETAIL_SEVEN_TABS_AND_HISTORY");
+    const expectedIconColors = {
+      all: "rgb(23, 43, 77)",
+      to_origin: "rgb(180, 83, 9)",
+      at_origin: "rgb(29, 78, 216)",
+      in_transit: "rgb(67, 56, 202)",
+      at_dest: "rgb(4, 120, 87)",
+      delivered: "rgb(15, 118, 110)",
+      disputed: "rgb(190, 18, 60)",
+    };
+
+    // Verify typography and border geometry contract
+    const stylesContract = await evaluate(`(()=>{
+      const tab = document.querySelector('#retail-tab-all');
+      const title = tab.querySelector('span[class*="tabTitle"]');
+      const badge = tab.querySelector('span[class*="badge"]');
+      const titleRow = document.querySelector('div[class*="titleRow"]');
+      const wrapper = document.querySelector('div[class*="tabBarWrapper"]');
+      const toolbar = document.querySelector('div[class*="toolbar"]');
+      return {
+        titleFontSize: window.getComputedStyle(title).fontSize,
+        titleFontWeight: window.getComputedStyle(title).fontWeight,
+        badgeFontSize: window.getComputedStyle(badge).fontSize,
+        titleRowBorderBottom: window.getComputedStyle(titleRow).borderBottomWidth,
+        wrapperMarginBottom: window.getComputedStyle(wrapper).marginBottom,
+        toolbarBorderTop: window.getComputedStyle(toolbar).borderTopWidth,
+      };
+    })()`);
+
+    assert.equal(
+      stylesContract.titleFontSize,
+      "14px",
+      "Tab title font-size must be 14px",
+    );
+    assert.equal(
+      stylesContract.badgeFontSize,
+      "12px",
+      "Badge font-size must be 12px",
+    );
+    assert.equal(
+      stylesContract.titleRowBorderBottom,
+      "1px",
+      "Title row must have 1px border-bottom",
+    );
+    assert.equal(
+      stylesContract.wrapperMarginBottom,
+      "0px",
+      "TabBarWrapper must have 0 margin-bottom",
+    );
+    assert.equal(
+      stylesContract.toolbarBorderTop,
+      "0px",
+      "Toolbar must have 0 border-top",
+    );
+
     for (const status of [
       "all",
       "to_origin",
@@ -265,6 +326,22 @@ export async function verifyRetailBrowser({
         ),
         status === "all" ? "30 kiện lẻ" : "5 kiện lẻ",
       );
+
+      // Verify active tab icon color matches status tone
+      const activeColor = await evaluate(
+        `window.getComputedStyle(document.querySelector('#retail-tab-${status} span[class*="tabIcon"]')).color`,
+      );
+      assert.equal(
+        activeColor,
+        expectedIconColors[status],
+        `Active icon color for ${status}`,
+      );
+
+      // Verify active tab font-weight remains 600 (no shift)
+      const tabWeight = await evaluate(
+        `window.getComputedStyle(document.querySelector('#retail-tab-${status}')).fontWeight`,
+      );
+      assert.equal(tabWeight, "600", "Tab font-weight remains 600 when active");
     }
     await snapshot("status");
     await evaluate("history.back();true");

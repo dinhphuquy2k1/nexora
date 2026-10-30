@@ -31,6 +31,7 @@
   gap: var(--space-3);
   flex-wrap: wrap;
   padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .titleGroup {
@@ -87,7 +88,7 @@
 
 /* Status tab bar wrapper */
 .tabBarWrapper {
-  margin: 0 0 var(--space-2);
+  margin: 0;
 }
 
 /* Toolbar (search + filter + refresh) */
@@ -98,7 +99,7 @@
   gap: var(--space-3);
   flex-wrap: wrap;
   padding: var(--space-2) var(--space-4);
-  border-top: 1px solid var(--color-border);
+  border-top: none;
 }
 
 .searchGroup {

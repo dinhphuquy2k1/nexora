@@ -266,10 +266,10 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Styling: `packages/ui/src/TabBar.module.css`
   - Barrel: `packages/ui/src/index.tsx`
 - **Exported Contract**:
-  - `export interface TabBarItem<T extends string> { id: T; title: string; icon?: ReactNode; disabled?: boolean; }`
+  - `export interface TabBarItem<T extends string> { id: T; title: string; icon?: ReactNode; activeIconColor?: string; disabled?: boolean; }`
   - `export interface TabBarProps<T extends string> { items: readonly TabBarItem<T>[]; value: T; onValueChange: (value: T) => void; renderTrailing?: (item: TabBarItem<T>, state: { active: boolean }) => ReactNode; idPrefix: string; panelId: string; ariaLabel: string; }`
   - `export function TabBar<T extends string>(props: TabBarProps<T>): JSX.Element`
-  - `export interface TabCountBadgeProps { value?: number; active?: boolean; className?: string; }`
+  - `export interface TabCountBadgeProps extends ComponentPropsWithoutRef<"span"> { value?: number; active?: boolean; ariaLabel?: string; className?: string; }`
   - `export function TabCountBadge(props: TabCountBadgeProps): JSX.Element`
 - **Intended Consumers**:
   - Retail Packages list page (`/shipments/retail`).

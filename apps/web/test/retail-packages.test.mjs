@@ -269,6 +269,17 @@ it("production availability cannot become fake data, while available-empty prese
   assert.equal((unavailable.match(/role="tab"/g) || []).length, 7);
   assert.equal((unavailable.match(/<col(?=[\s/>])/g) || []).length, 19);
   assert.doesNotMatch(unavailable, /NEXORA Linehaul|1900 8829/);
+  // Default count badge presentation when unavailable displays 0 with advisory tooltip
+  assert.match(
+    unavailable,
+    /title="Chưa đồng bộ từ máy chủ \(tạm tính: 0\)"/,
+    "Unavailable badges present advisory placeholder label",
+  );
+  assert.match(
+    unavailable,
+    /var\(--color-retail-tab-all-icon\)/,
+    "Status tabs configure semantic activeIconColor tokens",
+  );
   const empty = render(
     React.createElement(RetailPackageListPage, {
       initialPackages: [],

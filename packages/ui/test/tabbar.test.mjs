@@ -134,6 +134,47 @@ describe("Shared TabBar & TabCountBadge contracts (@nexora/ui)", () => {
     assert.ok(html.includes('data-active="false"'));
   });
 
+  it("applies activeIconColor to icon container only when item is active", () => {
+    const itemsWithColor = [
+      {
+        id: "tab1",
+        title: "Tab One",
+        icon: React.createElement("span", { "data-testid": "icon-1" }, "★"),
+        activeIconColor: "var(--color-retail-tab-all-icon)",
+      },
+      {
+        id: "tab2",
+        title: "Tab Two",
+        icon: React.createElement("span", { "data-testid": "icon-2" }, "▲"),
+        activeIconColor: "var(--color-retail-tab-to-origin-icon)",
+      },
+    ];
+
+    const html = render(
+      React.createElement(ui.TabBar, {
+        items: itemsWithColor,
+        value: "tab1",
+        onValueChange: () => {},
+        idPrefix: "test-tab",
+        panelId: "test-panel",
+        ariaLabel: "Test tab bar",
+      }),
+    );
+
+    // tab1 is active: must have style="color:var(--color-retail-tab-all-icon)"
+    assert.match(
+      html,
+      /color:\s*var\(--color-retail-tab-all-icon\)/,
+      "Active tab icon receives activeIconColor",
+    );
+    // tab2 is inactive: must NOT have active color style applied
+    assert.doesNotMatch(
+      html,
+      /color:\s*var\(--color-retail-tab-to-origin-icon\)/,
+      "Inactive tab icon does not receive activeIconColor",
+    );
+  });
+
   describe("TabCountBadge rendering", () => {
     it("renders '0' when value is 0", () => {
       const html = render(React.createElement(ui.TabCountBadge, { value: 0 }));
@@ -153,6 +194,24 @@ describe("Shared TabBar & TabCountBadge contracts (@nexora/ui)", () => {
       assert.ok(
         html.includes(">—<"),
         "Must render em-dash for undefined count",
+      );
+    });
+
+    it("renders with custom title and ariaLabel for accessibility", () => {
+      const html = render(
+        React.createElement(ui.TabCountBadge, {
+          value: 0,
+          title: "Chưa đồng bộ (0)",
+          ariaLabel: "0 kiện",
+        }),
+      );
+      assert.ok(
+        html.includes('title="Chưa đồng bộ (0)"'),
+        "Must have title attribute",
+      );
+      assert.ok(
+        html.includes('aria-label="0 kiện"'),
+        "Must have aria-label attribute",
       );
     });
 

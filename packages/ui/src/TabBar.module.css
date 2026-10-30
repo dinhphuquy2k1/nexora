@@ -88,7 +88,7 @@
   background: transparent;
   color: var(--color-tab-line-unselected-text);
   font: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   cursor: pointer;
@@ -117,7 +117,7 @@
 
 .tabItemActive {
   color: var(--color-tab-line-selected-text);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
 }
 
 .tabIcon {
@@ -125,8 +125,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   color: var(--color-tab-line-unselected-text);
   transition: color 0.15s ease;
 }
@@ -160,10 +160,10 @@
   align-items: center;
   justify-content: center;
   min-width: 20px;
-  height: 18px;
+  height: 20px;
   padding: 0 var(--space-1);
   border-radius: var(--radius-full);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-sm);
   font-family: inherit;
   font-variant-numeric: tabular-nums;
   line-height: 1;

@@ -1067,6 +1067,13 @@ test("Token Contract: mandatory design tokens defined in tokens.css", () => {
     "--color-count-line-selected-text",
     "--color-count-line-unselected-bg",
     "--color-count-line-unselected-text",
+    "--color-retail-tab-all-icon",
+    "--color-retail-tab-to-origin-icon",
+    "--color-retail-tab-at-origin-icon",
+    "--color-retail-tab-in-transit-icon",
+    "--color-retail-tab-at-dest-icon",
+    "--color-retail-tab-delivered-icon",
+    "--color-retail-tab-disputed-icon",
   ];
 
   for (const token of requiredSemanticTokens) {
@@ -2164,6 +2171,43 @@ test("Component Consistency: Button, status, tab and pagination canonical palett
     resolveTokenHex("--color-count-line-unselected-text").toLowerCase(),
     "#64748b",
     "Line count unselected text must resolve to gray-500",
+  );
+
+  // Retail status tab active icon tokens
+  assert.equal(
+    resolveTokenHex("--color-retail-tab-all-icon").toLowerCase(),
+    "#172b4d",
+    "Retail all icon must resolve to brand navy",
+  );
+  assert.equal(
+    resolveTokenHex("--color-retail-tab-to-origin-icon").toLowerCase(),
+    "#b45309",
+    "Retail to_origin icon must resolve to amber-700",
+  );
+  assert.equal(
+    resolveTokenHex("--color-retail-tab-at-origin-icon").toLowerCase(),
+    "#1d4ed8",
+    "Retail at_origin icon must resolve to blue-700",
+  );
+  assert.equal(
+    resolveTokenHex("--color-retail-tab-in-transit-icon").toLowerCase(),
+    "#4338ca",
+    "Retail in_transit icon must resolve to indigo-700",
+  );
+  assert.equal(
+    resolveTokenHex("--color-retail-tab-at-dest-icon").toLowerCase(),
+    "#047857",
+    "Retail at_dest icon must resolve to emerald-700",
+  );
+  assert.equal(
+    resolveTokenHex("--color-retail-tab-delivered-icon").toLowerCase(),
+    "#0f766e",
+    "Retail delivered icon must resolve to teal-700",
+  );
+  assert.equal(
+    resolveTokenHex("--color-retail-tab-disputed-icon").toLowerCase(),
+    "#be123c",
+    "Retail disputed icon must resolve to rose-700",
   );
 
   // Status badges
