@@ -1,30 +1,118 @@
 "use client";
 import { Button } from "@nexora/ui";
-
 import type { DeploymentPresentation } from "../../lib/auth/deployment-presentation.ts";
+import type { SessionUser } from "../../lib/api/session.ts";
 import { useEffect, useId, useRef, useState } from "react";
-import { ChevronDown, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { ChevronDown, LogOut, Truck, UserRound } from "lucide-react";
 import { useDismissable } from "../../lib/hooks/use-dismissable.ts";
 import styles from "./AccountMenu.module.css";
 
-interface UserInfo {
-  id: string;
-  username: string;
-}
-
 interface AccountMenuProps {
-  initialUser?: UserInfo | null;
+  initialUser?: SessionUser | null;
+  // Retained for Header composition compatibility; deployment is not identity.
   deployment: DeploymentPresentation;
 }
+const plannedItems = [
+  { label: "Thông tin cá nhân", icon: UserRound },
+  { label: "Kết nối hãng vận chuyển", icon: Truck },
+];
+function Avatar({
+  user,
+  large = false,
+}: {
+  user: SessionUser | null;
+  large?: boolean;
+}) {
+  const initials = user
+    ? Array.from(user.username).slice(0, 2).join("").toLocaleUpperCase("vi")
+    : "TK";
+  return (
+    <div
+      className={`${styles.avatar} ${large ? styles.summaryAvatar : ""}`}
+      aria-hidden="true"
+    >
+      {initials}
+    </div>
+  );
+}
 
-export function AccountMenu({ initialUser, deployment }: AccountMenuProps) {
+/** AppShell presentation shared by the disclosure and its rendered contract tests. */
+export function AccountMenuContent({
+  user,
+  isLoggingOut,
+  logoutError,
+  onLogout,
+}: {
+  user: SessionUser | null;
+  isLoggingOut: boolean;
+  logoutError: string | null;
+  onLogout: () => void;
+}) {
+  const plannedId = useId();
+  return (
+    <>
+      <div className={styles.panelHeader}>
+        <Avatar user={user} large />
+        <div className={styles.summaryText}>
+          <h4 className={styles.panelTitle}>{user?.username ?? "Tài khoản"}</h4>
+          <p className={styles.panelSubtitle}>Tài khoản Nexora</p>
+        </div>
+      </div>
+      <div className={styles.menuList}>
+        <span id={plannedId} className={styles.srOnly}>
+          Chưa triển khai
+        </span>
+        {plannedItems.map(({ label, icon: Icon }) => (
+          <Button
+            key={label}
+            variant="ghost"
+            pressEffect="none"
+            className={styles.menuItem}
+            disabled
+            title="Chưa triển khai"
+            aria-describedby={plannedId}
+          >
+            <Icon className={styles.menuIcon} size={16} aria-hidden="true" />
+            <span className={styles.itemLabel}>{label}</span>
+          </Button>
+        ))}
+      </div>
+      <div className={styles.logoutSection}>
+        <Button
+          variant="ghost"
+          pressEffect="none"
+          className={`${styles.menuItem} ${styles.logoutButton}`}
+          onClick={onLogout}
+          disabled={!user || isLoggingOut}
+          aria-label="Đăng xuất khỏi hệ thống"
+          aria-busy={isLoggingOut}
+        >
+          <LogOut className={styles.menuIcon} size={16} aria-hidden="true" />
+          <span className={styles.itemLabel}>
+            {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
+          </span>
+        </Button>
+        {logoutError && (
+          <p className={styles.logoutError} role="alert">
+            {logoutError}
+          </p>
+        )}
+      </div>
+    </>
+  );
+}
+
+export function AccountMenu({ initialUser }: AccountMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<UserInfo | null>(initialUser ?? null);
+  const [user, setUser] = useState<SessionUser | null>(initialUser ?? null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  const logoutInFlight = useRef(false);
   const panelId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   useDismissable({
     panelRef,
@@ -32,51 +120,48 @@ export function AccountMenu({ initialUser, deployment }: AccountMenuProps) {
     isOpen,
     onClose: () => setIsOpen(false),
   });
-
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
   useEffect(() => {
     let mounted = true;
     fetch("/api/auth/session")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (mounted && data?.user) {
-          setUser(data.user);
-        }
+        if (mounted && data?.user) setUser(data.user);
       })
       .catch(() => {
-        // Silently fail if session check cannot connect
+        /* Preserve the already verified SSR user on temporary outage. */
       });
-
     return () => {
       mounted = false;
     };
   }, []);
 
   const handleLogout = async () => {
+    if (logoutInFlight.current) return;
+    logoutInFlight.current = true;
     setIsLoggingOut(true);
     setLogoutError(null);
     try {
-      const res = await fetch("/api/auth/logout", {
-        method: "POST",
-      });
-      if (!res.ok) {
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      if (!res.ok)
         throw new Error("Không thể hủy phiên làm việc trên máy chủ.");
-      }
       window.location.href = "/login";
     } catch {
+      logoutInFlight.current = false;
       setLogoutError("Đăng xuất không thành công. Vui lòng thử lại.");
       setIsLoggingOut(false);
     }
   };
-
-  const displayName = user ? user.username : "Tài khoản";
-  const initials = user ? user.username.slice(0, 2).toUpperCase() : "TK";
-
+  const displayName = user?.username ?? "Tài khoản";
   return (
     <div className={styles.menuContainer}>
       <Button
         variant="ghost"
+        size="medium"
+        pressEffect="none"
         ref={triggerRef}
-        type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-controls={isOpen ? panelId : undefined}
@@ -84,23 +169,13 @@ export function AccountMenu({ initialUser, deployment }: AccountMenuProps) {
         title={`Tài khoản: ${displayName}`}
         className={styles.accountButton}
       >
-        <div className={styles.avatar} aria-hidden="true">
-          {initials}
-        </div>
-        <div className={styles.accountInfo}>
+        <Avatar user={user} />
+        <span className={styles.accountInfo}>
           <span className={styles.accountName}>{displayName}</span>
-          <span className={styles.accountRole}>
-            {user ? deployment.badge : "Chưa kết nối"}
-          </span>
-        </div>
-        <div
-          className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ""}`}
-          aria-hidden="true"
-        >
-          <ChevronDown size={14} />
-        </div>
+          <span className={styles.accountSubtitle}>Tài khoản Nexora</span>
+        </span>
+        <ChevronDown className={styles.chevron} size={16} aria-hidden="true" />
       </Button>
-
       {isOpen && (
         <div
           id={panelId}
@@ -109,50 +184,12 @@ export function AccountMenu({ initialUser, deployment }: AccountMenuProps) {
           role="region"
           aria-label="Thông tin tài khoản"
         >
-          <div className={styles.panelHeader}>
-            <div className={styles.titleRow}>
-              <h4 className={styles.panelTitle}>
-                {user ? user.username : "Tài khoản người dùng"}
-              </h4>
-              <span className={user ? styles.activeBadge : styles.plannedBadge}>
-                {user ? deployment.badge : "Chưa kết nối"}
-              </span>
-            </div>
-            <p className={styles.panelDescription}>
-              {user
-                ? deployment.session
-                : "Quản lý danh tính và phiên làm việc"}
-            </p>
-          </div>
-          <div className={styles.panelBody}>
-            <div className={styles.statusNotice}>
-              {user
-                ? `Đang đăng nhập với tư cách "${user.username}".`
-                : "Chưa xác thực danh tính người dùng."}
-            </div>
-            <p className={styles.infoFootnote}>{deployment.runtime}</p>
-
-            {user && (
-              <>
-                <Button
-                  variant="ghost"
-                  type="button"
-                  className={styles.logoutButton}
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  aria-label="Đăng xuất khỏi hệ thống"
-                >
-                  <LogOut size={16} aria-hidden="true" />
-                  {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
-                </Button>
-                {logoutError && (
-                  <p className={styles.logoutError} role="alert">
-                    {logoutError}
-                  </p>
-                )}
-              </>
-            )}
-          </div>
+          <AccountMenuContent
+            user={user}
+            isLoggingOut={isLoggingOut}
+            logoutError={logoutError}
+            onLogout={handleLogout}
+          />
         </div>
       )}
     </div>

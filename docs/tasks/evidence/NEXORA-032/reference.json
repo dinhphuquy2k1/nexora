@@ -1,0 +1,457 @@
+{
+  "archiveSha256": "a10065b309004c8771ad937d2f622a7f93e44ef9a496599e7cfc637e198151aa",
+  "headerSha256": "47e699e467c5fbf4cf8cdddecda1647846866a9ccb6f728c279bfca0f8bcf39c",
+  "mockDataSha256": "df96ae85a8ee4f6c8638a59e6079dc14ebb510254c4347e1f83030b540c43726",
+  "renderer": "Exact raw Account JSX subtree; no ZIP App, scripts or provider services; mock identity only in reference images",
+  "records": [
+    {
+      "file": "zip-account-closed-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "1226ad06a0e588c02e15da3241b2ad91d13c21a3c6c57721cfaa681be87affe9",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": null,
+        "row": null,
+        "logout": null
+      }
+    },
+    {
+      "file": "zip-account-closed-1280x800.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "68b97328a5834e1bb6175aff95d3605241751298cf864f5f3497902b70149e3d",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": null,
+        "row": null,
+        "logout": null
+      }
+    },
+    {
+      "file": "zip-account-closed-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "aab553132b69e249de1a52a1ec79e60701e4422286c9dae553464115c22f4f46",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": null,
+        "row": null,
+        "logout": null
+      }
+    },
+    {
+      "file": "zip-account-closed-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "05cbc56d88178182443a79e9c12616a4868fdc6e757fdfbeb14302ba234e7a30",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": null,
+        "row": null,
+        "logout": null
+      }
+    },
+    {
+      "file": "zip-account-closed-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "b48c4621748f9b88e2fc8a607aaf4eaee70ff01b1e7cfd6acb0b49df7c09e9e7",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": null,
+        "row": null,
+        "logout": null
+      }
+    },
+    {
+      "file": "zip-account-closed-375x812.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "fc6679d98e7dda3012c2eeef2ffe72e0347ca597e41a36d835d37ece9e05f1a0",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": null,
+        "row": null,
+        "logout": null
+      }
+    },
+    {
+      "file": "zip-account-opened-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "ff1062342f20af2317c4578b15b648dd238d669d70741b6fd8267631364e34bc",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": false,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-opened-1280x800.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "c959235bba198a54c4a593d822e673eb43852c646721e7641036229a02c65f19",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": false,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-opened-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "2205be0b13e13cfc865f9418a7652cc8169555a136b372ebec0c5eeb3d6096b7",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": false,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-opened-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "e509c60861918c5028578c87aedaa995347f61a51c157a64d80d8ccf59f81592",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": false,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-opened-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "fcbf21421778de8f512b959cdaa184973d0ab952b43da7e9ffce3275ad5c6a65",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": false,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-opened-375x812.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "17b48ac0777894ed6abc46471881cb192f69415a89872b341baa86e7d2a7c0ec",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": false,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "rgba(0, 0, 0, 0)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-logout-hover-1440x900.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "d108f403fd84e7e7bc505b7bc376a1ea0ba032b9980336fafebf473c1bce6f65",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": true,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "oklch(0.969 0.015 12.422)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-logout-hover-1280x800.png",
+      "width": 1280,
+      "height": 800,
+      "sha256": "a8aa30c4b7151e3506cdd3aa8948838022b8674d978e3d80d18ac8bef64dbd52",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": true,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "oklch(0.969 0.015 12.422)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-logout-hover-1024x768.png",
+      "width": 1024,
+      "height": 768,
+      "sha256": "d3488783d28000d307545ff17d05eb32812c5d87af1edcad93c434c9ccf52584",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": true,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "oklch(0.969 0.015 12.422)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-logout-hover-768x1024.png",
+      "width": 768,
+      "height": 1024,
+      "sha256": "5d851d3c75bd083c2b74076b3489e50c84c14126370f93eb2037ce0a3ccd7104",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": true,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "oklch(0.969 0.015 12.422)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-logout-hover-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "ceac201e844248064450d8642587815ef4f0d7437b8f53655ae3288b608d4fcc",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": true,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "oklch(0.969 0.015 12.422)"
+        }
+      }
+    },
+    {
+      "file": "zip-account-logout-hover-375x812.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "1595319aa1b753a551a548acc9e77b838dec77f71353e55bba2d3ec60530fd9f",
+      "geometry": {
+        "header": 56,
+        "triggerHeight": 42,
+        "avatar": 32,
+        "panel": {
+          "width": 256,
+          "height": 385,
+          "radius": "12px",
+          "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+          "bg": "rgb(255, 255, 255)"
+        },
+        "row": {
+          "height": 32,
+          "gap": "10px",
+          "padding": "8px 12px",
+          "font": "12px"
+        },
+        "logout": {
+          "hover": true,
+          "media": true,
+          "color": "oklch(0.586 0.253 17.585)",
+          "bg": "oklch(0.969 0.015 12.422)"
+        }
+      }
+    }
+  ],
+  "tooling": {
+    "tailwind": "4.3.3",
+    "browser": "Chromium151.0.7922.173",
+    "input": "fine mouse via documented Blink primary/available pointer and hover settings; actual CDP mouseMoved; no CSS pseudo-state forcing"
+  }
+}

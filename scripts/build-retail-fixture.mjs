@@ -12,6 +12,22 @@ const output = process.argv[2]
 await mkdir(output, { recursive: true });
 const compiler = webpack({
   plugins: [
+    new webpack.DefinePlugin(
+      require("next/dist/build/define-env").getDefineEnv({
+        isTurbopack: false,
+        config: require("next/dist/server/config-shared").defaultConfig,
+        dev: true,
+        distDir: output,
+        projectPath: root,
+        fetchCacheKeyPrefix: undefined,
+        hasRewrites: false,
+        isClient: true,
+        isEdgeServer: false,
+        isNodeServer: false,
+        middlewareMatchers: undefined,
+        rewrites: { beforeFiles: [], afterFiles: [], fallback: [] },
+      }),
+    ),
     {
       apply(compiler) {
         compiler.hooks.compilation.tap("RetailFixtureTrace", (compilation) =>
@@ -30,7 +46,10 @@ const compiler = webpack({
   devtool: false,
   cache: false,
   context: root,
-  entry: resolve(root, "apps/web/test/fixtures/retail-entry.tsx"),
+  entry: resolve(
+    root,
+    process.argv[3] ?? "apps/web/test/fixtures/retail-entry.tsx",
+  ),
   output: { path: output, filename: "bundle.js" },
   resolve: {
     extensions: [".tsx", ".ts", ".mjs", ".js", ".json"],
@@ -102,4 +121,4 @@ await writeFile(
   resolve(output, "index.html"),
   '<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Retail UI test fixture</title><style>@font-face{font-family:Inter;src:url(/inter.woff2)}:root{--font-inter:Inter}body{font-family:Inter,sans-serif;margin:0;padding:16px}*{box-sizing:border-box}#fixture-root{min-width:0}</style><div id="fixture-root"></div><script src="/bundle.js"></script></html>',
 );
-console.log("Actual Retail fixture TSX/CSS bundle built (test-only)");
+console.log("Actual TSX/CSS test fixture bundle built");

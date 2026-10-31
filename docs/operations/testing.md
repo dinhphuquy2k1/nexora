@@ -409,3 +409,32 @@ Actual fixture TSX/CSS, original production Auth/Customer/Retail checks and full
 Foundation remain required. Mark direct same-state ZIP comparison NOT RUN if its
 specified archive is unavailable; screenshots against the written contract cannot
 be reported as a direct ZIP comparison.
+
+## Account Menu ZIP parity — NEXORA-032
+
+Existing browser-login-smoke calls account-menu-browser-checks in the same real
+ADMIN+MFA and OPERATOR Chromium sessions before the original logout steps. Those
+steps still POST real logout, wait for Login and verify session401; interception
+never substitutes for successful server revocation. Account-only synthetic loading/
+failure/retry uses narrowly matched Fetch interception on POST/api/auth/logout,
+checks single-flight/disabled feedback and no redirect, then fails/fulfills every
+paused request and disables interception in finally. Real session must remain200
+after the synthetic503; then the original genuine logout checks run unchanged.
+
+ACCOUNT_EVIDENCE_DIR enables six-size closed/open/focus/hover/loading/error PNGs and
+source-SHA/hash/geometry manifests. Validate256px panel, radius12, avatar32/40,
+Header56, typed trigger40/rows32, icons16, fonts and semantic colors,3 native entries,
+planned disabled/no href, keyboard/outside/route dismissal, no body overflow and
+no overlay clipping. Actual Customer/Retail/AppShell/MFA and public/runtime/data/
+development regressions remain mandatory in final-head Foundation.
+
+The isolated account-entry test bundle is never imported by production. Reuse
+build-retail-fixture with optional third argument pointing to the test entry;
+default Retail compilation remains unchanged. The adapter uses pinned Next CSS
+loaders and its actual client define-env factory for Next hooks rather than fake
+navigation globals. Local synthetic session/error fixtures do not prove real auth.
+Reference images under docs/tasks/evidence/NEXORA-032 come from the hash-verified
+ZIP Account JSX subtree rendered alone, outside product code with no ZIP scripts,
+App or provider services. Reference mock identity/extra entries are documentary
+only. Compare the requested subset and record intentional exclusions, planned
+state, real-username and shared-control sizing differences; no pixel-equality claim.

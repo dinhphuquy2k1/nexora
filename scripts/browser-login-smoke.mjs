@@ -1,3 +1,4 @@
+import { verifyAccountMenu } from "./account-menu-browser-checks.mjs";
 import { browserStartupSummary } from "./browser-startup-diagnostics.mjs";
 import { verifyRetailBrowser } from "./retail-browser-checks.mjs";
 import { verifyCustomerBrowser } from "./customer-browser-checks.mjs";
@@ -59,6 +60,8 @@ const child = spawn(
   executable,
   [
     "--headless=new",
+    // Real fine-pointer hover capability, shared by ZIP/product comparison.
+    "--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4",
     "--no-sandbox",
     "--disable-dev-shm-usage",
     "--no-first-run",
@@ -771,6 +774,14 @@ try {
   const setupUrl = new URL(created.data.setupUrl);
   setupSecret = new URLSearchParams(setupUrl.hash.slice(1)).get("token");
   assert.ok(!!setupSecret && setupUrl.origin === new URL(baseUrl).origin);
+  await verifyAccountMenu({
+    send,
+    evaluate,
+    socket,
+    baseUrl,
+    prefix: "admin",
+    checks,
+  });
   checks.step("ADMIN_ACCOUNT_MENU_LOGOUT");
   await evaluate(
     `document.querySelector('button[aria-label^="Tài khoản người dùng"]').click()`,
@@ -894,6 +905,17 @@ try {
     await delay(100);
   }
   assert.equal(accountReady, true, "Account menu did not become interactive");
+  await verifyAccountMenu({
+    send,
+    evaluate,
+    socket,
+    baseUrl,
+    prefix: "operator",
+    checks,
+  });
+  await evaluate(
+    `document.querySelector('button[aria-label^="Tài khoản người dùng"]').click()`,
+  );
   await evaluate(
     `document.querySelector('button[aria-label="Đăng xuất khỏi hệ thống"]').click()`,
   );
