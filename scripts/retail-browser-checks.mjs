@@ -185,10 +185,10 @@ export async function verifyRetailBrowser({
       );
       assert.equal(
         await evaluate(
-          "Array.from(document.querySelectorAll('[role=tab] span[class*=\"badge\"]')).every(b => b.textContent.trim() === '0')",
+          "Array.from(document.querySelectorAll('[role=tab] span[class*=\"badge\"]')).every(b => b.textContent.includes('—') && b.textContent.includes('chưa có dữ liệu'))",
         ),
         true,
-        "Production unavailable badges present placeholder 0",
+        "Production unavailable badges present em-dash and honest screen reader text",
       );
       assert.equal(
         await evaluate("document.querySelectorAll('colgroup col').length"),
