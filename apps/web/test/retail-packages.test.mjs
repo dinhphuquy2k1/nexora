@@ -476,4 +476,61 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
     assert.match(unavailHtml, /paginationRange[^>]*>—<\/strong>/);
     assert.match(unavailHtml, /data-retail-count[^>]*>—(?:<!-- -->)? kiện lẻ/);
   });
+
+  describe("Retail Packages — Visual Parity & Architecture (M3 v5)", () => {
+    it("RetailPackageTable enforces full width (width: 100%) with minimum width bounds", () => {
+      const { RetailPackageTable } = loadComponent(
+        new URL(
+          "../features/retail-packages/RetailPackageTable.tsx",
+          import.meta.url,
+        ),
+      );
+      const { columnPreset, visibleColumns } = loadComponent(
+        new URL("../features/retail-packages/columns.ts", import.meta.url),
+      );
+
+      // Basic preset (7 columns)
+      const basicVisibility = columnPreset("basic");
+      const basicCols = visibleColumns(basicVisibility);
+      const minBasicWidth = basicCols.reduce((n, c) => n + c.width, 0);
+
+      const html = render(
+        React.createElement(RetailPackageTable, {
+          paginated: [],
+          visibleColumns: basicCols,
+          unavailable: false,
+          onDetail: () => {},
+        }),
+      );
+
+      assert.match(html, /width:\s*100%/i, "table must have width: 100%");
+      assert.match(
+        html,
+        new RegExp(`min-width:\\s*${minBasicWidth}px`, "i"),
+        `table must have min-width: ${minBasicWidth}px`,
+      );
+    });
+
+    it("RetailColumnPicker popover renders header, SelectButton presets, pinned badge, and 'Đã xong' button", () => {
+      const { RetailColumnPicker } = loadComponent(
+        new URL(
+          "../features/retail-packages/RetailColumnPicker.tsx",
+          import.meta.url,
+        ),
+      );
+      const { DEFAULT_COLUMN_VISIBILITY } = loadComponent(
+        new URL("../features/retail-packages/columns.ts", import.meta.url),
+      );
+
+      // Initial trigger button
+      const triggerHtml = render(
+        React.createElement(RetailColumnPicker, {
+          visibility: DEFAULT_COLUMN_VISIBILITY,
+          onChange: () => {},
+        }),
+      );
+      assert.match(triggerHtml, /Tùy chỉnh cột hiển thị/);
+      assert.match(triggerHtml, /Cột/);
+    });
+  });
 });

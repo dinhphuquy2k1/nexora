@@ -22,3 +22,9 @@ export type { ToastMessage } from "./toast-state";
 
 export { TabBar, type TabBarProps, type TabBarItem } from "./TabBar";
 export { TabCountBadge, type TabCountBadgeProps } from "./TabCountBadge";
+
+export {
+  SelectButton,
+  type SelectButtonProps,
+  type SelectButtonOption,
+} from "./SelectButton";

@@ -117,7 +117,7 @@
 .searchWrapper {
   position: relative;
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
   max-width: 480px;
 }
 
@@ -608,35 +608,88 @@ button.colPickerTrigger_full {
   box-shadow: var(--shadow-lg);
 }
 
-.colPickerTitle {
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+/* Column picker popover header */
+.colPickerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--color-border);
-  margin-bottom: var(--space-1);
 }
 
-.colPickerRow {
+.colPickerHeaderLeft {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
-  cursor: pointer;
-  transition: background 0.1s;
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
 }
 
-.colPickerRow:hover {
-  background: var(--color-surface-subtle);
+.colPickerHeaderIcon {
+  color: var(--brand-orange);
+  flex-shrink: 0;
 }
 
-.colPickerRow.colPickerRowDisabled {
+.colPickerHeaderTitle {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+button.colPickerCloseBtn {
   color: var(--color-text-muted);
-  cursor: not-allowed;
+  border-color: transparent;
+  background-color: transparent;
+  padding: 0;
+}
+
+button.colPickerCloseBtn:hover:not(:disabled) {
+  color: var(--color-primary);
+  background-color: var(--color-surface-subtle);
+}
+
+.colOptionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--space-2);
+}
+
+.colOptionLabel {
+  font-size: var(--font-size-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.colOptionRequired {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.colPinnedBadge {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--brand-orange-text);
+  background-color: var(--amber-50);
+  border: 1px solid var(--amber-200);
+  border-radius: var(--radius-xs);
+  padding: 1px var(--space-1);
+  line-height: var(--line-height-tight);
+  flex-shrink: 0;
+}
+
+button.colPickerDoneBtn {
+  background-color: var(--brand-navy);
+  border-color: var(--brand-navy);
+  color: var(--color-white);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+button.colPickerDoneBtn:hover:not(:disabled) {
+  background-color: var(--brand-navy-light);
+  border-color: var(--brand-navy-light);
+  color: var(--color-white);
 }
 
 /* Modal and Drawer Dialog styling (nested inside @nexora/ui Overlay) */
@@ -1144,13 +1197,24 @@ button.colPickerTrigger_full {
   gap: var(--space-2);
 }
 .popoverHeading,
-.popoverFooter,
 .presetRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
   flex-wrap: wrap;
+}
+
+.popoverFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 .columnChoices {
   display: flex;
@@ -1190,6 +1254,7 @@ button.colPickerTrigger_full {
   }
   .searchGroup {
     flex-basis: 100%;
+    flex-wrap: wrap;
   }
   .filterPanel {
     left: auto;

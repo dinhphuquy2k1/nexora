@@ -1,0 +1,113 @@
+/* ==========================================================================
+   Shared SelectButton Presentation
+   Owned by packages/ui per Tier A architecture
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Single Segmented Layout
+   -------------------------------------------------------------------------- */
+
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px;
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+}
+
+.segmented.fluid {
+  display: flex;
+  width: 100%;
+}
+
+.segmented.fluid > button {
+  flex: 1;
+}
+
+.segmentedItem {
+  flex: 1;
+  min-width: 0;
+  border-color: transparent;
+  background-color: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.segmentedItem:hover:not(:disabled) {
+  background-color: var(--color-surface-subtle);
+  color: var(--color-text);
+}
+
+.segmentedItem[aria-pressed="true"],
+.segmentedItem.selected {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.segmentedItem[aria-pressed="true"]:hover:not(:disabled),
+.segmentedItem.selected:hover:not(:disabled) {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Multiple Stacked Layout
+   -------------------------------------------------------------------------- */
+
+.stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.stackedItem {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--control-size-default);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--color-text);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.stackedItem:hover:not(.itemDisabled) {
+  background-color: var(--color-surface-subtle);
+}
+
+.stackedItem.itemSelected {
+  background-color: var(--color-surface-muted);
+}
+
+.stackedItem.itemSelected:hover:not(.itemDisabled) {
+  background-color: var(--color-surface-subtle);
+}
+
+.stackedItem.itemDisabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.stackedItem > span {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}

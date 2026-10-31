@@ -10,10 +10,10 @@ Documentation Impact: REQUIRED
 
 - **Task ID**: NEXORA-031
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-30-retail-packages-m3-v4
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-30-retail-packages-m3-v4.md
-- **Design SHA-256**: 8d83522cb5208f054eec63639e592b38782ffd9c90325e5e8cd091cc5776d9dc
-- **Reviewed baseline**: 4b3fd8630ce9bae870a2d4a8cba608790bd96484
+- **Plan revision**: rev-2026-10-30-retail-packages-m3-v5
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-30-retail-packages-m3-v5.md
+- **Design SHA-256**: bab9aab279f1ffc8374b5d13a938742593b4ed74329f2d421f13bdc34fe512a6
+- **Reviewed baseline**: 4f6a24b27d0bff1db0719cbbe8f24be5ab8a3bdb
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: APPROVED (historical metadata only; no current approval gate)
 - **Approval evidence**: Historical owner comment for rev-2026-10-26-color-policy-m2-v4 (digest 01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53). This comment does not independently validate its snapshot or supersede governing documentation; v3 still governs unrelated visual choices.
@@ -1893,3 +1893,7 @@ hosted verification remains pending, never inherited from the earlier correction
 Mobile correction rerun: Web typecheck PASS, root lint PASS, full Web171/171 PASS
 (no skips), actual fixture rebuild and real Chromium flows/six-size captures PASS;
 docs and diff checks PASS. Await the new correction commit's hosted evidence.
+
+### M3 v5 amendment execution — 2026-10-31
+
+Implemented shared `SelectButton` primitive in `@nexora/ui` per PrimeVue-inspired pattern without external dependencies, composing existing `Button` (single segmented) and `Checkbox` (multiple stacked). Migrated `RetailColumnPicker` to `SelectButton`: segmented column presets (all, basic, default) with dynamic `activePreset` set-equality derivation, stacked searchable column visibility checklist with out-of-filter selection preservation, and fixed tracking column protection with amber "Cố định" badge. Popover header restored with icon, title, and close button; footer updated with "Đã xong" button and border separator. Fixed table full-width collapse (`width: 100%, minWidth: minTableWidth`) with sticky tracking column preservation. All unit, contract, SSR, and Chromium CDP browser checks PASS across 6 viewports.

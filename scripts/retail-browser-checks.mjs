@@ -458,15 +458,41 @@ export async function verifyRetailBrowser({
     checks.step("RETAIL_COLUMNS_PRESETS_STICKY");
     await click("Tùy chỉnh cột hiển thị");
     await snapshot("column-picker");
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[role=dialog] button[aria-pressed=true]')?.textContent?.trim()",
+      ),
+      "Mặc định",
+    );
     await click("Cơ bản");
     assert.equal(
       await evaluate("document.querySelectorAll('colgroup col').length"),
       7,
     );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[role=dialog] button[aria-pressed=true]')?.textContent?.trim()",
+      ),
+      "Cơ bản",
+    );
+    const basicWidthCheck = await evaluate(
+      `(()=>{const table=document.querySelector('table'),container=table.parentElement;return{tableWidth:table.getBoundingClientRect().width,containerWidth:container.clientWidth};})()`,
+    );
+    assert.ok(
+      Math.abs(basicWidthCheck.tableWidth - basicWidthCheck.containerWidth) <=
+        2,
+      "table spans full container width when 7 columns are shown",
+    );
     await click("Mặc định");
     assert.equal(
       await evaluate("document.querySelectorAll('colgroup col').length"),
       19,
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[role=dialog] button[aria-pressed=true]')?.textContent?.trim()",
+      ),
+      "Mặc định",
     );
     await key("Escape");
     await until("!document.querySelector('[role=dialog]')");
@@ -480,6 +506,21 @@ export async function verifyRetailBrowser({
       await evaluate("document.querySelectorAll('colgroup col').length"),
       20,
     );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[role=dialog] button[aria-pressed=true]')?.textContent?.trim()",
+      ),
+      "Tất cả",
+    );
+    await type("Tìm tên cột", "HÃNG VẬN CHUYỂN");
+    await evaluate(
+      `(()=>{const cb=document.querySelector('[role=dialog] input[type=checkbox]:not(:disabled)');if(cb){cb.click();}})()`,
+    );
+    await type("Tìm tên cột", "");
+    assert.equal(
+      await evaluate("document.querySelectorAll('colgroup col').length"),
+      19,
+    );
     await type("Tìm tên cột", "MÃ VẬN ĐƠN");
     assert.equal(
       await evaluate(
@@ -487,8 +528,14 @@ export async function verifyRetailBrowser({
       ),
       true,
     );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[role=dialog] [class*=\"colPinnedBadge\"]')?.textContent?.trim()",
+      ),
+      "Cố định",
+    );
     await type("Tìm tên cột", "");
-    await click("Hoàn tất");
+    await click("Đã xong");
     await send("Emulation.setDeviceMetricsOverride", {
       width: 1024,
       height: 768,

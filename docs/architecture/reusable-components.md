@@ -295,6 +295,27 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Do not use for segmented toggle buttons (e.g. Customer status bar until migration is approved).
   - Do not use for in-table actions or button groups.
 
+## Shared SelectButton (@nexora/ui, NEXORA-031 M3 v5)
+
+- **Owner Path**: `packages/ui/src/SelectButton.tsx`, `packages/ui/src/SelectButton.module.css`
+- **Exported Contract**:
+  - `export interface SelectButtonOption<T extends string> { value: T; label: string; disabled?: boolean; }`
+  - `export type SelectButtonProps<T extends string> = ...` (discriminated union of single segmented and multiple stacked modes)
+  - `export function SelectButton<T extends string>(props: SelectButtonProps<T>): JSX.Element`
+- **Intended Consumers**:
+  - Retail Column Picker (`RetailColumnPicker.tsx`): single segmented for presets (all, basic, default) and multiple stacked for column visibility.
+  - Potential future consumer: `AddressForm.tsx` (address label chips, supports `allowEmpty=true`). Note: Customer UI is NOT migrated in PR #29.
+- **Supported Behavior**:
+  - Exactly two supported modes and layouts:
+    1. `mode: "single", layout: "segmented"`: Composes `@nexora/ui` `Button` with `aria-pressed`, controlled single value, optional `allowEmpty` (default `false`).
+    2. `mode: "multiple", layout: "stacked"`: Composes `@nexora/ui` `Checkbox` with native `input[type=checkbox]`, full-row clickability, custom trailing content support via `renderOption`.
+  - Invariant: Toggling multiple stacked options preserves selected values outside the current filtered `options` list.
+  - Zero external dependencies: no PrimeVue, PrimeReact, Radix, React Aria, Base UI, or shadcn.
+- **Explicit Non-Goals**:
+  - No single stacked or multiple segmented modes.
+  - No fake checkboxes or nested labels.
+  - No business domain logic or Shipment knowledge in `@nexora/ui`.
+
 ### Neutral action hierarchy (Customer M2 actual consumers)
 
 Button primary(default)/secondary/ghost variants share control sizing/radius/font, focus ring and disabled behavior. Secondary uses surface/text/border semantic tokens; ghost uses transparent surface and semantic text; neither relies on feature CSS state overrides. `icon` makes width/min-width equal to the selected control size, retaining canonical hit target; consumers provide an accessible name. Actual consumers: Customer toolbar/reload/clear, segmented status, pagination, profile/address inline actions and drawer Cancel/Save. Input/Select/Textarea share the approved size API; multiline/native multiple exceptions remain. New root semantic text-on-dark accent and accent-border tokens belong to dark brand icons/default-address emphasis, not interchangeable palette shortcuts. Genuine computed-style/contrast/token-override and M1/Login regression remain acceptance requirements.
