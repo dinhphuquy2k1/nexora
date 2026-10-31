@@ -1899,6 +1899,7 @@ docs and diff checks PASS. Await the new correction commit's hosted evidence.
 Implemented shared `SelectButton` primitive in `@nexora/ui` per PrimeVue-inspired pattern without external dependencies, composing existing `Button` (single segmented) and `Checkbox` (multiple stacked). Migrated `RetailColumnPicker` to `SelectButton`: segmented column presets (all, basic, default) with dynamic `activePreset` set-equality derivation, stacked searchable column visibility checklist with out-of-filter selection preservation, and fixed tracking column protection with amber "Cố định" badge. Popover header restored with icon, title, and close button; footer updated with "Đã xong" button and border separator. Fixed table full-width collapse (`width: 100%, minWidth: minTableWidth`) with sticky tracking column preservation. All unit, contract, SSR, and Chromium CDP browser checks PASS across 6 viewports.
 
 Follow-up refinement:
+
 - Extracted and exported pure selection helpers (`nextSingleSelection`, `nextMultipleSelection`) from `@nexora/ui` with genuine unit and component event assertions (no local mock implementations).
 - Expanded `RetailColumnPicker` tests for closed trigger, open popover dialog, preset derivations, and search filtering preservation.
 - Clarified table minimum width bound (7 basic columns = 915px total minimum width) and split browser geometry verification into wide (100% width match) and narrow (horizontal scroll overflow with min-width preservation) assertions.
