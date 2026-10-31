@@ -2,7 +2,11 @@
 
 Status: VERIFICATION PENDING
 Implementation: IMPLEMENTED
-Verification: NOT VERIFIED
+Verification: VERIFIED
+
+Verification checkpoint: implementation8b2160b; final documentation-head workflow
+evidence is reconciled in PR30 before Ready for review. Task stays active for
+final-head handoff/owner acceptance; it is not marked COMPLETED.
 
 ## Scope
 
@@ -24,9 +28,10 @@ Read-only audit/8-field reuse matrix, scoped control appearance assessment, rout
 - [x] Read-only source/ZIP/routes/security audit; new task ID/branch availability checked.
 - [x] Record scoped plan, reuse matrix, snapshot/digest before implementation.
 - [x] Test-first identity/entries/disabled routes; implement trigger/summary/three entries and preserve logout.
-- [ ] Actual browser/ZIP six-viewport comparison, keyboard/loading/error/retry and real ADMIN/OPERATOR revocation.
-- [ ] Independent rounds1–3 and targeted/full quality/regressions.
-- [ ] Focused commits/push, new PR, final-head Preflight/Foundation/log/artifact/metadata reconciliation.
+- [x] Actual browser/ZIP six-viewport comparison, keyboard/loading/error/retry and real ADMIN/OPERATOR revocation.
+- [x] Independent rounds1–3 and targeted/full quality/regressions.
+- [x] Focused commits/push, new PR, source-head Preflight/Foundation/log/artifact reconciliation.
+- [ ] Final documentation-head CI pending at this checkpoint; reconcile final outcome in PR30 metadata without a self-referential commit loop.
 
 ## Documentation Impact
 
@@ -49,10 +54,17 @@ Run docs:check, preflight:check and format:check; preserve immutable bytes after
 
 ## Evidence
 
-| Claim                                   | Evidence                                                                                                      | Date       | Result |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
-| Main/branch isolated and unused task032 | git fetch origin main, worktree new branch at845c7e6; rg NEXORA-032 found no previous task                    | 2026-10-31 | PASS   |
-| Exact uploaded ZIP provenance           | sha256sum a10065b309004c8771ad937d2f622a7f93e44ef9a496599e7cfc637e198151aa; Header and mockData read directly | 2026-10-31 | PASS   |
+| Claim                                      | Evidence                                                                                                                                                                                                             | Date       | Result |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Main/branch isolated and unused task032    | git fetch origin main, worktree new branch at845c7e6; rg NEXORA-032 found no previous task                                                                                                                           | 2026-10-31 | PASS   |
+| Exact uploaded ZIP provenance              | sha256sum a10065b309004c8771ad937d2f622a7f93e44ef9a496599e7cfc637e198151aa; Header and mockData read directly                                                                                                        | 2026-10-31 | PASS   |
+| Initial Carrier unit failure               | Foundation41207628316 attempt1 at2845e22; API171/172, first loopback verification503; runtime skipped                                                                                                                | 2026-10-31 | FAIL   |
+| Initial Account route harness precondition | Foundation41207628316 attempt2;18 Account images, hidden Sidebar navigation timeout; corrected in8b2160b                                                                                                             | 2026-10-31 | FAIL   |
+| Retail gate before Account                 | Foundation41208246908 at1dcf44d; RETAIL_COLUMNS_PRESET_ALL failure; subsequent gates skipped, restored original browser launch                                                                                       | 2026-10-31 | FAIL   |
+| Full source-head governance                | [Preflight41209017667](https://github.com/dinhphuquy2k1/nexora/actions/runs/41209017667), head8b2160baf718d49e1385a88b86c8c8a6d0a6d509                                                                               | 2026-10-31 | PASS   |
+| Full source-head Docker quality and smoke  | [Foundation41209017608](https://github.com/dinhphuquy2k1/nexora/actions/runs/41209017608), job124559895977; quality/integration, LOCAL/TTY/MFA/browser, HTTPS, data, dev all executed successfully                   | 2026-10-31 | PASS   |
+| Actual browser visual and failure states   | [Account artifact13046121263](https://github.com/dinhphuquy2k1/nexora/actions/runs/41209017608/artifacts/13046121263);72PNG hashes +2 manifests checked, six viewports ×six phases ×two actors; ZIP18 hashes checked | 2026-10-31 | PASS   |
+| Independent implementation review          | Three rounds, actual source/tests/images/logs; final8b2160b review no confirmed P1/P2; advisory same-tick test coverage retained below                                                                               | 2026-10-31 | PASS   |
 
 ## Execution journal
 
@@ -182,3 +194,52 @@ production behavior or assertions changed/weakened. Both FAIL records remain.
 
 Corrected harness targeted/local actual component browser and final-head Docker
 checks must rerun; no old or partial artifact establishes final PASS.
+
+### Verified implementation checkpoint — 2026-10-31 (Asia/Saigon)
+
+Implementation8b2160baf718d49e1385a88b86c8c8a6d0a6d509 passed Preflight41209017667
+and full Foundation41209017608. Actual Foundation checkout was PR merge
+20b8f24fefb2ef4590195ede5ad9105967a75a89, whose GitHub-verified parents are main
+845c7e68cd9de6e2e90651267a0778e8afebb117 and the implementation head; not a direct
+head checkout. Logs read, not merely YAML or aggregate status. Every required
+quality/integration, LOCAL runtime, provisioning/TTY/MFA/browser, disposable HTTPS,
+persistence and development step ran PASS; only failure-only Diagnostics skipped.
+
+Executed canonical frozen install, format/lint/boundaries/preflight/docs/typecheck/
+contracts/test/build in Docker. Script124, API172, Web186, UI32, database6 and
+integration81 tests all passed with zero failures. Real disposable cluster,
+migrations/provisioning/cleanup, two retained Python PTY harnesses, cookie/Origin/
+MFA/revocation, Customer API/UI CRUD and Retail regressions ran successfully.
+No new Python test or orchestration added. Host root failures above remain FAIL;
+these Docker results do not retroactively make them PASS.
+
+Account artifact13046121263 ZIP SHA256
+136ffce0fef09a483097e7e7e4b57f7c021bce38c5ed652479a4744115afe4df;
+admin.json/operator.json each contain36 PNG records and the exact merge SHA.
+All72 image hashes checked; desktop/mobile open/hover/focus/loading/error images
+opened against the18 direct ZIP reference images. Normal panel196px,256px width,
+12px radius,32/40px avatars, Header56, trigger40, rows32/icons16/padding12/gap10;
+long usernames wrap summary without overflow. Error feedback increases panel
+height intentionally. No claim of whole-demo pixel equality: real identity/neutral
+subtitle, two disabled planned entries, excluded mock fields/four actions and
+canonical40 versus42 trigger are deliberate differences.
+
+Synthetic503 and actual CDP ConnectionFailed cases verified no redirect, session200
+and retry. The caller then executed original actual ADMIN-after-MFA and OPERATOR
+logout, Login redirect and session401 assertions; no intercepted success or fake
+revocation. Route dismissal now passed using a visible real Next Link. Browser,
+security, Customer/Retail, TTY/MFA, HTTPS/data/dev results verified from actual logs.
+This is disposable CI evidence, not a public deployment or production readiness.
+
+Independent rounds: R1 architecture/security no P1/P2; R2 direct visual review,
+confirmed gap/shadow/rose/static-chevron corrections and local rerun; R3 final
+source,72 hosted PNGs/manifests and full actual logs no P1/P2. Follow-up route-test
+precondition reviewed independently with assertions preserved. P3 advisory: repeated
+pointer test proves disabled-state protection; it does not separately isolate a
+same-tick ref reentry attack. Production ref guard precedes await; no blocker found.
+
+This evidence-only update must receive its own final-head Preflight/Foundation;
+keep PR Draft until both pass and logs/artifacts are reconciled there. The PR holds
+final documentation-head SHA/run URLs so recording evidence does not recursively
+require another commit solely to name itself. No approval/merge/deployment is
+performed. The task remains active pending final-head handoff and owner acceptance.
