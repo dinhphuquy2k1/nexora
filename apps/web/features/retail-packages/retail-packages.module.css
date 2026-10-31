@@ -524,6 +524,16 @@
 }
 
 /* Column picker trigger button states */
+.colPickerTriggerLabel {
+  display: inline;
+}
+
+@media (max-width: 480px) {
+  .colPickerTriggerLabel {
+    display: none;
+  }
+}
+
 button.colPickerTrigger_open {
   background-color: var(--color-colpicker-open-bg);
   border-color: var(--color-colpicker-open-border);
@@ -596,14 +606,14 @@ button.colPickerTrigger_full {
   position: absolute;
   right: 0;
   top: calc(100% + var(--space-2));
-  width: min(340px, calc(100vw - 32px));
+  width: min(336px, calc(100vw - 32px));
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-3);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   background: var(--color-surface);
   box-shadow: var(--shadow-lg);
 }
@@ -629,9 +639,10 @@ button.colPickerTrigger_full {
 }
 
 .colPickerHeaderTitle {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
+  line-height: var(--line-height-normal);
 }
 
 button.colPickerCloseBtn {
@@ -644,6 +655,78 @@ button.colPickerCloseBtn {
 button.colPickerCloseBtn:hover:not(:disabled) {
   color: var(--color-primary);
   background-color: var(--color-surface-subtle);
+}
+
+/* Column Presets (Fast action appearance) */
+.colPresetAll {
+  color: var(--color-colpicker-preset-all);
+  font-weight: var(--font-weight-medium);
+}
+
+.colPresetBasic {
+  color: var(--color-colpicker-preset-basic);
+  font-weight: var(--font-weight-medium);
+}
+
+.colPresetDefault {
+  color: var(--color-colpicker-preset-default);
+  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Search wrapper inside column picker */
+.colPickerSearchWrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.colPickerSearchIcon {
+  position: absolute;
+  left: var(--space-2);
+  color: var(--color-text-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.colPickerSearchInput {
+  width: 100%;
+  padding-left: calc(var(--space-2) + 16px);
+  padding-right: calc(var(--space-2) + 16px);
+  background-color: var(--color-surface-muted);
+  border-color: var(--color-border);
+  font-size: var(--font-size-xs);
+}
+
+.colPickerSearchInput:focus {
+  background-color: var(--color-surface);
+  border-color: var(--color-accent);
+}
+
+.colPickerSearchInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.colPickerSearchClearBtn {
+  position: absolute;
+  right: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  line-height: 1;
+}
+
+.colPickerSearchClearBtn:hover {
+  color: var(--color-primary);
 }
 
 .colOptionRow {
@@ -659,6 +742,10 @@ button.colPickerCloseBtn:hover:not(:disabled) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.colOptionSelected {
+  color: var(--color-primary);
 }
 
 .colOptionRequired {
@@ -690,6 +777,25 @@ button.colPickerDoneBtn:hover:not(:disabled) {
   background-color: var(--brand-navy-light);
   border-color: var(--brand-navy-light);
   color: var(--color-white);
+}
+
+.colPickerFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  margin-top: 2px;
+}
+
+.colPickerFooterCount {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.colPickerFooterCount strong {
+  color: var(--color-text);
 }
 
 /* Modal and Drawer Dialog styling (nested inside @nexora/ui Overlay) */
@@ -1219,8 +1325,10 @@ button.colPickerDoneBtn:hover:not(:disabled) {
 .columnChoices {
   display: flex;
   flex-direction: column;
-  max-height: 280px;
-  overflow: auto;
+  max-height: 208px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
 }
 .availabilityNotice {
   padding: var(--space-3);

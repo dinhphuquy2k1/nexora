@@ -137,6 +137,11 @@
   --color-colpicker-full-badge-border: var(--color-border);
   --color-colpicker-full-badge-text: var(--color-text-muted);
 
+  /* Column picker preset semantics */
+  --color-colpicker-preset-all: var(--blue-700);
+  --color-colpicker-preset-basic: var(--amber-700);
+  --color-colpicker-preset-default: var(--gray-600);
+
   /* Action-specific semantic tokens (Power status toggling) */
   --color-action-deactivate: var(--gray-400);
   --color-action-deactivate-hover: var(--gray-700);

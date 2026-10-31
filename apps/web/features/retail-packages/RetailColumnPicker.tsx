@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button, SelectButton, TextInput } from "@nexora/ui";
-import { Columns3, SlidersHorizontal, X } from "lucide-react";
+import { RotateCcw, Search, SlidersHorizontal, X } from "lucide-react";
 import { useDismissable } from "../../lib/hooks/use-dismissable.ts";
 import {
   RETAIL_PACKAGE_COLUMNS,
@@ -120,7 +120,8 @@ export function RetailColumnPicker({
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        <Columns3 size={14} aria-hidden="true" /> Cột{" "}
+        <SlidersHorizontal size={14} aria-hidden="true" />
+        <span className={styles.colPickerTriggerLabel}>Cột hiển thị</span>{" "}
         <span className={badgeClassName}>
           {visibleCount}/{totalCount}
         </span>
@@ -161,20 +162,60 @@ export function RetailColumnPicker({
           <SelectButton
             mode="single"
             layout="segmented"
+            appearance="text-actions"
             fluid
             options={PRESET_OPTIONS}
             value={activePreset}
             ariaLabel="Chọn cấu hình cột"
             onValueChange={handlePresetChange}
+            renderOption={(opt) => {
+              if (opt.value === "all") {
+                return <span className={styles.colPresetAll}>{opt.label}</span>;
+              }
+              if (opt.value === "basic") {
+                return (
+                  <span className={styles.colPresetBasic}>{opt.label}</span>
+                );
+              }
+              return (
+                <span className={styles.colPresetDefault}>
+                  <RotateCcw size={11} aria-hidden="true" />
+                  <span>{opt.label}</span>
+                </span>
+              );
+            }}
           />
 
-          <TextInput
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Tìm tên cột"
-            placeholder="Tìm tên cột…"
-          />
+          <div className={styles.colPickerSearchWrapper}>
+            <Search
+              size={12}
+              className={styles.colPickerSearchIcon}
+              aria-hidden="true"
+            />
+            <TextInput
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Tìm tên cột"
+              placeholder="Tìm tên cột…"
+              className={styles.colPickerSearchInput}
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  panelRef.current
+                    ?.querySelector<HTMLInputElement>("input[type=search]")
+                    ?.focus();
+                }}
+                aria-label="Xóa tìm kiếm"
+                className={styles.colPickerSearchClearBtn}
+              >
+                <X size={11} aria-hidden="true" />
+              </button>
+            )}
+          </div>
 
           <div className={styles.columnChoices}>
             <SelectButton
@@ -184,7 +225,7 @@ export function RetailColumnPicker({
               value={selectedColumnIds}
               ariaLabel="Danh sách cột hiển thị"
               onValueChange={handleColumnSelectionChange}
-              renderOption={(opt) => {
+              renderOption={(opt, { selected }) => {
                 const col = RETAIL_PACKAGE_COLUMNS.find(
                   (c) => c.id === opt.value,
                 );
@@ -192,7 +233,7 @@ export function RetailColumnPicker({
                 return (
                   <span className={styles.colOptionRow}>
                     <span
-                      className={`${styles.colOptionLabel} ${isRequired ? styles.colOptionRequired : ""}`.trim()}
+                      className={`${styles.colOptionLabel} ${selected ? styles.colOptionSelected : ""} ${isRequired ? styles.colOptionRequired : ""}`.trim()}
                     >
                       {opt.label}
                     </span>
@@ -205,8 +246,8 @@ export function RetailColumnPicker({
             />
           </div>
 
-          <div className={styles.popoverFooter}>
-            <span>
+          <div className={styles.colPickerFooter}>
+            <span className={styles.colPickerFooterCount}>
               Đang bật: <strong>{visibleCount}</strong>/{totalCount} cột
             </span>
             <Button

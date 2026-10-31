@@ -118,6 +118,40 @@ describe("Shared SelectButton contracts (@nexora/ui)", () => {
       assert.ok(html.includes('data-selected="true"'));
       assert.ok(html.includes("Custom: Tất cả"));
     });
+
+    it("supports appearance='text-actions' rendering decorative separators", () => {
+      const html = render(
+        React.createElement(ui.SelectButton, {
+          mode: "single",
+          layout: "segmented",
+          appearance: "text-actions",
+          options: singleOptions,
+          value: "all",
+          ariaLabel: "Chọn cấu hình cột",
+          onValueChange: () => {},
+        }),
+      );
+
+      assert.ok(
+        html.includes("textActions"),
+        "container must include textActions class",
+      );
+      assert.ok(
+        html.includes("textActionsSeparator"),
+        "must render textActionsSeparator elements",
+      );
+      assert.ok(
+        html.includes('aria-hidden="true"'),
+        "separators must be marked aria-hidden='true'",
+      );
+      // There are singleOptions.length options, so exactly length - 1 separators
+      const separatorCount = (html.match(/textActionsSeparator/g) || []).length;
+      assert.strictEqual(
+        separatorCount,
+        singleOptions.length - 1,
+        "must render exactly (options.length - 1) separators",
+      );
+    });
   });
 
   describe("Multiple Stacked Mode", () => {

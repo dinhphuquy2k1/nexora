@@ -541,7 +541,8 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
       assert.match(triggerHtml, /Tùy chỉnh cột hiển thị/);
       assert.match(triggerHtml, /aria-haspopup="dialog"/);
       assert.match(triggerHtml, /aria-expanded="false"/);
-      assert.match(triggerHtml, /Cột/);
+      assert.match(triggerHtml, /colPickerTriggerLabel/);
+      assert.match(triggerHtml, /Cột hiển thị/);
       assert.match(triggerHtml, /19\/20/);
     });
 
@@ -572,13 +573,16 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
       assert.match(popoverHtml, /Tùy chỉnh cột hiển thị/);
       assert.match(popoverHtml, /aria-label="Đóng tùy chỉnh cột"/);
 
-      // Presets SelectButton
+      // Presets SelectButton with text-actions appearance
       assert.match(popoverHtml, /aria-label="Chọn cấu hình cột"/);
+      assert.match(popoverHtml, /textActions/);
+      assert.match(popoverHtml, /textActionsSeparator/);
       assert.match(popoverHtml, /Tất cả/);
       assert.match(popoverHtml, /Cơ bản/);
       assert.match(popoverHtml, /Mặc định/);
 
-      // Column search and checkboxes
+      // Column search wrapper and checkboxes
+      assert.match(popoverHtml, /colPickerSearchWrapper/);
       assert.match(popoverHtml, /aria-label="Tìm tên cột"/);
       assert.match(popoverHtml, /aria-label="Danh sách cột hiển thị"/);
 

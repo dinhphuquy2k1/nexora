@@ -295,7 +295,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Do not use for segmented toggle buttons (e.g. Customer status bar until migration is approved).
   - Do not use for in-table actions or button groups.
 
-## Shared SelectButton (@nexora/ui, NEXORA-031 M3 v5)
+## Shared SelectButton (@nexora/ui, NEXORA-031 M3 v5/v6)
 
 - **Owner Path**: `packages/ui/src/SelectButton.tsx`, `packages/ui/src/SelectButton.module.css`
 - **Exported Contract**:
@@ -303,12 +303,14 @@ This registry catalogues canonical, reusable technical components and shared voc
   - `export type SelectButtonProps<T extends string> = ...` (discriminated union of single segmented and multiple stacked modes)
   - `export function SelectButton<T extends string>(props: SelectButtonProps<T>): JSX.Element`
 - **Intended Consumers**:
-  - Retail Column Picker (`RetailColumnPicker.tsx`): single segmented for presets (all, basic, default) and multiple stacked for column visibility.
+  - Retail Column Picker (`RetailColumnPicker.tsx`): single segmented with `appearance="text-actions"` for presets (all, basic, default) and multiple stacked for column visibility.
   - Potential future consumer: `AddressForm.tsx` (address label chips, supports `allowEmpty=true`). Note: Customer UI is NOT migrated in PR #29.
 - **Supported Behavior**:
   - Exactly two supported modes and layouts:
-    1. `mode: "single", layout: "segmented"`: Composes `@nexora/ui` `Button` with `aria-pressed`, controlled single value, optional `allowEmpty` (default `false`).
-    2. `mode: "multiple", layout: "stacked"`: Composes `@nexora/ui` `Checkbox` with native `input[type=checkbox]`, full-row clickability, custom trailing content support via `renderOption`.
+    1. `mode: "single", layout: "segmented"`: Composes `@nexora/ui` `Button` with `aria-pressed`, controlled single value, optional `allowEmpty` (default `false`). Supports `appearance?: "default" | "text-actions"`:
+       - `"default"`: Segmented pill container with white raised button on selected item, subtle border and shadow.
+       - `"text-actions"`: Flat action container with decorative `|` separators, hoverable transparent buttons without raised selected pill/shadow, designed for fast action presets.
+    2. `mode: "multiple", layout: "stacked"`: Composes `@nexora/ui` `Checkbox` with native `input[type=checkbox]`, full-row clickability, custom trailing content support via `renderOption`. Stacked items render muted slate for unselected rows and primary navy with muted background for selected rows.
   - Invariant: Toggling multiple stacked options preserves selected values outside the current filtered `options` list.
   - Zero external dependencies: no PrimeVue, PrimeReact, Radix, React Aria, Base UI, or shadcn.
 - **Explicit Non-Goals**:

@@ -50,6 +50,7 @@ interface BaseSelectButtonProps<T extends string> {
   className?: string;
   fluid?: boolean;
   disabled?: boolean;
+  appearance?: "default" | "text-actions";
   renderOption?: (
     option: SelectButtonOption<T>,
     state: { selected: boolean },
@@ -83,21 +84,36 @@ export function SelectButton<T extends string>(props: SelectButtonProps<T>) {
       fluid = false,
       disabled = false,
       allowEmpty = false,
+      appearance = "default",
       onValueChange,
       renderOption,
     } = props;
+
+    const isTextActions = appearance === "text-actions";
 
     return (
       <div
         role="group"
         aria-label={ariaLabel}
-        className={`${styles.segmented} ${fluid ? styles.fluid : ""} ${className}`.trim()}
+        className={`${styles.segmented} ${isTextActions ? styles.textActions : ""} ${fluid ? styles.fluid : ""} ${className}`.trim()}
       >
-        {options.map((option) => {
+        {options.flatMap((option, idx) => {
           const selected = value === option.value;
           const isOptionDisabled = disabled || Boolean(option.disabled);
 
-          return (
+          const elements: ReactNode[] = [];
+          if (isTextActions && idx > 0) {
+            elements.push(
+              <span
+                key={`sep-${option.value}`}
+                className={styles.textActionsSeparator}
+                aria-hidden="true"
+              >
+                |
+              </span>,
+            );
+          }
+          elements.push(
             <Button
               key={option.value}
               variant="secondary"
@@ -117,8 +133,9 @@ export function SelectButton<T extends string>(props: SelectButtonProps<T>) {
               }}
             >
               {renderOption ? renderOption(option, { selected }) : option.label}
-            </Button>
+            </Button>,
           );
+          return elements;
         })}
       </div>
     );
