@@ -2104,3 +2104,35 @@ Canonical documentation owners updated: design-system, reusable-components, test
 and this mutable task; previous NONE claim for registry is superseded by this API
 clarification. Immutable v6 bytes/digest unchanged. Overall task remains IN PROGRESS
 and NOT VERIFIED; no backend/Shipment contract, schema, Auth or M4/M5 changes.
+
+#### Round3 executed source-head CI and artifact reconciliation — 2026-10-31
+
+Implementation source head:9205d37b7ff3da30f70409b99f2c6105cf5526b2 (baseline
+c6299359aa0bd2a59966a87ce8d26d7949537f8c already contained F1/F2/F6). Both hosted
+workflows checked out refs/pull/29/merge at33533bad467193b5d1deb81d0ba3990b0581096f,
+merging that exact source head into main837e8238a91350bd741dcd3e935052f0aa2d9eb5;
+they did not directly checkout the branch head.
+
+| Claim                                                                                                 | Evidence                                                                                                                                                                                                     | Date       | Result |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Source-head hosted governance and24 tests                                                             | [Preflight41180832270](https://github.com/dinhphuquy2k1/nexora/actions/runs/41180832270), actual checkout/test log inspected                                                                                 | 2026-10-31 | PASS   |
+| Canonical quality/build/contracts/integration/runtime/TTY/Auth/Customer/HTTPS/persistence/development | [Foundation41180832236](https://github.com/dinhphuquy2k1/nexora/actions/runs/41180832236), mandatory steps ran; only failure diagnostics skipped                                                             | 2026-10-31 | PASS   |
+| UI32, Web183, API172, database6, root124, integration81 tests; contracts reproducibility              | Actual Foundation logs, zero failures in these suites, frozen Docker environment                                                                                                                             | 2026-10-31 | PASS   |
+| Source-head screenshot provenance and hashes                                                          | [Retail artifact13034593282](https://github.com/dinhphuquy2k1/nexora/actions/runs/41180832236/artifacts/13034593282), admin108 + operator6 =114 images; manifest33533bad; every PNG hash and bounds checked  | 2026-10-31 | PASS   |
+| Same-state preset and computed evidence                                                               | 48 picker images:8 states ×6 sizes; Default19, Basic7, All20 at every size; resolved colors/typography/radius/search/checklist/footer geometry                                                               | 2026-10-31 | PASS   |
+| Three independent review rounds                                                                       | Round1 P2F3/F4 fixed; Round2 no confirmed P1/P2; Round3 exact9205d37 source41/41 focused tests and independent114-image hash/dimension/source verification plus4-image visual spotcheck, no P1/P2 regression | 2026-10-31 | PASS   |
+
+Verification checked at approximately14:45 Asia/Saigon (07:45 UTC). Prior
+c629935 Foundation formatting FAIL and host missing-upstream prerequisite FAIL
+remain historical failures above. This journal addition creates a documentation
+head after the tested source head; its hosted checks must run too. Exact final
+branch/documentation HEAD, merge-ref SHA, workflow links/status and verification
+time live in PR29 metadata after those checks complete, without claiming an
+untested documentation head passed or creating an endless self-SHA commit loop.
+
+Direct same-state ZIP(5) comparison remains NOT RUN: archive unavailable in this
+workspace despite checking supplied ZIP digests and requesting the file. Computed
+contract verification PASS does not establish direct ZIP parity. PR remains Draft /
+NOT READY until that mandatory acceptance evidence is available; implementation
+is IMPLEMENTED, overall NEXORA-031 remains IN PROGRESS / NOT VERIFIED, M4–M5
+deferred. No public production deployment evidence or merge is claimed.
