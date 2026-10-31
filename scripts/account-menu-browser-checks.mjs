@@ -249,6 +249,7 @@ export async function verifyAccountMenu({
     await evaluate(
       `document.querySelector(${JSON.stringify(trigger)}).focus();true`,
     );
+    checks.step("ACCOUNT_KEYBOARD_ENTER");
     await key("Enter");
     await until(`!!document.querySelector(${JSON.stringify(panel)})`);
     await key("Tab");
@@ -257,6 +258,7 @@ export async function verifyAccountMenu({
       "Đăng xuất khỏi hệ thống",
     );
     await snapshot("focused-entry");
+    checks.step("ACCOUNT_KEYBOARD_SHIFT_TAB_ESCAPE");
     await key("Tab", true);
     assert.equal(
       await evaluate(
@@ -272,6 +274,7 @@ export async function verifyAccountMenu({
       ),
       true,
     );
+    checks.step("ACCOUNT_KEYBOARD_SPACE_NOTIFICATION");
     await key(" ");
     await until(`!!document.querySelector(${JSON.stringify(panel)})`);
     await pointer('button[aria-label="Thông báo hệ thống"]');
@@ -289,11 +292,27 @@ export async function verifyAccountMenu({
       false,
     );
     if (!fixtureOnly) {
+      checks.step("ACCOUNT_REAL_CLIENT_ROUTE_DISMISSAL");
+      // Screenshot loops restore Chrome's default narrow viewport, where the
+      // desktop Sidebar is hidden. Exercise its real Next Link while visible.
+      await send("Emulation.setDeviceMetricsOverride", {
+        width: 1440,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
+      await evaluate(
+        "new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))",
+      );
       const target = await evaluate(
         "location.pathname==='/settings'?'/system':'/settings'",
       );
-      await evaluate(
-        `document.querySelector('a[href="${target}"]').focus();true`,
+      assert.equal(
+        await evaluate(
+          `(()=>{const a=document.querySelector('a[href="${target}"]');if(!a?.getClientRects().length)return false;a.focus();return document.activeElement===a;})()`,
+        ),
+        true,
+        "real route Link must be visible and keyboard focused",
       );
       await key("Enter");
       await until(
@@ -304,7 +323,9 @@ export async function verifyAccountMenu({
         `location.href===${JSON.stringify(startUrl)}&&!!document.querySelector(${JSON.stringify(trigger)})`,
       );
       await open();
+      await send("Emulation.clearDeviceMetricsOverride");
     }
+    checks.step("ACCOUNT_PLANNED_ENTRIES_AND_HOVER");
     // Both planned entries remain disabled: no fake destinations or activation.
     const before = await evaluate("location.href");
     await pointer(`${panel} button[title="Chưa triển khai"]`);

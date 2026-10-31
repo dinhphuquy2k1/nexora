@@ -60,8 +60,6 @@ const child = spawn(
   executable,
   [
     "--headless=new",
-    // Real fine-pointer hover capability, shared by ZIP/product comparison.
-    "--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4",
     "--no-sandbox",
     "--disable-dev-shm-usage",
     "--no-first-run",

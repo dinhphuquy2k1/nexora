@@ -157,3 +157,28 @@ role instead of a foundation palette token, with unchanged computed appearance.
 Round3 independent source review of2845e22 found no P1/P2; final runtime/artifact
 review remains open. Local36 normal and36 long-name PNG hashes matched manifests
 at2845e22; new transport/token follow-up requires its own final-head checks.
+
+### Runtime discovery and scoped harness correction — 2026-10-31 (Asia/Saigon)
+
+Foundation41207628316 attempt2: quality/integration PASS; runtime FAIL at
+ACCOUNT_REAL_SESSION_AND_DISCLOSURE; later HTTPS/data/dev SKIPPED. Account artifact
+13045716290 has18 closed/open/focus PNGs plus admin.json (merge SHA7d480534...),
+not a complete browser run. Direct inspection shows the route test focuses desktop
+Sidebar after screenshot metrics return to Chrome's narrow default; canonical
+AppShell hides desktop Sidebar at<=900px. The isolated fixture has no Sidebar and
+could not expose this test precondition. Fix: set1440 desktop viewport for actual
+Next Link navigation, assert visible native Link and actual keyboard focus; retain
+route-change/disclosure-close assertions. Add safe named interaction steps so a
+failure identifies the precise check without dumping session/request data.
+
+Head1dcf44dd07c641f8d280c17cb200ac8075791236 Preflight41208246843 PASS;
+Foundation41208246908 quality/integration PASS, runtime FAIL at pre-existing
+RETAIL_COLUMNS_PRESET_ALL before reaching Account. No Account artifact; later
+HTTPS/data/dev SKIPPED. Remove the newly introduced global Chromium pointer
+capability override to preserve existing Retail/auth smoke launch semantics.
+ZIP reference rendering alone retains its explicit fine-pointer profile; Account
+CSS hover uses real mouse events and no media-based forced state. No Retail tests,
+production behavior or assertions changed/weakened. Both FAIL records remain.
+
+Corrected harness targeted/local actual component browser and final-head Docker
+checks must rerun; no old or partial artifact establishes final PASS.
