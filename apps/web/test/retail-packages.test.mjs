@@ -511,7 +511,7 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
       );
     });
 
-    it("RetailColumnPicker popover renders header, SelectButton presets, pinned badge, and 'Đã xong' button", () => {
+    it("RetailColumnPicker closed trigger button renders aria-haspopup and count badge", () => {
       const { RetailColumnPicker } = loadComponent(
         new URL(
           "../features/retail-packages/RetailColumnPicker.tsx",
@@ -522,7 +522,6 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
         new URL("../features/retail-packages/columns.ts", import.meta.url),
       );
 
-      // Initial trigger button
       const triggerHtml = render(
         React.createElement(RetailColumnPicker, {
           visibility: DEFAULT_COLUMN_VISIBILITY,
@@ -530,7 +529,96 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
         }),
       );
       assert.match(triggerHtml, /Tùy chỉnh cột hiển thị/);
+      assert.match(triggerHtml, /aria-haspopup="dialog"/);
+      assert.match(triggerHtml, /aria-expanded="false"/);
       assert.match(triggerHtml, /Cột/);
+      assert.match(triggerHtml, /19\/20/);
+    });
+
+    it("RetailColumnPicker open popover renders header, SelectButton presets, pinned badge, and 'Đã xong' button", () => {
+      const { RetailColumnPicker } = loadComponent(
+        new URL(
+          "../features/retail-packages/RetailColumnPicker.tsx",
+          import.meta.url,
+        ),
+      );
+      const { DEFAULT_COLUMN_VISIBILITY } = loadComponent(
+        new URL("../features/retail-packages/columns.ts", import.meta.url),
+      );
+
+      const popoverHtml = render(
+        React.createElement(RetailColumnPicker, {
+          visibility: DEFAULT_COLUMN_VISIBILITY,
+          onChange: () => {},
+          defaultOpen: true,
+        }),
+      );
+
+      // Dialog container
+      assert.match(popoverHtml, /role="dialog"/);
+      assert.match(popoverHtml, /aria-label="Tùy chỉnh cột hiển thị"/);
+
+      // Header title and close button
+      assert.match(popoverHtml, /Tùy chỉnh cột hiển thị/);
+      assert.match(popoverHtml, /aria-label="Đóng tùy chỉnh cột"/);
+
+      // Presets SelectButton
+      assert.match(popoverHtml, /aria-label="Chọn cấu hình cột"/);
+      assert.match(popoverHtml, /Tất cả/);
+      assert.match(popoverHtml, /Cơ bản/);
+      assert.match(popoverHtml, /Mặc định/);
+
+      // Column search and checkboxes
+      assert.match(popoverHtml, /aria-label="Tìm tên cột"/);
+      assert.match(popoverHtml, /aria-label="Danh sách cột hiển thị"/);
+
+      // Pinned badge for required column
+      assert.match(popoverHtml, /Cố định/);
+
+      // Footer counter and "Đã xong" button
+      assert.match(popoverHtml, /Đang bật: <strong>19<\/strong>\/20 cột/);
+      assert.match(popoverHtml, /Đã xong/);
+    });
+
+    it("RetailColumnPicker preset configurations and column visibility transitions", () => {
+      const { columnPreset, visibleColumns } = loadComponent(
+        new URL("../features/retail-packages/columns.ts", import.meta.url),
+      );
+
+      // 1. Basic preset
+      const basic = columnPreset("basic");
+      const basicCols = visibleColumns(basic);
+      assert.strictEqual(basicCols.length, 7);
+      assert.ok(
+        basicCols.some((c) => c.id === "trackingCode"),
+        "trackingCode must be in basic preset",
+      );
+
+      // 2. Default preset
+      const def = columnPreset("default");
+      const defCols = visibleColumns(def);
+      assert.strictEqual(defCols.length, 19);
+
+      // 3. All preset
+      const all = columnPreset("all");
+      const allCols = visibleColumns(all);
+      assert.strictEqual(allCols.length, 20);
+
+      // 4. Custom selection does not match any preset
+      const custom = { ...basic, productName: false };
+      const customIds = visibleColumns(custom)
+        .map((c) => c.id)
+        .join(",");
+      for (const p of ["all", "basic", "default"]) {
+        const pIds = visibleColumns(columnPreset(p))
+          .map((c) => c.id)
+          .join(",");
+        assert.notStrictEqual(
+          customIds,
+          pIds,
+          `Custom selection must not match preset ${p}`,
+        );
+      }
     });
   });
 });

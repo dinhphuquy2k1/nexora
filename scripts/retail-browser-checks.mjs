@@ -455,7 +455,7 @@ export async function verifyRetailBrowser({
       "document.querySelector('[data-retail-count]').textContent==='15 kiện lẻ'",
     );
     await click("Xóa tất cả");
-    checks.step("RETAIL_COLUMNS_PRESETS_STICKY");
+    checks.step("RETAIL_COLUMNS_PRESET_DEFAULT");
     await click("Tùy chỉnh cột hiển thị");
     await snapshot("column-picker");
     assert.equal(
@@ -464,6 +464,12 @@ export async function verifyRetailBrowser({
       ),
       "Mặc định",
     );
+    assert.equal(
+      await evaluate("document.querySelectorAll('colgroup col').length"),
+      19,
+    );
+
+    checks.step("RETAIL_COLUMNS_PRESET_BASIC");
     await click("Cơ bản");
     assert.equal(
       await evaluate("document.querySelectorAll('colgroup col').length"),
@@ -475,32 +481,47 @@ export async function verifyRetailBrowser({
       ),
       "Cơ bản",
     );
-    const basicWidthCheck = await evaluate(
-      `(()=>{const table=document.querySelector('table'),container=table.parentElement;return{tableWidth:table.getBoundingClientRect().width,containerWidth:container.clientWidth};})()`,
+
+    checks.step("RETAIL_COLUMNS_BASIC_GEOMETRY_WIDE");
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 1280,
+      height: 800,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    const wideGeometry = await evaluate(
+      `(()=>{const table=document.querySelector('table'),container=table.parentElement;return{tableWidth:table.getBoundingClientRect().width,containerWidth:container.clientWidth,scrollWidth:container.scrollWidth};})()`,
     );
     assert.ok(
-      Math.abs(basicWidthCheck.tableWidth - basicWidthCheck.containerWidth) <=
-        2,
-      "table spans full container width when 7 columns are shown",
+      Math.abs(wideGeometry.tableWidth - wideGeometry.containerWidth) <= 2,
+      `table must span full container width on wide viewport (table=${wideGeometry.tableWidth}, container=${wideGeometry.containerWidth})`,
     );
-    await click("Mặc định");
-    assert.equal(
-      await evaluate("document.querySelectorAll('colgroup col').length"),
-      19,
+    assert.ok(
+      wideGeometry.scrollWidth <= wideGeometry.containerWidth + 2,
+      "no horizontal scroll needed on wide viewport when columns fit",
     );
-    assert.equal(
-      await evaluate(
-        "document.querySelector('[role=dialog] button[aria-pressed=true]')?.textContent?.trim()",
-      ),
-      "Mặc định",
+
+    checks.step("RETAIL_COLUMNS_BASIC_GEOMETRY_NARROW");
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 800,
+      height: 600,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    const narrowGeometry = await evaluate(
+      `(()=>{const table=document.querySelector('table'),container=table.parentElement;return{tableWidth:table.getBoundingClientRect().width,containerWidth:container.clientWidth,scrollWidth:container.scrollWidth};})()`,
     );
-    await key("Escape");
-    await until("!document.querySelector('[role=dialog]')");
-    assert.equal(
-      await evaluate("document.activeElement.getAttribute('aria-label')"),
-      "Tùy chỉnh cột hiển thị",
+    assert.ok(
+      narrowGeometry.tableWidth >= 915 - 1,
+      `table preserves min-width (915px) on narrow viewport (got ${narrowGeometry.tableWidth})`,
     );
-    await click("Tùy chỉnh cột hiển thị");
+    assert.ok(
+      narrowGeometry.scrollWidth > narrowGeometry.containerWidth,
+      `container scrolls horizontally on narrow viewport (scrollWidth=${narrowGeometry.scrollWidth}, clientWidth=${narrowGeometry.containerWidth})`,
+    );
+    await send("Emulation.clearDeviceMetricsOverride");
+
+    checks.step("RETAIL_COLUMNS_PRESET_ALL");
     await click("Tất cả");
     assert.equal(
       await evaluate("document.querySelectorAll('colgroup col').length"),
@@ -512,6 +533,26 @@ export async function verifyRetailBrowser({
       ),
       "Tất cả",
     );
+
+    checks.step("RETAIL_COLUMNS_MANUAL_DESELECT");
+    await evaluate(
+      `(()=>{const cb=document.querySelector('[role=dialog] input[type=checkbox]:not(:disabled)');if(cb){cb.click();}})()`,
+    );
+    const activePresetButtons = await evaluate(
+      "document.querySelectorAll('[role=dialog] [role=group] button[aria-pressed=true]').length",
+    );
+    assert.equal(
+      activePresetButtons,
+      0,
+      "manual column deselection clears active preset state (all aria-pressed=false)",
+    );
+
+    checks.step("RETAIL_COLUMNS_SEARCH_TOGGLE");
+    await click("Tất cả");
+    assert.equal(
+      await evaluate("document.querySelectorAll('colgroup col').length"),
+      20,
+    );
     await type("Tìm tên cột", "HÃNG VẬN CHUYỂN");
     await evaluate(
       `(()=>{const cb=document.querySelector('[role=dialog] input[type=checkbox]:not(:disabled)');if(cb){cb.click();}})()`,
@@ -520,22 +561,56 @@ export async function verifyRetailBrowser({
     assert.equal(
       await evaluate("document.querySelectorAll('colgroup col').length"),
       19,
+      "unchecking column in search filter preserves all out-of-filter columns",
     );
+
+    checks.step("RETAIL_COLUMNS_REQUIRED_TRACKING");
     await type("Tìm tên cột", "MÃ VẬN ĐƠN");
     assert.equal(
       await evaluate(
         "document.querySelector('[role=dialog] input[type=checkbox]').disabled",
       ),
       true,
+      "required trackingCode checkbox is disabled",
     );
     assert.equal(
       await evaluate(
         "document.querySelector('[role=dialog] [class*=\"colPinnedBadge\"]')?.textContent?.trim()",
       ),
       "Cố định",
+      "required trackingCode column displays 'Cố định' badge",
     );
     await type("Tìm tên cột", "");
+
     await click("Đã xong");
+    await until("!document.querySelector('[role=dialog]')");
+    assert.equal(
+      await evaluate("document.activeElement.getAttribute('aria-label')"),
+      "Tùy chỉnh cột hiển thị",
+      "Closing via 'Đã xong' returns focus to trigger",
+    );
+
+    await click("Tùy chỉnh cột hiển thị");
+    await until("!!document.querySelector('[role=dialog]')");
+    await key("Escape");
+    await until("!document.querySelector('[role=dialog]')");
+    assert.equal(
+      await evaluate("document.activeElement.getAttribute('aria-label')"),
+      "Tùy chỉnh cột hiển thị",
+      "Closing via Escape returns focus to trigger",
+    );
+
+    await click("Tùy chỉnh cột hiển thị");
+    await until("!!document.querySelector('[role=dialog]')");
+    await click("Đóng tùy chỉnh cột");
+    await until("!document.querySelector('[role=dialog]')");
+    assert.equal(
+      await evaluate("document.activeElement.getAttribute('aria-label')"),
+      "Tùy chỉnh cột hiển thị",
+      "Closing via X button returns focus to trigger",
+    );
+
+    checks.step("RETAIL_COLUMNS_STICKY");
     await send("Emulation.setDeviceMetricsOverride", {
       width: 1024,
       height: 768,

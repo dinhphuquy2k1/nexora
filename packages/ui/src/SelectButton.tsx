@@ -10,6 +10,40 @@ export interface SelectButtonOption<T extends string> {
   disabled?: boolean;
 }
 
+/**
+ * Computes the next selected value in single-selection segmented mode.
+ * - Clicking the already selected option when `allowEmpty` is true unselects it (returns null).
+ * - Clicking the already selected option when `allowEmpty` is false maintains current selection.
+ * - Clicking a different option selects that option.
+ */
+export function nextSingleSelection<T extends string>(
+  current: T | null,
+  clicked: T,
+  allowEmpty: boolean = false,
+): T | null {
+  if (current === clicked) {
+    return allowEmpty ? null : current;
+  }
+  return clicked;
+}
+
+/**
+ * Computes the next array of selected values in multiple-selection stacked mode.
+ * - Checking an option adds it if not already present.
+ * - Unchecking an option removes it if present.
+ * - Preserves immutability.
+ */
+export function nextMultipleSelection<T extends string>(
+  current: readonly T[],
+  value: T,
+  checked: boolean,
+): T[] {
+  if (checked) {
+    return current.includes(value) ? [...current] : [...current, value];
+  }
+  return current.filter((v) => v !== value);
+}
+
 interface BaseSelectButtonProps<T extends string> {
   options: readonly SelectButtonOption<T>[];
   ariaLabel: string;
@@ -72,12 +106,13 @@ export function SelectButton<T extends string>(props: SelectButtonProps<T>) {
               className={`${styles.segmentedItem} ${selected ? styles.selected : ""}`.trim()}
               onClick={() => {
                 if (isOptionDisabled) return;
-                if (selected) {
-                  if (allowEmpty) {
-                    onValueChange(null);
-                  }
-                } else {
-                  onValueChange(option.value);
+                const next = nextSingleSelection(
+                  value,
+                  option.value,
+                  allowEmpty,
+                );
+                if (next !== value) {
+                  onValueChange(next);
                 }
               }}
             >
@@ -112,15 +147,11 @@ export function SelectButton<T extends string>(props: SelectButtonProps<T>) {
 
           const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
             if (isOptionDisabled) return;
-            const checked = e.target.checked;
-            let next: T[];
-            if (checked) {
-              next = value.includes(option.value)
-                ? [...value]
-                : [...value, option.value];
-            } else {
-              next = value.filter((v) => v !== option.value);
-            }
+            const next = nextMultipleSelection(
+              value,
+              option.value,
+              e.target.checked,
+            );
             onValueChange(next);
           };
 

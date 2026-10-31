@@ -227,64 +227,54 @@ describe("Shared SelectButton contracts (@nexora/ui)", () => {
   });
 
   describe("Selection Transitions & Invariants (Unit Verification)", () => {
-    it("single segmented: allowEmpty=false preserves selection on re-click", () => {
-      let callCount = 0;
-      const onValueChange = () => {
-        callCount++;
-      };
-
-      const options = [
-        { value: "a", label: "A" },
-        { value: "b", label: "B" },
-      ];
-
-      // Simulate click logic
-      const clickOption = (clickedValue, currentValue, allowEmpty = false) => {
-        const option = options.find((o) => o.value === clickedValue);
-        if (option?.disabled) return;
-        if (currentValue === clickedValue) {
-          if (allowEmpty) onValueChange(null);
-        } else {
-          onValueChange(clickedValue);
-        }
-      };
-
-      clickOption("a", "a", false);
+    it("exports nextSingleSelection and nextMultipleSelection helpers from @nexora/ui", () => {
       assert.strictEqual(
-        callCount,
-        0,
-        "re-clicking selected option when allowEmpty=false must not fire onValueChange",
+        typeof ui.nextSingleSelection,
+        "function",
+        "nextSingleSelection must be exported",
       );
-
-      clickOption("a", "a", true);
       assert.strictEqual(
-        callCount,
-        1,
-        "re-clicking selected option when allowEmpty=true must fire onValueChange(null)",
+        typeof ui.nextMultipleSelection,
+        "function",
+        "nextMultipleSelection must be exported",
       );
     });
 
-    it("multiple stacked: toggling unselected item adds it to value", () => {
-      const currentValues = ["col1", "col2"];
-      const toggled = "col3";
-      const next = currentValues.includes(toggled)
-        ? currentValues.filter((v) => v !== toggled)
-        : [...currentValues, toggled];
-
-      assert.deepStrictEqual(next, ["col1", "col2", "col3"]);
+    it("pure helper: nextSingleSelection handles transitions and allowEmpty", () => {
+      // Transition from null to selected
+      assert.strictEqual(ui.nextSingleSelection(null, "basic"), "basic");
+      // Transition from one option to another
+      assert.strictEqual(ui.nextSingleSelection("basic", "all"), "all");
+      // Re-click when allowEmpty=false preserves selection
+      assert.strictEqual(
+        ui.nextSingleSelection("basic", "basic", false),
+        "basic",
+      );
+      // Re-click when allowEmpty=true deselects to null
+      assert.strictEqual(ui.nextSingleSelection("basic", "basic", true), null);
     });
 
-    it("multiple stacked: toggling selected item removes it from value", () => {
-      const currentValues = ["col1", "col2", "col3"];
-      const toggled = "col2";
-      const next = currentValues.includes(toggled)
-        ? currentValues.filter((v) => v !== toggled)
-        : [...currentValues, toggled];
+    it("pure helper: nextMultipleSelection handles adding, removing, and immutability", () => {
+      const initial = ["col1", "col2"];
+      // Add unselected
+      const added = ui.nextMultipleSelection(initial, "col3", true);
+      assert.deepStrictEqual([...added], ["col1", "col2", "col3"]);
+      assert.notStrictEqual(added, initial, "must return a new array");
 
-      assert.deepStrictEqual(next, ["col1", "col3"]);
+      // Remove selected
+      const removed = ui.nextMultipleSelection(added, "col2", false);
+      assert.deepStrictEqual([...removed], ["col1", "col3"]);
+
+      // Idempotent add already selected
+      const reAdd = ui.nextMultipleSelection(initial, "col1", true);
+      assert.deepStrictEqual([...reAdd], ["col1", "col2"]);
+
+      // Idempotent remove not selected
+      const reRemove = ui.nextMultipleSelection(initial, "col3", false);
+      assert.deepStrictEqual([...reRemove], ["col1", "col2"]);
     });
 
-    it("CRITICAL INVARIANT: unchecking a column preserves columns outside search filter", () => {
+    it("CRITICAL INVARIANT: nextMultipleSelection preserves columns outside search filter", () => {
       // 19 columns selected initially
       const allSelected = [
         "c1",
@@ -314,9 +304,8 @@ describe("Shared SelectButton contracts (@nexora/ui)", () => {
       ];
       assert.strictEqual(filteredOptions.length, 2);
 
-      // User unchecks c2
-      const toggled = "c2";
-      const next = allSelected.filter((v) => v !== toggled);
+      // User unchecks c2 via production helper
+      const next = ui.nextMultipleSelection(allSelected, "c2", false);
 
       // Result must have 18 columns, NOT 1
       assert.strictEqual(next.length, 18, "must retain 18 columns, not 1");
@@ -326,6 +315,112 @@ describe("Shared SelectButton contracts (@nexora/ui)", () => {
         next.includes("c19"),
         "out-of-filter column c19 must be preserved",
       );
+    });
+
+    it("component execution: single segmented SelectButton triggers onValueChange on click", () => {
+      let firedValue = undefined;
+      let callCount = 0;
+      const options = [
+        { value: "all", label: "Tất cả" },
+        { value: "basic", label: "Cơ bản" },
+        { value: "custom", label: "Tùy chỉnh", disabled: true },
+      ];
+
+      // 1. Click different option
+      const vdom1 = ui.SelectButton({
+        mode: "single",
+        layout: "segmented",
+        options,
+        value: "all",
+        ariaLabel: "Cấu hình cột",
+        allowEmpty: false,
+        onValueChange: (val) => {
+          callCount++;
+          firedValue = val;
+        },
+      });
+      // Children are Button elements
+      const buttons1 = vdom1.props.children;
+      buttons1[1].props.onClick(); // Click "basic"
+      assert.strictEqual(callCount, 1);
+      assert.strictEqual(firedValue, "basic");
+
+      // 2. Click disabled option does not fire
+      callCount = 0;
+      firedValue = undefined;
+      buttons1[2].props.onClick(); // Click disabled "custom"
+      assert.strictEqual(callCount, 0);
+      assert.strictEqual(firedValue, undefined);
+
+      // 3. Re-click active option when allowEmpty=false does not fire
+      callCount = 0;
+      firedValue = undefined;
+      buttons1[0].props.onClick(); // Click active "all"
+      assert.strictEqual(callCount, 0);
+      assert.strictEqual(firedValue, undefined);
+
+      // 4. Re-click active option when allowEmpty=true fires null
+      const vdomAllowEmpty = ui.SelectButton({
+        mode: "single",
+        layout: "segmented",
+        options,
+        value: "all",
+        ariaLabel: "Cấu hình cột",
+        allowEmpty: true,
+        onValueChange: (val) => {
+          callCount++;
+          firedValue = val;
+        },
+      });
+      callCount = 0;
+      firedValue = undefined;
+      vdomAllowEmpty.props.children[0].props.onClick(); // Click active "all"
+      assert.strictEqual(callCount, 1);
+      assert.strictEqual(firedValue, null);
+    });
+
+    it("component execution: multiple stacked SelectButton triggers onValueChange on checkbox change", () => {
+      let firedValues = undefined;
+      let callCount = 0;
+      const options = [
+        { value: "trackingCode", label: "Mã vận đơn", disabled: true },
+        { value: "carrier", label: "Hãng vận chuyển" },
+        { value: "customerName", label: "Khách hàng" },
+      ];
+
+      const vdom = ui.SelectButton({
+        mode: "multiple",
+        layout: "stacked",
+        options,
+        value: ["trackingCode", "carrier"],
+        ariaLabel: "Danh sách cột",
+        onValueChange: (val) => {
+          callCount++;
+          firedValues = val;
+        },
+      });
+      const checkboxes = vdom.props.children;
+
+      // 1. Check unselected option
+      checkboxes[2].props.onChange({ target: { checked: true } });
+      assert.strictEqual(callCount, 1);
+      assert.deepStrictEqual(
+        [...firedValues],
+        ["trackingCode", "carrier", "customerName"],
+      );
+
+      // 2. Uncheck selected option
+      callCount = 0;
+      checkboxes[1].props.onChange({ target: { checked: false } });
+      assert.strictEqual(callCount, 1);
+      assert.deepStrictEqual([...firedValues], ["trackingCode"]);
+
+      // 3. Attempting to change disabled option does not fire
+      callCount = 0;
+      firedValues = undefined;
+      checkboxes[0].props.onChange({ target: { checked: false } });
+      assert.strictEqual(callCount, 0);
+      assert.strictEqual(firedValues, undefined);
     });
   });
 });

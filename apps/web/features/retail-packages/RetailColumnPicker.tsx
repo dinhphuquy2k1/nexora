@@ -22,11 +22,13 @@ const PRESET_OPTIONS = [
 export function RetailColumnPicker({
   visibility,
   onChange,
+  defaultOpen = false,
 }: {
   visibility: ColumnVisibility;
   onChange: (next: ColumnVisibility) => void;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [search, setSearch] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);

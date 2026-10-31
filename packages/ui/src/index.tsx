@@ -25,6 +25,8 @@ export { TabCountBadge, type TabCountBadgeProps } from "./TabCountBadge";
 
 export {
   SelectButton,
+  nextSingleSelection,
+  nextMultipleSelection,
   type SelectButtonProps,
   type SelectButtonOption,
 } from "./SelectButton";
