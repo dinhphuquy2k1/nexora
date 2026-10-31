@@ -13,7 +13,7 @@ Documentation Impact: REQUIRED
 - **Plan revision**: rev-2026-10-31-retail-packages-m3-v6
 - **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-31-retail-packages-m3-v6.md
 - **Design SHA-256**: fd50b19a29b9020ce1a658b3b9794ade91472d8d68b8064dd738dc06eb1c6192
-- **Reviewed baseline**: 4f6a24b27d0bff1db0719cbbe8f24be5ab8a3bdb
+- **Reviewed baseline**: 8043a76eaa7f6a986f11c2b8c9ef4d0c46c92ac5
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: APPROVED (historical metadata only; no current approval gate)
 - **Approval evidence**: Historical owner comment for rev-2026-10-26-color-policy-m2-v4 (digest 01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53). This comment does not independently validate its snapshot or supersede governing documentation; v3 still governs unrelated visual choices.
