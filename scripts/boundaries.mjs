@@ -48,14 +48,19 @@ export function checkFileImports(p, content) {
         (target && under(target, resolve("apps/api"))))
     )
       throw Error(`SDK boundary: ${p}`);
-    for (const app of ["api", "web"])
+    for (const app of ["api", "web"]) {
+      const isTargetApp = target && under(target, resolve(`apps/${app}`));
       if (
         (spec === `@nexora/${app}` ||
           spec.startsWith(`@nexora/${app}/`) ||
-          (target && under(target, resolve(`apps/${app}`)))) &&
+          (isTargetApp && !spec.endsWith(".json"))) &&
         !p.startsWith(`apps/${app}/`)
       )
         throw Error(`App import: ${p}`);
+      if (p.startsWith("packages/") && isTargetApp) {
+        throw Error(`App import: ${p}`);
+      }
+    }
     const database =
       /^@nexora\/database(?:\/|$)|^@prisma\//.test(spec) ||
       (target && under(target, resolve("packages/database")));
@@ -198,6 +203,14 @@ export function runNegativeTests() {
       ),
     /App import/,
   );
+  assert.throws(
+    () =>
+      checkFileImports(
+        "packages/ui/test/tabbar.test.mjs",
+        "import { render } from '../../../apps/web/test/helpers/render-component.mjs';",
+      ),
+    /App import/,
+  );
   for (const layer of [
     "infrastructure/customer.adapter",
     "presentation/customer.dto",
@@ -336,7 +349,7 @@ async function walk(dir) {
       continue;
     const p = `${dir}/${e.name}`;
     if (e.isDirectory()) await walk(p);
-    else if (/\.(ts|tsx)$/.test(p)) {
+    else if (/\.(ts|tsx|mjs)$/.test(p)) {
       const content = await readFile(p, "utf8");
       if (content.includes("CustomerStatus")) {
         const source = ts.createSourceFile(

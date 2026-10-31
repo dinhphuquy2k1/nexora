@@ -14,7 +14,7 @@ Nexora enforces three distinct component ownership tiers to prevent component du
 
 ### Tier A: Shared UI Primitives (`packages/ui/`)
 
-Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel`, `StatusBadge`, `Button`, `TextInput`, `Textarea`, `Select`):
+Reusable, business-agnostic presentation and interaction primitives (e.g. `Panel`, `StatusBadge`, `Button`, `TextInput`, `Textarea`, `Select`, `TabBar`, `TabCountBadge`):
 
 - **Domain Agnostic**: Must never import Shipment, Customer, or Identity domain models.
 - **Transport Agnostic**: Must never call Nexora API endpoints or SDK client factories.
@@ -261,3 +261,36 @@ Customer list follows the approved reference ZIP (`CustomerListView.tsx` and `sr
 The Customer URL query and draft input validation reuse pure `@nexora/shared` primitives for positive decimal pagination, overflow checks, bounded text and raw-length-before-trim. Pagination defaults to 20 rows in both API and UI (maximum 100). Customer-only bounds remain `CustomerInputLimits`; display labels and `INVALID_FILTER`/`DraftError` remain feature-owned. Phone input UX is basic only: the API backend `PhoneNumber` Value Object is authoritative for country-specific validation and E.164 normalization. Shared validation has no React, Next, NestJS, Prisma or phone-metadata dependency.
 
 Customer Edit admission requires a successful current-scope GET and settled manual Reload; retained rows on a pending/failed GET remain visible but cannot open a writable stale editor. The List page owns optional row navigation and native customer links remain. For a confirmed Customer/Address write, a Drawer stays mounted through its authoritative same-scope GET; the saved/close callback runs only on successful read. Failed/unscheduled GET retains the confirmed-write guard and permits GET-only Retry without repeating a mutation. Unknown write recovery still requires separate explicit user acknowledgement.
+
+## Retail Packages M3 — presentation-only boundary
+
+Protected `/shipments/retail` uses the existing authenticated wide AppShell; legacy
+`/logistics/parcels` preserves query via307. Shipment CRUD/quotes/provider APIs are
+not implemented. Production passes explicit `availability="unavailable"`, not an
+empty-array inference: all seven tabs, list headers, filters, column settings and
+pagination remain visible, unknown counts use dashes and Create/export/refresh
+remain disabled. No sample package, quote, carrier/hotline or fake persistence is
+loaded by the route. Known-empty available data is a separate presentation state.
+
+Retail owns pure field/operator/date/number filter policy, bounded query parsing
+and native History state. URL fields status/search/page/pageSize/filters restore
+on direct entry, refresh and Back/Forward; SSR receives the same initial search
+string and `useSyncExternalStore` observes client history without a read lane/API.
+Default pageSize10, choices5/10/20/50/100; shared decimal pagination guards are
+reused with that explicit feature default. Queries reject unknown/duplicate keys,
+invalid typed filters and over4096 encoded characters; composed URL budget errors
+are accessible rejections before history mutation. Up to12 deduplicated conditions
+and200 characters per text value. Calendar scalar validates actual days without
+local Date parsing; originWarehouse maps to the package's originWarehouseName,
+not global M4 Shipping Scope. Chips are regenerated from validated policy.
+
+One column registry owns twenty columns, widths and All/Basic/Default presets;
+trackingCode is always visible and sticky in body/header. Column settings are
+transient, never backend/browser storage persistence. Table/cards and pagination
+are cohesive presentation components; the page owns query and selected dialog.
+Create/Detail reuse neutral controls and native Overlay, with a Retail-only wrapper
+restoring a visible trigger or heading after responsive changes. Submission stays
+disabled and absent finite nonnegative quote data remains “Chưa có báo giá”.
+Synthetic records and browser entry live under `apps/web/test/fixtures/`, outside
+production imports. Fixture runtime/browser evidence is separate from actual
+protected production-route verification and does not implement Shipment business.

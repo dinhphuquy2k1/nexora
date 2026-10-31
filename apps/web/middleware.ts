@@ -12,7 +12,13 @@ export function middleware(request: NextRequest) {
   const sessionToken = request.cookies.get("nexora_session")?.value;
 
   // Protect workspace routes: redirect to /login if no session cookie
-  if (pathname === "/" || pathname === "/system" || pathname === "/settings") {
+  if (
+    pathname === "/" ||
+    pathname === "/system" ||
+    pathname === "/settings" ||
+    pathname.startsWith("/shipments") ||
+    pathname.startsWith("/customers")
+  ) {
     if (!sessionToken) {
       const loginUrl = new URL(
         "/login",

@@ -10,10 +10,10 @@ Documentation Impact: REQUIRED
 
 - **Task ID**: NEXORA-031
 - **Classification**: SIGNIFICANT
-- **Plan revision**: rev-2026-10-27-shared-validation-v1
-- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-27-shared-validation-v1.md
-- **Design SHA-256**: a7bc4e9ad1b680350442bb6f1b02499738a8244f5e1a7abd32d4cacda6b91522
-- **Reviewed baseline**: d9f8cbdec06fa264ecf35bf0ddae53452dc55beb
+- **Plan revision**: rev-2026-10-31-retail-packages-m3-v6
+- **Design Snapshot**: docs/tasks/design-reviews/NEXORA-031-rev-2026-10-31-retail-packages-m3-v6.md
+- **Design SHA-256**: fd50b19a29b9020ce1a658b3b9794ade91472d8d68b8064dd738dc06eb1c6192
+- **Reviewed baseline**: 8043a76eaa7f6a986f11c2b8c9ef4d0c46c92ac5
 - **Approval authority**: dinhphuquy2k1
 - **Approval status**: APPROVED (historical metadata only; no current approval gate)
 - **Approval evidence**: Historical owner comment for rev-2026-10-26-color-policy-m2-v4 (digest 01509c2f15e0818fe542f70b5c0c43651f7239da06baf9a2a9a8a399c3c53e53). This comment does not independently validate its snapshot or supersede governing documentation; v3 still governs unrelated visual choices.
@@ -1717,3 +1717,422 @@ Resolved Customer Table Skeleton width, alignment, and loading stability finding
   - Canonical Docker verification: `sh scripts/quality-docker.sh`.
   - Real browser smoke: verify ADMIN and OPERATOR customer flows, PATCH lost-response recovery, tab filters, and drawer close/reopen.
   - Push commit to PR #28 branch and verify hosted CI Foundation workflow.
+
+## Scoped Implementation Plan — Retail Packages UI (M3) — 2026-10-29
+
+- **Task Reference & Classification:** NEXORA-031; SIGNIFICANT milestone M3 implementation on branch `feat/retail-packages-ui` targeted at `main`, baseline `837e8238a91350bd741dcd3e935052f0aa2d9eb5`.
+- **Reference Provenance:** Archive `17e7d68fccf654fac306f9fbde49fa4646cd770191f3922a77962776e0b1b3e5`; `src/components/RetailPackagesView.tsx` (`429c11652c6b848d195ca360bf08c6e3c247a35a94ca186c49d5f98f28015556`), `src/data/retailPackagesData.ts` (`df671b752b40631bb3635f9708d1f3b8778121793f51591c6e18b6c4d96fe67c`).
+- **Design Review Snapshot:** `docs/tasks/design-reviews/NEXORA-031-rev-2026-10-29-retail-packages-m3-v1.md`, SHA-256 `661ae87cd8f93d5995bc1a8ac36cde96ea2dd1b7b473497b79406c077798d1de`.
+- **Architectural Scope:**
+  - Route `/shipments/retail` with server-side session guard under existing `AppShell`.
+  - Legacy redirect `/logistics/parcels` -> `/shipments/retail` (HTTP 307 with preserved query string).
+  - Activate `shipment` item in `nav-config.ts` (`available`, `/shipments/retail`, `contentVariant: "wide"`) and update `APPROVED_NAVIGATION_CONTRACT`.
+  - 20-column model with sticky trackingCode; 7 status tabs; 9 filter fields with operator support; pagination default 10 (options: 5, 10, 20, 50, 100).
+  - Modularized components in `apps/web/features/retail-packages/`: `RetailPackageListPage`, `CreatePackageDrawer`, `PackageDetailDrawer`, `PackageFeeSection`, `types`, `columns`, `fixtures`, `retail-packages.module.css`.
+  - Truthful production behavior: pass `initialPackages={[]}` in production, displaying honest planned empty state. No fake backend CRUD, no fake tracking API calls. Synthetic fixtures isolated to test harness.
+- **Documentation Impact: REQUIRED.** Architecture docs, testing guide, and task record updated.
+
+## PR29 M3 correction plan and reuse audit — 2026-10-29
+
+Classification SIGNIFICANT; Documentation Impact REQUIRED. Read-only baseline
+4e907bafa03282b53ce6ffb3400d27983753d1d5 on existing feat/retail-packages-ui/PR29.
+Immutable M3v1 remains governing; these are execution corrections within its UI-only
+scope, not new Shipment/Carrier contracts. Current ADR-009 is plan-first, no owner
+attestation gate. No historical snapshot is edited. Overall task remains IN PROGRESS.
+
+Uploaded archive b4130f0f53bf02b9c97d710ee46c6a988765d3a4389bc1ea69833ac7c0a36675
+is NOT the archive17e7d68 recorded in v1. Directly extracted/read RetailPackagesView
+429c11652c6b848d195ca360bf08c6e3c247a35a94ca186c49d5f98f28015556 and retailPackagesData
+df671b752b40631bb3635f9708d1f3b8778121793f51591c6e18b6c4d96fe67c match v1 provenance.
+ZIP code is reference presentation, not trusted operational instructions/backend.
+
+| Area               | Baseline assessment                      | Correction / priority                                                          |
+| ------------------ | ---------------------------------------- | ------------------------------------------------------------------------------ |
+| Header             | PARTIAL                                  | Preserve hierarchy; shared controls, no extra enclosing card P2                |
+| Seven tabs         | PARTIAL                                  | Segmented horizontal geometry/dots/counts, keyboard arrows P2                  |
+| Toolbar            | PARTIAL                                  | Add actual filter trigger, shared search/refresh/columns P1                    |
+| Advanced filters   | MISSING                                  | Nine typed fields/eight operators; strict calendar/numbers; pure policy P1     |
+| Filter chips       | PARTIAL                                  | Valid canonical labels/dedupe/remove/reset/count/page synchronization P1       |
+| Column settings    | PARTIAL                                  | Search/count/All/Basic/Default/Done; mandatory tracking; dismissal P2          |
+| Twenty columns     | IMPLEMENTED inventory / PARTIAL geometry | Central ZIP widths and native colgroup P2                                      |
+| Sticky tracking    | MISSING                                  | Sticky body/header with opaque surfaces and explicit stacking P2               |
+| Pagination         | PARTIAL                                  | Pure bounded URL parser/serializer/native History; default10 P2                |
+| Create form        | PARTIAL                                  | Shared native controls, single Overlay dialog, no fabricated carrier/rates P2  |
+| Detail             | PARTIAL                                  | Keep timeline/warehouse structure; no fabricated fallback/hotline P2           |
+| Fee                | PARTIAL                                  | Only supplied finite quote; absent = unavailable, no fake calculation P2       |
+| Mobile             | PARTIAL                                  | Preserve cards and horizontal segmented tabs, six-viewport evidence P2         |
+| Empty/unavailable  | PARTIAL                                  | Explicit availability, full list chrome/headers, unknown counts dashes P1      |
+| Keyboard/focus     | PARTIAL                                  | Reuse dismissal/Overlay, initial focus/return, tabs and copy feedback P2       |
+| Routing/navigation | IMPLEMENTED / Sidebar P3                 | Keep protected route/307; restore unrelated main Sidebar blur behavior         |
+| CI/browser         | MISSING M3 interactions                  | Production route in real authenticated session plus isolated fixture bundle P1 |
+
+| Component        | Existing paths                                        | Owner                       | Alternatives                            | Selected reuse                                                                                                                            | Rationale                                                     | Risks                                   | Verification                                                                                   |
+| ---------------- | ----------------------------------------------------- | --------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Controls/Overlay | packages/ui/src/Controls.tsx,Overlay.tsx              | Neutral UI                  | Raw ZIP controls / reuse                | Reuse Button/TextInput/Select/Checkbox and native Overlay                                                                                 | One size/focus authority                                      | Nested semantics, state override        | SSR + actual computed/native focus tests                                                       |
+| Dismissal        | apps/web/lib/hooks/use-dismissable.ts                 | Web common                  | New document listeners / reuse          | Existing hook for filter and columns                                                                                                      | Escape/outside semantics already tested                       | Trigger focus and stale callback        | Native keyboard/outside browser tests                                                          |
+| Query policy     | customers/query.ts; shared/validation/pagination.ts   | Retail policy/shared scalar | Copy API/read lane / native URL         | Shared decimal pagination with explicit Retail10 default; feature parser + useSyncExternalStore/native History                            | No API or store needed; direct/back/refresh                   | Invalid query widening/hydration        | Pure round-trip/invalid tests + browser History                                                |
+| Filter engine    | ZIP config/predicate; current inline switch           | Retail presentation         | Generic framework / feature pure policy | One field/operator config, strict calendar scalar; AND predicates                                                                         | Correct types; no environment date parsing                    | Wrong warehouse field/invalid operators | Nine-field/eight-operator fixtures and negatives                                               |
+| Columns          | existing columns.ts and ZIP presets                   | Retail presentation         | Multiple preset maps / one registry     | Registry owns width/basic/default; presets derived                                                                                        | Preserve ordering and pinned tracking                         | Visibility width/focus shifts           | Pure presets + actual scroll geometry                                                          |
+| Table/cards      | current ListPage cells/cards                          | Retail presentation         | Rebuild all / extract presentation      | Keep real cells/cards, extract cohesive table/pagination                                                                                  | Avoid new monolith                                            | Cell alignment and long content         | Native colgroup/sticky/overflow + screenshots                                                  |
+| Test fixtures    | current production-directory fixtures.ts              | Web tests                   | Public flag/route / isolated bundle     | Move to test/fixtures; compile actual TSX/CSS with pinned Next webpack/CSS loader; loopback test-only HTTP server in existing CDP session | No fixture import or bypass in product route; no dependencies | Bundle integrity/cleanup/HTTP writes    | Fail closed missing build; allowlisted assets; zero writes; genuine production auth separately |
+| Browser/CI       | browser-login-smoke.mjs, teardown helpers, Foundation | Test infrastructure         | New Python/launcher / extend            | Reuse same authenticated Chromium; quality builds fixture bundle; M3 artifacts uploaded                                                   | Keeps Customer/MFA regression and owned cleanup               | Test-only build must not enter app      | Final-head Foundation, images/hashes, independent review                                       |
+
+Execution order: pure policy tests RED/GREEN → URL/availability/filter/columns UI →
+extract table/pagination and shared drawers → baseline Sidebar revert → actual CDP
+production/isolated fixture flows and ZIP screenshots → canonical docs/checks →
+focused commits/push → final-head Preflight/Foundation and independent review.
+Production always unavailable: no fake records/counts/carrier data, no Shipment
+requests or writes; Create/export/refresh disabled. Isolated fixture may open the
+presentation form but submit remains disabled. No storage persistence for presets.
+Canonical v4 brand palette is preserved; do not reinstate old AA palette-shifting
+gates. Non-color accessibility remains mandatory. Shipping Scope/Carrier M4 and
+Shipment CRUD/M5 remain deferred. No domain/schema/SDK/auth changes.
+
+M3 test-bundle feasibility re-evaluation: three initial compiler attempts exposed
+Next's internal CSS loader integration requirements (trace context, PostCSS factory,
+then local identifier function). Stop speculative configuration patches; inspect
+Next16.3.8's actual css/loaders/modules.js configuration and reuse its trace/PostCSS/
+getCssModuleLocalIdent functions explicitly. This remains a pinned, test-only build
+adapter, not a new CSS parser/framework or product bundler. No tests/guards disabled.
+If the canonical loader cannot compile unchanged production CSS, use an isolated
+Next test project instead; never substitute CSS class mocks for computed-style proof.
+
+Direct ZIP screenshot comparison identified further parity corrections before
+acceptance: filter precedes search, column settings precede refresh; tracking has
+an Eye action in the configured index slot (not an extra21st column), code/account
+metadata, two-decimal weight; pagination includes bounded numeric page jumps.
+Reuse update: extract the already-tested population-independent Customer page
+window into neutral apps/web/lib/pagination.ts, keeping the Customer alias and all
+existing behavior/tests; Retail consumes the same function (no duplicated window
+algorithm). Isolated reference-sample fixture uses exactly the six INITIAL_PACKAGES
+records from the hash-verified ZIP data, only under test/fixtures; representative
+30-record stress data remains a separate test mode. No source package data enters
+production or Shipment API. Preserve shared32px controls even where ZIP used28px.
+
+M3 source checkpoint: strict typed filter/query/column tests first RED missing
+modules then GREEN; all29 focused checks PASS before later geometry refinement.
+Independent source review found composed Unicode filters could exceed the4096 URL
+budget; `tryRetailQueryString` rejects before history changes and exposes an
+accessible validation error; dedicated Unicode regression PASS. Sidebar blur and
+its PR-specific forced-blur/fake-CDP tests are reverted, replaced with a main-
+behavior preservation assertion; existing genuine M1 keyboard/focus smoke remains.
+This is removal of the explicitly rejected out-of-scope behavior, not skipping a
+required M3/browser assertion.
+
+Actual local Chromium fixture completed tabs/history/search/date/number filters,
+dedupe, presets/sticky150px, pagination/reload, native dialog keyboard/focus and
+six-viewport captures PASS. Source review of actual screenshots caught the missing
+Next font-variable mapping in the isolated fixture and a real modal heading color
+inheritance defect; fix fixture Inter binding and explicit semantic on-dark heading,
+use shared secondary close control. Responsive dialog return wrapper restores a
+visible trigger or heading after capture/viewport changes, reusing native Overlay
+focus trapping rather than another trap. Final CI and images still required.
+
+Reference rendering is isolated in RAM with pinned Tailwind4.3.3 tooling outside
+repository dependencies; no ZIP package scripts, backend or sourcing service run.
+Captured36 reference images (six states × six viewports) from actual Retail TSX/CSS.
+First reference compile lacked Tailwind source discovery and was rejected visually;
+explicit source scanning produced the valid comparison set. These are source/visual
+reference artifacts, not production or final-head CI evidence.
+
+### M3 correction execution checkpoint — 2026-10-29
+
+Implementation: IMPLEMENTED (M3 correction scope); overall task remains IN PROGRESS,
+M4/M5 deferred. Verification remains pending final-head hosted workflows and
+production authenticated runtime evidence. Documentation Impact: REQUIRED.
+
+Executed on the correction worktree before commit:
+
+- Web typecheck and lint PASS; complete Web Node suite170/170 PASS, no skips.
+- Repository Prettier check PASS; docs check PASS; local/static preflight PASS
+  (authenticated hosted governance is separate); git diff --check PASS.
+- Browser-expression helper tests3/3 PASS; independent implementation review ran
+  Retail policy/presentation, Customer pagination and browser-expression suites39/39
+  PASS. No confirmed production P1/P2. Its P3 cleanup finding is addressed with a
+  nested finally so a disconnected CDP session cannot bypass owned server close.
+- Actual TSX/CSS fixture build PASS. Real local Chromium fixture interactions PASS
+  (tabs/history/reload/arrow navigation, search, numeric/date filters, duplicate
+  rejection, presets, tracking sticky geometry, pagination, native dialog focus/
+  Escape, empty/invalid URL). Final capture set covers all six specified sizes,
+  including exact ZIP six-record reference sample. This fixture result does not
+  prove production authentication or Docker runtime.
+- contracts:check FAIL locally: API TypeScript cannot resolve existing dependencies
+  i18n-iso-countries and libphonenumber-js/max in the provided installation.
+  No backend/contracts were modified or generated. Full Docker quality/build,
+  production Auth/Customer/Retail smoke and hosted checks remain NOT RUN for this
+  correction head until executed in CI. Root filesystem has under10MB free, so no
+  local Docker build or destructive volume/image cleanup is attempted.
+
+Reference screenshots are compared visually, not asserted pixel-identical: shared
+32px controls, honest missing-date/quote markers and mobile cards intentionally
+follow the recorded design instead of ZIP's fabricated values/backend actions.
+Reviewed desktop and mobile captures; title/actions, segmented tabs, toolbar order,
+navy table, column count/presets and drawer structure follow the ZIP reference.
+No claim of completed M4/M5 or Shipment backend readiness.
+
+Follow-up execution: canonical root `pnpm lint` PASS (workspace boundaries + ESLint),
+Web typecheck PASS and Web tests170/170 PASS again. `pnpm --filter @nexora/web lint`
+was an invalid invocation because this workspace has no lint script; it is not a
+code-lint failure and does not replace the successful root command. Extended real
+Chromium assertions also PASS for AND filters, individual chip removal, default
+column reset, Escape/trigger return, and open filter/column popover bounds across
+all six sizes. Browser expression tests3/3 PASS; actual screenshot manifests retain
+per-image geometry and SHA-256. Reference tooling remains outside repository and
+product dependencies. Current hosted evidence belongs only to each recorded run's
+head; final workflow links/results are reconciled in PR metadata after completion.
+
+Final inspection found a mobile empty-state inconsistency: desktop distinguished
+unavailable data, while mobile still said no matching results. Added a real rendered
+component regression covering both layouts and both availability states; it failed
+with expected2 matching messages versus actual1 before the fix. Both layouts now
+consume one component-owned emptyMessage, avoiding duplicated decision logic. The
+first test invocation had an incorrect relative loader path (corrected before the
+behavioral RED result). Targeted/full Web and Chromium checks are rerun; final-head
+hosted verification remains pending, never inherited from the earlier correction.
+
+Mobile correction rerun: Web typecheck PASS, root lint PASS, full Web171/171 PASS
+(no skips), actual fixture rebuild and real Chromium flows/six-size captures PASS;
+docs and diff checks PASS. Await the new correction commit's hosted evidence.
+
+### M3 v5 amendment execution — 2026-10-31
+
+Implemented shared `SelectButton` primitive in `@nexora/ui` per PrimeVue-inspired pattern without external dependencies, composing existing `Button` (single segmented) and `Checkbox` (multiple stacked). Migrated `RetailColumnPicker` to `SelectButton`: segmented column presets (all, basic, default) with dynamic `activePreset` set-equality derivation, stacked searchable column visibility checklist with out-of-filter selection preservation, and fixed tracking column protection with amber "Cố định" badge. Popover header restored with icon, title, and close button; footer updated with "Đã xong" button and border separator. Fixed table full-width collapse (`width: 100%, minWidth: minTableWidth`) with sticky tracking column preservation. All unit, contract, SSR, and Chromium CDP browser checks PASS across 6 viewports.
+
+Follow-up refinement:
+
+- Extracted and exported pure selection helpers (`nextSingleSelection`, `nextMultipleSelection`) from `@nexora/ui` with genuine unit and component event assertions (no local mock implementations).
+- Expanded `RetailColumnPicker` tests for closed trigger, open popover dialog, preset derivations, and search filtering preservation.
+- Clarified table minimum width bound (7 basic columns = 915px total minimum width) and split browser geometry verification into wide (100% width match) and narrow (horizontal scroll overflow with min-width preservation) assertions.
+- Updated GitHub PR #29 description to match task record M3 v5 metadata, resolving Preflight governance check.
+- Executed verification:
+  - `node scripts/boundaries.mjs`: PASS
+  - `pnpm --filter @nexora/ui test`: 27/27 PASS
+  - `node apps/web/test/form-control-contracts.test.mjs`: 11/11 PASS
+  - `node apps/web/test/retail-packages.test.mjs`: 34/34 PASS
+  - `node scripts/build-retail-fixture.mjs`: PASS
+  - Chromium CDP browser checks across 6 viewports: ALL PASS
+  - `pnpm format:check`: PASS
+  - `pnpm lint`: PASS
+  - `pnpm docs:check`: PASS
+  - `pnpm preflight:check`: PASS
+  - `pnpm typecheck`: 10/10 packages PASS
+
+### M3 v5 PR review corrective plan — 2026-10-31
+
+Implementation: PLANNED; overall task remains IN PROGRESS. Scope covers 12 review findings across Retail query/filters/history, TabBar accessibility and scroll behavior, SelectButton CSS specificity, TabCountBadge screen reader semantics, boundary scanner enforcement, test loader decoupling, and dynamic geometry verification.
+
+#### Mandatory Reuse & Corrective Audit Matrix
+
+| Area                           | Existing implementation                                                      | Domain owner             | Reuse alternatives                                    | Selected approach                                                                                                                                     | Rationale                                                                                   | Risks                                              | Verification                                                           |
+| ------------------------------ | ---------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------- |
+| Tab count availability         | `TabCountBadge` receives `counts[item.id] ?? 0`                              | Retail / Presentation    | Keep 0; show question mark                            | Pass `undefined` when unavailable (`unavailable ? undefined : counts[item.id]`); render `—` and sr-only "chưa có dữ liệu"                             | Honest representation of uncounted status; avoids misleading user with 0                    | Misaligned visual badge layout                     | SSR render tests + Retail snapshot checks                              |
+| Search history & debounce      | Direct URL change on every input event without debounce                      | Retail / Presentation    | Debounce full pushState; keep immediate URL           | Local draft state + 300ms debounce; track session (`pushState` on first commit, `replaceState` on subsequent); cancel on blur/enter/clear/popstate    | Clean browser history navigation; no cluttered back stack; reliable popstate restore        | Stale debounce timer overwriting URL on navigation | Search session history unit tests + CDP popstate navigation assertions |
+| Numeric filter equality        | `Math.abs(actual - b) < 0.01` floating point tolerance                       | Retail / Filter logic    | Keep float tolerance; round numbers                   | Strict equality `actual === b`                                                                                                                        | Weight and packages are discrete decimal/integer values; floating tolerance masks data bugs | Precision divergence on extreme decimals           | Unit tests for exact equality in `retail-packages.test.mjs`            |
+| Warehouse filter equality      | `includes()` substring matching                                              | Retail / Filter logic    | Strict string match without normalization             | Normalize canonical prefixes (`Kho TMĐT Quảng Châu` -> `Quảng Châu`), then apply strict equality                                                      | Prevents cross-warehouse false positives (e.g. "Quảng Châu" matching "Quảng Châu Mở rộng")  | Unmapped warehouse prefix                          | Unit tests with diverse warehouse strings                              |
+| TabBar scroll & wheel          | Unmount scroll buttons on edge; custom `onWheel` on track                    | Shared UI (`@nexora/ui`) | Hide buttons with CSS visibility; keep wheel listener | Keep buttons stably in DOM when `hasOverflow`, toggle `disabled` & `.scrollButtonDisabled`; focus return to active roving tab; remove track `onWheel` | Stable DOM tree prevents focus loss; native scroll avoids hijacking vertical window scroll  | Keyboard focus trap on disabled button             | `tabbar.test.mjs` focus shift tests + manual wheel/track assertions    |
+| SelectButton hover specificity | `.segmentedItem:hover:not(:disabled)` beaten by shared `.secondary`          | Shared UI (`@nexora/ui`) | Add `!important`; inline styles                       | Prefix selector with `.segmented .segmentedItem` to increase CSS specificity                                                                          | Clean CSS hierarchy without resorting to `!important` anti-pattern                          | Class rename regression                            | CSS specificity inspection + `select-button.test.mjs`                  |
+| TabCountBadge accessibility    | Visual badge text read directly by screen readers                            | Shared UI (`@nexora/ui`) | Tooltip-only; title attribute only                    | Add `srText?: string`; wrap visual text in `aria-hidden={Boolean(srText)}` and render sr-only text `<span className={styles.srOnly}>{srText}</span>`  | Screen readers announce unambiguous text while visual rendering remains compact             | Hidden badge text for sighted users                | Screen reader attribute assertions in `tabbar.test.mjs`                |
+| Roving tab focus target        | `activeRovingId` falls back to raw item without enabled check                | Shared UI (`@nexora/ui`) | Always focus index 0; remove roving tabindex          | Validate `activeRovingId` against `enabledItems`; fallback to first enabled item                                                                      | Disabled tab cannot receive roving keyboard focus                                           | No enabled tabs available                          | Roving focus tests with disabled items                                 |
+| TabBar token typing            | `activeIconColor?: string` permissive string                                 | Shared UI (`@nexora/ui`) | Enum of color names; arbitrary CSS string             | Type `CssTokenReference = \`var(--${string})\``                                                                                                       | Enforces design system token discipline at compile time                                     | Incompatible token names                           | TypeScript typecheck verification                                      |
+| UI test loader boundary        | UI tests import SSR helper from `apps/web/test/helpers/render-component.mjs` | Neutral test scripts     | Inline test loader in `packages/ui`; mock DOM         | Move helper to neutral `scripts/test-helpers/render-component.mjs`; re-export from `apps/web`; update `scripts/boundaries.mjs` to scan `.mjs`         | Preserves strict directional boundary: packages never import apps                           | Broken test helper imports                         | `node scripts/boundaries.mjs` + negative test                          |
+| Column geometry check          | Hardcoded 915px basic columns minimum width                                  | Test infrastructure      | Approximate width; fixed constant                     | Dynamically compute sum of basic column widths from colgroup/registry                                                                                 | Resilient against column definition adjustments                                             | Calculation desync                                 | `scripts/retail-browser-checks.mjs` dynamic geometry run               |
+| Documentation & PR sync        | PR description out of sync with final HEAD & test counts                     | Governance / Operations  | Manual edit after merge; leave old SHA                | Reconcile metadata, run full verification suite, commit, push, update PR body with GitHub API                                                         | Strict preflight compliance and transparent verification trail                              | Out-of-sync PR digest                              | `pnpm preflight:check` + CI run verification                           |
+
+#### Execution & Verification Checkpoint — 2026-10-31
+
+Implementation: IMPLEMENTED (M3 v5 review findings); overall task remains IN PROGRESS. Verification: VERIFIED locally via native test runner and Chromium CDP; CI verification pending final-head hosted workflow runs. Documentation Impact: REQUIRED.
+
+- Resolved FIX 1 (I1): TabCountBadge receives `value={unavailable ? undefined : counts[item.id]}` rendering `—` with honest title "Chưa có dữ liệu" and screen reader text "chưa có dữ liệu".
+- Resolved FIX 2 (I2): Implemented controlled `searchDraft` with 300ms debounce, session tracking (`pushState` on initial draft commit, `replaceState` on subsequent updates within active session), immediate commit/clear on Enter/blur/empty, popstate/unmount cancellation, and `maxLength={200}`. `useRetailQuery` rejects duplicate history entries when query string is identical.
+- Resolved FIX 3: Numeric equality in `filters.ts` replaced float tolerance `< 0.01` with strict equality `actual === b`.
+- Resolved FIX 4: Warehouse filter in `filters.ts` replaced substring matching with canonical mapping (`normalizeWarehouse`) and exact equality.
+- Resolved FIX 5 (M3): TabBar scroll buttons remain stably in DOM when `hasOverflow = scrollWidth > clientWidth + 2`, toggling `disabled={!canScrollLeft/Right}` and `.scrollButtonDisabled`. Shift focus to active roving tab if a focused button becomes disabled or container loses overflow. Removed custom `onWheel` on `scrollTrack` to preserve native page scrolling.
+- Resolved FIX 6 (M4): SelectButton segmented CSS specificity increased by prefixing `.segmented .segmentedItem` to beat shared `.secondary:hover:not(:disabled)` without `!important`.
+- Resolved FIX 7 (m2): TabCountBadge supports `srText?: string`, wraps visual count in `<span aria-hidden={Boolean(srText)}>{display}</span>`, and appends `<span className={styles.srOnly}>{srText}</span>`. Added `.srOnly` class to `TabBar.module.css`.
+- Resolved FIX 8 (m3): TabBar roving focus targets validate `activeRovingId` against `enabledItems`, falling back to first enabled item.
+- Resolved FIX 9 (m1): TabBar `activeIconColor` typed as `type CssTokenReference = \`var(--${string})\``. Verified consumer token mappings in `RetailPackageListPage.tsx`.
+- Resolved FIX 10 (M2): Moved component SSR loader to neutral `scripts/test-helpers/render-component.mjs`; re-exported from `apps/web/test/helpers/render-component.mjs`. Updated `packages/ui/test/*.test.mjs` imports. Extended `scripts/boundaries.mjs` to scan `.mjs` files in `apps/` and `packages/` with negative test.
+- Resolved FIX 11 (F3): Dynamically computed expected basic column minimum width sum from colgroup in `scripts/retail-browser-checks.mjs`.
+- Verification Evidence:
+  - `node scripts/boundaries.mjs`: PASS
+  - `pnpm --filter @nexora/ui test`: 30/30 PASS
+  - `node apps/web/test/form-control-contracts.test.mjs`: 11/11 PASS
+  - `node apps/web/test/retail-packages.test.mjs`: 37/37 PASS
+  - `node apps/web/test/retail-policy.test.mjs`: 4/4 PASS
+  - `node scripts/build-retail-fixture.mjs`: PASS
+  - Chromium CDP browser checks across 6 viewports: ALL PASS
+  - `pnpm format:check`: PASS
+  - `pnpm lint`: PASS
+  - `pnpm docs:check`: PASS
+  - `pnpm preflight:check`: PASS
+  - `pnpm typecheck`: 10/10 packages PASS
+
+### M3 v6 Retail Column Picker Visual Parity & SelectButton Appearance Plan — 2026-10-31
+
+Implementation: PLANNED; overall task remains IN PROGRESS. Scope covers 10 visual parity findings (V1–V10) between Nexora Column Picker popup and reference ZIP (`src/components/RetailPackagesView.tsx:1720–1863`): popup title sizing (12px bold), fast preset format with `appearance="text-actions"` on shared `SelectButton` (decorative `|` separators, blue/amber/slate colors, `RotateCcw` reset icon, no raised white pill), search wrapper with left icon and clear button, checklist 208px max-height with 8px section gap, selected navy vs unselected slate text styling, native checkbox alignment, trigger button `SlidersHorizontal` icon with responsive `"Cột hiển thị"` label, compact header, and dedicated footer.
+
+#### Mandatory Reuse & Design Audit Matrix
+
+| Component                         | Existing Implementations                                        | Domain Owner               | Reuse Alternatives                                                                                              | Selected Approach                                                                                            | Rationale                                                                                                                                    | Risks                                | Verification                                                        |
+| :-------------------------------- | :-------------------------------------------------------------- | :------------------------- | :-------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------- | :------------------------------------------------------------------ |
+| Shared `SelectButton` Appearance  | Default segmented pill with white background, border and shadow | `@nexora/ui`               | 1. Inline styles in feature. 2. Abandon SelectButton for raw buttons. 3. Add `appearance` prop to SelectButton. | Add `appearance?: "default" \| "text-actions"` to `SelectButtonProps`                                        | Provides clean, reusable, token-bound text-action segmented appearance without raised pill; preserves keyboard navigation and `aria-pressed` | Specificity clash with Button styles | `packages/ui/test/select-button.test.mjs` unit and SSR render tests |
+| Preset Separators & Icons         | Hardcoded text in ad-hoc row                                    | Web / Retail Feature       | 1. Non-selectable options in array. 2. Render in SelectButton when `appearance="text-actions"`.                 | Render decorative `aria-hidden="true"` `\|` between items in `SelectButton` when `appearance="text-actions"` | Avoids polluting option values with fake items; accessible to screen readers                                                                 | Separator misaligned                 | Visual check across all 6 viewports                                 |
+| Column Search Wrapper             | Standalone `TextInput` without icon or clear button             | Web / Retail Feature       | 1. Modify shared TextInput globally. 2. Feature-owned wrapper around shared `TextInput`.                        | Feature-owned search wrapper in `RetailColumnPicker.tsx` with `Search` icon and clear `X` button             | Preserves shared `TextInput` public API and global 32px height while matching ZIP visual design                                              | Duplicate clear buttons on Webkit    | Hide Webkit native search cancel button via CSS; test clear action  |
+| Column Checklist Height & Spacing | 280px max-height and 12px panel gap                             | Web / Retail Feature       | 1. Keep 280px. 2. Reduce to 208px (`max-h-52`) and 8px panel gap.                                               | Reduce checklist max-height to 208px and panel gap to `var(--space-2)` (8px)                                 | Matches ZIP geometry; compact and balanced without sacrificing scrollability of 20 columns                                                   | Content cutoff on small screens      | Viewport testing from 375px to 1440px                               |
+| Option Label & Row Colors         | Dark text for both checked and unchecked rows                   | Shared UI / Retail Feature | 1. Feature overrides. 2. Align shared stacked styles with design system tokens.                                 | Update `SelectButton.module.css` stacked item colors: muted slate for unchecked, navy for checked            | Directly satisfies ZIP visual contrast; unchecked items appear light while selected items are prominently highlighted                        | Consumer contrast regression         | WCAG contrast checks on checked/unchecked states                    |
+| Trigger Button Parity             | `Columns3` icon and `"Cột"` label                               | Web / Retail Feature       | 1. Keep Columns3. 2. Update to `SlidersHorizontal` and `"Cột hiển thị"` responsive label.                       | Use `SlidersHorizontal` with dynamic orange/slate tone, responsive `"Cột hiển thị"`, and 3-state badge       | Matches reference ZIP trigger visual structure exactly                                                                                       | Layout break on narrow screen        | Responsive CSS hides text below xs viewport                         |
+| Popup Header & Footer Chrome      | Basic title and shared popover footer                           | Web / Retail Feature       | 1. Keep 11px title. 2. 12px bold title, dedicated `colPickerFooter`, 11px count, navy "Đã xong" button.         | Use 12px bold title (`--font-size-sm`), dedicated `.colPickerFooter`, and navy 32px "Đã xong" button         | Perfect alignment with reference ZIP while maintaining 32px shared control height contract                                                   | Vertical overflow                    | Verified on CDP headless browser across all 6 viewports             |
+
+#### M3 v6 Visual Parity & Verification Evidence
+
+- Resolved FIX V1: Popup title 12px bold (`--font-size-sm`, font-weight 700).
+- Resolved FIX V2: Shared `SelectButton` `appearance="text-actions"` with decorative separators, distinct colors, and reset icon.
+- Resolved FIX V3: Search input wrapper with left Search icon and conditional right clear button.
+- Resolved FIX V4: Checklist bounded to max-height 208px (`max-h-52`) with 8px panel gap.
+- Resolved FIX V5: Checked items in navy (`#172B4D`), unchecked items in slate (`#94A3B8`).
+- Resolved FIX V6: Semantic native checkbox inputs preserved.
+- Resolved FIX V7: Trigger with `SlidersHorizontal` icon, responsive label, and count badge.
+- Resolved FIX V8: Header aligned with 12px bold title and 32px close button.
+- Resolved FIX V9: Dedicated footer with 11px count text and navy "Đã xong" button.
+- Resolved FIX V10: Panel width bounded `min(336px, calc(100vw - 32px))` across all 6 viewports.
+- Verification Evidence:
+  - `pnpm --filter @nexora/ui test`: 31/31 PASS
+  - `node apps/web/test/form-control-contracts.test.mjs`: 11/11 PASS
+  - `node apps/web/test/retail-packages.test.mjs`: 37/37 PASS
+  - `node apps/web/test/retail-policy.test.mjs`: 4/4 PASS
+  - `node scripts/build-retail-fixture.mjs`: PASS
+  - Chromium CDP browser checks across 6 viewports: ALL PASS
+  - `pnpm format:check`: PASS
+  - `pnpm lint`: PASS
+  - `pnpm docs:check`: PASS
+  - `pnpm preflight:check`: PASS
+  - `pnpm typecheck`: 10/10 packages PASS
+
+### M3 v6 Corrective Follow-up — F1–F6 Review Findings — 2026-10-31
+
+Implementation: IMPLEMENTED; overall task remains IN PROGRESS. Scope covers 6 review findings identified after M3 v6 delivery.
+
+#### Corrective Plan & Reuse Audit
+
+| ID  | Priority | Root Cause                                                                                                          | Approach                                                                                                                                                                                                                       | Files                                                                                                                      |
+| --- | -------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| F1  | P2       | Unselected option text used `--color-text-muted` (gray-500 `#64748B`) instead of ZIP-specified gray-400 `#94A3B8`   | Add scoped semantic token `--color-colpicker-option-unselected-text: var(--gray-400)` in `tokens.css`; apply via `.colOptionLabel` in retail CSS module; no change to global `--color-text-muted`                              | `apps/web/styles/tokens.css`, `apps/web/features/retail-packages/retail-packages.module.css`                               |
+| F2  | P2       | Popup `border-radius` used `--radius-xl` (16px) instead of ZIP-specified 12px                                       | Change `.colPickerPanel` to `border-radius: var(--radius-lg)` (12px); no other popups changed                                                                                                                                  | `apps/web/features/retail-packages/retail-packages.module.css`                                                             |
+| F3  | P2       | Search clear button used native `<button>` instead of shared `Button` from `@nexora/ui`                             | Replaced with `<Button variant="ghost" icon>` from `@nexora/ui`; uses `searchInputRef` for focus return; no TextInput API change                                                                                               | `apps/web/features/retail-packages/RetailColumnPicker.tsx`, `apps/web/features/retail-packages/retail-packages.module.css` |
+| F4  | P2       | Browser tests asserted markup/class names but not computed CSS contract                                             | Extended `scripts/retail-browser-checks.mjs` with CDP `getComputedStyle` assertions for dialog border-radius, title typography, separator count, preset colors, clear button sizing/behavior, option colors, footer dimensions | `scripts/retail-browser-checks.mjs`                                                                                        |
+| F5  | P2       | PR description referenced stale HEAD SHA `1925f91...` instead of reviewed `8a45f16...`                              | Update PR description and task record after final HEAD push                                                                                                                                                                    | PR #29 description, this task record                                                                                       |
+| F6  | P3       | `SelectButton` base props allowed `appearance="text-actions"` in multiple+stacked mode, but it was silently ignored | Moved `appearance` to `SingleSegmentedSelectButtonProps` only; `MultipleStackedSelectButtonProps` has `appearance?: never`; added compile-time negative test                                                                   | `packages/ui/src/SelectButton.tsx`, `packages/ui/test/select-button.test.mjs`                                              |
+
+Documentation Impact: NONE for shared reusable-components.md (no new public contract beyond M3 v6); REQUIRED for this mutable task record and PR metadata.
+
+#### F1–F6 Verification Evidence
+
+- `pnpm --filter @nexora/ui test`: 32/32 PASS (includes F6 type-level negative test)
+- `pnpm --filter @nexora/ui typecheck`: PASS
+- `node apps/web/test/retail-packages.test.mjs`: 37/37 PASS
+- `node apps/web/test/form-control-contracts.test.mjs`: 11/11 PASS (includes F1 scoped token validation)
+- `node scripts/boundaries.mjs`: PASS
+- `node scripts/build-retail-fixture.mjs`: PASS
+- Chromium CDP browser checks (1440×900 fixture-only): ALL PASS — computed border-radius 12px (F2), gray-400 `#94a3b8` unselected (F1), clear button 32×32px visible/hidden (F3), separator count 2 with aria-hidden (V2), preset colors, footer 11px/32px
+- `pnpm format:check`: PASS
+- `pnpm lint`: PASS (EXIT:0)
+- `pnpm docs:check`: PASS
+- `pnpm preflight:check`: PASS
+- `apps/web tsc --noEmit`: PASS
+- Verified HEAD before commit: `8a45f16d10af2078629cd51c8148ecd95d8b6d7e`
+
+#### F5 — Final HEAD Evidence
+
+Post-commit final HEAD and PR metadata update pending push. PR description and this record will be updated with final HEAD SHA once commit is pushed to `feat/retail-packages-ui`.
+
+### M3 v6 F1–F6 final verification correction — 2026-10-31
+
+Read-only baseline: clean existing feat/retail-packages-ui at c6299359aa0bd2a59966a87ce8d26d7949537f8c, newer than requested reviewed8a45f16. Preserve its F1 scoped token, F2 radius, F3 shared Button/ref and F6 union/compiler regression; do not reimplement V1–V10. Classification: BOUNDED corrective follow-up under unchanged v6 snapshot, digest fd50b19a29b9020ce1a658b3b9794ade91472d8d68b8064dd738dc06eb1c6192. Documentation Impact: REQUIRED.
+
+| Component                | Existing Implementations                                                                       | Domain Owner                  | Reuse Alternatives                                    | Selected Approach                                                                                                                                                              | Rationale                                                                  | Risks                                | Verification                                                                                                                             |
+| ------------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Clear action             | RetailColumnPicker shared Button + TextInput ref; Controls.module.css ghost states             | Shared UI; Retail positioning | Keep feature hover overrides / preserve shared states | Remove only remaining clear-button color/hover overrides; retain positioning and reserve32px in input padding                                                                  | F3 requires actual shared state ownership                                  | Input overlap/focus clipping         | Actual pointer and Tab/Enter,32px target, focus return, selection preservation                                                           |
+| Computed visual evidence | scripts/retail-browser-checks.mjs snapshot/CDP, existing Customer pointer implementation       | Test infrastructure           | New browser framework / extend existing session       | Feature-local helper using existing send/evaluate/key/type/snapshot; resolve semantic tokens via computed CSS; extend six-viewport snapshots                                   | Existing checks hardcode RGB and miss hover/keyboard/geometry contracts    | False green, flaky transition timing | Assertion-first on existing actual TSX/CSS, real pointer/wheel/keyboard, geometry/color evidence for default/basic/all/search/top/bottom |
+| SelectButton API docs    | c629935 discriminated union and real TypeScript virtual fixture; shared registry/design-system | Shared UI                     | Rewrite union / document implemented narrowed API     | Retain runtime/types; synchronize canonical single-only appearance and Retail-specific unselected token                                                                        | Correct existing misleading shared contract text without snapshot mutation | Default/other consumer regressions   | UI compiler tests, UI/Web typecheck, shared/default and Customer/AppShell regression                                                     |
+| Final evidence           | task checkpoints, PR metadata, Preflight/Foundation                                            | Governance                    | Reuse older PASS / final-head hosted runs             | Format task, record truthful failed baseline, commit focused changes and verify final-head checks/logs/artifacts; final SHA evidence in PR avoids self-referential doc commits | F5 currently stale                                                         | Premature readiness                  | Three review rounds; preserve Draft while blockers remain                                                                                |
+
+Baseline Foundation41179599112 FAIL: actual log shows Prettier rejected this mutable task file; M3 artifact upload subsequently failed because runtime never ran. Preflight41179599114 PASS. These are historical baseline facts, not new-head evidence. Reference remix ZIP(5) is not present in supplied workspace/attachments; requested it, continue against immutable v6 and explicit user visual contract; direct same-state ZIP screenshot comparison remains NOT RUN until the actual file is available. No material design revision, new dependencies, backend/API/schema/security changes or production deployment.
+
+Execution: focused assertions RED/GREEN → shared/default regression → real six-size CDP evidence → round1 implementation and round2 visual review → docs/format/full canonical hosted checks → round3 exact-head review and metadata. Overall task remains IN PROGRESS / NOT VERIFIED (M4–M5 deferred).
+
+#### Three-round follow-up journal and executed checkpoint (2026-10-31)
+
+Round1 independent review confirmed F1/F2/F6 correct, identified remaining P2F3
+clear-button state overrides and P2F4 computed/interaction gaps. Fixed scoped clear
+CSS to positioning only; input padding reserves32px target plus8px. Regression
+failed on the old hover override, then Retail38/38 PASS. No shared default styling
+or runtime SelectButton DOM/type changes in this follow-up.
+
+Round2 independent source/visual review found no remaining confirmed P1/P2 in the
+delta. Reviewed actual mobile default/search-clear and desktop All images; no new
+clipping. Independent static CDP expression tests3/3 PASS. Expanded real local
+Chromium suite PASS with102 screenshots, including48 picker images across six
+viewports and8 states. Manifest confirms Default19, Basic7 and All20 at every size;
+no mismatched preset screenshots are treated as parity defects. Real pointer preset
+click/hover, clear click and Tab/Enter, full selected-header identity preservation,
+focus return/exit and native wheel-to-bottom all PASS. Computed measurements cover
+colors via resolved root tokens, typography, panel/radius/spacing/borders/elevation,
+search/padding, native checkbox/required badge, checklist and footer.
+
+Harness investigation preserved strict assertions: an intermediate capture observed
+a real CSS transition color; await scoped finite animation finished promises before
+measuring. Chromium's getComputedStyle on the native search-cancel pseudo-element
+is not a valid visibility measurement; verify its matching compiled CSSOM display
+rule instead, including nested CSSStyleRule children. This is rule-presence evidence,
+not fabricated computed-pseudo proof. No fixed sleep or CSS-state mutation added.
+
+Local executions: UI32/32 and UI typecheck PASS; Retail38/38 PASS; form controls11/11
+PASS; Web183/183 and Web typecheck PASS; format/lint/boundaries/docs/static preflight
+PASS; fixture build and actual Chromium PASS. Root typecheck/test attempted and FAIL
+on host build prerequisite API_INTERNAL_URL missing; Turbo then cancels unfinished
+workspace tests. Root tooling tests completed124/124. Canonical Docker/hosted full
+quality remains required and pending for the follow-up head. The host has under10MB
+free, so do not build Docker locally or remove unrelated images/volumes. Exact
+final-head CI/log/artifact status and commit binding are reconciled in PR metadata
+after execution, avoiding self-referential SHA-only documentation commits.
+
+Round3: final diff, independent exact-head review and hosted Preflight/Foundation
+pending commit/push. ZIP(5) direct same-state comparison remains NOT RUN (archive
+not supplied; no matching archive digest found among attached ZIPs). Do not claim
+full visual acceptance/readiness until mandatory missing evidence is resolved.
+Canonical documentation owners updated: design-system, reusable-components, testing
+and this mutable task; previous NONE claim for registry is superseded by this API
+clarification. Immutable v6 bytes/digest unchanged. Overall task remains IN PROGRESS
+and NOT VERIFIED; no backend/Shipment contract, schema, Auth or M4/M5 changes.
+
+#### Round3 executed source-head CI and artifact reconciliation — 2026-10-31
+
+Implementation source head:9205d37b7ff3da30f70409b99f2c6105cf5526b2 (baseline
+c6299359aa0bd2a59966a87ce8d26d7949537f8c already contained F1/F2/F6). Both hosted
+workflows checked out refs/pull/29/merge at33533bad467193b5d1deb81d0ba3990b0581096f,
+merging that exact source head into main837e8238a91350bd741dcd3e935052f0aa2d9eb5;
+they did not directly checkout the branch head.
+
+| Claim                                                                                                 | Evidence                                                                                                                                                                                                     | Date       | Result |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Source-head hosted governance and24 tests                                                             | [Preflight41180832270](https://github.com/dinhphuquy2k1/nexora/actions/runs/41180832270), actual checkout/test log inspected                                                                                 | 2026-10-31 | PASS   |
+| Canonical quality/build/contracts/integration/runtime/TTY/Auth/Customer/HTTPS/persistence/development | [Foundation41180832236](https://github.com/dinhphuquy2k1/nexora/actions/runs/41180832236), mandatory steps ran; only failure diagnostics skipped                                                             | 2026-10-31 | PASS   |
+| UI32, Web183, API172, database6, root124, integration81 tests; contracts reproducibility              | Actual Foundation logs, zero failures in these suites, frozen Docker environment                                                                                                                             | 2026-10-31 | PASS   |
+| Source-head screenshot provenance and hashes                                                          | [Retail artifact13034593282](https://github.com/dinhphuquy2k1/nexora/actions/runs/41180832236/artifacts/13034593282), admin108 + operator6 =114 images; manifest33533bad; every PNG hash and bounds checked  | 2026-10-31 | PASS   |
+| Same-state preset and computed evidence                                                               | 48 picker images:8 states ×6 sizes; Default19, Basic7, All20 at every size; resolved colors/typography/radius/search/checklist/footer geometry                                                               | 2026-10-31 | PASS   |
+| Three independent review rounds                                                                       | Round1 P2F3/F4 fixed; Round2 no confirmed P1/P2; Round3 exact9205d37 source41/41 focused tests and independent114-image hash/dimension/source verification plus4-image visual spotcheck, no P1/P2 regression | 2026-10-31 | PASS   |
+
+Verification checked at approximately14:45 Asia/Saigon (07:45 UTC). Prior
+c629935 Foundation formatting FAIL and host missing-upstream prerequisite FAIL
+remain historical failures above. This journal addition creates a documentation
+head after the tested source head; its hosted checks must run too. Exact final
+branch/documentation HEAD, merge-ref SHA, workflow links/status and verification
+time live in PR29 metadata after those checks complete, without claiming an
+untested documentation head passed or creating an endless self-SHA commit loop.
+
+Direct same-state ZIP(5) comparison remains NOT RUN: archive unavailable in this
+workspace despite checking supplied ZIP digests and requesting the file. Computed
+contract verification PASS does not establish direct ZIP parity. PR remains Draft /
+NOT READY until that mandatory acceptance evidence is available; implementation
+is IMPLEMENTED, overall NEXORA-031 remains IN PROGRESS / NOT VERIFIED, M4–M5
+deferred. No public production deployment evidence or merge is claimed.

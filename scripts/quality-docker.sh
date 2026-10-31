@@ -19,6 +19,6 @@ restart(){ compose start api web >/dev/null; }
 trap restart EXIT HUP INT TERM
 compose stop api web
 # run invokes mapped-user entrypoint; exec bypasses that mapping.
-compose run --rm --no-deps -T quality sh -c 'NODE_ENV=production API_INTERNAL_URL=http://api:4000 pnpm quality && NODE_ENV=test pnpm test:integration && pnpm --filter @nexora/database test:migrations'
+compose run --rm --no-deps -T quality sh -c 'NODE_ENV=production API_INTERNAL_URL=http://api:4000 pnpm quality && NODE_ENV=test pnpm test:integration && pnpm --filter @nexora/database test:migrations && node scripts/build-retail-fixture.mjs'
 node scripts/provision-cluster-smoke.mjs
 node scripts/dev-cleanup-smoke.mjs

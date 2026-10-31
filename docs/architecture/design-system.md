@@ -113,7 +113,7 @@ The canonical project color specification is owned by this document, and the act
 | **Border Radius**      | `--control-radius`             | `6px` (`--radius-sm`)     |
 | **Standard Height**    | `--control-size-default`       | `32px`                    |
 
-#### Status Segmented Tabs
+#### Status Segmented Tabs (Customer)
 
 | State / Element                   | Background Token                  | Background Value            | Foreground Token                    | Foreground Value |
 | :-------------------------------- | :-------------------------------- | :-------------------------- | :---------------------------------- | :--------------- |
@@ -125,6 +125,29 @@ The canonical project color specification is owned by this document, and the act
 | **Unselected Count Badge**        | `--color-count-unselected-bg`     | `#FFFFFF`                   | `--color-count-unselected-text`     | `#475569`        |
 | **Active Tab Dot (Unselected)**   | —                                 | `#10B981` (`--emerald-500`) | —                                   | —                |
 | **Inactive Tab Dot (Unselected)** | —                                 | `#94A3B8` (`--gray-400`)    | —                                   | —                |
+
+#### Status Line TabBar (Shared Line TabBar — Retail Packages)
+
+| State / Element            | Indicator / Underline Token  | Indicator Value | Text Token                           | Text Value | Background Token                   | Background Value |
+| :------------------------- | :--------------------------- | :-------------- | :----------------------------------- | :--------- | :--------------------------------- | :--------------- |
+| **Selected Tab**           | `--color-tab-line-indicator` | `#F58A24`       | `--color-tab-line-selected-text`     | `#1F2937`  | `transparent`                      | `transparent`    |
+| **Unselected Tab**         | —                            | —               | `--color-tab-line-unselected-text`   | `#64748B`  | `transparent`                      | `transparent`    |
+| **Unselected Tab Hover**   | —                            | —               | `--color-tab-line-selected-text`     | `#1F2937`  | `--color-tab-line-hover-bg`        | `#F8FAFC`        |
+| **Selected Count Badge**   | —                            | —               | `--color-count-line-selected-text`   | `#C2410C`  | `--color-count-line-selected-bg`   | `#FFF7ED`        |
+| **Unselected Count Badge** | —                            | —               | `--color-count-line-unselected-text` | `#64748B`  | `--color-count-line-unselected-bg` | `#F1F5F9`        |
+| **Track Border / Divider** | —                            | —               | —                                    | —          | `--color-tab-line-border`          | `#E2E8F0`        |
+
+##### Active Status Icon Palette (Retail Status Tabs)
+
+| Tab Key      | Status Name       | Lucide Icon     | Active Color Token                   | Active Resolved Hex     | Inactive Color Token                           |
+| :----------- | :---------------- | :-------------- | :----------------------------------- | :---------------------- | :--------------------------------------------- |
+| `all`        | Tất cả kiện hàng  | `Layers`        | `--color-retail-tab-all-icon`        | `#172B4D` (Navy)        | `--color-tab-line-unselected-text` (`#64748B`) |
+| `to_origin`  | Đang đến kho gửi  | `Truck`         | `--color-retail-tab-to-origin-icon`  | `#B45309` (Amber 700)   | `--color-tab-line-unselected-text` (`#64748B`) |
+| `at_origin`  | Đã về kho gửi     | `Building2`     | `--color-retail-tab-at-origin-icon`  | `#1D4ED8` (Blue 700)    | `--color-tab-line-unselected-text` (`#64748B`) |
+| `in_transit` | Đang về kho nhận  | `Plane`         | `--color-retail-tab-in-transit-icon` | `#4338CA` (Indigo 700)  | `--color-tab-line-unselected-text` (`#64748B`) |
+| `at_dest`    | Đã về kho nhận    | `Warehouse`     | `--color-retail-tab-at-dest-icon`    | `#047857` (Emerald 700) | `--color-tab-line-unselected-text` (`#64748B`) |
+| `delivered`  | Đã giao hàng      | `CheckCircle2`  | `--color-retail-tab-delivered-icon`  | `#0F766E` (Teal 700)    | `--color-tab-line-unselected-text` (`#64748B`) |
+| `disputed`   | Khiếu nại / Xử lý | `AlertTriangle` | `--color-retail-tab-disputed-icon`   | `#BE123C` (Rose 700)    | `--color-tab-line-unselected-text` (`#64748B`) |
 
 #### Pagination Page Controls
 
@@ -244,3 +267,23 @@ The Customer table skeleton loading state is governed by a unified geometry and 
    - Same-query revalidation retains active real rows with `data-stale` styling, preventing skeleton flicker.
    - Query modifications (search key, status filter, pagination) invalidate stale records immediately; prior query data is never displayed.
    - Responsive scrolling is contained inside `.tableViewport`, preventing body horizontal overflow while preserving footer stability.
+
+## Retail column picker corrective contract (M3 v6)
+
+The Retail unselected option label uses the feature-scoped semantic token
+`--color-colpicker-option-unselected-text` → `--gray-400` (`#94A3B8`). Shared
+SelectButton stacked defaults and the global `--color-text-muted` (`#64748B`)
+remain unchanged. Selected/required labels remain primary navy; required tracking
+is bold with its amber badge. The popup uses `--radius-lg` (12px), maximum336px
+width,12px padding,8px gaps and a scrollable208px checklist.
+
+Column search composes TextInput and a ghost icon Button with the standard32px
+square target. Feature CSS owns only clear-button positioning and input accessory
+padding; shared Button owns hover/focus/disabled states. Clear preserves column
+selection, keeps the disclosure open, and returns focus to the search input. Native
+search cancel is suppressed so the two clear mechanisms do not overlap.
+
+SelectButton's `appearance` belongs only to single/segmented props. Multiple/stacked
+rejects concrete appearance values (`appearance?: never`), preserving its existing
+DOM/default styling. This is the correction of the formerly accepted silent no-op,
+not a new multiple-selection appearance.

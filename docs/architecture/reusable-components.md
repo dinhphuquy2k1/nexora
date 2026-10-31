@@ -257,6 +257,68 @@ This registry catalogues canonical, reusable technical components and shared voc
 - **When NOT to Reuse**:
   - Do not use for domain-specific multi-state business badges (e.g. Shipment tracking stages); use domain-specific tag components instead.
 
+---
+
+## 11. Shared Line TabBar & TabCountBadge
+
+- **Owner Path**:
+  - Components: `packages/ui/src/TabBar.tsx`, `packages/ui/src/TabCountBadge.tsx`
+  - Styling: `packages/ui/src/TabBar.module.css`
+  - Barrel: `packages/ui/src/index.tsx`
+- **Exported Contract**:
+  - `export interface TabBarItem<T extends string> { id: T; title: string; icon?: ReactNode; activeIconColor?: string; disabled?: boolean; }`
+  - `export interface TabBarProps<T extends string> { items: readonly TabBarItem<T>[]; value: T; onValueChange: (value: T) => void; renderTrailing?: (item: TabBarItem<T>, state: { active: boolean }) => ReactNode; idPrefix: string; panelId: string; ariaLabel: string; }`
+  - `export function TabBar<T extends string>(props: TabBarProps<T>): JSX.Element`
+  - `export interface TabCountBadgeProps extends ComponentPropsWithoutRef<"span"> { value?: number; active?: boolean; ariaLabel?: string; className?: string; }`
+  - `export function TabCountBadge(props: TabCountBadgeProps): JSX.Element`
+- **Intended Consumers**:
+  - Retail Packages list page (`/shipments/retail`).
+  - Potential future consumer: Logistics parcels and multi-view modules. Note: Customer UI currently retains its Segmented TabBar contract and is NOT migrated in this task.
+- **Supported Behavior**:
+  - Single display style: LINE TABBAR (underline indicator).
+  - Controlled selection via `value` and `onValueChange`. Selecting the active tab is a no-op.
+  - Manual keyboard activation per W3C APG Tabs (Arrow keys navigate focus without changing selection/URL; Enter or Space activates).
+  - Horizontal scrolling track with responsive overflow buttons (left/right) that do not overlay tab text or badges.
+  - Automatic container-relative scrolling to keep the selected and focused tab in viewport.
+  - Clean observer and listener lifecycle teardown via `useEffect`.
+  - Accessible semantics: `role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, `aria-label`, roving `tabIndex`.
+  - `TabCountBadge` supports exact numeric counts (including `0`), uncounted states (`undefined` displays `—`), tabular numbers, and stable height to prevent layout shifts.
+- **Styling / Token Dependencies**:
+  - Dedicated Line tokens: `--color-tab-line-indicator`, `--color-tab-line-selected-text`, `--color-tab-line-unselected-text`, `--color-tab-line-hover-bg`, `--color-tab-line-border`, `--color-count-line-selected-bg`, `--color-count-line-selected-text`, `--color-count-line-unselected-bg`, `--color-count-line-unselected-text`.
+- **Explicit Non-Goals**:
+  - No capsule, pipeline, cards, or KPI tab styles.
+  - No style switcher dropdown or `variant` prop.
+  - No internal API calls, React Context, or URL synchronization (parent owns business state).
+- **When to Reuse**:
+  - Whenever a list or dashboard requires top-level category or status switching using an accessible underline-style tab bar with optional count badges.
+- **When NOT to Reuse**:
+  - Do not use for segmented toggle buttons (e.g. Customer status bar until migration is approved).
+  - Do not use for in-table actions or button groups.
+
+## Shared SelectButton (@nexora/ui, NEXORA-031 M3 v5/v6)
+
+- **Owner Path**: `packages/ui/src/SelectButton.tsx`, `packages/ui/src/SelectButton.module.css`
+- **Exported Contract**:
+  - `export interface SelectButtonOption<T extends string> { value: T; label: string; disabled?: boolean; }`
+  - `export type SelectButtonProps<T extends string> = ...` (discriminated union of single segmented and multiple stacked modes)
+  - `export function SelectButton<T extends string>(props: SelectButtonProps<T>): JSX.Element`
+- **Intended Consumers**:
+  - Retail Column Picker (`RetailColumnPicker.tsx`): single segmented with `appearance="text-actions"` for presets (all, basic, default) and multiple stacked for column visibility.
+  - Potential future consumer: `AddressForm.tsx` (address label chips, supports `allowEmpty=true`). Note: Customer UI is NOT migrated in PR #29.
+- **Supported Behavior**:
+  - Exactly two supported modes and layouts:
+    1. `mode: "single", layout: "segmented"`: Composes `@nexora/ui` `Button` with `aria-pressed`, controlled single value, optional `allowEmpty` (default `false`). Supports `appearance?: "default" | "text-actions"`:
+       - `"default"`: Segmented pill container with white raised button on selected item, subtle border and shadow.
+       - `"text-actions"`: Flat action container with decorative `|` separators, hoverable transparent buttons without raised selected pill/shadow, designed for fast action presets.
+    2. `mode: "multiple", layout: "stacked"`: Composes `@nexora/ui` `Checkbox` with native `input[type=checkbox]`, full-row clickability, custom trailing content support via `renderOption`. Concrete `appearance` values are rejected (`appearance?: never`); appearance is single/segmented-only. The compiler uses inherited strict mode without exactOptionalPropertyTypes, so explicit undefined retains standard optional-property behavior. Stacked items render muted slate for unselected rows and primary navy with muted background for selected rows.
+  - Retail-specific unselected text uses `--color-colpicker-option-unselected-text`; shared muted-text defaults and other consumers are unchanged. Its clear search action reuses ghost icon Button and TextInput native ref, with feature positioning only.
+  - Invariant: Toggling multiple stacked options preserves selected values outside the current filtered `options` list.
+  - Zero external dependencies: no PrimeVue, PrimeReact, Radix, React Aria, Base UI, or shadcn.
+- **Explicit Non-Goals**:
+  - No single stacked or multiple segmented modes.
+  - No fake checkboxes or nested labels.
+  - No business domain logic or Shipment knowledge in `@nexora/ui`.
+
 ### Neutral action hierarchy (Customer M2 actual consumers)
 
 Button primary(default)/secondary/ghost variants share control sizing/radius/font, focus ring and disabled behavior. Secondary uses surface/text/border semantic tokens; ghost uses transparent surface and semantic text; neither relies on feature CSS state overrides. `icon` makes width/min-width equal to the selected control size, retaining canonical hit target; consumers provide an accessible name. Actual consumers: Customer toolbar/reload/clear, segmented status, pagination, profile/address inline actions and drawer Cancel/Save. Input/Select/Textarea share the approved size API; multiline/native multiple exceptions remain. New root semantic text-on-dark accent and accent-border tokens belong to dark brand icons/default-address emphasis, not interchangeable palette shortcuts. Genuine computed-style/contrast/token-override and M1/Login regression remain acceptance requirements.
@@ -283,3 +345,11 @@ and all size/color contracts are owned by [Design System](design-system.md).
 - **Phone (option A)**: Frontend validates raw requiredness/length/trim only, enforcing the Customer 64-character input limit **before** trim; backend trims first, then checks the 64-character bound and authoritatively validates/normalizes E.164 using `apps/api/src/common/value-objects/phone-number.ts`. This pre-existing UX/API difference is protected by independent Web/API compatibility tests: a padded number over 64 raw characters is rejected by Web, but can be valid directly through the API. No phone-number parsing library is added to browser/shared bundles.
 - **Boundaries**: shared never throws NestJS/React/Customer errors or imports application packages; backend retains Domain VOs, Zod email format, owner invariants and HTTP error mapping; frontend retains field messages and safe UX. `scripts/boundaries.mjs` enforces that each file under `packages/shared/src/validation/` imports/re-exports only relative modules within that directory; shared modules outside validation, framework packages and other dependencies are prohibited. Positive and negative boundary tests protect this constraint.
 - **Date validation**: no speculative date utility; extract only when a concrete BE/FE consumer appears.
+
+## Bounded pagination presentation window
+
+`apps/web/lib/pagination.ts` owns the pure population-independent `pageWindow()`
+used by Customer and Retail pagination. Customer keeps its `customerPageWindow`
+alias for compatibility; the existing algorithm and tests are unchanged. This
+helper owns only bounded page-number presentation, not feature page-size defaults,
+API pagination authority, query validation or read/mutation lifecycle.

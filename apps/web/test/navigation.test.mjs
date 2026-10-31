@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { loadComponent } from "./helpers/render-component.mjs";
 
 import {
   NAVIGATION_ITEMS,
@@ -27,8 +28,9 @@ export const APPROVED_NAVIGATION_CONTRACT = [
   },
   {
     id: "shipment",
-    href: null,
-    status: "planned",
+    contentVariant: "wide",
+    href: "/shipments/retail",
+    status: "available",
     group: "Workspace",
   },
   {
@@ -150,12 +152,12 @@ test("Navigation contract negative assertions", () => {
     );
   }, /Missing approved navigation item: 'settings'/);
 
-  // Negative 3: Planned item turned into available without updating contract must fail
+  // Negative 3: Status mismatch without updating contract must fail
   assert.throws(() => {
     validateNavigationContract(
       APPROVED_NAVIGATION_CONTRACT.map((item) =>
         item.id === "shipment"
-          ? { ...item, status: "available", href: "/shipments" }
+          ? { ...item, status: "planned", href: null }
           : item,
       ),
       APPROVED_NAVIGATION_CONTRACT,
@@ -351,4 +353,16 @@ test("navigation rejects unauthorized frame variants", () => {
       ),
     /contentVariant mismatch/,
   );
+});
+
+test("Sidebar retains main behavior without programmatic pointer blur", () => {
+  const { NavigationItem } = loadComponent(
+    new URL("../components/app-shell/NavigationItem.tsx", import.meta.url),
+  );
+  const item = NAVIGATION_ITEMS.find((n) => n.id === "shipment");
+  const link = NavigationItem({ item, isActive: true, isCollapsed: false })
+    .props.children[0];
+  assert.equal(link.props.onClick, undefined);
+  assert.equal(link.props.href, "/shipments/retail");
+  assert.equal(link.props["aria-current"], "page");
 });

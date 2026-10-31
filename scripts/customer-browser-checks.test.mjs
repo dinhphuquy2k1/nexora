@@ -38,6 +38,8 @@ test("static CDP expressions are valid JavaScript before a genuine browser run",
   for (const name of [
     "customer-browser-checks.mjs",
     "customer-read-races.mjs",
+    "retail-browser-checks.mjs",
+    "retail-column-picker-checks.mjs",
     "workspace-geometry-checks.mjs",
     "customer-control-checks.mjs",
     "m1-visual-checks.mjs",
@@ -45,6 +47,10 @@ test("static CDP expressions are valid JavaScript before a genuine browser run",
     count += validateExpressions(
       await readFile(new URL(name, import.meta.url), "utf8"),
     );
+  const { columnPickerVisualExpression } = await import(
+    "./retail-column-picker-checks.mjs"
+  );
+  new AsyncFunction(columnPickerVisualExpression);
   const { customerContrastExpression } = await import(
     "./customer-control-checks.mjs"
   );

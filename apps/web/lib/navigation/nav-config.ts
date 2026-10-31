@@ -34,10 +34,11 @@ export const NAVIGATION_ITEMS: readonly NavItem[] = [
   {
     id: "shipment",
     label: "Vận đơn",
-    href: null,
-    status: "planned",
+    href: "/shipments/retail",
+    status: "available",
     group: "Workspace",
     iconKey: "shipment",
+    contentVariant: "wide",
   },
   {
     id: "customers",
