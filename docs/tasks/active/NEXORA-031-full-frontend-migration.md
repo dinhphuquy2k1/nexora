@@ -2007,3 +2007,42 @@ Implementation: PLANNED; overall task remains IN PROGRESS. Scope covers 10 visua
   - `pnpm docs:check`: PASS
   - `pnpm preflight:check`: PASS
   - `pnpm typecheck`: 10/10 packages PASS
+
+
+### M3 v6 Corrective Follow-up — F1–F6 Review Findings — 2026-10-31
+
+Implementation: IMPLEMENTED; overall task remains IN PROGRESS. Scope covers 6 review findings identified after M3 v6 delivery.
+
+#### Corrective Plan & Reuse Audit
+
+| ID | Priority | Root Cause | Approach | Files |
+|---|---|---|---|---|
+| F1 | P2 | Unselected option text used `--color-text-muted` (gray-500 `#64748B`) instead of ZIP-specified gray-400 `#94A3B8` | Add scoped semantic token `--color-colpicker-option-unselected-text: var(--gray-400)` in `tokens.css`; apply via `.colOptionLabel` in retail CSS module; no change to global `--color-text-muted` | `apps/web/styles/tokens.css`, `apps/web/features/retail-packages/retail-packages.module.css` |
+| F2 | P2 | Popup `border-radius` used `--radius-xl` (16px) instead of ZIP-specified 12px | Change `.colPickerPanel` to `border-radius: var(--radius-lg)` (12px); no other popups changed | `apps/web/features/retail-packages/retail-packages.module.css` |
+| F3 | P2 | Search clear button used native `<button>` instead of shared `Button` from `@nexora/ui` | Replaced with `<Button variant="ghost" icon>` from `@nexora/ui`; uses `searchInputRef` for focus return; no TextInput API change | `apps/web/features/retail-packages/RetailColumnPicker.tsx`, `apps/web/features/retail-packages/retail-packages.module.css` |
+| F4 | P2 | Browser tests asserted markup/class names but not computed CSS contract | Extended `scripts/retail-browser-checks.mjs` with CDP `getComputedStyle` assertions for dialog border-radius, title typography, separator count, preset colors, clear button sizing/behavior, option colors, footer dimensions | `scripts/retail-browser-checks.mjs` |
+| F5 | P2 | PR description referenced stale HEAD SHA `1925f91...` instead of reviewed `8a45f16...` | Update PR description and task record after final HEAD push | PR #29 description, this task record |
+| F6 | P3 | `SelectButton` base props allowed `appearance="text-actions"` in multiple+stacked mode, but it was silently ignored | Moved `appearance` to `SingleSegmentedSelectButtonProps` only; `MultipleStackedSelectButtonProps` has `appearance?: never`; added compile-time negative test | `packages/ui/src/SelectButton.tsx`, `packages/ui/test/select-button.test.mjs` |
+
+Documentation Impact: NONE for shared reusable-components.md (no new public contract beyond M3 v6); REQUIRED for this mutable task record and PR metadata.
+
+#### F1–F6 Verification Evidence
+
+- `pnpm --filter @nexora/ui test`: 32/32 PASS (includes F6 type-level negative test)
+- `pnpm --filter @nexora/ui typecheck`: PASS
+- `node apps/web/test/retail-packages.test.mjs`: 37/37 PASS
+- `node apps/web/test/form-control-contracts.test.mjs`: 11/11 PASS (includes F1 scoped token validation)
+- `node scripts/boundaries.mjs`: PASS
+- `node scripts/build-retail-fixture.mjs`: PASS
+- Chromium CDP browser checks (1440×900 fixture-only): ALL PASS — computed border-radius 12px (F2), gray-400 `#94a3b8` unselected (F1), clear button 32×32px visible/hidden (F3), separator count 2 with aria-hidden (V2), preset colors, footer 11px/32px
+- `pnpm format:check`: PASS
+- `pnpm lint`: PASS (EXIT:0)
+- `pnpm docs:check`: PASS
+- `pnpm preflight:check`: PASS
+- `apps/web tsc --noEmit`: PASS
+- Verified HEAD before commit: `8a45f16d10af2078629cd51c8148ecd95d8b6d7e`
+
+#### F5 — Final HEAD Evidence
+
+Post-commit final HEAD and PR metadata update pending push. PR description and this record will be updated with final HEAD SHA once commit is pushed to `feat/retail-packages-ui`.
+

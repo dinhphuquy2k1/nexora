@@ -50,29 +50,34 @@ interface BaseSelectButtonProps<T extends string> {
   className?: string;
   fluid?: boolean;
   disabled?: boolean;
-  appearance?: "default" | "text-actions";
   renderOption?: (
     option: SelectButtonOption<T>,
     state: { selected: boolean },
   ) => ReactNode;
 }
 
-export type SelectButtonProps<T extends string> = BaseSelectButtonProps<T> &
-  (
-    | {
-        mode: "single";
-        layout: "segmented";
-        value: T | null;
-        allowEmpty?: boolean;
-        onValueChange: (value: T | null) => void;
-      }
-    | {
-        mode: "multiple";
-        layout: "stacked";
-        value: readonly T[];
-        onValueChange: (value: T[]) => void;
-      }
-  );
+export type SingleSegmentedSelectButtonProps<T extends string> =
+  BaseSelectButtonProps<T> & {
+    mode: "single";
+    layout: "segmented";
+    value: T | null;
+    appearance?: "default" | "text-actions";
+    allowEmpty?: boolean;
+    onValueChange: (value: T | null) => void;
+  };
+
+export type MultipleStackedSelectButtonProps<T extends string> =
+  BaseSelectButtonProps<T> & {
+    mode: "multiple";
+    layout: "stacked";
+    value: readonly T[];
+    appearance?: never;
+    onValueChange: (value: T[]) => void;
+  };
+
+export type SelectButtonProps<T extends string> =
+  | SingleSegmentedSelectButtonProps<T>
+  | MultipleStackedSelectButtonProps<T>;
 
 export function SelectButton<T extends string>(props: SelectButtonProps<T>) {
   if (props.mode === "single" && props.layout === "segmented") {

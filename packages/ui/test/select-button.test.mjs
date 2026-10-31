@@ -457,4 +457,95 @@ describe("Shared SelectButton contracts (@nexora/ui)", () => {
       assert.strictEqual(firedValues, undefined);
     });
   });
+
+  describe("Type-level contracts (F6)", () => {
+    it("TypeScript compiler validates discriminated union: appearance is allowed on single segmented, rejected on multiple stacked", async () => {
+      const ts = (await import("typescript")).default;
+      const fixturePath = path.resolve(
+        __dirname,
+        "../src/__select-button-contract.fixture.ts",
+      );
+      const fixtureSource = [
+        "import type { SelectButtonProps } from './SelectButton';",
+        "",
+        "// 1. Single segmented mode supports appearance='text-actions' and 'default'",
+        "type ValidSingle1 = {",
+        "  mode: 'single';",
+        "  layout: 'segmented';",
+        "  appearance: 'text-actions';",
+        "  options: readonly [{ value: 'a'; label: 'A' }];",
+        "  value: 'a';",
+        "  ariaLabel: string;",
+        "  onValueChange: (val: 'a' | null) => void;",
+        "};",
+        "const validSingle1: SelectButtonProps<'a'> = {} as ValidSingle1;",
+        "",
+        "type ValidSingle2 = {",
+        "  mode: 'single';",
+        "  layout: 'segmented';",
+        "  appearance: 'default';",
+        "  options: readonly [{ value: 'a'; label: 'A' }];",
+        "  value: 'a';",
+        "  ariaLabel: string;",
+        "  onValueChange: (val: 'a' | null) => void;",
+        "};",
+        "const validSingle2: SelectButtonProps<'a'> = {} as ValidSingle2;",
+        "",
+        "// 2. Multiple stacked mode allows standard props without appearance",
+        "type ValidMultiple = {",
+        "  mode: 'multiple';",
+        "  layout: 'stacked';",
+        "  options: readonly [{ value: 'a'; label: 'A' }];",
+        "  value: readonly ['a'];",
+        "  ariaLabel: string;",
+        "  onValueChange: (val: 'a'[]) => void;",
+        "};",
+        "const validMultiple: SelectButtonProps<'a'> = {} as ValidMultiple;",
+        "",
+        "// 3. Multiple stacked mode rejects appearance='text-actions'",
+        "type InvalidMultiple = {",
+        "  mode: 'multiple';",
+        "  layout: 'stacked';",
+        "  appearance: 'text-actions';",
+        "  options: readonly [{ value: 'a'; label: 'A' }];",
+        "  value: readonly ['a'];",
+        "  ariaLabel: string;",
+        "  onValueChange: (val: 'a'[]) => void;",
+        "};",
+        "// @ts-expect-error appearance is rejected on multiple stacked SelectButton",
+        "const invalidMultiple: SelectButtonProps<'a'> = {} as InvalidMultiple;",
+      ].join("\n");
+      const configPath = path.resolve(__dirname, "../tsconfig.json");
+      const configFile = ts.readConfigFile(configPath, ts.sys.readFile);
+      const parsed = ts.parseJsonConfigFileContent(
+        configFile.config,
+        ts.sys,
+        path.resolve(__dirname, ".."),
+      );
+      const host = ts.createCompilerHost(parsed.options);
+      const origReadFile = host.readFile.bind(host);
+      const origFileExists = host.fileExists.bind(host);
+      const isFixture = (p) =>
+        p === fixturePath ||
+        p.replace(/\\/g, "/") === fixturePath.replace(/\\/g, "/");
+
+      host.readFile = (p) => (isFixture(p) ? fixtureSource : origReadFile(p));
+      host.fileExists = (p) => isFixture(p) || origFileExists(p);
+
+      const program = ts.createProgram(
+        [...parsed.fileNames, fixturePath],
+        { ...parsed.options, incremental: false, noEmit: true },
+        host,
+      );
+      const errors = ts
+        .getPreEmitDiagnostics(program)
+        .filter((d) => d.category === ts.DiagnosticCategory.Error);
+
+      assert.deepStrictEqual(
+        errors.map((d) => ts.flattenDiagnosticMessageText(d.messageText, " ")),
+        [],
+        "Fixture with @ts-expect-error on multiple stacked appearance must produce zero unhandled errors",
+      );
+    });
+  });
 });

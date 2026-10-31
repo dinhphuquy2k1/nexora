@@ -32,6 +32,7 @@ export function RetailColumnPicker({
   const [search, setSearch] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useDismissable({
     panelRef,
@@ -42,11 +43,7 @@ export function RetailColumnPicker({
 
   useEffect(() => {
     if (!open) return;
-    const raf = requestAnimationFrame(() =>
-      panelRef.current
-        ?.querySelector<HTMLInputElement>("input[type=search]")
-        ?.focus(),
-    );
+    const raf = requestAnimationFrame(() => searchInputRef.current?.focus());
     return () => cancelAnimationFrame(raf);
   }, [open]);
 
@@ -193,6 +190,7 @@ export function RetailColumnPicker({
               aria-hidden="true"
             />
             <TextInput
+              ref={searchInputRef}
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -201,19 +199,18 @@ export function RetailColumnPicker({
               className={styles.colPickerSearchInput}
             />
             {search && (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                icon
+                aria-label="Xóa tìm kiếm"
                 onClick={() => {
                   setSearch("");
-                  panelRef.current
-                    ?.querySelector<HTMLInputElement>("input[type=search]")
-                    ?.focus();
+                  searchInputRef.current?.focus();
                 }}
-                aria-label="Xóa tìm kiếm"
                 className={styles.colPickerSearchClearBtn}
               >
-                <X size={11} aria-hidden="true" />
-              </button>
+                <X size={14} aria-hidden="true" />
+              </Button>
             )}
           </div>
 

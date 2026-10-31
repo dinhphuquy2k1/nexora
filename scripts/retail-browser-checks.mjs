@@ -469,6 +469,127 @@ export async function verifyRetailBrowser({
       19,
     );
 
+    const pickerVisual = await evaluate(`(()=>{
+      const dialog = document.querySelector('[role=dialog]');
+      const title = dialog.querySelector('[class*="colPickerHeaderTitle"]');
+      const dialogStyle = getComputedStyle(dialog);
+      const titleStyle = getComputedStyle(title);
+      const presetsContainer = dialog.querySelector('[role=group][aria-label="Chọn cấu hình cột"]');
+      const separators = Array.from(presetsContainer.querySelectorAll('[aria-hidden="true"]')).filter(e => e.textContent.trim() === '|');
+      const presetButtons = Array.from(presetsContainer.querySelectorAll('button'));
+      const allBtn = presetButtons.find(b => b.textContent.includes('Tất cả'));
+      const basicBtn = presetButtons.find(b => b.textContent.includes('Cơ bản'));
+      const defaultBtn = presetButtons.find(b => b.textContent.includes('Mặc định'));
+      const allSpan = allBtn.querySelector('span') || allBtn;
+      const basicSpan = basicBtn.querySelector('span') || basicBtn;
+      const defaultSpan = defaultBtn.querySelector('span') || defaultBtn;
+      const allStyle = getComputedStyle(allSpan);
+      const basicStyle = getComputedStyle(basicSpan);
+      const defaultStyle = getComputedStyle(defaultSpan);
+      const activeBtn = presetButtons.find(b => b.getAttribute('aria-pressed') === 'true');
+      const activeBtnStyle = getComputedStyle(activeBtn);
+      const defaultIcon = defaultBtn.querySelector('svg');
+      const checklist = dialog.querySelector('[class*="columnChoices"]');
+      const checklistStyle = getComputedStyle(checklist);
+      const footerCount = dialog.querySelector('[class*="colPickerFooterCount"]');
+      const footerCountStyle = getComputedStyle(footerCount);
+      const doneBtn = dialog.querySelector('[class*="colPickerDoneBtn"]');
+      const doneBtnRect = doneBtn.getBoundingClientRect();
+      const doneBtnStyle = getComputedStyle(doneBtn);
+      const searchIcon = dialog.querySelector('[class*="colPickerSearchIcon"]');
+
+      return {
+        dialogRadius: dialogStyle.borderRadius,
+        titleSize: titleStyle.fontSize,
+        titleWeight: parseInt(titleStyle.fontWeight, 10),
+        titleColor: titleStyle.color,
+        separatorCount: separators.length,
+        hasSearchIcon: Boolean(searchIcon),
+        allColor: allStyle.color,
+        basicColor: basicStyle.color,
+        defaultColor: defaultStyle.color,
+        hasDefaultIcon: Boolean(defaultIcon),
+        activeShadow: activeBtnStyle.boxShadow,
+        checklistMaxHeight: checklistStyle.maxHeight,
+        footerCountSize: footerCountStyle.fontSize,
+        doneBtnHeight: Math.round(doneBtnRect.height),
+        doneBtnBg: doneBtnStyle.backgroundColor,
+      };
+    })()`);
+
+    assert.equal(
+      pickerVisual.dialogRadius,
+      "12px",
+      "popover border-radius must be 12px (var(--radius-lg))",
+    );
+    assert.equal(
+      pickerVisual.titleSize,
+      "12px",
+      "title font-size must be 12px (var(--font-size-sm))",
+    );
+    assert.ok(
+      pickerVisual.titleWeight >= 700,
+      "title font-weight must be bold (>= 700)",
+    );
+    assert.equal(
+      pickerVisual.titleColor,
+      "rgb(23, 43, 77)",
+      "title color must be primary navy #172b4d",
+    );
+    assert.equal(
+      pickerVisual.separatorCount,
+      2,
+      "preset bar must render exactly 2 aria-hidden='true' separators",
+    );
+    assert.ok(
+      pickerVisual.hasSearchIcon,
+      "search input must have search icon on left",
+    );
+    assert.equal(
+      pickerVisual.allColor,
+      "rgb(29, 78, 216)",
+      "Tất cả preset text color must be blue-700 (#1d4ed8)",
+    );
+    assert.equal(
+      pickerVisual.basicColor,
+      "rgb(180, 83, 9)",
+      "Cơ bản preset text color must be amber-700 (#b45309)",
+    );
+    assert.equal(
+      pickerVisual.defaultColor,
+      "rgb(71, 85, 105)",
+      "Mặc định preset text color must be gray-600 (#475569)",
+    );
+    assert.ok(
+      pickerVisual.hasDefaultIcon,
+      "Mặc định preset must render RotateCcw icon",
+    );
+    assert.equal(
+      pickerVisual.activeShadow,
+      "none",
+      "text-actions preset buttons must have no box-shadow (no white raised pill)",
+    );
+    assert.equal(
+      pickerVisual.checklistMaxHeight,
+      "208px",
+      "checklist container max-height must be 208px (max-h-52)",
+    );
+    assert.equal(
+      pickerVisual.footerCountSize,
+      "11px",
+      "footer count font-size must be 11px",
+    );
+    assert.equal(
+      pickerVisual.doneBtnHeight,
+      32,
+      "done button height must be 32px",
+    );
+    assert.equal(
+      pickerVisual.doneBtnBg,
+      "rgb(23, 43, 77)",
+      "done button background must be navy #172b4d",
+    );
+
     checks.step("RETAIL_COLUMNS_PRESET_BASIC");
     await click("Cơ bản");
     assert.equal(
@@ -480,6 +601,57 @@ export async function verifyRetailBrowser({
         "document.querySelector('[role=dialog] button[aria-pressed=true]')?.textContent?.trim()",
       ),
       "Cơ bản",
+    );
+
+    const optionColors = await evaluate(`(()=>{
+      const dialog = document.querySelector('[role=dialog]');
+      const choices = Array.from(dialog.querySelectorAll('[class*="colOptionRow"]'));
+      const selected = choices.find(row => row.querySelector('[class*="colOptionSelected"]:not([class*="colOptionRequired"])'));
+      const unselected = choices.find(row => {
+        const label = row.querySelector('[class*="colOptionLabel"]');
+        return !label.classList.toString().includes('colOptionSelected');
+      });
+      const pinned = dialog.querySelector('[class*="colPinnedBadge"]');
+
+      return {
+        selectedColor: selected ? getComputedStyle(selected.querySelector('[class*="colOptionLabel"]')).color : null,
+        unselectedColor: unselected ? getComputedStyle(unselected.querySelector('[class*="colOptionLabel"]')).color : null,
+        pinnedText: pinned?.textContent?.trim(),
+        pinnedColor: pinned ? getComputedStyle(pinned).color : null,
+        pinnedBg: pinned ? getComputedStyle(pinned).backgroundColor : null,
+        pinnedBorder: pinned ? getComputedStyle(pinned).borderColor : null,
+      };
+    })()`);
+
+    assert.equal(
+      optionColors.selectedColor,
+      "rgb(23, 43, 77)",
+      "selected option label must be navy #172b4d",
+    );
+    assert.equal(
+      optionColors.unselectedColor,
+      "rgb(148, 163, 184)",
+      "unselected option label must be gray-400 #94a3b8",
+    );
+    assert.equal(
+      optionColors.pinnedText,
+      "Cố định",
+      "pinned badge must say 'Cố định'",
+    );
+    assert.equal(
+      optionColors.pinnedColor,
+      "rgb(194, 65, 12)",
+      "pinned badge text must be brand orange #c2410c",
+    );
+    assert.equal(
+      optionColors.pinnedBg,
+      "rgb(255, 251, 235)",
+      "pinned badge bg must be amber-50 #fffbeb",
+    );
+    assert.equal(
+      optionColors.pinnedBorder,
+      "rgb(253, 230, 138)",
+      "pinned badge border must be amber-200 #fde68a",
     );
 
     checks.step("RETAIL_COLUMNS_BASIC_GEOMETRY_WIDE");
@@ -548,6 +720,70 @@ export async function verifyRetailBrowser({
     );
 
     checks.step("RETAIL_COLUMNS_SEARCH_TOGGLE");
+    // Verify search clear button contract
+    assert.equal(
+      await evaluate(
+        "Boolean(document.querySelector('[role=dialog] button[aria-label=\"Xóa tìm kiếm\"]'))",
+      ),
+      false,
+      "clear button not visible when search is empty",
+    );
+    await type("Tìm tên cột", "KHO");
+    const clearBtnInfo = await evaluate(`(()=>{
+      const btn = document.querySelector('[role=dialog] button[aria-label="Xóa tìm kiếm"]');
+      if (!btn) return null;
+      const rect = btn.getBoundingClientRect();
+      return {
+        height: Math.round(rect.height),
+        width: Math.round(rect.width),
+      };
+    })()`);
+    assert.ok(clearBtnInfo, "clear button visible after typing search query");
+    assert.equal(
+      clearBtnInfo.height,
+      32,
+      "clear button height must be 32px (shared Button standard)",
+    );
+    assert.equal(
+      clearBtnInfo.width,
+      32,
+      "clear button width must be 32px (shared Button icon standard)",
+    );
+
+    // Click clear button: input clears, focus returns, dialog stays open, 20 options restored
+    await click("Xóa tìm kiếm");
+    const afterClear = await evaluate(`(()=>{
+      const dialog = document.querySelector('[role=dialog]');
+      const input = dialog.querySelector('input[type=search]');
+      const checkboxes = dialog.querySelectorAll('[role=group] input[type=checkbox]');
+      return {
+        isOpen: Boolean(dialog),
+        inputValue: input?.value,
+        isFocused: document.activeElement === input,
+        checkboxCount: checkboxes.length,
+      };
+    })()`);
+    assert.equal(
+      afterClear.isOpen,
+      true,
+      "dialog must remain open after clicking clear button",
+    );
+    assert.equal(
+      afterClear.inputValue,
+      "",
+      "input value must be empty string after clearing",
+    );
+    assert.equal(
+      afterClear.isFocused,
+      true,
+      "focus must return to search input after clearing",
+    );
+    assert.equal(
+      afterClear.checkboxCount,
+      20,
+      "all 20 column options must be restored after clearing search",
+    );
+
     await click("Tất cả");
     assert.equal(
       await evaluate("document.querySelectorAll('colgroup col').length"),
@@ -635,11 +871,15 @@ export async function verifyRetailBrowser({
       await evaluate("new URLSearchParams(location.search).get('page')"),
       "2",
     );
+    await evaluate("window.__pageReloadMarker = 1; true");
     await send("Page.reload");
     await until(
-      "document.querySelector('[aria-current=page]')?.textContent==='2'",
+      "window.__pageReloadMarker !== 1 && document.readyState === 'complete' && document.querySelector('[aria-current=page]')?.textContent === '2'",
     );
     checks.step("RETAIL_DETAIL_AND_CREATE_NATIVE_DIALOG");
+    await until(
+      "Boolean(document.querySelector('tbody button[aria-label^=\"Xem\"]'))",
+    );
     await evaluate(
       "(()=>{const b=document.querySelector('tbody button[aria-label^=\"Xem\"]');if(!b)throw Error('DETAIL_TRIGGER_MISSING');b.focus();b.click();return true;})()",
     );
@@ -717,9 +957,6 @@ export async function verifyRetailBrowser({
     await snapshot("reference-sample");
     assert.equal(errors.length, 0);
     assert.deepEqual(badRequests, []);
-    console.log(
-      "Retail M3 actual TSX/CSS fixture interactions, URL/history, native dialogs, sticky columns and six viewport evidence PASS",
-    );
   } finally {
     socket.removeEventListener("message", listener);
     try {

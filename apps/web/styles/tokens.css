@@ -141,6 +141,7 @@
   --color-colpicker-preset-all: var(--blue-700);
   --color-colpicker-preset-basic: var(--amber-700);
   --color-colpicker-preset-default: var(--gray-600);
+  --color-colpicker-option-unselected-text: var(--gray-400);
 
   /* Action-specific semantic tokens (Power status toggling) */
   --color-action-deactivate: var(--gray-400);
