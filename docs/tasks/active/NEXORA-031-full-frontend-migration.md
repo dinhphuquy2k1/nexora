@@ -1982,3 +1982,28 @@ Implementation: PLANNED; overall task remains IN PROGRESS. Scope covers 10 visua
 | Option Label & Row Colors         | Dark text for both checked and unchecked rows                   | Shared UI / Retail Feature | 1. Feature overrides. 2. Align shared stacked styles with design system tokens.                                 | Update `SelectButton.module.css` stacked item colors: muted slate for unchecked, navy for checked            | Directly satisfies ZIP visual contrast; unchecked items appear light while selected items are prominently highlighted                        | Consumer contrast regression         | WCAG contrast checks on checked/unchecked states                    |
 | Trigger Button Parity             | `Columns3` icon and `"Cột"` label                               | Web / Retail Feature       | 1. Keep Columns3. 2. Update to `SlidersHorizontal` and `"Cột hiển thị"` responsive label.                       | Use `SlidersHorizontal` with dynamic orange/slate tone, responsive `"Cột hiển thị"`, and 3-state badge       | Matches reference ZIP trigger visual structure exactly                                                                                       | Layout break on narrow screen        | Responsive CSS hides text below xs viewport                         |
 | Popup Header & Footer Chrome      | Basic title and shared popover footer                           | Web / Retail Feature       | 1. Keep 11px title. 2. 12px bold title, dedicated `colPickerFooter`, 11px count, navy "Đã xong" button.         | Use 12px bold title (`--font-size-sm`), dedicated `.colPickerFooter`, and navy 32px "Đã xong" button         | Perfect alignment with reference ZIP while maintaining 32px shared control height contract                                                   | Vertical overflow                    | Verified on CDP headless browser across all 6 viewports             |
+
+#### M3 v6 Visual Parity & Verification Evidence
+
+- Resolved FIX V1: Popup title 12px bold (`--font-size-sm`, font-weight 700).
+- Resolved FIX V2: Shared `SelectButton` `appearance="text-actions"` with decorative separators, distinct colors, and reset icon.
+- Resolved FIX V3: Search input wrapper with left Search icon and conditional right clear button.
+- Resolved FIX V4: Checklist bounded to max-height 208px (`max-h-52`) with 8px panel gap.
+- Resolved FIX V5: Checked items in navy (`#172B4D`), unchecked items in slate (`#94A3B8`).
+- Resolved FIX V6: Semantic native checkbox inputs preserved.
+- Resolved FIX V7: Trigger with `SlidersHorizontal` icon, responsive label, and count badge.
+- Resolved FIX V8: Header aligned with 12px bold title and 32px close button.
+- Resolved FIX V9: Dedicated footer with 11px count text and navy "Đã xong" button.
+- Resolved FIX V10: Panel width bounded `min(336px, calc(100vw - 32px))` across all 6 viewports.
+- Verification Evidence:
+  - `pnpm --filter @nexora/ui test`: 31/31 PASS
+  - `node apps/web/test/form-control-contracts.test.mjs`: 11/11 PASS
+  - `node apps/web/test/retail-packages.test.mjs`: 37/37 PASS
+  - `node apps/web/test/retail-policy.test.mjs`: 4/4 PASS
+  - `node scripts/build-retail-fixture.mjs`: PASS
+  - Chromium CDP browser checks across 6 viewports: ALL PASS
+  - `pnpm format:check`: PASS
+  - `pnpm lint`: PASS
+  - `pnpm docs:check`: PASS
+  - `pnpm preflight:check`: PASS
+  - `pnpm typecheck`: 10/10 packages PASS
