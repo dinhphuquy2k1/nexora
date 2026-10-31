@@ -25,6 +25,13 @@ export const ORIGIN_WAREHOUSES = [
   "Bằng Tường",
   "Đông Hưng",
 ] as const;
+export function normalizeWarehouse(name: string): string {
+  const lower = name.toLowerCase().trim();
+  if (lower.includes("quảng châu")) return "Quảng Châu";
+  if (lower.includes("bằng tường")) return "Bằng Tường";
+  if (lower.includes("đông hưng")) return "Đông Hưng";
+  return lower;
+}
 export interface FilterField {
   id: string;
   label: string;
@@ -222,14 +229,21 @@ export function matchesFilter(pkg: RetailPackage, input: unknown): boolean {
     const b = Number(cond.value);
     if (cond.operator === "greater_than") return actual > b;
     if (cond.operator === "less_than") return actual < b;
-    return Math.abs(actual - b) < 0.01;
+    return actual === b;
   }
   if (typeof actual !== "string") return false;
-  const a = actual.toLocaleLowerCase("vi"),
-    b = cond.value.toLocaleLowerCase("vi");
-  const equal = cond.field === "originWarehouse" ? a.includes(b) : a === b;
+  let equal: boolean;
+  if (cond.field === "originWarehouse") {
+    equal = normalizeWarehouse(actual) === normalizeWarehouse(cond.value);
+  } else {
+    const a = actual.toLocaleLowerCase("vi"),
+      b = cond.value.toLocaleLowerCase("vi");
+    equal = a === b;
+  }
   if (cond.operator === "equals") return equal;
   if (cond.operator === "not_equals") return !equal;
+  const a = actual.toLocaleLowerCase("vi"),
+    b = cond.value.toLocaleLowerCase("vi");
   if (cond.operator === "contains") return a.includes(b);
   if (cond.operator === "not_contains") return !a.includes(b);
   return false;

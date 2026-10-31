@@ -269,11 +269,21 @@ it("production availability cannot become fake data, while available-empty prese
   assert.equal((unavailable.match(/role="tab"/g) || []).length, 7);
   assert.equal((unavailable.match(/<col(?=[\s/>])/g) || []).length, 19);
   assert.doesNotMatch(unavailable, /NEXORA Linehaul|1900 8829/);
-  // Default count badge presentation when unavailable displays 0 with advisory tooltip
+  // Default count badge presentation when unavailable displays em-dash with honest tooltip and sr-only label
   assert.match(
     unavailable,
-    /title="Chưa đồng bộ từ máy chủ \(tạm tính: 0\)"/,
-    "Unavailable badges present advisory placeholder label",
+    /title="Chưa có dữ liệu"/,
+    "Unavailable badges present honest title label",
+  );
+  assert.match(
+    unavailable,
+    /aria-hidden="true">—<\/span>/,
+    "Unavailable badges display em-dash",
+  );
+  assert.match(
+    unavailable,
+    /chưa có dữ liệu<\/span>/,
+    "Unavailable badges include screen reader text",
   );
   assert.match(
     unavailable,
@@ -619,6 +629,172 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
           `Custom selection must not match preset ${p}`,
         );
       }
+    });
+
+    it("RetailPackageListPage unavailable state renders em-dash count and honest accessible label", () => {
+      const { RetailPackageListPage } = loadComponent(
+        new URL(
+          "../features/retail-packages/RetailPackageListPage.tsx",
+          import.meta.url,
+        ),
+      );
+
+      const html = render(
+        React.createElement(RetailPackageListPage, {
+          initialPackages: [],
+          availability: "unavailable",
+        }),
+      );
+
+      // Must render em-dash for count, not 0
+      assert.match(
+        html,
+        /aria-hidden="true">—<\/span>/,
+        "Unavailable count must render visual em-dash with aria-hidden",
+      );
+      assert.match(
+        html,
+        /title="Chưa có dữ liệu"/,
+        "Unavailable count must have honest title attribute",
+      );
+      assert.match(
+        html,
+        /chưa có dữ liệu<\/span>/,
+        "Unavailable count must have screen reader text 'chưa có dữ liệu'",
+      );
+      assert.ok(
+        !html.includes("tạm tính: 0"),
+        "Must not claim unavailable count is 0",
+      );
+    });
+
+    it("matchesFilter enforces exact numeric equality semantics", () => {
+      const { matchesFilter } = loadComponent(
+        new URL("../features/retail-packages/filters.ts", import.meta.url),
+      );
+
+      const basePkg = {
+        id: "pkg-1",
+        trackingCode: "VN123456",
+        productName: "Áo thun",
+        carrierName: "ZTO Express",
+        status: "to_origin",
+        unitPriceCNY: 100,
+        weightKg: 2.5,
+        originWarehouseName: "Kho TMĐT Quảng Châu",
+      };
+
+      // Exact match on integer/decimal
+      assert.ok(
+        matchesFilter(basePkg, {
+          field: "unitPriceCNY",
+          operator: "equals",
+          value: "100",
+        }),
+        "Exact 100 must match",
+      );
+      assert.ok(
+        matchesFilter(basePkg, {
+          field: "weightKg",
+          operator: "equals",
+          value: "2.5",
+        }),
+        "Exact 2.5 must match",
+      );
+
+      // Inexact values within 0.01 tolerance must NOT match under exact equality
+      const nearPricePkg = { ...basePkg, unitPriceCNY: 100.005 };
+      assert.ok(
+        !matchesFilter(nearPricePkg, {
+          field: "unitPriceCNY",
+          operator: "equals",
+          value: "100",
+        }),
+        "100.005 must NOT match 100 under exact equality",
+      );
+
+      const nearWeightPkg = { ...basePkg, weightKg: 2.508 };
+      assert.ok(
+        !matchesFilter(nearWeightPkg, {
+          field: "weightKg",
+          operator: "equals",
+          value: "2.5",
+        }),
+        "2.508 must NOT match 2.5 under exact equality",
+      );
+    });
+
+    it("matchesFilter enforces canonical warehouse normalization and exact equality", () => {
+      const { matchesFilter, normalizeWarehouse } = loadComponent(
+        new URL("../features/retail-packages/filters.ts", import.meta.url),
+      );
+
+      // Normalization helper tests
+      assert.strictEqual(
+        normalizeWarehouse("Kho TMĐT Quảng Châu (3-4 ngày-Không VAT)"),
+        "Quảng Châu",
+      );
+      assert.strictEqual(
+        normalizeWarehouse("Kho Bằng Tường (2-3 ngày)"),
+        "Bằng Tường",
+      );
+      assert.strictEqual(
+        normalizeWarehouse("Kho Đông Hưng (2-3 ngày)"),
+        "Đông Hưng",
+      );
+      assert.strictEqual(normalizeWarehouse("Quảng Châu"), "Quảng Châu");
+
+      // Package filtering tests
+      const qcPkg = {
+        id: "pkg-qc",
+        trackingCode: "VN111",
+        productName: "Giày",
+        carrierName: "YTO",
+        status: "to_origin",
+        originWarehouseName: "Kho TMĐT Quảng Châu (3-4 ngày-Không VAT)",
+      };
+      const btPkg = {
+        id: "pkg-bt",
+        trackingCode: "VN222",
+        productName: "Túi",
+        carrierName: "SF",
+        status: "at_origin",
+        originWarehouseName: "Kho Bằng Tường (2-3 ngày)",
+      };
+
+      assert.ok(
+        matchesFilter(qcPkg, {
+          field: "originWarehouse",
+          operator: "equals",
+          value: "Quảng Châu",
+        }),
+        "Quảng Châu package matches Quảng Châu filter",
+      );
+      assert.ok(
+        !matchesFilter(qcPkg, {
+          field: "originWarehouse",
+          operator: "equals",
+          value: "Bằng Tường",
+        }),
+        "Quảng Châu package does NOT match Bằng Tường filter",
+      );
+
+      assert.ok(
+        matchesFilter(btPkg, {
+          field: "originWarehouse",
+          operator: "equals",
+          value: "Bằng Tường",
+        }),
+        "Bằng Tường package matches Bằng Tường filter",
+      );
+      assert.ok(
+        !matchesFilter(btPkg, {
+          field: "originWarehouse",
+          operator: "equals",
+          value: "Quảng Châu",
+        }),
+        "Bằng Tường package does NOT match Quảng Châu filter",
+      );
     });
   });
 });

@@ -36,13 +36,19 @@
   z-index: 2;
 }
 
-.scrollButton:hover {
+.scrollButton:hover:not(:disabled) {
   background-color: var(--color-tab-line-hover-bg);
 }
 
 .scrollButton:focus-visible {
   outline: 2px solid var(--focus-ring-on-light);
   outline-offset: 1px;
+}
+
+.scrollButton:disabled,
+.scrollButtonDisabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .scrollButtonLeft {
@@ -185,4 +191,16 @@
   color: var(--color-count-line-unselected-text);
   font-weight: var(--font-weight-semibold);
   border: 1px solid transparent;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

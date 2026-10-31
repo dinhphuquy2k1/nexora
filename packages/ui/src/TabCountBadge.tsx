@@ -5,6 +5,7 @@ export interface TabCountBadgeProps extends ComponentPropsWithoutRef<"span"> {
   value?: number;
   active?: boolean;
   ariaLabel?: string;
+  srText?: string;
 }
 
 export function TabCountBadge({
@@ -12,6 +13,7 @@ export function TabCountBadge({
   active = false,
   className = "",
   ariaLabel,
+  srText,
   ...rest
 }: TabCountBadgeProps) {
   const display = value === undefined ? "—" : value === 0 ? "0" : String(value);
@@ -24,7 +26,8 @@ export function TabCountBadge({
       aria-label={ariaLabel ?? rest["aria-label"]}
       className={`${styles.badge} ${stateClass} ${className}`.trim()}
     >
-      {display}
+      <span aria-hidden={Boolean(srText)}>{display}</span>
+      {srText ? <span className={styles.srOnly}>{srText}</span> : null}
     </span>
   );
 }

@@ -4,7 +4,7 @@ import {
   React,
   render,
   loadComponent,
-} from "../../../apps/web/test/helpers/render-component.mjs";
+} from "../../../scripts/test-helpers/render-component.mjs";
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";

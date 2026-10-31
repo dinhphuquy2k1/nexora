@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Package,
   Search,
@@ -21,6 +21,7 @@ import {
   TabBar,
   TabCountBadge,
   type TabBarItem,
+  type CssTokenReference,
 } from "@nexora/ui";
 import type { RetailPackage, ColumnVisibility, StatusTabKey } from "./types.ts";
 import {
@@ -53,7 +54,7 @@ const TAB_ICONS: Record<StatusTabKey, React.ReactNode> = {
   disputed: <AlertTriangle size={16} />,
 };
 
-const TAB_ACTIVE_ICON_COLORS: Record<StatusTabKey, string> = {
+const TAB_ACTIVE_ICON_COLORS: Record<StatusTabKey, CssTokenReference> = {
   all: "var(--color-retail-tab-all-icon)",
   to_origin: "var(--color-retail-tab-to-origin-icon)",
   at_origin: "var(--color-retail-tab-at-origin-icon)",
@@ -85,6 +86,91 @@ export function RetailPackageListPage({
     ),
     [detail, setDetail] = useState<RetailPackage | null>(null),
     [create, setCreate] = useState(false);
+
+  const [searchDraft, setSearchDraft] = useState(query.search);
+  const isSearchSessionActive = useRef(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync searchDraft when query.search changes externally (popstate, direct URL changes)
+  useEffect(() => {
+    setSearchDraft(query.search);
+  }, [query.search]);
+
+  // Cancel pending debounce timer on popstate or unmount
+  useEffect(() => {
+    const handlePopState = () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      isSearchSessionActive.current = false;
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const commitSearch = useCallback(
+    (nextSearch: string) => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      const clean = nextSearch.slice(0, 200);
+      if (clean === query.search) {
+        return;
+      }
+      const shouldReplace = isSearchSessionActive.current;
+      change({ search: clean, page: 1 }, { replace: shouldReplace });
+      isSearchSessionActive.current = true;
+    },
+    [query.search, change],
+  );
+
+  const handleSearchChange = (value: string) => {
+    const val = value.slice(0, 200);
+    setSearchDraft(val);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    if (val === "") {
+      commitSearch("");
+      isSearchSessionActive.current = false;
+      return;
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      const shouldReplace = isSearchSessionActive.current;
+      change({ search: val, page: 1 }, { replace: shouldReplace });
+      isSearchSessionActive.current = true;
+    }, 300);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      commitSearch(searchDraft);
+      isSearchSessionActive.current = false;
+    }
+  };
+
+  const handleSearchBlur = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    commitSearch(searchDraft);
+    isSearchSessionActive.current = false;
+  };
   const filtered = useMemo(
     () =>
       unavailable || invalid ? [] : filterPackages(initialPackages, query),
@@ -165,16 +251,10 @@ export function RetailPackageListPage({
             }}
             renderTrailing={(item, { active }) => (
               <TabCountBadge
-                value={unavailable ? 0 : counts[item.id]}
+                value={unavailable ? undefined : counts[item.id]}
                 active={active}
-                title={
-                  unavailable
-                    ? "Chưa đồng bộ từ máy chủ (tạm tính: 0)"
-                    : undefined
-                }
-                ariaLabel={
-                  unavailable ? `${item.title} (chưa đồng bộ: 0)` : undefined
-                }
+                title={unavailable ? "Chưa có dữ liệu" : undefined}
+                srText={unavailable ? "chưa có dữ liệu" : undefined}
               />
             )}
             idPrefix="retail-tab"
@@ -203,8 +283,10 @@ export function RetailPackageListPage({
                 placeholder="Tìm mã vận đơn, tên sản phẩm…"
                 aria-label="Tìm kiếm kiện lẻ"
                 maxLength={200}
-                value={query.search}
-                onChange={(e) => change({ search: e.target.value, page: 1 })}
+                value={searchDraft}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                onBlur={handleSearchBlur}
               />
             </div>
           </div>

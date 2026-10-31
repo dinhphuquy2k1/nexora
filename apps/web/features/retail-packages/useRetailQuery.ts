@@ -15,6 +15,10 @@ function subscribe(notify: () => void) {
     window.removeEventListener(event, notify);
   };
 }
+export type RetailQueryChangeOptions =
+  | { reset?: boolean; replace?: boolean }
+  | boolean;
+
 export function useRetailQuery(initialSearch: string) {
   const [navigationError, setNavigationError] = useState("");
   const raw = useSyncExternalStore(
@@ -33,22 +37,33 @@ export function useRetailQuery(initialSearch: string) {
     }
   }, [raw]);
   const change = useCallback(
-    (patch: Partial<RetailQuery>, reset = false) => {
+    (patch: Partial<RetailQuery>, options?: RetailQueryChangeOptions) => {
+      const reset =
+        typeof options === "boolean" ? options : Boolean(options?.reset);
+      const replace =
+        typeof options === "object" ? Boolean(options?.replace) : false;
       const next = reset ? DEFAULT_RETAIL_QUERY : { ...state.query, ...patch };
-      const query = tryRetailQueryString(next);
-      if (query === null) {
+      const qs = tryRetailQueryString(next);
+      if (qs === null) {
         setNavigationError(
           "Bộ lọc vượt giới hạn URL. Hãy rút ngắn hoặc bớt điều kiện.",
         );
         return false;
       }
       setNavigationError("");
-      window.history.pushState(
-        null,
-        "",
-        window.location.pathname + "?" + query,
-      );
-      window.dispatchEvent(new Event(event));
+      const nextSearch = `?${qs}`;
+      if (typeof window !== "undefined") {
+        if (window.location.search === nextSearch) {
+          return true;
+        }
+        const nextUrl = window.location.pathname + nextSearch;
+        if (replace) {
+          window.history.replaceState(null, "", nextUrl);
+        } else {
+          window.history.pushState(null, "", nextUrl);
+        }
+        window.dispatchEvent(new Event(event));
+      }
       return true;
     },
     [state.query],

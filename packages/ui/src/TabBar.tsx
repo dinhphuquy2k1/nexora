@@ -6,17 +6,19 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   type KeyboardEvent,
-  type WheelEvent,
   type FocusEvent,
 } from "react";
 import styles from "./TabBar.module.css";
+
+export type CssTokenReference = `var(--${string})`;
 
 export interface TabBarItem<T extends string> {
   id: T;
   title: string;
   icon?: ReactNode;
-  activeIconColor?: string;
+  activeIconColor?: CssTokenReference;
   disabled?: boolean;
 }
 
@@ -81,7 +83,10 @@ export function TabBar<T extends string>({
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<T, HTMLButtonElement>>(new Map());
+  const leftBtnRef = useRef<HTMLButtonElement>(null);
+  const rightBtnRef = useRef<HTMLButtonElement>(null);
 
+  const [hasOverflow, setHasOverflow] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [focusedId, setFocusedId] = useState<T | null>(null);
@@ -90,8 +95,10 @@ export function TabBar<T extends string>({
     const el = scrollRef.current;
     if (!el) return;
     const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollLeft(scrollLeft > 2);
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 2);
+    const overflow = scrollWidth > clientWidth + 2;
+    setHasOverflow(overflow);
+    setCanScrollLeft(overflow && scrollLeft > 2);
+    setCanScrollRight(overflow && scrollLeft < scrollWidth - clientWidth - 2);
   }, []);
 
   const scrollToItem = useCallback((id: T) => {
@@ -150,14 +157,46 @@ export function TabBar<T extends string>({
     scrollRef.current?.scrollBy({ left: 220, behavior: "smooth" });
   };
 
-  const handleWheel = (e: WheelEvent) => {
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && scrollRef.current) {
-      scrollRef.current.scrollLeft += e.deltaY;
-    }
-  };
-
   // Find enabled items for keyboard navigation
-  const enabledItems = items.filter((item) => !item.disabled);
+  const enabledItems = useMemo(
+    () => items.filter((item) => !item.disabled),
+    [items],
+  );
+
+  // Compute active roving id safely:
+  // 1. If focusedId is valid and enabled, use focusedId
+  // 2. Otherwise if value is valid and enabled, use value
+  // 3. Otherwise fallback to first enabled item
+  // 4. Otherwise null if no enabled items
+  const activeRovingId = useMemo<T | null>(() => {
+    if (enabledItems.length === 0) return null;
+    if (focusedId && enabledItems.some((it) => it.id === focusedId)) {
+      return focusedId;
+    }
+    if (enabledItems.some((it) => it.id === value)) {
+      return value;
+    }
+    return enabledItems[0]?.id ?? null;
+  }, [enabledItems, focusedId, value]);
+
+  // Shift focus back to active roving tab if a focused scroll button becomes disabled or unmounted
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const activeEl = document.activeElement;
+    const leftDisabled = !canScrollLeft;
+    const rightDisabled = !canScrollRight;
+    if (
+      (!hasOverflow &&
+        (activeEl === leftBtnRef.current ||
+          activeEl === rightBtnRef.current)) ||
+      (leftDisabled && activeEl === leftBtnRef.current) ||
+      (rightDisabled && activeEl === rightBtnRef.current)
+    ) {
+      if (activeRovingId) {
+        tabRefs.current.get(activeRovingId)?.focus();
+      }
+    }
+  }, [hasOverflow, canScrollLeft, canScrollRight, activeRovingId]);
 
   const handleKeyDown = (
     e: KeyboardEvent<HTMLButtonElement>,
@@ -216,18 +255,18 @@ export function TabBar<T extends string>({
     }
   };
 
-  const activeRovingId = focusedId ?? value;
-
   return (
     <div
       ref={containerRef}
       className={styles.tabBar}
       onBlur={handleContainerBlur}
     >
-      {canScrollLeft && (
+      {hasOverflow && (
         <button
+          ref={leftBtnRef}
           type="button"
-          className={`${styles.scrollButton} ${styles.scrollButtonLeft}`}
+          disabled={!canScrollLeft}
+          className={`${styles.scrollButton} ${styles.scrollButtonLeft} ${!canScrollLeft ? styles.scrollButtonDisabled : ""}`.trim()}
           onClick={handleScrollLeft}
           aria-label="Cuộn sang trái"
           title="Cuộn sang trái"
@@ -236,7 +275,7 @@ export function TabBar<T extends string>({
         </button>
       )}
 
-      <div ref={scrollRef} className={styles.scrollTrack} onWheel={handleWheel}>
+      <div ref={scrollRef} className={styles.scrollTrack}>
         <div role="tablist" aria-label={ariaLabel} className={styles.tabList}>
           {items.map((item) => {
             const isActive = item.id === value;
@@ -292,10 +331,12 @@ export function TabBar<T extends string>({
         </div>
       </div>
 
-      {canScrollRight && (
+      {hasOverflow && (
         <button
+          ref={rightBtnRef}
           type="button"
-          className={`${styles.scrollButton} ${styles.scrollButtonRight}`}
+          disabled={!canScrollRight}
+          className={`${styles.scrollButton} ${styles.scrollButtonRight} ${!canScrollRight ? styles.scrollButtonDisabled : ""}`.trim()}
           onClick={handleScrollRight}
           aria-label="Cuộn sang phải"
           title="Cuộn sang phải"

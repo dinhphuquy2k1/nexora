@@ -4,7 +4,7 @@ import {
   React,
   render,
   loadComponent,
-} from "../../../apps/web/test/helpers/render-component.mjs";
+} from "../../../scripts/test-helpers/render-component.mjs";
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -229,6 +229,65 @@ describe("Shared TabBar & TabCountBadge contracts (@nexora/ui)", () => {
       assert.ok(
         htmlInactive.includes("badgeInactive"),
         "Has inactive badge class or attribute",
+      );
+    });
+
+    it("renders srText in srOnly element and aria-hidden on visual text", () => {
+      const html = render(
+        React.createElement(ui.TabCountBadge, {
+          value: undefined,
+          srText: "chưa có dữ liệu",
+        }),
+      );
+      assert.ok(
+        html.includes('aria-hidden="true">—</span>'),
+        "Visual em-dash must be aria-hidden",
+      );
+      assert.ok(
+        html.includes("chưa có dữ liệu</span>"),
+        "Must contain screen reader text",
+      );
+      assert.ok(
+        html.includes("srOnly"),
+        "Screen reader text must have srOnly class",
+      );
+    });
+
+    it("does not render srOnly element when srText is absent", () => {
+      const html = render(React.createElement(ui.TabCountBadge, { value: 12 }));
+      assert.ok(html.includes(">12<"), "Visual count rendered");
+      assert.ok(!html.includes("srOnly"), "No srOnly class when srText absent");
+    });
+  });
+
+  describe("TabBar roving tabindex fallback with disabled tabs", () => {
+    it("falls back to first enabled tab when active value tab is disabled", () => {
+      const items = [
+        { id: "tab1", title: "Tab 1", disabled: true },
+        { id: "tab2", title: "Tab 2", disabled: false },
+        { id: "tab3", title: "Tab 3", disabled: false },
+      ];
+      const html = render(
+        React.createElement(ui.TabBar, {
+          items,
+          value: "tab1",
+          onValueChange: () => {},
+          idPrefix: "test-tab",
+          panelId: "test-panel",
+          ariaLabel: "Test tab bar",
+        }),
+      );
+      // tab1 is disabled: tabIndex must be -1
+      assert.match(
+        html,
+        /id="test-tab-tab1"[^>]*tabindex="-1"/i,
+        "Disabled tab1 cannot have roving tabIndex 0",
+      );
+      // tab2 is first enabled: tabIndex must be 0
+      assert.match(
+        html,
+        /id="test-tab-tab2"[^>]*tabindex="0"/i,
+        "First enabled tab receives roving tabIndex 0",
       );
     });
   });

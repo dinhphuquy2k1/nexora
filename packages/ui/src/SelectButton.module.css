@@ -41,21 +41,21 @@
     box-shadow 0.15s ease;
 }
 
-.segmentedItem:hover:not(:disabled) {
+.segmented .segmentedItem:hover:not(:disabled) {
   background-color: var(--color-surface-subtle);
   color: var(--color-text);
 }
 
-.segmentedItem[aria-pressed="true"],
-.segmentedItem.selected {
+.segmented .segmentedItem[aria-pressed="true"],
+.segmented .segmentedItem.selected {
   background-color: var(--color-surface);
   color: var(--color-primary);
   border-color: var(--color-border);
   box-shadow: var(--shadow-sm);
 }
 
-.segmentedItem[aria-pressed="true"]:hover:not(:disabled),
-.segmentedItem.selected:hover:not(:disabled) {
+.segmented .segmentedItem[aria-pressed="true"]:hover:not(:disabled),
+.segmented .segmentedItem.selected:hover:not(:disabled) {
   background-color: var(--color-surface);
   color: var(--color-primary);
 }

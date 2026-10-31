@@ -509,11 +509,11 @@ export async function verifyRetailBrowser({
       mobile: false,
     });
     const narrowGeometry = await evaluate(
-      `(()=>{const table=document.querySelector('table'),container=table.parentElement;return{tableWidth:table.getBoundingClientRect().width,containerWidth:container.clientWidth,scrollWidth:container.scrollWidth};})()`,
+      `(()=>{const table=document.querySelector('table'),container=table.parentElement,cols=Array.from(table.querySelectorAll('colgroup col')),expectedMinWidth=cols.reduce((sum,c)=>sum+(parseInt(c.style.width,10)||0),0);return{tableWidth:table.getBoundingClientRect().width,containerWidth:container.clientWidth,scrollWidth:container.scrollWidth,expectedMinWidth};})()`,
     );
     assert.ok(
-      narrowGeometry.tableWidth >= 915 - 1,
-      `table preserves min-width (915px) on narrow viewport (got ${narrowGeometry.tableWidth})`,
+      narrowGeometry.tableWidth >= narrowGeometry.expectedMinWidth - 1,
+      `table preserves dynamic min-width (${narrowGeometry.expectedMinWidth}px) on narrow viewport (got ${narrowGeometry.tableWidth})`,
     );
     assert.ok(
       narrowGeometry.scrollWidth > narrowGeometry.containerWidth,
