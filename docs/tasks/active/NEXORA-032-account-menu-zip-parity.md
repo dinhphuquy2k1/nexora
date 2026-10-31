@@ -1,6 +1,6 @@
 # NEXORA-032 — Account Menu ZIP parity
 
-Status: IN PROGRESS
+Status: VERIFICATION PENDING
 Implementation: IMPLEMENTED
 Verification: NOT VERIFIED
 
@@ -128,4 +128,32 @@ account-only shadow, rose OKLCH, static ChevronDown); browser rerun PASS.
 Round3 final-head regression remains pending. Full canonical Docker/hosted checks
 and genuine ADMIN/MFA/OPERATOR revocation are NOT YET VERIFIED for this task.
 
-Task remains IN PROGRESS / Verification NOT VERIFIED. No merge/deploy performed.
+Implementation checkpoint is now VERIFICATION PENDING / Verification NOT VERIFIED until mandatory hosted runtime evidence is available. No merge/deploy performed.
+
+### Hosted and transport-failure checkpoint — 2026-10-31 (Asia/Saigon)
+
+New Draft PR30: https://github.com/dinhphuquy2k1/nexora/pull/30.
+Initial implementation head2845e220d870a05a5adae3ec0b794e23690864e9.
+Hosted Preflight41207628272 PASS (24/24 governance tests); checkout log shows
+PR merge commit7d4805349176be9fd3d6ab88ba8fce05d46bc071, not direct head checkout.
+Foundation41207628316 attempt1 FAIL: existing API uniship-verify.test.cjs:82 first
+successful loopback request hit the test's100ms timeout and returned503.
+API171/172; Web186/186, UI32/32, database6/6 and scripts124/124 passed. Format,
+lint, preflight/docs and full typecheck passed; runtime/HTTPS/data/dev were SKIPPED
+and must not be inferred PASS. Missing Account/Retail artifacts are secondary to
+the early failure. Exact job rerun requested without weakening tests or touching
+Carrier/backend code; outcome pending.
+
+Additional host root test attempts: first FAIL missing required API_INTERNAL_URL;
+configured rerun FAIL while fetching Prisma schema engine (EAI_AGAIN binaries.prisma.sh).
+Turbo cancelled dependent jobs. These are not full-quality PASS; canonical Docker
+CI remains authoritative. Only task-owned generated build storage moved to RAM;
+no user volumes or shared/production databases touched.
+
+Transport regression extended with actual CDP Fetch.failRequest(ConnectionFailed):
+no redirect, session200 and retry-enabled state PASS in local actual component
+browser. Focused SSR/expression6/6 PASS. Chevron now references an account semantic
+role instead of a foundation palette token, with unchanged computed appearance.
+Round3 independent source review of2845e22 found no P1/P2; final runtime/artifact
+review remains open. Local36 normal and36 long-name PNG hashes matched manifests
+at2845e22; new transport/token follow-up requires its own final-head checks.

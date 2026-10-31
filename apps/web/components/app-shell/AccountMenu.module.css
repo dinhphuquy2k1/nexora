@@ -54,7 +54,7 @@ button.accountButton:hover:not(:disabled) {
   line-height: var(--line-height-tight);
 }
 .chevron {
-  color: var(--gray-400);
+  color: var(--color-account-chevron);
 }
 .dropdownPanel {
   position: absolute;

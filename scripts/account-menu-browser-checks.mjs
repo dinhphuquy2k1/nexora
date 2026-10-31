@@ -348,6 +348,24 @@ export async function verifyAccountMenu({
     assert.equal(intercepted, 2);
     await fulfillFailure();
     assert.equal(await evaluate("location.href"), before);
+    // A transport failure must preserve the workspace and permit another attempt too.
+    await pointer(logout);
+    await waitPending();
+    assert.equal(intercepted, 3);
+    const networkFailure = [...pending][0];
+    await send("Fetch.failRequest", {
+      requestId: networkFailure,
+      errorReason: "ConnectionFailed",
+    });
+    pending.delete(networkFailure);
+    await until(
+      `!!document.querySelector(${JSON.stringify(panel)})?.querySelector('[role=alert]')&&!document.querySelector(${JSON.stringify(logout)}).disabled`,
+    );
+    assert.equal(await evaluate("location.href"), before);
+    const afterNetworkFailure = await evaluate(
+      'fetch("/api/auth/session").then(r=>r.status)',
+    );
+    assert.equal(afterNetworkFailure, 200);
     await close();
   } finally {
     for (const id of pending)

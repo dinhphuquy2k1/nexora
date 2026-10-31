@@ -419,7 +419,8 @@ never substitutes for successful server revocation. Account-only synthetic loadi
 failure/retry uses narrowly matched Fetch interception on POST/api/auth/logout,
 checks single-flight/disabled feedback and no redirect, then fails/fulfills every
 paused request and disables interception in finally. Real session must remain200
-after the synthetic503; then the original genuine logout checks run unchanged.
+after synthetic503 and ConnectionFailed transport errors; retry remains enabled.
+Then the original genuine logout checks run unchanged.
 
 ACCOUNT_EVIDENCE_DIR enables six-size closed/open/focus/hover/loading/error PNGs and
 source-SHA/hash/geometry manifests. Validate256px panel, radius12, avatar32/40,

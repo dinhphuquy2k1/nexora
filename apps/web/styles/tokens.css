@@ -51,6 +51,7 @@
   /* ==========================================================================
      2. Semantic Application Tokens (Mapped to Foundation Palette)
      ========================================================================== */
+  --color-account-chevron: var(--gray-400);
   --color-account-item-hover-bg: var(--color-background);
   --color-account-logout-text: var(--rose-600);
   --color-account-logout-hover-bg: var(--rose-50);

@@ -311,8 +311,8 @@ scale/bounce or ad-hoc focus suppression. The private control sizing aliases rem
 owned by shared UI. No generic danger variant/menu framework or global state
 palette changes are introduced for this single consumer.
 
-Root tokens own the actual values: account hover uses the existing background
-surface; rose600/rose50 preserve the reference Tailwind4 OKLCH palette through
+Root tokens own the actual values: account chevron uses a scoped semantic role
+for gray400; account hover uses the existing background surface; rose600/rose50 preserve the reference Tailwind4 OKLCH palette through
 semantic account logout text/hover roles. Account shadow has the reference two-layer
 20px/8px elevation without modifying shared shadow-lg. Other consumers' status,
 text-muted, sizes and shadows are unchanged. Native disabled planned entries are
