@@ -310,7 +310,8 @@ This registry catalogues canonical, reusable technical components and shared voc
     1. `mode: "single", layout: "segmented"`: Composes `@nexora/ui` `Button` with `aria-pressed`, controlled single value, optional `allowEmpty` (default `false`). Supports `appearance?: "default" | "text-actions"`:
        - `"default"`: Segmented pill container with white raised button on selected item, subtle border and shadow.
        - `"text-actions"`: Flat action container with decorative `|` separators, hoverable transparent buttons without raised selected pill/shadow, designed for fast action presets.
-    2. `mode: "multiple", layout: "stacked"`: Composes `@nexora/ui` `Checkbox` with native `input[type=checkbox]`, full-row clickability, custom trailing content support via `renderOption`. Stacked items render muted slate for unselected rows and primary navy with muted background for selected rows.
+    2. `mode: "multiple", layout: "stacked"`: Composes `@nexora/ui` `Checkbox` with native `input[type=checkbox]`, full-row clickability, custom trailing content support via `renderOption`. Concrete `appearance` values are rejected (`appearance?: never`); appearance is single/segmented-only. The compiler uses inherited strict mode without exactOptionalPropertyTypes, so explicit undefined retains standard optional-property behavior. Stacked items render muted slate for unselected rows and primary navy with muted background for selected rows.
+  - Retail-specific unselected text uses `--color-colpicker-option-unselected-text`; shared muted-text defaults and other consumers are unchanged. Its clear search action reuses ghost icon Button and TextInput native ref, with feature positioning only.
   - Invariant: Toggling multiple stacked options preserves selected values outside the current filtered `options` list.
   - Zero external dependencies: no PrimeVue, PrimeReact, Radix, React Aria, Base UI, or shadcn.
 - **Explicit Non-Goals**:

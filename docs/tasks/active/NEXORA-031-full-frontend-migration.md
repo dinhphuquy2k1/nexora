@@ -2008,21 +2008,20 @@ Implementation: PLANNED; overall task remains IN PROGRESS. Scope covers 10 visua
   - `pnpm preflight:check`: PASS
   - `pnpm typecheck`: 10/10 packages PASS
 
-
 ### M3 v6 Corrective Follow-up — F1–F6 Review Findings — 2026-10-31
 
 Implementation: IMPLEMENTED; overall task remains IN PROGRESS. Scope covers 6 review findings identified after M3 v6 delivery.
 
 #### Corrective Plan & Reuse Audit
 
-| ID | Priority | Root Cause | Approach | Files |
-|---|---|---|---|---|
-| F1 | P2 | Unselected option text used `--color-text-muted` (gray-500 `#64748B`) instead of ZIP-specified gray-400 `#94A3B8` | Add scoped semantic token `--color-colpicker-option-unselected-text: var(--gray-400)` in `tokens.css`; apply via `.colOptionLabel` in retail CSS module; no change to global `--color-text-muted` | `apps/web/styles/tokens.css`, `apps/web/features/retail-packages/retail-packages.module.css` |
-| F2 | P2 | Popup `border-radius` used `--radius-xl` (16px) instead of ZIP-specified 12px | Change `.colPickerPanel` to `border-radius: var(--radius-lg)` (12px); no other popups changed | `apps/web/features/retail-packages/retail-packages.module.css` |
-| F3 | P2 | Search clear button used native `<button>` instead of shared `Button` from `@nexora/ui` | Replaced with `<Button variant="ghost" icon>` from `@nexora/ui`; uses `searchInputRef` for focus return; no TextInput API change | `apps/web/features/retail-packages/RetailColumnPicker.tsx`, `apps/web/features/retail-packages/retail-packages.module.css` |
-| F4 | P2 | Browser tests asserted markup/class names but not computed CSS contract | Extended `scripts/retail-browser-checks.mjs` with CDP `getComputedStyle` assertions for dialog border-radius, title typography, separator count, preset colors, clear button sizing/behavior, option colors, footer dimensions | `scripts/retail-browser-checks.mjs` |
-| F5 | P2 | PR description referenced stale HEAD SHA `1925f91...` instead of reviewed `8a45f16...` | Update PR description and task record after final HEAD push | PR #29 description, this task record |
-| F6 | P3 | `SelectButton` base props allowed `appearance="text-actions"` in multiple+stacked mode, but it was silently ignored | Moved `appearance` to `SingleSegmentedSelectButtonProps` only; `MultipleStackedSelectButtonProps` has `appearance?: never`; added compile-time negative test | `packages/ui/src/SelectButton.tsx`, `packages/ui/test/select-button.test.mjs` |
+| ID  | Priority | Root Cause                                                                                                          | Approach                                                                                                                                                                                                                       | Files                                                                                                                      |
+| --- | -------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| F1  | P2       | Unselected option text used `--color-text-muted` (gray-500 `#64748B`) instead of ZIP-specified gray-400 `#94A3B8`   | Add scoped semantic token `--color-colpicker-option-unselected-text: var(--gray-400)` in `tokens.css`; apply via `.colOptionLabel` in retail CSS module; no change to global `--color-text-muted`                              | `apps/web/styles/tokens.css`, `apps/web/features/retail-packages/retail-packages.module.css`                               |
+| F2  | P2       | Popup `border-radius` used `--radius-xl` (16px) instead of ZIP-specified 12px                                       | Change `.colPickerPanel` to `border-radius: var(--radius-lg)` (12px); no other popups changed                                                                                                                                  | `apps/web/features/retail-packages/retail-packages.module.css`                                                             |
+| F3  | P2       | Search clear button used native `<button>` instead of shared `Button` from `@nexora/ui`                             | Replaced with `<Button variant="ghost" icon>` from `@nexora/ui`; uses `searchInputRef` for focus return; no TextInput API change                                                                                               | `apps/web/features/retail-packages/RetailColumnPicker.tsx`, `apps/web/features/retail-packages/retail-packages.module.css` |
+| F4  | P2       | Browser tests asserted markup/class names but not computed CSS contract                                             | Extended `scripts/retail-browser-checks.mjs` with CDP `getComputedStyle` assertions for dialog border-radius, title typography, separator count, preset colors, clear button sizing/behavior, option colors, footer dimensions | `scripts/retail-browser-checks.mjs`                                                                                        |
+| F5  | P2       | PR description referenced stale HEAD SHA `1925f91...` instead of reviewed `8a45f16...`                              | Update PR description and task record after final HEAD push                                                                                                                                                                    | PR #29 description, this task record                                                                                       |
+| F6  | P3       | `SelectButton` base props allowed `appearance="text-actions"` in multiple+stacked mode, but it was silently ignored | Moved `appearance` to `SingleSegmentedSelectButtonProps` only; `MultipleStackedSelectButtonProps` has `appearance?: never`; added compile-time negative test                                                                   | `packages/ui/src/SelectButton.tsx`, `packages/ui/test/select-button.test.mjs`                                              |
 
 Documentation Impact: NONE for shared reusable-components.md (no new public contract beyond M3 v6); REQUIRED for this mutable task record and PR metadata.
 
@@ -2046,3 +2045,62 @@ Documentation Impact: NONE for shared reusable-components.md (no new public cont
 
 Post-commit final HEAD and PR metadata update pending push. PR description and this record will be updated with final HEAD SHA once commit is pushed to `feat/retail-packages-ui`.
 
+### M3 v6 F1–F6 final verification correction — 2026-10-31
+
+Read-only baseline: clean existing feat/retail-packages-ui at c6299359aa0bd2a59966a87ce8d26d7949537f8c, newer than requested reviewed8a45f16. Preserve its F1 scoped token, F2 radius, F3 shared Button/ref and F6 union/compiler regression; do not reimplement V1–V10. Classification: BOUNDED corrective follow-up under unchanged v6 snapshot, digest fd50b19a29b9020ce1a658b3b9794ade91472d8d68b8064dd738dc06eb1c6192. Documentation Impact: REQUIRED.
+
+| Component                | Existing Implementations                                                                       | Domain Owner                  | Reuse Alternatives                                    | Selected Approach                                                                                                                                                              | Rationale                                                                  | Risks                                | Verification                                                                                                                             |
+| ------------------------ | ---------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Clear action             | RetailColumnPicker shared Button + TextInput ref; Controls.module.css ghost states             | Shared UI; Retail positioning | Keep feature hover overrides / preserve shared states | Remove only remaining clear-button color/hover overrides; retain positioning and reserve32px in input padding                                                                  | F3 requires actual shared state ownership                                  | Input overlap/focus clipping         | Actual pointer and Tab/Enter,32px target, focus return, selection preservation                                                           |
+| Computed visual evidence | scripts/retail-browser-checks.mjs snapshot/CDP, existing Customer pointer implementation       | Test infrastructure           | New browser framework / extend existing session       | Feature-local helper using existing send/evaluate/key/type/snapshot; resolve semantic tokens via computed CSS; extend six-viewport snapshots                                   | Existing checks hardcode RGB and miss hover/keyboard/geometry contracts    | False green, flaky transition timing | Assertion-first on existing actual TSX/CSS, real pointer/wheel/keyboard, geometry/color evidence for default/basic/all/search/top/bottom |
+| SelectButton API docs    | c629935 discriminated union and real TypeScript virtual fixture; shared registry/design-system | Shared UI                     | Rewrite union / document implemented narrowed API     | Retain runtime/types; synchronize canonical single-only appearance and Retail-specific unselected token                                                                        | Correct existing misleading shared contract text without snapshot mutation | Default/other consumer regressions   | UI compiler tests, UI/Web typecheck, shared/default and Customer/AppShell regression                                                     |
+| Final evidence           | task checkpoints, PR metadata, Preflight/Foundation                                            | Governance                    | Reuse older PASS / final-head hosted runs             | Format task, record truthful failed baseline, commit focused changes and verify final-head checks/logs/artifacts; final SHA evidence in PR avoids self-referential doc commits | F5 currently stale                                                         | Premature readiness                  | Three review rounds; preserve Draft while blockers remain                                                                                |
+
+Baseline Foundation41179599112 FAIL: actual log shows Prettier rejected this mutable task file; M3 artifact upload subsequently failed because runtime never ran. Preflight41179599114 PASS. These are historical baseline facts, not new-head evidence. Reference remix ZIP(5) is not present in supplied workspace/attachments; requested it, continue against immutable v6 and explicit user visual contract; direct same-state ZIP screenshot comparison remains NOT RUN until the actual file is available. No material design revision, new dependencies, backend/API/schema/security changes or production deployment.
+
+Execution: focused assertions RED/GREEN → shared/default regression → real six-size CDP evidence → round1 implementation and round2 visual review → docs/format/full canonical hosted checks → round3 exact-head review and metadata. Overall task remains IN PROGRESS / NOT VERIFIED (M4–M5 deferred).
+
+#### Three-round follow-up journal and executed checkpoint (2026-10-31)
+
+Round1 independent review confirmed F1/F2/F6 correct, identified remaining P2F3
+clear-button state overrides and P2F4 computed/interaction gaps. Fixed scoped clear
+CSS to positioning only; input padding reserves32px target plus8px. Regression
+failed on the old hover override, then Retail38/38 PASS. No shared default styling
+or runtime SelectButton DOM/type changes in this follow-up.
+
+Round2 independent source/visual review found no remaining confirmed P1/P2 in the
+delta. Reviewed actual mobile default/search-clear and desktop All images; no new
+clipping. Independent static CDP expression tests3/3 PASS. Expanded real local
+Chromium suite PASS with102 screenshots, including48 picker images across six
+viewports and8 states. Manifest confirms Default19, Basic7 and All20 at every size;
+no mismatched preset screenshots are treated as parity defects. Real pointer preset
+click/hover, clear click and Tab/Enter, full selected-header identity preservation,
+focus return/exit and native wheel-to-bottom all PASS. Computed measurements cover
+colors via resolved root tokens, typography, panel/radius/spacing/borders/elevation,
+search/padding, native checkbox/required badge, checklist and footer.
+
+Harness investigation preserved strict assertions: an intermediate capture observed
+a real CSS transition color; await scoped finite animation finished promises before
+measuring. Chromium's getComputedStyle on the native search-cancel pseudo-element
+is not a valid visibility measurement; verify its matching compiled CSSOM display
+rule instead, including nested CSSStyleRule children. This is rule-presence evidence,
+not fabricated computed-pseudo proof. No fixed sleep or CSS-state mutation added.
+
+Local executions: UI32/32 and UI typecheck PASS; Retail38/38 PASS; form controls11/11
+PASS; Web183/183 and Web typecheck PASS; format/lint/boundaries/docs/static preflight
+PASS; fixture build and actual Chromium PASS. Root typecheck/test attempted and FAIL
+on host build prerequisite API_INTERNAL_URL missing; Turbo then cancels unfinished
+workspace tests. Root tooling tests completed124/124. Canonical Docker/hosted full
+quality remains required and pending for the follow-up head. The host has under10MB
+free, so do not build Docker locally or remove unrelated images/volumes. Exact
+final-head CI/log/artifact status and commit binding are reconciled in PR metadata
+after execution, avoiding self-referential SHA-only documentation commits.
+
+Round3: final diff, independent exact-head review and hosted Preflight/Foundation
+pending commit/push. ZIP(5) direct same-state comparison remains NOT RUN (archive
+not supplied; no matching archive digest found among attached ZIPs). Do not claim
+full visual acceptance/readiness until mandatory missing evidence is resolved.
+Canonical documentation owners updated: design-system, reusable-components, testing
+and this mutable task; previous NONE claim for registry is superseded by this API
+clarification. Immutable v6 bytes/digest unchanged. Overall task remains IN PROGRESS
+and NOT VERIFIED; no backend/Shipment contract, schema, Auth or M4/M5 changes.

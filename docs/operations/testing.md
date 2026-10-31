@@ -389,3 +389,23 @@ fixture/evidence fails, never skips. Exact six-record ZIP reference-sample is a
 separate isolated test path, not a product query/feature flag. Screenshot comparison
 must disclose canonical AppShell/control/color contracts, unavailable operations and
 synthetic test data differences; build success is not visual acceptance.
+
+### Retail Column Picker M3 v6 computed evidence
+
+The existing Retail CDP session imports `scripts/retail-column-picker-checks.mjs`
+for actual DOM/computed-style assertions, not a second browser framework. Color
+expectations resolve root semantic tokens through computed CSS. Scoped finite CSS
+animations are awaited through their finished promises; no fixed delay or synthetic
+inline hover/focus styling is used. Existing screenshot manifests include the
+computed picker measurements for each captured viewport/state.
+
+Exercise default19/basic7/all20, search focused/unfocused/clear, required tracking,
+and actual wheel scrolling to the bottom. Clear uses real pointer then Tab/Enter;
+check empty search,20 restored options, unchanged selection, input focus return and
+keyboard exit without a trap. Preset hover uses real CDP pointer movement; assert
+colors, transparent selection versus hover surface, zero raised border/shadow,
+noninteractive separators, checkbox geometry, panel spacing/radius and footer.
+Actual fixture TSX/CSS, original production Auth/Customer/Retail checks and full
+Foundation remain required. Mark direct same-state ZIP comparison NOT RUN if its
+specified archive is unavailable; screenshots against the written contract cannot
+be reported as a direct ZIP comparison.

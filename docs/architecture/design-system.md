@@ -267,3 +267,23 @@ The Customer table skeleton loading state is governed by a unified geometry and 
    - Same-query revalidation retains active real rows with `data-stale` styling, preventing skeleton flicker.
    - Query modifications (search key, status filter, pagination) invalidate stale records immediately; prior query data is never displayed.
    - Responsive scrolling is contained inside `.tableViewport`, preventing body horizontal overflow while preserving footer stability.
+
+## Retail column picker corrective contract (M3 v6)
+
+The Retail unselected option label uses the feature-scoped semantic token
+`--color-colpicker-option-unselected-text` → `--gray-400` (`#94A3B8`). Shared
+SelectButton stacked defaults and the global `--color-text-muted` (`#64748B`)
+remain unchanged. Selected/required labels remain primary navy; required tracking
+is bold with its amber badge. The popup uses `--radius-lg` (12px), maximum336px
+width,12px padding,8px gaps and a scrollable208px checklist.
+
+Column search composes TextInput and a ghost icon Button with the standard32px
+square target. Feature CSS owns only clear-button positioning and input accessory
+padding; shared Button owns hover/focus/disabled states. Clear preserves column
+selection, keeps the disclosure open, and returns focus to the search input. Native
+search cancel is suppressed so the two clear mechanisms do not overlap.
+
+SelectButton's `appearance` belongs only to single/segmented props. Multiple/stacked
+rejects concrete appearance values (`appearance?: never`), preserving its existing
+DOM/default styling. This is the correction of the formerly accepted silent no-op,
+not a new multiple-selection appearance.

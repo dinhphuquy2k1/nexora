@@ -802,3 +802,21 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
     });
   });
 });
+
+it("column search clear retains shared Button state ownership", async () => {
+  const css = await (
+    await import("node:fs/promises")
+  ).readFile(
+    new URL(
+      "../features/retail-packages/retail-packages.module.css",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.doesNotMatch(css, /\.colPickerSearchClearBtn:hover/);
+  const rule = css.match(/button\.colPickerSearchClearBtn\s*\{([^}]+)\}/)[1];
+  assert.doesNotMatch(
+    rule,
+    /\b(color|background(?:-color)?|border(?:-color)?|height|width)\s*:/,
+  );
+});
