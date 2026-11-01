@@ -148,7 +148,10 @@ export function SyncStatusPanel({
             <div className={styles.syncItemFooter}>
               <span className={styles.muted}>
                 {item.state === "running" ? (
-                  <span className={styles.runningNote}>
+                  <span
+                    className={styles.runningNote}
+                    data-carrier-running-note
+                  >
                     <i aria-hidden="true" />
                     Tiến trình đang xử lý theo lô phân trang
                   </span>
@@ -465,6 +468,11 @@ export function SyncHistoryPanel({
             <div className={styles.historyRowMeta}>
               <span>
                 Bắt đầu: <strong>{item.time}</strong>
+                {item.detail && item.detail !== "-" && (
+                  <em className={styles.historyNote} title={item.detail}>
+                    ({item.detail})
+                  </em>
+                )}
               </span>
               <strong>
                 {item.records?.toLocaleString("vi-VN") ?? "—"} bản ghi

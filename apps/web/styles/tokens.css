@@ -79,7 +79,7 @@
   --color-carrier-info-border: #bfdbfe;
   --color-carrier-info-text: var(--blue-700);
   --color-carrier-running-bg: var(--brand-orange-light);
-  --color-carrier-running-text: #e07312;
+  --color-carrier-running-text: var(--color-accent-text);
   --color-carrier-logo-info: #0284c7;
   --color-carrier-running-border: color-mix(
     in srgb,

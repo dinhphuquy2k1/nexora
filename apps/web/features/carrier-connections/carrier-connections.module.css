@@ -643,6 +643,7 @@ dialog.formDrawer {
   background: var(--color-surface);
 }
 dialog.modal {
+  max-width: calc(100vw - 24px);
   width: min(512px, calc(100vw - 24px));
   max-height: calc(100dvh - 24px);
   padding: 0;
@@ -1184,7 +1185,7 @@ dialog.confirmModal {
   padding-top: 4px;
 }
 .runningNote {
-  color: var(--color-accent);
+  color: var(--color-carrier-running-text);
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -1470,7 +1471,6 @@ button.switchTarget {
   display: block;
   padding: 12px;
 }
-.jobId,
 .mono {
   font-family: monospace;
   overflow-wrap: anywhere;
@@ -1789,4 +1789,14 @@ button.switchTarget {
 .drawerTitleLine h2 {
   flex-shrink: 0;
   max-width: 100%;
+}
+
+.historyNote {
+  display: inline-block;
+  max-width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-left: 8px;
+  vertical-align: bottom;
 }

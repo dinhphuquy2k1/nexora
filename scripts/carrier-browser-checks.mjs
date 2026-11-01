@@ -1,3 +1,4 @@
+import { browserContrastExpression } from "./browser-contrast.mjs";
 import { waitForInteractiveAccount } from "./browser-login-ready.mjs";
 // Reuses the authenticated CDP session and the existing TSX fixture compiler.
 import assert from "node:assert/strict";
@@ -160,6 +161,22 @@ export async function verifyCarrierBrowser({
       Math.abs(geometry.footer.bottom - geometry.container.bottom + 1) < 2,
       "fixed table footer",
     );
+    geometry.runningContrast = [];
+    for (const selector of [
+      "dialog[open] span[data-state=running]",
+      "[data-carrier-running-note]",
+    ]) {
+      if (
+        await evaluate(`!!document.querySelector(${JSON.stringify(selector)})`)
+      ) {
+        const result = await evaluate(browserContrastExpression(selector));
+        assert.ok(
+          result.ratio >= 4.5,
+          "running badge/note small text contrast",
+        );
+        geometry.runningContrast.push({ selector, ...result });
+      }
+    }
     if (expected) {
       assert.ok(
         Math.abs(geometry.deck.height - expected.deck.height) <= 2,
@@ -178,7 +195,7 @@ export async function verifyCarrierBrowser({
       );
       if (expected.frame && geometry.frame)
         assert.ok(
-          Math.abs(geometry.frame.width - expected.frame.width) <= 8,
+          Math.abs(geometry.frame.width - expected.frame.width) <= 2,
           "ZIP drawer/modal width",
         );
     }

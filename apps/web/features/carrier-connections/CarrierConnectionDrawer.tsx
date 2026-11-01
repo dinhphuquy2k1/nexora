@@ -40,6 +40,9 @@ export function CarrierDrawerFrame({
   row?: CarrierConnectionRow;
   status?: ReactNode;
 }) {
+  let brand = <Truck size={20} />;
+  if (form) brand = <KeyRound size={16} />;
+  if (centered && row) brand = <CarrierLogo row={row} />;
   return (
     <Overlay
       open
@@ -49,15 +52,7 @@ export function CarrierDrawerFrame({
       className={`${centered ? styles.modal : styles.drawer} ${form ? styles.formDrawer : ""}`}
     >
       <header className={styles.drawerHeader}>
-        <span className={styles.drawerBrand}>
-          {centered && row ? (
-            <CarrierLogo row={row} />
-          ) : form ? (
-            <KeyRound size={16} />
-          ) : (
-            <Truck size={20} />
-          )}
-        </span>
+        <span className={styles.drawerBrand}>{brand}</span>
         <div>
           <div className={styles.drawerTitleLine}>
             <h2>{title}</h2>

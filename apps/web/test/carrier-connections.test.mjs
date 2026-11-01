@@ -427,3 +427,32 @@ test("ZIP geometry specification accounts for every required surface and viewpor
   );
   assert.ok(contract.surfaces.every((s) => s.frameWidths.length === 6));
 });
+
+test("progress inspection keeps its stream title and supplied Job ID in source header", () => {
+  const { CarrierSyncInspection } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierSyncInspection.tsx",
+      import.meta.url,
+    ),
+  );
+  const html = render(
+    React.createElement(CarrierSyncInspection, {
+      inspection: {
+        kind: "progress",
+        item: {
+          id: "shipment",
+          label: "Shipment",
+          state: "running",
+          jobId: "fixture-job-42",
+          progress: 43,
+        },
+      },
+      onClose: () => {},
+    }),
+  );
+  assert.match(
+    html,
+    /<header[\s\S]*Tiến trình đồng bộ Shipment[\s\S]*Job ID: fixture-job-42[\s\S]*<\/header>/,
+  );
+  assert.equal((html.match(/fixture-job-42/g) ?? []).length, 1);
+});

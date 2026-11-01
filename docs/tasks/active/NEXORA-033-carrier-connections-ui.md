@@ -320,3 +320,27 @@ pnpm11 rather than pinned10.34.6; an owned Corepack wrapper corrected the toolch
 then genuine Prisma generate failed DNS EAI_AGAIN for binaries.prisma.sh. No engine,
 checks or assertions bypassed; local full quality/integration NOT PASS. Canonical
 Docker/real PostgreSQL/runtime/public/data/dev and exact-head hosted CI remain open.
+
+Final visual follow-up: preserve the source progress modal's full stream title and
+Job ID in its header, restore non-empty history-row notes, and use the existing
+AA-capable accent-text role for running badge/note text. The repository's previously
+authorized shared white-on-orange primary-action exception remains unchanged; no
+blanket WCAG AA claim is made. New badge contrast is measured separately below.
+
+Final independent follow-up closed P3 duplicate contrast math: extracted the
+existing composed browser contrast expression to a neutral helper and retained
+Customer's compatibility export as the same function; no Customer visual logic
+changed. Carrier checks both actual badge and note, including ancestor alpha.
+Actual opaque running badge contrast4.877:1; no global contrast claim. Explicit
+Carrier modal max-width also overrides the native UA six-pixel mobile constraint
+so the centered Details width follows the source viewport-minus24px contract.
+
+| Claim                      | Evidence                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| First v2 hosted checkpoint | Head6d3a3c9, Foundation41313233218/job124867804189 FAIL at unchanged apps/api/test/uniship-verify.test.cjs:82 first loopback verify,100ms client fixture budget, test154ms, SERVICE_UNAVAILABLE503; full decoded log inspected. Later runtime/HTTPS/data/dev SKIPPED, absent browser uploads failed, owned cleanup PASS. https://github.com/dinhphuquy2k1/nexora/actions/runs/41313233218 | 2026-11-01 | FAIL   |
+| First v2 governance        | Head6d3a3c9, Preflight41313233277 SUCCESS; v2 snapshot/task/PR binding valid. https://github.com/dinhphuquy2k1/nexora/actions/runs/41313233277                                                                                                                                                                                                                                            | 2026-11-01 | PASS   |
+| Final visual geometry      | Same-state pairs at all6 required viewports: deck delta1.344px; maximum row delta0.985px; first6 column widths equal, action column+4px for32px targets. Centered Details corrected to exact512/366/351px source widths; no new screenshot binaries tracked                                                                                                                               | 2026-11-01 | PASS   |
+| Review–Fix–Review          | Independent structural/visual/regression rounds and follow-ups close header P2 and duplicate contrast P3; focused16/16, helper4/4 and diff check PASS; final hosted head still mandatory                                                                                                                                                                                                  | 2026-11-01 | PASS   |
+
+No API source, fixture timeout or assertion changed for the hosted failure. Final
+follow-up head must run the full workflows;6d3a3c9 is not a passing Foundation head.

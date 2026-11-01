@@ -105,3 +105,11 @@ test("modal field selection never falls back to an earlier inert page field", as
   assert.equal(customerFieldSelector("q", false), '[name="q"]');
   assert.equal(customerFieldSelector("phone", true).includes(","), false);
 });
+
+test("Customer and Carrier share one alpha-composited browser contrast expression", async () => {
+  const { browserContrastExpression } = await import("./browser-contrast.mjs");
+  const { customerContrastExpression } = await import(
+    "./customer-control-checks.mjs"
+  );
+  assert.equal(customerContrastExpression, browserContrastExpression);
+});

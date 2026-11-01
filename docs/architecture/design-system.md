@@ -343,3 +343,8 @@ workspace bounds for comparison. Actual shell acceptance independently includes
 expanded/collapsed Sidebar and mobile; normalized feature captures do not prove
 shell geometry. Unsupported environment/readiness/jobs and backend outcomes stay
 unknown/disabled in product; reference-only claims are not copied as facts.
+
+Carrier running badge/note text uses the AA-capable accent-text role, not the
+reference's low-contrast orange foreground. Decorative orange icons/progress and
+the already authorized shared white-on-orange primary-action exception remain;
+this correction does not claim universal WCAG AA for that historical exception.

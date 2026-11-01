@@ -23,6 +23,12 @@ export function CarrierSyncInspection({
   const Icon = { progress: RefreshCw, error: AlertCircle, history: Clock }[
     kind
   ];
+  let subtitle: string;
+  if (inspection.kind === "history")
+    subtitle = `Khởi tạo: ${inspection.item.time}`;
+  else if (inspection.kind === "progress")
+    subtitle = `Job ID: ${inspection.item.jobId ?? "—"}`;
+  else subtitle = inspection.item.label;
   return (
     <Overlay
       open
@@ -37,13 +43,10 @@ export function CarrierSyncInspection({
         <div>
           <h2>
             {title}
+            {inspection.kind === "progress" ? ` ${inspection.item.label}` : ""}
             {kind === "history" ? ` #${inspection.item.id}` : ""}
           </h2>
-          <p>
-            {kind === "history"
-              ? `Khởi tạo: ${inspection.item.time}`
-              : inspection.item.label}
-          </p>
+          <p>{subtitle}</p>
         </div>
         <Button
           variant="ghost"
@@ -58,9 +61,6 @@ export function CarrierSyncInspection({
       <div className={styles.drawerBody}>
         {inspection.kind === "progress" && (
           <>
-            <p className={styles.jobId}>
-              Job ID: {inspection.item.jobId ?? "—"}
-            </p>
             <div className={styles.inspectionProgress}>
               <div>
                 <strong>Trạng thái: {inspection.item.detail ?? "—"}</strong>
@@ -149,7 +149,7 @@ export function CarrierSyncInspection({
           className={kind === "error" ? "" : styles.navyAction}
           onClick={onClose}
         >
-          Đóng chi tiết
+          Đóng
         </Button>
         {kind === "error" && (
           <Button variant="emphasis" disabled title={UNAVAILABLE}>
