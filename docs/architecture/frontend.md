@@ -331,9 +331,19 @@ AccountMenu owns its native Link. No auth/session/MFA behavior changes.
 `features/carrier-connections` separates pure query/validation/presentation,
 list/toolbar/pagination, credential/details/confirmation drawers and the three-tab
 sync drawer. Existing shared controls, line TabBar/count badges and native Overlay
-own interaction semantics. Seven native colgroup columns share a1196px minimum
-width, scrolling within the table. Forms are512px, sync/details540px and full width
-on smaller screens; headers/footers remain fixed while drawer bodies scroll.
+own interaction semantics. A separate command deck contains the three header actions,
+four presentation tabs and advanced-filter popover/search toolbar; conditional chips
+occupy their own row. The remaining-height table card has seven auto-layout native
+colgroup columns, source width/minimum contracts and Carrier-scoped vertical dividers.
+Sticky headers and an independently scrolling body preserve the fixed numbered
+pagination footer (default10, choices5/10/20/50). ERROR and REAUTH_REQUIRED combine
+under Cần kiểm tra without adding domain statuses. Sandbox/environment require
+explicit readonly metadata; missing metadata is not a production environment claim.
+Forms are512px and sync drawers540px/full-width mobile. Details are a centered512px
+modal and disconnect a centered384px warning. Headers/footers stay fixed while bodies
+scroll. Split row actions expose frontend inspections/editing and disabled backend
+commands. The sync drawer preserves local schedule switches/intervals/dirty-close
+confirmation and filtered, paginated four-row history with nested native inspections.
 
 This is UI-only: the server page injects no records or sync data and makes no Carrier
 API call. Unknown counts display an em dash; unavailable copy distinguishes absence

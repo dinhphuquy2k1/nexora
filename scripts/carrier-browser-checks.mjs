@@ -63,6 +63,19 @@ export async function verifyCarrierBrowser({
       ...point,
     });
   }
+  async function pointer(selector) {
+    const point = await evaluate(
+      `(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e||e.disabled)return null;e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}})()`,
+    );
+    assert.ok(point, selector);
+    for (const type of ["mousePressed", "mouseReleased"])
+      await send("Input.dispatchMouseEvent", {
+        type,
+        button: "left",
+        clickCount: 1,
+        ...point,
+      });
+  }
   async function key(key, shift = false) {
     for (const type of ["keyDown", "keyUp"])
       await send("Input.dispatchKeyEvent", {
@@ -104,68 +117,135 @@ export async function verifyCarrierBrowser({
       );
     }
   }
-  async function capture(phase) {
-    for (const [width, height] of [
-      [1440, 900],
-      [1280, 800],
-      [1024, 768],
-      [768, 1024],
-      [390, 844],
-      [375, 812],
-    ]) {
-      await send("Emulation.setDeviceMetricsOverride", {
-        width,
-        height,
-        deviceScaleFactor: 1,
-        mobile: false,
-      });
-      await evaluate(
-        "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))",
-      );
-      const geometry = await evaluate(
-        `(()=>{const d=[...document.querySelectorAll('dialog[open]')];return {noOverflow:document.documentElement.scrollWidth<=innerWidth,cols:document.querySelectorAll('colgroup col').length,providerWidth:document.querySelector('select[aria-label="Lọc hãng vận chuyển"]').getBoundingClientRect().width,controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),verticalBorders:[...document.querySelectorAll('table th,table td')].every(e=>getComputedStyle(e).borderRightWidth==='0px' && getComputedStyle(e).borderLeftWidth==='0px'),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(e=>{const r=e.getBoundingClientRect();return {width:r.width,left:r.left,right:r.right,height:r.height}})}})()`,
-      );
-      assert.equal(geometry.noOverflow, true, phase + " document overflow");
-      assert.equal(geometry.cols, 7);
+  async function capture(phase, width, height, expected) {
+    await evaluate(
+      "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))",
+    );
+    const geometry = await evaluate(
+      `(()=>{const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height,bottom:r.bottom,right:r.right}};const root=document.querySelector('[data-carrier-connections]'),container=document.querySelector('[data-carrier-table-container]'),d=[...document.querySelectorAll('dialog[open]')];return {page:rect(root),deck:rect(document.querySelector('[data-carrier-command-deck]')),container:rect(container),footer:rect(document.querySelector('[data-carrier-pagination]')),columns:[...document.querySelectorAll('table th')].map(rect),rows:[...document.querySelectorAll('tbody tr')].map(rect),frame:rect(d.at(-1)),noOverflow:document.documentElement.scrollWidth<=innerWidth,verticalBorders:[...document.querySelectorAll('table th:not(:last-child),table td:not(:last-child)')].every(e=>getComputedStyle(e).borderRightWidth==='1px'),controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(rect),syncBodyFits:[...document.querySelectorAll('dialog[open] [role=tabpanel]')].every(e=>e.scrollWidth<=e.clientWidth+1)}})()`,
+    );
+    assert.equal(geometry.noOverflow, true, phase + " document overflow");
+    assert.equal(geometry.columns.length, 7);
+    assert.equal(
+      geometry.verticalBorders,
+      true,
+      "Carrier ZIP-scoped column dividers",
+    );
+    assert.ok(
+      geometry.controls.length > 0 &&
+        geometry.controls.every((h) => Math.abs(h - 32) < 1),
+      "default32 hit targets",
+    );
+    assert.equal(
+      geometry.passwordBlank,
+      true,
+      "Never capture credential drafts",
+    );
+    assert.equal(
+      geometry.syncBodyFits,
+      true,
+      "Sync content must not clip horizontally",
+    );
+    assert.ok(
+      geometry.dialogs.every(
+        (d) => d.left >= -1 && d.right <= width + 1 && d.height <= height + 1,
+      ),
+      "modal bounds",
+    );
+    assert.ok(
+      Math.abs(geometry.container.bottom - geometry.page.bottom + 2) < 2,
+      "table fills workspace",
+    );
+    assert.ok(
+      Math.abs(geometry.footer.bottom - geometry.container.bottom + 1) < 2,
+      "fixed table footer",
+    );
+    if (expected) {
       assert.ok(
-        geometry.providerWidth >= 140,
-        "mobile provider choice remains readable",
+        Math.abs(geometry.deck.height - expected.deck.height) <= 2,
+        "ZIP command deck geometry",
       );
-      assert.equal(geometry.verticalBorders, true);
+      for (let i = 0; i < 7; i++)
+        assert.ok(
+          Math.abs(geometry.columns[i].width - expected.columns[i].width) <= 5,
+          "ZIP auto column " + i,
+        );
       assert.ok(
-        geometry.controls.length > 0 &&
-          geometry.controls.every((h) => Math.abs(h - 32) < 1),
-        "canonical default32 controls",
-      );
-      assert.equal(
-        geometry.passwordBlank,
-        true,
-        "Never capture credential drafts",
-      );
-      assert.ok(
-        geometry.dialogs.every(
-          (d) => d.left >= -1 && d.right <= width + 1 && d.height <= height + 1,
+        geometry.rows.every(
+          (row, i) => Math.abs(row.height - expected.rows[i].height) <= 2,
         ),
+        "ZIP row geometry",
       );
-      if (evidenceDirectory) {
-        await mkdir(evidenceDirectory, { recursive: true });
-        const shot = await send("Page.captureScreenshot", {
+      if (expected.frame && geometry.frame)
+        assert.ok(
+          Math.abs(geometry.frame.width - expected.frame.width) <= 8,
+          "ZIP drawer/modal width",
+        );
+    }
+    if (evidenceDirectory) {
+      await mkdir(evidenceDirectory, { recursive: true });
+      const shot = await send("Page.captureScreenshot", {
           format: "png",
           captureBeyondViewport: false,
-        });
-        const bytes = Buffer.from(shot.data, "base64"),
-          file = `${prefix}-${phase}-${width}x${height}.png`;
-        await writeFile(resolve(evidenceDirectory, file), bytes);
-        records.push({
-          file,
-          width,
-          height,
-          geometry,
-          sha256: createHash("sha256").update(bytes).digest("hex"),
-        });
-      }
+        }),
+        bytes = Buffer.from(shot.data, "base64"),
+        file = `${prefix}-${phase}-${width}x${height}.png`;
+      await writeFile(resolve(evidenceDirectory, file), bytes);
+      records.push({
+        file,
+        width,
+        height,
+        geometry,
+        sha256: createHash("sha256").update(bytes).digest("hex"),
+      });
     }
-    await send("Emulation.clearDeviceMetricsOverride");
+  }
+  async function viewport(width, height) {
+    await send("Emulation.setDeviceMetricsOverride", {
+      width,
+      height,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+  }
+  async function firstMenu(action) {
+    await pointer("tbody tr:first-child button[aria-haspopup=menu]");
+    await until("!!document.querySelector('[role=menu]')");
+    await click(action);
+    await until("!!document.querySelector('dialog[open]')");
+  }
+  async function openSurface(surface) {
+    if (surface === "filter") await click("Thêm điều kiện lọc");
+    if (surface === "actions") {
+      await pointer("tbody tr:first-child button[aria-haspopup=menu]");
+      await until("!!document.querySelector('[role=menu]')");
+    }
+    if (surface === "create") await click("Kết nối hãng mới");
+    if (["edit", "details", "disconnect"].includes(surface))
+      await firstMenu(
+        {
+          edit: "Chỉnh sửa tài khoản",
+          details: "Chi tiết tài khoản",
+          disconnect: "Ngắt kết nối",
+        }[surface],
+      );
+    if (
+      surface.startsWith("sync-") ||
+      ["progress", "error", "history-details"].includes(surface)
+    ) {
+      await pointer(
+        'tbody tr:first-child button[aria-label^="Chi tiết đồng bộ"]',
+      );
+      await until("!!document.querySelector('dialog[open]')");
+      if (surface === "sync-expanded" || surface === "error")
+        await click("Mô phỏng: 8 loại dữ liệu");
+      if (surface === "sync-schedule") await click("Lịch tự động");
+      if (surface === "sync-history" || surface === "history-details")
+        await click("Lịch sử đồng bộ");
+      if (surface === "progress") await click("Xem tiến độ");
+      if (surface === "error") await click("Xem lỗi");
+      if (surface === "history-details") await click("Chi tiết lịch sử 1");
+    }
   }
   try {
     await send("Network.enable");
@@ -210,23 +290,57 @@ export async function verifyCarrierBrowser({
       await key("Escape");
       assert.equal(
         await evaluate("document.querySelectorAll('tbody tr').length"),
-        1,
+        0,
       );
       assert.equal(
         await evaluate(
-          "document.querySelector('[data-carrier-connections]').textContent.includes('Chưa tích hợp dữ liệu')",
+          "document.querySelector('[data-carrier-connections]').textContent.includes('Chưa tích hợp')",
         ),
         true,
       );
-      await capture("production");
-      await click("Xem giao diện đồng bộ");
-      await until("!!document.querySelector('dialog[open]')");
       assert.equal(
-        await evaluate("document.querySelectorAll('progress').length"),
-        0,
+        await evaluate(
+          "document.querySelector('[data-carrier-pagination]').textContent.includes('—')",
+        ),
+        true,
       );
-      await capture("production-sync");
-      await key("Escape");
+      assert.equal(
+        await evaluate(
+          "!!document.querySelector('[data-carrier-connections] dialog')",
+        ),
+        false,
+      );
+      for (const [width, height] of [
+        [1440, 900],
+        [1280, 800],
+        [1024, 768],
+        [768, 1024],
+        [390, 844],
+        [375, 812],
+      ]) {
+        await viewport(width, height);
+        await capture("production", width, height);
+      }
+      await viewport(1440, 900);
+      await until(
+        "[...document.querySelectorAll('button[aria-label=\"Thu gọn thanh điều hướng\"]')].some(e=>e.getClientRects().length)",
+      );
+      const expandedLeft = await evaluate(
+        "document.querySelector('[data-carrier-connections]').getBoundingClientRect().left",
+      );
+      await click("Thu gọn thanh điều hướng");
+      await until(
+        "document.querySelector('[data-carrier-connections]').getBoundingClientRect().left < " +
+          expandedLeft,
+      );
+      await capture("production-collapsed-sidebar", 1440, 900);
+      await click("Mở rộng thanh điều hướng");
+      await until(
+        "Math.abs(document.querySelector('[data-carrier-connections]').getBoundingClientRect().left-" +
+          expandedLeft +
+          ")<1",
+      );
+      await send("Emulation.clearDeviceMetricsOverride");
     }
     const files = new Map([
       ["/fixture", resolve(fixtureDirectory, "index.html")],
@@ -261,163 +375,295 @@ export async function verifyCarrierBrowser({
       server.listen(0, "127.0.0.1", yes);
     });
     origin = "http://127.0.0.1:" + server.address().port;
-    await send("Page.navigate", { url: origin + "/fixture" });
-    await until("document.querySelectorAll('tbody tr').length===20");
-    checks.step("CARRIER_FIXTURE_FILTERS_AND_PAGINATION");
-    await capture("list");
-    await click("Trang sau tài khoản");
-    await until("document.querySelectorAll('tbody tr').length===7");
-    await click("Trang đầu tài khoản");
-    await until("document.querySelectorAll('tbody tr').length===20");
-    await select("Số dòng tài khoản mỗi trang", "5");
-    await until("document.querySelectorAll('tbody tr').length===5");
-    await select("Lọc hãng vận chuyển", "fixture-b");
-    await until(
-      "[...document.querySelectorAll('tbody tr')].every(e=>e.textContent.includes('Hãng B'))",
-    );
-    await select("Lọc trạng thái kết nối", "ERROR");
-    await until(
-      "[...document.querySelectorAll('tbody tr')].every(e=>e.textContent.includes('Lỗi kết nối'))",
+    const navigate = async (query = "") => {
+      await send("Page.navigate", { url: origin + "/fixture" + query });
+      await until("!!document.querySelector('[data-carrier-table-container]')");
+    };
+    await viewport(1440, 900);
+    await navigate();
+    await until("document.querySelectorAll('tbody tr').length===10");
+    checks.step("CARRIER_V2_FILTERS_PAGES_AND_CONTROL_FLOW");
+    assert.equal(
+      await evaluate(
+        "document.querySelectorAll('[data-carrier-command-deck] header button').length",
+      ),
+      3,
     );
     assert.equal(
       await evaluate(
-        "document.querySelector('[aria-label=\"Bộ lọc đang áp dụng\"]').textContent.includes('Hãng B')",
+        "document.querySelectorAll('[data-carrier-toolbar] select').length",
+      ),
+      0,
+    );
+    await select("Số dòng tài khoản mỗi trang", "50");
+    await until("document.querySelectorAll('tbody tr').length===27");
+    const fixedBefore = await evaluate(
+      "({head:document.querySelector('thead').getBoundingClientRect().top,footer:document.querySelector('[data-carrier-pagination]').getBoundingClientRect().top})",
+    );
+    await evaluate("document.querySelector('[role=region]').scrollTop=120");
+    const fixedAfter = await evaluate(
+      "({head:document.querySelector('thead').getBoundingClientRect().top,footer:document.querySelector('[data-carrier-pagination]').getBoundingClientRect().top,scroll:document.querySelector('[role=region]').scrollTop})",
+    );
+    assert.ok(
+      fixedAfter.scroll > 0 &&
+        Math.abs(fixedBefore.head - fixedAfter.head) < 1 &&
+        fixedBefore.footer === fixedAfter.footer,
+      "sticky header/fixed footer during real body scroll",
+    );
+    await select("Số dòng tài khoản mỗi trang", "10");
+    await until("document.querySelectorAll('tbody tr').length===10");
+    await click("Trang sau tài khoản");
+    await until("document.querySelector('tbody tr td').textContent==='11'");
+    await select("Số dòng tài khoản mỗi trang", "5");
+    await until("document.querySelectorAll('tbody tr').length===5");
+    await click("Trang cuối tài khoản");
+    await until("document.querySelector('tbody tr td').textContent==='26'");
+    await click("Trang đầu tài khoản");
+    await click("Thêm điều kiện lọc");
+    await until("!!document.querySelector('[role=dialog] select')");
+    // Native select and genuine keyboard submission; no product network operation.
+    await evaluate(
+      "(()=>{const e=document.querySelector('[role=dialog] select:last-of-type');e.value='fixture-b';e.dispatchEvent(new Event('change',{bubbles:true}))})()",
+    );
+    await pointer("[role=dialog] button[type=submit]");
+    await until(
+      "!document.querySelector('[role=dialog] select') && [...document.querySelectorAll('tbody tr')].every(e=>e.textContent.includes('Hãng B'))",
+    );
+    await click("Thêm điều kiện lọc");
+    await until("!!document.querySelector('[role=dialog]')");
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[role=dialog] button[type=submit]').disabled",
       ),
       true,
+      "duplicate prevented",
     );
-    await click("Đặt lại bộ lọc");
-    await select("Số dòng tài khoản mỗi trang", "20");
-    await until("document.querySelectorAll('tbody tr').length===20");
-
+    await key("Escape");
+    await until("!document.querySelector('[role=dialog]')");
+    await click("Xóa tất cả");
     await input(
       'input[aria-label="Tìm tài khoản kết nối"]',
       "no-matching-carrier",
     );
-    await until(
-      "document.querySelector('tbody').textContent.includes('Không có kết quả')",
+    await until("document.querySelectorAll('tbody tr').length===0");
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[data-carrier-connections] [role=status]').textContent.includes('Không tìm thấy tài khoản hãng phù hợp')",
+      ),
+      true,
     );
-    await click("Đặt lại bộ lọc");
-    await until("document.querySelectorAll('tbody tr').length===20");
-    await click("KẾT NỐI HÃNG MỚI");
-    await until(
-      "!!document.querySelector('dialog[open] input[type=password]')",
+    await input('input[aria-label="Tìm tài khoản kết nối"]', "");
+    await until("document.querySelectorAll('tbody tr').length===5");
+    // Each row menu action remains reachable after horizontal scrolling, then returns focus.
+    await firstMenu("Chỉnh sửa tài khoản");
+    assert.equal(
+      await evaluate("document.querySelector('input[type=password]').value"),
+      "",
     );
-    await click("Kiểm tra thông tin");
-    await until("document.querySelectorAll('[aria-invalid=true]').length===3");
     await focusContained();
-    await capture("form-validation");
+    await key("Escape");
+    await until("!document.querySelector('dialog[open]')");
+    await click("Kết nối hãng mới");
+    await until("!!document.querySelector('input[type=password]')");
+    for (const name of ["displayName", "loginIdentifier", "password"])
+      await evaluate(
+        `(()=>{const e=document.querySelector('input[name="${name}"]');e.focus();e.blur()})()`,
+      );
+    await until("document.querySelectorAll('[aria-invalid=true]').length===3");
     for (const [name, value] of [
       ["displayName", "Local draft"],
       ["loginIdentifier", "draft-user"],
       ["password", "test-only-unsaved"],
     ])
-      await input(`input[name=${name}]`, value);
-    await click("Kiểm tra thông tin");
-    await until(
-      "document.querySelector('[role=alert]')?.textContent.includes('Chưa thể lưu')",
+      await input("input[name=" + name + "]", value);
+    assert.equal(
+      await evaluate(
+        "[...document.querySelectorAll('dialog button')].find(e=>e.textContent.includes('Kích hoạt')).disabled",
+      ),
+      true,
     );
     await key("Escape");
     await until("!document.querySelector('dialog[open]')");
-    await click("KẾT NỐI HÃNG MỚI");
+    await click("Kết nối hãng mới");
     await until("!!document.querySelector('input[type=password]')");
     assert.equal(
       await evaluate("document.querySelector('input[type=password]').value"),
       "",
     );
     await key("Escape");
-    const firstAction = async (action) => {
-      await evaluate(
-        `document.querySelector('tbody button[aria-label^="${action}"]').click()`,
-      );
-      await until("!!document.querySelector('dialog[open]')");
-    };
-    await firstAction("Chỉnh sửa");
-    assert.equal(
-      await evaluate("document.querySelector('input[type=password]').value"),
-      "",
+    await navigate("?parity");
+    await until("document.querySelectorAll('tbody tr').length===3");
+    await openSurface("sync-schedule");
+    const initial = await evaluate(
+      "document.querySelector('[role=switch]').getAttribute('aria-checked')",
     );
-    assert.equal(
-      await evaluate(
-        "!!document.querySelector('input[name=displayName]').value",
-      ),
-      true,
-    );
-    await key("Escape");
-    await firstAction("Chi tiết");
-    await capture("details");
-    await key("Escape");
-    await firstAction("Ngắt kết nối");
-    assert.equal(
-      await evaluate(
-        "[...document.querySelectorAll('dialog[open] button')].some(e=>e.disabled&&e.textContent.includes('Ngắt'))",
-      ),
-      true,
-    );
-    await key("Escape");
-    await firstAction("Đồng bộ");
-    await capture("sync-status");
-    await click("Xem tiến độ");
-    await until("document.querySelectorAll('dialog[open]').length===2");
-    await focusContained();
-    await capture("sync-inspect");
-    await key("Escape");
-    await until("document.querySelectorAll('dialog[open]').length===1");
-    await click("Xem lỗi");
-    await until("document.querySelectorAll('dialog[open]').length===2");
-    assert.equal(
-      await evaluate(
-        "[...document.querySelectorAll('dialog[open]')].at(-1).textContent.includes('Chi tiết lỗi')",
-      ),
-      true,
-    );
-    await key("Escape");
-    await until("document.querySelectorAll('dialog[open]').length===1");
-    await click("Lịch tự động");
-    await capture("sync-schedule");
-    await evaluate(
-      "document.querySelector('dialog[open] input[type=checkbox]').click()",
+    await evaluate("document.querySelector('[role=switch]').click()");
+    await until(
+      "document.querySelector('[aria-label=\"Có thay đổi chưa lưu\"]')!==null",
     );
     await click("Lịch sử đồng bộ");
-    await until("document.querySelectorAll('dialog[open] ol li').length===40");
-    assert.equal(
-      await evaluate(
-        "document.querySelector('dialog[open] [role=tabpanel]').scrollTop",
-      ),
-      0,
-      "new tab opens at its heading",
+    await until(
+      "!!document.querySelector('select[aria-label=\"Lọc lịch sử đồng bộ\"]')",
     );
-    await capture("sync-history");
+    assert.equal(
+      await evaluate("document.querySelector('[role=tabpanel]').scrollTop"),
+      0,
+    );
     assert.equal(
       await evaluate(
-        "(()=>{const e=document.querySelector('dialog[open] [role=tabpanel]');e.scrollTop=e.scrollHeight;return e.scrollTop>0})()",
+        "document.querySelectorAll('button[aria-label^=\"Chi tiết lịch sử\"]').length",
       ),
-      true,
-      "history scrolls within fixed drawer",
+      4,
+    );
+    await click("Trang sau lịch sử");
+    await until(
+      "!!document.querySelector('button[aria-label=\"Chi tiết lịch sử 5\"]')",
     );
     await select("Lọc lịch sử đồng bộ", "failed");
     await until(
-      "document.querySelectorAll('dialog[open] ol li').length>0 && document.querySelectorAll('dialog[open] ol li').length<40",
+      "document.querySelectorAll('button[aria-label^=\"Chi tiết lịch sử\"]').length===2",
     );
-    await key("Escape");
-    await until("!document.querySelector('dialog[open]')");
-    await firstAction("Đồng bộ");
-    await click("Lịch tự động");
+    await input(
+      'input[aria-label="Khoảng ngày lịch sử"]',
+      "31/02/2026 - 01/03/2026",
+    );
+    await until(
+      "document.querySelector('input[aria-label=\"Khoảng ngày lịch sử\"]').getAttribute('aria-invalid')==='true'",
+    );
     assert.equal(
       await evaluate(
-        "document.querySelector('dialog[open] input[type=checkbox]').checked",
+        "[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='Lọc lại').disabled",
       ),
-      false,
-      "unsaved schedule discarded on close",
+      true,
     );
     await key("Escape");
+    await until("document.querySelectorAll('dialog[open]').length===2");
+    await focusContained();
+    await click("Tiếp tục chỉnh sửa");
+    await until("document.querySelectorAll('dialog[open]').length===1");
+    await click("Lịch tự động");
+    assert.notEqual(
+      await evaluate(
+        "document.querySelector('[role=switch]').getAttribute('aria-checked')",
+      ),
+      initial,
+    );
+    await key("Escape");
+    await until("document.querySelectorAll('dialog[open]').length===2");
+    await click("Bỏ thay đổi");
+    await until("!document.querySelector('dialog[open]')");
+    await openSurface("sync-schedule");
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[role=switch]').getAttribute('aria-checked')",
+      ),
+      initial,
+    );
+    await key("Escape");
+    // Source-derived contract records original ZIP geometry, never the implementation's geometry.
+    const contract = JSON.parse(
+      await readFile(
+        resolve("apps/web/test/fixtures/carrier-zip-geometry.json"),
+        "utf8",
+      ),
+    );
+    assert.equal(
+      contract.zipSha256,
+      "6912f4917756a1c3393e48b34f63f350464cb068351a377c2efb9d5cde6d5a52",
+    );
+    checks.step("CARRIER_V2_SOURCE_BACKED_SIX_VIEWPORT_MATRIX");
+    for (const [width, height] of [
+      [1440, 900],
+      [1280, 800],
+      [1024, 768],
+      [768, 1024],
+      [390, 844],
+      [375, 812],
+    ])
+      for (const surface of [
+        "list",
+        "filter",
+        "actions",
+        "create",
+        "edit",
+        "details",
+        "disconnect",
+        "sync-status",
+        "sync-schedule",
+        "sync-history",
+        "sync-expanded",
+        "progress",
+        "error",
+        "history-details",
+      ]) {
+        await viewport(width, height);
+        await navigate("?parity");
+        await until("document.querySelectorAll('tbody tr').length===3");
+        await openSurface(surface);
+        if (["progress", "error", "history-details"].includes(surface)) {
+          await until("document.querySelectorAll('dialog[open]').length===2");
+          await focusContained();
+        }
+        const size = contract.sizes.find(
+          (s) => s.width === width && s.height === height,
+        );
+        const referenceSurface = contract.surfaces.find(
+          (s) => s.surface === surface,
+        );
+        assert.ok(size && referenceSurface, "source capture membership");
+        const sourceIndex = contract.sizes.indexOf(size);
+        const expected = {
+          deck: { height: size.deckHeight },
+          columns: size.columnWidths.map((width) => ({ width })),
+          rows: size.rowHeights.map((height) => ({ height })),
+          frame: referenceSurface.frameWidths[sourceIndex]
+            ? { width: referenceSurface.frameWidths[sourceIndex] }
+            : null,
+        };
+        await capture(surface, width, height, expected);
+      }
+    await viewport(1440, 900);
+    await navigate("?parity");
+    await until("document.querySelectorAll('tbody tr').length===3");
+    const primarySelector =
+      "[data-carrier-command-deck] header button:last-child";
+    const primaryDefault = await evaluate(
+      `getComputedStyle(document.querySelector(${JSON.stringify(primarySelector)})).backgroundColor`,
+    );
+    const hoverPoint = await evaluate(
+      `(()=>{const r=document.querySelector(${JSON.stringify(primarySelector)}).getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()`,
+    );
+    await send("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      ...hoverPoint,
+    });
+    await until(
+      `getComputedStyle(document.querySelector(${JSON.stringify(primarySelector)})).backgroundColor!==${JSON.stringify(primaryDefault)}`,
+    );
+    await capture("primary-hover", 1440, 900);
+    await evaluate(
+      `document.querySelector(${JSON.stringify(primarySelector)}).focus()`,
+    );
+    await key("Tab", true);
+    await key("Tab");
+    assert.equal(
+      await evaluate(
+        `document.querySelector(${JSON.stringify(primarySelector)}).matches(':focus-visible')`,
+      ),
+      true,
+      "real keyboard focus",
+    );
+    await capture("primary-focus", 1440, 900);
+    await navigate("?empty");
+    await until("document.querySelectorAll('tbody tr').length===0");
     assert.equal(
       await evaluate("localStorage.length===0 && sessionStorage.length===0"),
       true,
-      "fixture drafts are never persisted",
+      "fixture drafts never persisted",
     );
     assert.deepEqual(badRequests, []);
     assert.deepEqual(errors, []);
-    checks.step("CARRIER_UI_ONLY_AND_DRAWERS_PASS");
+    checks.step("CARRIER_V2_UI_ONLY_AND_PARITY_REGRESSIONS_PASS");
   } finally {
     socket.removeEventListener("message", listener);
     try {

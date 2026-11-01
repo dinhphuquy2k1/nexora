@@ -2144,3 +2144,9 @@ deferred. No public production deployment evidence or merge is claimed.
 Shipping Scope integration and overall M4 remain pending; this does not complete
 M4–M5 or change prior immutable snapshots. Task033 records actual verification and
 UI-only acceptance independently of backend readiness.
+
+Carrier correction checkpoint: NEXORA-033 v2 on existing PR31 restores source ZIP
+command deck, advanced filters, seven-column table, split actions and complete
+readonly sync surfaces. This is a UI-only correction; overall M4/Shipping Scope/API
+integration and M5 remain pending. Task033/PR31 own current exact-head visual,
+regression and hosted evidence; the rejected v1 CI does not establish ZIP parity.

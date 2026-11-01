@@ -556,3 +556,30 @@ logout, credentials or a backend mutation as a readiness probe. Retail preset
 pointer checks wait viewport frames before measuring and await the unchanged
 expected20-column state after one click; stale SSR/layout reads must not replace
 actual client interaction evidence.
+
+### Carrier v2 source-backed correction acceptance
+
+NEXORA-033 v2 replaces obsolete direct-provider/status-select/no-divider/demo-sync
+assertions with the original ZIP hierarchy. The native Carrier tests protect
+combined presentation statuses, AND/not/contains/duplicate filters, unknown
+environment, local validation, safe timestamps, dirty schedule comparison and
+strict history date ranges. Browser checks use the same compiled production TSX
+and genuine pointer/native keyboard behavior, with a separate27-row stress fixture
+and an exact three-account/eight-stream/twelve-history-entry reference fixture.
+
+The compact carrier-zip-geometry.json is source-derived test specification: six
+normalized workspace bounds and14 principal surfaces from the verified ZIP
+6912f4917756a1c3393e48b34f63f350464cb068351a377c2efb9d5cde6d5a52. It records
+reference deck/columns/rows/overlay widths, not a candidate-generated baseline.
+CI must assert expected surface membership and geometry; candidate screenshots
+alone do not establish parity. Native32px targets account for the documented4px
+action-width/footer delta from ZIP28/30px targets. Missing capture/state or failed
+assertion is a failure, never a skipped green. Keep actual default/hover/focus/
+selected/disabled inspection distinct from source read-only initial-state capture.
+
+External ZIP rendering changes only initial state/DOM markers and mandatory
+font/workspace normalization, without invoking its simulated export/save/jobs.
+Pair all14 principal surfaces at1440×900,1280×800,1024×768,768×1024,390×844,375×812;
+compare identical per-account stream states, not one running stream on every row.
+Generated paired PNGs/manifests remain ignored/14-day artifacts; source hashes and
+compact geometry remain text. Historical v1 SUCCESS is not v2 acceptance evidence.

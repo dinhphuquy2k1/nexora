@@ -1,27 +1,31 @@
 "use client";
 import { useId, useState } from "react";
-import {
-  Button,
-  Checkbox,
-  Overlay,
-  Select,
-  StatusBadge,
-  TabBar,
-} from "@nexora/ui";
-import { Package, Users, Clock, History, RefreshCw } from "lucide-react";
+import { Button, Overlay, TabBar } from "@nexora/ui";
+import { RefreshCw, SlidersHorizontal, Clock } from "lucide-react";
 import type {
   CarrierConnectionRow,
-  SyncHistoryEntry,
-  SyncItem,
   SyncPresentation,
+  SyncItem,
 } from "./types.ts";
-import { UNAVAILABLE, displayTime, SYNC_LABELS } from "./presentation.ts";
+import { UNAVAILABLE } from "./presentation.ts";
+import {
+  UNAVAILABLE_SYNC_ITEMS,
+  initialSchedule,
+  scheduleDirty,
+} from "./sync-presentation.ts";
+import { ConnectionBadge } from "./CarrierConnectionList.tsx";
 import { CarrierDrawerFrame } from "./CarrierConnectionDrawer.tsx";
+import {
+  SyncStatusPanel,
+  SyncSchedulePanel,
+  SyncHistoryPanel,
+  type HistoryQuery,
+} from "./CarrierSyncPanels.tsx";
+import {
+  CarrierSyncInspection,
+  type SyncInspection,
+} from "./CarrierSyncInspection.tsx";
 import styles from "./carrier-connections.module.css";
-const unavailableItems: readonly SyncItem[] = [
-  { id: "shipment", label: "Kiện hàng", state: "unavailable" },
-  { id: "customer", label: "Khách hàng", state: "unavailable" },
-];
 export function CarrierDataSyncDrawer({
   row,
   data,
@@ -31,69 +35,123 @@ export function CarrierDataSyncDrawer({
   data?: SyncPresentation;
   onClose: () => void;
 }) {
-  const id = useId();
-  const [tab, setTab] = useState<"status" | "schedule" | "history">("status");
-  const [schedule, setSchedule] = useState<
-    Record<string, { enabled: boolean; interval: string }>
-  >({});
-  const [historyState, setHistoryState] = useState("all");
-  const [inspect, setInspect] = useState<{
-    title: string;
-    detail: string;
-    state: SyncItem["state"];
-  } | null>(null);
-  const items = data?.items ?? unavailableItems;
-  const history = (data?.history ?? []).filter(
-    (entry) => historyState === "all" || entry.state === historyState,
-  );
-  const inspectHistory = (entry: SyncHistoryEntry) =>
-    setInspect({
-      title: "Chi tiết lịch sử đồng bộ",
-      detail: entry.detail,
-      state: entry.state,
+  const id = useId(),
+    [tab, setTab] = useState<"status" | "schedule" | "history">("status"),
+    [expanded, setExpanded] = useState(false),
+    [inspection, setInspection] = useState<SyncInspection | null>(null),
+    [discard, setDiscard] = useState(false);
+  const items = data?.items ?? UNAVAILABLE_SYNC_ITEMS,
+    [base] = useState(() => initialSchedule(items)),
+    [draft, setDraft] = useState(base),
+    dirty = scheduleDirty(base, draft),
+    [history, setHistory] = useState<HistoryQuery>({
+      type: "all",
+      state: "all",
+      range: data?.historyRange ?? "",
+      appliedRange: data?.historyRange ?? "",
+      page: 1,
     });
+  const shown = expanded ? items : items.slice(0, 2);
+  const requestClose = () => {
+    if (dirty) setDiscard(true);
+    else onClose();
+  };
+  const inspect = (kind: "progress" | "error", item: SyncItem) =>
+    setInspection({ kind, item });
+  let footer;
+  if (tab === "schedule")
+    footer = (
+      <>
+        <span className={dirty ? styles.dirtyIndicator : styles.muted}>
+          {dirty ? "Có thay đổi chưa lưu" : "Chưa tích hợp cấu hình"}
+        </span>
+        <div className={styles.actions}>
+          <Button
+            variant="secondary"
+            disabled={!dirty}
+            onClick={() => setDraft(base)}
+          >
+            Hủy
+          </Button>
+          <Button variant="emphasis" disabled title={UNAVAILABLE}>
+            Lưu cấu hình
+          </Button>
+        </div>
+      </>
+    );
+  else if (tab === "history")
+    footer = (
+      <>
+        <span className={styles.muted}>
+          Tổng cộng: <strong>{data ? data.history.length : "—"}</strong> phiên
+          đồng bộ
+        </span>
+        <Button variant="secondary" onClick={requestClose}>
+          Đóng
+        </Button>
+      </>
+    );
+  else
+    footer = (
+      <>
+        <span className={styles.muted}>Đồng bộ dữ liệu chưa khả dụng</span>
+        <Button variant="secondary" onClick={requestClose}>
+          Đóng
+        </Button>
+      </>
+    );
   return (
     <>
       <CarrierDrawerFrame
-        title="Quản lý đồng bộ dữ liệu"
-        subtitle={row?.displayName ?? "Chưa chọn tài khoản kết nối"}
-        onClose={onClose}
-        footer={
-          <Button disabled title={UNAVAILABLE}>
-            <RefreshCw size={14} />
-            Đồng bộ ngay
-          </Button>
+        title={`Đồng bộ dữ liệu - ${row?.providerName ?? "—"}`}
+        subtitle={
+          row
+            ? `${row.displayName} · ${row.loginIdentifier ?? "—"}`
+            : "Chưa chọn tài khoản kết nối"
         }
+        status={row ? <ConnectionBadge row={row} /> : undefined}
+        onClose={requestClose}
+        footer={footer}
       >
-        <TabBar
-          items={[
-            {
-              id: "status",
-              title: "Trạng thái đồng bộ",
-              icon: <RefreshCw size={16} />,
-            },
-            {
-              id: "schedule",
-              title: "Lịch tự động",
-              icon: <Clock size={16} />,
-            },
-            {
-              id: "history",
-              title: "Lịch sử đồng bộ",
-              icon: <History size={16} />,
-            },
-          ]}
-          value={tab}
-          onValueChange={setTab}
-          idPrefix={id}
-          panelId={`${id}-panel`}
-          ariaLabel="Nội dung đồng bộ dữ liệu"
-        />
+        <div className={styles.syncTabs}>
+          <TabBar
+            items={[
+              {
+                id: "status",
+                title: "Trạng thái đồng bộ",
+                icon: <RefreshCw size={16} />,
+              },
+              {
+                id: "schedule",
+                title: "Lịch tự động",
+                icon: <SlidersHorizontal size={16} />,
+              },
+              {
+                id: "history",
+                title: "Lịch sử đồng bộ",
+                icon: <Clock size={16} />,
+              },
+            ]}
+            value={tab}
+            onValueChange={setTab}
+            idPrefix={id}
+            panelId={id + "panel"}
+            ariaLabel="Nội dung đồng bộ dữ liệu"
+            renderTrailing={(item) =>
+              item.id === "schedule" && dirty ? (
+                <span
+                  className={styles.dirtyDot}
+                  aria-label="Có thay đổi chưa lưu"
+                />
+              ) : null
+            }
+          />
+        </div>
         <div
-          key={tab}
           className={styles.drawerBody}
+          key={tab}
+          id={id + "panel"}
           role="tabpanel"
-          id={`${id}-panel`}
           aria-label={
             {
               status: "Trạng thái đồng bộ",
@@ -102,191 +160,57 @@ export function CarrierDataSyncDrawer({
             }[tab]
           }
         >
-          <p className={styles.notice}>{UNAVAILABLE}</p>
           {tab === "status" && (
-            <section>
-              <h3>Các loại dữ liệu</h3>
-              <p className={styles.muted}>
-                Trạng thái và tiến độ chỉ được hiển thị khi có nguồn dữ liệu.
-              </p>
-              <div className={styles.syncList}>
-                {items.map((item, index) => (
-                  <article key={item.id} className={styles.syncItem}>
-                    <div className={styles.syncHeading}>
-                      {index % 2 ? <Users size={18} /> : <Package size={18} />}
-                      <strong>{item.label}</strong>
-                      <StatusBadge
-                        ok={item.state === "completed" ? true : null}
-                      >
-                        {SYNC_LABELS[item.state]}
-                      </StatusBadge>
-                    </div>
-                    <p>
-                      Lần thành công:{" "}
-                      <strong>{displayTime(item.lastSuccess)}</strong>
-                    </p>
-                    {item.progress !== undefined && (
-                      <div className={styles.progress}>
-                        <label htmlFor={`${id}-${item.id}`}>
-                          Tiến độ: {Math.min(100, Math.max(0, item.progress))}%
-                        </label>
-                        <progress
-                          id={`${id}-${item.id}`}
-                          max={100}
-                          value={Math.min(100, Math.max(0, item.progress))}
-                        />
-                        <span>
-                          {item.processed ?? "—"} / {item.total ?? "—"} bản ghi
-                        </span>
-                      </div>
-                    )}
-                    <div className={styles.syncActions}>
-                      <Button disabled title={UNAVAILABLE}>
-                        Đồng bộ ngay
-                      </Button>
-                      {item.detail && (
-                        <Button
-                          variant="secondary"
-                          pressEffect="none"
-                          onClick={() =>
-                            setInspect({
-                              title:
-                                item.state === "failed"
-                                  ? "Chi tiết lỗi đồng bộ"
-                                  : "Chi tiết tiến độ đồng bộ",
-                              detail: item.detail!,
-                              state: item.state,
-                            })
-                          }
-                        >
-                          {item.state === "failed" ? "Xem lỗi" : "Xem tiến độ"}
-                        </Button>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
+            <SyncStatusPanel
+              items={shown}
+              expanded={expanded}
+              hasData={!!data}
+              onExpanded={() => setExpanded((v) => !v)}
+              onInspect={inspect}
+            />
+          )}{" "}
           {tab === "schedule" && (
-            <section>
-              <h3>Lịch đồng bộ tự động</h3>
-              <p>
-                Chỉ là bản nháp trên màn hình; lịch chưa được lưu hoặc thực thi.
-              </p>
-              <div className={styles.syncList}>
-                {items.map((item) => {
-                  const value = schedule[item.id] ?? {
-                    enabled: false,
-                    interval: "60",
-                  };
-                  return (
-                    <section key={item.id} className={styles.syncItem}>
-                      <h4>{item.label}</h4>
-                      <Checkbox
-                        checked={value.enabled}
-                        onChange={(e) =>
-                          setSchedule((previous) => ({
-                            ...previous,
-                            [item.id]: { ...value, enabled: e.target.checked },
-                          }))
-                        }
-                      >
-                        Bật tự động cho {item.label}
-                      </Checkbox>
-                      <label className={styles.interval}>
-                        Chu kỳ
-                        <Select
-                          aria-label={`Chu kỳ ${item.label}`}
-                          value={value.interval}
-                          onChange={(e) =>
-                            setSchedule((previous) => ({
-                              ...previous,
-                              [item.id]: { ...value, interval: e.target.value },
-                            }))
-                          }
-                        >
-                          <option value="15">15 phút</option>
-                          <option value="30">30 phút</option>
-                          <option value="60">60 phút</option>
-                          <option value="daily">Mỗi ngày</option>
-                        </Select>
-                      </label>
-                      <p>Chạy tiếp theo: —</p>
-                    </section>
-                  );
-                })}
-              </div>
-              <Button disabled title={UNAVAILABLE}>
-                Lưu cấu hình chưa khả dụng
-              </Button>
-            </section>
-          )}
+            <SyncSchedulePanel
+              items={shown}
+              draft={draft}
+              onChange={(key, value) =>
+                setDraft((d) => ({ ...d, [key]: value }))
+              }
+            />
+          )}{" "}
           {tab === "history" && (
-            <section>
-              <div className={styles.historyHeading}>
-                <h3>Lịch sử đồng bộ</h3>
-                <Select
-                  aria-label="Lọc lịch sử đồng bộ"
-                  value={historyState}
-                  onChange={(e) => setHistoryState(e.target.value)}
-                >
-                  <option value="all">Tất cả trạng thái</option>
-                  {Object.entries(SYNC_LABELS).map(([state, label]) => (
-                    <option key={state} value={state}>
-                      {label}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              {!history.length ? (
-                <p className={styles.emptyHistory}>
-                  Chưa có dữ liệu lịch sử đồng bộ.
-                </p>
-              ) : (
-                <ol className={styles.history}>
-                  {history.map((entry) => (
-                    <li key={entry.id}>
-                      <div>
-                        <strong>{entry.dataType}</strong>
-                        <span>
-                          {entry.time} · {entry.source}
-                        </span>
-                        <span>
-                          {SYNC_LABELS[entry.state]} · {entry.records ?? "—"}{" "}
-                          bản ghi
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        pressEffect="none"
-                        aria-label={`Chi tiết lịch sử ${entry.id}`}
-                        onClick={() => inspectHistory(entry)}
-                      >
-                        Chi tiết
-                      </Button>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
+            <SyncHistoryPanel
+              data={data}
+              query={history}
+              onChange={(patch) => setHistory((h) => ({ ...h, ...patch }))}
+              onInspect={(item) => setInspection({ kind: "history", item })}
+            />
           )}
         </div>
       </CarrierDrawerFrame>
-      {inspect && (
-        <Overlay open onDismiss={() => setInspect(null)} label={inspect.title}>
-          <h2>{inspect.title}</h2>
-          <StatusBadge ok={inspect.state === "completed" ? true : null}>
-            {SYNC_LABELS[inspect.state]}
-          </StatusBadge>
-          <p className={styles.inspection}>{inspect.detail}</p>
-          <Button
-            variant="secondary"
-            pressEffect="none"
-            onClick={() => setInspect(null)}
-          >
-            Đóng chi tiết
-          </Button>
+      {inspection && (
+        <CarrierSyncInspection
+          inspection={inspection}
+          onClose={() => setInspection(null)}
+        />
+      )}{" "}
+      {discard && (
+        <Overlay
+          open
+          onDismiss={() => setDiscard(false)}
+          label="Thay đổi chưa lưu"
+          className={styles.discardModal}
+        >
+          <h2>Thay đổi cấu hình lịch chưa lưu</h2>
+          <p>Bản nháp chưa được lưu. Bạn có chắc muốn đóng và bỏ thay đổi?</p>
+          <div className={styles.actions}>
+            <Button variant="secondary" onClick={() => setDiscard(false)}>
+              Tiếp tục chỉnh sửa
+            </Button>
+            <Button variant="emphasis" onClick={onClose}>
+              Bỏ thay đổi
+            </Button>
+          </div>
         </Overlay>
       )}
     </>

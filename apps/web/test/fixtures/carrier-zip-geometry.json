@@ -1,0 +1,119 @@
+{
+  "zipSha256": "6912f4917756a1c3393e48b34f63f350464cb068351a377c2efb9d5cde6d5a52",
+  "source": "Original ZIP modules with only initial-state adapters; mandatory Inter font and identical workspace bounds. Original mutation handlers not executed.",
+  "capturedAt": "2026-11-01",
+  "sizes": [
+    {
+      "width": 1440,
+      "height": 900,
+      "deckHeight": 162.65625,
+      "columnWidths": [
+        45.484375, 190, 180, 136.03125, 240, 241.46875, 189.046875
+      ],
+      "rowHeights": [68.5, 64, 63.5]
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "deckHeight": 162.65625,
+      "columnWidths": [
+        45.484375, 190, 180, 136.03125, 240, 241.46875, 189.046875
+      ],
+      "rowHeights": [68.5, 64, 63.5]
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "deckHeight": 206.65625,
+      "columnWidths": [
+        45.484375, 190, 180, 136.03125, 240, 241.46875, 189.046875
+      ],
+      "rowHeights": [68.5, 64, 63.5]
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "deckHeight": 206.65625,
+      "columnWidths": [
+        45.484375, 190, 180, 136.03125, 240, 241.46875, 189.046875
+      ],
+      "rowHeights": [68.5, 64, 63.5]
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "deckHeight": 244.65625,
+      "columnWidths": [
+        45.484375, 190, 180, 136.03125, 240, 241.46875, 189.046875
+      ],
+      "rowHeights": [68.5, 64, 63.5]
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "deckHeight": 244.65625,
+      "columnWidths": [
+        45.484375, 190, 180, 136.03125, 240, 241.46875, 189.046875
+      ],
+      "rowHeights": [68.5, 64, 63.5]
+    }
+  ],
+  "surfaces": [
+    {
+      "surface": "list",
+      "frameWidths": [null, null, null, null, null, null]
+    },
+    {
+      "surface": "filter",
+      "frameWidths": [null, null, null, null, null, null]
+    },
+    {
+      "surface": "actions",
+      "frameWidths": [null, null, null, null, null, null]
+    },
+    {
+      "surface": "create",
+      "frameWidths": [512, 512, 512, 512, 390, 375]
+    },
+    {
+      "surface": "edit",
+      "frameWidths": [512, 512, 512, 512, 390, 375]
+    },
+    {
+      "surface": "details",
+      "frameWidths": [512, 512, 512, 512, 366, 351]
+    },
+    {
+      "surface": "disconnect",
+      "frameWidths": [384, 384, 384, 384, 358, 343]
+    },
+    {
+      "surface": "sync-status",
+      "frameWidths": [540, 540, 540, 540, 390, 375]
+    },
+    {
+      "surface": "sync-schedule",
+      "frameWidths": [540, 540, 540, 540, 390, 375]
+    },
+    {
+      "surface": "sync-history",
+      "frameWidths": [540, 540, 540, 540, 390, 375]
+    },
+    {
+      "surface": "sync-expanded",
+      "frameWidths": [540, 540, 540, 540, 390, 375]
+    },
+    {
+      "surface": "progress",
+      "frameWidths": [448, 448, 448, 448, 358, 343]
+    },
+    {
+      "surface": "error",
+      "frameWidths": [448, 448, 448, 448, 358, 343]
+    },
+    {
+      "surface": "history-details",
+      "frameWidths": [448, 448, 448, 448, 358, 343]
+    }
+  ]
+}

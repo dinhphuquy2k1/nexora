@@ -17,10 +17,10 @@ planned and logout/security unchanged. Overall M4 remains unfinished.
 
 Task ID: NEXORA-033
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-01-carrier-ui-v1
-Reviewed baseline: 1a4fe7bfcc3571219db28b833aba3a626f6e472f
-Design Snapshot: docs/tasks/design-reviews/NEXORA-033-rev-2026-11-01-carrier-ui-v1.md
-Design SHA-256: 10f55486b6c03d6d71c9209c3d23239e466bb7d12688301c307df968e3214faa
+Plan revision: rev-2026-11-01-carrier-zip-parity-v2
+Reviewed baseline: 7ed3ede2e76ed41994ab00d403a70005e9a38174
+Design Snapshot: docs/tasks/design-reviews/NEXORA-033-rev-2026-11-01-carrier-zip-parity-v2.md
+Design SHA-256: 58e5ccd5d7f55f8c605ba3587a44b08d8182544f45c348be6a2c30c1fd57c245
 
 Read-only audit and full12-section design recorded before code. NEXORA-033 absent
 from task/roadmap/revision searches; owner reserves033. ZIP raw digest matches
@@ -47,7 +47,7 @@ Aggregate/VO/transaction introduced or omitted business invariant silently.
 - [x] Account route/nested breadcrumbs; full authenticated regression pending CI.
 - [ ] Actual source ZIP/product browser comparison and six viewport acceptance.
 - [ ] Three independent rounds, full canonical checks and final-head CI.
-- [ ] Commit/push same branch, new Draft PR, final evidence metadata.
+- [ ] Commit/push same existing PR31 branch and reconcile final evidence metadata.
 
 ## Documentation Impact
 
@@ -252,3 +252,71 @@ shared UI32/32 are earlier checkpoints; final-head canonical quality must rerun 
 No apps/api, database, SDK/lockfile or immutable snapshot change. New final workflow
 run required for the layout/readiness commit; PR31 will retain complete failure
 history and exact tested merge/head/artifact provenance after completion.
+
+## Corrective ZIP parity v2 — recorded before implementation
+
+Latest owner review rejects the v1 visual simplifications despite historical green
+CI. Previous primary binding rev-2026-11-01-carrier-ui-v1 / digest10f55486b6c03d6d71c9209c3d23239e466bb7d12688301c307df968e3214faa remains immutable historical evidence.
+The new primary snapshot above records the12-section corrective plan, eight-field
+reuse matrix and source/PR file-line visual diff matrix for all13 fixes.
+Implementation and verification of this correction are pending. No prior PASS is
+evidence of the new visual contract. Reuse pre-implementation and code-review
+skills; preserve UI-only/Auth/backend boundaries. Documentation Impact REQUIRED
+owners include frontend, design-system scoped exceptions, testing and task031.
+
+### V2 implementation / verification checkpoint (2026-11-01)
+
+Implemented all13 source-audited correction areas in existing feature modules.
+Extracted feature-local filter popover, split row menu, sync panels/inspection and
+pure schedule/history helpers; shared control/Overlay/TabBar/clipboard/browser
+compiler ownership reused. No new framework, dependency, production fixture, API,
+SDK, schema, auth/session/MFA, scheduler or Shipping Scope operation. Immutable
+v1/v2 snapshots remain unchanged. New reference fixture aligns each account's
+stream state independently; production still receives no records.
+
+Root causes: v1 substituted simplified controls/layout for source hierarchy, used
+a fixed-height empty/table and fixed column contract, and tested those substituted
+shapes. V2 restores source containers/auto widths/row detail/split actions/pagination
+and full overlay hierarchy, and compares against measured source geometry. Async
+refresh/backend behavior is never simulated. A previously green workflow is not
+proof of visual parity. No prior FAIL or v1 evidence has been erased.
+
+| Claim                                 | Evidence                                                                                                                                                                                                                                                       | Date       | Result |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Verification-first source contract    | New deck/default10/filter regressions failed on baseline7ed3ede (nested deck absent, pageSize20, no advanced filter model); /tmp/carrier-v2-red.log                                                                                                            | 2026-11-01 | FAIL   |
+| Focused correction tests              | node --test apps/web/test/carrier-connections.test.mjs:13/13,0 skipped before final verification                                                                                                                                                               | 2026-11-01 | PASS   |
+| Semantic token policy exposed misuse  | First full Web test caught border roles used as fill/text/shadow; changed to semantic Carrier fill/divider/selected-shadow roles, no exception added                                                                                                           | 2026-11-01 | FAIL   |
+| Web regression after token correction | pnpm --filter @nexora/web test:200/200,8 suites,0 failed/skipped                                                                                                                                                                                               | 2026-11-01 | PASS   |
+| Actual new browser assertions         | Three initial runs exposed outdated empty-copy selector and schedule horizontal clipping; source grid min-width fixed, copy selector scoped; failed capture aborts with nonzero exit                                                                           | 2026-11-01 | FAIL   |
+| Actual local v2 browser               | Existing Chromium/CDP harness, full advanced filter/page/validation/draft disposal, dirty confirmation, calendar rejection, nested focus, no network/storage writes and84 captures against source contract: PASS; current later cosmetic changes require rerun | 2026-11-01 | PASS   |
+| Read-only source pairing              | 168 captures,14 surfaces ×6sizes ×source/candidate, original ZIP modules unchanged; initial-state adapters only, no mutation handlers; subsequent header/context fixes require recapture                                                                       | 2026-11-01 | PASS   |
+
+Independent structural Round1: no confirmed security/control-flow P1/P2; identified
+non-identical fixture stream states in stale captures, fixed before recapture.
+Visual Round2 found a P2 inline header badge/height mismatch; restored inline title
+line with mobile wrapping, context Layers icon and source environment badge.
+Round2 closure and independent regression Round3 remain pending.
+
+Mandatory differences: canonical shell/font/native32px targets/Select/Overlay;
+Uniship login/password replaces unsupported API secret; unavailable backend actions
+disabled, real production counters/environment/readiness/job claims unknown. No
+extra production availability banner/demo-sync CTA; guidance lives in empty state.
+An accessible Details entry wires the source's otherwise unreachable inspection.
+Native32px targets enlarge ZIP28/30px controls and footer by4px. Source mobile
+search clipping is constrained inside available width while preserving the single
+filter/search row and separate refresh wrap. No shared Customer/Retail CSS changed.
+
+Final source checks, visual closure, exact final-head Preflight/Foundation and
+artifact integrity are still pending at this checkpoint. Do not infer final-head
+PASS from this journal or historical7ed3ede. PR stays Draft; final tested SHA/merge
+SHA/workflow URLs belong in PR metadata after completion, without self-SHA loops.
+
+Local pre-push checkpoint: Web202/202 and shared UI32/32 PASS, Web typecheck and
+production Next/Web build PASS with documented API_INTERNAL_URL. Actual v2 CDP
+matrix rerun PASS (84 principal surface captures plus primary hover/focus), including
+sticky header/fixed footer during27-row scrolling; every screenshot password blank.
+Full root quality attempt FAIL before runtime: first invocation exposed the ambient
+pnpm11 rather than pinned10.34.6; an owned Corepack wrapper corrected the toolchain,
+then genuine Prisma generate failed DNS EAI_AGAIN for binaries.prisma.sh. No engine,
+checks or assertions bypassed; local full quality/integration NOT PASS. Canonical
+Docker/real PostgreSQL/runtime/public/data/dev and exact-head hosted CI remain open.

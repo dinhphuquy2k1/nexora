@@ -1,120 +1,225 @@
-import { Button, Select, TextInput, StatusBadge } from "@nexora/ui";
+"use client";
+import { useState, Fragment } from "react";
+import { Button, Select, TextInput } from "@nexora/ui";
 import {
-  Eye,
-  Pencil,
-  Settings,
-  Trash2,
+  Truck,
   Search,
   X,
+  Filter,
+  RefreshCw,
+  Clock,
+  Copy,
+  Check,
+  ChevronsLeft,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
   ChevronsRight,
-  Truck,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
-import type {
-  CarrierConnectionRow,
-  CarrierQuery,
-  SyncPresentation,
-} from "./types.ts";
+import { pageWindow } from "../../lib/pagination.ts";
+import { CarrierFilterPopover } from "./CarrierFilterPopover.tsx";
+import { CarrierRowActions, type RowAction } from "./CarrierRowActions.tsx";
 import {
   CARRIER_COLUMNS,
   CONNECTION_STATES,
+  FILTER_FIELDS,
+  FILTER_OPERATORS,
+  FILTER_STATUS_OPTIONS,
   SYNC_LABELS,
+  UNAVAILABLE,
   displayTime,
   latestSyncSuccess,
-  UNAVAILABLE,
   selectConnections,
 } from "./presentation.ts";
+import type {
+  CarrierConnectionRow,
+  CarrierQuery,
+  CarrierProviderPresentation,
+  CarrierFilterCondition,
+  SyncPresentation,
+} from "./types.ts";
 import styles from "./carrier-connections.module.css";
-export type RowAction = "detail" | "edit" | "sync" | "disconnect";
+export type { RowAction } from "./CarrierRowActions.tsx";
+export function CarrierLogo({
+  row,
+}: {
+  row: Pick<CarrierConnectionRow, "provider" | "preview">;
+}) {
+  return (
+    <span className={styles.logo} data-tone={row.preview?.tone ?? "primary"}>
+      {row.preview?.code ??
+        (row.provider === "uniship"
+          ? "UNI"
+          : row.provider.slice(0, 3).toUpperCase())}
+    </span>
+  );
+}
+export function ConnectionBadge({ row }: { row: CarrierConnectionRow }) {
+  return (
+    <span
+      className={styles.connectionBadge}
+      data-tone={CONNECTION_STATES[row.status].ok ? "good" : "bad"}
+    >
+      <span />
+      {row.preview?.environment === "sandbox"
+        ? "Sandbox"
+        : CONNECTION_STATES[row.status].label}
+    </span>
+  );
+}
 export function CarrierConnectionToolbar({
   query,
   providers,
+  known,
+  total,
+  allowEnvironment,
   onChange,
+  onAdd,
 }: {
   query: CarrierQuery;
-  providers: readonly { id: string; name: string }[];
+  providers: readonly CarrierProviderPresentation[];
+  known: boolean;
+  total: number;
+  allowEnvironment: boolean;
   onChange: (q: Partial<CarrierQuery>) => void;
+  onAdd: (f: CarrierFilterCondition) => boolean;
 }) {
+  const filtered =
+    !!query.search || query.conditions.length > 0 || query.tab !== "all";
+  const label = (f: CarrierFilterCondition) => {
+    if (f.field === "carrier")
+      return providers.find((p) => p.id === f.value)?.name ?? f.value;
+    if (f.field === "status")
+      return (
+        FILTER_STATUS_OPTIONS.find((s) => s.value === f.value)?.label ?? f.value
+      );
+    return f.value;
+  };
   return (
-    <div className={styles.toolbar}>
-      <label className={styles.search}>
-        <Search size={16} aria-hidden="true" />
-        <TextInput
-          aria-label="Tìm tài khoản kết nối"
-          placeholder="Tìm hãng, tên hoặc tài khoản..."
-          value={query.search}
-          onChange={(e) => onChange({ search: e.target.value })}
-        />
-      </label>
-      <Select
-        aria-label="Lọc hãng vận chuyển"
-        value={query.provider}
-        onChange={(e) => onChange({ provider: e.target.value })}
-      >
-        <option value="all">Tất cả hãng</option>
-        {providers.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </Select>
-      <Select
-        aria-label="Lọc trạng thái kết nối"
-        value={query.status}
-        onChange={(e) =>
-          onChange({ status: e.target.value as CarrierQuery["status"] })
-        }
-      >
-        <option value="all">Tất cả trạng thái</option>
-        {Object.entries(CONNECTION_STATES).map(([key, state]) => (
-          <option key={key} value={key}>
-            {state.label}
-          </option>
-        ))}
-      </Select>
-      <Button
-        variant="secondary"
-        pressEffect="none"
-        onClick={() => onChange({ search: "", provider: "all", status: "all" })}
-      >
-        Đặt lại bộ lọc
-      </Button>
-      <div className={styles.chips} aria-label="Bộ lọc đang áp dụng">
-        {query.search && (
+    <>
+      <div className={styles.toolbar} data-carrier-toolbar>
+        <div className={styles.toolbarLeft}>
+          <CarrierFilterPopover
+            conditions={query.conditions}
+            providers={providers}
+            allowEnvironment={allowEnvironment}
+            onAdd={onAdd}
+          />
+          <div className={styles.search}>
+            <Search size={14} />
+            <TextInput
+              aria-label="Tìm tài khoản kết nối"
+              value={query.search}
+              placeholder="Tìm theo tên hãng, tài khoản..."
+              maxLength={200}
+              onChange={(e) => onChange({ search: e.target.value })}
+            />
+            {query.search && (
+              <Button
+                icon
+                variant="ghost"
+                aria-label="Xóa từ khóa tìm kiếm"
+                onClick={() => onChange({ search: "" })}
+              >
+                <X size={14} />
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className={styles.toolbarRight}>
+          {filtered && (
+            <div className={styles.filterIndicator}>
+              Đang lọc <strong>({known ? total : "—"})</strong>
+              <Button
+                variant="ghost"
+                onClick={() =>
+                  onChange({ search: "", tab: "all", conditions: [] })
+                }
+              >
+                <X size={12} />
+                Xóa lọc
+              </Button>
+            </div>
+          )}
           <Button
-            variant="ghost"
-            pressEffect="none"
-            onClick={() => onChange({ search: "" })}
+            variant="secondary"
+            aria-label="Làm mới danh sách"
+            disabled
+            title={UNAVAILABLE}
           >
-            Từ khóa: {query.search}
-            <X size={14} />
+            <RefreshCw size={14} />
+            Làm mới
           </Button>
-        )}
-        {query.provider !== "all" && (
-          <Button
-            variant="ghost"
-            pressEffect="none"
-            onClick={() => onChange({ provider: "all" })}
-          >
-            Hãng: {providers.find((p) => p.id === query.provider)?.name}
-            <X size={14} />
-          </Button>
-        )}
-        {query.status !== "all" && (
-          <Button
-            variant="ghost"
-            pressEffect="none"
-            onClick={() => onChange({ status: "all" })}
-          >
-            Trạng thái: {CONNECTION_STATES[query.status].label}
-            <X size={14} />
-          </Button>
-        )}
+        </div>
       </div>
-    </div>
+      {query.conditions.length > 0 && (
+        <div className={styles.chips} aria-label="Bộ lọc đang áp dụng">
+          <span>
+            <Filter size={12} />
+            Đang áp dụng:
+          </span>
+          {query.conditions.map((f) => (
+            <span className={styles.filterChip} key={f.id}>
+              <span>{FILTER_FIELDS.find((c) => c.id === f.field)?.label}:</span>
+              <em>{FILTER_OPERATORS[f.operator]}</em>
+              <strong>{label(f)}</strong>
+              <Button
+                icon
+                variant="ghost"
+                aria-label={`Xóa điều kiện ${f.id}`}
+                onClick={() =>
+                  onChange({
+                    conditions: query.conditions.filter((c) => c.id !== f.id),
+                  })
+                }
+              >
+                <X size={12} />
+              </Button>
+            </span>
+          ))}
+          <Button variant="ghost" onClick={() => onChange({ conditions: [] })}>
+            Xóa tất cả
+          </Button>
+        </div>
+      )}
+    </>
   );
+}
+function CopyIdentifier({ value }: { value: string }) {
+  const [result, setResult] = useState<"idle" | "copied" | "failed">("idle");
+  return (
+    <>
+      <Button
+        icon
+        variant="ghost"
+        aria-label="Sao chép tên tài khoản"
+        title={result === "copied" ? "Đã sao chép" : "Sao chép tên tài khoản"}
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(value);
+            setResult("copied");
+          } catch {
+            setResult("failed");
+          }
+        }}
+      >
+        {result === "copied" ? <Check size={12} /> : <Copy size={12} />}
+      </Button>
+      {result !== "idle" && (
+        <span role="status" className={styles.srOnly}>
+          {result === "copied"
+            ? "Đã sao chép tên tài khoản"
+            : "Không thể sao chép tên tài khoản"}
+        </span>
+      )}
+    </>
+  );
+}
+function SummaryIcon({ state }: { state: import("./types.ts").SyncState }) {
+  const Icon = state === "running" ? RefreshCw : CheckCircle2;
+  if (state === "failed") return <AlertCircle size={14} />;
+  return <Icon size={14} />;
 }
 export function CarrierConnectionTable({
   model,
@@ -139,125 +244,141 @@ export function CarrierConnectionTable({
           Tài khoản kết nối hãng vận chuyển
         </caption>
         <colgroup>
-          {CARRIER_COLUMNS.map((col) => (
-            <col key={col.label} style={{ width: col.width }} />
+          {CARRIER_COLUMNS.map((c) => (
+            <col key={c.label} />
           ))}
         </colgroup>
         <thead>
           <tr>
-            {CARRIER_COLUMNS.map((col) => (
-              <th key={col.label} scope="col">
-                {col.label}
+            {CARRIER_COLUMNS.map((c) => (
+              <th
+                key={c.label}
+                scope="col"
+                style={
+                  c.sizing === "width"
+                    ? { width: c.width }
+                    : { minWidth: c.width }
+                }
+              >
+                {c.label}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {model.rows.map((row, index) => (
-            <tr key={row.id}>
+            <tr key={row.id} data-carrier-row={row.id}>
               <td>{model.start + index}</td>
               <td>
                 <div className={styles.carrierName}>
-                  <span className={styles.logo}>
-                    <Truck size={18} />
-                  </span>
-                  <strong>{row.providerName}</strong>
+                  <CarrierLogo row={row} />
+                  <div>
+                    <div className={styles.providerTitle}>
+                      <strong>{row.providerName}</strong>
+                      <span
+                        className={styles.apiTag}
+                        title="Thông tin hãng; chưa tích hợp"
+                      >
+                        API
+                      </span>
+                    </div>
+                    <span className={styles.muted}>
+                      {row.providerName} (
+                      {row.preview?.code ??
+                        (row.provider === "uniship" ? "UNI" : "—")}
+                      )
+                    </span>
+                  </div>
                 </div>
               </td>
               <td>
-                <strong className={styles.wrap}>{row.displayName}</strong>
-                <span className={styles.muted}>
-                  {row.loginIdentifier ?? "—"}
-                </span>
+                <strong className={styles.accountName} title={row.displayName}>
+                  {row.displayName}
+                </strong>
+                <div className={styles.identifier}>
+                  <span>{row.loginIdentifier ?? "—"}</span>
+                  {row.loginIdentifier && (
+                    <CopyIdentifier value={row.loginIdentifier} />
+                  )}
+                </div>
               </td>
               <td>
-                <StatusBadge ok={CONNECTION_STATES[row.status].ok}>
-                  {CONNECTION_STATES[row.status].label}
-                </StatusBadge>
+                <ConnectionBadge row={row} />
               </td>
               <td>
-                <Button
-                  variant="ghost"
-                  pressEffect="none"
-                  onClick={() => onAction("sync", row)}
-                >
-                  Quản lý đồng bộ
-                </Button>
-                {sync[row.id]?.items.length ? (
-                  <div className={styles.syncSummary}>
-                    {sync[row.id].items.slice(0, 2).map((item) => (
+                <div className={styles.syncSummary}>
+                  {sync[row.id]?.items.length ? (
+                    sync[row.id].items.slice(0, 2).map((item) => (
                       <div key={item.id}>
-                        <span>
-                          {item.label}: {SYNC_LABELS[item.state]}
+                        <span data-state={item.state}>
+                          <SummaryIcon state={item.state} />
+                          <strong>{item.label.split(" (")[0]}:</strong>{" "}
+                          <span>{SYNC_LABELS[item.state]}</span>
+                          {item.progress !== undefined
+                            ? ` ${item.progress}%`
+                            : ""}
+                          {item.state === "completed" &&
+                            item.total !== undefined && (
+                              <small>
+                                ({item.total.toLocaleString("vi-VN")})
+                              </small>
+                            )}
                         </span>
                         {item.progress !== undefined && (
                           <progress
                             aria-label={`Tiến độ ${item.label}`}
                             max={100}
-                            value={Math.min(100, Math.max(0, item.progress))}
+                            value={Math.max(0, Math.min(100, item.progress))}
                           />
                         )}
                       </div>
-                    ))}
-                    {sync[row.id].items.length > 2 && (
-                      <span className={styles.muted}>
-                        +{sync[row.id].items.length - 2} loại dữ liệu
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <span className={styles.muted}>Chưa khả dụng</span>
-                )}
-              </td>
-              <td>{displayTime(latestSyncSuccess(sync[row.id]))}</td>
-              <td>
-                <div className={styles.actions}>
-                  {(
-                    [
-                      { action: "detail", label: "Chi tiết", Icon: Eye },
-                      { action: "edit", label: "Chỉnh sửa", Icon: Pencil },
-                      { action: "sync", label: "Đồng bộ", Icon: Settings },
-                      {
-                        action: "disconnect",
-                        label: "Ngắt kết nối",
-                        Icon: Trash2,
-                      },
-                    ] as const
-                  ).map(({ action, label, Icon }) => (
-                    <Button
-                      key={action}
-                      icon
-                      variant="ghost"
-                      pressEffect="none"
-                      aria-label={`${label} ${row.displayName}`}
-                      onClick={() => onAction(action, row)}
-                    >
-                      <Icon size={14} />
-                    </Button>
-                  ))}
+                    ))
+                  ) : (
+                    <span className={styles.muted}>Chưa khả dụng</span>
+                  )}
                 </div>
+              </td>
+              <td>
+                <div className={styles.timestamp}>
+                  <span className={styles.clockIcon}>
+                    <Clock size={14} />
+                  </span>
+                  <div>
+                    <strong>
+                      {row.preview?.lastSyncDisplay ??
+                        displayTime(latestSyncSuccess(sync[row.id]))}
+                    </strong>
+                    <div className={styles.timestampMeta}>
+                      <span>{row.preview?.lastSyncRelative ?? "—"}</span>
+                      <small>· {row.preview?.lastSyncSource ?? "—"}</small>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <CarrierRowActions row={row} onAction={onAction} />
               </td>
             </tr>
           ))}
-          {!model.rows.length && (
-            <tr>
-              <td colSpan={7} className={styles.empty}>
-                <Truck size={32} />
-                <strong>
-                  {known
-                    ? "Không có kết quả phù hợp"
-                    : "Chưa tích hợp dữ liệu kết nối"}
-                </strong>
-                <span>
-                  {known
-                    ? "Thử thay đổi hoặc đặt lại bộ lọc."
-                    : "Chưa thể xác định danh sách tài khoản từ hệ thống hãng."}
-                </span>
-              </td>
-            </tr>
-          )}
         </tbody>
       </table>
+      {!model.rows.length && (
+        <div className={styles.empty} role="status">
+          <div className={styles.emptyIcon}>
+            <Truck size={20} />
+          </div>
+          <strong>
+            {known
+              ? "Không tìm thấy tài khoản hãng phù hợp"
+              : "Chưa tích hợp dữ liệu kết nối"}
+          </strong>
+          <p>
+            {known
+              ? "Không có hồ sơ nào trùng khớp với từ khóa tìm kiếm hoặc bộ lọc trạng thái hiện tại."
+              : "Chưa thể xác định danh sách tài khoản từ hệ thống hãng. Thao tác kết nối và đồng bộ chưa khả dụng."}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -270,16 +391,39 @@ export function CarrierConnectionPagination({
   known: boolean;
   onChange: (q: Partial<CarrierQuery>) => void;
 }) {
+  const pages =
+    model.totalPages <= 5
+      ? Array.from({ length: model.totalPages }, (_, i) => i + 1)
+      : pageWindow(model.page, model.totalPages);
+  const nav = (
+    label: string,
+    to: number,
+    disabled: boolean,
+    Icon: typeof ChevronLeft,
+  ) => (
+    <Button
+      icon
+      variant="secondary"
+      aria-label={label}
+      disabled={!known || disabled}
+      onClick={() => onChange({ page: to })}
+    >
+      <Icon size={14} />
+    </Button>
+  );
   return (
-    <footer className={styles.pagination}>
+    <footer className={styles.pagination} data-carrier-pagination>
       <div className={styles.summary}>
-        Hiển thị{" "}
-        <strong>
-          {known ? `${model.start}–${model.end} / ${model.total}` : "—"}
-        </strong>{" "}
-        tài khoản
+        <span>
+          Hiển thị{" "}
+          <strong>{known ? `${model.start}–${model.end}` : "—"}</strong> /{" "}
+          <strong>{known ? model.total : "—"}</strong> tài khoản
+        </span>
+        <span className={styles.separator} aria-hidden="true">
+          |
+        </span>
         <label>
-          Số dòng:
+          <span>Số dòng:</span>
           <Select
             aria-label="Số dòng tài khoản mỗi trang"
             value={model.pageSize}
@@ -295,58 +439,45 @@ export function CarrierConnectionPagination({
           </Select>
         </label>
       </div>
-      <nav className={styles.actions} aria-label="Phân trang tài khoản">
-        {(
-          [
-            {
-              label: "Trang đầu tài khoản",
-              to: 1,
-              disabled: model.page === 1,
-              Icon: ChevronsLeft,
-            },
-            {
-              label: "Trang trước tài khoản",
-              to: model.page - 1,
-              disabled: model.page === 1,
-              Icon: ChevronLeft,
-            },
-            {
-              label: "Trang sau tài khoản",
-              to: model.page + 1,
-              disabled: model.page === model.totalPages,
-              Icon: ChevronRight,
-            },
-            {
-              label: "Trang cuối tài khoản",
-              to: model.totalPages,
-              disabled: model.page === model.totalPages,
-              Icon: ChevronsRight,
-            },
-          ] as const
-        ).map(({ label, to, disabled, Icon }, index) => (
-          <span key={label}>
-            {index === 2 && (
-              <span
-                className={styles.pageNumber}
-                aria-current={known ? "page" : undefined}
+      <nav className={styles.pageButtons} aria-label="Phân trang tài khoản">
+        {nav("Trang đầu tài khoản", 1, model.page === 1, ChevronsLeft)}
+        {nav(
+          "Trang trước tài khoản",
+          model.page - 1,
+          model.page === 1,
+          ChevronLeft,
+        )}
+        {known ? (
+          pages.map((page, i) => (
+            <Fragment key={page}>
+              {i > 0 && page - pages[i - 1] > 1 && <span>…</span>}
+              <Button
+                icon
+                variant={page === model.page ? "emphasis" : "secondary"}
+                aria-label={`Trang tài khoản ${page}`}
+                aria-current={page === model.page ? "page" : undefined}
+                onClick={() => onChange({ page })}
               >
-                {known ? `${model.page} / ${model.totalPages}` : "—"}
-              </span>
-            )}
-            <Button
-              icon
-              variant="secondary"
-              pressEffect="none"
-              aria-label={label}
-              disabled={!known || disabled}
-              onClick={() => onChange({ page: to })}
-            >
-              <Icon size={14} />
-            </Button>
-          </span>
-        ))}
+                {page}
+              </Button>
+            </Fragment>
+          ))
+        ) : (
+          <span>—</span>
+        )}
+        {nav(
+          "Trang sau tài khoản",
+          model.page + 1,
+          model.page === model.totalPages,
+          ChevronRight,
+        )}
+        {nav(
+          "Trang cuối tài khoản",
+          model.totalPages,
+          model.page === model.totalPages,
+          ChevronsRight,
+        )}
       </nav>
-      <span className={styles.srOnly}>{UNAVAILABLE}</span>
     </footer>
   );
 }

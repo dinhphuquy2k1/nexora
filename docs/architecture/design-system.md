@@ -319,3 +319,27 @@ text-muted, sizes and shadows are unchanged. Native disabled planned entries are
 intentionally dimmed; there is no fake enabled destination. Profile/code/role/wallet
 and four extra ZIP actions are excluded, so full-reference menu height is not the
 product target. Shared focus rings remain visible and reduced motion is respected.
+
+## Carrier ZIP parity scope — NEXORA-033 v2
+
+Carrier composes existing Button, TextInput, Select, TabBar/count badge and Overlay;
+no shared API, global control defaults or Customer/Retail appearance changes. Keep
+32px default targets, native multiline/focus/disabled behavior and semantic tokens.
+ZIP28/30px targets become32px; provider-card choices explicitly use large48. The
+22px switch track sits inside a32px interactive Button with role=switch and an
+accessible name/checked state. Dirty dismissal uses a nested native confirmation.
+
+Scoped source exceptions belong to carrier-connections.module.css: seven-column
+auto layout with vertical cell dividers, source badges/logos, navy/rose button
+appearances, source typography and fixed overlay geometry. These do not reverse
+the Customer table divider policy. Canonical tokens.css owns Carrier rose, sky,
+purple, progress fill/divider, selected shadow and success-on-navy semantic roles;
+border tokens must not be used as fills/text/shadows. Shared control focus rings
+and hit targets remain intact. Source widths apply as width for STT/status/action
+and minimum for provider/account/sync/timestamp, rather than seven fixed columns.
+
+Read-only ZIP and candidate renders use identical fixture states, Inter font and
+workspace bounds for comparison. Actual shell acceptance independently includes
+expanded/collapsed Sidebar and mobile; normalized feature captures do not prove
+shell geometry. Unsupported environment/readiness/jobs and backend outcomes stay
+unknown/disabled in product; reference-only claims are not copied as facts.
