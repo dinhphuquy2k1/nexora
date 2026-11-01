@@ -344,3 +344,22 @@ so the centered Details width follows the source viewport-minus24px contract.
 
 No API source, fixture timeout or assertion changed for the hosted failure. Final
 follow-up head must run the full workflows;6d3a3c9 is not a passing Foundation head.
+
+### Mobile header verification-first closure
+
+A final numerical audit reopened visual P2 despite the desktop closure: at375/390,
+the shorter honest status label allowed an inline badge and70.5px header instead
+of96.75px source. Added the source-derived Sync header-height assertion first;
+actual Chromium gate failed nonzero (ZIP Sync header height). Restored the source
+badge's104px width, retaining natural wrap instead of forcing every mobile drawer
+to wrap. Actual375/390 header97.391px vs96.75px,639 boundary70.5px vs68.75px and640
+boundary74.5px vs75px; body fits. Independent reviewer reopened and closed this P2
+using the new paired metrics/images. The earlier broad visual closure is superseded
+by this checkpoint, not treated as proof that the missed state had passed.
+
+Retrospective baseline characterization separately compiled unchanged7ed3ede in an
+owned RAM source directory. The final browser gate rejected it nonzero at missing
+independent table-container marker; this is expected negative regression evidence,
+not a failure of current code and not a pre-code execution claim. Original modules
+and working branch were untouched. No false-green empty matrix is accepted: all14
+surfaces/six sizes and all four Sync header inventories are required.

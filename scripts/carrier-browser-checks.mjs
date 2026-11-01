@@ -123,7 +123,7 @@ export async function verifyCarrierBrowser({
       "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))",
     );
     const geometry = await evaluate(
-      `(()=>{const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height,bottom:r.bottom,right:r.right}};const root=document.querySelector('[data-carrier-connections]'),container=document.querySelector('[data-carrier-table-container]'),d=[...document.querySelectorAll('dialog[open]')];return {page:rect(root),deck:rect(document.querySelector('[data-carrier-command-deck]')),container:rect(container),footer:rect(document.querySelector('[data-carrier-pagination]')),columns:[...document.querySelectorAll('table th')].map(rect),rows:[...document.querySelectorAll('tbody tr')].map(rect),frame:rect(d.at(-1)),noOverflow:document.documentElement.scrollWidth<=innerWidth,verticalBorders:[...document.querySelectorAll('table th:not(:last-child),table td:not(:last-child)')].every(e=>getComputedStyle(e).borderRightWidth==='1px'),controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(rect),syncBodyFits:[...document.querySelectorAll('dialog[open] [role=tabpanel]')].every(e=>e.scrollWidth<=e.clientWidth+1)}})()`,
+      `(()=>{const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height,bottom:r.bottom,right:r.right}};const root=document.querySelector('[data-carrier-connections]'),container=document.querySelector('[data-carrier-table-container]'),d=[...document.querySelectorAll('dialog[open]')];return {page:rect(root),deck:rect(document.querySelector('[data-carrier-command-deck]')),container:rect(container),footer:rect(document.querySelector('[data-carrier-pagination]')),columns:[...document.querySelectorAll('table th')].map(rect),rows:[...document.querySelectorAll('tbody tr')].map(rect),frame:rect(d.at(-1)),frameHeader:rect(d.at(-1)?.querySelector(':scope>header')),noOverflow:document.documentElement.scrollWidth<=innerWidth,verticalBorders:[...document.querySelectorAll('table th:not(:last-child),table td:not(:last-child)')].every(e=>getComputedStyle(e).borderRightWidth==='1px'),controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(rect),syncBodyFits:[...document.querySelectorAll('dialog[open] [role=tabpanel]')].every(e=>e.scrollWidth<=e.clientWidth+1)}})()`,
     );
     assert.equal(geometry.noOverflow, true, phase + " document overflow");
     assert.equal(geometry.columns.length, 7);
@@ -177,6 +177,11 @@ export async function verifyCarrierBrowser({
         geometry.runningContrast.push({ selector, ...result });
       }
     }
+    if (expected?.frameHeaderHeight)
+      assert.ok(
+        Math.abs(geometry.frameHeader.height - expected.frameHeaderHeight) <= 3,
+        "ZIP Sync header height",
+      );
     if (expected) {
       assert.ok(
         Math.abs(geometry.deck.height - expected.deck.height) <= 2,
@@ -628,11 +633,18 @@ export async function verifyCarrierBrowser({
           (s) => s.surface === surface,
         );
         assert.ok(size && referenceSurface, "source capture membership");
+        if (surface.startsWith("sync-"))
+          assert.equal(
+            referenceSurface.frameHeaderHeights?.length,
+            6,
+            "source Sync header inventory required",
+          );
         const sourceIndex = contract.sizes.indexOf(size);
         const expected = {
           deck: { height: size.deckHeight },
           columns: size.columnWidths.map((width) => ({ width })),
           rows: size.rowHeights.map((height) => ({ height })),
+          frameHeaderHeight: referenceSurface.frameHeaderHeights?.[sourceIndex],
           frame: referenceSurface.frameWidths[sourceIndex]
             ? { width: referenceSurface.frameWidths[sourceIndex] }
             : null,

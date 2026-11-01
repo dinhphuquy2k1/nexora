@@ -1800,3 +1800,8 @@ button.switchTarget {
   margin-left: 8px;
   vertical-align: bottom;
 }
+/* Preserve the source badge's geometry even with the honest, shorter status label. */
+.drawerHeader .drawerTitleLine .connectionBadge {
+  min-width: 104px;
+  justify-content: center;
+}

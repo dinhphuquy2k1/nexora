@@ -426,6 +426,15 @@ test("ZIP geometry specification accounts for every required surface and viewpor
     ),
   );
   assert.ok(contract.surfaces.every((s) => s.frameWidths.length === 6));
+  assert.ok(
+    contract.surfaces
+      .filter((s) => s.surface.startsWith("sync-"))
+      .every(
+        (s) =>
+          s.frameHeaderHeights?.length === 6 &&
+          s.frameHeaderHeights.every((h) => Number.isFinite(h) && h > 0),
+      ),
+  );
 });
 
 test("progress inspection keeps its stream title and supplied Job ID in source header", () => {

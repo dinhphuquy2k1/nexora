@@ -89,19 +89,23 @@
     },
     {
       "surface": "sync-status",
-      "frameWidths": [540, 540, 540, 540, 390, 375]
+      "frameWidths": [540, 540, 540, 540, 390, 375],
+      "frameHeaderHeights": [75, 75, 75, 75, 96.75, 96.75]
     },
     {
       "surface": "sync-schedule",
-      "frameWidths": [540, 540, 540, 540, 390, 375]
+      "frameWidths": [540, 540, 540, 540, 390, 375],
+      "frameHeaderHeights": [75, 75, 75, 75, 96.75, 96.75]
     },
     {
       "surface": "sync-history",
-      "frameWidths": [540, 540, 540, 540, 390, 375]
+      "frameWidths": [540, 540, 540, 540, 390, 375],
+      "frameHeaderHeights": [75, 75, 75, 75, 96.75, 96.75]
     },
     {
       "surface": "sync-expanded",
-      "frameWidths": [540, 540, 540, 540, 390, 375]
+      "frameWidths": [540, 540, 540, 540, 390, 375],
+      "frameHeaderHeights": [75, 75, 75, 75, 96.75, 96.75]
     },
     {
       "surface": "progress",
