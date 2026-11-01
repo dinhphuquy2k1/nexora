@@ -543,6 +543,7 @@ export async function verifyRetailBrowser({
 
     checks.step("RETAIL_COLUMNS_PRESET_ALL");
     await click("Tất cả");
+    await until("document.querySelectorAll('colgroup col').length===20");
     assert.equal(
       await evaluate("document.querySelectorAll('colgroup col').length"),
       20,

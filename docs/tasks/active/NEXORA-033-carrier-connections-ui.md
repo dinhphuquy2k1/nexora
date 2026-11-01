@@ -192,3 +192,63 @@ captures and format/lint/boundaries/docs/preflight/typecheck/diff checks PASS.
 Immutable snapshot digest recomputed unchanged. Task remains active VERIFICATION
 PENDING / IMPLEMENTED / NOT VERIFIED until final-head mandatory checks and owner
 UI acceptance; no merge/readiness inferred from the initial governance success.
+
+### Final visual acceptance corrections
+
+Actual final-size image review reproduced two additional scoped UI defects before
+fixing them: mobile provider Select collapsed to an arrow-only32px width (new
+minimum-readable-width browser assertion FAIL), and sync status→history retained
+scrollTop351 so history heading/filter were offscreen (new scrollTop0 assertion
+FAIL). Mobile search now owns a full row and native filter selects retain140px
+minimum width. Keying only the scroll body by selected tab resets its scroll while
+parent schedule draft state remains intact. Both verification-first regressions
+then PASS with42 actual captures; independent round3 follow-up opened mobile list
+and desktop history images and confirmed the fixes/no new P1/P2.
+
+One external local driver's cleanup failed ENOTEMPTY after successful assertions;
+it used plain rm immediately after Chromium termination. Reused the repository's
+existing cleanupBrowserProfile bounded retries in that external driver and reran
+successfully. Canonical browser teardown code was already using this utility and
+was not modified. No cleanup failure is represented as a successful overall run.
+
+Intermediate headf7aa9a1c07c1987425cbbbf7023ccc4c0cfb6104 had local production
+build and fixture assertions PASS; Preflight41299900895 SUCCESS; its Foundation
+41299900833 is still running. Initial head's unchanged-source Foundation retry
+passed Docker quality and advanced to genuine runtime (final outcome pending).
+These are historical checkpoints only, not verification of the final layout commit.
+Final-head hosted outcomes/log/artifact hashes are reconciled in PR31 after CI.
+
+Verification-plan clarification before harness correction: initial Foundation
+attempt2 ultimately FAILED at existing RETAIL_COLUMNS_PRESET_ALL before Carrier
+checks. A freshly compiled actual Retail fixture reproduced7 rather than20 columns
+immediately after clearing emulated viewport/clicking All. Extra geometry diagnostics
+with an intervening observation allowed the same single click to complete; this
+shows an unsettled interaction/read precondition, not a Carrier product regression.
+Keep every original20-column/pressed/visual assertion; wait for viewport frames and
+the expected React state, with one pointer click, not retries of the action.
+
+Intermediatef7aa9a1 Foundation also FAILED after Docker quality/integration PASS:
+ACCOUNT_REAL_CLIENT_ROUTE_DISMISSAL timed out after returning via full navigation.
+The existing check only observed SSR trigger markup, then clicked before hydration.
+Reuse the existing browser-login-ready module for an actual harmless client menu
+interaction before testing native disclosure/navigation/logout. No route, logout,
+request or security assertion is skipped/relaxed, and no production Retail/Auth
+code is changed. These are bounded test-precondition corrections within the planned
+canonical CDP verification, not a new architecture or business feature.
+
+The fresh Retail fixture reproduced the exact7!=20 assertion; after frame/state
+precondition correction, the complete existing Retail fixture CDP checks PASS.
+Fresh actual AccountMenu fixture checks also PASS, including keyboard, hover,
+loading/failure/retry and preserved no-navigation semantics for Profile. An earlier
+Account diagnostic used a stale compiled fixture with disabled Carrier entry and
+correctly failed the new Link assertion; rebuilding the current source resolved
+that test-input mismatch. Carrier42-capture CDP checks PASS with shared readiness.
+No production Retail code, logout retry policy or test assertion was removed.
+
+Independent final harness-delta review found no P1/P2 or weakened assertion.
+Final local checks after these fixes: format/lint/boundaries/docs/preflight/Web
+typecheck, focused12/12 and Node scripts128/128 PASS. Last full Web195/195 and
+shared UI32/32 are earlier checkpoints; final-head canonical quality must rerun all.
+No apps/api, database, SDK/lockfile or immutable snapshot change. New final workflow
+run required for the layout/readiness commit; PR31 will retain complete failure
+history and exact tested merge/head/artifact provenance after completion.

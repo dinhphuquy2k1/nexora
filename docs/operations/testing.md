@@ -548,3 +548,11 @@ close behavior rather than synthetic DOM click activation. Foundation uploads
 binary evidence is committed. Source ZIP comparisons are external/read-only and
 must be reported separately from hosted runtime results. CI presence is not PASS;
 executed head-specific outcomes belong to task033 and its PR.
+
+Full-document navigation is not a hydration signal. Account/Carrier checks reuse
+`waitForInteractiveAccount` from browser-login-ready: observe an actual harmless
+menu disclosure before testing one-click/native keyboard behavior. Never retry
+logout, credentials or a backend mutation as a readiness probe. Retail preset
+pointer checks wait viewport frames before measuring and await the unchanged
+expected20-column state after one click; stale SSR/layout reads must not replace
+actual client interaction evidence.

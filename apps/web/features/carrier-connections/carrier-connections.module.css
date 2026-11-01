@@ -388,10 +388,14 @@ button.closeButton {
   .toolbar {
     padding: var(--space-3);
   }
+  .toolbar .search {
+    flex-basis: 100%;
+    max-width: none;
+  }
   .toolbar select {
     max-width: 100%;
-    flex: 1;
-    min-width: 0;
+    flex: 1 1 140px;
+    min-width: 140px;
   }
   .pagination {
     padding: var(--space-3);

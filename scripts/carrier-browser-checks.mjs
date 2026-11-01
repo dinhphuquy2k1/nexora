@@ -1,3 +1,4 @@
+import { waitForInteractiveAccount } from "./browser-login-ready.mjs";
 // Reuses the authenticated CDP session and the existing TSX fixture compiler.
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
@@ -122,10 +123,14 @@ export async function verifyCarrierBrowser({
         "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))",
       );
       const geometry = await evaluate(
-        `(()=>{const d=[...document.querySelectorAll('dialog[open]')];return {noOverflow:document.documentElement.scrollWidth<=innerWidth,cols:document.querySelectorAll('colgroup col').length,controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),verticalBorders:[...document.querySelectorAll('table th,table td')].every(e=>getComputedStyle(e).borderRightWidth==='0px' && getComputedStyle(e).borderLeftWidth==='0px'),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(e=>{const r=e.getBoundingClientRect();return {width:r.width,left:r.left,right:r.right,height:r.height}})}})()`,
+        `(()=>{const d=[...document.querySelectorAll('dialog[open]')];return {noOverflow:document.documentElement.scrollWidth<=innerWidth,cols:document.querySelectorAll('colgroup col').length,providerWidth:document.querySelector('select[aria-label="Lọc hãng vận chuyển"]').getBoundingClientRect().width,controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),verticalBorders:[...document.querySelectorAll('table th,table td')].every(e=>getComputedStyle(e).borderRightWidth==='0px' && getComputedStyle(e).borderLeftWidth==='0px'),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(e=>{const r=e.getBoundingClientRect();return {width:r.width,left:r.left,right:r.right,height:r.height}})}})()`,
       );
       assert.equal(geometry.noOverflow, true, phase + " document overflow");
       assert.equal(geometry.cols, 7);
+      assert.ok(
+        geometry.providerWidth >= 140,
+        "mobile provider choice remains readable",
+      );
       assert.equal(geometry.verticalBorders, true);
       assert.ok(
         geometry.controls.length > 0 &&
@@ -183,10 +188,7 @@ export async function verifyCarrierBrowser({
       await until(
         "!!document.querySelector('button[aria-label^=\"Tài khoản người dùng\"]') && document.readyState==='complete'",
       );
-      // Harmless toggle proves hydration before testing controls.
-      await until(
-        `(()=>{const t=document.querySelector('button[aria-label^="Tài khoản người dùng"]');if(t?.getAttribute('aria-expanded')==='true')return true;t?.click();return false})()`,
-      );
+      await waitForInteractiveAccount({ until, evaluate });
       assert.equal(
         await evaluate(
           "!!document.querySelector('a[href=\"/settings/carrier-connections\"]')",
@@ -377,6 +379,13 @@ export async function verifyCarrierBrowser({
     );
     await click("Lịch sử đồng bộ");
     await until("document.querySelectorAll('dialog[open] ol li').length===40");
+    assert.equal(
+      await evaluate(
+        "document.querySelector('dialog[open] [role=tabpanel]').scrollTop",
+      ),
+      0,
+      "new tab opens at its heading",
+    );
     await capture("sync-history");
     assert.equal(
       await evaluate(

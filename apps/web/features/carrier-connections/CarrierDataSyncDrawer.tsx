@@ -90,6 +90,7 @@ export function CarrierDataSyncDrawer({
           ariaLabel="Nội dung đồng bộ dữ liệu"
         />
         <div
+          key={tab}
           className={styles.drawerBody}
           role="tabpanel"
           id={`${id}-panel`}

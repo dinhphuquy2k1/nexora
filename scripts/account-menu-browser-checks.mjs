@@ -1,3 +1,4 @@
+import { waitForInteractiveAccount } from "./browser-login-ready.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -240,7 +241,7 @@ export async function verifyAccountMenu({
   }
   try {
     checks.step("ACCOUNT_REAL_SESSION_AND_DISCLOSURE");
-    await until(`!!document.querySelector(${JSON.stringify(trigger)})`);
+    await waitForInteractiveAccount({ until, evaluate });
     await close();
     await snapshot("closed");
     await pointer(trigger);
@@ -334,7 +335,7 @@ export async function verifyAccountMenu({
       await until(
         `location.href===${JSON.stringify(startUrl)}&&!!document.querySelector(${JSON.stringify(trigger)})`,
       );
-      await open();
+      await waitForInteractiveAccount({ until, evaluate });
       await send("Emulation.clearDeviceMetricsOverride");
     }
     checks.step("ACCOUNT_PLANNED_ENTRIES_AND_HOVER");

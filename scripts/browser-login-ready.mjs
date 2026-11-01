@@ -18,3 +18,20 @@ export async function waitForInteractiveLogin({ until, evaluate }) {
     'document.querySelector(\'input[name="password"]\')?.type === "password"',
   );
 }
+
+/** Observe harmless client disclosure interaction after full-document SSR navigation. */
+export async function waitForInteractiveAccount({ until, evaluate }) {
+  await until(
+    `document.readyState === "complete" && document.hasFocus() && !!document.querySelector('button[aria-label^="Tài khoản người dùng"]')`,
+  );
+  await until(`(() => {
+    const trigger = document.querySelector('button[aria-label^="Tài khoản người dùng"]');
+    if (trigger?.getAttribute("aria-expanded") === "true" && document.querySelector('[role=region][aria-label="Thông tin tài khoản"]')) return true;
+    // Only a harmless disclosure toggle is probed; mutations are never retried.
+    trigger?.click();
+    return false;
+  })()`);
+  await evaluate(
+    "new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))",
+  );
+}

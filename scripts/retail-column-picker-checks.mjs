@@ -163,6 +163,10 @@ export async function pickerPointer(
   selector,
   action = "click",
 ) {
+  // Viewport resize/position effects must settle before measuring one pointer target.
+  await evaluate(
+    "new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))",
+  );
   const p = await evaluate(
     `(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('PICKER_POINTER_MISSING');e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};})()`,
   );
