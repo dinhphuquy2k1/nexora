@@ -287,3 +287,35 @@ SelectButton's `appearance` belongs only to single/segmented props. Multiple/sta
 rejects concrete appearance values (`appearance?: never`), preserving its existing
 DOM/default styling. This is the correction of the formerly accepted silent no-op,
 not a new multiple-selection appearance.
+
+## AppShell Account disclosure — NEXORA-032
+
+AccountMenu owns the application-specific ZIP-inspired account summary and exactly
+three entries. It composes existing shared Button/useDismissable; no shared public
+API or default control styling changes. The trigger explicitly selects medium40
+so its32px avatar fits Header56; menu rows keep default32. These deliberate size
+selections supersede historical migration inventories saying every Header control
+used default32. Mobile (<768px) hides trigger text/chevron; accessible name retains
+the real username. The summary avatar40, username14/600 and subtitle12 use actual
+session data and the neutral Tài khoản Nexora label.
+
+Panel geometry: width256/max viewport-32, radius12, header padding16, summary gap12,
+entry icon16, content label12/normal, inline padding12, gap10, radius8, no row border.
+Trigger is40 instead of ZIP42 to retain the existing shared size API. Account-only
+avatar/icon public tokens preserve global avatar24 and shared default icon14.
+
+The owner-requested menu appearance is a scoped exception for this AppShell
+component: account gray hover and rose logout roles may style shared ghost Buttons
+without replacing their size/focus/disabled behavior. Use pressEffect none, no
+scale/bounce or ad-hoc focus suppression. The private control sizing aliases remain
+owned by shared UI. No generic danger variant/menu framework or global state
+palette changes are introduced for this single consumer.
+
+Root tokens own the actual values: account chevron uses a scoped semantic role
+for gray400; account hover uses the existing background surface; rose600/rose50 preserve the reference Tailwind4 OKLCH palette through
+semantic account logout text/hover roles. Account shadow has the reference two-layer
+20px/8px elevation without modifying shared shadow-lg. Other consumers' status,
+text-muted, sizes and shadows are unchanged. Native disabled planned entries are
+intentionally dimmed; there is no fake enabled destination. Profile/code/role/wallet
+and four extra ZIP actions are excluded, so full-reference menu height is not the
+product target. Shared focus rings remain visible and reduced motion is respected.

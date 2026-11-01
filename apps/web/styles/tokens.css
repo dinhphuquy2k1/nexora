@@ -44,11 +44,21 @@
   --blue-700: #1d4ed8;
   --indigo-700: #4338ca;
   --teal-700: #0f766e;
+  --rose-50: oklch(0.969 0.015 12.422);
+  --rose-600: oklch(0.586 0.253 17.585);
   --rose-700: #be123c;
 
   /* ==========================================================================
      2. Semantic Application Tokens (Mapped to Foundation Palette)
      ========================================================================== */
+  --color-account-chevron: var(--gray-400);
+  --color-account-item-hover-bg: var(--color-background);
+  --color-account-logout-text: var(--rose-600);
+  --color-account-logout-hover-bg: var(--rose-50);
+  --account-avatar-trigger-size: 32px;
+  --account-avatar-summary-size: 40px;
+  --icon-account-menu-size: 16px;
+
   --color-primary: var(--brand-navy);
   --color-primary-strong: var(--brand-navy-dark);
   --color-primary-hover: var(--brand-navy-light);
@@ -290,6 +300,8 @@
     0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-lg:
     0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  --shadow-account-menu:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   --shadow-on-dark-tooltip: 0 4px 12px rgba(0, 0, 0, 0.3);
 
   /* ==========================================================================

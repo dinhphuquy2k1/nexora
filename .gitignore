@@ -15,3 +15,14 @@ apps/web/next-env.d.ts
 
 # Owned browser verification output (published as CI artifacts).
 /artifacts/
+
+# Generated task evidence; source Markdown/JSON and production assets stay visible.
+# Long-term design references belong outside docs/tasks/ with documented review.
+/docs/tasks/**/*.[pP][nN][gG]
+/docs/tasks/**/*.[jJ][pP][gG]
+/docs/tasks/**/*.[jJ][pP][eE][gG]
+/docs/tasks/**/*.[wW][eE][bB][pP]
+/docs/tasks/**/*.[gG][iI][fF]
+/docs/tasks/**/*.[mM][pP]4
+/docs/tasks/**/*.[wW][eE][bB][mM]
+/docs/tasks/**/*.[lL][oO][gG]

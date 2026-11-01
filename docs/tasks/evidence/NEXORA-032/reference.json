@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "archive": {
+    "name": "remix-nexora-logistics-management (1).zip",
+    "sha256": "a10065b309004c8771ad937d2f622a7f93e44ef9a496599e7cfc637e198151aa",
+    "availability": "User attachment only; no durable source URL. Exact original bytes are required; SHA-256 alone cannot reconstruct or retrieve them."
+  },
+  "sourceFiles": {
+    "src/components/Header.tsx": {
+      "sha256": "47e699e467c5fbf4cf8cdddecda1647846866a9ccb6f728c279bfca0f8bcf39c",
+      "referenceLines": "246–381"
+    },
+    "src/data/mockData.ts": {
+      "sha256": "df96ae85a8ee4f6c8638a59e6079dc14ebb510254c4347e1f83030b540c43726"
+    }
+  },
+  "historicalVerification": {
+    "date": "2026-10-31",
+    "recordedInCommit": "2845e220d870a05a5adae3ec0b794e23690864e9",
+    "capturedAndChecked": 18,
+    "states": ["closed", "opened", "logout-hover"],
+    "viewports": [
+      [1440, 900],
+      [1280, 800],
+      [1024, 768],
+      [768, 1024],
+      [390, 844],
+      [375, 812]
+    ],
+    "currentTreeContainsImages": false,
+    "binaryAvailability": "Removed from final tree by retention correction. Historical Git blobs remain in prior feature-branch commits while reachable; no guaranteed retention or dedicated CI archive exists for these reference captures. Runtime Account artifacts are separate."
+  },
+  "referenceMeasurements": {
+    "desktopOpened": {
+      "header": 56,
+      "triggerHeight": 42,
+      "avatar": 32,
+      "panel": {
+        "width": 256,
+        "height": 385,
+        "radius": "12px",
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+        "bg": "rgb(255, 255, 255)"
+      },
+      "row": {
+        "height": 32,
+        "gap": "10px",
+        "padding": "8px 12px",
+        "font": "12px"
+      },
+      "logout": {
+        "hover": false,
+        "media": true,
+        "color": "oklch(0.586 0.253 17.585)",
+        "bg": "rgba(0, 0, 0, 0)"
+      }
+    },
+    "desktopLogoutHover": {
+      "hover": true,
+      "media": true,
+      "color": "oklch(0.586 0.253 17.585)",
+      "bg": "oklch(0.969 0.015 12.422)"
+    },
+    "responsiveTextBreakpoint": 768
+  },
+  "tooling": {
+    "tailwind": "4.3.3",
+    "browser": "Chromium151.0.7922.173",
+    "input": "fine mouse via documented Blink primary/available pointer and hover settings; actual CDP mouseMoved; no CSS pseudo-state forcing"
+  },
+  "reproductionRequirements": [
+    "Obtain and hash-check the exact original ZIP; repository hashes do not supply source bytes.",
+    "Render only the original Account JSX subtree with reference CSS/mock constants/local Inter outside production code; do not run ZIP scripts, App or provider services.",
+    "Use recorded tooling and viewports with real pointer hover, then compare the approved subset; no pixel-equality assertion."
+  ],
+  "productDifferences": [
+    "Real session username/initials and neutral subtitle; no demo VIP/wallet/code or four excluded actions.",
+    "Two absent destinations remain disabled; trigger uses canonical40px instead of reference42px; normal product panel196px instead of full-demo385px."
+  ]
+}

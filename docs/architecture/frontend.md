@@ -29,7 +29,7 @@ Components dedicated to Nexora's application shell, layout frame, and cross-rout
 - **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`) and rendering workspace navigation chrome. Fully decoupled from public login routes.
 - **`Sidebar` (`Sidebar.tsx`, `Sidebar.module.css`)**: Logistics navigation bar with geometric monogram logo, grouped navigation items, active route indicators, and planned item tags.
 - **`Header` (`Header.tsx`, `Header.module.css`)**: Top bar containing sidebar toggle, pathname-driven breadcrumbs, and authenticated user account disclosure (`AccountMenu`).
-- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible user account disclosure displaying authenticated username and active session status, with browser POST logout and status-aware retry.
+- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible account disclosure with authenticated username/initials, neutral account subtitle, two planned entries and real POST logout with retry.
 - **`Breadcrumb` (`Breadcrumb.tsx`)**: Pathname-driven breadcrumbs consuming shared navigation metadata.
 - **`NavigationItem` (`NavigationItem.tsx`)**: Distinguishes available routes (Next.js `Link`) from planned features (disabled action button with "Chưa triển khai" label).
 - **Popover Semantics (`use-dismissable.ts`)**: Reusable disclosure hook managing outside pointer dismissal and Escape key closing with focus restoration.
@@ -169,7 +169,7 @@ Nexora is a local-first shipment management platform. In foundation v0.1.0, the 
   - **Public Setup Route (`apps/web/app/setup/`)**: One-time fragment secret, password confirmation, no-store/no-referrer, memory-only token and return to login without auto-login.
   - **Protected Workspace Route Group (`apps/web/app/(workspace)/`)**: Routes (`/`, `/settings`, `/system`) reside in the `(workspace)` route group. Its Server Component layout (`apps/web/app/(workspace)/layout.tsx`) enforces server session verification via `verifyServerSession(cookie)`. Genuinely authenticated users receive `<AppShell user={result.user}>{children}</AppShell>`; unauthenticated requests redirect to `/login?from=...`; upstream backend outages fail closed with a service error banner without redirect loops.
 - **Route Guarding (`middleware.ts`)**: Enforces Host allowlist validation at ingress across all matched paths including `/api/*`. Provides fast loopback redirection for unauthenticated workspace requests lacking `nexora_session` cookies, and injects `x-pathname` header for downstream Server Components while avoiding network requests in middleware.
-- **Authenticated Account State (`AccountMenu`)**: Discloses active operator username, displays local runtime badge, and provides verified server-side logout destroying the session in PostgreSQL and clearing client cookies. Checks response status before redirecting and renders accessible error notifications on failure with retry capability.
+- **Authenticated Account State (`AccountMenu`)**: Displays authenticated username with neutral “Tài khoản Nexora” subtitle and username-derived avatars. The disclosure has exactly three entries: planned/disabled Profile and Carrier Connections (neither UI route exists at NEXORA-032 baseline), and real server-side logout destroying the session in PostgreSQL and clearing cookies. It contains no environment/runtime status, wallet/VIP or inferred role. Checks response status before redirecting and renders safe accessible error feedback on failure with retry.
 - **Upstream API Proxy (`next.config.ts`) & Server API Configuration (`lib/api/config.ts`)**: Authoritative configuration owner validates `API_INTERNAL_URL` as a required HTTP/HTTPS origin without path, credentials, query, or fragment. No implicit application fallback is permitted; Compose supplies `http://api:4000` for container runtime. Server Component session verification (`lib/api/session.ts`) queries `/api/auth/session` using this configuration, distinguishing authenticated (200), unauthenticated (401), and upstream unavailable (5xx/network) states while performing redirects strictly outside catch blocks.
 
 ## 9. Authentication transport and session payload validation
@@ -294,3 +294,29 @@ disabled and absent finite nonnegative quote data remains “Chưa có báo giá
 Synthetic records and browser entry live under `apps/web/test/fixtures/`, outside
 production imports. Fixture runtime/browser evidence is separate from actual
 protected production-route verification and does not implement Shipment business.
+
+## Account Menu — NEXORA-032
+
+AccountMenu remains an AppShell component; Header/Sidebar/Breadcrumb composition
+and workspace guards are unchanged. SessionUser contains only id/username; neither
+role/displayName nor account codes are inferred. Existing session refresh and SSR
+initial user remain the data sources. Header compatibility props do not make
+deployment state account metadata.
+
+The Account disclosure has a username summary and exactly3 native entries. Profile
+and Carrier Connections UIs are absent at baseline845c7e6: show native disabled
+buttons with accessible Chưa triển khai descriptions; no href,404,placeholder page
+or speculative API. Activate navigation only when the owning feature implements
+and accepts its real route. This UI task does not complete M4.
+
+Reuse shared Button, useDismissable and native Tab flow; the disclosure is a labelled
+region, not a modal/menu widget. Escape restores trigger focus; outside dismissal
+preserves the clicked target, pathname navigation closes the disclosure. Logout
+retains POST/api/auth/logout and the res.ok gate before /login; a ref-backed
+single-flight guard blocks duplicate submissions, and failure keeps workspace
+state and permits retry. No Identity/MFA/Origin/cookie/backend contract changes.
+
+Visual geometry and permitted Account-only appearance are owned by design-system;
+ZIP reference mock name/code/VIP/wallet and4 demo entries are intentionally excluded.
+Real user data replaces mock identity, two unavailable routes are disabled, and
+existing canonical medium40/default32 controls replace arbitrary ZIP sizing.

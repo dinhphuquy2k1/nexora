@@ -93,6 +93,31 @@ A task classified as `REQUIRED` cannot be completed while its canonical document
 - Never claim workflow or verification success from a YAML file, open port, process ID, or source inspection alone.
 - Verification requires executed command output, runtime HTTP probes, or test results recorded with exact timestamps and PASS/FAIL outcomes.
 
+### Evidence storage and retention
+
+- Git retains source, task records/plans/reuse audits, immutable design snapshots,
+  test specifications, source hashes, compact verification summaries and CI metadata.
+  Generated screenshots/video, detailed logs, browser manifests and diagnostics
+  belong in ignored local output or GitHub Actions artifacts, not task Git trees.
+- Default CI artifact retention is14 days. Artifact existence, capture, executed
+  assertions and manual visual review are separate facts; record each truthfully.
+  An expired artifact is historical verification, not currently accessible proof.
+- Long-term source-design images are exceptional: document why necessary, why no
+  reliable alternative exists, a controlled byte budget and privacy review in the
+  task. Keep approved references outside generated docs/tasks paths (for example
+  docs/architecture/assets). Production assets are unaffected. No exception is
+  selected for NEXORA-032's generated reference screenshots.
+- Keep command/test, exact head/merge SHA, timestamp, result, run URL and assertion
+  summary in text; retain artifact hashes when used for integrity. A hash is not
+  source content or a durable retrieval mechanism. Never include passwords,
+  cookies, tokens, Carrier credentials, MFA secrets or real Customer PII; use
+  synthetic fixtures/redaction. [Testing](../operations/testing.md#evidence-storage-and-retention)
+  owns execution/retention details. Do not weaken verification to reduce storage.
+- docs:check examines tracked/staged Git paths, including force-added ignored files,
+  and rejects generated task media/logs or root artifacts. This is a path guard,
+  not whole-repository binary/content/privacy detection. Do not evade it by moving
+  generated output; reviewed source-design exceptions follow the rule above.
+
 ## 6. Mandatory Plan-First Design Review & Reuse Governance
 
 No new implementation begins before a read-only repository inspection, scoped plan and reuse audit are recorded. **Owner approval, an `APPROVED` GitHub review and a `NEXORA DESIGN APPROVAL` comment are not required.** Agents do not invent approval evidence. Material changes to scope, architecture, public contracts, security or business rules require updating and assessing the plan before code, without asking for a new approval. Ordinary implementation changes, bug fixes, tests and CI corrections within the plan proceed directly.

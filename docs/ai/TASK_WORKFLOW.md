@@ -75,6 +75,28 @@ Normal task records document executable verification in an `## Evidence` section
 4. **Binary result**: Result must be strictly `PASS` or `FAIL`.
 5. **PASS requirement**: Tasks claiming `VERIFIED` or `PARTIALLY VERIFIED` must contain at least one `PASS` row.
 
+### Evidence provenance and availability
+
+For new or updated verification checkpoints, retain a compact text summary in Git:
+actual test name/command or workflow, exact HEAD, merge SHA when CI checks a merge
+ref, execution timestamp, PASS/FAIL, run URL and assertion summary. Include artifact
+ID/hash when integrity was checked. Put these details in the Evidence cell or an
+adjacent provenance block; the four-column schema remains unchanged. Preserve
+historical failures and unavailable original timestamp/source details honestly.
+
+Generated images/video/detailed logs/browser manifests belong in ignored output or
+14-day CI artifacts, not the task Git tree. Source hashes and necessary geometry
+metadata may remain. Approved long-term source-design references require the
+[Project Rules](PROJECT_RULES.md#evidence-storage-and-retention) exception review;
+the task records reason, alternative-source assessment, bytes and privacy review.
+
+State separately: assertions executed, screenshots captured, files retained and
+images manually reviewed. Existence of artifacts does not prove PASS. Expired or
+unavailable artifacts must not be described as still viewable; historical executed
+verification remains historical, while re-verification requires available source
+bytes/environment and a new run. A ZIP digest alone cannot recreate its contents.
+Storage cleanup never changes immutable snapshots or established test outcomes.
+
 ## 3. Documentation Impact
 
 Every task record must contain exactly one `## Documentation Impact` section declaring one of:

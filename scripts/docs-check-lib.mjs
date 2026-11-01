@@ -1,5 +1,41 @@
 import { access, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const runGit = promisify(execFile);
+
+// The Git index includes force-added ignored files and excludes staged deletions.
+// Production/design assets outside generated task paths remain review-owned.
+export function checkEvidencePaths(files) {
+  return files
+    .filter(
+      (file) =>
+        file.startsWith("artifacts/") ||
+        (file.startsWith("docs/tasks/") &&
+          /\.(?:png|jpe?g|webp|gif|mp4|webm|log)$/i.test(file)),
+    )
+    .map(
+      (file) =>
+        `Generated evidence must not be tracked: ${file}; use ignored local output or CI artifacts`,
+    );
+}
+
+export async function checkTrackedEvidence(root) {
+  let stdout;
+  try {
+    ({ stdout } = await runGit("git", ["ls-files", "--cached", "-z"], {
+      cwd: root,
+      encoding: "utf8",
+      maxBuffer: 8 * 1024 * 1024,
+    }));
+  } catch {
+    throw new Error(
+      "Evidence policy requires Git and readable checkout metadata. Use an ordinary checkout or expose linked-worktree/common Git metadata read-only via the existing Compose override; see docs/operations/testing.md#git-metadata-for-docker-quality. No evidence-policy bypass is applied.",
+    );
+  }
+  return checkEvidencePaths(stdout.split("\0").filter(Boolean));
+}
 
 export const requiredEntryPoints = [
   "README.md",
