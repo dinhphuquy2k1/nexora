@@ -363,3 +363,25 @@ independent table-container marker; this is expected negative regression evidenc
 not a failure of current code and not a pre-code execution claim. Original modules
 and working branch were untouched. No false-green empty matrix is accepted: all14
 surfaces/six sizes and all four Sync header inventories are required.
+
+Final source-detail audit also corrected the Cần kiểm tra triangle icon and tab
+icon roles, source-context blue/dot history chips and Customer icon, and restored
+whole-card history inspection with one native button (Enter/Space/focus). This
+removes the extra32px label button that inflated source row geometry; shared
+fixed-height Button/neutral Panel are incompatible with that multiline card, so
+this is a feature-scoped native card action, not a new control framework. Recent
+relative-time tint is explicit readonly preview metadata supplied by the test
+reference; unknown production timestamps never acquire a fabricated recent state.
+These are within the recorded v2 source parity scope; no new domain/API contract.
+
+The independent polish review caught accessibility P2 before commit: a short
+aria-label on the new whole-card button would hide its visible metadata from its
+accessible name. Removed that override; a visually hidden inspection prefix plus
+the visible content now supplies the native name, while tests use a data selector.
+Actual Chromium AX-tree checks type/status/time in the button name and native Enter
+opens details; Escape returns to the drawer. Extra short-height375×480 modal probe
+verifies internal history scroll and unchanged footer. Its initial setup failed
+when trying to reach a table row on a480px-tall page; opening at the required812px
+height before resizing tests the modal itself without dropping scroll assertions.
+Independent follow-up closes the naming P2;17/17 focused tests and actual browser
+matrix PASS. Final polish requires its own commit/hosted run, not the prior head.

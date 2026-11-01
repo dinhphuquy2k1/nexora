@@ -465,3 +465,41 @@ test("progress inspection keeps its stream title and supplied Job ID in source h
   );
   assert.equal((html.match(/fixture-job-42/g) ?? []).length, 1);
 });
+
+test("history preserves whole-card native actions and its distinct running status presentation", () => {
+  const { SyncHistoryPanel } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierSyncPanels.tsx",
+      import.meta.url,
+    ),
+  );
+  const { PARITY_SYNC } = loadComponent(
+    new URL("./fixtures/carrier-connections.ts", import.meta.url),
+  );
+  const html = render(
+    React.createElement(SyncHistoryPanel, {
+      data: PARITY_SYNC,
+      query: {
+        type: "all",
+        state: "all",
+        range: PARITY_SYNC.historyRange,
+        appliedRange: PARITY_SYNC.historyRange,
+        page: 1,
+      },
+      onChange: () => {},
+      onInspect: () => {},
+    }),
+  );
+  assert.match(
+    html,
+    /<button[^>]+data-carrier-history-id="1"[\s\S]*data-context="history"[\s\S]*Đang chạy[\s\S]*Bắt đầu:[\s\S]*<\/button>/,
+  );
+  const card = html.match(
+    /<button[^>]+data-carrier-history-id="1"[\s\S]*?<\/button>/,
+  )?.[0];
+  assert.ok(card);
+  assert.equal((card.match(/<button\b/g) ?? []).length, 1);
+  assert.doesNotMatch(card, /aria-label=/);
+  assert.match(card, /Chi tiết lượt đồng bộ 1/);
+  assert.equal((html.match(/data-carrier-history-id="\d+"/g) ?? []).length, 4);
+});

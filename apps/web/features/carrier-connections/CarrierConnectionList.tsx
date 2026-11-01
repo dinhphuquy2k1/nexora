@@ -349,7 +349,9 @@ export function CarrierConnectionTable({
                         displayTime(latestSyncSuccess(sync[row.id]))}
                     </strong>
                     <div className={styles.timestampMeta}>
-                      <span>{row.preview?.lastSyncRelative ?? "—"}</span>
+                      <span data-recent={row.preview?.lastSyncRecent}>
+                        {row.preview?.lastSyncRelative ?? "—"}
+                      </span>
                       <small>· {row.preview?.lastSyncSource ?? "—"}</small>
                     </div>
                   </div>

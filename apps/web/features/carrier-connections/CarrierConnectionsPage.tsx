@@ -14,7 +14,7 @@ import {
   RefreshCw,
   Layers,
   ShieldCheck,
-  ShieldAlert,
+  AlertTriangle,
   Link2,
   ArrowLeft,
   FileSpreadsheet,
@@ -59,8 +59,18 @@ const TABS: readonly TabBarItem<CarrierTab>[] = [
     activeIconColor: "var(--color-status-success-text)",
     icon: <ShieldCheck size={14} />,
   },
-  { id: "needs_check", title: "Cần kiểm tra", icon: <ShieldAlert size={14} /> },
-  { id: "sandbox", title: "Sandbox", icon: <Link2 size={14} /> },
+  {
+    id: "needs_check",
+    title: "Cần kiểm tra",
+    activeIconColor: "var(--amber-700)",
+    icon: <AlertTriangle size={14} />,
+  },
+  {
+    id: "sandbox",
+    title: "Sandbox",
+    activeIconColor: "var(--color-carrier-sandbox-text)",
+    icon: <Link2 size={14} />,
+  },
 ];
 type Surface =
   | { type: RowAction; row: CarrierConnectionRow }

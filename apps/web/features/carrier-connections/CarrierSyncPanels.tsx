@@ -24,7 +24,12 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { pageWindow } from "../../lib/pagination.ts";
-import { SYNC_LABELS, UNAVAILABLE, displayTime } from "./presentation.ts";
+import {
+  SYNC_LABELS,
+  HISTORY_SYNC_LABELS,
+  UNAVAILABLE,
+  displayTime,
+} from "./presentation.ts";
 import {
   SYNC_INTERVALS,
   filterSyncHistory,
@@ -51,7 +56,13 @@ export function DataTypeIcon({ item }: { item: Pick<SyncItem, "icon"> }) {
   }[item.icon ?? "package"];
   return <Icon size={18} />;
 }
-export function SyncBadge({ state }: { state: SyncState }) {
+export function SyncBadge({
+  state,
+  history = false,
+}: {
+  state: SyncState;
+  history?: boolean;
+}) {
   const Icon = {
     running: RefreshCw,
     completed: CheckCircle2,
@@ -62,9 +73,17 @@ export function SyncBadge({ state }: { state: SyncState }) {
     unavailable: Clock,
   }[state];
   return (
-    <span className={styles.syncBadge} data-state={state}>
-      <Icon size={12} />
-      {SYNC_LABELS[state]}
+    <span
+      className={styles.syncBadge}
+      data-state={state}
+      data-context={history ? "history" : undefined}
+    >
+      {history ? (
+        <span className={styles.historyStatusDot} aria-hidden="true" />
+      ) : (
+        <Icon size={12} />
+      )}
+      {(history ? HISTORY_SYNC_LABELS : SYNC_LABELS)[state]}
     </span>
   );
 }
@@ -439,33 +458,36 @@ export function SyncHistoryPanel({
       </div>
       <div className={styles.historyList}>
         {history.map((item) => (
-          <div key={item.id} className={styles.historyRow}>
-            <div className={styles.historyRowHeading}>
-              <div className={styles.historyIdentity}>
-                <span className={styles.historyIcon}>
+          <button
+            type="button"
+            key={item.id}
+            className={styles.historyRow}
+            data-carrier-history-id={item.id}
+            onClick={() => onInspect(item)}
+          >
+            <span className={styles.srOnly}>
+              Chi tiết lượt đồng bộ {item.id}:{" "}
+            </span>
+            <span className={styles.historyRowHeading}>
+              <span className={styles.historyIdentity}>
+                <span className={styles.historyIcon} data-type={item.dataType}>
                   {item.dataType === "Shipment" ? (
                     <Package size={14} />
                   ) : (
                     <User size={14} />
                   )}
                 </span>
-                <Button
-                  variant="ghost"
-                  aria-label={`Chi tiết lịch sử ${item.id}`}
-                  onClick={() => onInspect(item)}
-                >
-                  {item.dataType}
-                </Button>
+                <strong>{item.dataType}</strong>
                 <span
                   className={styles.sourceChip}
                   data-manual={item.source === "Thủ công"}
                 >
                   {item.source}
                 </span>
-              </div>
-              <SyncBadge state={item.state} />
-            </div>
-            <div className={styles.historyRowMeta}>
+              </span>
+              <SyncBadge state={item.state} history />
+            </span>
+            <span className={styles.historyRowMeta}>
               <span>
                 Bắt đầu: <strong>{item.time}</strong>
                 {item.detail && item.detail !== "-" && (
@@ -477,8 +499,8 @@ export function SyncHistoryPanel({
               <strong>
                 {item.records?.toLocaleString("vi-VN") ?? "—"} bản ghi
               </strong>
-            </div>
-          </div>
+            </span>
+          </button>
         ))}
         {!history.length && (
           <p className={styles.emptyHistory}>

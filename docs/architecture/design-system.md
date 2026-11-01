@@ -348,3 +348,11 @@ Carrier running badge/note text uses the AA-capable accent-text role, not the
 reference's low-contrast orange foreground. Decorative orange icons/progress and
 the already authorized shared white-on-orange primary-action exception remain;
 this correction does not claim universal WCAG AA for that historical exception.
+
+History inspection is a whole multiline card action, not a fixed-height Button
+label. The existing Panel is non-interactive and Button's single-line32/40/48 API
+is incompatible with the source row card. Use one native button spanning the full
+card (larger than32px), native Enter/Space, visible inset focus and phrasing-only
+children; no nested button or duplicated keyboard handler. This source-specific
+exception does not change shared controls. History running chips use their blue
+context/dot/Đang chạy label; live stream badges keep the orange progress context.

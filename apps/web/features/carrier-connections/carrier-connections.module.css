@@ -1805,3 +1805,53 @@ button.switchTarget {
   min-width: 104px;
   justify-content: center;
 }
+.syncContext > button > svg {
+  color: var(--color-accent);
+}
+.timestampMeta > span[data-recent="true"] {
+  background: var(--color-status-success-bg);
+  color: var(--color-status-success-text);
+  border-color: var(--color-status-success-border);
+}
+.historyRow {
+  display: block;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: var(--color-surface);
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  cursor: pointer;
+}
+.historyRow:focus-visible {
+  outline: 2px solid var(--focus-ring-on-light);
+  outline-offset: -2px;
+}
+.historyIdentity > strong {
+  font-weight: 700;
+  color: var(--color-carrier-text-strong);
+}
+.historyIcon[data-type="Customer"] {
+  color: var(--color-status-success-text);
+}
+.historyStatusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.syncBadge[data-context="history"][data-state="running"],
+.sourceChip[data-manual="false"] {
+  background: var(--color-carrier-info-bg);
+  border-color: var(--color-carrier-info-border);
+  color: var(--color-carrier-info-text);
+}
+.sourceChip {
+  border: 1px solid var(--color-carrier-running-border);
+}
+.historyRow {
+  appearance: none;
+  border-radius: 0;
+}

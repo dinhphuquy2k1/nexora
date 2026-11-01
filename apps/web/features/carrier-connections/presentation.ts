@@ -16,12 +16,17 @@ export const CONNECTION_STATES = {
 export const SYNC_LABELS = {
   running: "Đang đồng bộ",
   completed: "Hoàn tất",
-  failed: "Có lỗi",
+  failed: "Đồng bộ thất bại",
   unavailable: "Chưa khả dụng",
   waiting: "Chờ lượt tiếp theo",
   queued: "Đang chờ xử lý",
   idle: "Chưa đồng bộ",
 } satisfies Record<SyncItem["state"], string>;
+export const HISTORY_SYNC_LABELS = {
+  ...SYNC_LABELS,
+  running: "Đang chạy",
+  failed: "Thất bại",
+};
 export const CARRIER_COLUMNS = [
   { label: "STT", width: 56, sizing: "width" },
   { label: "HÃNG VẬN CHUYỂN", width: 190, sizing: "min" },

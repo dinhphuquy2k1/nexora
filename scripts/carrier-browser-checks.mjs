@@ -266,7 +266,8 @@ export async function verifyCarrierBrowser({
         await click("Lịch sử đồng bộ");
       if (surface === "progress") await click("Xem tiến độ");
       if (surface === "error") await click("Xem lỗi");
-      if (surface === "history-details") await click("Chi tiết lịch sử 1");
+      if (surface === "history-details")
+        await pointer('[data-carrier-history-id="1"]');
     }
   }
   try {
@@ -533,17 +534,15 @@ export async function verifyCarrierBrowser({
     );
     assert.equal(
       await evaluate(
-        "document.querySelectorAll('button[aria-label^=\"Chi tiết lịch sử\"]').length",
+        "document.querySelectorAll('[data-carrier-history-id]').length",
       ),
       4,
     );
     await click("Trang sau lịch sử");
-    await until(
-      "!!document.querySelector('button[aria-label=\"Chi tiết lịch sử 5\"]')",
-    );
+    await until("!!document.querySelector('[data-carrier-history-id=\"5\"]')");
     await select("Lọc lịch sử đồng bộ", "failed");
     await until(
-      "document.querySelectorAll('button[aria-label^=\"Chi tiết lịch sử\"]').length===2",
+      "document.querySelectorAll('[data-carrier-history-id]').length===2",
     );
     await input(
       'input[aria-label="Khoảng ngày lịch sử"]',
@@ -651,6 +650,57 @@ export async function verifyCarrierBrowser({
         };
         await capture(surface, width, height, expected);
       }
+    await viewport(375, 812);
+    await navigate("?parity");
+    await until("document.querySelectorAll('tbody tr').length===3");
+    await openSurface("sync-history");
+    await viewport(375, 480);
+    await evaluate(
+      "new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))",
+    );
+    const historyFooter = await evaluate(
+      "document.querySelector('dialog[open]>footer').getBoundingClientRect().top",
+    );
+    assert.equal(
+      await evaluate(
+        "(()=>{const e=document.querySelector('dialog[open] [role=tabpanel]');e.scrollTop=120;return e.scrollTop>0})()",
+      ),
+      true,
+      "long history scrolls inside drawer",
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('dialog[open]>footer').getBoundingClientRect().top",
+      ),
+      historyFooter,
+      "history footer remains fixed",
+    );
+    await evaluate(
+      "document.querySelector('[data-carrier-history-id=\"1\"]').focus()",
+    );
+    const handle = await send("Runtime.evaluate", {
+      expression: "document.querySelector('[data-carrier-history-id=\"1\"]')",
+      returnByValue: false,
+    });
+    try {
+      const tree = await send("Accessibility.getPartialAXTree", {
+        objectId: handle.result.objectId,
+        fetchRelatives: false,
+      });
+      const card = tree.nodes.find((n) => n.role?.value === "button");
+      assert.ok(card, "native history card role");
+      for (const text of ["Shipment", "Đang chạy", "09/10/2026 14:27"])
+        assert.ok(
+          card.name.value.includes(text),
+          "visible history metadata in accessible name",
+        );
+    } finally {
+      await send("Runtime.releaseObject", { objectId: handle.result.objectId });
+    }
+    await key("Enter");
+    await until("document.querySelectorAll('dialog[open]').length===2");
+    await key("Escape");
+    await until("document.querySelectorAll('dialog[open]').length===1");
     await viewport(1440, 900);
     await navigate("?parity");
     await until("document.querySelectorAll('tbody tr').length===3");

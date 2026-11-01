@@ -10,6 +10,7 @@ export interface CarrierPreviewMetadata {
   readonly environment?: "production" | "sandbox";
   readonly lastSyncDisplay?: string;
   readonly lastSyncRelative?: string;
+  readonly lastSyncRecent?: boolean;
   readonly lastSyncSource?: string;
   readonly features?: readonly string[];
 }

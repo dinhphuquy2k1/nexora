@@ -68,6 +68,7 @@ export const PARITY_ROWS: readonly CarrierConnectionRow[] = [
       environment: "production",
       lastSyncDisplay: "09/10/2026 14:32",
       lastSyncRelative: "5 phút trước",
+      lastSyncRecent: true,
       lastSyncSource: "Tự động",
       features: ["Tra cứu", "In nhãn", "Đẩy đơn"],
       syncing: true,
