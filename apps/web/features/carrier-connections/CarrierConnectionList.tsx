@@ -22,6 +22,7 @@ import {
   CONNECTION_STATES,
   SYNC_LABELS,
   displayTime,
+  latestSyncSuccess,
   UNAVAILABLE,
   selectConnections,
 } from "./presentation.ts";
@@ -208,12 +209,7 @@ export function CarrierConnectionTable({
                   <span className={styles.muted}>Chưa khả dụng</span>
                 )}
               </td>
-              <td>
-                {displayTime(
-                  sync[row.id]?.items.find((item) => item.lastSuccess)
-                    ?.lastSuccess,
-                )}
-              </td>
+              <td>{displayTime(latestSyncSuccess(sync[row.id]))}</td>
               <td>
                 <div className={styles.actions}>
                   {(

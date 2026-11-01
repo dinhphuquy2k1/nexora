@@ -68,7 +68,16 @@ export async function verifyCarrierBrowser({
         type,
         key,
         code: key,
-        windowsVirtualKeyCode: key === "Escape" ? 27 : 9,
+        windowsVirtualKeyCode: {
+          Escape: 27,
+          Tab: 9,
+          ArrowRight: 39,
+          ArrowLeft: 37,
+          Enter: 13,
+        }[key],
+        ...(key === "Enter" && type === "keyDown"
+          ? { text: "\r", unmodifiedText: "\r" }
+          : {}),
         modifiers: shift ? 8 : 0,
       });
   }
@@ -113,10 +122,16 @@ export async function verifyCarrierBrowser({
         "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))",
       );
       const geometry = await evaluate(
-        `(()=>{const d=[...document.querySelectorAll('dialog[open]')];return {noOverflow:document.documentElement.scrollWidth<=innerWidth,cols:document.querySelectorAll('colgroup col').length,passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(e=>{const r=e.getBoundingClientRect();return {width:r.width,left:r.left,right:r.right,height:r.height}})}})()`,
+        `(()=>{const d=[...document.querySelectorAll('dialog[open]')];return {noOverflow:document.documentElement.scrollWidth<=innerWidth,cols:document.querySelectorAll('colgroup col').length,controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),verticalBorders:[...document.querySelectorAll('table th,table td')].every(e=>getComputedStyle(e).borderRightWidth==='0px' && getComputedStyle(e).borderLeftWidth==='0px'),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(e=>{const r=e.getBoundingClientRect();return {width:r.width,left:r.left,right:r.right,height:r.height}})}})()`,
       );
       assert.equal(geometry.noOverflow, true, phase + " document overflow");
       assert.equal(geometry.cols, 7);
+      assert.equal(geometry.verticalBorders, true);
+      assert.ok(
+        geometry.controls.length > 0 &&
+          geometry.controls.every((h) => Math.abs(h - 32) < 1),
+        "canonical default32 controls",
+      );
       assert.equal(
         geometry.passwordBlank,
         true,
@@ -186,7 +201,7 @@ export async function verifyCarrierBrowser({
       );
       assert.equal(
         await evaluate(
-          "document.querySelector('nav[aria-label=\"Breadcrumb\"]')?.textContent.includes('Kết nối hãng') ?? document.body.textContent.includes('KẾT NỐI HÃNG VẬN CHUYỂN')",
+          "document.querySelector('nav[aria-label=\"Breadcrumb\"] [aria-current=page]')?.textContent==='Kết nối hãng vận chuyển' && document.querySelector('nav[aria-label=\"Breadcrumb\"]').textContent.includes('Cài đặt')",
         ),
         true,
       );
@@ -314,6 +329,18 @@ export async function verifyCarrierBrowser({
       );
       await until("!!document.querySelector('dialog[open]')");
     };
+    await firstAction("Chỉnh sửa");
+    assert.equal(
+      await evaluate("document.querySelector('input[type=password]').value"),
+      "",
+    );
+    assert.equal(
+      await evaluate(
+        "!!document.querySelector('input[name=displayName]').value",
+      ),
+      true,
+    );
+    await key("Escape");
     await firstAction("Chi tiết");
     await capture("details");
     await key("Escape");
@@ -331,6 +358,16 @@ export async function verifyCarrierBrowser({
     await until("document.querySelectorAll('dialog[open]').length===2");
     await focusContained();
     await capture("sync-inspect");
+    await key("Escape");
+    await until("document.querySelectorAll('dialog[open]').length===1");
+    await click("Xem lỗi");
+    await until("document.querySelectorAll('dialog[open]').length===2");
+    assert.equal(
+      await evaluate(
+        "[...document.querySelectorAll('dialog[open]')].at(-1).textContent.includes('Chi tiết lỗi')",
+      ),
+      true,
+    );
     await key("Escape");
     await until("document.querySelectorAll('dialog[open]').length===1");
     await click("Lịch tự động");
@@ -354,6 +391,21 @@ export async function verifyCarrierBrowser({
     );
     await key("Escape");
     await until("!document.querySelector('dialog[open]')");
+    await firstAction("Đồng bộ");
+    await click("Lịch tự động");
+    assert.equal(
+      await evaluate(
+        "document.querySelector('dialog[open] input[type=checkbox]').checked",
+      ),
+      false,
+      "unsaved schedule discarded on close",
+    );
+    await key("Escape");
+    assert.equal(
+      await evaluate("localStorage.length===0 && sessionStorage.length===0"),
+      true,
+      "fixture drafts are never persisted",
+    );
     assert.deepEqual(badRequests, []);
     assert.deepEqual(errors, []);
     checks.step("CARRIER_UI_ONLY_AND_DRAWERS_PASS");

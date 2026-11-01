@@ -4,6 +4,7 @@ import type {
   ConnectionDraft,
   ConnectionStatus,
   SyncItem,
+  SyncPresentation,
 } from "./types.ts";
 export const CONNECTION_STATES = {
   CONNECTED: { label: "Đang kết nối", ok: true },
@@ -77,6 +78,20 @@ export function validateConnectionDraft(
   if (!draft.password.length || draft.password.length > 1024)
     errors.password = "Nhập mật khẩu từ 1 đến 1024 ký tự.";
   return errors;
+}
+export function latestSyncSuccess(
+  data: SyncPresentation | undefined,
+): string | null {
+  let latest: string | null = null;
+  let timestamp = -Infinity;
+  for (const item of data?.items ?? []) {
+    const candidate = Date.parse(item.lastSuccess ?? "");
+    if (Number.isFinite(candidate) && candidate > timestamp) {
+      latest = item.lastSuccess!;
+      timestamp = candidate;
+    }
+  }
+  return latest;
 }
 export function displayTime(value: string | null | undefined) {
   if (!value) return "—";

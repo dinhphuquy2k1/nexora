@@ -197,3 +197,24 @@ test("table renders supplied stream status/progress but never invents unavailabl
   assert.match(absent, /Chưa khả dụng/);
   assert.doesNotMatch(absent, /<progress|Đang đồng bộ/);
 });
+
+test("last successful sync uses the newest valid stream timestamp, never first-row order", () => {
+  const { latestSyncSuccess } = model();
+  assert.equal(latestSyncSuccess(undefined), null);
+  assert.equal(
+    latestSyncSuccess({ items: [{ lastSuccess: "invalid" }], history: [] }),
+    null,
+  );
+  assert.equal(
+    latestSyncSuccess({
+      items: [
+        { lastSuccess: "2026-01-01T00:00:00Z" },
+        { lastSuccess: "invalid" },
+        { lastSuccess: "2026-02-01T00:00:00Z" },
+        { lastSuccess: "2025-12-01T00:00:00Z" },
+      ],
+      history: [],
+    }),
+    "2026-02-01T00:00:00Z",
+  );
+});

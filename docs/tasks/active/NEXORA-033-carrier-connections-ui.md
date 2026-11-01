@@ -160,3 +160,35 @@ absent data retains unavailable. Centralized sync labels for table/drawer. Rerun
 Carrier7/7 and Web194/194 PASS; enhanced CDP6-size/42-capture assertions PASS.
 Pagination unknown state also omits the misleading1/1 page total. Snapshot unchanged.
 Final local format/lint/boundaries/docs/preflight/typecheck/diff checks PASS.
+
+### Final source review and first hosted execution
+
+Round3 independent review at46678ed and its focused follow-up found no remaining
+confirmed P1/P2. Independently executed Carrier/navigation/Account11/11 then12/12
+PASS. Final source audit reproduced an order-dependent last-success presentation
+with heterogeneous stream timestamps; added RED→GREEN regression and selected the
+newest valid timestamp, skipping invalid/missing timestamps. Enhanced CDP verifies
+exact nested breadcrumb, keyboard status selection, edit password blankness,
+failed-progress inspection, unsaved schedule disposal, no browser storage writes,
+default32 control geometry and no vertical cell borders. Local42 captures rerun
+PASS after this correction. Node discovery16 suites / Node script tests128/128 PASS.
+
+| Claim                         | Evidence                                                                                                                                                                                                                                                                                                             | Date       | Result  |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------- |
+| Production frontend compiles  | `API_INTERNAL_URL=http://api:4000 pnpm --filter @nexora/web build`: Next16.3.8 production webpack build includes guarded Carrier route; task-owned RAM output, no binaries staged                                                                                                                                    | 2026-11-01 | PASS    |
+| Hosted head46678ed governance | [Preflight41299275570](https://github.com/dinhphuquy2k1/nexora/actions/runs/41299275570),24/24; actual checkout synthetic mergec2cdd4d487f27719ede9d590614a69e5a3881237 into main1a4fe7b, not direct head                                                                                                            | 2026-11-01 | PASS    |
+| Hosted Foundation attempt1    | [Foundation41299275332 attempt1](https://github.com/dinhphuquy2k1/nexora/actions/runs/41299275332/attempts/1): Docker quality FAIL at unchanged uniship-verify.test.cjs:82, first loopback verify503 with100ms fixture timeout; test duration145ms. Runtime/HTTPS/data/dev SKIPPED; required evidence uploads absent | 2026-11-01 | FAIL    |
+| Same-head diagnostic retry    | Failed job rerun once with assertions/config/source unchanged; outcome pending. No API files changed and no timeout/assertion relaxed                                                                                                                                                                                | 2026-11-01 | NOT RUN |
+
+PR31 created Draft on existing feat/carrier-connections-ui and initial commit
+46678ed873b6d74af6d6f20266eae466e85e80ba pushed without force. This journal retains
+all failures and does not infer final-head success from previous checkpoints.
+Final implementation correction and exact-head hosted evidence remain pending;
+latest workflow outcomes will be reconciled in PR31 after checks finish, avoiding
+self-referential documentation commits. Overall M4 is still incomplete.
+
+Before the follow-up commit: full Web195/195, focused12/12, browser fixture42
+captures and format/lint/boundaries/docs/preflight/typecheck/diff checks PASS.
+Immutable snapshot digest recomputed unchanged. Task remains active VERIFICATION
+PENDING / IMPLEMENTED / NOT VERIFIED until final-head mandatory checks and owner
+UI acceptance; no merge/readiness inferred from the initial governance success.
