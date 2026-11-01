@@ -1842,14 +1842,18 @@ button.switchTarget {
   border-radius: 50%;
   background: currentColor;
 }
-.syncBadge[data-context="history"][data-state="running"],
-.sourceChip[data-manual="false"] {
+.syncBadge[data-context="history"][data-state="running"] {
   background: var(--color-carrier-info-bg);
   border-color: var(--color-carrier-info-border);
   color: var(--color-carrier-info-text);
 }
 .sourceChip {
+  font-weight: 600;
+  color: var(--color-carrier-source-auto-text);
+}
+.sourceChip[data-manual="true"] {
   border: 1px solid var(--color-carrier-running-border);
+  color: var(--color-carrier-running-text);
 }
 .historyRow {
   appearance: none;

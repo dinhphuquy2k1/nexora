@@ -658,6 +658,14 @@ export async function verifyCarrierBrowser({
     await evaluate(
       "new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))",
     );
+    const autoChip = await evaluate(
+      "(()=>{const s=getComputedStyle(document.querySelector('[data-manual=false]'));return {color:s.color,bg:s.backgroundColor,border:s.borderTopWidth}})()",
+    );
+    assert.deepEqual(
+      autoChip,
+      { color: "rgb(71, 85, 105)", bg: "rgb(241, 245, 249)", border: "0px" },
+      "ZIP automatic source chip is slate; blue belongs to running status",
+    );
     const historyFooter = await evaluate(
       "document.querySelector('dialog[open]>footer').getBoundingClientRect().top",
     );

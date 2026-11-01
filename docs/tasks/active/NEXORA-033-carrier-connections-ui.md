@@ -385,3 +385,19 @@ when trying to reach a table row on a480px-tall page; opening at the required812
 height before resizing tests the modal itself without dropping scroll assertions.
 Independent follow-up closes the naming P2;17/17 focused tests and actual browser
 matrix PASS. Final polish requires its own commit/hosted run, not the prior head.
+
+Independent final screenshot review found a polish regression: automatic source
+chips had incorrectly inherited the blue running-state rule. Original Sync Drawer
+lines962–964 use slate100/#475569 with no border for Tự động. Separated that selector,
+restored the existing slate surface plus a scoped gray600 text role and kept the
+manual-source border only on manual chips. Actual browser assertions now require
+resolved slate background/text and0px border, while running-state chips remain blue.
+This finding is not hidden by the previous green structural tests or older CI.
+
+| Claim                                    | Evidence                                                                                                                                                                                                                                                                   | Date       | Result |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Automatic-source color regression closed | Source lines962–964 re-read;12 new paired history PNGs/six sizes; independent reviewer confirms slate automatic source distinct from blue running status. Actual browser RGB/border assertion and full86 matrix/AX/short-modal checks PASS; Web204/204, lint and docs PASS | 2026-11-02 | PASS   |
+
+The resubmitted prompt is byte-identical and the resubmitted ZIP has the same pinned
+digest. Work continues on the existing PR31 branch. Final chip correction gets its
+own hosted verification; the prior cd2dad7 SUCCESS cannot verify this new delta.

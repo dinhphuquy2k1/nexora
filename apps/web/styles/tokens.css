@@ -60,6 +60,7 @@
   --icon-account-menu-size: 16px;
 
   /* Carrier-only source ZIP presentation; no shared state/default changes. */
+  --color-carrier-source-auto-text: var(--gray-600);
   --color-carrier-text-strong: var(--gray-900);
   --color-carrier-frame-border: color-mix(
     in srgb,
