@@ -175,7 +175,6 @@ export async function verifyAccountMenu({
         assert.equal(m.entries[0].text, "Thông tin cá nhân");
         assert.equal(m.entries[1].text, "Kết nối hãng vận chuyển");
         for (const e of m.entries) {
-          assert.equal(e.href, null);
           assert.equal(e.size.height, 32);
           assert.equal(e.icon.width, 16);
           assert.equal(e.icon.height, 16);
@@ -184,7 +183,10 @@ export async function verifyAccountMenu({
           assert.equal(e.padding, "12px");
           assert.equal(e.border, "0px");
         }
-        assert.ok(m.entries[0].disabled && m.entries[1].disabled);
+        assert.ok(m.entries[0].disabled);
+        assert.equal(m.entries[0].href, null);
+        assert.equal(m.entries[1].href, "/settings/carrier-connections");
+        assert.ok(!m.entries[1].disabled);
         assert.equal(m.logout.color, m.expected.logout);
         if (m.logout.hover && !m.logout.disabled)
           assert.equal(m.logout.bg, m.expected.logoutHover);
@@ -254,11 +256,21 @@ export async function verifyAccountMenu({
     await until(`!!document.querySelector(${JSON.stringify(panel)})`);
     await key("Tab");
     assert.equal(
+      await evaluate('document.activeElement.getAttribute("href")'),
+      "/settings/carrier-connections",
+    );
+    await key("Tab");
+    assert.equal(
       await evaluate('document.activeElement.getAttribute("aria-label")'),
       "Đăng xuất khỏi hệ thống",
     );
     await snapshot("focused-entry");
     checks.step("ACCOUNT_KEYBOARD_SHIFT_TAB_ESCAPE");
+    await key("Tab", true);
+    assert.equal(
+      await evaluate('document.activeElement.getAttribute("href")'),
+      "/settings/carrier-connections",
+    );
     await key("Tab", true);
     assert.equal(
       await evaluate(
@@ -326,7 +338,7 @@ export async function verifyAccountMenu({
       await send("Emulation.clearDeviceMetricsOverride");
     }
     checks.step("ACCOUNT_PLANNED_ENTRIES_AND_HOVER");
-    // Both planned entries remain disabled: no fake destinations or activation.
+    // Profile remains disabled; Carrier is a real native Link: no fake destinations or activation.
     const before = await evaluate("location.href");
     await pointer(`${panel} button[title="Chưa triển khai"]`);
     assert.equal(await evaluate("location.href"), before);

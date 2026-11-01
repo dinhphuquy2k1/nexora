@@ -15,6 +15,7 @@ jobs:
       M2_EVIDENCE_DIR: artifacts/m2
       M3_EVIDENCE_DIR: artifacts/m3
       ACCOUNT_EVIDENCE_DIR: artifacts/account
+      CARRIER_EVIDENCE_DIR: artifacts/carrier
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Select pinned host Node for smoke harnesses
@@ -63,6 +64,14 @@ jobs:
         with:
           name: account-menu-evidence
           path: artifacts/account
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve Carrier UI browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: carrier-ui-browser-evidence
+          path: artifacts/carrier
           if-no-files-found: error
           retention-days: 14
       - name: Diagnostics

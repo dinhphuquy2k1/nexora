@@ -1,5 +1,6 @@
 import {
   GROUP_LABELS,
+  CARRIER_CONNECTIONS_ROUTE,
   NAVIGATION_ITEMS,
   type NavItem,
   type WorkspaceVariant,
@@ -90,6 +91,17 @@ export function resolveBreadcrumbs(
   items: readonly NavItem[] = NAVIGATION_ITEMS,
 ): readonly BreadcrumbSegment[] {
   const activeItem = resolveActiveItem(pathname, items);
+  if (normalizePathname(pathname) === CARRIER_CONNECTIONS_ROUTE.href) {
+    return [
+      { label: GROUP_LABELS.System, isCurrent: false },
+      { label: "Cài đặt", href: "/settings", isCurrent: false },
+      {
+        label: CARRIER_CONNECTIONS_ROUTE.label,
+        href: CARRIER_CONNECTIONS_ROUTE.href,
+        isCurrent: true,
+      },
+    ];
+  }
 
   if (!activeItem) {
     return [
@@ -123,5 +135,7 @@ export function resolveWorkspaceVariant(
   pathname: string | null | undefined,
   items: readonly NavItem[] = NAVIGATION_ITEMS,
 ): WorkspaceVariant {
+  if (normalizePathname(pathname) === CARRIER_CONNECTIONS_ROUTE.href)
+    return "wide";
   return resolveActiveItem(pathname, items)?.contentVariant ?? "standard";
 }

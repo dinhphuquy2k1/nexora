@@ -524,3 +524,27 @@ The genuine Git fixture tests accessible/unreachable linked-worktree metadata;
 that is not a claim that local Docker ran with a particular override. Exact-head
 hosted Docker verification remains mandatory. No Git history write is needed by
 ls-files; the metadata bind stays read-only.
+
+## Carrier Connections UI-only verification — NEXORA-033
+
+Fast checks use `pnpm --filter @nexora/web test` (includes pure Carrier model,
+validation, production SSR/source guards, navigation and Account regression tests).
+The existing TSX/CSS fixture compiler also accepts the Carrier isolated entry:
+`node scripts/build-retail-fixture.mjs artifacts/carrier-fixture apps/web/test/fixtures/carrier-entry.tsx`.
+Canonical Docker quality builds both Retail and Carrier fixtures before runtime.
+
+`carrier-browser-checks.mjs` extends the existing authenticated Chromium/CDP session
+in browser-login-smoke for both roles. It checks guest rejection, the real guarded
+route, Account Link, production empty/unknown/unavailable presentation, no Carrier
+API requests, and populated fixture filtering, drafts, dialogs and three sync tabs.
+Fixtures are served by a temporary loopback server, which is closed in nested
+finally even if CDP navigation fails. Production never imports these fixtures.
+
+Six viewport assertions/captures cover1440×900,1280×800,1024×768,768×1024,
+390×844 and375×812. The manifest records geometry and PNG SHA-256; screenshots
+require blank password fields. Actual pointer events exercise native nested-dialog
+close behavior rather than synthetic DOM click activation. Foundation uploads
+`carrier-ui-browser-evidence` from CARRIER_EVIDENCE_DIR with14-day retention; no
+binary evidence is committed. Source ZIP comparisons are external/read-only and
+must be reported separately from hosted runtime results. CI presence is not PASS;
+executed head-specific outcomes belong to task033 and its PR.

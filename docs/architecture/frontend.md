@@ -2,7 +2,7 @@
 
 ## Current identity and deployment profiles
 
-Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. LOCAL remains the default loopback profile. NEXORA-024 adds the explicit PUBLIC_HTTPS application/ingress profile; real production activation still requires DNS/TLS/firewall/host NTP evidence. Carrier UI and shipment sync remain PLANNED. Executed full canonical verification is recorded in completed NEXORA-022; PR19 records the final exact-head CI.
+Both ACTIVE roles use independent Nexora credentials. Logical PR6 now requires ADMIN password then TOTP or a single-use recovery code before issuing an MFA session. OPERATOR retains password-only login. Database-backed ADMIN + MFA is mandatory across administrative APIs. LOCAL remains the default loopback profile. NEXORA-024 adds the explicit PUBLIC_HTTPS application/ingress profile; real production activation still requires DNS/TLS/firewall/host NTP evidence. Carrier UI-only presentation is implemented in NEXORA-033; Carrier backend integration and shipment sync remain PLANNED. Executed full canonical verification is recorded in completed NEXORA-022; PR19 records the final exact-head CI.
 
 `/login` renders one Nexora form for both roles. Legacy provider/admin mode selection is removed; password visibility, loading/errors, server session redirects, sanitized `from`, logout and HttpOnly cookies remain. `/setup` reads only the token fragment client-side, clears URL history, retains it in memory, validates password/confirmation and posts only the JSON body. It returns to `/login` after success without issuing a session. The page uses no-store/no-referrer and existing local assets; no token enters SSR HTML or browser storage. Query-string tokens are rejected.
 
@@ -29,7 +29,7 @@ Components dedicated to Nexora's application shell, layout frame, and cross-rout
 - **`ShellClient` (`ShellClient.tsx`)**: Client boundary managing interactive sidebar collapse state (`isSidebarCollapsed`) and rendering workspace navigation chrome. Fully decoupled from public login routes.
 - **`Sidebar` (`Sidebar.tsx`, `Sidebar.module.css`)**: Logistics navigation bar with geometric monogram logo, grouped navigation items, active route indicators, and planned item tags.
 - **`Header` (`Header.tsx`, `Header.module.css`)**: Top bar containing sidebar toggle, pathname-driven breadcrumbs, and authenticated user account disclosure (`AccountMenu`).
-- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible account disclosure with authenticated username/initials, neutral account subtitle, two planned entries and real POST logout with retry.
+- **`AccountMenu` (`AccountMenu.tsx`, `AccountMenu.module.css`)**: Accessible account disclosure with authenticated username/initials, neutral account subtitle, planned Profile, native Carrier Connections Link and real POST logout with retry.
 - **`Breadcrumb` (`Breadcrumb.tsx`)**: Pathname-driven breadcrumbs consuming shared navigation metadata.
 - **`NavigationItem` (`NavigationItem.tsx`)**: Distinguishes available routes (Next.js `Link`) from planned features (disabled action button with "Chưa triển khai" label).
 - **Popover Semantics (`use-dismissable.ts`)**: Reusable disclosure hook managing outside pointer dismissal and Escape key closing with focus restoration.
@@ -169,7 +169,7 @@ Nexora is a local-first shipment management platform. In foundation v0.1.0, the 
   - **Public Setup Route (`apps/web/app/setup/`)**: One-time fragment secret, password confirmation, no-store/no-referrer, memory-only token and return to login without auto-login.
   - **Protected Workspace Route Group (`apps/web/app/(workspace)/`)**: Routes (`/`, `/settings`, `/system`) reside in the `(workspace)` route group. Its Server Component layout (`apps/web/app/(workspace)/layout.tsx`) enforces server session verification via `verifyServerSession(cookie)`. Genuinely authenticated users receive `<AppShell user={result.user}>{children}</AppShell>`; unauthenticated requests redirect to `/login?from=...`; upstream backend outages fail closed with a service error banner without redirect loops.
 - **Route Guarding (`middleware.ts`)**: Enforces Host allowlist validation at ingress across all matched paths including `/api/*`. Provides fast loopback redirection for unauthenticated workspace requests lacking `nexora_session` cookies, and injects `x-pathname` header for downstream Server Components while avoiding network requests in middleware.
-- **Authenticated Account State (`AccountMenu`)**: Displays authenticated username with neutral “Tài khoản Nexora” subtitle and username-derived avatars. The disclosure has exactly three entries: planned/disabled Profile and Carrier Connections (neither UI route exists at NEXORA-032 baseline), and real server-side logout destroying the session in PostgreSQL and clearing cookies. It contains no environment/runtime status, wallet/VIP or inferred role. Checks response status before redirecting and renders safe accessible error feedback on failure with retry.
+- **Authenticated Account State (`AccountMenu`)**: Displays authenticated username with neutral “Tài khoản Nexora” subtitle and username-derived avatars. The disclosure has exactly three entries: planned/disabled Profile, native Carrier Connections Link (NEXORA-033 UI-only route), and real server-side logout destroying the session in PostgreSQL and clearing cookies. It contains no environment/runtime status, wallet/VIP or inferred role. Checks response status before redirecting and renders safe accessible error feedback on failure with retry.
 - **Upstream API Proxy (`next.config.ts`) & Server API Configuration (`lib/api/config.ts`)**: Authoritative configuration owner validates `API_INTERNAL_URL` as a required HTTP/HTTPS origin without path, credentials, query, or fragment. No implicit application fallback is permitted; Compose supplies `http://api:4000` for container runtime. Server Component session verification (`lib/api/session.ts`) queries `/api/auth/session` using this configuration, distinguishing authenticated (200), unauthenticated (401), and upstream unavailable (5xx/network) states while performing redirects strictly outside catch blocks.
 
 ## 9. Authentication transport and session payload validation
@@ -304,10 +304,10 @@ initial user remain the data sources. Header compatibility props do not make
 deployment state account metadata.
 
 The Account disclosure has a username summary and exactly3 native entries. Profile
-and Carrier Connections UIs are absent at baseline845c7e6: show native disabled
-buttons with accessible Chưa triển khai descriptions; no href,404,placeholder page
-or speculative API. Activate navigation only when the owning feature implements
-and accepts its real route. This UI task does not complete M4.
+remains a disabled button with its accessible Chưa triển khai description. NEXORA-033
+activates Carrier Connections as a native Link to the guarded UI-only route
+/settings/carrier-connections. Backend integration remains unavailable. This UI
+checkpoint does not complete M4.
 
 Reuse shared Button, useDismissable and native Tab flow; the disclosure is a labelled
 region, not a modal/menu widget. Escape restores trigger focus; outside dismissal
@@ -318,5 +318,33 @@ state and permits retry. No Identity/MFA/Origin/cookie/backend contract changes.
 
 Visual geometry and permitted Account-only appearance are owned by design-system;
 ZIP reference mock name/code/VIP/wallet and4 demo entries are intentionally excluded.
-Real user data replaces mock identity, two unavailable routes are disabled, and
+Real user data replaces mock identity, the unavailable Profile route is disabled, and
 existing canonical medium40/default32 controls replace arbitrary ZIP sizing.
+
+## Carrier Connections presentation — NEXORA-033
+
+`/settings/carrier-connections` composes the existing guarded workspace and wide
+frame. Its nested breadcrumb is System → Settings → Carrier Connections; Settings
+remains the Sidebar ancestor and no additional Sidebar destination is introduced.
+AccountMenu owns its native Link. No auth/session/MFA behavior changes.
+
+`features/carrier-connections` separates pure query/validation/presentation,
+list/toolbar/pagination, credential/details/confirmation drawers and the three-tab
+sync drawer. Existing shared controls, line TabBar/count badges and native Overlay
+own interaction semantics. Seven native colgroup columns share a1196px minimum
+width, scrolling within the table. Forms are512px, sync/details540px and full width
+on smaller screens; headers/footers remain fixed while drawer bodies scroll.
+
+This is UI-only: the server page injects no records or sync data and makes no Carrier
+API call. Unknown counts display an em dash; unavailable copy distinguishes absence
+of integration from an authoritative zero. Production forms offer only Uniship
+username/password credentials. Required/max-length checks only validate a local,
+unsaved draft; no save/sync/disconnect/verification success can be emitted. Password
+exists only in mounted form state and is discarded on dismissal. Schedule changes
+are unsaved local drafts with no timer, persistence or next-run claim. Actual backend
+integration, shared Shipping Scope and overall M4 remain pending.
+
+Populated rows/providers, running/error/progress/history are dependency-injected
+only by isolated test entries, never imported by the production route. Browser tests
+exercise these components without inventing persisted connections. No new SDK
+operation, database/schema, business rule or shared framework is introduced.

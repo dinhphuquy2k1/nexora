@@ -98,7 +98,7 @@ button.accountButton:hover:not(:disabled) {
 .logoutSection {
   padding: 6px;
 }
-button.menuItem {
+:is(button, a).menuItem {
   width: 100%;
   justify-content: flex-start;
   gap: 10px;
@@ -115,7 +115,7 @@ button.menuItem {
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
 }
-button.menuItem:hover:not(:disabled) {
+:is(button, a).menuItem:hover:not(:disabled) {
   background-color: var(--color-account-item-hover-bg);
 }
 .logoutSection {

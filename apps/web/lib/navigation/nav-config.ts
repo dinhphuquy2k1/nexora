@@ -73,3 +73,9 @@ export const GROUP_LABELS: Record<NavGroup, string> = {
   Workspace: "Không gian làm việc",
   System: "Hệ thống",
 };
+
+/** Nested Settings destination; deliberately not a Sidebar item. */
+export const CARRIER_CONNECTIONS_ROUTE = {
+  href: "/settings/carrier-connections",
+  label: "Kết nối hãng vận chuyển",
+} as const;

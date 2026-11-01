@@ -37,21 +37,23 @@ test("account content has exactly three native entries and no fake destinations/
       onLogout: () => {},
     }),
   );
-  const buttons = html.match(/<button\b[^>]*>[\s\S]*?<\/button>/g) ?? [];
+  const buttons = html.match(/<(button|a)\b[^>]*>[\s\S]*?<\/\1>/g) ?? [];
   assert.equal(buttons.length, 3);
-  for (const label of ["Thông tin cá nhân", "Kết nối hãng vận chuyển"]) {
+  for (const label of ["Thông tin cá nhân"]) {
     const button = buttons.find((b) => b.includes(label));
     assert.ok(button);
     assert.match(button, /disabled=""/);
     assert.match(button, /title="Chưa triển khai"/);
     assert.match(button, /aria-describedby=/);
   }
+  assert.match(html, /href="\/settings\/carrier-connections"/);
+  assert.equal((html.match(/<a\b/g) ?? []).length, 1);
   assert.match(html, /aria-label="Đăng xuất khỏi hệ thống"/);
   assert.match(html, /Tài khoản Nexora/);
   assert.match(html, />alice</);
   assert.doesNotMatch(
     html,
-    /<a\b|href=|VIP|NXR-8829|Đặng Minh Tuấn|Số dư ví|Lịch sử giao dịch|Nạp tiền|Bảo mật &amp; Mật khẩu|Kiểm thử|máy chủ nội bộ|Cục bộ/,
+    /VIP|NXR-8829|Đặng Minh Tuấn|Số dư ví|Lịch sử giao dịch|Nạp tiền|Bảo mật &amp; Mật khẩu|Kiểm thử|máy chủ nội bộ|Cục bộ/,
   );
   assert.doesNotMatch(html, /session-owned-id/);
   assert.equal((html.match(/data-press-effect="none"/g) ?? []).length, 3);
@@ -68,7 +70,7 @@ test("content preserves loading disablement, safe retry error and escaped real u
     }),
   );
   assert.match(loading, /Đang đăng xuất/);
-  assert.equal((loading.match(/disabled=""/g) ?? []).length, 3);
+  assert.equal((loading.match(/disabled=""/g) ?? []).length, 2);
   const error = render(
     React.createElement(AccountMenuContent, {
       user: { ...user, username: "<script>real</script>" },
@@ -81,5 +83,5 @@ test("content preserves loading disablement, safe retry error and escaped real u
   assert.match(error, /Vui lòng thử lại/);
   assert.doesNotMatch(error, /<script>/);
   assert.match(error, /&lt;script&gt;real/);
-  assert.equal((error.match(/disabled=""/g) ?? []).length, 2);
+  assert.equal((error.match(/disabled=""/g) ?? []).length, 1);
 });
