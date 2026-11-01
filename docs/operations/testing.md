@@ -434,8 +434,93 @@ build-retail-fixture with optional third argument pointing to the test entry;
 default Retail compilation remains unchanged. The adapter uses pinned Next CSS
 loaders and its actual client define-env factory for Next hooks rather than fake
 navigation globals. Local synthetic session/error fixtures do not prove real auth.
-Reference images under docs/tasks/evidence/NEXORA-032 come from the hash-verified
-ZIP Account JSX subtree rendered alone, outside product code with no ZIP scripts,
-App or provider services. Reference mock identity/extra entries are documentary
-only. Compare the requested subset and record intentional exclusions, planned
+Historical reference captures came from the hash-verified ZIP Account JSX subtree
+rendered alone with no ZIP scripts/App/provider services. They were removed from
+the final Git tree by the retention correction; evidence/NEXORA-032 retains only
+text provenance/measurements, not images or a current browser manifest. Runtime
+Account captures remain separate14-day CI artifacts. Compare the requested subset and record intentional exclusions, planned
 state, real-username and shared-control sizing differences; no pixel-equality claim.
+
+## Evidence storage and retention
+
+Git owns source/test specifications, task/plans/reuse audits, immutable design
+snapshots, source hashes, necessary geometry contracts, compact verification
+summaries and CI references. Generated screenshots, image comparisons, videos,
+detailed logs and browser/runtime manifests go under ignored local artifacts/ or
+GitHub Actions artifacts. They are not required to be committed for acceptance.
+Text source/provenance JSON is distinct from generated browser manifests; do not
+blanket-ignore JSON or task/design Markdown. Production public assets are unchanged.
+
+Default artifact retention is14 days. Foundation's existing pinned uploads for
+M1, Customer, Retail and Account keep that limit for both success/failure; no
+external storage service or unbounded retention is introduced. Record exact run,
+HEAD and tested merge SHA, execution timestamp/result/assertion summary and
+artifact ID/hash when checked in the mutable task/PR. Historical links may expire:
+then say the images are unavailable, not that reviewers can still open them.
+Artifact existence is not PASS; partial artifacts do not certify remaining steps.
+
+For future capture plans distinguish (1) assertions executed, (2) screenshots
+captured, (3) screenshots retained and (4) manual visual review. Successful runs
+should retain manifests/results and justified representative images; failure plans
+should retain sufficient expected/actual, viewport, safe step ID, source SHA and
+diagnostics. Never skip assertions to reduce saved frames. Current collectors run
+some geometry/color assertions inside snapshot functions; changing retention can
+change verification. PR30 therefore preserves every collector/assertion/capture/
+manifest/upload and existing14-day behavior. Reducing successful-run image counts
+is a separate follow-up requiring an assertion-preserving plan and regression proof.
+
+No passwords/cookies/tokens/Carrier credentials/MFA secrets or real Customer PII
+in artifacts/logs. Use owned synthetic data/redaction, preserve existing blank-field
+and privacy checks, and do not dump secrets to diagnose an evidence failure.
+
+Long-term source-design images require a task-recorded necessity, no reliable
+alternative source, controlled byte budget and privacy review under Project Rules.
+Store reviewed references outside generated task paths (e.g. docs/architecture/assets),
+not as a blanket per-task exception. No binary exception is retained for NEXORA-032.
+Source ZIPs supplied only as attachments have no guaranteed durable URL; record
+that limitation and exact raw/source hashes. Hashes do not provide missing bytes.
+
+The narrow ignore rules cover task media/logs and root artifacts/. Existing docs:check
+also inspects git ls-files --cached -z: forced additions fail; staged deletions pass;
+source Markdown/JSON, immutable snapshots and production/design source assets are
+not blocked. Failure to read the Git index fails the command rather than silently
+bypassing the guard. It is a known-path policy, not arbitrary binary detection.
+Host tooling needs Git on PATH; the existing Docker dev/test target installs it
+without adding Git to release images. Use node --test scripts/docs-check.test.mjs
+for actual Git/CLI regressions; they do not skip when Git/index access is missing.
+
+Deleting a tracked file cleans the final tree, not historical Git objects. For an
+unmerged PR with intermediate evidence binaries, recommend owner-controlled squash
+merge when supported; merge/rebase may import those intermediate trees into main.
+Never promise remote-object purging/clone-size reduction or rewrite/force-push
+without explicit authorization and a separate assessed backup/rollback plan.
+
+### Git metadata for Docker quality
+
+The evidence guard requires both the Git CLI and readable real index metadata;
+it fails closed with a safe diagnostic if either is unavailable. Canonical CI
+uses an ordinary checkout with its .git directory inside the source bind. A host
+linked worktree instead has a .git pointer; mounting only its files at /workspace
+does not expose metadata outside that bind. No automatic metadata mount is added.
+
+Before running canonical quality from a linked worktree, inspect non-secret paths
+with git rev-parse --absolute-git-dir and git rev-parse --path-format=absolute
+--git-common-dir. Use the already supported NEXORA_COMPOSE_OVERRIDE to add a
+quality-service-only read-only bind of the common Git directory to the same
+absolute path referenced by the pointer. For standard git worktrees the per-worktree
+Git directory is inside that common directory. If separate metadata paths are used,
+all referenced metadata must be readable at the expected paths. Example shape:
+
+```yaml
+services:
+  quality:
+    volumes:
+      - /absolute/repository/.git:/absolute/repository/.git:ro
+```
+
+Use actual resolved paths; do not copy this placeholder blindly, mount credentials
+or Docker sockets, or bypass the guard. Alternatively use an ordinary checkout.
+The genuine Git fixture tests accessible/unreachable linked-worktree metadata;
+that is not a claim that local Docker ran with a particular override. Exact-head
+hosted Docker verification remains mandatory. No Git history write is needed by
+ls-files; the metadata bind stays read-only.

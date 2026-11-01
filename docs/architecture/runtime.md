@@ -122,3 +122,11 @@ Public Web's container healthcheck uses node:http to send the canonical public H
 ## Test infrastructure orchestration
 
 NEXORA028 uses Node24 host orchestration for Docker custody, disposable cluster lifecycle and guarded development-cleanup smoke, preserving existing Compose service/custody/topology and SQL assertions. Foundation selects its pinned Node runtime before Docker quality; no new service or production port/volume is added. Two POSIX Python PTY harnesses remain for real provisioning/MFA terminal security; all LOCAL/HTTPS/persistence/development checks remain required. See [Testing](../operations/testing.md) for command/discovery ownership.
+
+### Repository policy checks in development/test tooling
+
+The existing dev target in docker/Dockerfile.tools includes the Git CLI for
+tracked/staged evidence policy checks and real disposable-index regression tests.
+Quality reuses that dev image. Git is installed only after tools/deps: release
+API/Web/migrate images do not gain this development prerequisite. No new service,
+application dependency, source ownership or runtime credential behavior changes.

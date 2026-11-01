@@ -2,11 +2,11 @@
 
 Status: VERIFICATION PENDING
 Implementation: IMPLEMENTED
-Verification: VERIFIED
+Verification: NOT VERIFIED
 
-Verification checkpoint: implementation8b2160b; final documentation-head workflow
-evidence is reconciled in PR30 before Ready for review. Task stays active for
-final-head handoff/owner acceptance; it is not marked COMPLETED.
+Prior visual verification checkpoints remain historical below. Current evidence-
+retention correction is NOT VERIFIED until its new head passes required checks;
+task stays active and is not marked COMPLETED.
 
 ## Scope
 
@@ -45,7 +45,9 @@ AccountMenu presentation uses true session username, neutral subtitle and exactl
 
 - docs/architecture/frontend.md
 - docs/architecture/design-system.md (scoped Account visual roles)
-- docs/operations/testing.md (browser evidence procedure)
+- docs/operations/testing.md (browser evidence procedure/retention)
+- docs/ai/PROJECT_RULES.md and docs/ai/TASK_WORKFLOW.md (storage/provenance policy)
+- docs/tasks/evidence/NEXORA-032/README.md and reference.json (text source provenance)
 - This task and new PR metadata; shared registry only if an exported shared API changes (none planned).
 
 ### Documentation verification
@@ -94,9 +96,10 @@ gap10px, panel256px/radius12px and a two-layer shadow distinct from existing
 shadows; preserve actual rose600/rose50 OKLCH values from reference and md text
 visibility at768px. Trigger uses approved canonical40 instead of ZIP42. Profile/
 Carrier disabled opacity and reduced panel height (no VIP/wallet/4 extra entries)
-are owner-required differences, not parity failures. Only reference images/manifest
-will live under docs/tasks/evidence/NEXORA-032; ZIP mock data stays outside product
-source. No ZIP package scripts/App/provider components executed.
+are owner-required differences, not parity failures. At that historical implementation checkpoint, reference images/manifest were
+committed under docs/tasks/evidence/NEXORA-032. The retention correction below
+removes those PNGs from the final tree and compacts metadata; ZIP mock data never
+entered product source. No ZIP package scripts/App/provider components executed.
 
 ### Implementation checkpoint — 2026-10-31 (Asia/Saigon)
 
@@ -243,3 +246,136 @@ keep PR Draft until both pass and logs/artifacts are reconciled there. The PR ho
 final documentation-head SHA/run URLs so recording evidence does not recursively
 require another commit solely to name itself. No approval/merge/deployment is
 performed. The task remains active pending final-head handoff and owner acceptance.
+
+## Corrective plan — Evidence retention (recorded before code)
+
+Corrective revision: corrective-2026-11-01-evidence-retention-v1.
+Classification: BOUNDED corrective governance/storage change on existing PR30,
+reviewed head cf369336015662636a4255754a0b8a43ae5a0a42. The primary SIGNIFICANT
+visual design/revision/snapshot/digest above remain unchanged: no visual, business,
+security or runtime contract changes. This is execution-evidence storage policy,
+not a material revision of the selected Account design. Documentation Impact:
+REQUIRED; canonical owners Project Rules, Task Workflow, Testing and this task's
+provenance README/JSON. No new framework, service, dependencies or ADR required.
+
+### Read-only audit and impact/reuse matrix
+
+| Component         | Existing implementations                                                       | Domain owner                   | Reuse alternatives                                 | Selected approach                                                                                                                  | Rationale                                                                                    | Risks                                                              | Verification                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------ | ------------------------------ | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Storage policy    | PROJECT_RULES section5, TASK_WORKFLOW Evidence schema, testing.md              | Contributor governance/testing | New service/ADR or extend canonical owners         | Text summaries/provenance in Git; generated captures/logs/manifests in ignored local output or14-day CI                            | Preserve auditability without accumulated binary                                             | Expired artifacts/source attachments mistaken for accessible proof | Explicit historical/current/reproducibility wording and docs checks                                       |
+| Binary prevention | .gitignore /artifacts, scripts/docs-check.mjs +docs-check-lib.mjs/test.mjs     | Repository tooling             | Git hooks/framework or existing docs checker       | Narrow task-media ignore rules; existing docs CLI checks tracked/staged paths via git ls-files -z and a small exported path policy | Force-added files must fail even if ignored; allow Markdown/source JSON/production assets    | Overbroad suffix blocks legitimate design assets                   | Real disposable Git fixture: ignore, force-add rejection, staged deletion, allowed production/design docs |
+| PR cleanup        | evidence/NEXORA-032 README/reference.json +18PNG                               | Task provenance                | Keep captures in Git or remove final-tree binaries | Remove18 PNG; retain compact hashes/geometry/tooling, no dead image paths                                                          | No production/runtime/test import depends on these PNGs                                      | Hash alone cannot reconstruct ZIP; old Git blobs remain            | Tracked-tree inventory, reference search, raw snapshot digest, source hashes                              |
+| CI evidence       | foundation.yml, m1-visual-checks/customer-/retail-/account-menu-browser-checks | Test infrastructure            | Refactor all capture contracts or preserve them    | Keep every assertion/capture/manifest/upload and14-day retention unchanged; optimize future task capture plans separately          | Capture functions also execute assertions; output reduction now risks weakening verification | Artifact size/expiry remains                                       | Exact-final-head full Foundation logs/manifests/images and three review rounds                            |
+
+Tactical DDD/domain invariants: no domain model, Aggregate, persistence, schema,
+API/SDK, Auth/Carrier/Customer/Shipment changes. Existing browser collectors are
+independent test owners, not a new evidence abstraction. Long-term source-design
+images belong outside generated task evidence paths and require documented need,
+size/privacy/alternative-source assessment; no exception is selected for these18PNG.
+
+### Repository/history findings and selected delivery
+
+- Clean existing branch/head matches authenticated GitHub PR30; main845c7e6;
+  PR open/unmerged.18 PNG total444406bytes introduced2845e22 and present in
+  2845e22/1dcf44d/8b2160b/cf36933 trees. No other tracked media or artifact outputs.
+- API reports squash/merge/rebase all enabled, rulesets empty. Branch protection
+  read returned403 (integration lacks access); no claim that no protection exists.
+- Existing exact-head CI/snapshot/task references bind these historical commits.
+  Remove files from final tree only; no reset/filter-repo/rebase/force-push/history
+  rewrite. Recommend owner squash merge so intermediate PNG trees do not become
+  main ancestry. Other merge methods may preserve those blobs. This is not remote
+  object purging, garbage collection or a guaranteed clone-size reduction.
+- ZIP is a user attachment, not a durable source URL. Preserve archive/Header/
+  mockData hashes and necessary geometry/tooling; explicitly document that future
+  reconstruction needs the exact original bytes. Historical reference captures
+  remain in old branch Git objects while reachable, not in current tree or a
+  dedicated reference CI archive; no retention guarantee.
+
+### Verification-first sequence
+
+1. Round1 independent audit of inventory/history/policy and recorded plan.
+2. RED tests for existing docs checker: tracked/staged forbidden evidence and real
+   Git ignore cases; preserve legitimate source JSON/Markdown/design/production assets.
+3. Minimal guard/ignore implementation; remove18PNG, compact provenance JSON and
+   update canonical policies/references, preserving all historical results/snapshot.
+4. Targeted tests/format/lint/boundaries/docs/preflight and final diff/tree checks;
+   Round2 independent implementation/docs review. No screenshot-count reduction.
+5. Commit/push existing branch; exact-new-head Preflight +full Docker Foundation,
+   actual browser/logout/Customer/Retail and artifact manifest/hash verification;
+   Round3 independent final-head review. Final run metadata in PR avoids self-SHA
+   documentation loops. Keep Draft while mandatory verification pending; no merge.
+
+Correction implementation/verification: NOT YET RUN at this planning checkpoint.
+Prior visual implementation PASS remains historical evidence, not proof of this
+new correction. Current correction must pass its own exact-head checks.
+
+### Corrective execution checkpoint — 2026-11-01 (Asia/Saigon)
+
+Round1 independent inventory/history/policy review found no P1/P2; emphasized
+index truth, expired-source availability and no history-purge claim. RED: existing
+docs-check tests lacked the new path guard and task-media ignore behavior. GREEN:
+9/9 docs tests, including real disposable Git index and actual CLI nonzero rejection
+of force-added captures, staged removal acceptance, all8 case-aware media/log
+ignore patterns, source Markdown/JSON/snapshot and legitimate production/design
+asset preservation. No hook framework, new dependency or domain changes.
+
+Removed18 PNG (444406bytes) from tracked final tree only. README now describes
+historical captures and source-attachment limitations; reference.json keeps raw
+archive/Header/mockData hashes, historical measurements/tooling/reproduction needs,
+not deleted image filenames/hashes or a current browser manifest. No binary
+exception retained. Immutable v1 snapshot bytes/digest unchanged.
+
+All four existing collectors, assertions, screenshot/manifest generation and four
+Foundation uploads/14-day retention remain unchanged. Screenshot optimization is
+a separate future follow-up because current capture functions contain assertions.
+Prior headcf369336015662636a4255754a0b8a43ae5a0a42 was genuinely verified by
+Preflight41210458138 and Foundation41210458113, with merge476be97be1169339085a60c26f1091aeeeaee295;
+this is historical, not a PASS for the correction. Final corrective head/run/
+timestamp/artifact metadata will be reconciled in PR30 after new CI completes.
+
+History still contains the18 blobs through earlier branch commits; bytes removed
+from final tree are not Git-history bytes reclaimed. Squash is enabled but owner-
+controlled; merge/rebase can import intermediate binary trees. Branch protection
+remains unknown after403; rulesets read returned empty. No history rewrite,
+force-push, merge or remote-object purge performed.
+
+Implementation clarification before Docker edit: docker/Dockerfile.tools tools/deps
+use Node slim and do not install Git. The new real-index guard/tests require the
+already selected Git CLI in canonical quality too; silently skipping them in Docker
+would weaken verification. Add Git only to the existing dev target used by quality,
+with the existing apt/no-recommends/cleanup pattern. No npm dependency, new image/
+service/framework, release API/Web/migrate package or business behavior changes.
+Testing/runtime docs record this dev/test prerequisite. Genuine Docker quality
+must prove Git/index/CLI tests execute there, not rely on host-only PASS.
+
+Round2 compatibility finding before follow-up edit: linked worktree .git may point
+outside the Compose source bind. Git CLI installation alone does not make that
+metadata reachable. Keep the guard fail-closed; document ordinary checkout as the
+default Docker prerequisite and use existing NEXORA_COMPOSE_OVERRIDE for a quality-
+only read-only bind of the common Git directory to the same absolute target path.
+No automatic host mount or custom Git/index snapshot/parser/bypass introduced.
+Add an actionable safe error and a genuine disposable linked-worktree regression
+for accessible versus missing metadata. Hosted Foundation uses ordinary checkout;
+this test does not claim a local linked-worktree Docker run was performed.
+
+### Corrective local verification and Round2 checkpoint
+
+Executed after the linked-worktree clarification: docs-check10/10 and complete
+native root tooling128/128 PASS (zero failures/skips); format:check, lint/boundaries,
+docs:check, local/static preflight and diff-check PASS. Raw snapshot digest remains
+3b0313bea5971181f468a41b99cfd9a9bd8ae8659bb009d396d675df15b0eac2.
+Archive/Header/mockData hashes equal the historical JSON; compact metadata has no
+removed image paths. Git index has zero task PNGs and no root artifacts tracked.
+Compared withcf36933, application/packages/workflows/browser collectors are unchanged.
+
+Round2 independently reproduced10/10 PASS and closed the linked-worktree finding
+for source/documented support: ordinary checkout or explicit existing read-only
+metadata override, never a silent bypass. No confirmed P1/P2 remains at this
+checkpoint. Local Docker with an override is NOT RUN; hosted ordinary-checkout
+Docker quality, runtime and artifact checks still require the corrective head.
+All existing visual/security FAIL/PASS checkpoints remain historical, unchanged.
+
+Implementation is ready for new-head CI; current corrective verification remains
+NOT VERIFIED until Preflight/Foundation and actual artifacts are checked. Final
+results/timestamps/HEAD/merge/run URLs are recorded in PR30 without another commit
+solely to name itself. Owner controls squash/merge; no merge performed.

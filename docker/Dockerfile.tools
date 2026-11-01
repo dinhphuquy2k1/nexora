@@ -27,5 +27,10 @@ RUN --mount=type=secret,id=build_ca \
     pnpm install --frozen-lockfile --store-dir /pnpm/store
 
 FROM deps AS dev
+# Repository policy checks and their real-index regressions require Git.
+# Keep this prerequisite out of tools/deps and all release images.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
 COPY . .
 ENTRYPOINT ["sh", "/workspace/scripts/dev-entrypoint.sh"]
