@@ -30,7 +30,15 @@ export async function verifyCarrierBrowser({
       const { url, method } = m.params.request,
         u = new URL(url);
       if (
-        (u.origin === baseUrl && /\/api\/carrier/.test(u.pathname)) ||
+        (u.origin === baseUrl &&
+          /\/api\/carrier/.test(u.pathname) &&
+          !(
+            method === "GET" &&
+            (u.pathname === "/api/carrier-connections" ||
+              /^\/api\/carrier-connections\/[a-f0-9-]+\/sync-(configs|jobs)(\/[a-f0-9-]+)?$/.test(
+                u.pathname,
+              ))
+          )) ||
         (u.origin === origin && !["GET", "HEAD"].includes(method))
       )
         badRequests.push(method);

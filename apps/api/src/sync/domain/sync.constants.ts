@@ -1,15 +1,10 @@
-export const SyncJobStatus = {
-  QUEUED: "QUEUED",
-  RUNNING: "RUNNING",
-  WAITING: "WAITING",
-  SUCCEEDED: "SUCCEEDED",
-  FAILED: "FAILED",
-  CANCELLED: "CANCELLED",
-} as const;
-export const SyncProcessingPhase = {
-  FETCHING: "FETCHING",
-  APPLYING: "APPLYING",
-} as const;
+import {
+  SyncJobStatus,
+  SyncProcessingPhase,
+  SyncType,
+  SyncTrigger,
+} from "@nexora/shared/sync-status";
+export { SyncJobStatus, SyncProcessingPhase, SyncType, SyncTrigger };
 export const SyncProcessingStatus = {
   PENDING: "PENDING",
   PROCESSING: "PROCESSING",
@@ -18,9 +13,6 @@ export const SyncProcessingStatus = {
   REJECTED_SOURCE: "REJECTED_SOURCE",
   NEEDS_REVIEW: "NEEDS_REVIEW",
 } as const;
-export const SyncType = { SHIPMENT: "SHIPMENT", CUSTOMER: "CUSTOMER" } as const;
-export type SyncType = (typeof SyncType)[keyof typeof SyncType];
-export const SyncTrigger = { MANUAL: "MANUAL", AUTO: "AUTO" } as const;
 export const SyncStrategy = {
   FULL: "FULL",
   INCREMENTAL: "INCREMENTAL",

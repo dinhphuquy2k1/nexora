@@ -233,6 +233,7 @@ model SyncJob {
  processing_phase String @default("FETCHING") @db.VarChar(16)
  generation Int
  lifecycle_version Int
+ fetch_strategy String @default("FULL") @db.VarChar(16)
  next_page Int @default(1)
  next_cursor String? @db.Text
  target_watermark String? @db.Text

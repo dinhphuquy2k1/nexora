@@ -13,6 +13,7 @@ CREATE TABLE sync_jobs (
  status VARCHAR(16) NOT NULL DEFAULT 'QUEUED' CHECK(status IN ('QUEUED','RUNNING','WAITING','SUCCEEDED','FAILED','CANCELLED')),
  processing_phase VARCHAR(16) NOT NULL DEFAULT 'FETCHING' CHECK(processing_phase IN ('FETCHING','APPLYING')),
  generation INTEGER NOT NULL CHECK(generation>=0),lifecycle_version INTEGER NOT NULL CHECK(lifecycle_version>=0),
+ fetch_strategy VARCHAR(16) NOT NULL DEFAULT 'FULL' CHECK(fetch_strategy IN ('FULL','INCREMENTAL')),
  next_page INTEGER NOT NULL DEFAULT 1 CHECK(next_page>0),next_cursor TEXT,target_watermark TEXT,
  fetched_count INTEGER NOT NULL DEFAULT 0 CHECK(fetched_count>=0),new_count INTEGER NOT NULL DEFAULT 0 CHECK(new_count>=0),changed_count INTEGER NOT NULL DEFAULT 0 CHECK(changed_count>=0),unchanged_count INTEGER NOT NULL DEFAULT 0 CHECK(unchanged_count>=0),applied_count INTEGER NOT NULL DEFAULT 0 CHECK(applied_count>=0),rejected_count INTEGER NOT NULL DEFAULT 0 CHECK(rejected_count>=0),needs_review_count INTEGER NOT NULL DEFAULT 0 CHECK(needs_review_count>=0),
  available_at TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,attempt_count INTEGER NOT NULL DEFAULT 0 CHECK(attempt_count>=0),worker_id UUID,lease_version INTEGER NOT NULL DEFAULT 0 CHECK(lease_version>=0),lease_expires_at TIMESTAMPTZ(3),started_at TIMESTAMPTZ(3),finished_at TIMESTAMPTZ(3),last_error_code VARCHAR(32),

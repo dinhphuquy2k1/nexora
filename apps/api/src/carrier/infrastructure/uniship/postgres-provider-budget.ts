@@ -46,6 +46,9 @@ export class PostgresProviderBudget {
       }
       throw error;
     } finally {
+      if (succeeded)
+        await this.db
+          .$executeRaw`UPDATE sync_provider_budget SET failures=0 WHERE provider=${this.provider}`;
       await this.db
         .$executeRaw`UPDATE sync_provider_budget SET lease_token=NULL,lease_expires_at=NULL WHERE id=${slot.id}::uuid AND lease_token=${token}::uuid`;
     }

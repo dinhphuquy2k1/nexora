@@ -445,13 +445,38 @@ export interface components {
         SyncJobResponseDto: {
             job: components["schemas"]["SyncJobDto"];
         };
+        SyncJobSummaryDto: {
+            total: number;
+            completed: number;
+            running: number;
+            failed: number;
+        };
         SyncJobsResponseDto: {
+            summary: components["schemas"]["SyncJobSummaryDto"];
+            types: ("SHIPMENT" | "CUSTOMER")[];
             jobs: components["schemas"]["SyncJobDto"][];
             total: number;
             page: number;
             pageSize: number;
         };
+        SyncIssueDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            sourceId: string;
+            sourceVersion: number;
+            processorVersion: number;
+            /** @enum {string} */
+            outcome: "NEEDS_REVIEW" | "REJECTED_SOURCE" | "RETRYABLE_ERROR";
+            errorCode: string | null;
+        };
+        SyncJobDetailResponseDto: {
+            job: components["schemas"]["SyncJobDto"];
+            issues: components["schemas"]["SyncIssueDto"][];
+            issueTotal: number;
+        };
         SyncConfigDto: {
+            latestJob: components["schemas"]["SyncJobDto"] | null;
             /** @enum {string} */
             syncType: "SHIPMENT" | "CUSTOMER";
             enabled: boolean;
@@ -786,6 +811,11 @@ export interface operations {
             query?: {
                 pageSize?: number;
                 page?: number;
+                until?: string;
+                from?: string;
+                /** @description Comma-separated job status codes */
+                status?: string;
+                syncType?: "SHIPMENT" | "CUSTOMER";
             };
             header?: never;
             path: {
@@ -912,7 +942,10 @@ export interface operations {
     };
     SyncController_job: {
         parameters: {
-            query?: never;
+            query?: {
+                pageSize?: number;
+                page?: number;
+            };
             header?: never;
             path: {
                 id: string;
@@ -927,7 +960,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SyncJobResponseDto"];
+                    "application/json": components["schemas"]["SyncJobDetailResponseDto"];
                 };
             };
             400: {

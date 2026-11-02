@@ -27,3 +27,10 @@ test("Canonical payload is deterministic, bounded and rejects non-JSON values", 
   for (const v of [{ x: NaN }, { x: undefined }, { x: BigInt(1) }, new Date()])
     assert.throws(() => canonicalPayload(v));
 });
+
+test("Sync retry honors a valid long Retry-After and rejects non-finite scheduling delays", () => {
+  const { retryDelay } = require("../../dist/sync/domain/sync-policy");
+  assert.equal(retryDelay(0, 3600000), 3600000);
+  assert.equal(retryDelay(30, NaN), 60000);
+  assert.equal(retryDelay(0, Infinity), 1000);
+});

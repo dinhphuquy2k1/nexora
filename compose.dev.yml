@@ -1,6 +1,5 @@
 x-development-volumes: &development-volumes
   - .:/workspace
-  - sync_credentials:/sync-config:ro
   - root_deps:/workspace/node_modules
   - pnpm_store:/pnpm/store
   - web_cache:/workspace/apps/web/.next

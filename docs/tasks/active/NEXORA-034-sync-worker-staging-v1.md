@@ -1,8 +1,8 @@
 # NEXORA-034 — Sync Worker and Staging V1
 
 Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Scope
 
@@ -63,16 +63,24 @@ Run pnpm docs:check, pnpm preflight:check and pnpm format:check.
 
 ## Evidence
 
-| Claim                   | Evidence                                                                                   | Date       | Result |
-| ----------------------- | ------------------------------------------------------------------------------------------ | ---------- | ------ |
-| Initial plan governance | preflight/docs found metadata formatting errors before code; corrected to canonical format | 2026-11-02 | FAIL   |
+| Claim                                                      | Evidence                                                                                                                                                                                                                     | Date       | Result |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Initial plan governance                                    | preflight/docs found metadata formatting errors before code; corrected to canonical format                                                                                                                                   | 2026-11-02 | FAIL   |
+| Genuine PostgreSQL queue/staging/application/HTTP behavior | Owned tmpfs PostgreSQL17.11 launcher; integration/sync-integration.test.cjs18/18, including20-way admission,10000→10005/30items, retries, page restart, heartbeat, disable/delete fences, real Nest guards and generated SDK | 2026-11-03 | PASS   |
+| Cross-process acquisition budget                           | Same PG suite: actual child worker process plus separate API client, two slots/third denied                                                                                                                                  | 2026-11-03 | PASS   |
+| Restricted worker privileges/cluster cleanup               | node scripts/provision-cluster-smoke.mjs --suite=provision; actual signed disposable cluster, concurrent roles, lock permissions and forbidden secret/session/DDL access                                                     | 2026-11-03 | PASS   |
+| Existing Carrier visual/accessibility regressions          | Actual compiled TSX/CSS and Chromium CDP; six-viewport matrix, menus, keyboard, cleanup, date/history/status regressions                                                                                                     | 2026-11-03 | PASS   |
+| Round3 denial and partial-schedule regressions             | node --test apps/web/test/carrier-sync-lifecycle.test.mjs; actual component closures,401 fences late200 and further actions; partial readback rebases Cancel while preserving draft                                          | 2026-11-03 | PASS   |
+| Local canonical quality attempt before commit              | pnpm quality: format/lint/preflight/docs/typecheck/tests executed; contracts regeneration reproducible but gate rejects uncommitted generated files; rerun required after commit                                             | 2026-11-03 | FAIL   |
+| Old remote head Foundation                                 | Run41470963835 at4e08bc1: lint failed; later runtime steps skipped. Findings fixed locally, not evidence for a new head                                                                                                      | 2026-11-03 | FAIL   |
+| Old remote targeted PostgreSQL                             | Run41470963851 at4e08bc1: actual generated build,2policy tests and11PG tests passed; final head must be checked separately                                                                                                   | 2026-11-03 | PASS   |
 
 ## Blockers and limitations
 
 No authorized Uniship fetch/payload/retention contract or Shipment schema/handler.
 No approved Customer sync mapping/actor command. Ports/mock verification must not
 be called live integration. No default retention period or destructive cleanup.
-Host disk25MiB free; RAM worktree preserves existing work. Final CI required.
+Initial host disk25MiB recovered through unused build-cache cleanup; RAM worktree preserves existing work. Final CI required.
 
 ## Implementation checkpoint
 
@@ -89,3 +97,82 @@ Independent Round1 identified cross-page manifest version deadlock, rejected
 retention reprocessing and missing record retry decisions. Implemented coalescing,
 resolved identity metadata and typed retry/backoff; real PG regression execution
 required before closure. Provider/domain/production gates remain unavailable.
+
+### Additive transport clarification before final UI verification
+
+Job history now pages/filters in PostgreSQL with distinct actual types, scoped
+summary and per-config latest job, rather than treating one returned page as the
+whole history/status population. Existing GET job detail returns paginated safe
+issue metadata, no payload. QUEUED has no actual start: the frontend history model
+keeps required nullable startedAt plus actual createdAt as a separate date-filter
+anchor, displays Chưa bắt đầu and never pretends creation was execution. Existing
+fully timestamped source fixtures remain valid; missing both timestamps is invalid.
+This implements the supplied queued/start/end semantics without changing backend
+business behavior, schema ownership or the selected architecture.
+
+### Round2 review and execution
+
+Independent review found immediate mapping persistence before non-APPLIED decisions,
+possible target switching, poison-record exhaustion before later batches, and an
+unsupported oldest queue row starving supported work. New genuine PG regressions
+first FAIL (RED), then14/14 PASS after deferred/immutable mapping, pending-batch
+completion and capability-filtered claim. Claimed target/version corruption is a
+terminal safe job failure, distinct from a stale lease; a deployment dropping an
+old processor version must not spin indefinitely or advance watermark. Next job
+can target the new processor without inventing a source-version change.
+
+Local public engine artifact13153864517 from run41470963851 downloaded and archive
+SHA256 e72c47d8c854ff5d8f57d820481870988c7e5d1ac1461471758ac4000948e00a checked;
+engine internal SHA verified. Genuine Prisma generate/API build now execute using
+the approved public engine, in an isolated local client directory. Initial binary
+403 remains historical FAIL, not rewritten as PASS. Owned Docker tmpfs PG14 tests
+PASS with container-label verification/cleanup. Existing signed disposable-cluster
+launcher provision suite PASS, including worker role/authorization row locks and
+denial of credentials/sessions/role escalation/domain creation authority.
+
+### Fetch strategy and restart clarification
+
+Implement the specified FULL/INCREMENTAL distinction explicitly in the provider
+port and persist the selected strategy per job. An unavailable adapter returns no
+strategy, never an invented production FULL contract. Manual-only jobs recover the
+last successful watermark even without a sync_configs row. A deployment changing
+strategy/processor compatibility fails the old job safely, without watermark
+advance; a subsequent job targets the new contract/version. This adds technical
+restart metadata within sync_jobs, no new table or business policy. Add genuine
+executor happy-path/restart tests for multi-page FULL and manual INCREMENTAL.
+
+### Shared vocabulary ownership clarification
+
+Sync job status/phase/type/trigger now have real API/Web runtime consumers. Per
+Project Rules, place those unchanged codes in one browser-safe shared leaf and
+re-export from Sync Domain; response types remain generated SDK-owned. Processor
+outcomes/strategy/provenance stay backend-local. Extend only the existing Domain
+pure-leaf allowlist, without changing other domain boundaries or business values.
+
+### Heartbeat and bounded page execution
+
+Wire the existing queue heartbeat into the executor while a page/batch is active;
+its timer is cleaned and pending renewal awaited on every exit. A bounded20-second
+page timeout is Nexora resource policy (below the shared30-second acquisition
+lease), not an invented provider quota. Forward shutdown/timeout cancellation to
+the Provider Port; no checkpoint from an aborted response. Add genuine PG delayed
+page/lease-renewal coverage and an application cancellation test before code.
+
+### Verification checkpoint — infrastructure, not live integration
+
+The queue/staging/executor/API/SDK/existing Drawer infrastructure is implemented.
+Production Provider and Domain handlers remain explicitly unavailable: no authorized
+Uniship data contract, Shipment schema or Customer sync command was invented.
+The 99 APPLIED fixture records link existing owned Customers; they do not prove
+99 newly created domain records. No production rollout or live traffic occurred.
+
+Round3 independent review identified401 reconciliation after denial and stale Cancel
+baseline following a partial schedule save. Denial now aborts/increments generation,
+clears data and latches all future reads/writes until unmount; every accepted server
+read rebases the schedule baseline while preserving unsaved edits. Full confirmed
+save resets the draft through the existing schedule revision. Focused regressions
+execute the real component closures; browser evidence remains separately required.
+Sync retry honors valid finite Retry-After without shortening a provider deadline;
+non-finite metadata falls back to bounded exponential retry. Existing Carrier auth
+client/local budget policy is unchanged. Runtime schema assertion now expects all11
+migrations, including this additive Sync migration; no assertion was removed.

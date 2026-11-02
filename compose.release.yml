@@ -54,6 +54,7 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
   sync-worker:
+    stop_grace_period: 30s
     image: ghcr.io/dinhphuquy2k1/nexora-api:0.1.0
     user: "1000:1000"
     entrypoint: [sh, /scripts/sync-worker-entrypoint.sh]

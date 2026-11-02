@@ -8,6 +8,7 @@ export interface SyncJob {
   trigger_source: string;
   status: string;
   processing_phase: string;
+  fetch_strategy: "FULL" | "INCREMENTAL";
   next_page: number;
   next_cursor: string | null;
   target_watermark: string | null;
@@ -65,7 +66,7 @@ export interface SyncDomainProcessor {
   apply(source: SyncSource, session: SyncDomainSession): Promise<SyncDecision>;
 }
 export interface SyncProvider {
-  supports(provider: string, type: SyncType): boolean;
+  strategy(provider: string, type: SyncType): "FULL" | "INCREMENTAL" | null;
   fetch(job: SyncJob, signal: AbortSignal): Promise<SyncPage>;
 }
 export interface SyncJobFilters {

@@ -6,7 +6,7 @@ import { SyncError } from "../domain/sync-policy";
 import { SyncErrorCode } from "../domain/sync.constants";
 /** No authorized data endpoint/schema/domain command exists at this baseline. */
 export const unavailableProvider: SyncProvider = {
-  supports: () => false,
+  strategy: () => null,
   async fetch() {
     throw new SyncError(SyncErrorCode.SYNC_UNAVAILABLE);
   },

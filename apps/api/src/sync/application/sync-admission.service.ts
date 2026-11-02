@@ -1,30 +1,17 @@
+import { mapSyncError } from "./sync-error";
 import { z } from "zod";
 import { SyncJobStatus } from "../domain/sync.constants";
 import type { SyncJobFilters } from "./sync.port";
 import { parsePagination } from "@nexora/shared";
-import { HttpException } from "@nestjs/common";
 import { isUuid } from "../../common/validation/uuid";
-import { GENERIC_ERROR_MESSAGE } from "../../common/http/error-messages";
 import { SyncPort } from "./sync.port";
 import { SyncError } from "../domain/sync-policy";
 import {
   SyncErrorCode as E,
   SyncType,
   SyncTrigger,
-  type SyncCode,
 } from "../domain/sync.constants";
-const ERROR_MAP: Record<SyncCode, number> = {
-  [E.VALIDATION_ERROR]: 400,
-  [E.UNAUTHORIZED]: 401,
-  [E.NOT_FOUND]: 404,
-  [E.SYNC_UNAVAILABLE]: 503,
-  [E.SYNC_STALE]: 409,
-  [E.PROVIDER_RETRY]: 503,
-  [E.SOURCE_INVALID]: 400,
-  [E.SOURCE_CONFLICT]: 409,
-  [E.PROCESSOR_UNAVAILABLE]: 503,
-  [E.INTERNAL_ERROR]: 500,
-};
+
 export function strictSyncBody(value: unknown, keys: readonly string[]) {
   if (
     !value ||
@@ -56,11 +43,7 @@ export class SyncService {
         throw new SyncError(E.VALIDATION_ERROR);
       return await op();
     } catch (error) {
-      if (error instanceof SyncError)
-        throw new HttpException(
-          { code: error.code, message: GENERIC_ERROR_MESSAGE },
-          ERROR_MAP[error.code],
-        );
+      if (error instanceof SyncError) throw mapSyncError(error);
       throw error;
     }
   }

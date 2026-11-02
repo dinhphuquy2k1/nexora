@@ -106,11 +106,13 @@ export function checkFileImports(p, content) {
         spec === "@nexora/shared" ||
         (spec.startsWith("@nexora/shared/") &&
           spec !== "@nexora/shared/customer-status" &&
+          spec !== "@nexora/shared/sync-status" &&
           spec !== "@nexora/shared/validation") ||
         spec.includes("customer-status-labels") ||
         (target &&
           under(target, resolve("packages/shared")) &&
-          !target.endsWith("/customer-status")))
+          !target.endsWith("/customer-status") &&
+          !target.endsWith("/sync-status")))
     )
       throw Error(`Domain purity boundary: ${p}`);
     if (
@@ -138,6 +140,7 @@ export function runNegativeTests() {
   checkFileImports(
     "apps/api/src/customer/domain/example.ts",
     "import { CustomerStatus } from '@nexora/shared/customer-status';",
+    "import { SyncJobStatus } from '@nexora/shared/sync-status';",
   );
   checkFileImports(
     "apps/api/src/customer/domain/example.ts",

@@ -200,7 +200,7 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
         );
       } else {
         await db.query(
-          `GRANT UPDATE(id) ON users,carrier_connections,customers TO ${role}; GRANT UPDATE(user_id) ON carrier_user_states TO ${role}`,
+          `GRANT UPDATE(updated_at) ON users,carrier_connections,customers TO ${role}; GRANT UPDATE(generation) ON carrier_user_states TO ${role}`,
         );
       }
       await db.query("COMMIT");

@@ -84,7 +84,7 @@ export const payloadHash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 export function retryDelay(attempt: number, retryAfterMs = 0) {
   return Math.max(
-    Math.min(Math.max(0, retryAfterMs), 300000),
+    Number.isFinite(retryAfterMs) ? Math.max(0, retryAfterMs) : 0,
     Math.min(60000, 1000 * 2 ** Math.min(attempt, 6)),
   );
 }

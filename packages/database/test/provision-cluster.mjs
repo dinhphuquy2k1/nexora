@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Client } from "pg";
 import { readdir, readFile } from "node:fs/promises";
 import { randomUUID, randomBytes } from "node:crypto";
-import { provisionRuntime } from "../scripts/provision-runtime.mjs";
+import { provisionRuntime, runtimeUrl } from "../scripts/provision-runtime.mjs";
 import { assertRuntimePrivileges } from "./runtime-privilege-assertions.mjs";
 
 const adminUrl = process.env.DISPOSABLE_CLUSTER_ADMIN_URL;
@@ -109,6 +109,60 @@ try {
 
   await assertRuntimePrivileges(urlA, sharedRuntimeSecret);
   await assertRuntimePrivileges(urlB, sharedRuntimeSecret);
+
+  // Sync role mutations are authorized only in this owned, signed disposable cluster.
+  const workerSecret = randomBytes(32).toString("hex");
+  await Promise.all([
+    provisionRuntime(urlA, workerSecret, { role: "nexora_sync" }),
+    provisionRuntime(urlB, workerSecret, { role: "nexora_sync" }),
+  ]);
+  for (const databaseUrl of [urlA, urlB]) {
+    const worker = new Client({
+      connectionString: runtimeUrl(databaseUrl, workerSecret, "nexora_sync"),
+    });
+    try {
+      await worker.connect();
+      const flags = (
+        await worker.query(
+          "SELECT current_user AS actor,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=current_user",
+        )
+      ).rows[0];
+      assert.equal(flags.actor, "nexora_sync");
+      for (const key of [
+        "rolsuper",
+        "rolcreatedb",
+        "rolcreaterole",
+        "rolreplication",
+        "rolbypassrls",
+      ])
+        assert.equal(flags[key], false);
+      await worker.query("SELECT id FROM sync_jobs LIMIT 1");
+      await worker.query("BEGIN");
+      await worker.query("SELECT id FROM users FOR UPDATE");
+      await worker.query(
+        "SELECT generation FROM carrier_user_states FOR UPDATE",
+      );
+      await worker.query("SELECT id FROM carrier_connections FOR UPDATE");
+      await worker.query("ROLLBACK");
+      for (const sql of [
+        "SELECT * FROM sessions",
+        "SELECT * FROM user_credentials",
+        "SELECT * FROM user_mfa",
+        "SELECT * FROM carrier_connection_secrets",
+        "UPDATE users SET status=status",
+        "UPDATE carrier_connections SET status=status",
+        "DELETE FROM customers",
+        "CREATE TABLE sync_illegal(id int)",
+        "SET ROLE nexora",
+      ])
+        await assert.rejects(worker.query(sql), (e) => e.code === "42501");
+    } finally {
+      await worker.end();
+    }
+  }
+  console.log(
+    "Sync worker restricted role, authorization locks and secret/domain denial PASS",
+  );
 
   // B. Bounded lock waiting, timeout recovery, and safe lockHolder cleanup:
   const lockHolder = new Client({ connectionString: adminUrl });

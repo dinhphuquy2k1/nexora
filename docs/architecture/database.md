@@ -288,7 +288,7 @@ connection FK after cancellation; identities remain owner/account scoped, with n
 domain cascade or cross-owner transfer. No automatic domain rollback exists.
 
 nexora_app gains explicit Sync-table permissions. A separately provisioned
-nexora_sync role has Sync-table permissions plus SELECT and narrow identity-column
+nexora_sync role has Sync-table permissions plus SELECT and narrow timestamp/generation-column
 UPDATE authority needed for authorization row locks on users/epochs/connections/
 Customers. It has no session/credential/audit/DDL/admin or Customer-creation grants.
 Future domain writers require actual approved invariants and deliberate grants.

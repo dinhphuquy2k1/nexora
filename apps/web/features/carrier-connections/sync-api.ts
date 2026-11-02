@@ -12,11 +12,11 @@ export class SyncApiError extends Error {
   }
 }
 export function createSyncApi(client = createNexoraClient()) {
-  const result = <T>(r: { response: Response; data?: T }): T => {
+  function result<T>(r: { response: Response; data?: T }): T {
     if (!r.response.ok) throw new SyncApiError(r.response.status);
     if (!r.data) throw new SyncApiError(500);
     return r.data;
-  };
+  }
   return {
     connections: async (signal: AbortSignal) =>
       result(await client.GET("/api/carrier-connections", { signal }))
@@ -28,10 +28,20 @@ export function createSyncApi(client = createNexoraClient()) {
           signal,
         }),
       ).configs,
-    jobs: async (id: string, page: number, signal: AbortSignal) =>
+    jobs: async (
+      id: string,
+      page: number,
+      signal: AbortSignal,
+      filters: {
+        syncType?: SyncType;
+        status?: string;
+        from?: string;
+        until?: string;
+      } = {},
+    ) =>
       result(
         await client.GET("/api/carrier-connections/{id}/sync-jobs", {
-          params: { path: { id }, query: { page, pageSize: 100 } },
+          params: { path: { id }, query: { page, pageSize: 4, ...filters } },
           signal,
         }),
       ),

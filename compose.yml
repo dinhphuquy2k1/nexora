@@ -88,6 +88,7 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
   sync-worker:
+    stop_grace_period: 30s
     build: *api-build
     image: nexora-api:0.1.0
     user: "1000:1000"

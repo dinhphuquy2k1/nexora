@@ -119,6 +119,45 @@
               "minimum": 1,
               "type": "integer"
             }
+          },
+          {
+            "name": "until",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Comma-separated job status codes",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "syncType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "SHIPMENT",
+                "CUSTOMER"
+              ],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -207,6 +246,25 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -215,7 +273,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SyncJobResponseDto"
+                  "$ref": "#/components/schemas/SyncJobDetailResponseDto"
                 }
               }
             }
@@ -2367,9 +2425,45 @@
           "job"
         ]
       },
+      "SyncJobSummaryDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "completed": {
+            "type": "integer"
+          },
+          "running": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "completed",
+          "running",
+          "failed"
+        ]
+      },
       "SyncJobsResponseDto": {
         "type": "object",
         "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/SyncJobSummaryDto"
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "SHIPMENT",
+                "CUSTOMER"
+              ]
+            }
+          },
           "jobs": {
             "type": "array",
             "items": {
@@ -2387,15 +2481,87 @@
           }
         },
         "required": [
+          "summary",
+          "types",
           "jobs",
           "total",
           "page",
           "pageSize"
         ]
       },
+      "SyncIssueDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceVersion": {
+            "type": "integer"
+          },
+          "processorVersion": {
+            "type": "integer"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "NEEDS_REVIEW",
+              "REJECTED_SOURCE",
+              "RETRYABLE_ERROR"
+            ]
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "sourceId",
+          "sourceVersion",
+          "processorVersion",
+          "outcome",
+          "errorCode"
+        ]
+      },
+      "SyncJobDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/SyncJobDto"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncIssueDto"
+            }
+          },
+          "issueTotal": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job",
+          "issues",
+          "issueTotal"
+        ]
+      },
       "SyncConfigDto": {
         "type": "object",
         "properties": {
+          "latestJob": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SyncJobDto"
+              }
+            ]
+          },
           "syncType": {
             "type": "string",
             "enum": [
@@ -2436,6 +2602,7 @@
           }
         },
         "required": [
+          "latestJob",
           "syncType",
           "enabled",
           "available",

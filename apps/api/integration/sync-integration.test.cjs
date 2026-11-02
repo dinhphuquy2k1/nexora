@@ -2,16 +2,13 @@
 require("reflect-metadata");
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { randomUUID } = require("node:crypto");
-const { execFileSync } = require("node:child_process");
+const { randomUUID, randomBytes, createHash } = require("node:crypto");
+const { execFileSync, spawn } = require("node:child_process");
 const { resolve } = require("node:path");
 const { createDatabase } = require("@nexora/database");
 const {
   SyncRepository,
 } = require("../dist/sync/infrastructure/sync-job.repository");
-const {
-  TransactionSyncDisablement,
-} = require("../dist/sync/infrastructure/sync-disablement.participant");
 const {
   CarrierAdapter,
 } = require("../dist/carrier/infrastructure/carrier.adapter");
@@ -56,7 +53,7 @@ test(
         SYNC_RESOLVED_RETENTION_DAYS: "1",
       }),
       provider = {
-        supports: () => true,
+        strategy: () => "FULL",
         fetch: async () => {
           throw Error("only injected test providers");
         },
@@ -320,6 +317,300 @@ test(
         },
       );
       await t.test(
+        "non-APPLIED decisions never persist proposed mappings; existing mappings cannot switch owner-scoped targets",
+        async () => {
+          const customer = await db.customer.findFirst({
+              where: { ownerUserId: owner.id },
+            }),
+            another = await db.customer.findFirst({
+              where: { ownerUserId: owner.id, id: { not: customer.id } },
+            });
+          let j;
+          try {
+            j = await repo.admit(owner.id, c.id, "SHIPMENT", "MANUAL");
+            await repo.page(
+              await claim(),
+              {
+                records: [
+                  record("defer-review", 0),
+                  record("defer-reject", 1),
+                  record("defer-retry", 2),
+                ],
+                done: true,
+              },
+              1,
+            );
+            await repo.apply(await claim(), {
+              ...processor,
+              apply: async (source, session) => {
+                await session.linkExistingCustomer(customer.id);
+                return {
+                  outcome: [
+                    "NEEDS_REVIEW",
+                    "REJECTED_SOURCE",
+                    "RETRYABLE_ERROR",
+                  ][source.payload.value],
+                };
+              },
+            });
+            const mapped =
+              await db.$queryRaw`SELECT count(*)::int AS n FROM sync_source_identities s JOIN sync_job_items i ON i.source_identity_id=s.id WHERE i.job_id=${j.id}::uuid AND s.customer_id IS NOT NULL`;
+            assert.equal(mapped[0].n, 0);
+          } finally {
+            if (j)
+              await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE id=${j.id}::uuid`;
+          }
+          const original = (
+            await db.$queryRaw`SELECT customer_id FROM sync_source_identities WHERE source_key=${sourceKey("fixture-v1", ["customer-0"]).key}`
+          )[0].customer_id;
+          const wrong = original === customer.id ? another.id : customer.id;
+          try {
+            j = await repo.admit(owner.id, c.id, "CUSTOMER", "MANUAL");
+            await repo.page(
+              await claim(),
+              { records: [record("customer-0", 0)], done: true },
+              3,
+            );
+            await assert.rejects(
+              repo.apply(await claim(), {
+                ...processor,
+                version: 3,
+                apply: async (source, session) => {
+                  await session.linkExistingCustomer(wrong);
+                  return { outcome: "APPLIED" };
+                },
+              }),
+              (e) => e.code === "SOURCE_CONFLICT",
+            );
+            assert.equal(
+              (
+                await db.$queryRaw`SELECT customer_id FROM sync_source_identities WHERE source_key=${sourceKey("fixture-v1", ["customer-0"]).key}`
+              )[0].customer_id,
+              original,
+            );
+          } finally {
+            if (j)
+              await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE id=${j.id}::uuid`;
+          }
+        },
+      );
+      await t.test(
+        "exhausted poison record does not block valid records beyond the first100 batch",
+        async () => {
+          const poisonRepo = new SyncRepository(
+            url.toString(),
+            { ...cfg, maxAttempts: 1 },
+            provider,
+            processor,
+          );
+          let j;
+          try {
+            j = await repo.admit(owner.id, c.id, "SHIPMENT", "MANUAL");
+            await repo.page(
+              await claim(),
+              {
+                records: Array.from({ length: 201 }, (_, i) =>
+                  record("poison-" + i, i),
+                ),
+                done: true,
+              },
+              1,
+            );
+            await db.$executeRaw`UPDATE sync_job_items i SET id='00000000-0000-0000-0000-000000000001'::uuid FROM provider_source_records p WHERE i.source_identity_id=p.source_identity_id AND i.job_id=${j.id}::uuid AND p.normalized_payload->>'value'='0'`;
+            const p = {
+              ...processor,
+              apply: async (source) => ({
+                outcome:
+                  source.payload.value === 0
+                    ? "RETRYABLE_ERROR"
+                    : "NEEDS_REVIEW",
+              }),
+            };
+            await poisonRepo.apply(await claim(), p);
+            assert.equal(
+              (await repo.job(owner.id, c.id, j.id)).status,
+              "WAITING",
+            );
+            let state = await repo.job(owner.id, c.id, j.id);
+            while (state.status === "WAITING") {
+              await poisonRepo.apply(await claim(), p);
+              state = await repo.job(owner.id, c.id, j.id);
+            }
+            assert.equal(state.status, "FAILED");
+            assert.equal(state.needs_review_count, 200);
+          } finally {
+            await poisonRepo.close();
+            if (j)
+              await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE id=${j.id}::uuid`;
+          }
+        },
+      );
+      await t.test(
+        "persisted unsupported oldest job does not starve supported lanes after deployment",
+        async () => {
+          let a, b;
+          const changed = new SyncRepository(
+            url.toString(),
+            cfg,
+            {
+              ...provider,
+              strategy: (_provider, type) =>
+                type === "CUSTOMER" ? "FULL" : null,
+            },
+            processor,
+          );
+          try {
+            a = await repo.admit(owner.id, c.id, "SHIPMENT", "MANUAL");
+            b = await repo.admit(owner.id, c.id, "CUSTOMER", "MANUAL");
+            const next = await changed.claim(randomUUID());
+            assert.equal(next?.id, b.id);
+            assert.equal(
+              (await repo.job(owner.id, c.id, a.id)).status,
+              "QUEUED",
+            );
+          } finally {
+            await changed.close();
+            for (const j of [a, b])
+              if (j)
+                await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE id=${j.id}::uuid`;
+          }
+        },
+      );
+      await t.test(
+        "FULL executor resumes committed pages and manual INCREMENTAL resumes last successful watermark without config",
+        async () => {
+          const live = await connection(),
+            seen = [];
+          const full = {
+            strategy: () => "FULL",
+            supports: () => true,
+            fetch: async (job) => {
+              seen.push(job.next_page);
+              return {
+                records: [record("full-" + job.next_page)],
+                done: job.next_page === 3,
+                nextPage: job.next_page + 1,
+                watermark: job.next_page === 3 ? "wm-1" : undefined,
+              };
+            },
+          };
+          let q = new SyncRepository(url.toString(), cfg, full, processor);
+          try {
+            const j = await q.admit(owner.id, live.id, "SHIPMENT", "MANUAL");
+            assert.equal(j.fetch_strategy, "FULL");
+            let work = await q.claim(randomUUID());
+            await new SyncJobExecutor(q, full, processor).execute(
+              work,
+              new globalThis.AbortController().signal,
+            );
+            await q.close();
+            q = new SyncRepository(url.toString(), cfg, full, processor);
+            const executor = new SyncJobExecutor(q, full, processor);
+            for (
+              let i = 0;
+              i < 10 &&
+              (await q.job(owner.id, live.id, j.id)).status !== "SUCCEEDED";
+              i++
+            ) {
+              work = await q.claim(randomUUID());
+              assert.ok(work);
+              await executor.execute(
+                work,
+                new globalThis.AbortController().signal,
+              );
+            }
+            assert.deepEqual(seen, [1, 2, 3]);
+            assert.equal(
+              (await q.job(owner.id, live.id, j.id)).status,
+              "SUCCEEDED",
+            );
+            assert.equal(
+              (await q.job(owner.id, live.id, j.id)).fetched_count,
+              3,
+            );
+          } finally {
+            await q.close();
+          }
+          const incremental = {
+            ...full,
+            strategy: () => "INCREMENTAL",
+            fetch: async (job) => {
+              assert.equal(job.target_watermark, "wm-1");
+              return { records: [], done: true, watermark: "wm-2" };
+            },
+          };
+          const inc = new SyncRepository(
+            url.toString(),
+            cfg,
+            incremental,
+            processor,
+          );
+          try {
+            const j = await inc.admit(owner.id, live.id, "SHIPMENT", "MANUAL");
+            assert.equal(j.fetch_strategy, "INCREMENTAL");
+            const executor = new SyncJobExecutor(inc, incremental, processor);
+            for (
+              let i = 0;
+              i < 4 &&
+              (await inc.job(owner.id, live.id, j.id)).status !== "SUCCEEDED";
+              i++
+            ) {
+              const work = await inc.claim(randomUUID());
+              assert.ok(work);
+              await executor.execute(
+                work,
+                new globalThis.AbortController().signal,
+              );
+            }
+            assert.equal(
+              (await inc.job(owner.id, live.id, j.id)).status,
+              "SUCCEEDED",
+            );
+            assert.equal(
+              (await inc.job(owner.id, live.id, j.id)).target_watermark,
+              "wm-2",
+            );
+          } finally {
+            await inc.close();
+          }
+        },
+      );
+      await t.test(
+        "executor renews the lease while a real delayed provider page is outside the transaction",
+        async () => {
+          const con = await connection(),
+            slow = {
+              strategy: () => "FULL",
+              fetch: async () => {
+                await new Promise((r) => setTimeout(r, 2300));
+                return { records: [record("heartbeat")], done: true };
+              },
+            },
+            q = new SyncRepository(
+              url.toString(),
+              { ...cfg, leaseSeconds: 2 },
+              slow,
+              processor,
+            );
+          let j;
+          try {
+            j = await q.admit(owner.id, con.id, "SHIPMENT", "MANUAL");
+            const work = await q.claim(randomUUID());
+            await new SyncJobExecutor(q, slow, processor).execute(
+              work,
+              new globalThis.AbortController().signal,
+            );
+            const state = await q.job(owner.id, con.id, j.id);
+            assert.equal(state.status, "WAITING");
+            assert.equal(state.fetched_count, 1);
+          } finally {
+            await q.close();
+            if (j)
+              await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE id=${j.id}::uuid`;
+          }
+        },
+      );
+      await t.test(
         "expired lease cannot commit staging/checkpoint; renewed worker continues",
         async () => {
           const j = await repo.admit(owner.id, c.id, "SHIPMENT", "MANUAL"),
@@ -401,14 +692,17 @@ test(
           const exec = new SyncJobExecutor(
             repo,
             {
-              supports: () => true,
+              strategy: () => "FULL",
               fetch: async () => {
                 throw new SyncError("PROVIDER_RETRY", 2000);
               },
             },
             processor,
           );
-          await exec.execute(await claim(), new AbortController().signal);
+          await exec.execute(
+            await claim(),
+            new globalThis.AbortController().signal,
+          );
           const state = await repo.job(owner.id, c.id, retry.id);
           assert.equal(state.status, "WAITING");
           assert.equal(state.worker_id, null);
@@ -537,6 +831,273 @@ test(
             b1.run(async () => {}),
             (e) => e.code === LifecycleCode.RATE_LIMITED,
           );
+        },
+      );
+      await t.test(
+        "real API and worker processes share the same provider reservation budget",
+        async () => {
+          await db.$executeRaw`UPDATE sync_provider_budget SET blocked_until=NULL,failures=0,lease_token=NULL,lease_expires_at=NULL`;
+          const modulePath = require.resolve(
+            "../dist/carrier/infrastructure/uniship/postgres-provider-budget",
+          );
+          const code = `const {PostgresProviderBudget}=require(${JSON.stringify(modulePath)});const b=new PostgresProviderBudget(process.env.SYNC_CHILD_DATABASE_URL);(async()=>{try{await b.run(async()=>{process.stdout.write('HELD\\n');await new Promise(r=>process.stdin.once('data',r));});}catch{process.stderr.write('WORKER_BUDGET_FAILED');process.exitCode=1;}finally{await b.onApplicationShutdown();}})();`;
+          const child = spawn(process.execPath, ["-e", code], {
+            env: { ...process.env, SYNC_CHILD_DATABASE_URL: url.toString() },
+            stdio: ["pipe", "pipe", "pipe"],
+          });
+          let output = "";
+          const exited = new Promise((resolve, reject) => {
+            child.once("exit", resolve);
+            child.once("error", () =>
+              reject(Error("Worker process spawn failed")),
+            );
+          });
+          try {
+            await new Promise((resolve, reject) => {
+              child.stdout.on("data", (chunk) => {
+                output += chunk.toString();
+                if (output.includes("HELD")) resolve();
+              });
+              child.once("exit", () =>
+                reject(Error("Worker exited before reservation")),
+              );
+            });
+            let entered, release;
+            const ready = new Promise((r) => (entered = r)),
+              barrier = new Promise((r) => (release = r));
+            const apiHold = b1.run(async () => {
+              entered();
+              await barrier;
+            });
+            await ready;
+            try {
+              await assert.rejects(
+                b2.run(async () => {}),
+                (e) => e.code === LifecycleCode.RATE_LIMITED,
+              );
+            } finally {
+              release();
+              child.stdin.end("release");
+            }
+            await apiHold;
+            assert.equal(await exited, 0);
+          } finally {
+            if (child.exitCode === null) {
+              child.kill("SIGTERM");
+              await exited;
+            }
+          }
+        },
+      );
+      await t.test(
+        "real Nest guards, strict Sync HTTP contracts, scoped pagination/issues and generated SDK",
+        async () => {
+          const saved = { ...process.env },
+            { mkdtemp, rm } = require("node:fs/promises"),
+            { tmpdir } = require("node:os"),
+            { join } = require("node:path");
+          const root = await mkdtemp(join(tmpdir(), "nexora-sync-http-"));
+          let app;
+          try {
+            const connectionRow = await connection(),
+              j = await repo.admit(
+                owner.id,
+                connectionRow.id,
+                "SHIPMENT",
+                "MANUAL",
+              );
+            await repo.page(
+              await claim(),
+              { records: [record("http-1"), record("http-2")], done: true },
+              1,
+            );
+            await repo.apply(await claim(), processor);
+            process.env.DATABASE_URL = url.toString();
+            process.env.STORAGE_ROOT = root;
+            process.env.ALLOWED_ORIGINS = "http://localhost:3001";
+            process.env.NEXORA_DEPLOYMENT_PROFILE = "LOCAL";
+            process.env.SYNC_ENABLED = "false";
+            process.env.SYNC_SHIPMENT_ENABLED = "false";
+            process.env.SYNC_CUSTOMER_ENABLED = "false";
+            const { NestFactory } = require("@nestjs/core"),
+              { AppModule } = require("../dist/app.module"),
+              { configure } = require("../dist/http");
+            app = await NestFactory.create(AppModule, {
+              logger: false,
+              abortOnError: false,
+            });
+            configure(app);
+            await app.listen(0, "127.0.0.1");
+            const base =
+              "http://127.0.0.1:" + app.getHttpServer().address().port;
+            const session = async (userId) => {
+              const token = randomBytes(32).toString("hex");
+              await db.session.create({
+                data: {
+                  userId,
+                  tokenHash: createHash("sha256").update(token).digest("hex"),
+                  expiresAt: new Date(Date.now() + 60000),
+                },
+              });
+              return "nexora_session=" + token;
+            };
+            const own = await session(owner.id),
+              foreign = await session(other.id),
+              adminCookie = await session(adminUser.id),
+              path = "/api/carrier-connections/" + connectionRow.id;
+            const request = async (
+              method,
+              suffix,
+              cookie = own,
+              body,
+              origin = "http://localhost:3001",
+            ) =>
+              globalThis.fetch(base + path + suffix, {
+                method,
+                headers: {
+                  ...(cookie ? { cookie } : {}),
+                  ...(origin ? { origin } : {}),
+                  "content-type": "application/json",
+                },
+                ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+              });
+            assert.equal(
+              (await request("GET", "/sync-configs", null)).status,
+              401,
+            );
+            for (const cookie of [foreign, adminCookie])
+              assert.equal(
+                (await request("GET", "/sync-configs", cookie)).status,
+                404,
+              );
+            assert.equal(
+              (
+                await request(
+                  "POST",
+                  "/sync-jobs",
+                  own,
+                  { syncType: "SHIPMENT" },
+                  null,
+                )
+              ).status,
+              403,
+            );
+            assert.equal(
+              (
+                await request("POST", "/sync-jobs", own, {
+                  syncType: "SHIPMENT",
+                  leaseVersion: 5,
+                })
+              ).status,
+              400,
+            );
+            assert.equal(
+              (
+                await request("POST", "/sync-jobs", own, {
+                  syncType: "SHIPMENT",
+                })
+              ).status,
+              503,
+            );
+            const configResponse = await request("GET", "/sync-configs");
+            assert.equal(configResponse.status, 200);
+            const configs = (await configResponse.json()).configs;
+            assert.equal(configs.length, 2);
+            assert.equal(
+              configs.find((c) => c.syncType === "SHIPMENT").latestJob.id,
+              j.id,
+            );
+            assert.ok(configs.every((c) => c.available === false));
+            assert.equal(
+              (
+                await request("PATCH", "/sync-configs/SHIPMENT", own, {
+                  enabled: false,
+                  intervalMinutes: 60,
+                })
+              ).status,
+              200,
+            );
+            assert.equal(
+              (
+                await request("PATCH", "/sync-configs/SHIPMENT", own, {
+                  enabled: true,
+                  intervalMinutes: 60,
+                })
+              ).status,
+              503,
+            );
+            assert.equal(
+              (
+                await request("PATCH", "/sync-configs/SHIPMENT", own, {
+                  enabled: false,
+                  intervalMinutes: 60,
+                  ownerUserId: owner.id,
+                })
+              ).status,
+              400,
+            );
+            const page = await (
+              await request("GET", "/sync-jobs?page=2&pageSize=1")
+            ).json();
+            assert.equal(page.jobs.length, 0);
+            assert.equal(page.total, 1);
+            assert.equal(page.summary.total, 1);
+            assert.equal(page.summary.completed, 1);
+            assert.equal(
+              (await request("GET", "/sync-jobs?ownerUserId=" + other.id))
+                .status,
+              400,
+            );
+            assert.equal(
+              (await request("GET", "/sync-jobs?from=2026-02-30T00:00:00Z"))
+                .status,
+              400,
+            );
+            assert.equal(
+              (await request("GET", "/sync-jobs?status=UNKNOWN")).status,
+              400,
+            );
+            const detail = await (
+              await request("GET", "/sync-jobs/" + j.id + "?page=2&pageSize=1")
+            ).json();
+            assert.equal(detail.issues.length, 1);
+            assert.equal(detail.issueTotal, 2);
+            assert.deepEqual(Object.keys(detail.issues[0]).sort(), [
+              "errorCode",
+              "id",
+              "outcome",
+              "processorVersion",
+              "sourceId",
+              "sourceVersion",
+            ]);
+            assert.equal(
+              (await request("GET", "/sync-jobs/" + randomUUID())).status,
+              404,
+            );
+            assert.doesNotMatch(
+              JSON.stringify(detail),
+              /normalized_payload|ciphertext|owner_user_id|external_account_id|lease_version/,
+            );
+            const { createNexoraClient } = await import(
+                "../../../packages/sdk/src/index.ts"
+              ),
+              sdk = createNexoraClient(base);
+            const result = await sdk.GET(
+              "/api/carrier-connections/{id}/sync-configs",
+              {
+                params: { path: { id: connectionRow.id } },
+                headers: { cookie: own },
+              },
+            );
+            assert.equal(result.response.status, 200);
+            assert.equal(result.data.configs.length, 2);
+          } finally {
+            await app?.close();
+            for (const key of Object.keys(process.env))
+              if (!(key in saved)) delete process.env[key];
+            Object.assign(process.env, saved);
+            await rm(root, { recursive: true, force: true });
+          }
         },
       );
     } finally {
