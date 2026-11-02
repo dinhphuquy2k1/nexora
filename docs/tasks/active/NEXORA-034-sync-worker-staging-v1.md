@@ -225,3 +225,12 @@ normal production-default timeout for functional response/auth/header/error case
 Do not change production timeout, skip any case, introduce test retries or suppress
 failure. Add an outer finite test deadline so a broken abort still fails the gate.
 All later integration/runtime/HTTPS/data/dev gates in this run were skipped.
+
+### Authoritative config write gate
+
+Final acceptance inspection reproduced another UI gap: while config data is absent
+(initial/failed/filter-triggered read), retained draft state can leave Save enabled;
+its operation would iterate no config items and could falsely confirm a no-op.
+A focused actual-component test is RED (blocked=false during unresolved first read).
+Require actual data both in the synchronous mutation guard and the Drawer blocked
+prop; keep GET-only retry available. No API/business/layout contract changes.

@@ -283,3 +283,53 @@ test("read denial during a pending schedule PATCH suppresses the next PATCH and 
   assert.equal(denied.props.blocked, true);
   assert.equal(denied.props.feedback, "Phiên đăng nhập đã kết thúc.");
 });
+test("Sync blocks writes until authoritative config data exists; initial loading never confirms a write", async () => {
+  let reads = 0,
+    writes = 0,
+    finish;
+  const api = {
+    configs: async () => {
+      reads++;
+      if (reads === 1)
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      return {};
+    },
+    jobs: async () => ({}),
+    admit: async () => {
+      writes++;
+      return {};
+    },
+  };
+  const router = { replace() {} };
+  const harness = componentHarness(
+    "../features/carrier-connections/CarrierLiveSyncDrawer.tsx",
+    {
+      "@nexora/shared": { SyncJobStatus: {} },
+      "next/navigation": { useRouter: () => router },
+      "./sync-api.ts": { createSyncApi: () => api },
+      "./sync-response.ts": { syncPresentation: () => ({ items: [] }) },
+      "./sync-presentation.ts": { syncHistoryRange: () => ({}) },
+      "./CarrierDataSyncDrawer.tsx": { CarrierDataSyncDrawer: "drawer" },
+    },
+  );
+  const props = { row: { id: "owned" }, onClose() {} };
+  const loading = harness.render(props);
+  assert.equal(loading.props.blocked, true);
+  loading.props.onSync("SHIPMENT");
+  await loading.props.onSaveSchedule({
+    SHIPMENT: { enabled: true, interval: "60" },
+  });
+  await tick();
+  assert.equal(writes, 0);
+  assert.equal(reads, 1);
+  assert.equal(harness.render(props).props.feedback, "");
+  finish({});
+  await tick();
+  const ready = harness.render(props);
+  assert.equal(ready.props.blocked, false);
+  ready.props.onSync("SHIPMENT");
+  await tick();
+  assert.equal(writes, 1);
+});

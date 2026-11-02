@@ -157,7 +157,7 @@ export function CarrierLiveSyncDrawer({
     operation: () => Promise<unknown>,
     schedule = false,
   ) => {
-    if (denied.current || flight.current || blocked) return;
+    if (!data || denied.current || flight.current || blocked) return;
     flight.current = true;
     setBusy(true);
     let confirmed = false;
@@ -224,7 +224,7 @@ export function CarrierLiveSyncDrawer({
       onSync={(type) => void mutate(() => api.admit(row.id, type as SyncType))}
       onSaveSchedule={save}
       busy={busy}
-      blocked={blocked}
+      blocked={blocked || !data}
       feedback={feedback}
       onReload={() => void reload()}
       historyQuery={history}
