@@ -88,16 +88,6 @@
 }
 .pageTabs {
   border-top: 1px solid var(--color-border);
-  padding-inline: 8px;
-}
-.pageTabs [role="tab"],
-.syncTabs [role="tab"] {
-  font-size: var(--font-size-sm);
-  padding: 12px 16px;
-}
-.pageTabs [role="tab"][aria-selected="true"],
-.syncTabs [role="tab"][aria-selected="true"] {
-  font-weight: 700;
 }
 .toolbar {
   padding: 10px 16px;
@@ -143,20 +133,6 @@
 .search > button {
   position: absolute;
   right: 0;
-}
-.filterIndicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--amber-50);
-  color: var(--amber-800);
-  border: 1px solid var(--amber-200);
-  border-radius: 6px;
-  padding: 0 8px;
-  font-size: var(--font-size-xs);
-}
-.filterIndicator button {
-  font-size: inherit;
 }
 .popoverAnchor {
   position: relative;
@@ -974,20 +950,7 @@ dialog.confirmModal {
   gap: 8px;
 }
 .syncTabs {
-  padding-inline: 20px;
   flex-shrink: 0;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-}
-.syncTabs [role="tab"] {
-  padding-inline: 0;
-}
-.syncTabs [role="tablist"] {
-  gap: 24px;
-  padding: 0;
-}
-.syncTabs > div {
-  border-bottom: 0;
 }
 .syncPanel {
   min-width: 0;
@@ -1539,9 +1502,6 @@ button.switchTarget {
   .toolbarRight {
     margin-left: auto;
   }
-  .pageTabs {
-    padding-inline: 0;
-  }
   .summary {
     gap: 8px;
   }
@@ -1562,32 +1522,6 @@ button.switchTarget {
   }
   .drawerFooter {
     padding: 14px;
-  }
-  .syncTabs {
-    padding-inline: 0;
-  }
-  .syncTabs [role="tablist"] {
-    gap: 0;
-    padding: 0;
-    min-width: 0;
-    width: 100%;
-  }
-  .syncTabs [role="tab"] {
-    flex: 1;
-    min-width: 0;
-    white-space: normal;
-    padding: 12px 8px;
-    line-height: 1.333333;
-  }
-  .syncTabs [role="tab"] > span:nth-child(2) {
-    line-height: 1.333333;
-  }
-  .syncTabs [role="tab"] > span:last-child[aria-hidden="true"] {
-    left: 0;
-    right: 0;
-  }
-  .syncTabs > div > button {
-    display: none;
   }
   .scheduleFields {
     grid-template-columns: 1fr;
@@ -1643,32 +1577,6 @@ button.switchTarget {
     max-width: 190px;
   }
 }
-/* ZIP tab navigation overlays the track; scope this presentation to Carrier. */
-.pageTabs > div {
-  position: relative;
-}
-.pageTabs > div > button {
-  position: absolute;
-  z-index: 2;
-}
-.pageTabs > div > button:first-child {
-  left: 0;
-}
-.pageTabs > div > button:last-child {
-  right: 0;
-}
-.pageTabs > div > button:disabled {
-  visibility: hidden;
-}
-.pageTabs [role="tablist"] {
-  gap: 8px;
-}
-.pageTabs [role="tab"] {
-  line-height: 1.333333;
-}
-.pageTabs [role="tab"] > span:nth-child(2) {
-  line-height: 1.333333;
-}
 @media (max-width: 639px) {
   .toolbarLeft {
     flex-wrap: nowrap;
@@ -1678,9 +1586,6 @@ button.switchTarget {
   }
   .toolbarRight {
     margin-left: 0;
-  }
-  .pageTabs [role="tablist"] {
-    gap: 4px;
   }
 }
 .syncPanel,
@@ -1738,8 +1643,6 @@ button.switchTarget {
   font-size: 11px;
   gap: 6px;
 }
-.toolbar button,
-.toolbar input,
 .filterPanel input,
 .filterPanel select,
 .pagination select {
@@ -1773,14 +1676,6 @@ button.switchTarget {
 }
 .popoverAnchor > button[aria-expanded="true"] > svg {
   color: var(--color-accent);
-}
-.pageTabs [role="tab"] > span:nth-child(3) {
-  font-size: 11px;
-  font-family: monospace;
-  padding-inline: 8px;
-}
-.pageTabs [role="tab"][aria-selected="true"] > span:nth-child(3) {
-  border-color: var(--color-carrier-running-border);
 }
 .drawer:not(.formDrawer) .drawerHeader p {
   font-size: 12px;

@@ -581,6 +581,146 @@ export async function verifyCarrierBrowser({
       initial,
     );
     await key("Escape");
+    await until("!document.querySelector('dialog[open]')");
+
+    // FIX 1 & FIX 4: Assert shared TabBar consistency and zero layout shift on tab switch
+    checks.step("CARRIER_TABBAR_SHARED_CONSISTENCY_AND_LAYOUT_SHIFT");
+    const tabStyles = await evaluate(`(()=>{
+      const tab = document.querySelector('[role="tab"]');
+      const badge = tab?.querySelector('[class*="badge"]');
+      const icon = tab?.querySelector('svg');
+      if (!tab) return null;
+      const cs = getComputedStyle(tab);
+      const bs = badge ? getComputedStyle(badge) : null;
+      const is = icon ? getComputedStyle(icon) : null;
+      const rect = tab.getBoundingClientRect();
+      return {
+        fontSize: cs.fontSize,
+        fontWeight: cs.fontWeight,
+        paddingTop: cs.paddingTop,
+        paddingBottom: cs.paddingBottom,
+        paddingLeft: cs.paddingLeft,
+        paddingRight: cs.paddingRight,
+        height: rect.height,
+        gap: cs.gap,
+        badgeFontSize: bs?.fontSize,
+        badgeFontFamily: bs?.fontFamily,
+        badgePadding: bs?.padding,
+        badgeHeight: bs ? badge.getBoundingClientRect().height : null,
+        iconWidth: is?.width,
+        iconHeight: is?.height,
+        hasIndicator: Boolean(document.querySelector('[class*="filterIndicator"]')),
+      };
+    })()`);
+    assert.equal(
+      tabStyles.fontSize,
+      "14px",
+      "tab font size must be 14px (var(--font-size-md))",
+    );
+    assert.equal(
+      tabStyles.fontWeight,
+      "600",
+      "tab font weight must be 600 (var(--font-weight-semibold))",
+    );
+    assert.equal(
+      tabStyles.paddingLeft,
+      "12px",
+      "tab paddingLeft must be 12px (var(--space-3))",
+    );
+    assert.equal(
+      tabStyles.paddingRight,
+      "12px",
+      "tab paddingRight must be 12px (var(--space-3))",
+    );
+    assert.equal(tabStyles.height, 44, "tab height must be 44px");
+    assert.equal(tabStyles.iconWidth, "16px", "icon width must be 16px");
+    assert.equal(tabStyles.iconHeight, "16px", "icon height must be 16px");
+    assert.equal(
+      tabStyles.badgeFontSize,
+      "12px",
+      "badge font size must be 12px (var(--font-size-sm))",
+    );
+    assert.equal(tabStyles.badgeHeight, 20, "badge height must be 20px");
+    assert.equal(
+      tabStyles.hasIndicator,
+      false,
+      "filterIndicator must not exist in toolbar",
+    );
+
+    // Measure layout across tab switching
+    const measureDeck = async () =>
+      await evaluate(`(()=>{
+      const rect = e => { if (!e) return null; const r = e.getBoundingClientRect(); return { top: r.top, height: r.height }; };
+      const deck = document.querySelector('[data-carrier-command-deck]');
+      const toolbar = document.querySelector('[data-carrier-toolbar]');
+      const table = document.querySelector('[data-carrier-table-container]');
+      return {
+        deck: rect(deck),
+        toolbar: rect(toolbar),
+        table: rect(table),
+        hasIndicator: Boolean(document.querySelector('[class*="filterIndicator"]')),
+      };
+    })()`);
+
+    const initialDeck = await measureDeck();
+    assert.equal(initialDeck.hasIndicator, false);
+
+    // Click "Đang hoạt động"
+    await evaluate(`(()=>{
+      const btn = [...document.querySelectorAll('[role="tab"]')].find(b => b.textContent.includes('Đang hoạt động'));
+      btn?.click();
+    })()`);
+    await until(
+      "Boolean([...document.querySelectorAll('[role=\"tab\"][aria-selected=\"true\"]')].some(b => b.textContent.includes('Đang hoạt động')))",
+    );
+    const connectedDeck = await measureDeck();
+    assert.equal(connectedDeck.hasIndicator, false);
+    assert.ok(
+      Math.abs(connectedDeck.toolbar.height - initialDeck.toolbar.height) < 0.5,
+      "toolbar height stable on connected",
+    );
+    assert.ok(
+      Math.abs(connectedDeck.deck.height - initialDeck.deck.height) < 0.5,
+      "deck height stable on connected",
+    );
+    assert.ok(
+      Math.abs(connectedDeck.table.top - initialDeck.table.top) < 0.5,
+      "table top stable on connected",
+    );
+
+    // Click "Cần kiểm tra"
+    await evaluate(`(()=>{
+      const btn = [...document.querySelectorAll('[role="tab"]')].find(b => b.textContent.includes('Cần kiểm tra'));
+      btn?.click();
+    })()`);
+    await until(
+      "Boolean([...document.querySelectorAll('[role=\"tab\"][aria-selected=\"true\"]')].some(b => b.textContent.includes('Cần kiểm tra')))",
+    );
+    const needsCheckDeck = await measureDeck();
+    assert.equal(needsCheckDeck.hasIndicator, false);
+    assert.ok(
+      Math.abs(needsCheckDeck.toolbar.height - initialDeck.toolbar.height) <
+        0.5,
+      "toolbar height stable on needs_check",
+    );
+    assert.ok(
+      Math.abs(needsCheckDeck.deck.height - initialDeck.deck.height) < 0.5,
+      "deck height stable on needs_check",
+    );
+    assert.ok(
+      Math.abs(needsCheckDeck.table.top - initialDeck.table.top) < 0.5,
+      "table top stable on needs_check",
+    );
+
+    // Return to "Tất cả tài khoản"
+    await evaluate(`(()=>{
+      const btn = [...document.querySelectorAll('[role="tab"]')].find(b => b.textContent.includes('Tất cả'));
+      btn?.click();
+    })()`);
+    await until(
+      "Boolean([...document.querySelectorAll('[role=\"tab\"][aria-selected=\"true\"]')].some(b => b.textContent.includes('Tất cả')))",
+    );
+
     // Source-derived contract records original ZIP geometry, never the implementation's geometry.
     const contract = JSON.parse(
       await readFile(

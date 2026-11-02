@@ -51,25 +51,25 @@ const TABS: readonly TabBarItem<CarrierTab>[] = [
     id: "all",
     title: "Tất cả tài khoản",
     activeIconColor: "var(--color-primary)",
-    icon: <Layers size={14} />,
+    icon: <Layers size={16} />,
   },
   {
     id: "connected",
     title: "Đang hoạt động",
     activeIconColor: "var(--color-status-success-text)",
-    icon: <ShieldCheck size={14} />,
+    icon: <ShieldCheck size={16} />,
   },
   {
     id: "needs_check",
     title: "Cần kiểm tra",
     activeIconColor: "var(--amber-700)",
-    icon: <AlertTriangle size={14} />,
+    icon: <AlertTriangle size={16} />,
   },
   {
     id: "sandbox",
     title: "Sandbox",
     activeIconColor: "var(--color-carrier-sandbox-text)",
-    icon: <Link2 size={14} />,
+    icon: <Link2 size={16} />,
   },
 ];
 type Surface =
@@ -192,8 +192,6 @@ export function CarrierConnectionsPage({
         <CarrierConnectionToolbar
           query={query}
           providers={providers}
-          known={known}
-          total={model.total}
           allowEnvironment={known}
           onChange={change}
           onAdd={(filter) => {

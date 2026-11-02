@@ -503,3 +503,34 @@ test("history preserves whole-card native actions and its distinct running statu
   assert.match(card, /Chi tiết lượt đồng bộ 1/);
   assert.equal((html.match(/data-carrier-history-id="\d+"/g) ?? []).length, 4);
 });
+
+test("toolbar does not render inline 'Đang lọc' or 'Xóa lọc', preserving layout stability across tab switches", () => {
+  const { CarrierConnectionToolbar } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionList.tsx",
+      import.meta.url,
+    ),
+  );
+  const { INITIAL_QUERY, makeCarrierFilter } = model();
+  const htmlFiltered = render(
+    React.createElement(CarrierConnectionToolbar, {
+      query: {
+        ...INITIAL_QUERY,
+        tab: "connected",
+        search: "test",
+        conditions: [makeCarrierFilter("carrier", "equals", "uniship")],
+      },
+      providers: [{ id: "uniship", name: "Uniship", code: "UNI" }],
+      known: true,
+      allowEnvironment: true,
+      onChange: () => {},
+      onAdd: () => false,
+    }),
+  );
+  assert.doesNotMatch(htmlFiltered, /Đang lọc/);
+  assert.doesNotMatch(htmlFiltered, /Xóa lọc/);
+  assert.doesNotMatch(htmlFiltered, /filterIndicator/);
+  // Filter chips row is rendered when conditions exist
+  assert.match(htmlFiltered, /Xóa tất cả/);
+  assert.match(htmlFiltered, /Hãng vận chuyển/);
+});

@@ -401,3 +401,32 @@ This finding is not hidden by the previous green structural tests or older CI.
 The resubmitted prompt is byte-identical and the resubmitted ZIP has the same pinned
 digest. Work continues on the existing PR31 branch. Final chip correction gets its
 own hosted verification; the prior cd2dad7 SUCCESS cannot verify this new delta.
+
+## Shared TabBar Consistency & Filter Toolbar Standardization — 2026-11-02
+
+### Scope & Audit
+
+1. **TabBar Standardization**: Removed all feature-level CSS overrides on shared `@nexora/ui` `TabBar` and `TabCountBadge` in `carrier-connections.module.css` (lines 93–101, 976–991, 1542–1544, 1566–1591, 1647–1671, 1682–1684, 1777–1784). Page TabBar and Sync Drawer TabBar now cascade cleanly from shared component styles:
+   - Font size: `14px` (`var(--font-size-md)`)
+   - Font weight: `600` (`var(--font-weight-semibold)`)
+   - Tab padding: `12px 12px` (`var(--space-3) var(--space-3)`)
+   - Tab height: `44px`
+   - Tab gap: `8px` (`var(--space-2)`)
+   - Tab icon size: updated from `14px` to canonical `16px` (`<Layers size={16} />`, `<ShieldCheck size={16} />`, `<AlertTriangle size={16} />`, `<Link2 size={16} />`) matching Retail Packages.
+   - Badge: standard 20px pill, 12px font size, inherit font-family (removed monospace / 11px / 8px padding overrides).
+2. **Toolbar Filter Indicator Removal**: Removed `.filterIndicator` ("Đang lọc (...) / Xóa lọc") JSX and CSS from `CarrierConnectionToolbar`. Switching tabs no longer mounts/unmounts an inline 32px button or alters toolbar width/height.
+3. **Filter Clearing Alignment**: Filter management matches Retail Packages baseline. `Xóa tất cả` in the filter chips row clears additional conditions only (`conditions: []`), without resetting the active tab or search input.
+4. **Layout Shift Elimination**: Measured geometry across all 6 viewports (`1440×900`, `1280×800`, `1024×768`, `768×1024`, `390×844`, `375×812`). Switching between "Tất cả", "Đang hoạt động", and "Cần kiểm tra" produces 0px layout shift in Command Deck, Toolbar, and Table Container top.
+
+### Verification Evidence
+
+- `apps/web/test/carrier-connections.test.mjs`: 18/18 PASS (added toolbar filterIndicator absence and filter-clearing stability test).
+- `apps/web/test/carrier-navigation.test.mjs`: 1/1 PASS.
+- `apps/web/test/retail-packages.test.mjs`: 38/38 PASS (no regression on Retail).
+- `apps/web/test/form-control-contracts.test.mjs`: 11/11 PASS.
+- `packages/ui/test/`: 32/32 PASS.
+- Chromium CDP headless browser checks across 6 viewports: ALL PASS (TabBar computed typography and 6-viewport zero-shift assertions verified).
+- `pnpm format:check`: PASS.
+- `pnpm lint`: PASS (0 errors, 0 warnings).
+- `pnpm docs:check`: PASS.
+- `pnpm preflight:check`: PASS.

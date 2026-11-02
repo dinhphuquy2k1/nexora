@@ -71,22 +71,18 @@ export function ConnectionBadge({ row }: { row: CarrierConnectionRow }) {
 export function CarrierConnectionToolbar({
   query,
   providers,
-  known,
-  total,
   allowEnvironment,
   onChange,
   onAdd,
 }: {
   query: CarrierQuery;
   providers: readonly CarrierProviderPresentation[];
-  known: boolean;
-  total: number;
+  known?: boolean;
+  total?: number;
   allowEnvironment: boolean;
   onChange: (q: Partial<CarrierQuery>) => void;
   onAdd: (f: CarrierFilterCondition) => boolean;
 }) {
-  const filtered =
-    !!query.search || query.conditions.length > 0 || query.tab !== "all";
   const label = (f: CarrierFilterCondition) => {
     if (f.field === "carrier")
       return providers.find((p) => p.id === f.value)?.name ?? f.value;
@@ -128,20 +124,6 @@ export function CarrierConnectionToolbar({
           </div>
         </div>
         <div className={styles.toolbarRight}>
-          {filtered && (
-            <div className={styles.filterIndicator}>
-              Đang lọc <strong>({known ? total : "—"})</strong>
-              <Button
-                variant="ghost"
-                onClick={() =>
-                  onChange({ search: "", tab: "all", conditions: [] })
-                }
-              >
-                <X size={12} />
-                Xóa lọc
-              </Button>
-            </div>
-          )}
           <Button
             variant="secondary"
             aria-label="Làm mới danh sách"
