@@ -1,3 +1,4 @@
+import { verifyCarrierBrowser } from "./carrier-browser-checks.mjs";
 import { verifyAccountMenu } from "./account-menu-browser-checks.mjs";
 import { browserStartupSummary } from "./browser-startup-diagnostics.mjs";
 import { verifyRetailBrowser } from "./retail-browser-checks.mjs";
@@ -723,6 +724,14 @@ try {
     prefix: mfaSetupKey ? "admin" : "operator",
     checks,
   });
+  await verifyCarrierBrowser({
+    send,
+    evaluate,
+    socket,
+    baseUrl,
+    prefix: mfaSetupKey ? "admin" : "operator",
+    checks,
+  });
   checks.step("SESSION_COOKIE");
   const cookies = (await send("Network.getCookies", { urls: [baseUrl] }))
     .cookies;
@@ -879,6 +888,14 @@ try {
     socket,
   });
   await verifyRetailBrowser({
+    send,
+    evaluate,
+    socket,
+    baseUrl,
+    prefix: "second-operator",
+    checks,
+  });
+  await verifyCarrierBrowser({
     send,
     evaluate,
     socket,

@@ -59,6 +59,36 @@
   --account-avatar-summary-size: 40px;
   --icon-account-menu-size: 16px;
 
+  /* Carrier-only source ZIP presentation; no shared state/default changes. */
+  --color-carrier-source-auto-text: var(--gray-600);
+  --color-carrier-text-strong: var(--gray-900);
+  --color-carrier-frame-border: color-mix(
+    in srgb,
+    var(--gray-300) 80%,
+    transparent
+  );
+  --color-carrier-error-bg: var(--rose-50);
+  --color-carrier-error-text: var(--rose-700);
+  --color-carrier-error-border: color-mix(
+    in srgb,
+    var(--rose-600) 25%,
+    transparent
+  );
+  --color-carrier-danger-bg: var(--rose-600);
+  --color-carrier-danger-text: var(--color-white);
+  --color-carrier-info-bg: #eff6ff;
+  --color-carrier-info-border: #bfdbfe;
+  --color-carrier-info-text: var(--blue-700);
+  --color-carrier-running-bg: var(--brand-orange-light);
+  --color-carrier-running-text: var(--color-accent-text);
+  --color-carrier-logo-info: #0284c7;
+  --color-carrier-running-border: color-mix(
+    in srgb,
+    var(--brand-orange) 30%,
+    transparent
+  );
+  --color-carrier-sandbox-bg: #faf5ff;
+  --color-carrier-sandbox-text: #7e22ce;
   --color-primary: var(--brand-navy);
   --color-primary-strong: var(--brand-navy-dark);
   --color-primary-hover: var(--brand-navy-light);
@@ -327,4 +357,36 @@
   :root {
     --workspace-gutter: var(--space-3);
   }
+}
+
+/* Carrier visual roles do not repurpose border tokens for fills or shadows. */
+:root {
+  --color-carrier-progress-track-bg: var(--gray-200);
+  --color-carrier-divider-bg: var(--gray-300);
+  --shadow-carrier-provider-selected: 0 0 0 1px var(--color-accent);
+  --color-carrier-header-status-bg: color-mix(
+    in srgb,
+    var(--emerald-500) 20%,
+    transparent
+  );
+  --color-carrier-header-status-text: #6ee7b7;
+  --color-carrier-header-status-border: color-mix(
+    in srgb,
+    var(--emerald-500) 30%,
+    transparent
+  );
+}
+
+:root {
+  --color-carrier-header-error-bg: color-mix(
+    in srgb,
+    var(--rose-600) 20%,
+    transparent
+  );
+  --color-carrier-header-error-text: var(--rose-50);
+  --color-carrier-header-error-border: color-mix(
+    in srgb,
+    var(--rose-600) 40%,
+    transparent
+  );
 }

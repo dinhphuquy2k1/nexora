@@ -1,0 +1,799 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { loadComponent, React, render } from "./helpers/render-component.mjs";
+const model = () =>
+  loadComponent(
+    new URL("../features/carrier-connections/presentation.ts", import.meta.url),
+  );
+const rows = Array.from({ length: 27 }, (_, i) => ({
+  id: String(i),
+  provider: i % 2 ? "uniship" : "fixture-b",
+  providerName: i % 2 ? "Uniship" : "Hãng kiểm thử",
+  displayName: `Chi nhánh ${i}`,
+  loginIdentifier: `fixture-${i}`,
+  status: ["CONNECTED", "ERROR", "REAUTH_REQUIRED"][i % 3],
+  lastVerifiedAt: null,
+  createdAt: "2026-01-01T00:00:00Z",
+}));
+test("carrier read model combines filters and clamps stale pagination without mutation", () => {
+  const { selectConnections, INITIAL_QUERY, makeCarrierFilter } = model();
+  const input = JSON.stringify(rows);
+  const all = selectConnections(rows, {
+    search: "",
+    ...INITIAL_QUERY,
+    page: 2,
+    pageSize: 20,
+  });
+  assert.equal(all.rows.length, 7);
+  assert.equal(all.total, 27);
+  assert.equal(all.start, 21);
+  const found = selectConnections(rows, {
+    ...INITIAL_QUERY,
+    search: "  CHI NHÁNH 1 ",
+    conditions: [
+      makeCarrierFilter("carrier", "equals", "uniship"),
+      makeCarrierFilter("status", "equals", "error"),
+    ],
+    page: 99,
+    pageSize: 5,
+  });
+  assert.ok(found.rows.length > 0);
+  assert.ok(
+    found.rows.every(
+      (r) =>
+        r.provider === "uniship" &&
+        (r.status === "ERROR" || r.status === "REAUTH_REQUIRED") &&
+        r.displayName.includes("1"),
+    ),
+  );
+  assert.ok(found.page <= found.totalPages);
+  assert.equal(
+    selectConnections(rows, {
+      ...INITIAL_QUERY,
+      search: "no-match",
+      page: 4,
+      pageSize: 20,
+    }).start,
+    0,
+  );
+  assert.equal(JSON.stringify(rows), input);
+});
+test("local credential validation never represents a successful operation", () => {
+  const { validateConnectionDraft } = model();
+  assert.equal(
+    Object.keys(
+      validateConnectionDraft({
+        displayName: " ",
+        loginIdentifier: "",
+        password: "",
+      }),
+    ).length,
+    3,
+  );
+  assert.deepEqual(
+    Object.keys(
+      validateConnectionDraft({
+        displayName: "Chi nhánh",
+        loginIdentifier: "fixture",
+        password: "synthetic-only",
+      }),
+    ),
+    [],
+  );
+  assert.ok(
+    validateConnectionDraft({
+      displayName: "x".repeat(101),
+      loginIdentifier: "fixture",
+      password: "synthetic-only",
+    }).displayName,
+  );
+});
+test("production carrier page has no fabricated records/counts/success and remains unavailable", () => {
+  const { CarrierConnectionsPage } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionsPage.tsx",
+      import.meta.url,
+    ),
+  );
+  const html = render(React.createElement(CarrierConnectionsPage));
+  assert.match(html, /KẾT NỐI HÃNG VẬN CHUYỂN/);
+  assert.match(html, /Chưa tích hợp dữ liệu/);
+  assert.doesNotMatch(
+    html,
+    /fixture-|sk_live|Kết nối thành công|Đồng bộ thành công/,
+  );
+  assert.equal((html.match(/<col\b/g) ?? []).length, 7);
+  assert.doesNotMatch(html, /aria-current="page"|1 \/ 1/);
+});
+
+test("new connection uses Uniship credentials with no API-key or save-success contract", () => {
+  const { CarrierConnectionDrawer } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionDrawer.tsx",
+      import.meta.url,
+    ),
+  );
+  const html = render(
+    React.createElement(CarrierConnectionDrawer, { onClose: () => {} }),
+  );
+  assert.match(html, /type="password"/);
+  assert.match(html, /Tên đăng nhập \/ Mã tài khoản hãng/);
+  assert.match(html, /Uniship/);
+  assert.match(html, /không được lưu/);
+  assert.doesNotMatch(html, /API Key|sk_live|Kết nối thành công|localStorage/);
+});
+test("default sync has unavailable status and backend actions, no running progress", () => {
+  const { CarrierDataSyncDrawer } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierDataSyncDrawer.tsx",
+      import.meta.url,
+    ),
+  );
+  const html = render(
+    React.createElement(CarrierDataSyncDrawer, { onClose: () => {} }),
+  );
+  assert.match(html, /Lịch tự động/);
+  assert.match(html, /Lịch sử đồng bộ/);
+  assert.match(html, /Chưa khả dụng/);
+  assert.doesNotMatch(html, /<progress|Đang đồng bộ|1240|2026/);
+});
+test("production feature does not import fixtures or call network, timers, storage or SDK operations", async () => {
+  const { readdir, readFile } = await import("node:fs/promises");
+  const dir = new URL("../features/carrier-connections/", import.meta.url);
+  for (const file of await readdir(dir)) {
+    if (!/\.tsx?$/.test(file)) continue;
+    const text = await readFile(new URL(file, dir), "utf8");
+    assert.doesNotMatch(
+      text,
+      /fixtures|createNexoraClient|fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|setTimeout|setInterval/,
+      file,
+    );
+  }
+  const page = await readFile(
+    new URL(
+      "../app/(workspace)/settings/carrier-connections/page.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.doesNotMatch(page, /fixtures|fetch\s*\(|records=|syncByConnection=/);
+});
+
+test("table renders supplied stream status/progress but never invents unavailable summaries", () => {
+  const { CarrierConnectionTable } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionList.tsx",
+      import.meta.url,
+    ),
+  );
+  const props = {
+    model: model().selectConnections(rows.slice(0, 1), model().INITIAL_QUERY),
+    known: true,
+    onAction: () => {},
+  };
+  const injected = render(
+    React.createElement(CarrierConnectionTable, {
+      ...props,
+      sync: {
+        0: {
+          items: [
+            {
+              id: "shipment",
+              label: "Kiện hàng",
+              state: "running",
+              progress: 43,
+            },
+          ],
+          history: [],
+        },
+      },
+    }),
+  );
+  assert.match(injected, /Đang đồng bộ/);
+  assert.match(injected, /43/);
+  assert.match(injected, /<progress/);
+  const absent = render(
+    React.createElement(CarrierConnectionTable, { ...props, sync: {} }),
+  );
+  assert.match(absent, /Chưa khả dụng/);
+  assert.doesNotMatch(absent, /<progress|Đang đồng bộ/);
+});
+
+test("last successful sync uses the newest valid stream timestamp, never first-row order", () => {
+  const { latestSyncSuccess } = model();
+  assert.equal(latestSyncSuccess(undefined), null);
+  assert.equal(
+    latestSyncSuccess({ items: [{ lastSuccess: "invalid" }], history: [] }),
+    null,
+  );
+  assert.equal(
+    latestSyncSuccess({
+      items: [
+        { lastSuccess: "2026-01-01T00:00:00Z" },
+        { lastSuccess: "invalid" },
+        { lastSuccess: "2026-02-01T00:00:00Z" },
+        { lastSuccess: "2025-12-01T00:00:00Z" },
+      ],
+      history: [],
+    }),
+    "2026-02-01T00:00:00Z",
+  );
+});
+
+test("ZIP v2 production deck has three header actions, source tabs/popover and no extra availability banner", () => {
+  const { CarrierConnectionsPage } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionsPage.tsx",
+      import.meta.url,
+    ),
+  );
+  const html = render(React.createElement(CarrierConnectionsPage));
+  assert.match(html, /data-carrier-command-deck/);
+  assert.match(html, /data-carrier-table-container/);
+  for (const text of [
+    "Xuất Excel",
+    "Thêm điều kiện lọc",
+    "Đang hoạt động",
+    "Cần kiểm tra",
+    "Sandbox",
+  ])
+    assert.match(html, new RegExp(text));
+  assert.doesNotMatch(
+    html,
+    /Xem giao diện đồng bộ|Lọc hãng vận chuyển|Lọc trạng thái kết nối/,
+  );
+});
+test("ZIP v2 defaults to10 and combines needs-check statuses without inventing domain states", () => {
+  const { INITIAL_QUERY, selectConnections } = model();
+  assert.equal(INITIAL_QUERY.pageSize, 10);
+  const data = selectConnections(rows, {
+    ...INITIAL_QUERY,
+    tab: "needs_check",
+  });
+  assert.equal(data.total, 18);
+  assert.ok(data.rows.every((r) => r.status !== "CONNECTED"));
+  assert.equal(
+    selectConnections(rows, { ...INITIAL_QUERY, tab: "sandbox" }).total,
+    0,
+  );
+});
+test("ZIP v2 advanced filters support AND/not/contains, reject duplicates and preserve input", () => {
+  const {
+    INITIAL_QUERY,
+    makeCarrierFilter,
+    addCarrierFilter,
+    selectConnections,
+  } = model();
+  const a = makeCarrierFilter("carrier", "equals", "uniship"),
+    b = makeCarrierFilter("accountName", "contains", "1");
+  assert.ok(a && b);
+  const filters = addCarrierFilter([a], b);
+  assert.equal(addCarrierFilter(filters, a), null);
+  const found = selectConnections(rows, {
+    ...INITIAL_QUERY,
+    conditions: filters,
+  });
+  assert.ok(found.total > 0);
+  assert.ok(
+    found.rows.every(
+      (r) => r.provider === "uniship" && r.displayName.includes("1"),
+    ),
+  );
+  assert.equal(makeCarrierFilter("accountName", "contains", "   "), null);
+  assert.equal(makeCarrierFilter("carrier", "contains", "uniship"), null);
+});
+
+test("ZIP v2 details are centered and sync footer never contains a global sync action", () => {
+  const { CarrierConnectionDetails } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionDrawer.tsx",
+      import.meta.url,
+    ),
+  );
+  const html = render(
+    React.createElement(CarrierConnectionDetails, {
+      row: rows[0],
+      onClose: () => {},
+    }),
+  );
+  assert.doesNotMatch(html, /class="[^"]*\bside\b/);
+  assert.match(html, /Môi trường/);
+  assert.doesNotMatch(html, /Ủy quyền API đã kích hoạt|Đẩy đơn/);
+  const { CarrierDataSyncDrawer } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierDataSyncDrawer.tsx",
+      import.meta.url,
+    ),
+  );
+  const sync = render(
+    React.createElement(CarrierDataSyncDrawer, { onClose: () => {} }),
+  );
+  const footer = sync.match(/<footer[\s\S]*?<\/footer>/)?.[0];
+  assert.ok(footer);
+  assert.match(footer, /Đóng/);
+  assert.doesNotMatch(footer, /Đồng bộ ngay/);
+});
+test("schedule dirty state and history calendar filters never imply persistence", () => {
+  const { initialSchedule, scheduleDirty, filterSyncHistory } = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-presentation.ts",
+      import.meta.url,
+    ),
+  );
+  const base = initialSchedule([
+    { id: "shipment", autoEnabled: true, autoInterval: "120" },
+  ]);
+  assert.equal(scheduleDirty(base, base), false);
+  assert.equal(
+    scheduleDirty(base, { shipment: { enabled: false, interval: "120" } }),
+    true,
+  );
+  const input = [
+    {
+      id: "1",
+      dataType: "Shipment",
+      state: "failed",
+      startedAt: "2026-10-08T17:30:00Z",
+    },
+    {
+      id: "2",
+      dataType: "Customer",
+      state: "completed",
+      startedAt: "2026-10-09T18:00:00Z",
+    },
+  ];
+  assert.deepEqual(
+    filterSyncHistory(
+      input,
+      "Shipment",
+      "failed",
+      "09/10/2026 - 09/10/2026",
+    ).entries.map((r) => r.id),
+    ["1"],
+  );
+  assert.ok(
+    filterSyncHistory(input, "all", "all", "31/02/2026 - 02/03/2026").error,
+  );
+  assert.ok(
+    filterSyncHistory(input, "all", "all", "10/10/2026 - 09/10/2026").error,
+  );
+  assert.equal(input.length, 2);
+});
+
+test("unknown environment never matches even a negative environment filter", () => {
+  const { INITIAL_QUERY, selectConnections, makeCarrierFilter } = model();
+  for (const operator of ["equals", "not_equals"]) {
+    const condition = makeCarrierFilter("environment", operator, "sandbox");
+    assert.ok(condition);
+    assert.equal(
+      selectConnections(rows, { ...INITIAL_QUERY, conditions: [condition] })
+        .total,
+      0,
+    );
+  }
+  const fixture = { ...rows[0], preview: { environment: "sandbox" } };
+  assert.equal(
+    selectConnections([fixture], { ...INITIAL_QUERY, tab: "sandbox" }).total,
+    1,
+  );
+});
+
+test("ZIP geometry specification accounts for every required surface and viewport", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const contract = JSON.parse(
+    await readFile(
+      new URL("./fixtures/carrier-zip-geometry.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  assert.equal(
+    contract.zipSha256,
+    "6912f4917756a1c3393e48b34f63f350464cb068351a377c2efb9d5cde6d5a52",
+  );
+  assert.deepEqual(
+    contract.sizes.map((s) => [s.width, s.height]),
+    [
+      [1440, 900],
+      [1280, 800],
+      [1024, 768],
+      [768, 1024],
+      [390, 844],
+      [375, 812],
+    ],
+  );
+  assert.deepEqual(
+    contract.surfaces.map((s) => s.surface),
+    [
+      "list",
+      "filter",
+      "actions",
+      "create",
+      "edit",
+      "details",
+      "disconnect",
+      "sync-status",
+      "sync-schedule",
+      "sync-history",
+      "sync-expanded",
+      "progress",
+      "error",
+      "history-details",
+    ],
+  );
+  assert.ok(
+    contract.sizes.every(
+      (s) => s.columnWidths.length === 7 && s.rowHeights.length === 3,
+    ),
+  );
+  assert.ok(contract.surfaces.every((s) => s.frameWidths.length === 6));
+  assert.ok(
+    contract.surfaces
+      .filter((s) => s.surface.startsWith("sync-"))
+      .every(
+        (s) =>
+          s.frameHeaderHeights?.length === 6 &&
+          s.frameHeaderHeights.every((h) => Number.isFinite(h) && h > 0),
+      ),
+  );
+});
+
+test("progress inspection keeps its stream title and supplied Job ID in source header", () => {
+  const { CarrierSyncInspection } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierSyncInspection.tsx",
+      import.meta.url,
+    ),
+  );
+  const html = render(
+    React.createElement(CarrierSyncInspection, {
+      inspection: {
+        kind: "progress",
+        item: {
+          id: "shipment",
+          label: "Shipment",
+          state: "running",
+          jobId: "fixture-job-42",
+          progress: 43,
+        },
+      },
+      onClose: () => {},
+    }),
+  );
+  assert.match(
+    html,
+    /<header[\s\S]*Tiến trình đồng bộ Shipment[\s\S]*Job ID: fixture-job-42[\s\S]*<\/header>/,
+  );
+  assert.equal((html.match(/fixture-job-42/g) ?? []).length, 1);
+});
+
+test("history preserves whole-card native actions and its distinct running status presentation", () => {
+  const { SyncHistoryPanel } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierSyncPanels.tsx",
+      import.meta.url,
+    ),
+  );
+  const { PARITY_SYNC } = loadComponent(
+    new URL("./fixtures/carrier-connections.ts", import.meta.url),
+  );
+  const html = render(
+    React.createElement(SyncHistoryPanel, {
+      data: PARITY_SYNC,
+      query: {
+        type: "all",
+        state: "all",
+        range: PARITY_SYNC.historyRange,
+        appliedRange: PARITY_SYNC.historyRange,
+        page: 1,
+      },
+      onChange: () => {},
+      onInspect: () => {},
+    }),
+  );
+  assert.match(
+    html,
+    /<button[^>]+data-carrier-history-id="1"[\s\S]*data-context="history"[\s\S]*Đang chạy[\s\S]*Bắt đầu:[\s\S]*<\/button>/,
+  );
+  const card = html.match(
+    /<button[^>]+data-carrier-history-id="1"[\s\S]*?<\/button>/,
+  )?.[0];
+  assert.ok(card);
+  assert.equal((card.match(/<button\b/g) ?? []).length, 1);
+  assert.doesNotMatch(card, /aria-label=/);
+  assert.match(card, /Chi tiết lượt đồng bộ 1/);
+  assert.equal((html.match(/data-carrier-history-id="\d+"/g) ?? []).length, 4);
+});
+
+test("toolbar does not render inline 'Đang lọc' or 'Xóa lọc', preserving layout stability across tab switches", () => {
+  const { CarrierConnectionToolbar } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionList.tsx",
+      import.meta.url,
+    ),
+  );
+  const { INITIAL_QUERY, makeCarrierFilter } = model();
+  const htmlFiltered = render(
+    React.createElement(CarrierConnectionToolbar, {
+      query: {
+        ...INITIAL_QUERY,
+        tab: "connected",
+        search: "test",
+        conditions: [makeCarrierFilter("carrier", "equals", "uniship")],
+      },
+      providers: [{ id: "uniship", name: "Uniship", code: "UNI" }],
+      known: true,
+      allowEnvironment: true,
+      onChange: () => {},
+      onAdd: () => false,
+    }),
+  );
+  assert.doesNotMatch(htmlFiltered, /Đang lọc/);
+  assert.doesNotMatch(htmlFiltered, /Xóa lọc/);
+  assert.doesNotMatch(htmlFiltered, /filterIndicator/);
+  // Filter chips row is rendered when conditions exist
+  assert.match(htmlFiltered, /Xóa tất cả/);
+  assert.match(htmlFiltered, /Hãng vận chuyển/);
+});
+
+test("pagination footer aligns with Retail baseline: disabled page 1 when unavailable, numbered pagination when known", () => {
+  const { CarrierConnectionPagination } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionList.tsx",
+      import.meta.url,
+    ),
+  );
+  const { selectConnections, INITIAL_QUERY } = model();
+
+  // 1. Unavailable state (production, no backend)
+  const unavailableModel = selectConnections([], INITIAL_QUERY);
+  const htmlUnavailable = render(
+    React.createElement(CarrierConnectionPagination, {
+      model: unavailableModel,
+      known: false,
+      onChange: () => {},
+    }),
+  );
+
+  // Summary shows em-dash and does not invent counts
+  assert.match(htmlUnavailable, /Hiển thị[\s\S]*?<strong[^>]*>—<\/strong>/);
+  assert.match(htmlUnavailable, /data-carrier-count="true">— tài khoản/);
+  // Geometry preserves disabled button 1 without asserting active page
+  assert.match(htmlUnavailable, /<button[^>]+disabled=""[^>]*>1<\/button>/);
+  assert.doesNotMatch(htmlUnavailable, /aria-current="page"/);
+  // All navigation arrows disabled
+  assert.match(
+    htmlUnavailable,
+    /aria-label="Trang đầu tài khoản"[^>]+disabled=""/,
+  );
+  assert.match(
+    htmlUnavailable,
+    /aria-label="Trang cuối tài khoản"[^>]+disabled=""/,
+  );
+
+  // 2. Known state (populated fixture)
+  const knownModel = selectConnections(rows, { ...INITIAL_QUERY, pageSize: 5 });
+  const htmlKnown = render(
+    React.createElement(CarrierConnectionPagination, {
+      model: knownModel,
+      known: true,
+      onChange: () => {},
+    }),
+  );
+
+  assert.match(htmlKnown, /Hiển thị[\s\S]*?<strong[^>]*>1–5<\/strong>/);
+  assert.match(
+    htmlKnown,
+    new RegExp(`data-carrier-count="true">${rows.length} tài khoản`),
+  );
+  assert.match(htmlKnown, /aria-current="page"[^>]*>1<\/button>/);
+  assert.match(htmlKnown, /Trang tài khoản 2/);
+});
+
+test("connection status stays independent of environment for every status", () => {
+  const { ConnectionBadge } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionList.tsx",
+      import.meta.url,
+    ),
+  );
+  const { CONNECTION_STATES } = model();
+  for (const status of ["CONNECTED", "ERROR", "REAUTH_REQUIRED"])
+    for (const environment of ["production", "sandbox"]) {
+      const html = render(
+        React.createElement(ConnectionBadge, {
+          row: { ...rows[0], status, preview: { environment } },
+        }),
+      );
+      assert.ok(
+        html.includes(CONNECTION_STATES[status].label),
+        `${status}/${environment}`,
+      );
+      assert.doesNotMatch(html, /Sandbox|Production/);
+    }
+});
+
+test("history options preserve every actual raw data type without duplicates", () => {
+  const { historyDataTypes } = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-presentation.ts",
+      import.meta.url,
+    ),
+  );
+  assert.deepEqual(
+    Array.from(
+      historyDataTypes([
+        { dataType: "Shipment" },
+        { dataType: "Khách hàng" },
+        { dataType: "Tracking" },
+        { dataType: "Shipment" },
+        { dataType: "Kiện hàng" },
+      ]),
+    ),
+    ["Shipment", "Khách hàng", "Tracking", "Kiện hàng"],
+  );
+});
+
+test("history validates timezone-qualified timestamps even without a date filter", () => {
+  const { filterSyncHistory } = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-presentation.ts",
+      import.meta.url,
+    ),
+  );
+  for (const startedAt of [
+    undefined,
+    "",
+    "2026-02-30T12:00:00+07:00",
+    "2026-10-09T12:00:00",
+    "2026-10-09T25:00:00Z",
+    "2026-10-09T12:00:00+25:00",
+  ]) {
+    const result = filterSyncHistory(
+      [
+        {
+          id: "bad",
+          startedAt,
+          dataType: "Tracking",
+          state: "failed",
+          time: "09/10/2026 12:00",
+        },
+      ],
+      "all",
+      "all",
+      "",
+    );
+    assert.ok(result.error, `${startedAt} must report validation failure`);
+    assert.equal(result.entries.length, 0);
+  }
+  const entries = [
+    {
+      id: "before",
+      startedAt: "2026-10-08T16:59:59.999Z",
+      dataType: "Tracking",
+      state: "failed",
+    },
+    {
+      id: "start",
+      startedAt: "2026-10-09T00:00:00+07:00",
+      dataType: "Tracking",
+      state: "failed",
+    },
+    {
+      id: "end",
+      startedAt: "2026-10-09T16:59:59.999Z",
+      dataType: "Tracking",
+      state: "failed",
+    },
+    {
+      id: "after",
+      startedAt: "2026-10-10T00:00:00+07:00",
+      dataType: "Tracking",
+      state: "failed",
+    },
+    {
+      id: "other",
+      startedAt: "2026-10-09T03:00:00Z",
+      dataType: "Kiện hàng",
+      state: "completed",
+    },
+  ];
+  const result = filterSyncHistory(
+    entries,
+    "Tracking",
+    "failed",
+    "09/10/2026 - 09/10/2026",
+  );
+  assert.equal(result.error, "");
+  assert.deepEqual(
+    result.entries.map((e) => e.id),
+    ["start", "end"],
+  );
+});
+
+test("strict history timestamps preserve early years and reject calendar/time rollover", () => {
+  const { parseSyncStartedAt, filterSyncHistory } = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-presentation.ts",
+      import.meta.url,
+    ),
+  );
+  for (const value of [
+    "0001-01-01T00:00:00Z",
+    "0099-12-31T23:59:59+07:00",
+    "2024-02-29T12:30:45.123456Z",
+    "2026-10-09T23:59:59.999+07:00",
+  ])
+    assert.notEqual(parseSyncStartedAt(value), null, value);
+  for (const value of [
+    "2025-02-29T00:00:00Z",
+    "2026-04-31T12:00:00Z",
+    "2026-10-09T24:00:00Z",
+    "2026-10-09T12:60:00Z",
+    "2026-10-09T12:00:00+07:60",
+  ])
+    assert.equal(parseSyncStartedAt(value), null, value);
+  const entry = {
+    id: "early",
+    startedAt: "0001-01-01T00:00:00+07:00",
+    dataType: "Khách hàng",
+    state: "completed",
+  };
+  assert.equal(
+    filterSyncHistory([entry], "all", "all", "01/01/0001 - 01/01/0001").entries
+      .length,
+    1,
+  );
+});
+
+test("history component renders actual type options and exposes invalid data timestamps", () => {
+  const { SyncHistoryPanel } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierSyncPanels.tsx",
+      import.meta.url,
+    ),
+  );
+  const data = {
+    items: [],
+    history: [
+      {
+        id: "bad",
+        time: "Display only",
+        startedAt: "not-iso",
+        dataType: "Tracking",
+        source: "Test",
+        state: "completed",
+        detail: "",
+      },
+      {
+        id: "vi",
+        time: "Display only",
+        startedAt: "2026-10-09T00:00:00+07:00",
+        dataType: "Khách hàng",
+        source: "Test",
+        state: "completed",
+        detail: "",
+      },
+    ],
+  };
+  const html = render(
+    React.createElement(SyncHistoryPanel, {
+      data,
+      query: {
+        type: "all",
+        state: "all",
+        range: "",
+        appliedRange: "",
+        page: 99,
+      },
+      onChange: () => {},
+      onInspect: () => {},
+    }),
+  );
+  assert.match(html, /<option value="Tracking">Tracking<\/option>/);
+  assert.match(html, /<option value="Khách hàng">Khách hàng<\/option>/);
+  assert.match(
+    html,
+    /<p role="alert"[^>]*>Dữ liệu lịch sử có thời điểm bắt đầu không hợp lệ\./,
+  );
+  assert.doesNotMatch(html, /data-carrier-history-id=/);
+});

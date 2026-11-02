@@ -43,6 +43,7 @@ test("static CDP expressions are valid JavaScript before a genuine browser run",
     "retail-column-picker-checks.mjs",
     "workspace-geometry-checks.mjs",
     "customer-control-checks.mjs",
+    "carrier-consistency-checks.mjs",
     "m1-visual-checks.mjs",
   ])
     count += validateExpressions(
@@ -104,4 +105,12 @@ test("modal field selection never falls back to an earlier inert page field", as
   );
   assert.equal(customerFieldSelector("q", false), '[name="q"]');
   assert.equal(customerFieldSelector("phone", true).includes(","), false);
+});
+
+test("Customer and Carrier share one alpha-composited browser contrast expression", async () => {
+  const { browserContrastExpression } = await import("./browser-contrast.mjs");
+  const { customerContrastExpression } = await import(
+    "./customer-control-checks.mjs"
+  );
+  assert.equal(customerContrastExpression, browserContrastExpression);
 });

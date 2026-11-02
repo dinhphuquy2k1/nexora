@@ -524,3 +524,80 @@ The genuine Git fixture tests accessible/unreachable linked-worktree metadata;
 that is not a claim that local Docker ran with a particular override. Exact-head
 hosted Docker verification remains mandatory. No Git history write is needed by
 ls-files; the metadata bind stays read-only.
+
+## Carrier Connections UI-only verification — NEXORA-033
+
+Fast checks use `pnpm --filter @nexora/web test` (includes pure Carrier model,
+validation, production SSR/source guards, navigation and Account regression tests).
+The existing TSX/CSS fixture compiler also accepts the Carrier isolated entry:
+`node scripts/build-retail-fixture.mjs artifacts/carrier-fixture apps/web/test/fixtures/carrier-entry.tsx`.
+Canonical Docker quality builds both Retail and Carrier fixtures before runtime.
+
+`carrier-browser-checks.mjs` extends the existing authenticated Chromium/CDP session
+in browser-login-smoke for both roles. It checks guest rejection, the real guarded
+route, Account Link, production empty/unknown/unavailable presentation, no Carrier
+API requests, and populated fixture filtering, drafts, dialogs and three sync tabs.
+Fixtures are served by a temporary loopback server, which is closed in nested
+finally even if CDP navigation fails. Production never imports these fixtures.
+
+Six viewport assertions/captures cover1440×900,1280×800,1024×768,768×1024,
+390×844 and375×812. The manifest records geometry and PNG SHA-256; screenshots
+require blank password fields. Actual pointer events exercise native nested-dialog
+close behavior rather than synthetic DOM click activation. Foundation uploads
+`carrier-ui-browser-evidence` from CARRIER_EVIDENCE_DIR with14-day retention; no
+binary evidence is committed. Source ZIP comparisons are external/read-only and
+must be reported separately from hosted runtime results. CI presence is not PASS;
+executed head-specific outcomes belong to task033 and its PR.
+
+Full-document navigation is not a hydration signal. Account/Carrier checks reuse
+`waitForInteractiveAccount` from browser-login-ready: observe an actual harmless
+menu disclosure before testing one-click/native keyboard behavior. Never retry
+logout, credentials or a backend mutation as a readiness probe. Retail preset
+pointer checks wait viewport frames before measuring and await the unchanged
+expected20-column state after one click; stale SSR/layout reads must not replace
+actual client interaction evidence.
+
+### Carrier v2 source-backed correction acceptance
+
+NEXORA-033 v2 replaces obsolete direct-provider/status-select/no-divider/demo-sync
+assertions with the original ZIP hierarchy. The native Carrier tests protect
+combined presentation statuses, AND/not/contains/duplicate filters, unknown
+environment, local validation, safe timestamps, dirty schedule comparison and
+strict history date ranges. Browser checks use the same compiled production TSX
+and genuine pointer/native keyboard behavior, with a separate27-row stress fixture
+and an exact three-account/eight-stream/twelve-history-entry reference fixture.
+
+The compact carrier-zip-geometry.json is source-derived test specification: six
+normalized workspace bounds and14 principal surfaces from the verified ZIP
+6912f4917756a1c3393e48b34f63f350464cb068351a377c2efb9d5cde6d5a52. It records
+reference deck/columns/rows/overlay widths, not a candidate-generated baseline.
+CI must assert expected surface membership and geometry; candidate screenshots
+alone do not establish parity. Native32px targets account for the documented4px
+action-width/footer delta from ZIP28/30px targets. Missing capture/state or failed
+assertion is a failure, never a skipped green. Keep actual default/hover/focus/
+selected/disabled inspection distinct from source read-only initial-state capture.
+
+External ZIP rendering changes only initial state/DOM markers and mandatory
+font/workspace normalization, without invoking its simulated export/save/jobs.
+Pair all14 principal surfaces at1440×900,1280×800,1024×768,768×1024,390×844,375×812;
+compare identical per-account stream states, not one running stream on every row.
+Generated paired PNGs/manifests remain ignored/14-day artifacts; source hashes and
+compact geometry remain text. Historical v1 SUCCESS is not v2 acceptance evidence.
+
+### Carrier status/menu/history regression checks
+
+carrier-consistency-checks.mjs extends the existing CDP fixture session and compiler,
+not a new launcher. Six status/environment combinations run at all six required
+viewports with real computed colors, badge geometry and runtime semantic-token
+binding/restoration on actual controls. Manifests retain badge style measurements.
+Nested table wheel scrolling must close the portaled menu. DOMDebugger listener
+counts check registration/cleanup after repeated keyboard closes, resize, actions
+and row unmount; native pointer readiness waits scroll frames before clicking.
+
+Stress history includes required timezone-qualified ISO timestamps and four actual
+raw types, including Vietnamese labels. Model/component tests cover invalid calendar
+rollover/timezone, early years, UTC/+07 and inclusive VN day boundaries. Browser
+checks combine type/state/date, reset last-page selection and inspect the matching
+entry. Existing Retail/shared TabBar geometry, Auth/MFA, no-network/storage/password
+and short-height/long-content assertions remain mandatory. Final-head hosted
+Foundation supplies genuine Docker/PostgreSQL integration/runtime evidence.

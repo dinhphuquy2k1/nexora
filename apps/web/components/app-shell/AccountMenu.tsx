@@ -1,5 +1,7 @@
 "use client";
-import { Button } from "@nexora/ui";
+import Link from "next/link";
+import { CARRIER_CONNECTIONS_ROUTE } from "../../lib/navigation/nav-config.ts";
+import { Button, buttonClassName } from "@nexora/ui";
 import type { DeploymentPresentation } from "../../lib/auth/deployment-presentation.ts";
 import type { SessionUser } from "../../lib/api/session.ts";
 import { useEffect, useId, useRef, useState } from "react";
@@ -13,10 +15,7 @@ interface AccountMenuProps {
   // Retained for Header composition compatibility; deployment is not identity.
   deployment: DeploymentPresentation;
 }
-const plannedItems = [
-  { label: "Thông tin cá nhân", icon: UserRound },
-  { label: "Kết nối hãng vận chuyển", icon: Truck },
-];
+const plannedItems = [{ label: "Thông tin cá nhân", icon: UserRound }];
 function Avatar({
   user,
   large = false,
@@ -77,6 +76,17 @@ export function AccountMenuContent({
             <span className={styles.itemLabel}>{label}</span>
           </Button>
         ))}
+        <Link
+          href={CARRIER_CONNECTIONS_ROUTE.href}
+          className={buttonClassName("ghost", false, styles.menuItem, "none")}
+          data-size="default"
+          data-press-effect="none"
+        >
+          <Truck className={styles.menuIcon} size={16} aria-hidden="true" />
+          <span className={styles.itemLabel}>
+            {CARRIER_CONNECTIONS_ROUTE.label}
+          </span>
+        </Link>
       </div>
       <div className={styles.logoutSection}>
         <Button

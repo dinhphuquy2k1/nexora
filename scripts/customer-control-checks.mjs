@@ -1,3 +1,5 @@
+import { browserContrastExpression as customerContrastExpression } from "./browser-contrast.mjs";
+export { customerContrastExpression };
 // Actual rendered shared actions; no synthetic product controls or alternate launcher.
 import assert from "node:assert/strict";
 export async function verifyCustomerControls({ send, evaluate, checks }) {
@@ -124,10 +126,6 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
   console.log(
     "Customer actual emphasis/secondary/ghost default and hover color tokens PASS",
   );
-}
-
-export function customerContrastExpression(selector) {
-  return `(async()=>{const el=document.querySelector(${JSON.stringify(selector)});await Promise.all(el.getAnimations().map(a=>a.finished.catch(()=>{})));const parse=s=>{const n=s.match(/[\\d.]+/g).map(Number);return[n[0],n[1],n[2],n[3]??1];};const chain=[];for(let n=el;n;n=n.parentElement)chain.push(n);let bg=[255,255,255];for(const n of chain.reverse()){const c=parse(getComputedStyle(n).backgroundColor);bg=bg.map((v,i)=>c[i]*c[3]+v*(1-c[3]));}const fg=parse(getComputedStyle(el).color);const text=bg.map((v,i)=>fg[i]*fg[3]+v*(1-fg[3]));const luminance=c=>c.map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);const a=luminance(text),b=luminance(bg);return{ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05),hover:el.matches(':hover'),height:getComputedStyle(el).height,radius:getComputedStyle(el).borderRadius,color:getComputedStyle(el).color,backgroundColor:getComputedStyle(el).backgroundColor};})()`;
 }
 
 export async function verifyCustomerStatusContrast({ evaluate, checks }) {

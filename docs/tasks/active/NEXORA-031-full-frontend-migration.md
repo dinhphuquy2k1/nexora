@@ -2136,3 +2136,17 @@ contract verification PASS does not establish direct ZIP parity. PR remains Draf
 NOT READY until that mandatory acceptance evidence is available; implementation
 is IMPLEMENTED, overall NEXORA-031 remains IN PROGRESS / NOT VERIFIED, M4–M5
 deferred. No public production deployment evidence or merge is claimed.
+
+## NEXORA-033 — Carrier UI-only checkpoint (2026-11-01)
+
+[Carrier Connections UI task](NEXORA-033-carrier-connections-ui.md) owns the guarded
+/settings/carrier-connections presentation and Account Link. Backend Carrier calls,
+Shipping Scope integration and overall M4 remain pending; this does not complete
+M4–M5 or change prior immutable snapshots. Task033 records actual verification and
+UI-only acceptance independently of backend readiness.
+
+Carrier correction checkpoint: NEXORA-033 v2 on existing PR31 restores source ZIP
+command deck, advanced filters, seven-column table, split actions and complete
+readonly sync surfaces. This is a UI-only correction; overall M4/Shipping Scope/API
+integration and M5 remain pending. Task033/PR31 own current exact-head visual,
+regression and hosted evidence; the rejected v1 CI does not establish ZIP parity.
