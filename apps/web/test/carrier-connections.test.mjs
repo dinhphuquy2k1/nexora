@@ -534,3 +534,57 @@ test("toolbar does not render inline 'Đang lọc' or 'Xóa lọc', preserving l
   assert.match(htmlFiltered, /Xóa tất cả/);
   assert.match(htmlFiltered, /Hãng vận chuyển/);
 });
+
+test("pagination footer aligns with Retail baseline: disabled page 1 when unavailable, numbered pagination when known", () => {
+  const { CarrierConnectionPagination } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionList.tsx",
+      import.meta.url,
+    ),
+  );
+  const { selectConnections, INITIAL_QUERY } = model();
+
+  // 1. Unavailable state (production, no backend)
+  const unavailableModel = selectConnections([], INITIAL_QUERY);
+  const htmlUnavailable = render(
+    React.createElement(CarrierConnectionPagination, {
+      model: unavailableModel,
+      known: false,
+      onChange: () => {},
+    }),
+  );
+
+  // Summary shows em-dash and does not invent counts
+  assert.match(htmlUnavailable, /Hiển thị[\s\S]*?<strong[^>]*>—<\/strong>/);
+  assert.match(htmlUnavailable, /data-carrier-count="true">— tài khoản/);
+  // Geometry preserves disabled button 1 without asserting active page
+  assert.match(htmlUnavailable, /<button[^>]+disabled=""[^>]*>1<\/button>/);
+  assert.doesNotMatch(htmlUnavailable, /aria-current="page"/);
+  // All navigation arrows disabled
+  assert.match(
+    htmlUnavailable,
+    /aria-label="Trang đầu tài khoản"[^>]+disabled=""/,
+  );
+  assert.match(
+    htmlUnavailable,
+    /aria-label="Trang cuối tài khoản"[^>]+disabled=""/,
+  );
+
+  // 2. Known state (populated fixture)
+  const knownModel = selectConnections(rows, { ...INITIAL_QUERY, pageSize: 5 });
+  const htmlKnown = render(
+    React.createElement(CarrierConnectionPagination, {
+      model: knownModel,
+      known: true,
+      onChange: () => {},
+    }),
+  );
+
+  assert.match(htmlKnown, /Hiển thị[\s\S]*?<strong[^>]*>1–5<\/strong>/);
+  assert.match(
+    htmlKnown,
+    new RegExp(`data-carrier-count="true">${rows.length} tài khoản`),
+  );
+  assert.match(htmlKnown, /aria-current="page"[^>]*>1<\/button>/);
+  assert.match(htmlKnown, /Trang tài khoản 2/);
+});

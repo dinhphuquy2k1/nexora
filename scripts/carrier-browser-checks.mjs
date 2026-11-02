@@ -123,14 +123,14 @@ export async function verifyCarrierBrowser({
       "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))",
     );
     const geometry = await evaluate(
-      `(()=>{const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height,bottom:r.bottom,right:r.right}};const root=document.querySelector('[data-carrier-connections]'),container=document.querySelector('[data-carrier-table-container]'),d=[...document.querySelectorAll('dialog[open]')];return {page:rect(root),deck:rect(document.querySelector('[data-carrier-command-deck]')),container:rect(container),footer:rect(document.querySelector('[data-carrier-pagination]')),columns:[...document.querySelectorAll('table th')].map(rect),rows:[...document.querySelectorAll('tbody tr')].map(rect),frame:rect(d.at(-1)),frameHeader:rect(d.at(-1)?.querySelector(':scope>header')),noOverflow:document.documentElement.scrollWidth<=innerWidth,verticalBorders:[...document.querySelectorAll('table th:not(:last-child),table td:not(:last-child)')].every(e=>getComputedStyle(e).borderRightWidth==='1px'),controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(rect),syncBodyFits:[...document.querySelectorAll('dialog[open] [role=tabpanel]')].every(e=>e.scrollWidth<=e.clientWidth+1)}})()`,
+      `(()=>{const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height,bottom:r.bottom,right:r.right}};const root=document.querySelector('[data-carrier-connections]'),container=document.querySelector('[data-carrier-table-container]'),d=[...document.querySelectorAll('dialog[open]')];return {page:rect(root),deck:rect(document.querySelector('[data-carrier-command-deck]')),container:rect(container),footer:rect(document.querySelector('[data-carrier-pagination]')),columns:[...document.querySelectorAll('table th')].map(rect),rows:[...document.querySelectorAll('tbody tr')].map(rect),frame:rect(d.at(-1)),frameHeader:rect(d.at(-1)?.querySelector(':scope>header')),noOverflow:document.documentElement.scrollWidth<=innerWidth,noVerticalBorders:[...document.querySelectorAll('table th:not(:last-child),table td:not(:last-child)')].every(e=>getComputedStyle(e).borderRightWidth==='0px'||getComputedStyle(e).borderRightStyle==='none'),controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(rect),syncBodyFits:[...document.querySelectorAll('dialog[open] [role=tabpanel]')].every(e=>e.scrollWidth<=e.clientWidth+1)}})()`,
     );
     assert.equal(geometry.noOverflow, true, phase + " document overflow");
     assert.equal(geometry.columns.length, 7);
     assert.equal(
-      geometry.verticalBorders,
+      geometry.noVerticalBorders,
       true,
-      "Carrier ZIP-scoped column dividers",
+      "Carrier table vertical borders aligned with Retail (no column dividers)",
     );
     assert.ok(
       geometry.controls.length > 0 &&
@@ -719,6 +719,174 @@ export async function verifyCarrierBrowser({
     })()`);
     await until(
       "Boolean([...document.querySelectorAll('[role=\"tab\"][aria-selected=\"true\"]')].some(b => b.textContent.includes('Tất cả')))",
+    );
+
+    // FIX 2, FIX 4, FIX 5: Assert shared visual alignment with Retail baseline
+    checks.step("CARRIER_RETAIL_VISUAL_ALIGNMENT_CONTRACT");
+    const visualStyles = await evaluate(`(()=>{
+      const heading = document.querySelector('[data-carrier-command-deck] h1');
+      const icon = document.querySelector('[class*="titleIcon"]');
+      const header = document.querySelector('[class*="pageHeader"]');
+      const actions = document.querySelector('[class*="headerActions"]');
+      const toolbar = document.querySelector('[data-carrier-toolbar]');
+      const th = document.querySelector('table th');
+      const td = document.querySelector('table td');
+      const footer = document.querySelector('[data-carrier-pagination]');
+      const summary = footer?.querySelector('[class*="summary"]');
+      const range = footer?.querySelector('[class*="paginationRange"]');
+
+      const cs = e => e ? getComputedStyle(e) : null;
+      const rect = e => e ? e.getBoundingClientRect() : null;
+
+      const hcs = cs(heading);
+      const ics = cs(icon);
+      const hdcs = cs(header);
+      const acs = cs(actions);
+      const tcs = cs(toolbar);
+      const thcs = cs(th);
+      const tdcs = cs(td);
+      const fcs = cs(footer);
+      const scs = cs(summary);
+      const rcs = cs(range);
+
+      return {
+        headingColor: hcs?.color,
+        headingFontWeight: hcs?.fontWeight,
+        headingTextTransform: hcs?.textTransform,
+        iconWidth: rect(icon)?.width,
+        iconHeight: rect(icon)?.height,
+        iconBorderRadius: ics?.borderRadius,
+        headerPaddingLeft: hdcs?.paddingLeft,
+        headerPaddingRight: hdcs?.paddingRight,
+        headerActionsGap: acs?.gap,
+        toolbarPaddingTop: tcs?.paddingTop,
+        toolbarPaddingBottom: tcs?.paddingBottom,
+        toolbarPaddingLeft: tcs?.paddingLeft,
+        toolbarPaddingRight: tcs?.paddingRight,
+        toolbarGap: tcs?.gap,
+        thFontWeight: thcs?.fontWeight,
+        thColor: thcs?.color,
+        thBackground: thcs?.backgroundColor,
+        thTextTransform: thcs?.textTransform,
+        thBorderRightWidth: thcs?.borderRightWidth,
+        tdBorderRightWidth: tdcs?.borderRightWidth,
+        tdPaddingTop: tdcs?.paddingTop,
+        tdPaddingBottom: tdcs?.paddingBottom,
+        footerBackground: fcs?.backgroundColor,
+        footerMinHeight: fcs?.minHeight,
+        footerPaddingTop: fcs?.paddingTop,
+        footerPaddingBottom: fcs?.paddingBottom,
+        footerBorderTopWidth: fcs?.borderTopWidth,
+        summaryFontSize: scs?.fontSize,
+        summaryColor: scs?.color,
+        rangeFontWeight: rcs?.fontWeight,
+        rangeColor: rcs?.color,
+      };
+    })()`);
+
+    assert.equal(
+      visualStyles.headingColor,
+      "rgb(23, 43, 77)",
+      "heading color must be var(--color-primary)",
+    );
+    assert.equal(
+      visualStyles.headingFontWeight,
+      "700",
+      "heading font weight must be 700 (var(--font-weight-bold))",
+    );
+    assert.equal(
+      visualStyles.headingTextTransform,
+      "uppercase",
+      "heading text transform uppercase",
+    );
+    assert.equal(visualStyles.iconWidth, 32, "brand icon width 32px");
+    assert.equal(visualStyles.iconHeight, 32, "brand icon height 32px");
+    assert.equal(
+      visualStyles.headerPaddingLeft,
+      "16px",
+      "header padding left 16px (var(--space-4))",
+    );
+    assert.equal(
+      visualStyles.headerPaddingRight,
+      "16px",
+      "header padding right 16px (var(--space-4))",
+    );
+    assert.equal(
+      visualStyles.headerActionsGap,
+      "8px",
+      "header actions gap 8px (var(--space-2))",
+    );
+    assert.equal(
+      visualStyles.toolbarPaddingTop,
+      "8px",
+      "toolbar padding top 8px (var(--space-2))",
+    );
+    assert.equal(
+      visualStyles.toolbarPaddingBottom,
+      "8px",
+      "toolbar padding bottom 8px (var(--space-2))",
+    );
+    assert.equal(
+      visualStyles.toolbarGap,
+      "12px",
+      "toolbar gap 12px (var(--space-3))",
+    );
+    assert.equal(
+      visualStyles.thFontWeight,
+      "600",
+      "th font weight 600 (var(--font-weight-semibold))",
+    );
+    assert.equal(visualStyles.thColor, "rgb(255, 255, 255)", "th color white");
+    assert.equal(
+      visualStyles.thBackground,
+      "rgb(23, 43, 77)",
+      "th background navy",
+    );
+    assert.equal(
+      visualStyles.thTextTransform,
+      "uppercase",
+      "th text transform uppercase",
+    );
+    assert.equal(
+      visualStyles.thBorderRightWidth,
+      "0px",
+      "th vertical border removed",
+    );
+    assert.equal(
+      visualStyles.tdBorderRightWidth,
+      "0px",
+      "td vertical border removed",
+    );
+    assert.equal(
+      visualStyles.footerBackground,
+      "rgb(241, 245, 249)",
+      "footer background var(--color-surface-subtle)",
+    );
+    assert.equal(
+      visualStyles.footerMinHeight,
+      "44px",
+      "footer min-height 44px",
+    );
+    assert.equal(
+      visualStyles.footerPaddingTop,
+      "8px",
+      "footer padding top 8px (var(--space-2))",
+    );
+    assert.equal(
+      visualStyles.footerPaddingBottom,
+      "8px",
+      "footer padding bottom 8px (var(--space-2))",
+    );
+    assert.equal(
+      visualStyles.summaryFontSize,
+      "11px",
+      "summary font size 11px (var(--font-size-xs))",
+    );
+    assert.equal(visualStyles.rangeFontWeight, "600", "range font weight 600");
+    assert.equal(
+      visualStyles.rangeColor,
+      "rgb(23, 43, 77)",
+      "range color var(--color-primary)",
     );
 
     // Source-derived contract records original ZIP geometry, never the implementation's geometry.

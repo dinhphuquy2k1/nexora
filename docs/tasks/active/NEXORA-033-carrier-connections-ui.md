@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Implementation: IMPLEMENTED
-Verification: NOT VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -428,5 +428,63 @@ own hosted verification; the prior cd2dad7 SUCCESS cannot verify this new delta.
 - Chromium CDP headless browser checks across 6 viewports: ALL PASS (TabBar computed typography and 6-viewport zero-shift assertions verified).
 - `pnpm format:check`: PASS.
 - `pnpm lint`: PASS (0 errors, 0 warnings).
+- `pnpm docs:check`: PASS.
+- `pnpm preflight:check`: PASS.
+
+## Scoped Implementation Plan — Carrier UI Alignment with Retail Baseline (2026-11-02)
+
+### Plan Revision: rev-2026-11-02-carrier-retail-ui-sync-v1
+
+Classification: SIGNIFICANT
+Domain Owner: Shared UI / Carrier Presentation
+Documentation Impact: REQUIRED
+
+### 1. Reuse & Design Audit Matrix
+
+| Component             | Existing implementations                                                                                        | Domain owner        | Reuse alternatives                                                                       | Selected approach                                                                                                                                                                                                     | Rationale                                                                  | Risks                    | Verification                              |
+| --------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------ | ----------------------------------------- |
+| **Pagination Footer** | `RetailPagination.tsx` & `retail-packages.module.css` (.paginationBar, .paginationInfo, etc.)                   | Shared presentation | Extract shared component to `@nexora/ui` vs mirror geometry using shared tokens/controls | Mirror geometry and tokens in Carrier: background `var(--color-surface-subtle)`, min-height 44px, padding `var(--space-2) var(--space-4)`, gap `var(--space-3)`, tabular counts, disabled button "1" when unavailable | High visual parity, 0 regression risk for Retail, respects task constraint | Responsive wrap on 375px | 6 viewport CDP checks, unit tests         |
+| **Header & Heading**  | `RetailPackageListPage.tsx` & `retail-packages.module.css` (.titleRow, .titleGroup, .brandIcon, .headerActions) | Presentation        | Shared PageHeader component vs align tokens directly                                     | Align `.pageHeader`, `.heading h1`, `.titleIcon` (32x32), and `.headerActions` tokens to Retail; preserve Back button, active badge, actions                                                                          | Clean design system alignment, preserves Carrier domain features           | Small screen wrapping    | 6 viewport captures, computed styles test |
+| **Toolbar & Chips**   | `retail-packages.module.css` (.toolbar, .filterChips, .filterChip)                                              | Presentation        | Reuse shared tokens vs custom styling                                                    | Standardize padding `var(--space-2) var(--space-4)`, gap `var(--space-3)`, search input styling, and chip tokens (`--color-filter-chip-*`)                                                                            | Consistent toolbar rhythm and chip presentation                            | None                     | Unit tests, browser checks                |
+| **Table Head & Body** | `retail-packages.module.css` (.table, .tableHead th, .tableRow td)                                              | Presentation        | Shared Table primitive vs CSS token alignment                                            | Align `th` font-weight (`semibold`), line-height, text color, padding, remove column vertical borders (`border-right: 0`), set row hover background to `var(--color-surface-subtle)`                                  | Visual parity with Retail table standard                                   | Layout shifts            | Computed styles check, CDP assertions     |
+| **CSS Cleanliness**   | `carrier-connections.module.css`                                                                                | Presentation        | Search & replace vs scoped audit                                                         | Audit raw font sizes (12px, 11px), hardcoded weights/line-heights, remove obsolete overrides                                                                                                                          | Clean maintainable stylesheet without `!important`                         | Token drift              | Lint, boundary, format checks             |
+
+### 2. Implementation Scope
+
+- FIX 1: Standardize Carrier pagination footer layout, typography, controls, disabled "1" button when unavailable, and responsive media query.
+- FIX 2: Standardize Carrier header padding (14px 16px), heading color (`--color-primary`), font-weight (`bold`), line-height (`snug`), icon size (32x32px), actions gap (8px).
+- FIX 3: Confirm shared `TabBar` consistency and zero layout shift.
+- FIX 4: Standardize toolbar padding/gap and filter chips tokens/styling.
+- FIX 5: Standardize table header typography (semibold, no letter-spacing, padding 8px 12px), remove vertical column borders, update row hover background to `--color-surface-subtle`, standardize empty state.
+- FIX 6: Clean up hardcoded typography and obsolete selectors in `carrier-connections.module.css`.
+- FIX 7: Update `scripts/carrier-browser-checks.mjs` and run full regression checks across 6 viewports.
+
+### 3. Three-Round Review & Verification Evidence
+
+#### Round 1 — Component Reuse & CSS Audit
+
+- Standardized `CarrierConnectionPagination` layout to match `RetailPagination` using shared `@nexora/ui` `Button` and `Select`.
+- Removed `.pagination select` and `.splitButton` hardcoded 12px overrides, delegating to canonical `var(--font-size-xs)`.
+- Preserved carrier-specific domain elements (back button, active accounts count badge, provider-specific truck icon, carrier connection actions).
+- Eliminated vertical table borders on `th` and `td`, aligning with Retail baseline.
+
+#### Round 2 — Visual Consistency & Computed Geometry
+
+- **Header:** `pageHeader` padding `14px var(--space-4)`, `heading h1` font-weight `var(--font-weight-bold)` (700), line-height `var(--line-height-snug)`, text-transform `uppercase`, color `var(--color-primary)`; `titleIcon` standardized to 32×32px with `var(--brand-navy)` / `var(--brand-orange)`.
+- **Toolbar:** `toolbar` padding `var(--space-2) var(--space-4)` (8px 16px), gap `var(--space-3)` (12px); filter chips styled with canonical `--color-filter-chip-*` tokens.
+- **Table:** `table th` font-weight `600` (`var(--font-weight-semibold)`), background `var(--color-primary)` (navy), text `var(--color-text-on-dark)` (white), vertical borders removed (`border-right: 0`); `table td` row hover background `var(--color-surface-subtle)`.
+- **Pagination Footer:** `pagination` background `var(--color-surface-subtle)` (`rgb(241, 245, 249)`), min-height `44px`, padding `var(--space-2) var(--space-4)`, gap `var(--space-3)`. Numbered buttons rendered without `icon` prop, active page uses `variant="emphasis"`. When unavailable (`!known`), renders disabled button "1" and `—` count, preventing layout shifts without fabricating data.
+- **Mobile Responsive:** Pagination wraps and centers on viewports `<= 768px` matching Retail baseline.
+
+#### Round 3 — Regression & Quality Gates
+
+- `node apps/web/test/carrier-connections.test.mjs`: 19/19 PASS (added test verifying unavailable disabled page 1 vs populated fixture numbered pagination).
+- `node apps/web/test/carrier-navigation.test.mjs`: 1/1 PASS.
+- `node apps/web/test/retail-packages.test.mjs`: 38/38 PASS (zero regression on Retail).
+- `node apps/web/test/form-control-contracts.test.mjs`: 11/11 PASS.
+- `pnpm --filter @nexora/ui test`: 32/32 PASS.
+- Chromium CDP headless browser verification (`CARRIER_RETAIL_VISUAL_ALIGNMENT_CONTRACT` and `CARRIER_V2_SOURCE_BACKED_SIX_VIEWPORT_MATRIX`): ALL PASS across all 6 viewports (`1440×900`, `1280×800`, `1024×768`, `768×1024`, `390×844`, `375×812`).
+- `pnpm format:check`: PASS.
+- `pnpm lint`: PASS (workspace boundaries PASS, ESLint 0 errors 0 warnings).
 - `pnpm docs:check`: PASS.
 - `pnpm preflight:check`: PASS.
