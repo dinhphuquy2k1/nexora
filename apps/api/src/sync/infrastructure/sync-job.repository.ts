@@ -1,0 +1,510 @@
+import {
+  createDatabase,
+  type Prisma,
+  type PrismaClient,
+} from "@nexora/database";
+import { UserStatus } from "../../identity/domain/user-policy";
+import { ConnectionStatus } from "../../carrier/domain/carrier";
+import {
+  SyncError,
+  canonicalPayload,
+  payloadHash,
+  sourceKey,
+  retryDelay,
+  type SyncConfig,
+} from "../domain/sync-policy";
+import {
+  SyncJobStatus as J,
+  SyncProcessingPhase as P,
+  SyncProcessingStatus as O,
+  SyncErrorCode as E,
+  SyncTrigger,
+  SyncLinkOrigin,
+  SyncType,
+  type SyncCode,
+} from "../domain/sync.constants";
+import type {
+  SyncQueue,
+  SyncJob,
+  SyncPage,
+  SyncDomainProcessor,
+  SyncProvider,
+  SyncSchedule,
+  SyncSource,
+} from "../application/sync.port";
+type Tx = Prisma.TransactionClient;
+type Connection = {
+  id: string;
+  user_id: string;
+  provider: string;
+  external_account_id: string;
+  status: string;
+  lifecycle_version: number;
+  generation: number;
+};
+export class SyncRepository implements SyncQueue {
+  private instance?: PrismaClient;
+  constructor(
+    private readonly url: string,
+    readonly config: SyncConfig,
+    private readonly provider: SyncProvider,
+    private readonly processor: SyncDomainProcessor,
+  ) {}
+  get client() {
+    return (this.instance ??= createDatabase(this.url));
+  }
+  available(provider: string, type: SyncType) {
+    return (
+      this.config.enabled &&
+      this.config.types.includes(type) &&
+      this.provider.supports(provider, type) &&
+      this.processor.supports(type)
+    );
+  }
+  private async connection(
+    tx: Tx,
+    userId: string,
+    id: string,
+    connected = false,
+  ): Promise<Connection> {
+    const u = await tx.$queryRaw<
+      { status: string }[]
+    >`SELECT status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+    if (u[0]?.status !== UserStatus.ACTIVE) throw new SyncError(E.UNAUTHORIZED);
+    const epochs = await tx.$queryRaw<
+      { generation: number }[]
+    >`SELECT generation FROM carrier_user_states WHERE user_id=${userId}::uuid FOR UPDATE`;
+    const rows = await tx.$queryRaw<
+      Omit<Connection, "generation">[]
+    >`SELECT id,user_id,provider,external_account_id,status,lifecycle_version FROM carrier_connections WHERE id=${id}::uuid AND user_id=${userId}::uuid FOR UPDATE`;
+    if (!rows[0]) throw new SyncError(E.NOT_FOUND);
+    if (connected && rows[0].status !== ConnectionStatus.CONNECTED)
+      throw new SyncError(E.SYNC_UNAVAILABLE);
+    return { ...rows[0], generation: epochs[0]?.generation ?? 0 };
+  }
+  private async fence(tx: Tx, job: SyncJob) {
+    if (!job.carrier_connection_id) throw new SyncError(E.SYNC_STALE);
+    const c = await this.connection(
+      tx,
+      job.owner_user_id,
+      job.carrier_connection_id,
+      true,
+    );
+    const rows = await tx.$queryRaw<
+      SyncJob[]
+    >`SELECT * FROM sync_jobs WHERE id=${job.id}::uuid FOR UPDATE`;
+    const current = rows[0];
+    if (
+      !this.available(c.provider, job.sync_type) ||
+      !current ||
+      current.status !== J.RUNNING ||
+      current.worker_id !== job.worker_id ||
+      current.lease_version !== job.lease_version ||
+      c.generation !== current.generation ||
+      c.lifecycle_version !== current.lifecycle_version ||
+      current.generation !== job.generation ||
+      current.lifecycle_version !== job.lifecycle_version
+    )
+      throw new SyncError(E.SYNC_STALE);
+    await this.assertLease(tx, job);
+    return current;
+  }
+  private async assertLease(tx: Tx, job: SyncJob) {
+    const rows = await tx.$queryRaw<
+      { id: string }[]
+    >`SELECT id FROM sync_jobs WHERE id=${job.id}::uuid AND lease_version=${job.lease_version} AND status=${J.RUNNING} AND worker_id=${job.worker_id}::uuid AND lease_expires_at>clock_timestamp()`;
+    if (rows.length !== 1) throw new SyncError(E.SYNC_STALE);
+  }
+  private async release(tx: Tx, job: SyncJob) {
+    await this.assertLease(tx, job);
+    await tx.$executeRaw`UPDATE sync_jobs SET status=${J.WAITING},available_at=clock_timestamp(),worker_id=NULL,lease_expires_at=NULL,updated_at=clock_timestamp() WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+  }
+  async admit(
+    userId: string,
+    id: string,
+    type: SyncType,
+    trigger: (typeof SyncTrigger)[keyof typeof SyncTrigger],
+  ) {
+    return this.client.$transaction(async (tx) => {
+      const c = await this.connection(tx, userId, id, true);
+      if (!this.available(c.provider, type))
+        throw new SyncError(E.SYNC_UNAVAILABLE);
+      const rows = await tx.$queryRaw<
+        SyncJob[]
+      >`INSERT INTO sync_jobs(carrier_connection_id,owner_user_id,provider,external_account_id,sync_type,trigger_source,generation,lifecycle_version,target_watermark)
+   VALUES(${id}::uuid,${userId}::uuid,${c.provider},${c.external_account_id},${type},${trigger},${c.generation},${c.lifecycle_version},(SELECT last_completed_watermark FROM sync_configs WHERE carrier_connection_id=${id}::uuid AND sync_type=${type}))
+   ON CONFLICT(carrier_connection_id,sync_type) WHERE status IN ('QUEUED','RUNNING','WAITING') DO NOTHING RETURNING *`;
+      if (rows[0]) return rows[0];
+      const active = await tx.$queryRaw<
+        SyncJob[]
+      >`SELECT * FROM sync_jobs WHERE carrier_connection_id=${id}::uuid AND sync_type=${type} AND status IN ('QUEUED','RUNNING','WAITING')`;
+      if (!active[0]) throw new SyncError(E.SYNC_STALE);
+      return active[0];
+    });
+  }
+  async jobs(userId: string, id: string, page: number, pageSize: number) {
+    return this.client.$transaction(async (tx) => {
+      await this.connection(tx, userId, id);
+      const counts = await tx.$queryRaw<
+        { total: bigint }[]
+      >`SELECT count(*) AS total FROM sync_jobs WHERE owner_user_id=${userId}::uuid AND carrier_connection_id=${id}::uuid`;
+      const jobs = await tx.$queryRaw<
+        SyncJob[]
+      >`SELECT * FROM sync_jobs WHERE owner_user_id=${userId}::uuid AND carrier_connection_id=${id}::uuid ORDER BY created_at DESC,id DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
+      return { jobs, total: Number(counts[0].total) };
+    });
+  }
+  async job(userId: string, id: string, jobId: string) {
+    return this.client.$transaction(async (tx) => {
+      await this.connection(tx, userId, id);
+      const rows = await tx.$queryRaw<
+        SyncJob[]
+      >`SELECT * FROM sync_jobs WHERE id=${jobId}::uuid AND carrier_connection_id=${id}::uuid AND owner_user_id=${userId}::uuid`;
+      if (!rows[0]) throw new SyncError(E.NOT_FOUND);
+      return rows[0];
+    });
+  }
+  async configs(userId: string, id: string) {
+    return this.client.$transaction(async (tx) => {
+      const c = await this.connection(tx, userId, id);
+      const rows = await tx.$queryRaw<
+        SyncSchedule[]
+      >`SELECT * FROM sync_configs WHERE carrier_connection_id=${id}::uuid`;
+      return Object.values(SyncType).map((type) => ({
+        ...{
+          sync_type: type,
+          enabled: false,
+          interval_minutes: 60,
+          next_run_at: null,
+          last_success_at: null,
+          last_completed_at: null,
+          last_completed_watermark: null,
+        },
+        ...rows.find((r) => r.sync_type === type),
+        available: this.available(c.provider, type),
+      }));
+    });
+  }
+  async configure(
+    userId: string,
+    id: string,
+    type: SyncType,
+    enabled: boolean,
+    interval: number,
+  ) {
+    return this.client.$transaction(async (tx) => {
+      const c = await this.connection(tx, userId, id);
+      if (enabled && !this.available(c.provider, type))
+        throw new SyncError(E.SYNC_UNAVAILABLE);
+      const rows = await tx.$queryRaw<
+        SyncSchedule[]
+      >`INSERT INTO sync_configs(carrier_connection_id,sync_type,enabled,interval_minutes,next_run_at) VALUES(${id}::uuid,${type},${enabled},${interval},CASE WHEN ${enabled} THEN clock_timestamp()+${interval}*interval '1 minute' ELSE NULL END) ON CONFLICT(carrier_connection_id,sync_type) DO UPDATE SET enabled=excluded.enabled,interval_minutes=excluded.interval_minutes,next_run_at=excluded.next_run_at,updated_at=clock_timestamp() RETURNING *`;
+      return { ...rows[0], available: this.available(c.provider, type) };
+    });
+  }
+  async claim(workerId: string) {
+    if (!this.config.enabled || !this.config.types.length) return null;
+    const candidate = await this.client.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<
+        SyncJob[]
+      >`SELECT j.* FROM sync_jobs j WHERE sync_type=ANY(${[...this.config.types]}::text[]) AND ((status IN ('QUEUED','WAITING') AND available_at<=clock_timestamp()) OR (status='RUNNING' AND lease_expires_at<=clock_timestamp())) ORDER BY available_at,id FOR UPDATE SKIP LOCKED LIMIT 1`;
+      const job = rows[0];
+      if (!job || !this.available(job.provider, job.sync_type)) return null;
+      const claimed = await tx.$queryRaw<
+        SyncJob[]
+      >`UPDATE sync_jobs SET status=${J.RUNNING},worker_id=${workerId}::uuid,lease_version=lease_version+1,lease_expires_at=clock_timestamp()+${this.config.leaseSeconds}*interval '1 second',started_at=coalesce(started_at,clock_timestamp()),updated_at=clock_timestamp() WHERE id=${job.id}::uuid RETURNING *`;
+      return claimed[0];
+    });
+    if (!candidate) return null;
+    try {
+      await this.client.$transaction((tx) => this.fence(tx, candidate));
+      return candidate;
+    } catch (error) {
+      if (!(error instanceof SyncError)) throw error;
+      if (error.code === E.SYNC_STALE || error.code === E.SYNC_UNAVAILABLE) {
+        await this.client.$transaction(async (tx) => {
+          if (!candidate.carrier_connection_id) return;
+          await this.connection(
+            tx,
+            candidate.owner_user_id,
+            candidate.carrier_connection_id,
+          );
+          await tx.$executeRaw`UPDATE sync_jobs SET status=${J.CANCELLED},last_error_code=${E.SYNC_STALE},lease_version=lease_version+1,worker_id=NULL,lease_expires_at=NULL,finished_at=clock_timestamp() WHERE id=${candidate.id}::uuid AND lease_version=${candidate.lease_version} AND worker_id=${candidate.worker_id}::uuid AND status=${J.RUNNING}`;
+        });
+      } else if (error.code !== E.UNAUTHORIZED && error.code !== E.NOT_FOUND)
+        throw error;
+      return null;
+    }
+  }
+  async heartbeat(job: SyncJob) {
+    await this.client.$transaction(async (tx) => {
+      await this.fence(tx, job);
+      await tx.$executeRaw`UPDATE sync_jobs SET lease_expires_at=clock_timestamp()+${this.config.leaseSeconds}*interval '1 second' WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+    });
+  }
+  async page(job: SyncJob, page: SyncPage, processorVersion: number) {
+    if (
+      !Number.isSafeInteger(processorVersion) ||
+      processorVersion < 1 ||
+      page.records.length > 500 ||
+      (!page.done &&
+        !(page.nextPage && page.nextPage > job.next_page) &&
+        !(page.nextCursor && page.nextCursor !== job.next_cursor))
+    )
+      throw new SyncError(E.SOURCE_INVALID);
+    const unique = new Map<
+      string,
+      {
+        scheme: string;
+        key: string;
+        hash: string;
+        payload: string;
+        payloadHash: string;
+        sourceOrder: number | null;
+      }
+    >();
+    for (const r of page.records) {
+      let fields: unknown;
+      try {
+        fields = JSON.parse(r.identity.key);
+      } catch {
+        throw new SyncError(E.SOURCE_INVALID);
+      }
+      if (!Array.isArray(fields)) throw new SyncError(E.SOURCE_INVALID);
+      const identity = sourceKey(r.identity.scheme, fields);
+      if (
+        identity.key !== r.identity.key ||
+        identity.hash !== r.identity.hash ||
+        (r.sourceOrder !== undefined &&
+          (!Number.isSafeInteger(r.sourceOrder) || r.sourceOrder < 0))
+      )
+        throw new SyncError(E.SOURCE_INVALID);
+      const payload = canonicalPayload(r.payload),
+        entry = {
+          ...identity,
+          payload,
+          payloadHash: payloadHash(payload),
+          sourceOrder: r.sourceOrder ?? null,
+        };
+      const key = identity.scheme + ":" + identity.hash,
+        prior = unique.get(key);
+      if (prior && prior.payloadHash !== entry.payloadHash)
+        throw new SyncError(E.SOURCE_CONFLICT);
+      unique.set(key, entry);
+    }
+    await this.client.$transaction(
+      async (tx) => {
+        const current = await this.fence(tx, job);
+        if (
+          current.processing_phase !== P.FETCHING ||
+          current.next_page !== job.next_page ||
+          current.next_cursor !== job.next_cursor
+        )
+          throw new SyncError(E.SYNC_STALE);
+        const input = JSON.stringify([...unique.values()]);
+        const old = await tx.$queryRaw<
+          {
+            id: string;
+            source_key: string;
+            source_key_scheme: string;
+            source_key_hash: string;
+            last_observed_hash: string | null;
+            observed_source_version: number;
+            last_source_order: bigint | null;
+            applied_processor_version: number | null;
+          }[]
+        >`SELECT s.* FROM sync_source_identities s JOIN jsonb_to_recordset(${input}::jsonb) AS r(scheme text,hash text) ON s.source_key_scheme=r.scheme AND s.source_key_hash=r.hash WHERE owner_user_id=${job.owner_user_id}::uuid AND provider=${job.provider} AND external_account_id=${job.external_account_id} AND sync_type=${job.sync_type} FOR UPDATE OF s`;
+        let added = 0,
+          changed = 0,
+          unchanged = 0;
+        const changes = [...unique.values()].map((r) => {
+          const prior = old.find(
+            (s) =>
+              s.source_key_scheme === r.scheme && s.source_key_hash === r.hash,
+          );
+          if (prior && prior.source_key !== r.key)
+            throw new SyncError(E.SOURCE_CONFLICT);
+          const stale =
+            prior?.last_source_order !== null &&
+            prior?.last_source_order !== undefined &&
+            r.sourceOrder !== null &&
+            BigInt(r.sourceOrder) < prior.last_source_order;
+          const differs = !stale && prior?.last_observed_hash !== r.payloadHash;
+          if (!prior) added++;
+          else if (differs) changed++;
+          else unchanged++;
+          return {
+            ...r,
+            version: (prior?.observed_source_version ?? 0) + (differs ? 1 : 0),
+            write: differs,
+            stale,
+          };
+        });
+        const data = JSON.stringify(changes);
+        await tx.$executeRaw`INSERT INTO sync_source_identities(owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key,source_key_hash,last_observed_hash,observed_source_version,last_source_order) SELECT ${job.owner_user_id}::uuid,${job.provider},${job.external_account_id},${job.sync_type},scheme,key,hash,"payloadHash",version,"sourceOrder" FROM jsonb_to_recordset(${data}::jsonb) AS r(scheme text,key text,hash text,"payloadHash" text,version int,"sourceOrder" bigint,stale boolean) WHERE NOT stale ON CONFLICT(owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key_hash) DO UPDATE SET last_observed_hash=excluded.last_observed_hash,observed_source_version=excluded.observed_source_version,last_source_order=coalesce(excluded.last_source_order,sync_source_identities.last_source_order),updated_at=clock_timestamp() WHERE sync_source_identities.source_key=excluded.source_key`;
+        await tx.$executeRaw`INSERT INTO provider_source_records(source_identity_id,normalized_payload,payload_hash,source_version,processor_version) SELECT s.id,r.payload::jsonb,r."payloadHash",r.version,${processorVersion} FROM jsonb_to_recordset(${data}::jsonb) AS r(scheme text,hash text,payload text,"payloadHash" text,version int,stale boolean) JOIN sync_source_identities s ON s.source_key_scheme=r.scheme AND s.source_key_hash=r.hash AND s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider} AND s.external_account_id=${job.external_account_id} AND s.sync_type=${job.sync_type} WHERE NOT r.stale AND (s.last_resolved_hash IS DISTINCT FROM r."payloadHash" OR s.resolved_processor_version IS DISTINCT FROM ${processorVersion} OR EXISTS(SELECT 1 FROM provider_source_records p WHERE p.source_identity_id=s.id)) ON CONFLICT(source_identity_id) DO UPDATE SET normalized_payload=CASE WHEN provider_source_records.payload_hash IS DISTINCT FROM excluded.payload_hash THEN excluded.normalized_payload ELSE provider_source_records.normalized_payload END,payload_hash=excluded.payload_hash,source_version=excluded.source_version,processor_version=excluded.processor_version,processing_status=${O.PENDING},attempt_count=0,last_error_code=NULL,updated_at=clock_timestamp() WHERE provider_source_records.source_version<excluded.source_version OR provider_source_records.processor_version<excluded.processor_version`;
+        await tx.$executeRaw`UPDATE sync_job_items i SET source_version=p.source_version,processor_version=p.processor_version FROM provider_source_records p WHERE i.job_id=${job.id}::uuid AND i.source_identity_id=p.source_identity_id AND i.processing_outcome=${O.PENDING} AND (i.source_version<p.source_version OR i.processor_version<p.processor_version)`;
+        await tx.$executeRaw`INSERT INTO sync_job_items(job_id,source_identity_id,source_version,processor_version) SELECT ${job.id}::uuid,p.source_identity_id,p.source_version,p.processor_version FROM provider_source_records p JOIN sync_source_identities s ON s.id=p.source_identity_id JOIN jsonb_to_recordset(${data}::jsonb) AS r(scheme text,hash text,stale boolean) ON s.source_key_scheme=r.scheme AND s.source_key_hash=r.hash WHERE s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider} AND s.external_account_id=${job.external_account_id} AND s.sync_type=${job.sync_type} AND NOT r.stale AND p.processing_status IN ('PENDING','RETRYABLE_ERROR') ON CONFLICT DO NOTHING`;
+        await this.assertLease(tx, job);
+        await tx.$executeRaw`UPDATE sync_jobs SET next_page=${page.nextPage ?? job.next_page},next_cursor=${page.nextCursor ?? null},target_watermark=${page.watermark ?? job.target_watermark},processing_phase=${page.done ? P.APPLYING : P.FETCHING},fetched_count=fetched_count+${page.records.length},new_count=new_count+${added},changed_count=changed_count+${changed},unchanged_count=unchanged_count+${unchanged},attempt_count=0 WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+        await this.release(tx, job);
+      },
+      { timeout: 15000 },
+    );
+  }
+  async apply(job: SyncJob, processor: SyncDomainProcessor) {
+    return this.client.$transaction(
+      async (tx) => {
+        const current = await this.fence(tx, job);
+        if (current.processing_phase !== P.APPLYING)
+          throw new SyncError(E.SYNC_STALE);
+        const items = await tx.$queryRaw<
+          {
+            id: string;
+            source_identity_id: string;
+            source_version: number;
+            processor_version: number;
+            attempt_count: number;
+          }[]
+        >`SELECT i.* FROM sync_job_items i JOIN provider_source_records p ON p.source_identity_id=i.source_identity_id WHERE i.job_id=${job.id}::uuid AND i.processing_outcome IN ('PENDING','RETRYABLE_ERROR') AND (p.next_retry_at IS NULL OR p.next_retry_at<=clock_timestamp()) ORDER BY i.id LIMIT 100 FOR UPDATE OF i`;
+        for (const item of items) {
+          const sources = await tx.$queryRaw<
+            {
+              id: string;
+              normalized_payload: Record<string, unknown>;
+              source_version: number;
+              processor_version: number;
+              payload_hash: string;
+              customer_id: string | null;
+            }[]
+          >`SELECT s.id,p.normalized_payload,p.source_version,p.processor_version,p.payload_hash,s.customer_id FROM sync_source_identities s JOIN provider_source_records p ON p.source_identity_id=s.id WHERE s.id=${item.source_identity_id}::uuid FOR UPDATE OF s,p`;
+          const source = sources[0];
+          if (
+            !source ||
+            source.source_version !== item.source_version ||
+            source.processor_version !== item.processor_version ||
+            processor.version !== item.processor_version
+          )
+            throw new SyncError(E.SYNC_STALE);
+          let linked = false;
+          const input: SyncSource = {
+            id: source.id,
+            sourceVersion: source.source_version,
+            processorVersion: source.processor_version,
+            payload: source.normalized_payload,
+            customerId: source.customer_id,
+          };
+          const decision = await processor.apply(input, {
+            linkExistingCustomer: async (id) => {
+              const rows = await tx.$queryRaw<
+                { id: string }[]
+              >`SELECT id FROM customers WHERE id=${id}::uuid AND owner_user_id=${job.owner_user_id}::uuid FOR UPDATE`;
+              if (rows.length !== 1) throw new SyncError(E.SOURCE_CONFLICT);
+              await tx.$executeRaw`UPDATE sync_source_identities SET customer_id=${id}::uuid,link_origin=${SyncLinkOrigin.LINKED_EXISTING},last_applied_sync_job_id=${job.id}::uuid WHERE id=${source.id}::uuid`;
+              linked = true;
+            },
+          });
+          if (decision.outcome === O.RETRYABLE_ERROR) {
+            const delay = retryDelay(item.attempt_count, decision.retryAfterMs);
+            await tx.$executeRaw`UPDATE provider_source_records SET processing_status=${O.RETRYABLE_ERROR},next_retry_at=clock_timestamp()+${delay}*interval '1 millisecond',attempt_count=attempt_count+1,last_error_code=${E.INTERNAL_ERROR} WHERE source_identity_id=${source.id}::uuid`;
+            await tx.$executeRaw`UPDATE sync_job_items SET processing_outcome=${O.RETRYABLE_ERROR},attempt_count=attempt_count+1,last_error_code=${E.INTERNAL_ERROR} WHERE id=${item.id}::uuid`;
+            continue;
+          }
+          if (
+            ![O.APPLIED, O.REJECTED_SOURCE, O.NEEDS_REVIEW].some(
+              (o) => o === decision.outcome,
+            ) ||
+            (decision.outcome === O.APPLIED && !linked)
+          )
+            throw new SyncError(E.PROCESSOR_UNAVAILABLE);
+          const applied = decision.outcome === O.APPLIED;
+          await tx.$executeRaw`UPDATE provider_source_records SET processing_status=${decision.outcome},applied_version=CASE WHEN ${applied} THEN source_version ELSE applied_version END,resolved_version=source_version,applied_processor_version=CASE WHEN ${applied} THEN processor_version ELSE applied_processor_version END,last_error_code=${decision.code ?? null},processed_at=clock_timestamp(),attempt_count=attempt_count+1 WHERE source_identity_id=${source.id}::uuid AND source_version=${item.source_version} AND processor_version=${item.processor_version}`;
+          await tx.$executeRaw`UPDATE sync_source_identities SET last_resolved_hash=${source.payload_hash},resolved_processor_version=${processor.version},resolved_outcome=${decision.outcome} WHERE id=${source.id}::uuid`;
+          if (applied)
+            await tx.$executeRaw`UPDATE sync_source_identities SET last_applied_hash=${source.payload_hash},applied_processor_version=${processor.version},last_applied_sync_job_id=${job.id}::uuid WHERE id=${source.id}::uuid`;
+          await tx.$executeRaw`UPDATE sync_job_items SET processing_outcome=${decision.outcome},attempt_count=attempt_count+1,last_error_code=${decision.code ?? null},processed_at=clock_timestamp() WHERE id=${item.id}::uuid`;
+        }
+        await this.assertLease(tx, job);
+        const counts = await tx.$queryRaw<
+          { outcome: string; count: bigint }[]
+        >`SELECT processing_outcome AS outcome,count(*) AS count FROM sync_job_items WHERE job_id=${job.id}::uuid GROUP BY processing_outcome`;
+        const n = (outcome: string) =>
+          Number(counts.find((c) => c.outcome === outcome)?.count ?? 0);
+        await tx.$executeRaw`UPDATE sync_jobs SET applied_count=${n(O.APPLIED)},rejected_count=${n(O.REJECTED_SOURCE)},needs_review_count=${n(O.NEEDS_REVIEW)},attempt_count=0 WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+        const done = counts.every((c) =>
+          [O.APPLIED, O.REJECTED_SOURCE, O.NEEDS_REVIEW].some(
+            (o) => o === c.outcome,
+          ),
+        );
+        if (done) {
+          await tx.$executeRaw`UPDATE sync_configs SET last_success_at=clock_timestamp(),last_completed_at=clock_timestamp(),last_completed_watermark=${current.target_watermark},next_run_at=CASE WHEN enabled THEN clock_timestamp()+interval_minutes*interval '1 minute' ELSE NULL END,updated_at=clock_timestamp() WHERE carrier_connection_id=${job.carrier_connection_id}::uuid AND sync_type=${job.sync_type}`;
+          await tx.$executeRaw`UPDATE sync_jobs SET status=${J.SUCCEEDED},finished_at=clock_timestamp(),worker_id=NULL,lease_expires_at=NULL,updated_at=clock_timestamp() WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+        } else {
+          const failed = await tx.$queryRaw<
+            { id: string }[]
+          >`SELECT id FROM sync_job_items WHERE job_id=${job.id}::uuid AND processing_outcome=${O.RETRYABLE_ERROR} AND attempt_count>=${this.config.maxAttempts} LIMIT 1`;
+          if (failed.length) {
+            await tx.$executeRaw`UPDATE sync_jobs SET status=${J.FAILED},last_error_code=${E.INTERNAL_ERROR},finished_at=clock_timestamp(),worker_id=NULL,lease_expires_at=NULL WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+            await tx.$executeRaw`UPDATE sync_configs SET last_completed_at=clock_timestamp(),next_run_at=CASE WHEN enabled THEN clock_timestamp()+interval_minutes*interval '1 minute' ELSE NULL END WHERE carrier_connection_id=${job.carrier_connection_id}::uuid AND sync_type=${job.sync_type}`;
+          } else {
+            await this.release(tx, job);
+            await tx.$executeRaw`UPDATE sync_jobs SET available_at=coalesce((SELECT min(p.next_retry_at) FROM sync_job_items i JOIN provider_source_records p ON p.source_identity_id=i.source_identity_id WHERE i.job_id=${job.id}::uuid AND i.processing_outcome IN ('PENDING','RETRYABLE_ERROR')),clock_timestamp()) WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+          }
+        }
+        return done;
+      },
+      { timeout: 15000 },
+    );
+  }
+  async wait(job: SyncJob, code: SyncCode, retryAfterMs: number) {
+    try {
+      await this.client.$transaction(async (tx) => {
+        const current = await this.fence(tx, job);
+        const failed =
+          current.attempt_count + 1 >= this.config.maxAttempts ||
+          code === E.SOURCE_INVALID ||
+          code === E.SOURCE_CONFLICT ||
+          code === E.PROCESSOR_UNAVAILABLE;
+        await this.assertLease(tx, job);
+        await tx.$executeRaw`UPDATE sync_jobs SET status=${failed ? J.FAILED : J.WAITING},last_error_code=${code},attempt_count=attempt_count+1,available_at=clock_timestamp()+${retryAfterMs}*interval '1 millisecond',finished_at=CASE WHEN ${failed} THEN clock_timestamp() ELSE NULL END,worker_id=NULL,lease_expires_at=NULL,updated_at=clock_timestamp() WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+        if (failed)
+          await tx.$executeRaw`UPDATE sync_configs SET last_completed_at=clock_timestamp(),next_run_at=CASE WHEN enabled THEN clock_timestamp()+interval_minutes*interval '1 minute' ELSE NULL END WHERE carrier_connection_id=${job.carrier_connection_id}::uuid AND sync_type=${job.sync_type}`;
+      });
+    } catch (error) {
+      if (
+        error instanceof SyncError &&
+        (error.code === E.SYNC_STALE ||
+          error.code === E.UNAUTHORIZED ||
+          error.code === E.NOT_FOUND ||
+          error.code === E.SYNC_UNAVAILABLE)
+      )
+        return;
+      throw error;
+    }
+  }
+  async schedule() {
+    if (!this.config.enabled) return;
+    const due = await this.client.$queryRaw<
+      { user_id: string; id: string; sync_type: SyncType; provider: string }[]
+    >`SELECT c.user_id,c.id,s.sync_type,c.provider FROM sync_configs s JOIN carrier_connections c ON c.id=s.carrier_connection_id WHERE s.enabled AND s.next_run_at<=clock_timestamp() ORDER BY s.next_run_at LIMIT 100`;
+    for (const c of due) {
+      if (!this.available(c.provider, c.sync_type)) continue;
+      try {
+        await this.admit(c.user_id, c.id, c.sync_type, SyncTrigger.AUTO);
+      } catch (error) {
+        if (!(error instanceof SyncError)) throw error;
+      }
+    }
+  }
+  async cleanup() {
+    if (!this.config.retentionDays) return 0;
+    return this.client
+      .$executeRaw`DELETE FROM provider_source_records p WHERE p.id IN (SELECT id FROM provider_source_records WHERE processing_status IN ('APPLIED','REJECTED_SOURCE') AND processed_at<clock_timestamp()-${this.config.retentionDays}*interval '1 day' ORDER BY id LIMIT 500) AND NOT EXISTS(SELECT 1 FROM sync_job_items i JOIN sync_jobs j ON j.id=i.job_id WHERE i.source_identity_id=p.source_identity_id AND j.status IN ('QUEUED','RUNNING','WAITING'))`;
+  }
+  async close() {
+    await this.instance?.$disconnect();
+  }
+  async onApplicationShutdown() {
+    await this.close();
+  }
+}

@@ -28,7 +28,7 @@ export function tokenExpiry(token: string): Date | null {
 export class UnishipAdapter {
   constructor(
     private readonly client: UnishipHttpClient,
-    private readonly budget = new ProviderBudget(),
+    private readonly budget: Pick<ProviderBudget, "run"> = new ProviderBudget(),
   ) {}
   async acquire(username: string, password: string) {
     return this.budget.run(async () => {
