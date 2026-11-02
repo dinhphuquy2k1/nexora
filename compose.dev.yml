@@ -87,9 +87,9 @@ services:
       [
         sh,
         /workspace/scripts/sync-worker-entrypoint.sh,
-        sh,
-        -c,
-        "node --watch apps/api/dist/worker/main.js",
+        node,
+        --watch,
+        apps/api/dist/worker/main.js,
       ]
     volumes: *development-volumes
     depends_on:

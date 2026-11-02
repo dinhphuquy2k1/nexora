@@ -234,3 +234,16 @@ its operation would iterate no config items and could falsely confirm a no-op.
 A focused actual-component test is RED (blocked=false during unresolved first read).
 Require actual data both in the synchronous mutation guard and the Drawer blocked
 prop; keep GET-only retry available. No API/business/layout contract changes.
+
+### Development process isolation follow-up
+
+Foundation41548422898 atd6f867c failed DATABASE_RUNTIME_SMOKE before quality tests.
+Diagnostics show API's development process-tree termination throws spawn ps ENOENT;
+shared compiler output also restarts the dev worker while independence is probed.
+The generic failure did not identify its phase. Add closed phase diagnostics without
+raw Docker output/secrets, install procps only in the existing dev stage (concurrently
+uses ps for tree shutdown), and exec the worker watcher directly through its custody
+entrypoint. Make the heartbeat assertion await actual progress within a bounded
+window across file replacement instead of assuming a single2.2-second read cannot
+race a restart. Preserve real API readiness, privilege/custody and independence
+assertions; do not add retries/skips to the Foundation job or change production logic.
