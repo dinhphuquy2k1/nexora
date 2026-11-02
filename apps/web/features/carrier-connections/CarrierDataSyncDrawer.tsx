@@ -30,7 +30,19 @@ export function CarrierDataSyncDrawer({
   row,
   data,
   onClose,
+  onSync,
+  onSaveSchedule,
+  busy = false,
+  feedback,
+  onReload,
 }: {
+  onSync?: (type: string) => void;
+  onSaveSchedule?: (
+    draft: ReturnType<typeof initialSchedule>,
+  ) => Promise<unknown>;
+  busy?: boolean;
+  feedback?: string;
+  onReload?: () => void;
   row?: CarrierConnectionRow;
   data?: SyncPresentation;
   onClose: () => void;
@@ -73,7 +85,12 @@ export function CarrierDataSyncDrawer({
           >
             Hủy
           </Button>
-          <Button variant="emphasis" disabled title={UNAVAILABLE}>
+          <Button
+            variant="emphasis"
+            disabled={!onSaveSchedule || !dirty || busy}
+            onClick={() => onSaveSchedule?.(draft)}
+            title={!onSaveSchedule ? UNAVAILABLE : undefined}
+          >
             Lưu cấu hình
           </Button>
         </div>
@@ -113,6 +130,16 @@ export function CarrierDataSyncDrawer({
         onClose={requestClose}
         footer={footer}
       >
+        {feedback && (
+          <p role="status">
+            {feedback}{" "}
+            {onReload && (
+              <Button variant="secondary" onClick={onReload} disabled={busy}>
+                Tải lại
+              </Button>
+            )}
+          </p>
+        )}
         <div className={styles.syncTabs}>
           <TabBar
             items={[
@@ -163,6 +190,8 @@ export function CarrierDataSyncDrawer({
           {tab === "status" && (
             <SyncStatusPanel
               items={shown}
+              onSync={onSync}
+              busy={busy}
               expanded={expanded}
               hasData={!!data}
               onExpanded={() => setExpanded((v) => !v)}

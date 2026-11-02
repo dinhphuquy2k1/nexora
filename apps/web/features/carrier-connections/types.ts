@@ -68,6 +68,7 @@ export type SyncState =
   | "queued"
   | "idle";
 export interface SyncItem {
+  readonly available?: boolean;
   readonly id: string;
   readonly label: string;
   readonly state: SyncState;

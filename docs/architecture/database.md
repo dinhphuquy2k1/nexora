@@ -268,3 +268,29 @@ Addresses have customer FK ON DELETE CASCADE, nullable VARCHAR100 label, VARCHAR
 Provisioning adds only customers SELECT/INSERT/UPDATE, customer_addresses SELECT/INSERT/UPDATE/DELETE, USAGE on public.customer_code_seq and EXECUTE on public.next_customer_code(). No customer DELETE, broad sequence/default grant, DDL/elevation, migration-history access or broader audit/Carrier secret authority is added. Existing runtime custody/privileges remain. Actual PostgreSQL grants and Prisma generation/migrate/drift are separate verification gates; see [task027](../tasks/active/NEXORA-027-customer-management-backend.md).
 
 PR23 address-rule revision requires no physical migration or additional grants. The current partial unique index provides at-most-one default, not at-least-one address/default. Mandatory create and parent-locked deletion/default transactions enforce the minimum for valid API records. Historical zero/no-default profiles are not silently repaired on read. Owner-scoped Add Address and Set Default retain their approved behavior; no existing migration, data, sequence or default is automatically rewritten. A broken or missing physical index is not made valid by ordinary API operations.
+
+## Sync V1 schema — NEXORA-034
+
+Forward-only migration20261102000000_sync_v1 adds five main tables: sync_configs,
+sync_jobs, sync_job_items, sync_source_identities and provider_source_records.
+The sixth sync_provider_budget is technical two-slot acquisition coordination,
+not another business mapping/review table. Scalar VARCHAR/CHECK vocabulary, UUID
+FKs, a partial unique active lane and reference-only versioned items protect queue
+consistency. Source key hash uniqueness is always checked against bounded complete
+canonical keys; no per-job/page payload snapshots. Pending items coalesce to the
+current fetched version before APPLYING. Source identity keeps resolved metadata
+and mapping independently from payload retention. No Shipment FK is fabricated
+while the Shipment table does not exist. Nullable Customer FK is owner-checked.
+
+Disable cancels active jobs/disables schedules in the existing transaction. Hard
+connection delete stays hard delete: configs cascade, jobs detach through nullable
+connection FK after cancellation; identities remain owner/account scoped, with no
+domain cascade or cross-owner transfer. No automatic domain rollback exists.
+
+nexora_app gains explicit Sync-table permissions. A separately provisioned
+nexora_sync role has Sync-table permissions plus SELECT and narrow identity-column
+UPDATE authority needed for authorization row locks on users/epochs/connections/
+Customers. It has no session/credential/audit/DDL/admin or Customer-creation grants.
+Future domain writers require actual approved invariants and deliberate grants.
+Existing role provisioning lock/timeout/redaction and all historical migrations
+remain. The optional role argument is allowlisted, never caller SQL.

@@ -130,3 +130,19 @@ tracked/staged evidence policy checks and real disposable-index regression tests
 Quality reuses that dev image. Git is installed only after tools/deps: release
 API/Web/migrate images do not gain this development prerequisite. No new service,
 application dependency, source ownership or runtime credential behavior changes.
+
+## Sync V1 worker — NEXORA-034
+
+[ADR-010](../decisions/sync-worker-staging.md) adds one independent non-HTTP Nest
+context from the same API image. sync-worker depends on completed migrations and
+runtime grants, not API health; API never depends on worker. Non-root worker has
+only sync_credentials:/sync-config, no administrator/Identity key or published
+port. Public overlay attaches it only to backend. Development reuses initialized
+builds and pauses the worker with API/Web during quality rewrites. SIGTERM/SIGINT
+abort the current provider signal and await the batch before closing clients.
+Heartbeat is a private /tmp file, checked by Docker, not an HTTP endpoint.
+
+Source infrastructure is implemented separately from production provider/domain
+readiness. Both flags and actual handler capabilities must pass admission and
+execution. Missing data endpoint/domain contracts keep current live types
+unavailable even when flags are true. No fabricated successful job is created.

@@ -601,3 +601,21 @@ checks combine type/state/date, reset last-page selection and inspect the matchi
 entry. Existing Retail/shared TabBar geometry, Auth/MFA, no-network/storage/password
 and short-height/long-content assertions remain mandatory. Final-head hosted
 Foundation supplies genuine Docker/PostgreSQL integration/runtime evidence.
+
+## Sync V1 verification — NEXORA-034
+
+Native discovery includes apps/api/test/sync/\*_/_.test.cjs and
+apps/api/integration/sync-integration.test.cjs. The latter creates its own migrated
+UUID database and removes only that database. It covers20-way admission,10000→10005
+current sources with30 new items, cross-page version coalescing,99 existing Customer
+links/1 review, retry outcomes, rollback, lease fences, disable/delete, retention,
+processor version and separate provider-budget clients. These are synthetic provider
+and processor fixtures against real PG, not live synchronization or Shipment
+creation. Cluster-global role mutations remain restricted to the existing owned
+cluster launcher; ordinary tests must not mutate shared role passwords.
+
+The focused Sync workflow uses an ephemeral PostgreSQL Docker service and genuine
+Prisma/API prerequisite build. Public Prisma engine artifact retention14days supports
+offline toolchain verification; no credentials/data are uploaded. Foundation's
+canonical Docker quality, LOCAL/TTY/MFA/browser/HTTPS/data/dev smoke remains required.
+Passing unit/source checks never establishes actual runtime or provider readiness.

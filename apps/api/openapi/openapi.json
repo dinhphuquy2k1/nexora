@@ -1,6 +1,463 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/carrier-connections/{id}/sync-jobs": {
+      "post": {
+        "operationId": "SyncController_admit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSyncJobDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncJobResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sync"
+        ]
+      },
+      "get": {
+        "operationId": "SyncController_jobs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncJobsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sync"
+        ]
+      }
+    },
+    "/api/carrier-connections/{id}/sync-jobs/{jobId}": {
+      "get": {
+        "operationId": "SyncController_job",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncJobResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sync"
+        ]
+      }
+    },
+    "/api/carrier-connections/{id}/sync-configs": {
+      "get": {
+        "operationId": "SyncController_configs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncConfigsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sync"
+        ]
+      }
+    },
+    "/api/carrier-connections/{id}/sync-configs/{type}": {
+      "patch": {
+        "operationId": "SyncController_configure",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "SHIPMENT",
+                "CUSTOMER"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchSyncConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncConfigResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Sync"
+        ]
+      }
+    },
     "/api/customers": {
       "get": {
         "operationId": "CustomerController_list",
@@ -1784,6 +2241,255 @@
           "code",
           "message",
           "requestId"
+        ]
+      },
+      "CreateSyncJobDto": {
+        "type": "object",
+        "properties": {
+          "syncType": {
+            "type": "string",
+            "enum": [
+              "SHIPMENT",
+              "CUSTOMER"
+            ]
+          }
+        },
+        "required": [
+          "syncType"
+        ]
+      },
+      "SyncJobDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "syncType": {
+            "type": "string",
+            "enum": [
+              "SHIPMENT",
+              "CUSTOMER"
+            ]
+          },
+          "triggerSource": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "AUTO"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "WAITING",
+              "SUCCEEDED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "FETCHING",
+              "APPLYING"
+            ]
+          },
+          "fetchedCount": {
+            "type": "integer"
+          },
+          "newCount": {
+            "type": "integer"
+          },
+          "changedCount": {
+            "type": "integer"
+          },
+          "unchangedCount": {
+            "type": "integer"
+          },
+          "appliedCount": {
+            "type": "integer"
+          },
+          "rejectedCount": {
+            "type": "integer"
+          },
+          "needsReviewCount": {
+            "type": "integer"
+          },
+          "startedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "syncType",
+          "triggerSource",
+          "status",
+          "phase",
+          "fetchedCount",
+          "newCount",
+          "changedCount",
+          "unchangedCount",
+          "appliedCount",
+          "rejectedCount",
+          "needsReviewCount",
+          "startedAt",
+          "finishedAt",
+          "createdAt",
+          "errorCode"
+        ]
+      },
+      "SyncJobResponseDto": {
+        "type": "object",
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/SyncJobDto"
+          }
+        },
+        "required": [
+          "job"
+        ]
+      },
+      "SyncJobsResponseDto": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncJobDto"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "jobs",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "SyncConfigDto": {
+        "type": "object",
+        "properties": {
+          "syncType": {
+            "type": "string",
+            "enum": [
+              "SHIPMENT",
+              "CUSTOMER"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "intervalMinutes": {
+            "type": "integer",
+            "enum": [
+              15,
+              30,
+              60,
+              120,
+              240
+            ]
+          },
+          "nextRunAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastSuccessAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastCompletedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "syncType",
+          "enabled",
+          "available",
+          "intervalMinutes",
+          "nextRunAt",
+          "lastSuccessAt",
+          "lastCompletedAt"
+        ]
+      },
+      "SyncConfigsResponseDto": {
+        "type": "object",
+        "properties": {
+          "configs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncConfigDto"
+            }
+          }
+        },
+        "required": [
+          "configs"
+        ]
+      },
+      "PatchSyncConfigDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "intervalMinutes": {
+            "type": "integer",
+            "enum": [
+              15,
+              30,
+              60,
+              120,
+              240
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "intervalMinutes"
+        ]
+      },
+      "SyncConfigResponseDto": {
+        "type": "object",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/SyncConfigDto"
+          }
+        },
+        "required": [
+          "config"
         ]
       },
       "CustomerStatsDto": {

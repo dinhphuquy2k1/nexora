@@ -161,3 +161,22 @@ Customer error translation lives in `customer/application/customer-error.ts`: on
 customer.presenter.ts is the single Presentation label composition point called by List/Create/Get/Patch controller handlers. It allowlists the existing safe Customer projection, derives required statusLabel and preserves ordered addresses/date/null serialization. Application/port/adapter return types do not gain labels. DTO/OpenAPI/SDK document the approved additive field.
 
 Profile PATCH previously selected all children for Aggregate hydration then again for response. V1 profile transition has no child dependency; changeCustomerProfile validates persisted status and strict normalized patch for both Aggregate and narrow adapter path. After existing actor→owner-scoped Customer locks, the adapter selects status only, calls Domain policy, applies scoped updateMany and returns ordered Detail in the same transaction. Children are loaded only for that response; zero/no-default legacy state is untouched. Other mutations retain locked full hydration. No fake partial Aggregate, owner predicate removal, new lock protocol, full-child save or list N+1. Actual query/concurrency evidence remains mandatory; a source query-shape reduction is not a latency benchmark.
+
+## Sync supporting capability — NEXORA-034
+
+Sync Application ports orchestrate admission/config/query and page/processing work;
+Infrastructure alone imports Prisma. Pure policies own closed codes, source key,
+canonical payload and retry bounds. This supporting queue capability intentionally
+has no fake Shipment aggregate or generic Unit of Work. Existing business domains
+retain their own aggregate invariants. Sync's Domain Session can link an existing
+owner-scoped Customer under the batch transaction; no production create/update
+handler or phone matching is invented without a provider command contract.
+
+SKIP LOCKED claim commits before authorization locks. Batch writes use ACTIVE
+user→epoch→owned connection→job, captured generation/lifecycle and current
+lease/version/expiry. Provider HTTP stays outside transactions. Source/staging/
+manifest/checkpoint commit atomically; APPLYING resolves exact versions with
+mapping/outcome in the same fenced transaction. Typed retryable record outcomes
+retain a next retry, while unexpected transaction/programming faults retry/fail
+the job rather than rejecting source data. A durable review/rejection can finish a
+job with warnings; unresolved retries cannot advance the watermark.

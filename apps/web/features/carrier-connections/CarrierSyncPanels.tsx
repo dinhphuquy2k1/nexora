@@ -94,7 +94,11 @@ export function SyncStatusPanel({
   hasData,
   onExpanded,
   onInspect,
+  onSync,
+  busy = false,
 }: {
+  onSync?: (type: string) => void;
+  busy?: boolean;
   items: readonly SyncItem[];
   expanded: boolean;
   hasData: boolean;
@@ -211,7 +215,12 @@ export function SyncStatusPanel({
                   </>
                 )}
                 {!["running", "waiting", "failed"].includes(item.state) && (
-                  <Button variant="secondary" disabled title={UNAVAILABLE}>
+                  <Button
+                    variant="secondary"
+                    disabled={!item.available || !onSync || busy}
+                    onClick={() => onSync?.(item.id)}
+                    title={!item.available ? UNAVAILABLE : undefined}
+                  >
                     <RefreshCw size={12} />
                     Đồng bộ ngay
                   </Button>

@@ -374,3 +374,13 @@ and reports invalid history data even without an active range. Ranges retain the
 Vietnamese UTC+07 day, inclusive00:00:00 through23:59:59.999. Type/state/range filters
 combine without changing source records; filters reset paging and derived pages
 clamp to current results. This is frontend normalization, not an API/SDK contract.
+
+## Sync V1 transport integration — NEXORA-034
+
+The Carrier route reads real connection metadata and reuses the existing Drawer,
+three tabs, Inspection and shared controls. Generated SDK calls provide Sync config
+availability and job counters/history. AbortController/generation guards isolate
+connection reads; mutations have a synchronous single-flight gate, and confirmed
+write completion is separate from read reconciliation. Unsupported types remain
+unavailable; no mock production jobs or new page/design/token changes. Historical
+UI-only fixtures remain explicitly injected and never invoke live SDK operations.
