@@ -36,13 +36,37 @@ export class SyncJobDto {
 export class SyncJobResponseDto {
   @ApiProperty({ type: SyncJobDto }) job!: SyncJobDto;
 }
+export class SyncJobSummaryDto {
+  @ApiProperty({ type: "integer" }) total!: number;
+  @ApiProperty({ type: "integer" }) completed!: number;
+  @ApiProperty({ type: "integer" }) running!: number;
+  @ApiProperty({ type: "integer" }) failed!: number;
+}
+export class SyncIssueDto {
+  @ApiProperty({ format: "uuid" }) id!: string;
+  @ApiProperty({ format: "uuid" }) sourceId!: string;
+  @ApiProperty({ type: "integer" }) sourceVersion!: number;
+  @ApiProperty({ type: "integer" }) processorVersion!: number;
+  @ApiProperty({ enum: ["NEEDS_REVIEW", "REJECTED_SOURCE", "RETRYABLE_ERROR"] })
+  outcome!: string;
+  @ApiProperty({ type: String, nullable: true }) errorCode!: string | null;
+}
+export class SyncJobDetailResponseDto extends SyncJobResponseDto {
+  @ApiProperty({ type: [SyncIssueDto] }) issues!: SyncIssueDto[];
+  @ApiProperty({ type: "integer" }) issueTotal!: number;
+}
 export class SyncJobsResponseDto {
+  @ApiProperty({ type: SyncJobSummaryDto }) summary!: SyncJobSummaryDto;
+  @ApiProperty({ isArray: true, enum: Object.values(SyncType) })
+  types!: string[];
   @ApiProperty({ type: [SyncJobDto] }) jobs!: SyncJobDto[];
   @ApiProperty({ type: "integer" }) total!: number;
   @ApiProperty({ type: "integer" }) page!: number;
   @ApiProperty({ type: "integer" }) pageSize!: number;
 }
 export class SyncConfigDto {
+  @ApiProperty({ type: SyncJobDto, nullable: true })
+  latestJob!: SyncJobDto | null;
   @ApiProperty({ enum: Object.values(SyncType) }) syncType!: string;
   @ApiProperty() enabled!: boolean;
   @ApiProperty() available!: boolean;

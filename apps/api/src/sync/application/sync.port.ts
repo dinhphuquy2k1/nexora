@@ -68,6 +68,26 @@ export interface SyncProvider {
   supports(provider: string, type: SyncType): boolean;
   fetch(job: SyncJob, signal: AbortSignal): Promise<SyncPage>;
 }
+export interface SyncJobFilters {
+  type?: SyncType;
+  statuses?: string[];
+  from?: Date;
+  until?: Date;
+}
+export interface SyncJobSummary {
+  total: number;
+  completed: number;
+  running: number;
+  failed: number;
+}
+export interface SyncIssue {
+  id: string;
+  source_identity_id: string;
+  source_version: number;
+  processor_version: number;
+  processing_outcome: string;
+  last_error_code: string | null;
+}
 export abstract class SyncPort {
   abstract admit(
     userId: string,
@@ -80,12 +100,25 @@ export abstract class SyncPort {
     connectionId: string,
     page: number,
     pageSize: number,
-  ): Promise<{ jobs: SyncJob[]; total: number }>;
+    filters?: SyncJobFilters,
+  ): Promise<{
+    jobs: SyncJob[];
+    total: number;
+    summary: SyncJobSummary;
+    types: SyncType[];
+  }>;
   abstract job(
     userId: string,
     connectionId: string,
     id: string,
   ): Promise<SyncJob>;
+  abstract issues(
+    userId: string,
+    connectionId: string,
+    jobId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<{ issues: SyncIssue[]; total: number }>;
   abstract configs(
     userId: string,
     connectionId: string,
@@ -99,6 +132,7 @@ export abstract class SyncPort {
   ): Promise<SyncSchedule>;
 }
 export interface SyncSchedule {
+  latest_job?: SyncJob | null;
   sync_type: SyncType;
   enabled: boolean;
   interval_minutes: number;

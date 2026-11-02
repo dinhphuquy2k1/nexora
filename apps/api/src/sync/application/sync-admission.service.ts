@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { SyncJobStatus } from "../domain/sync.constants";
+import type { SyncJobFilters } from "./sync.port";
 import { parsePagination } from "@nexora/shared";
 import { HttpException } from "@nestjs/common";
 import { isUuid } from "../../common/validation/uuid";
@@ -74,9 +77,45 @@ export class SyncService {
   }
   jobs(userId: string, id: string, query: Record<string, unknown>) {
     return this.run(userId, id, async () => {
-      const { page, pageSize } = syncPagination(query);
+      const allowed = [
+        "page",
+        "pageSize",
+        "syncType",
+        "status",
+        "from",
+        "until",
+      ];
+      if (Object.keys(query).some((k) => !allowed.includes(k)))
+        throw new SyncError(E.VALIDATION_ERROR);
+      const { page, pageSize } = syncPagination({
+        page: query.page,
+        pageSize: query.pageSize,
+      });
+      const filters: SyncJobFilters = {};
+      if (query.syncType !== undefined) filters.type = syncType(query.syncType);
+      if (query.status !== undefined) {
+        if (typeof query.status !== "string")
+          throw new SyncError(E.VALIDATION_ERROR);
+        filters.statuses = query.status.split(",");
+        if (
+          !filters.statuses.length ||
+          filters.statuses.some(
+            (v) => !Object.values(SyncJobStatus).some((s) => s === v),
+          )
+        )
+          throw new SyncError(E.VALIDATION_ERROR);
+      }
+      for (const key of ["from", "until"] as const) {
+        if (query[key] !== undefined) {
+          const result = z.iso.datetime({ offset: true }).safeParse(query[key]);
+          if (!result.success) throw new SyncError(E.VALIDATION_ERROR);
+          filters[key] = new Date(result.data);
+        }
+      }
+      if (filters.from && filters.until && filters.from > filters.until)
+        throw new SyncError(E.VALIDATION_ERROR);
       return {
-        ...(await this.port.jobs(userId, id, page, pageSize)),
+        ...(await this.port.jobs(userId, id, page, pageSize, filters)),
         page,
         pageSize,
       };
@@ -86,6 +125,18 @@ export class SyncService {
     return this.run(userId, id, () => {
       if (!isUuid(jobId)) throw new SyncError(E.VALIDATION_ERROR);
       return this.port.job(userId, id, jobId);
+    });
+  }
+  issues(
+    userId: string,
+    id: string,
+    jobId: string,
+    query: Record<string, unknown>,
+  ) {
+    return this.run(userId, id, () => {
+      if (!isUuid(jobId)) throw new SyncError(E.VALIDATION_ERROR);
+      const { page, pageSize } = syncPagination(query);
+      return this.port.issues(userId, id, jobId, page, pageSize);
     });
   }
   configs(userId: string, id: string) {

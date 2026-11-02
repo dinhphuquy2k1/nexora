@@ -9,7 +9,7 @@ export class PostgresProviderBudget {
     private readonly url: string,
     private readonly provider = CarrierProvider.UNISHIP,
   ) {}
-  private get db() {
+  private get db(): PrismaClient {
     return (this.instance ??= createDatabase(this.url));
   }
   async run<T>(operation: () => Promise<T>): Promise<T> {

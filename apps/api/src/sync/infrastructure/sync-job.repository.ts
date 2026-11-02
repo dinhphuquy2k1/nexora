@@ -31,6 +31,9 @@ import type {
   SyncProvider,
   SyncSchedule,
   SyncSource,
+  SyncJobFilters,
+  SyncIssue,
+  SyncJobSummary,
 } from "../application/sync.port";
 type Tx = Prisma.TransactionClient;
 type Connection = {
@@ -50,7 +53,7 @@ export class SyncRepository implements SyncQueue {
     private readonly provider: SyncProvider,
     private readonly processor: SyncDomainProcessor,
   ) {}
-  get client() {
+  get client(): PrismaClient {
     return (this.instance ??= createDatabase(this.url));
   }
   available(provider: string, type: SyncType) {
@@ -142,16 +145,69 @@ export class SyncRepository implements SyncQueue {
       return active[0];
     });
   }
-  async jobs(userId: string, id: string, page: number, pageSize: number) {
+  async jobs(
+    userId: string,
+    id: string,
+    page: number,
+    pageSize: number,
+    filters: SyncJobFilters = {},
+  ) {
     return this.client.$transaction(async (tx) => {
       await this.connection(tx, userId, id);
+      const type = filters.type ?? null,
+        statuses = filters.statuses ?? [],
+        from = filters.from ?? null,
+        until = filters.until ?? null;
       const counts = await tx.$queryRaw<
         { total: bigint }[]
-      >`SELECT count(*) AS total FROM sync_jobs WHERE owner_user_id=${userId}::uuid AND carrier_connection_id=${id}::uuid`;
+      >`SELECT count(*) AS total FROM sync_jobs WHERE owner_user_id=${userId}::uuid AND carrier_connection_id=${id}::uuid AND (${type}::text IS NULL OR sync_type=${type}) AND (cardinality(${statuses}::text[])=0 OR status=ANY(${statuses}::text[])) AND (${from}::timestamptz IS NULL OR coalesce(started_at,created_at)>=${from}) AND (${until}::timestamptz IS NULL OR coalesce(started_at,created_at)<=${until})`;
       const jobs = await tx.$queryRaw<
         SyncJob[]
-      >`SELECT * FROM sync_jobs WHERE owner_user_id=${userId}::uuid AND carrier_connection_id=${id}::uuid ORDER BY created_at DESC,id DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
-      return { jobs, total: Number(counts[0].total) };
+      >`SELECT * FROM sync_jobs WHERE owner_user_id=${userId}::uuid AND carrier_connection_id=${id}::uuid AND (${type}::text IS NULL OR sync_type=${type}) AND (cardinality(${statuses}::text[])=0 OR status=ANY(${statuses}::text[])) AND (${from}::timestamptz IS NULL OR coalesce(started_at,created_at)>=${from}) AND (${until}::timestamptz IS NULL OR coalesce(started_at,created_at)<=${until}) ORDER BY created_at DESC,id DESC LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
+      const totals = await tx.$queryRaw<
+        { status: string; sync_type: SyncType; n: bigint }[]
+      >`SELECT status,sync_type,count(*) AS n FROM sync_jobs WHERE owner_user_id=${userId}::uuid AND carrier_connection_id=${id}::uuid GROUP BY status,sync_type`;
+      const summary: SyncJobSummary = {
+        total: 0,
+        completed: 0,
+        running: 0,
+        failed: 0,
+      };
+      for (const r of totals) {
+        summary.total += Number(r.n);
+        if (r.status === J.SUCCEEDED) summary.completed += Number(r.n);
+        else if (r.status === J.FAILED || r.status === J.CANCELLED)
+          summary.failed += Number(r.n);
+        else summary.running += Number(r.n);
+      }
+      return {
+        jobs,
+        total: Number(counts[0].total),
+        summary,
+        types: [...new Set(totals.map((r) => r.sync_type))],
+      };
+    });
+  }
+  async issues(
+    userId: string,
+    id: string,
+    jobId: string,
+    page: number,
+    pageSize: number,
+  ) {
+    return this.client.$transaction(async (tx) => {
+      await this.connection(tx, userId, id);
+      const jobs = await tx.$queryRaw<
+        { id: string }[]
+      >`SELECT id FROM sync_jobs WHERE id=${jobId}::uuid AND carrier_connection_id=${id}::uuid AND owner_user_id=${userId}::uuid`;
+      if (!jobs[0]) throw new SyncError(E.NOT_FOUND);
+      const counts = await tx.$queryRaw<
+        { total: bigint }[]
+      >`SELECT count(*) AS total FROM sync_job_items WHERE job_id=${jobId}::uuid AND processing_outcome IN ('NEEDS_REVIEW','REJECTED_SOURCE','RETRYABLE_ERROR')`;
+      const issues = await tx.$queryRaw<
+        SyncIssue[]
+      >`SELECT id,source_identity_id,source_version,processor_version,processing_outcome,last_error_code FROM sync_job_items WHERE job_id=${jobId}::uuid AND processing_outcome IN ('NEEDS_REVIEW','REJECTED_SOURCE','RETRYABLE_ERROR') ORDER BY id LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
+      return { issues, total: Number(counts[0].total) };
     });
   }
   async job(userId: string, id: string, jobId: string) {
@@ -170,7 +226,11 @@ export class SyncRepository implements SyncQueue {
       const rows = await tx.$queryRaw<
         SyncSchedule[]
       >`SELECT * FROM sync_configs WHERE carrier_connection_id=${id}::uuid`;
+      const latest = await tx.$queryRaw<
+        SyncJob[]
+      >`SELECT DISTINCT ON (sync_type) * FROM sync_jobs WHERE carrier_connection_id=${id}::uuid AND owner_user_id=${userId}::uuid ORDER BY sync_type,created_at DESC,id DESC`;
       return Object.values(SyncType).map((type) => ({
+        latest_job: latest.find((j) => j.sync_type === type) ?? null,
         ...{
           sync_type: type,
           enabled: false,

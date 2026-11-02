@@ -20,6 +20,7 @@ import {
   CreateSyncJobDto,
   PatchSyncConfigDto,
   SyncJobResponseDto,
+  SyncJobDetailResponseDto,
   SyncJobsResponseDto,
   SyncConfigsResponseDto,
   SyncConfigResponseDto,
@@ -43,6 +44,7 @@ const job = (r: SyncJob) => ({
   errorCode: r.last_error_code,
 });
 const schedule = (r: SyncSchedule) => ({
+  latestJob: r.latest_job ? job(r.latest_job) : null,
   syncType: r.sync_type,
   enabled: r.enabled,
   available: r.available,
@@ -73,6 +75,29 @@ export class SyncController {
     return { job: job(await this.service.admit(r.user.id, id, body)) };
   }
   @Get("sync-jobs")
+  @ApiQuery({
+    name: "syncType",
+    required: false,
+    enum: ["SHIPMENT", "CUSTOMER"],
+  })
+  @ApiQuery({
+    name: "status",
+    required: false,
+    type: String,
+    description: "Comma-separated job status codes",
+  })
+  @ApiQuery({
+    name: "from",
+    required: false,
+    type: String,
+    format: "date-time",
+  })
+  @ApiQuery({
+    name: "until",
+    required: false,
+    type: String,
+    format: "date-time",
+  })
   @Header("Cache-Control", "no-store")
   @ApiResponse({ status: 200, type: SyncJobsResponseDto })
   @ApiQuery({ name: "page", required: false, type: "integer", minimum: 1 })
@@ -93,13 +118,37 @@ export class SyncController {
   }
   @Get("sync-jobs/:jobId")
   @Header("Cache-Control", "no-store")
-  @ApiResponse({ status: 200, type: SyncJobResponseDto })
+  @ApiResponse({ status: 200, type: SyncJobDetailResponseDto })
+  @ApiQuery({ name: "page", required: false, type: "integer", minimum: 1 })
+  @ApiQuery({
+    name: "pageSize",
+    required: false,
+    type: "integer",
+    minimum: 1,
+    maximum: 100,
+  })
   async job(
     @Req() r: AuthRequest,
     @Param("id") id: string,
     @Param("jobId") jobId: string,
+    @Query() query: Record<string, unknown>,
   ) {
-    return { job: job(await this.service.job(r.user.id, id, jobId)) };
+    const [row, issues] = await Promise.all([
+      this.service.job(r.user.id, id, jobId),
+      this.service.issues(r.user.id, id, jobId, query),
+    ]);
+    return {
+      job: job(row),
+      issueTotal: issues.total,
+      issues: issues.issues.map((i) => ({
+        id: i.id,
+        sourceId: i.source_identity_id,
+        sourceVersion: i.source_version,
+        processorVersion: i.processor_version,
+        outcome: i.processing_outcome,
+        errorCode: i.last_error_code,
+      })),
+    };
   }
   @Get("sync-configs")
   @Header("Cache-Control", "no-store")
