@@ -1,6 +1,6 @@
 # NEXORA-034 — Sync Worker and Staging V1
 
-Status: IN PROGRESS
+Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
 Verification: PARTIALLY VERIFIED
 
@@ -74,6 +74,11 @@ Run pnpm docs:check, pnpm preflight:check and pnpm format:check.
 | Local canonical quality attempt before commit              | pnpm quality: format/lint/preflight/docs/typecheck/tests executed; contracts regeneration reproducible but gate rejects uncommitted generated files; rerun required after commit                                             | 2026-11-03 | FAIL   |
 | Old remote head Foundation                                 | Run41470963835 at4e08bc1: lint failed; later runtime steps skipped. Findings fixed locally, not evidence for a new head                                                                                                      | 2026-11-03 | FAIL   |
 | Old remote targeted PostgreSQL                             | Run41470963851 at4e08bc1: actual generated build,2policy tests and11PG tests passed; final head must be checked separately                                                                                                   | 2026-11-03 | PASS   |
+| Full local quality after committed contracts               | API_INTERNAL_URL=http://127.0.0.1:4000 NEXT_TELEMETRY_DISABLED=1 pnpm quality at5a3cc013; format/lint/governance/docs/typecheck,129root/178API/217Web/32UI/6database tests, reproducible contracts and build                 | 2026-11-03 | PASS   |
+| Live Sync component browser behavior                       | Disposable compiled actual TSX/CSS/SDK with isolated synthetic HTTP server and Chromium CDP: partial schedule readback/Cancel, mutation401 denial,360/768/1440 viewport overflow checks; not real Provider integration       | 2026-11-03 | PASS   |
+| Legacy upgrade harness before adding Sync step             | Owned PG test/migration.mjs failed REPEAT_AND_DRIFT because staged fixture omitted new migration; fresh full deploy/diff already passed                                                                                      | 2026-11-03 | FAIL   |
+| Additive legacy migration preservation and drift           | Genuine Prisma deploy/diff plus packages/database/test/migration.mjs in owned PostgreSQL; old rows preserved, empty Sync tables, partial unique lane, repeated deploy and final drift                                        | 2026-11-03 | PASS   |
+| Current implementation hosted targeted verification        | Run41542685993 bound to5a3cc013, checkout57f2ae2 merge with baseline156a324; genuine generated build,6unit/18PG PASS with0skip                                                                                               | 2026-11-03 | PASS   |
 
 ## Blockers and limitations
 
@@ -176,3 +181,12 @@ Sync retry honors valid finite Retry-After without shortening a provider deadlin
 non-finite metadata falls back to bounded exponential retry. Existing Carrier auth
 client/local budget policy is unchanged. Runtime schema assertion now expects all11
 migrations, including this additive Sync migration; no assertion was removed.
+
+### Forward migration verification clarification
+
+Owned PostgreSQL fresh deploy and schema diff PASS, but the existing staged legacy
+upgrade harness FAIL at REPEAT_AND_DRIFT: its explicit migration-copy sequence ends
+at Customers, so its final database omits Sync while comparing the current schema.
+Extend that sequence with this migration, preserving every existing assertion, and
+assert old rows unchanged plus empty Sync tables/partial lane uniqueness. This is
+verification maintenance for the additive migration, not rewriting history.

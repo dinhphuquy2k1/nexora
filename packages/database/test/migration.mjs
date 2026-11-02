@@ -604,6 +604,46 @@ try {
   );
   assert.match(partial.indexdef, /UNIQUE.*WHERE.*is_default/);
 
+  step = "SYNC_FORWARD_PRESERVATION";
+  const syncBaselineTables = [
+    ...customerBaselineTables,
+    "customers",
+    "customer_addresses",
+  ];
+  const syncBaseline = {};
+  for (const table of syncBaselineTables)
+    syncBaseline[table] = await db.$queryRawUnsafe(
+      `SELECT * FROM ${table} ORDER BY 1`,
+    );
+  const syncMigration = "20261102000000_sync_v1";
+  await cp(
+    resolve("prisma/migrations", syncMigration),
+    join(work, "prisma/migrations", syncMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  for (const table of syncBaselineTables)
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`),
+      syncBaseline[table],
+    );
+  for (const table of [
+    "sync_configs",
+    "sync_jobs",
+    "sync_job_items",
+    "sync_source_identities",
+    "provider_source_records",
+  ])
+    assert.equal(
+      (await db.$queryRawUnsafe(`SELECT count(*)::int AS n FROM ${table}`))[0]
+        .n,
+      0,
+    );
+  const [lane] = await db.$queryRawUnsafe(
+    "SELECT indexdef FROM pg_indexes WHERE indexname='uq_sync_jobs_active'",
+  );
+  assert.match(lane.indexdef, /UNIQUE.*WHERE/);
+
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },
