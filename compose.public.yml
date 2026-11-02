@@ -1,5 +1,7 @@
 # Owner-approved Nginx/Certbot topology. Use with compose.yml, never compose.dev.yml.
 services:
+  sync-worker:
+    networks: [backend]
   postgres:
     networks: [backend]
   migrate:

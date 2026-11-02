@@ -1,5 +1,6 @@
 x-development-volumes: &development-volumes
   - .:/workspace
+  - sync_credentials:/sync-config:ro
   - root_deps:/workspace/node_modules
   - pnpm_store:/pnpm/store
   - web_cache:/workspace/apps/web/.next
@@ -75,6 +76,22 @@ services:
       WATCHPACK_POLLING: "true"
       TSC_WATCHFILE: "PriorityPollingInterval"
       TSC_WATCHDIRECTORY: "FixedPollingInterval"
+    volumes: *development-volumes
+    depends_on:
+      dependencies: { condition: service_completed_successfully }
+  sync-worker:
+    build: !reset null
+    image: nexora-dev:0.1.0
+    user: "0:0"
+    entrypoint: [sh, /workspace/scripts/dev-entrypoint.sh]
+    command:
+      [
+        sh,
+        /workspace/scripts/sync-worker-entrypoint.sh,
+        sh,
+        -c,
+        "node --watch apps/api/dist/worker/main.js",
+      ]
     volumes: *development-volumes
     depends_on:
       dependencies: { condition: service_completed_successfully }

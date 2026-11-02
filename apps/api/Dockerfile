@@ -30,6 +30,7 @@ CMD ["node", "node_modules/prisma/build/cli.js", "migrate", "deploy", "--schema"
 
 FROM node:24.19.0-bookworm-slim AS api-runtime
 COPY --chmod=755 scripts/api-entrypoint.sh /scripts/api-entrypoint.sh
+COPY --chmod=755 scripts/sync-worker-entrypoint.sh /scripts/sync-worker-entrypoint.sh
 WORKDIR /app
 ENV NODE_ENV=production STORAGE_ROOT=/data/uploads
 COPY --from=api-artifacts --chown=node:node /output /app

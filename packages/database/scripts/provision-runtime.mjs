@@ -2,7 +2,25 @@ import { Client } from "pg";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 export const RUNTIME_ROLE = "nexora_app";
+export const SYNC_GRANTS = {
+  sync_configs: ["SELECT", "INSERT", "UPDATE"],
+  sync_jobs: ["SELECT", "INSERT", "UPDATE"],
+  sync_job_items: ["SELECT", "INSERT", "UPDATE"],
+  sync_source_identities: ["SELECT", "INSERT", "UPDATE"],
+  provider_source_records: ["SELECT", "INSERT", "UPDATE", "DELETE"],
+  sync_provider_budget: ["SELECT", "INSERT", "UPDATE"],
+  users: ["SELECT"],
+  carrier_user_states: ["SELECT"],
+  carrier_connections: ["SELECT"],
+  customers: ["SELECT"],
+};
 export const RUNTIME_GRANTS = {
+  sync_configs: ["SELECT", "INSERT", "UPDATE"],
+  sync_jobs: ["SELECT", "INSERT", "UPDATE"],
+  sync_job_items: ["SELECT", "INSERT", "UPDATE"],
+  sync_source_identities: ["SELECT", "INSERT", "UPDATE"],
+  provider_source_records: ["SELECT", "INSERT", "UPDATE", "DELETE"],
+  sync_provider_budget: ["SELECT", "INSERT", "UPDATE"],
   customers: ["SELECT", "INSERT", "UPDATE"],
   customer_addresses: ["SELECT", "INSERT", "UPDATE", "DELETE"],
   users: ["SELECT", "INSERT", "UPDATE"],
@@ -18,9 +36,9 @@ export const RUNTIME_GRANTS = {
   stored_files: ["SELECT", "INSERT"],
 };
 const identifier = (value) => '"' + value.replaceAll('"', '""') + '"';
-export function runtimeUrl(adminUrl, password) {
+export function runtimeUrl(adminUrl, password, role = RUNTIME_ROLE) {
   const url = new URL(adminUrl);
-  url.username = RUNTIME_ROLE;
+  url.username = role;
   url.password = password;
   return url.toString();
 }
@@ -79,6 +97,10 @@ function sanitizeError(err, secrets) {
 }
 /** Trusted one-shot provisioning only. Never imported into API runtime. */
 export async function provisionRuntime(adminUrl, password, options = {}) {
+  const role = options.role ?? RUNTIME_ROLE;
+  if (![RUNTIME_ROLE, "nexora_sync"].includes(role))
+    throw Error("INVALID_RUNTIME_ROLE");
+  const selectedGrants = role === RUNTIME_ROLE ? RUNTIME_GRANTS : SYNC_GRANTS;
   if (!/^[a-f0-9]{64}$/.test(password)) throw Error("INVALID_RUNTIME_SECRET");
   const lockTimeout = validateTimeout(options.lockTimeout, 60000, "10s");
   const statementTimeout = validateTimeout(
@@ -117,14 +139,12 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
       );
       await db.query("LOCK TABLE pg_authid IN EXCLUSIVE MODE");
       const existing = (
-        await db.query("SELECT * FROM pg_roles WHERE rolname=$1", [
-          RUNTIME_ROLE,
-        ])
+        await db.query("SELECT * FROM pg_roles WHERE rolname=$1", [role])
       ).rows[0];
       if (existing && !restricted(existing)) throw Error("UNSAFE_RUNTIME_ROLE");
       if (!existing)
         await db.query(
-          "CREATE ROLE nexora_app LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS",
+          `CREATE ROLE ${role} LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS`,
         );
       const unsafe = await db.query(
         `SELECT EXISTS(SELECT 1 FROM pg_auth_members WHERE member=(SELECT oid FROM pg_roles WHERE rolname=$1))
@@ -132,23 +152,23 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
         OR EXISTS(SELECT 1 FROM pg_namespace WHERE nspowner=(SELECT oid FROM pg_roles WHERE rolname=$1))
         OR EXISTS(SELECT 1 FROM pg_class WHERE relowner=(SELECT oid FROM pg_roles WHERE rolname=$1))
         OR EXISTS(SELECT 1 FROM pg_proc WHERE proowner=(SELECT oid FROM pg_roles WHERE rolname=$1)) AS unsafe`,
-        [RUNTIME_ROLE],
+        [role],
       );
       if (unsafe.rows[0].unsafe) throw Error("UNSAFE_RUNTIME_ROLE");
       await db.query(
-        `ALTER ROLE nexora_app LOGIN NOINHERIT PASSWORD '${password}'`,
+        `ALTER ROLE ${role} LOGIN NOINHERIT PASSWORD '${password}'`,
       );
       const name = identifier(
         (await db.query("SELECT current_database() AS name")).rows[0].name,
       );
       await db.query(`REVOKE CREATE,TEMP ON DATABASE ${name} FROM PUBLIC`);
-      await db.query(`REVOKE ALL ON DATABASE ${name} FROM nexora_app`);
-      await db.query(`GRANT CONNECT ON DATABASE ${name} TO nexora_app`);
+      await db.query(`REVOKE ALL ON DATABASE ${name} FROM ${role}`);
+      await db.query(`GRANT CONNECT ON DATABASE ${name} TO ${role}`);
       await db.query(
-        "REVOKE CREATE ON SCHEMA public FROM PUBLIC; REVOKE ALL ON SCHEMA public FROM nexora_app; GRANT USAGE ON SCHEMA public TO nexora_app",
+        `REVOKE CREATE ON SCHEMA public FROM PUBLIC; REVOKE ALL ON SCHEMA public FROM ${role}; GRANT USAGE ON SCHEMA public TO ${role}`,
       );
       await db.query(
-        "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC,nexora_app; REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC,nexora_app",
+        `REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC,${role}; REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC,${role}`,
       );
       // Table REVOKE does not clear column ACLs left by an earlier manual grant.
       const columns = await db.query(
@@ -156,30 +176,37 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
       );
       for (const column of columns.rows)
         await db.query(
-          `REVOKE SELECT(${identifier(column.column_name)}),INSERT(${identifier(column.column_name)}),UPDATE(${identifier(column.column_name)}),REFERENCES(${identifier(column.column_name)}) ON TABLE public.${identifier(column.table_name)} FROM PUBLIC,nexora_app`,
+          `REVOKE SELECT(${identifier(column.column_name)}),INSERT(${identifier(column.column_name)}),UPDATE(${identifier(column.column_name)}),REFERENCES(${identifier(column.column_name)}) ON TABLE public.${identifier(column.table_name)} FROM PUBLIC,${role}`,
         );
       await db.query(
-        "ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM PUBLIC,nexora_app; ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM PUBLIC,nexora_app",
+        `ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM PUBLIC,${role}; ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM PUBLIC,${role}`,
       );
-      for (const [table, grants] of Object.entries(RUNTIME_GRANTS))
+      for (const [table, grants] of Object.entries(selectedGrants))
         await db.query(
-          `GRANT ${grants.join(",")} ON TABLE public.${identifier(table)} TO nexora_app`,
+          `GRANT ${grants.join(",")} ON TABLE public.${identifier(table)} TO ${role}`,
         );
-      await db.query(
-        "GRANT USAGE ON SEQUENCE public.customer_code_seq TO nexora_app; REVOKE ALL ON FUNCTION public.next_customer_code() FROM PUBLIC,nexora_app; GRANT EXECUTE ON FUNCTION public.next_customer_code() TO nexora_app",
-      );
-      await db.query(
-        "GRANT UPDATE(last_used_step) ON user_mfa TO nexora_app; GRANT UPDATE(consumed_at) ON mfa_challenges TO nexora_app; GRANT UPDATE(used_at) ON mfa_recovery_codes TO nexora_app",
-      );
-      await db.query(
-        "GRANT INSERT ON TABLE public.security_audit_events TO nexora_app; GRANT SELECT(id) ON TABLE public.security_audit_events TO nexora_app",
-      );
-      await db.query(
-        "REVOKE ALL ON FUNCTION public.reject_security_audit_mutation() FROM PUBLIC,nexora_app",
-      );
+      if (role === RUNTIME_ROLE) {
+        await db.query(
+          `GRANT USAGE ON SEQUENCE public.customer_code_seq TO ${role}; REVOKE ALL ON FUNCTION public.next_customer_code() FROM PUBLIC,${role}; GRANT EXECUTE ON FUNCTION public.next_customer_code() TO ${role}`,
+        );
+        await db.query(
+          `GRANT UPDATE(last_used_step) ON user_mfa TO ${role}; GRANT UPDATE(consumed_at) ON mfa_challenges TO ${role}; GRANT UPDATE(used_at) ON mfa_recovery_codes TO ${role}`,
+        );
+        await db.query(
+          `GRANT INSERT ON TABLE public.security_audit_events TO ${role}; GRANT SELECT(id) ON TABLE public.security_audit_events TO ${role}`,
+        );
+        await db.query(
+          `REVOKE ALL ON FUNCTION public.reject_security_audit_mutation() FROM PUBLIC,${role}`,
+        );
+      } else {
+        await db.query(
+          `GRANT UPDATE(id) ON users,carrier_connections,customers TO ${role}; GRANT UPDATE(user_id) ON carrier_user_states TO ${role}`,
+        );
+      }
       await db.query("COMMIT");
+      const runtimeRole = role;
       const runtime = new Client({
-        connectionString: runtimeUrl(adminUrl, password),
+        connectionString: runtimeUrl(adminUrl, password, role),
         connectionTimeoutMillis: 5000,
       });
       runtime.on("error", () => {});
@@ -192,25 +219,27 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
         ).rows[0];
         if (
           !restricted(role) ||
-          role.actor !== RUNTIME_ROLE ||
-          role.session_actor !== RUNTIME_ROLE
+          role.actor !== runtimeRole ||
+          role.session_actor !== runtimeRole
         )
           throw Error("UNSAFE_RUNTIME_ROLE");
-        const check = (
-          await runtime.query(`SELECT has_table_privilege(current_user,'security_audit_events','INSERT') AS ins,
+        if (runtimeRole === RUNTIME_ROLE) {
+          const check = (
+            await runtime.query(`SELECT has_table_privilege(current_user,'security_audit_events','INSERT') AS ins,
           has_column_privilege(current_user,'security_audit_events','id','SELECT') AS sel,
           has_table_privilege(current_user,'security_audit_events','UPDATE,DELETE,TRUNCATE,TRIGGER') AS mutate,
           has_schema_privilege(current_user,'public','CREATE') AS ddl,
           has_database_privilege(current_user,current_database(),'CREATE,TEMP') AS dbddl`)
-        ).rows[0];
-        if (
-          !check.ins ||
-          !check.sel ||
-          check.mutate ||
-          check.ddl ||
-          check.dbddl
-        )
-          throw Error("UNSAFE_RUNTIME_GRANTS");
+          ).rows[0];
+          if (
+            !check.ins ||
+            !check.sel ||
+            check.mutate ||
+            check.ddl ||
+            check.dbddl
+          )
+            throw Error("UNSAFE_RUNTIME_GRANTS");
+        }
       } finally {
         await runtime.end().catch(() => {});
       }
@@ -247,6 +276,12 @@ if (
       await readFile("/runtime-config/postgres_app_password", "utf8")
     ).trim();
     await provisionRuntime(process.env.DATABASE_URL, password);
+    const workerPassword = (
+      await readFile("/sync-config/postgres_sync_password", "utf8")
+    ).trim();
+    await provisionRuntime(process.env.DATABASE_URL, workerPassword, {
+      role: "nexora_sync",
+    });
     console.log("Restricted database runtime provisioning PASS");
   } catch {
     console.error(

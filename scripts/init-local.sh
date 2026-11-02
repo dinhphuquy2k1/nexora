@@ -9,11 +9,12 @@ create_secret() {
 }
 create_secret /config/postgres_password
 create_secret /runtime-config/postgres_app_password
+create_secret /sync-config/postgres_sync_password
 chown 1000:1000 /config/postgres_password /uploads
 runtime_uid=1000
 runtime_gid=1000
 # Development's read-only checkout mount is used only to determine the runtime UID.
 if [ -d /checkout ]; then runtime_uid=$(stat -c '%u' /checkout); runtime_gid=$(stat -c '%g' /checkout); fi
-chown "$runtime_uid:$runtime_gid" /runtime-config/postgres_app_password
+chown "$runtime_uid:$runtime_gid" /runtime-config/postgres_app_password /sync-config/postgres_sync_password
 find /uploads -maxdepth 1 -type f -exec chown 1000:1000 {} +
 chmod 700 /uploads
