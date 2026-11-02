@@ -287,7 +287,7 @@ export async function verifyCarrierBrowser({
     await send("Network.enable");
     await send("Runtime.enable");
     if (!fixtureOnly) {
-      checks.step("CARRIER_PRODUCTION_ROUTE_AND_NO_BACKEND");
+      checks.step("CARRIER_PRODUCTION_ROUTE_AND_METADATA");
       const guest = await fetch(baseUrl + "/settings/carrier-connections", {
         redirect: "manual",
       });
@@ -324,19 +324,23 @@ export async function verifyCarrierBrowser({
         true,
       );
       await key("Escape");
+      // Wait for the real owner-scoped metadata response, not the initial placeholder.
+      await until(
+        "document.querySelector('[data-carrier-count]')?.textContent==='0 tài khoản'",
+      );
       assert.equal(
         await evaluate("document.querySelectorAll('tbody tr').length"),
         0,
       );
       assert.equal(
         await evaluate(
-          "document.querySelector('[data-carrier-connections]').textContent.includes('Chưa tích hợp')",
+          "document.querySelector('[data-carrier-connections]').textContent.includes('Không tìm thấy tài khoản hãng phù hợp')",
         ),
         true,
       );
       assert.equal(
         await evaluate(
-          "document.querySelector('[data-carrier-pagination]').textContent.includes('—')",
+          "document.querySelector('[data-carrier-pagination]').textContent.includes('0–0')",
         ),
         true,
       );

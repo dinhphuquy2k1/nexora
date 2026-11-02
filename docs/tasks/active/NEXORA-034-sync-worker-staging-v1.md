@@ -203,3 +203,12 @@ Restrict the pre-upgrade phase to earlier migrations; apply later migrations aft
 the existing Customer preservation assertions and before current runtime grants.
 Keep all constraint/security assertions and the signed owned-cluster requirement.
 Later LOCAL/TTY/HTTPS/data/dev steps were skipped, not PASS.
+
+### Production browser readiness clarification
+
+The existing production Carrier browser assertion still expected the old unknown
+placeholder/unknown count. The production wrapper now reads actual owner-scoped
+metadata, including a genuine empty list. Require settlement at the real0-account
+count,0–0 range and existing known-empty copy; preserve guest redirect, zero rows,
+no dialogs, network-write denial, geometry and the separate unknown fixture tests.
+This strengthens settled-response verification instead of racing the loading state.
