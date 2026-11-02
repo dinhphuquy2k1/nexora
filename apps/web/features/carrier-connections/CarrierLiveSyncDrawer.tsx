@@ -167,7 +167,7 @@ export function CarrierLiveSyncDrawer({
       if (mounted.current && !denied.current)
         setFeedback("Yêu cầu đã được lưu; đang đối chiếu trạng thái.");
     } catch (e) {
-      if (!mounted.current) return;
+      if (!mounted.current || denied.current) return;
       if (e instanceof SyncApiError && e.status === 401) {
         deny();
         return;
