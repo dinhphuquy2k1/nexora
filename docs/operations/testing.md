@@ -604,7 +604,7 @@ Foundation supplies genuine Docker/PostgreSQL integration/runtime evidence.
 
 ## Sync V1 verification — NEXORA-034
 
-Native discovery includes apps/api/test/sync/\*_/_.test.cjs and
+Native discovery includes `apps/api/test/sync/**/*.test.cjs` and
 apps/api/integration/sync-integration.test.cjs. The latter creates its own migrated
 UUID database and removes only that database. It covers20-way admission,10000→10005
 current sources with30 new items, cross-page version coalescing,99 existing Customer
@@ -619,3 +619,12 @@ Prisma/API prerequisite build. Public Prisma engine artifact retention14days sup
 offline toolchain verification; no credentials/data are uploaded. Foundation's
 canonical Docker quality, LOCAL/TTY/MFA/browser/HTTPS/data/dev smoke remains required.
 Passing unit/source checks never establishes actual runtime or provider readiness.
+
+The Sync executor renews its lease while a page/batch is active and bounds a page
+to20seconds, forwarding cancellation to the provider port. Delayed-page PostgreSQL
+coverage proves renewal; unit coverage proves no checkpoint after timeout.
+`carrier-sync-lifecycle.test.mjs` executes actual component closures for denied
+mutation/read races and partial schedule readback/Cancel. These controlled tests
+complement genuine Nest/SDK HTTP tests and browser evidence; they do not certify
+production provider authorization. The staged legacy migration harness must append
+Sync after Customers and preserve previous rows before its final schema-drift check.
