@@ -1795,3 +1795,9 @@ button.switchTarget {
   appearance: none;
   border-radius: 0;
 }
+/* Status wins over navy-header presentation; environment is independent metadata. */
+.drawerHeader .drawerTitleLine .connectionBadge[data-tone="bad"] {
+  background: var(--color-carrier-header-error-bg);
+  color: var(--color-carrier-header-error-text);
+  border-color: var(--color-carrier-header-error-border);
+}

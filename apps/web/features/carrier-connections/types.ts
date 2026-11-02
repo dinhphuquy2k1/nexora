@@ -102,7 +102,8 @@ export interface SyncItem {
 export interface SyncHistoryEntry {
   readonly id: string;
   readonly time: string;
-  readonly startedAt?: string;
+  // Full ISO timestamp with explicit Z or numeric offset; time is display-only.
+  readonly startedAt: string;
   readonly dataType: string;
   readonly source: string;
   readonly state: SyncState;

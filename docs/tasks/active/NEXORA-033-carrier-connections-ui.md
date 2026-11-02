@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Implementation: IMPLEMENTED
-Verification: VERIFIED
+Verification: NOT VERIFIED
 
 ## Scope
 
@@ -488,3 +488,87 @@ Documentation Impact: REQUIRED
 - `pnpm lint`: PASS (workspace boundaries PASS, ESLint 0 errors 0 warnings).
 - `pnpm docs:check`: PASS.
 - `pnpm preflight:check`: PASS.
+
+## Corrective regression plan — 2026-11-02
+
+Execution revision: status-scroll-history-v1. Classification: BOUNDED corrective
+work under the pinned v2 scope; immutable snapshot/revision/hash above unchanged.
+Reviewed current remote head f7e90ef89230db37876501eeeee1d7a1aa14eb06 on existing
+feat/carrier-connections-ui, clean worktree, GitHub PR31 open and Ready for Review
+(not Draft). Fast-forwarded two existing Retail/shared-standardization commits;
+these newer layouts/tokens and their tests must remain intact.
+
+Read-only findings: ConnectionBadge substitutes Sandbox for row.status and the
+more specific navy header selector overwrites error colors. Portal row menu only
+subscribes to resize. History options hard-code two types; startedAt is optional
+and stress fixtures omit it; Date.parse can normalize invalid calendar input or
+accept timezone-less values. No reusable strict Web ISO parser found in lib or
+features; existing feature-local range validation is the appropriate owner.
+
+| Component             | Existing implementation                                                 | Owner                | Alternatives                                   | Selected approach                                                                                                                                                            | Rationale                                                                                 | Risks                                      | Verification                                                                                                                        |
+| --------------------- | ----------------------------------------------------------------------- | -------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Connection status     | ConnectionBadge/CONNECTION_STATES, drawer frame, semantic status tokens | Carrier presentation | Environment override vs independent facts      | Status from row.status only; retain separate environment metadata; narrowly override bad header tone with dark error roles                                                   | Correct facts without layout/shared-control change                                        | Navy specificity, dot color, wrapping      | Six status/environment combinations; real table/header styles and geometry at six sizes                                             |
+| Row menu              | CarrierRowActions, useDismissable/native Overlay                        | Carrier presentation | Continuous reposition vs close on scroll       | Capture-phase scroll listener only while open, matching add/remove cleanup; preserve resize/dismiss/focus                                                                    | Detect nested non-bubbling table scrolling without polling                                | Focus and listener leak                    | Real vertical/horizontal scroll, Escape/outside/resize/actions, repeated open/close and unmount                                     |
+| History normalization | sync-presentation filterSyncHistory, pageWindow, shared Select          | Carrier presentation | Generic filter framework vs local pure helpers | Derive unique type options from actual history; required timezone-qualified ISO startedAt; strict calendar/time validation before Date.parse; report invalid data explicitly | Preserve raw codes and display-only time, parse each timestamp once, reuse day validation | UTC/VN boundary, invalid dates, page reset | RED model/component tests, UTC/+07 midnight/end-day bounds, extra/Vietnamese types, combined filters and pagination, real details   |
+| Evidence              | Existing Node/CDP/fixture/compiler/Foundation                           | Test infrastructure  | New harness vs extend                          | Extend existing helpers; retain Retail alignment assertions and source security guards                                                                                       | Avoid duplicate infrastructure                                                            | Stale head/state claims                    | Format/lint/boundaries/docs/preflight/Web typecheck/Web/UI tests; genuine final-head Foundation and three independent review rounds |
+
+Timestamp input contract is full ISO timestamp with seconds, optional fractional
+seconds and explicit Z or ±HH:MM; no display-time inference/current-time fallback.
+Invalid history timestamps fail the read model closed with a safe validation error,
+even without an active date range. Calendar ranges keep the established Vietnamese
+UTC+07 day and inclusive end-of-day policy. No backend/SDK/schema/shared UI API,
+dependency, scheduler, auth/MFA/session or production data changes.
+
+Documentation Impact remains REQUIRED: synchronize this execution journal, frontend
+history semantics and testing facts as applicable, then reconcile actual final-head
+CI in PR metadata. Keep task VERIFICATION PENDING until UI acceptance. No owner
+approval gate, new branch/PR, force-push, merge, or generated evidence in Git.
+
+### Corrective execution checkpoint
+
+FIX1: labels now use row.status only, with narrow navy bad-tone color roles based
+on existing rose tokens; no environment inference or shared sizing change. FIX2:
+capture-phase scroll plus resize close the portal, restore focus only when it was
+inside, and remove listeners on close/unmount. FIX3: unique actual raw types,
+required ISO startedAt, shared feature-local calendar validation, explicit data
+errors, parse-once filtering and updated stress/parity consumers. Unknown types use
+a neutral icon rather than being mislabeled as Customer. FIX4 preserves snapshots,
+Ready-for-Review GitHub status and current verification provenance.
+
+Initial focused RED: Sandbox hid status; missing dynamic type helper; missing/invalid
+timestamps accepted without a range. Token-policy regression exposed a nonexistent
+rose200 alias; changed to an existing rose50 role without weakening policy. The
+first browser probe selected a logo rather than a badge; corrected its selector.
+A following menu probe clicked before scrollIntoView's queued scroll settled;
+real-pointer readiness now waits viewport frames, without changing production's
+immediate close-on-scroll behavior or dropping assertions.
+
+Independent Round1 correctness and Round2 actual UI/interaction reviews found no
+remaining confirmed P1/P2 in their reviewed scope. Focused Carrier/CDP-static tests28/28 PASS; an earlier Web210/210 checkpoint
+preceded the last component regression. Final broad results are recorded below. Actual CDP full baseline alignment,
+36 status/environment captures, genuine wheel scroll, keyboard, DOMDebugger
+listener cleanup/unmount and four-type/date/page/details flows PASS. Evidence is
+ignored output until hosted artifacts; no generated files staged. Final source
+checks, independent Round3 and exact-head hosted CI are still required. Prior
+VERIFIED checkpoint applies to the historical standardization head, not this new
+correction; current verification is NOT VERIFIED until mandatory checks finish.
+
+### Corrective final local checkpoint and independent review
+
+| Claim                                  | Evidence                                                                                                                                                                                                                                                                                                | Date       | Result |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Behavioral RED before fix              | Original scoped regressions failed on Sandbox masking status, missing actual-type options helper and missing/invalid timezone-qualified timestamps                                                                                                                                                      | 2026-11-02 | FAIL   |
+| Focused model/component and CDP syntax | node --test apps/web/test/carrier-connections.test.mjs scripts/customer-browser-checks.test.mjs:28/28,0 skipped                                                                                                                                                                                         | 2026-11-02 | PASS   |
+| Web regressions                        | pnpm --filter @nexora/web test:211/211,8 suites,0 skipped; Customer/Retail/Account/navigation contracts retained                                                                                                                                                                                        | 2026-11-02 | PASS   |
+| Shared controls and script regressions | pnpm --filter @nexora/ui test:32/32; node --test scripts/\*_/_.test.mjs:129/129,0 skipped                                                                                                                                                                                                               | 2026-11-02 | PASS   |
+| Source checks                          | pnpm format:check; pnpm lint including boundaries; pnpm docs:check; pnpm preflight:check; Web typecheck; production Web build with documented API_INTERNAL_URL                                                                                                                                          | 2026-11-02 | PASS   |
+| Actual Carrier browser                 | Existing Node/Chromium CDP harness: six viewports,36 new status/environment captures with computed styles/token overrides, real wheel/menu/keyboard/focus/resize/outside/action/unmount cleanup and actual-type/state/date/page/details flows; existing Retail/shared/baseline/security checks retained | 2026-11-02 | PASS   |
+| Independent Review–Fix–Review          | Round1 correctness, Round2 actual navy status PNGs/interaction, Round3 architecture/regressions and focused28 tests: no remaining confirmed P1/P2; final-head CI remains a separate requirement                                                                                                         | 2026-11-02 | PASS   |
+
+Pinned snapshot digest recomputed unchanged. No backend/SDK/database/Auth/MFA/shared
+control defaults changed. Local canonical Docker services were not started on the
+space-constrained host; genuine integration/runtime verification must come from
+final-head hosted Foundation. No old-head CI result is reused as new-head PASS.
+Commit/push and exact final head/tested merge/run/artifact results will be reconciled
+in PR metadata after execution, avoiding self-SHA-only documentation commit loops.
+PR remains Ready for Review as observed on GitHub; no acceptance or merge implied.

@@ -358,3 +358,19 @@ Populated rows/providers, running/error/progress/history are dependency-injected
 only by isolated test entries, never imported by the production route. Browser tests
 exercise these components without inventing persisted connections. No new SDK
 operation, database/schema, business rule or shared framework is introduced.
+
+Carrier regression correction: connection badges always present the SDK-derived
+row.status, independent of optional verified environment metadata. Navy headers
+use separate success/error semantic roles; environment never masks ERROR or
+REAUTH_REQUIRED. Portaled row menus close on captured scroll (including nested
+horizontal/vertical table scrolling) and resize, with symmetric listener cleanup
+and conditional focus restoration that does not scroll the trigger into view.
+
+History type options derive from distinct raw dataType values actually supplied;
+no Shipment/Customer-only limit or label-to-code inference. SyncHistoryEntry has a
+required full ISO startedAt with explicit Z or ±HH:MM; time is display-only.
+Feature-local validation rejects calendar/time/offset rollover or missing timezone
+and reports invalid history data even without an active range. Ranges retain the
+Vietnamese UTC+07 day, inclusive00:00:00 through23:59:59.999. Type/state/range filters
+combine without changing source records; filters reset paging and derived pages
+clamp to current results. This is frontend normalization, not an API/SDK contract.

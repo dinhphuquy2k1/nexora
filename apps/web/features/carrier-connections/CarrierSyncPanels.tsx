@@ -33,6 +33,7 @@ import {
 import {
   SYNC_INTERVALS,
   filterSyncHistory,
+  historyDataTypes,
   historySummary,
   type ScheduleDraft,
 } from "./sync-presentation.ts";
@@ -339,6 +340,11 @@ export interface HistoryQuery {
   appliedRange: string;
   page: number;
 }
+function HistoryTypeIcon({ type }: { type: string }) {
+  if (type === "Shipment") return <Package size={14} />;
+  if (type === "Customer") return <User size={14} />;
+  return <Layers size={14} />;
+}
 export function SyncHistoryPanel({
   data,
   query,
@@ -361,6 +367,7 @@ export function SyncHistoryPanel({
     page = Math.min(query.page, totalPages),
     history = filtered.entries.slice((page - 1) * 4, page * 4),
     counts = historySummary(data),
+    dataTypes = historyDataTypes(data?.history ?? []),
     pages =
       totalPages <= 5
         ? Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -398,8 +405,11 @@ export function SyncHistoryPanel({
             onChange={(e) => onChange({ type: e.target.value, page: 1 })}
           >
             <option value="all">Tất cả loại dữ liệu</option>
-            <option value="Shipment">Shipment (Đơn)</option>
-            <option value="Customer">Customer (Khách)</option>
+            {dataTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
           </Select>
         </label>
         <label>
@@ -437,9 +447,9 @@ export function SyncHistoryPanel({
           Lọc lại
         </Button>
       </div>
-      {draftCheck.error && (
+      {(draftCheck.error || filtered.error) && (
         <p role="alert" className={styles.error}>
-          {draftCheck.error}
+          {draftCheck.error || filtered.error}
         </p>
       )}
       <div className={styles.historyKpis}>
@@ -471,11 +481,7 @@ export function SyncHistoryPanel({
             <span className={styles.historyRowHeading}>
               <span className={styles.historyIdentity}>
                 <span className={styles.historyIcon} data-type={item.dataType}>
-                  {item.dataType === "Shipment" ? (
-                    <Package size={14} />
-                  ) : (
-                    <User size={14} />
-                  )}
+                  <HistoryTypeIcon type={item.dataType} />
                 </span>
                 <strong>{item.dataType}</strong>
                 <span

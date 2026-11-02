@@ -50,9 +50,18 @@ export function CarrierRowActions({
   }, [open]);
   useEffect(() => {
     if (!open) return;
-    const close = () => setOpen(false);
+    const close = () => {
+      const restoreFocus = panelRef.current?.contains(document.activeElement);
+      setOpen(false);
+      if (restoreFocus) triggerRef.current?.focus({ preventScroll: true });
+    };
     window.addEventListener("resize", close);
-    return () => window.removeEventListener("resize", close);
+    // Element scroll events do not bubble; capture includes the nested table viewport.
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
   }, [open]);
   function choose(action: RowAction) {
     setOpen(false);

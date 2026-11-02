@@ -62,9 +62,7 @@ export function ConnectionBadge({ row }: { row: CarrierConnectionRow }) {
       data-tone={CONNECTION_STATES[row.status].ok ? "good" : "bad"}
     >
       <span />
-      {row.preview?.environment === "sandbox"
-        ? "Sandbox"
-        : CONNECTION_STATES[row.status].label}
+      {CONNECTION_STATES[row.status].label}
     </span>
   );
 }

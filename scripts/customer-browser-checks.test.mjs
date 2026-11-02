@@ -43,6 +43,7 @@ test("static CDP expressions are valid JavaScript before a genuine browser run",
     "retail-column-picker-checks.mjs",
     "workspace-geometry-checks.mjs",
     "customer-control-checks.mjs",
+    "carrier-consistency-checks.mjs",
     "m1-visual-checks.mjs",
   ])
     count += validateExpressions(

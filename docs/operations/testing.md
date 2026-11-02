@@ -583,3 +583,21 @@ Pair all14 principal surfaces at1440×900,1280×800,1024×768,768×1024,390×844
 compare identical per-account stream states, not one running stream on every row.
 Generated paired PNGs/manifests remain ignored/14-day artifacts; source hashes and
 compact geometry remain text. Historical v1 SUCCESS is not v2 acceptance evidence.
+
+### Carrier status/menu/history regression checks
+
+carrier-consistency-checks.mjs extends the existing CDP fixture session and compiler,
+not a new launcher. Six status/environment combinations run at all six required
+viewports with real computed colors, badge geometry and runtime semantic-token
+binding/restoration on actual controls. Manifests retain badge style measurements.
+Nested table wheel scrolling must close the portaled menu. DOMDebugger listener
+counts check registration/cleanup after repeated keyboard closes, resize, actions
+and row unmount; native pointer readiness waits scroll frames before clicking.
+
+Stress history includes required timezone-qualified ISO timestamps and four actual
+raw types, including Vietnamese labels. Model/component tests cover invalid calendar
+rollover/timezone, early years, UTC/+07 and inclusive VN day boundaries. Browser
+checks combine type/state/date, reset last-page selection and inspect the matching
+entry. Existing Retail/shared TabBar geometry, Auth/MFA, no-network/storage/password
+and short-height/long-content assertions remain mandatory. Final-head hosted
+Foundation supplies genuine Docker/PostgreSQL integration/runtime evidence.

@@ -588,3 +588,212 @@ test("pagination footer aligns with Retail baseline: disabled page 1 when unavai
   assert.match(htmlKnown, /aria-current="page"[^>]*>1<\/button>/);
   assert.match(htmlKnown, /Trang tài khoản 2/);
 });
+
+test("connection status stays independent of environment for every status", () => {
+  const { ConnectionBadge } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionList.tsx",
+      import.meta.url,
+    ),
+  );
+  const { CONNECTION_STATES } = model();
+  for (const status of ["CONNECTED", "ERROR", "REAUTH_REQUIRED"])
+    for (const environment of ["production", "sandbox"]) {
+      const html = render(
+        React.createElement(ConnectionBadge, {
+          row: { ...rows[0], status, preview: { environment } },
+        }),
+      );
+      assert.ok(
+        html.includes(CONNECTION_STATES[status].label),
+        `${status}/${environment}`,
+      );
+      assert.doesNotMatch(html, /Sandbox|Production/);
+    }
+});
+
+test("history options preserve every actual raw data type without duplicates", () => {
+  const { historyDataTypes } = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-presentation.ts",
+      import.meta.url,
+    ),
+  );
+  assert.deepEqual(
+    Array.from(
+      historyDataTypes([
+        { dataType: "Shipment" },
+        { dataType: "Khách hàng" },
+        { dataType: "Tracking" },
+        { dataType: "Shipment" },
+        { dataType: "Kiện hàng" },
+      ]),
+    ),
+    ["Shipment", "Khách hàng", "Tracking", "Kiện hàng"],
+  );
+});
+
+test("history validates timezone-qualified timestamps even without a date filter", () => {
+  const { filterSyncHistory } = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-presentation.ts",
+      import.meta.url,
+    ),
+  );
+  for (const startedAt of [
+    undefined,
+    "",
+    "2026-02-30T12:00:00+07:00",
+    "2026-10-09T12:00:00",
+    "2026-10-09T25:00:00Z",
+    "2026-10-09T12:00:00+25:00",
+  ]) {
+    const result = filterSyncHistory(
+      [
+        {
+          id: "bad",
+          startedAt,
+          dataType: "Tracking",
+          state: "failed",
+          time: "09/10/2026 12:00",
+        },
+      ],
+      "all",
+      "all",
+      "",
+    );
+    assert.ok(result.error, `${startedAt} must report validation failure`);
+    assert.equal(result.entries.length, 0);
+  }
+  const entries = [
+    {
+      id: "before",
+      startedAt: "2026-10-08T16:59:59.999Z",
+      dataType: "Tracking",
+      state: "failed",
+    },
+    {
+      id: "start",
+      startedAt: "2026-10-09T00:00:00+07:00",
+      dataType: "Tracking",
+      state: "failed",
+    },
+    {
+      id: "end",
+      startedAt: "2026-10-09T16:59:59.999Z",
+      dataType: "Tracking",
+      state: "failed",
+    },
+    {
+      id: "after",
+      startedAt: "2026-10-10T00:00:00+07:00",
+      dataType: "Tracking",
+      state: "failed",
+    },
+    {
+      id: "other",
+      startedAt: "2026-10-09T03:00:00Z",
+      dataType: "Kiện hàng",
+      state: "completed",
+    },
+  ];
+  const result = filterSyncHistory(
+    entries,
+    "Tracking",
+    "failed",
+    "09/10/2026 - 09/10/2026",
+  );
+  assert.equal(result.error, "");
+  assert.deepEqual(
+    result.entries.map((e) => e.id),
+    ["start", "end"],
+  );
+});
+
+test("strict history timestamps preserve early years and reject calendar/time rollover", () => {
+  const { parseSyncStartedAt, filterSyncHistory } = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-presentation.ts",
+      import.meta.url,
+    ),
+  );
+  for (const value of [
+    "0001-01-01T00:00:00Z",
+    "0099-12-31T23:59:59+07:00",
+    "2024-02-29T12:30:45.123456Z",
+    "2026-10-09T23:59:59.999+07:00",
+  ])
+    assert.notEqual(parseSyncStartedAt(value), null, value);
+  for (const value of [
+    "2025-02-29T00:00:00Z",
+    "2026-04-31T12:00:00Z",
+    "2026-10-09T24:00:00Z",
+    "2026-10-09T12:60:00Z",
+    "2026-10-09T12:00:00+07:60",
+  ])
+    assert.equal(parseSyncStartedAt(value), null, value);
+  const entry = {
+    id: "early",
+    startedAt: "0001-01-01T00:00:00+07:00",
+    dataType: "Khách hàng",
+    state: "completed",
+  };
+  assert.equal(
+    filterSyncHistory([entry], "all", "all", "01/01/0001 - 01/01/0001").entries
+      .length,
+    1,
+  );
+});
+
+test("history component renders actual type options and exposes invalid data timestamps", () => {
+  const { SyncHistoryPanel } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierSyncPanels.tsx",
+      import.meta.url,
+    ),
+  );
+  const data = {
+    items: [],
+    history: [
+      {
+        id: "bad",
+        time: "Display only",
+        startedAt: "not-iso",
+        dataType: "Tracking",
+        source: "Test",
+        state: "completed",
+        detail: "",
+      },
+      {
+        id: "vi",
+        time: "Display only",
+        startedAt: "2026-10-09T00:00:00+07:00",
+        dataType: "Khách hàng",
+        source: "Test",
+        state: "completed",
+        detail: "",
+      },
+    ],
+  };
+  const html = render(
+    React.createElement(SyncHistoryPanel, {
+      data,
+      query: {
+        type: "all",
+        state: "all",
+        range: "",
+        appliedRange: "",
+        page: 99,
+      },
+      onChange: () => {},
+      onInspect: () => {},
+    }),
+  );
+  assert.match(html, /<option value="Tracking">Tracking<\/option>/);
+  assert.match(html, /<option value="Khách hàng">Khách hàng<\/option>/);
+  assert.match(
+    html,
+    /<p role="alert"[^>]*>Dữ liệu lịch sử có thời điểm bắt đầu không hợp lệ\./,
+  );
+  assert.doesNotMatch(html, /data-carrier-history-id=/);
+});

@@ -376,3 +376,17 @@
     transparent
   );
 }
+
+:root {
+  --color-carrier-header-error-bg: color-mix(
+    in srgb,
+    var(--rose-600) 20%,
+    transparent
+  );
+  --color-carrier-header-error-text: var(--rose-50);
+  --color-carrier-header-error-border: color-mix(
+    in srgb,
+    var(--rose-600) 40%,
+    transparent
+  );
+}

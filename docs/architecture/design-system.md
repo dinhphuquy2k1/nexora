@@ -356,3 +356,10 @@ card (larger than32px), native Enter/Space, visible inset focus and phrasing-onl
 children; no nested button or duplicated keyboard handler. This source-specific
 exception does not change shared controls. History running chips use their blue
 context/dot/Đang chạy label; live stream badges keep the orange progress context.
+
+Connection status remains authoritative on both light tables and navy headers.
+Header error background/text/border roles derive from existing rose palette tokens;
+the more specific bad-tone selector overrides only colors, preserving badge/control
+geometry. Sandbox/Production belong to separate verified environment metadata and
+cannot replace the status label. Shared TabBar, Retail-aligned toolbar/footer/table
+and all shared control defaults remain unchanged by this corrective scope.

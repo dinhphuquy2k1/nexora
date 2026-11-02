@@ -37,7 +37,8 @@ export const SYNC_FIXTURE: SyncPresentation = {
   history: Array.from({ length: 40 }, (_, i) => ({
     id: `history-${i}`,
     time: `01/01/2026 10:${String(i).padStart(2, "0")}`,
-    dataType: i % 2 ? "Khách hàng" : "Kiện hàng",
+    startedAt: `2026-01-01T10:${String(i).padStart(2, "0")}:00+07:00`,
+    dataType: ["Kiện hàng", "Khách hàng", "Tracking", "Inventory"][i % 4],
     source: "Kiểm thử tổng hợp",
     state: (["completed", "failed", "running"] as const)[i % 3],
     records: i,

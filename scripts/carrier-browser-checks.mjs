@@ -1,3 +1,4 @@
+import { verifyCarrierConsistency } from "./carrier-consistency-checks.mjs";
 import { browserContrastExpression } from "./browser-contrast.mjs";
 import { waitForInteractiveAccount } from "./browser-login-ready.mjs";
 // Reuses the authenticated CDP session and the existing TSX fixture compiler.
@@ -66,7 +67,7 @@ export async function verifyCarrierBrowser({
   }
   async function pointer(selector) {
     const point = await evaluate(
-      `(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e||e.disabled)return null;e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}})()`,
+      `(async()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e||e.disabled)return null;e.scrollIntoView({block:'nearest'});await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));const r=e.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2}})()`,
     );
     assert.ok(point, selector);
     for (const type of ["mousePressed", "mouseReleased"])
@@ -86,6 +87,10 @@ export async function verifyCarrierBrowser({
         windowsVirtualKeyCode: {
           Escape: 27,
           Tab: 9,
+          ArrowUp: 38,
+          ArrowDown: 40,
+          Home: 36,
+          End: 35,
           ArrowRight: 39,
           ArrowLeft: 37,
           Enter: 13,
@@ -123,7 +128,7 @@ export async function verifyCarrierBrowser({
       "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))",
     );
     const geometry = await evaluate(
-      `(()=>{const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height,bottom:r.bottom,right:r.right}};const root=document.querySelector('[data-carrier-connections]'),container=document.querySelector('[data-carrier-table-container]'),d=[...document.querySelectorAll('dialog[open]')];return {page:rect(root),deck:rect(document.querySelector('[data-carrier-command-deck]')),container:rect(container),footer:rect(document.querySelector('[data-carrier-pagination]')),columns:[...document.querySelectorAll('table th')].map(rect),rows:[...document.querySelectorAll('tbody tr')].map(rect),frame:rect(d.at(-1)),frameHeader:rect(d.at(-1)?.querySelector(':scope>header')),noOverflow:document.documentElement.scrollWidth<=innerWidth,noVerticalBorders:[...document.querySelectorAll('table th:not(:last-child),table td:not(:last-child)')].every(e=>getComputedStyle(e).borderRightWidth==='0px'||getComputedStyle(e).borderRightStyle==='none'),controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(rect),syncBodyFits:[...document.querySelectorAll('dialog[open] [role=tabpanel]')].every(e=>e.scrollWidth<=e.clientWidth+1)}})()`,
+      `(()=>{const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height,bottom:r.bottom,right:r.right}};const root=document.querySelector('[data-carrier-connections]'),container=document.querySelector('[data-carrier-table-container]'),d=[...document.querySelectorAll('dialog[open]')];return {connectionBadges:[...document.querySelectorAll('span[data-tone=good],span[data-tone=bad]')].map(e=>{const s=getComputedStyle(e);return {label:e.textContent.trim(),color:s.color,background:s.backgroundColor,border:s.borderColor,dot:e.firstElementChild?getComputedStyle(e.firstElementChild).backgroundColor:null}}),page:rect(root),deck:rect(document.querySelector('[data-carrier-command-deck]')),container:rect(container),footer:rect(document.querySelector('[data-carrier-pagination]')),columns:[...document.querySelectorAll('table th')].map(rect),rows:[...document.querySelectorAll('tbody tr')].map(rect),frame:rect(d.at(-1)),frameHeader:rect(d.at(-1)?.querySelector(':scope>header')),noOverflow:document.documentElement.scrollWidth<=innerWidth,noVerticalBorders:[...document.querySelectorAll('table th:not(:last-child),table td:not(:last-child)')].every(e=>getComputedStyle(e).borderRightWidth==='0px'||getComputedStyle(e).borderRightStyle==='none'),controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(rect),syncBodyFits:[...document.querySelectorAll('dialog[open] [role=tabpanel]')].every(e=>e.scrollWidth<=e.clientWidth+1)}})()`,
     );
     assert.equal(geometry.noOverflow, true, phase + " document overflow");
     assert.equal(geometry.columns.length, 7);
@@ -889,6 +894,21 @@ export async function verifyCarrierBrowser({
       "range color var(--color-primary)",
     );
 
+    await verifyCarrierConsistency({
+      send,
+      evaluate,
+      until,
+      click,
+      pointer,
+      key,
+      input,
+      select,
+      viewport,
+      navigate,
+      openSurface,
+      capture,
+      checks,
+    });
     // Source-derived contract records original ZIP geometry, never the implementation's geometry.
     const contract = JSON.parse(
       await readFile(

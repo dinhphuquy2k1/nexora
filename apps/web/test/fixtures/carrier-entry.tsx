@@ -12,8 +12,27 @@ import {
 import "../../app/styles.css";
 const params = new URLSearchParams(location.search),
   parity = params.has("parity"),
-  records = params.has("empty") ? [] : parity ? PARITY_ROWS : CARRIER_FIXTURES,
+  statusCase = (["CONNECTED", "ERROR", "REAUTH_REQUIRED"] as const).find(
+    (status) => status === params.get("statusCase"),
+  ),
+  environmentCase = (["production", "sandbox"] as const).find(
+    (environment) => environment === params.get("environmentCase"),
+  ),
+  baseRecords = params.has("empty")
+    ? []
+    : parity
+      ? PARITY_ROWS
+      : CARRIER_FIXTURES,
   sync = parity ? PARITY_SYNC : SYNC_FIXTURE;
+const records = statusCase
+  ? [
+      {
+        ...PARITY_ROWS[0],
+        status: statusCase,
+        preview: { ...PARITY_ROWS[0].preview, environment: environmentCase },
+      },
+    ]
+  : baseRecords;
 createRoot(document.getElementById("fixture-root")!).render(
   <ToastProvider>
     <style>{`[data-parity-stage]{position:absolute;left:var(--workspace-gutter);right:var(--workspace-gutter);top:calc(var(--header-height) + var(--workspace-padding-block));height:calc(100dvh - var(--header-height) - 2 * var(--workspace-padding-block));display:flex;flex-direction:column;min-height:0;}@media(min-width:901px){[data-parity-stage]{left:calc(var(--sidebar-width) + var(--workspace-gutter));}}`}</style>
