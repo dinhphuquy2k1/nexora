@@ -46,7 +46,7 @@ test("real PostgreSQL customer upgrade, constraints, sequence and restricted run
     await db.connect();
     const root = new URL("../prisma/migrations/", import.meta.url);
     for (const entry of (await readdir(root)).sort())
-      if (entry !== "20261020010000_customers" && /^\d/.test(entry))
+      if (entry < "20261020010000_customers" && /^\d/.test(entry))
         await db.query(
           await readFile(new URL(entry + "/migration.sql", root), "utf8"),
         );
@@ -125,6 +125,12 @@ test("real PostgreSQL customer upgrade, constraints, sequence and restricted run
       [...tables, "customers", "customer_addresses"].sort(),
     );
     const password = syntheticPassword;
+    // Preserve the isolated Customer upgrade assertion, then reach the current schema.
+    for (const entry of (await readdir(root)).sort())
+      if (entry > "20261020010000_customers" && /^\d/.test(entry))
+        await db.query(
+          await readFile(new URL(entry + "/migration.sql", root), "utf8"),
+        );
     await provisionRuntime(url.toString(), password);
     runtime = new Client({
       connectionString: runtimeUrl(url.toString(), password),

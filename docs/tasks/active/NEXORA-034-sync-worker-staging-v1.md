@@ -79,6 +79,8 @@ Run pnpm docs:check, pnpm preflight:check and pnpm format:check.
 | Legacy upgrade harness before adding Sync step             | Owned PG test/migration.mjs failed REPEAT_AND_DRIFT because staged fixture omitted new migration; fresh full deploy/diff already passed                                                                                      | 2026-11-03 | FAIL   |
 | Additive legacy migration preservation and drift           | Genuine Prisma deploy/diff plus packages/database/test/migration.mjs in owned PostgreSQL; old rows preserved, empty Sync tables, partial unique lane, repeated deploy and final drift                                        | 2026-11-03 | PASS   |
 | Current implementation hosted targeted verification        | Run41542685993 bound to5a3cc013, checkout57f2ae2 merge with baseline156a324; genuine generated build,6unit/18PG PASS with0skip                                                                                               | 2026-11-03 | PASS   |
+| Hosted full gate before Customer fixture ordering fix      | Foundation41543570656 at82b4000: quality/99integration/legacy drift/provision PASS, customer-sql42P01; later runtime/HTTPS/data/dev skipped                                                                                  | 2026-11-03 | FAIL   |
+| Customer SQL upgrade order and security assertions         | node scripts/provision-cluster-smoke.mjs --suite=customer-sql after ordered pre/post migration phases; actual owned PostgreSQL1/1 plus verified cleanup, all old assertions preserved                                        | 2026-11-03 | PASS   |
 
 ## Blockers and limitations
 
@@ -190,3 +192,14 @@ at Customers, so its final database omits Sync while comparing the current schem
 Extend that sequence with this migration, preserving every existing assertion, and
 assert old rows unchanged plus empty Sync tables/partial lane uniqueness. This is
 verification maintenance for the additive migration, not rewriting history.
+
+### Customer SQL fixture ordering follow-up
+
+Final-head Foundation41543570656 at82b4000 passed quality,99 integration tests,
+legacy migration/drift and provision-role suite, then FAIL customer-sql with42P01.
+The SQL-only Customer upgrade fixture applies every migration except Customer before
+its preservation snapshot, so additive Sync FK creation now precedes Customers.
+Restrict the pre-upgrade phase to earlier migrations; apply later migrations after
+the existing Customer preservation assertions and before current runtime grants.
+Keep all constraint/security assertions and the signed owned-cluster requirement.
+Later LOCAL/TTY/HTTPS/data/dev steps were skipped, not PASS.
