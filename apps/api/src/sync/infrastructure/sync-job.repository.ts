@@ -1,9 +1,5 @@
 import { isUuid } from "../../common/validation/uuid";
-import {
-  createDatabase,
-  type Prisma,
-  type PrismaClient,
-} from "@nexora/database";
+import { createDatabase, Prisma, type PrismaClient } from "@nexora/database";
 import { UserStatus } from "../../identity/domain/user-policy";
 import { ConnectionStatus } from "../../carrier/domain/carrier";
 import {
@@ -23,6 +19,7 @@ import {
   SyncLinkOrigin,
   SyncType,
   SyncStrategy,
+  ACTIVE_SYNC_JOBS,
   type SyncCode,
 } from "../domain/sync.constants";
 import type {
@@ -412,8 +409,8 @@ export class SyncRepository implements SyncQueue {
           };
         });
         const data = JSON.stringify(changes);
-        await tx.$executeRaw`INSERT INTO sync_source_identities(owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key,source_key_hash,last_observed_hash,observed_source_version,last_source_order) SELECT ${job.owner_user_id}::uuid,${job.provider},${job.external_account_id},${job.sync_type},scheme,key,hash,"payloadHash",version,"sourceOrder" FROM jsonb_to_recordset(${data}::jsonb) AS r(scheme text,key text,hash text,"payloadHash" text,version int,"sourceOrder" bigint,stale boolean) WHERE NOT stale ON CONFLICT(owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key_hash) DO UPDATE SET last_observed_hash=excluded.last_observed_hash,observed_source_version=excluded.observed_source_version,last_source_order=coalesce(excluded.last_source_order,sync_source_identities.last_source_order),updated_at=clock_timestamp() WHERE sync_source_identities.source_key=excluded.source_key`;
-        await tx.$executeRaw`INSERT INTO provider_source_records(source_identity_id,normalized_payload,payload_hash,source_version,processor_version) SELECT s.id,r.payload::jsonb,r."payloadHash",r.version,${processorVersion} FROM jsonb_to_recordset(${data}::jsonb) AS r(scheme text,hash text,payload text,"payloadHash" text,version int,stale boolean) JOIN sync_source_identities s ON s.source_key_scheme=r.scheme AND s.source_key_hash=r.hash AND s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider} AND s.external_account_id=${job.external_account_id} AND s.sync_type=${job.sync_type} WHERE NOT r.stale AND (s.last_resolved_hash IS DISTINCT FROM r."payloadHash" OR s.resolved_processor_version IS DISTINCT FROM ${processorVersion} OR EXISTS(SELECT 1 FROM provider_source_records p WHERE p.source_identity_id=s.id)) ON CONFLICT(source_identity_id) DO UPDATE SET normalized_payload=CASE WHEN provider_source_records.payload_hash IS DISTINCT FROM excluded.payload_hash THEN excluded.normalized_payload ELSE provider_source_records.normalized_payload END,payload_hash=excluded.payload_hash,source_version=excluded.source_version,processor_version=excluded.processor_version,processing_status=${O.PENDING},attempt_count=0,last_error_code=NULL,updated_at=clock_timestamp() WHERE provider_source_records.source_version<excluded.source_version OR provider_source_records.processor_version<excluded.processor_version`;
+        await tx.$executeRaw`INSERT INTO sync_source_identities(owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key,source_key_hash,last_observed_hash,observed_source_version,last_source_order) SELECT ${job.owner_user_id}::uuid,${job.provider},${job.external_account_id},${job.sync_type},scheme,key,hash,"payloadHash",version,"sourceOrder" FROM jsonb_to_recordset(${data}::jsonb) AS r(scheme text,key text,hash text,"payloadHash" text,version int,"sourceOrder" bigint,stale boolean) WHERE NOT stale ON CONFLICT(owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key_hash) DO UPDATE SET last_observed_hash=excluded.last_observed_hash,observed_source_version=excluded.observed_source_version,last_source_order=coalesce(excluded.last_source_order,sync_source_identities.last_source_order),updated_at=clock_timestamp() WHERE sync_source_identities.source_key=excluded.source_key AND (sync_source_identities.last_observed_hash IS DISTINCT FROM excluded.last_observed_hash OR (excluded.last_source_order IS NOT NULL AND (sync_source_identities.last_source_order IS NULL OR excluded.last_source_order>sync_source_identities.last_source_order)))`;
+        await tx.$executeRaw`INSERT INTO provider_source_records(source_identity_id,normalized_payload,payload_hash,source_version,processor_version) SELECT s.id,r.payload::jsonb,r."payloadHash",r.version,${processorVersion} FROM jsonb_to_recordset(${data}::jsonb) AS r(scheme text,hash text,payload text,"payloadHash" text,version int,stale boolean) JOIN sync_source_identities s ON s.source_key_scheme=r.scheme AND s.source_key_hash=r.hash AND s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider} AND s.external_account_id=${job.external_account_id} AND s.sync_type=${job.sync_type} WHERE NOT r.stale AND (s.last_resolved_hash IS DISTINCT FROM r."payloadHash" OR s.resolved_processor_version IS DISTINCT FROM ${processorVersion} OR EXISTS(SELECT 1 FROM provider_source_records p WHERE p.source_identity_id=s.id)) ON CONFLICT(source_identity_id) DO UPDATE SET normalized_payload=CASE WHEN provider_source_records.payload_hash IS DISTINCT FROM excluded.payload_hash THEN excluded.normalized_payload ELSE provider_source_records.normalized_payload END,payload_hash=excluded.payload_hash,source_version=excluded.source_version,processor_version=excluded.processor_version,processing_status=${O.PENDING},attempt_count=0,last_error_code=NULL,next_retry_at=NULL,updated_at=clock_timestamp() WHERE provider_source_records.source_version<excluded.source_version OR provider_source_records.processor_version<excluded.processor_version`;
         await tx.$executeRaw`UPDATE sync_job_items i SET source_version=p.source_version,processor_version=p.processor_version FROM provider_source_records p WHERE i.job_id=${job.id}::uuid AND i.source_identity_id=p.source_identity_id AND i.processing_outcome=${O.PENDING} AND (i.source_version<p.source_version OR i.processor_version<p.processor_version)`;
         await tx.$executeRaw`INSERT INTO sync_job_items(job_id,source_identity_id,source_version,processor_version) SELECT ${job.id}::uuid,p.source_identity_id,p.source_version,p.processor_version FROM provider_source_records p JOIN sync_source_identities s ON s.id=p.source_identity_id JOIN jsonb_to_recordset(${data}::jsonb) AS r(scheme text,hash text,stale boolean) ON s.source_key_scheme=r.scheme AND s.source_key_hash=r.hash WHERE s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider} AND s.external_account_id=${job.external_account_id} AND s.sync_type=${job.sync_type} AND NOT r.stale AND p.processing_status IN ('PENDING','RETRYABLE_ERROR') ON CONFLICT DO NOTHING`;
         await this.assertLease(tx, job);
@@ -429,6 +426,8 @@ export class SyncRepository implements SyncQueue {
         const current = await this.fence(tx, job);
         if (current.processing_phase !== P.APPLYING)
           throw new SyncError(E.SYNC_STALE);
+        const eligible = Prisma.sql`(i.processing_outcome=${O.PENDING} OR (i.processing_outcome=${O.RETRYABLE_ERROR} AND i.attempt_count<${this.config.maxAttempts}))`;
+        const ready = Prisma.sql`${eligible} AND (p.next_retry_at IS NULL OR p.next_retry_at<=clock_timestamp())`;
         const items = await tx.$queryRaw<
           {
             id: string;
@@ -437,7 +436,7 @@ export class SyncRepository implements SyncQueue {
             processor_version: number;
             attempt_count: number;
           }[]
-        >`SELECT i.* FROM sync_job_items i JOIN provider_source_records p ON p.source_identity_id=i.source_identity_id WHERE i.job_id=${job.id}::uuid AND (i.processing_outcome='PENDING' OR (i.processing_outcome='RETRYABLE_ERROR' AND i.attempt_count<${this.config.maxAttempts})) AND (p.next_retry_at IS NULL OR p.next_retry_at<=clock_timestamp()) ORDER BY i.id LIMIT 100 FOR UPDATE OF i`;
+        >`SELECT i.* FROM sync_job_items i JOIN provider_source_records p ON p.source_identity_id=i.source_identity_id WHERE i.job_id=${job.id}::uuid AND ${ready} ORDER BY i.id LIMIT 100 FOR UPDATE OF i`;
         for (const item of items) {
           const sources = await tx.$queryRaw<
             {
@@ -524,13 +523,13 @@ export class SyncRepository implements SyncQueue {
           >`SELECT id FROM sync_job_items WHERE job_id=${job.id}::uuid AND processing_outcome=${O.RETRYABLE_ERROR} AND attempt_count>=${this.config.maxAttempts} LIMIT 1`;
           const pending = await tx.$queryRaw<
             { id: string }[]
-          >`SELECT id FROM sync_job_items WHERE job_id=${job.id}::uuid AND (processing_outcome=${O.PENDING} OR (processing_outcome=${O.RETRYABLE_ERROR} AND attempt_count<${this.config.maxAttempts})) LIMIT 1`;
+          >`SELECT i.id FROM sync_job_items i WHERE i.job_id=${job.id}::uuid AND ${eligible} LIMIT 1`;
           if (failed.length && !pending.length) {
             await tx.$executeRaw`UPDATE sync_jobs SET status=${J.FAILED},last_error_code=${E.INTERNAL_ERROR},finished_at=clock_timestamp(),worker_id=NULL,lease_expires_at=NULL WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
             await tx.$executeRaw`UPDATE sync_configs SET last_completed_at=clock_timestamp(),next_run_at=CASE WHEN enabled THEN clock_timestamp()+interval_minutes*interval '1 minute' ELSE NULL END WHERE carrier_connection_id=${job.carrier_connection_id}::uuid AND sync_type=${job.sync_type}`;
           } else {
             await this.release(tx, job);
-            await tx.$executeRaw`UPDATE sync_jobs SET available_at=CASE WHEN EXISTS(SELECT 1 FROM sync_job_items WHERE job_id=${job.id}::uuid AND processing_outcome=${O.PENDING}) THEN clock_timestamp() ELSE coalesce((SELECT min(p.next_retry_at) FROM sync_job_items i JOIN provider_source_records p ON p.source_identity_id=i.source_identity_id WHERE i.job_id=${job.id}::uuid AND i.processing_outcome=${O.RETRYABLE_ERROR} AND i.attempt_count<${this.config.maxAttempts}),clock_timestamp()) END WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+            await tx.$executeRaw`UPDATE sync_jobs SET available_at=CASE WHEN EXISTS(SELECT 1 FROM sync_job_items i JOIN provider_source_records p ON p.source_identity_id=i.source_identity_id WHERE i.job_id=${job.id}::uuid AND ${ready}) THEN clock_timestamp() ELSE coalesce((SELECT min(p.next_retry_at) FROM sync_job_items i JOIN provider_source_records p ON p.source_identity_id=i.source_identity_id WHERE i.job_id=${job.id}::uuid AND ${eligible}),clock_timestamp()) END WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
           }
         }
         return done;
@@ -569,7 +568,7 @@ export class SyncRepository implements SyncQueue {
     if (!this.config.enabled) return;
     const due = await this.client.$queryRaw<
       { user_id: string; id: string; sync_type: SyncType; provider: string }[]
-    >`SELECT c.user_id,c.id,s.sync_type,c.provider FROM sync_configs s JOIN carrier_connections c ON c.id=s.carrier_connection_id WHERE s.enabled AND s.next_run_at<=clock_timestamp() ORDER BY s.next_run_at LIMIT 100`;
+    >`SELECT c.user_id,c.id,s.sync_type,c.provider FROM sync_configs s JOIN carrier_connections c ON c.id=s.carrier_connection_id WHERE s.enabled AND s.next_run_at<=clock_timestamp() AND NOT EXISTS(SELECT 1 FROM sync_jobs j WHERE j.carrier_connection_id=c.id AND j.sync_type=s.sync_type AND j.status=ANY(${ACTIVE_SYNC_JOBS}::text[])) ORDER BY s.next_run_at LIMIT 100`;
     for (const c of due) {
       if (!this.available(c.provider, c.sync_type)) continue;
       try {

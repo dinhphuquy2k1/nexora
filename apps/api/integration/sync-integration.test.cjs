@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 const { randomUUID, randomBytes, createHash } = require("node:crypto");
 const { execFileSync, spawn } = require("node:child_process");
 const { resolve } = require("node:path");
+const { clearTimeout } = require("node:timers");
 const { createDatabase } = require("@nexora/database");
 const {
   SyncRepository,
@@ -184,6 +185,253 @@ test(
           assert.equal(done.new_count, 5);
           assert.equal(done.changed_count, 25);
           assert.equal(done.unchanged_count, 9975);
+        },
+      );
+      await t.test(
+        "F1 conditional identities preserve unchanged tuples and ordering without version drift",
+        async () => {
+          const rows = (order, changed = 0) =>
+            Array.from({ length: 100 }, (_, i) => ({
+              ...record("conditional-" + i, i < changed ? 2 : 1),
+              ...(order === null ? {} : { sourceOrder: order }),
+            }));
+          const scan = async (records) => {
+            const job = await repo.admit(owner.id, c.id, "SHIPMENT", "MANUAL");
+            await repo.page(await claim(), { records, done: true }, 1);
+            await finish(job);
+            return repo.job(owner.id, c.id, job.id);
+          };
+          const snapshot = () =>
+            db.$queryRaw`SELECT s.source_key,s.updated_at,s.observed_source_version,s.last_source_order,s.last_observed_hash,s.xmin::text AS identity_tuple,p.xmin::text AS payload_tuple,p.updated_at AS payload_updated_at,p.normalized_payload FROM sync_source_identities s JOIN provider_source_records p ON p.source_identity_id=s.id WHERE s.source_key LIKE '%conditional-%' ORDER BY s.source_key`;
+          await scan(rows(10));
+          const first = await snapshot();
+          const unchanged = await scan(rows(10));
+          assert.deepEqual(
+            [
+              unchanged.new_count,
+              unchanged.changed_count,
+              unchanged.unchanged_count,
+            ],
+            [0, 0, 100],
+          );
+          assert.deepEqual(
+            await snapshot(),
+            first,
+            "unchanged fetch must not UPDATE either physical tuple",
+          );
+          await scan(rows(10, 5));
+          const changed = await snapshot();
+          assert.equal(
+            changed.filter((r) => r.observed_source_version === 2).length,
+            5,
+          );
+          assert.equal(
+            changed.filter(
+              (r, i) => r.identity_tuple !== first[i].identity_tuple,
+            ).length,
+            5,
+          );
+          await scan(rows(20, 5));
+          const advanced = await snapshot();
+          for (let i = 0; i < 100; i++) {
+            assert.equal(advanced[i].last_source_order, 20n);
+            assert.equal(
+              advanced[i].observed_source_version,
+              changed[i].observed_source_version,
+            );
+            assert.equal(advanced[i].payload_tuple, changed[i].payload_tuple);
+          }
+          await scan(rows(null, 5));
+          assert.deepEqual(
+            await snapshot(),
+            advanced,
+            "null order cannot clear trusted ordering or write unchanged rows",
+          );
+          await scan(rows(15).map((r) => ({ ...r, payload: { value: 999 } })));
+          assert.deepEqual(
+            await snapshot(),
+            advanced,
+            "stale source response cannot overwrite ordering/hash/payload",
+          );
+        },
+      );
+      await t.test(
+        "F2 new versions clear retry deadlines and future PENDING/RETRYABLE items do not hot-loop",
+        async () => {
+          const jobs = [];
+          const start = async (value, version = 1) => {
+            const j = await repo.admit(owner.id, c.id, "SHIPMENT", "MANUAL");
+            jobs.push(j.id);
+            await repo.page(
+              await claim(),
+              { records: [record("retry-version", value)], done: true },
+              version,
+            );
+            return j;
+          };
+          const retry = {
+            ...processor,
+            apply: async () => ({
+              outcome: "RETRYABLE_ERROR",
+              retryAfterMs: 60000,
+            }),
+          };
+          try {
+            const old = await start(1);
+            await repo.apply(await claim(), retry);
+            const originalDeadline = (
+              await db.$queryRaw`SELECT p.next_retry_at FROM provider_source_records p JOIN sync_source_identities s ON s.id=p.source_identity_id WHERE s.source_key=${sourceKey("fixture-v1", ["retry-version"]).key}`
+            )[0].next_retry_at;
+            assert.ok(
+              (await repo.job(owner.id, c.id, old.id)).available_at >
+                new Date(),
+            );
+            for (let i = 0; i < 5; i++)
+              assert.equal(await repo.claim(randomUUID()), null);
+            await db.$executeRaw`UPDATE sync_jobs SET status='FAILED',finished_at=clock_timestamp() WHERE id=${old.id}::uuid`;
+            const same = await start(1);
+            const unchangedRetry = (
+              await db.$queryRaw`SELECT p.next_retry_at,p.attempt_count FROM provider_source_records p JOIN sync_source_identities s ON s.id=p.source_identity_id WHERE s.source_key=${sourceKey("fixture-v1", ["retry-version"]).key}`
+            )[0];
+            assert.equal(
+              unchangedRetry.next_retry_at.getTime(),
+              originalDeadline.getTime(),
+            );
+            assert.equal(unchangedRetry.attempt_count, 1);
+            await repo.apply(await claim(), processor);
+            assert.ok(
+              (await repo.job(owner.id, c.id, same.id)).available_at >
+                new Date(),
+            );
+            assert.equal(await repo.claim(randomUUID()), null);
+            await db.$executeRaw`UPDATE sync_jobs SET status='FAILED',finished_at=clock_timestamp() WHERE id=${same.id}::uuid`;
+            const fresh = await start(2);
+            let source = (
+              await db.$queryRaw`SELECT p.* FROM provider_source_records p JOIN sync_source_identities s ON s.id=p.source_identity_id WHERE s.source_key=${sourceKey("fixture-v1", ["retry-version"]).key}`
+            )[0];
+            assert.equal(source.next_retry_at, null);
+            assert.equal(source.processing_status, "PENDING");
+            assert.equal(source.attempt_count, 0);
+            await finish(fresh);
+            const upgraded = await start(2, 2);
+            // Legacy PENDING with a future deadline must wait, not claim/release repeatedly.
+            await db.$executeRaw`UPDATE provider_source_records SET next_retry_at=clock_timestamp()+interval '1 minute' WHERE source_identity_id=${source.source_identity_id}::uuid`;
+            await repo.apply(await claim(), { ...processor, version: 2 });
+            const waiting = await repo.job(owner.id, c.id, upgraded.id);
+            assert.equal(waiting.status, "WAITING");
+            assert.ok(waiting.available_at > new Date());
+            for (let i = 0; i < 5; i++)
+              assert.equal(await repo.claim(randomUUID()), null);
+            assert.equal(
+              (await repo.job(owner.id, c.id, upgraded.id)).lease_version,
+              waiting.lease_version,
+            );
+            await db.$executeRaw`UPDATE provider_source_records SET processing_status='RETRYABLE_ERROR',attempt_count=1 WHERE source_identity_id=${source.source_identity_id}::uuid`;
+            await db.$executeRaw`UPDATE sync_job_items SET processing_outcome='RETRYABLE_ERROR',attempt_count=1 WHERE job_id=${upgraded.id}::uuid`;
+            await db.$executeRaw`UPDATE sync_jobs SET status='FAILED',finished_at=clock_timestamp() WHERE id=${upgraded.id}::uuid`;
+            const processorUpgrade = await start(2, 3);
+            source = (
+              await db.$queryRaw`SELECT * FROM provider_source_records WHERE source_identity_id=${source.source_identity_id}::uuid`
+            )[0];
+            assert.equal(source.next_retry_at, null);
+            assert.equal(source.source_version, 2);
+            assert.equal(source.processor_version, 3);
+            await finish(processorUpgrade, { ...processor, version: 3 });
+          } finally {
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL,finished_at=clock_timestamp() WHERE id=ANY(${jobs}::uuid[]) AND status IN ('QUEUED','RUNNING','WAITING')`;
+          }
+        },
+      );
+      await t.test(
+        "F3 scheduler admits the101st due lane and preserves manual/concurrent/WAITING lane uniqueness",
+        async () => {
+          const schedulerOwner = await db.user.create({
+            data: { username: "scheduler-" + randomUUID(), role: "OPERATOR" },
+          });
+          const connections = [];
+          try {
+            for (let i = 0; i < 101; i++) {
+              const lane = await db.carrierConnection.create({
+                data: {
+                  userId: schedulerOwner.id,
+                  provider: "uniship",
+                  externalAccountId: "scheduler-" + randomUUID(),
+                  displayName: "Synthetic",
+                  status: "CONNECTED",
+                },
+              });
+              connections.push(lane);
+              await repo.configure(
+                schedulerOwner.id,
+                lane.id,
+                "SHIPMENT",
+                true,
+                60,
+              );
+            }
+            await db.$executeRaw`UPDATE sync_configs SET next_run_at=clock_timestamp()-interval '1 minute' WHERE carrier_connection_id=ANY(${connections.map((r) => r.id)}::uuid[])`;
+            await repo.schedule();
+            assert.equal(
+              (
+                await db.$queryRaw`SELECT count(*)::int AS n FROM sync_jobs WHERE owner_user_id=${schedulerOwner.id}::uuid`
+              )[0].n,
+              100,
+            );
+            await repo.schedule();
+            assert.equal(
+              (
+                await db.$queryRaw`SELECT count(*)::int AS n FROM sync_jobs WHERE owner_user_id=${schedulerOwner.id}::uuid`
+              )[0].n,
+              101,
+            );
+            const first = await repo.admit(
+              schedulerOwner.id,
+              connections[0].id,
+              "SHIPMENT",
+              "MANUAL",
+            );
+            await db.$executeRaw`UPDATE sync_jobs SET status='WAITING' WHERE id=${first.id}::uuid`;
+            await db.$executeRaw`UPDATE sync_jobs SET status=CASE WHEN carrier_connection_id=${connections[1].id}::uuid THEN 'FAILED' ELSE 'SUCCEEDED' END,finished_at=clock_timestamp() WHERE carrier_connection_id=ANY(${connections.slice(1, 3).map((r) => r.id)}::uuid[])`;
+            const [manual] = await Promise.all([
+              repo.admit(
+                schedulerOwner.id,
+                connections[1].id,
+                "SHIPMENT",
+                "MANUAL",
+              ),
+              repo.schedule(),
+              repo.schedule(),
+            ]);
+            assert.equal(
+              (
+                await repo.admit(
+                  schedulerOwner.id,
+                  connections[1].id,
+                  "SHIPMENT",
+                  "AUTO",
+                )
+              ).id,
+              manual.id,
+            );
+            assert.equal(
+              (
+                await repo.admit(
+                  schedulerOwner.id,
+                  connections[0].id,
+                  "SHIPMENT",
+                  "AUTO",
+                )
+              ).id,
+              first.id,
+            );
+            const active =
+              await db.$queryRaw`SELECT carrier_connection_id,count(*)::int AS n FROM sync_jobs WHERE owner_user_id=${schedulerOwner.id}::uuid AND status IN ('QUEUED','RUNNING','WAITING') GROUP BY carrier_connection_id`;
+            assert.equal(active.length, 101);
+            assert.ok(active.every((r) => r.n === 1));
+          } finally {
+            await db.$executeRaw`UPDATE sync_configs SET enabled=false WHERE carrier_connection_id=ANY(${connections.map((r) => r.id)}::uuid[])`;
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL,finished_at=clock_timestamp() WHERE owner_user_id=${schedulerOwner.id}::uuid AND status IN ('QUEUED','RUNNING','WAITING')`;
+          }
         },
       );
       await t.test(
