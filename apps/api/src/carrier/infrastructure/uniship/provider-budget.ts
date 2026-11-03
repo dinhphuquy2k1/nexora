@@ -33,7 +33,7 @@ export class ProviderBudget {
   private failures = 0;
   private blockedUntil = 0;
   constructor(private readonly now: () => number = Date.now) {}
-  async run<T>(operation: () => Promise<T>): Promise<T> {
+  async run<T>(operation: (signal?: AbortSignal) => Promise<T>): Promise<T> {
     if (this.active >= 2 || this.now() < this.blockedUntil) {
       throw new LifecycleFailure(
         LifecycleCode.RATE_LIMITED,

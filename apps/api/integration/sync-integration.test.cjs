@@ -1082,6 +1082,190 @@ test(
         },
       );
       await t.test(
+        "F4 >30-second operations renew reservations and keep both slots exclusively owned",
+        async () => {
+          const name = "renew-" + randomUUID().slice(0, 8);
+          const one = new PostgresProviderBudget(url.toString(), name),
+            two = new PostgresProviderBudget(url.toString(), name);
+          const startA = Promise.withResolvers(),
+            startB = Promise.withResolvers(),
+            endA = Promise.withResolvers(),
+            endB = Promise.withResolvers();
+          const a = one.run(async () => {
+            startA.resolve();
+            await endA.promise;
+            return "a";
+          });
+          const b = two.run(async () => {
+            startB.resolve();
+            await endB.promise;
+            return "b";
+          });
+          try {
+            await Promise.all([startA.promise, startB.promise]);
+            const initial =
+              await db.$queryRaw`SELECT slot,lease_token FROM sync_provider_budget WHERE provider=${name} ORDER BY slot`;
+            await new Promise((resolve) => setTimeout(resolve, 31050));
+            const retained =
+              await db.$queryRaw`SELECT slot,lease_token,lease_expires_at>clock_timestamp() AS valid FROM sync_provider_budget WHERE provider=${name} ORDER BY slot`;
+            assert.ok(retained.every((r) => r.valid));
+            assert.deepEqual(
+              retained.map((r) => r.lease_token),
+              initial.map((r) => r.lease_token),
+            );
+            await assert.rejects(
+              one.run(async () => "third"),
+              (e) => e.code === "RATE_LIMITED",
+            );
+          } finally {
+            endA.resolve();
+            endB.resolve();
+            await Promise.allSettled([a, b]);
+            await one.onApplicationShutdown();
+            await two.onApplicationShutdown();
+          }
+          assert.deepEqual(await Promise.all([a, b]), ["a", "b"]);
+        },
+      );
+      await t.test(
+        "F4 lost token cancels, fences late success/failure bookkeeping and cannot release its successor",
+        async () => {
+          for (const lateFailure of [false, true]) {
+            const name = "lost-" + randomUUID().slice(0, 8);
+            const one = new PostgresProviderBudget(url.toString(), name),
+              two = new PostgresProviderBudget(url.toString(), name);
+            const started = Promise.withResolvers(),
+              finish = Promise.withResolvers(),
+              replacementStarted = Promise.withResolvers(),
+              replacementFinish = Promise.withResolvers();
+            let signal;
+            const old = one.run(async (s) => {
+              signal = s;
+              started.resolve();
+              await finish.promise;
+              if (lateFailure)
+                throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+              return "invalid-late-success";
+            });
+            const result = old.then(
+              (value) => ({ value }),
+              (error) => ({ error }),
+            );
+            let replacement;
+            try {
+              await started.promise;
+              await db.$executeRaw`UPDATE sync_provider_budget SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE provider=${name} AND lease_token IS NOT NULL`;
+              replacement = two.run(async () => {
+                replacementStarted.resolve();
+                await replacementFinish.promise;
+                return "replacement";
+              });
+              await replacementStarted.promise;
+              const held = (
+                await db.$queryRaw`SELECT id,lease_token FROM sync_provider_budget WHERE provider=${name} AND lease_token IS NOT NULL`
+              )[0];
+              await db.$executeRaw`UPDATE sync_provider_budget SET failures=7 WHERE provider=${name}`;
+              assert.ok(
+                signal,
+                "budget must supply transport cancellation signal",
+              );
+              if (!signal.aborted)
+                await new Promise((resolve, reject) => {
+                  const timer = setTimeout(
+                    () => reject(Error("LEASE_LOSS_NOT_CANCELLED")),
+                    12000,
+                  );
+                  signal.addEventListener(
+                    "abort",
+                    () => {
+                      clearTimeout(timer);
+                      resolve();
+                    },
+                    { once: true },
+                  );
+                });
+              finish.resolve();
+              assert.equal((await result).error?.code, "SERVICE_UNAVAILABLE");
+              const after = (
+                await db.$queryRaw`SELECT lease_token,failures,blocked_until FROM sync_provider_budget WHERE id=${held.id}::uuid`
+              )[0];
+              assert.equal(
+                after.lease_token,
+                held.lease_token,
+                "old finally cannot release successor",
+              );
+              assert.equal(
+                after.failures,
+                7,
+                "lost owner cannot reset/increment successor failure counters",
+              );
+              assert.equal(
+                after.blocked_until,
+                null,
+                "lost owner cannot impose late cooldown",
+              );
+            } finally {
+              finish.resolve();
+              replacementFinish.resolve();
+              await result;
+              if (replacement) await replacement;
+              await one.onApplicationShutdown();
+              await two.onApplicationShutdown();
+            }
+          }
+        },
+      );
+      await t.test(
+        "F4 terminal ownership check rejects expired fast operations before heartbeat and leaves counters untouched",
+        async () => {
+          for (const fail of [false, true]) {
+            const name = "terminal-" + randomUUID().slice(0, 8);
+            const budget = new PostgresProviderBudget(url.toString(), name);
+            const entered = Promise.withResolvers(),
+              finish = Promise.withResolvers();
+            let signal;
+            const result = budget
+              .run(async (s) => {
+                signal = s;
+                entered.resolve();
+                await finish.promise;
+                if (fail)
+                  throw new LifecycleFailure(LifecycleCode.RATE_LIMITED, 60000);
+                return "late";
+              })
+              .then(
+                (value) => ({ value }),
+                (error) => ({ error }),
+              );
+            try {
+              await entered.promise;
+              await db.$executeRaw`UPDATE sync_provider_budget SET lease_expires_at=clock_timestamp()-interval '1 second',failures=7 WHERE provider=${name}`;
+              assert.equal(
+                signal.aborted,
+                false,
+                "exercise terminal CAS before periodic renewal",
+              );
+              finish.resolve();
+              assert.equal((await result).error?.code, "SERVICE_UNAVAILABLE");
+              const slots =
+                await db.$queryRaw`SELECT failures,blocked_until,lease_token FROM sync_provider_budget WHERE provider=${name}`;
+              assert.ok(
+                slots.every(
+                  (s) =>
+                    s.failures === 7 &&
+                    s.blocked_until === null &&
+                    s.lease_token === null,
+                ),
+              );
+            } finally {
+              finish.resolve();
+              await result;
+              await budget.onApplicationShutdown();
+            }
+          }
+        },
+      );
+      await t.test(
         "real API and worker processes share the same provider reservation budget",
         async () => {
           await db.$executeRaw`UPDATE sync_provider_budget SET blocked_until=NULL,failures=0,lease_token=NULL,lease_expires_at=NULL`;

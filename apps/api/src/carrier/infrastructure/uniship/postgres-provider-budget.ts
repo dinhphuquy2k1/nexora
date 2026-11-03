@@ -12,7 +12,7 @@ export class PostgresProviderBudget {
   private get db(): PrismaClient {
     return (this.instance ??= createDatabase(this.url));
   }
-  async run<T>(operation: () => Promise<T>): Promise<T> {
+  async run<T>(operation: (signal?: AbortSignal) => Promise<T>): Promise<T> {
     const token = randomUUID();
     const slot = await this.db.$transaction(async (tx) => {
       await tx.$executeRaw`INSERT INTO sync_provider_budget(provider,slot) VALUES(${this.provider},0),(${this.provider},1) ON CONFLICT DO NOTHING`;
@@ -26,29 +26,66 @@ export class PostgresProviderBudget {
       await tx.$executeRaw`UPDATE sync_provider_budget SET lease_token=${token}::uuid,lease_expires_at=clock_timestamp()+interval '30 seconds' WHERE id=${free.id}::uuid`;
       return free;
     });
-    let succeeded = false;
+    const controller = new AbortController();
+    let renewal: Promise<void> | null = null;
+    const lost = () => {
+      controller.abort(new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE));
+      clearInterval(timer);
+    };
+    const timer = setInterval(() => {
+      if (renewal || controller.signal.aborted) return;
+      renewal = this.db.$queryRaw<
+        { id: string }[]
+      >`UPDATE sync_provider_budget SET lease_expires_at=clock_timestamp()+interval '30 seconds' WHERE id=${slot.id}::uuid AND lease_token=${token}::uuid AND lease_expires_at>clock_timestamp() RETURNING id`
+        .then((rows) => {
+          if (rows.length !== 1) lost();
+        })
+        .catch(lost)
+        .finally(() => {
+          renewal = null;
+        });
+    }, 10000);
     try {
-      const result = await operation();
-      succeeded = true;
-      return result;
-    } catch (error) {
-      if (
-        error instanceof LifecycleFailure &&
-        (error.code === LifecycleCode.RATE_LIMITED ||
-          error.code === LifecycleCode.SERVICE_UNAVAILABLE)
-      ) {
-        const delay = Math.max(
-          Math.min(error.retryAfterMs, 300000),
-          Math.min(60000, 1000 * 2 ** Math.min(slot.failures, 6)),
-        );
-        await this.db
-          .$executeRaw`UPDATE sync_provider_budget SET blocked_until=greatest(coalesce(blocked_until,clock_timestamp()),clock_timestamp()+${delay}*interval '1 millisecond'),failures=failures+1 WHERE provider=${this.provider}`;
+      let value: T | undefined,
+        failure: unknown,
+        failed = false;
+      try {
+        value = await operation(controller.signal);
+      } catch (error) {
+        failed = true;
+        failure = error;
       }
-      throw error;
+      clearInterval(timer);
+      await renewal;
+      controller.signal.throwIfAborted();
+      // Serialize terminal bookkeeping in acquisition order. Lost owners cannot
+      // return success, reset failures, impose cooldown, or affect a successor.
+      await this.db.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM sync_provider_budget WHERE provider=${this.provider} ORDER BY slot FOR UPDATE`;
+        const owned = await tx.$queryRaw<
+          { id: string }[]
+        >`UPDATE sync_provider_budget SET lease_expires_at=clock_timestamp()+interval '30 seconds' WHERE id=${slot.id}::uuid AND lease_token=${token}::uuid AND lease_expires_at>clock_timestamp() RETURNING id`;
+        if (owned.length !== 1)
+          throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+        if (!failed)
+          await tx.$executeRaw`UPDATE sync_provider_budget SET failures=0 WHERE provider=${this.provider}`;
+        else if (
+          failure instanceof LifecycleFailure &&
+          (failure.code === LifecycleCode.RATE_LIMITED ||
+            failure.code === LifecycleCode.SERVICE_UNAVAILABLE)
+        ) {
+          const delay = Math.max(
+            Math.min(failure.retryAfterMs, 300000),
+            Math.min(60000, 1000 * 2 ** Math.min(slot.failures, 6)),
+          );
+          await tx.$executeRaw`UPDATE sync_provider_budget SET blocked_until=greatest(coalesce(blocked_until,clock_timestamp()),clock_timestamp()+${delay}*interval '1 millisecond'),failures=failures+1 WHERE provider=${this.provider}`;
+        }
+      });
+      if (failed) throw failure;
+      return value as T;
     } finally {
-      if (succeeded)
-        await this.db
-          .$executeRaw`UPDATE sync_provider_budget SET failures=0 WHERE provider=${this.provider}`;
+      clearInterval(timer);
+      await renewal;
       await this.db
         .$executeRaw`UPDATE sync_provider_budget SET lease_token=NULL,lease_expires_at=NULL WHERE id=${slot.id}::uuid AND lease_token=${token}::uuid`;
     }
