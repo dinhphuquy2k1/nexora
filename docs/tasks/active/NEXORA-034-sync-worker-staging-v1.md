@@ -14,10 +14,10 @@ Branch: feat/sync-worker-staging-v1. No merge/deployment authorized.
 
 Task ID: NEXORA-034
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-03-sync-review-fixes-v1
-Design Snapshot: docs/tasks/design-reviews/NEXORA-034-rev-2026-11-03-sync-review-fixes-v1.md
-Design SHA-256: b436333a4b319afb802e6253ecf5e1b46a179fd8d092fc1d078788762f9dfc63
-Reviewed baseline: 6f0292604261b4a7dccc775da611a048842ed019
+Plan revision: rev-2026-11-03-sync-final-review-v2
+Design Snapshot: docs/tasks/design-reviews/NEXORA-034-rev-2026-11-03-sync-final-review-v2.md
+Design SHA-256: cbac9a184e51ce25cfba7fdf97c624f62ee417b3feb0a75194f2f56cef1efc42
+Reviewed baseline: cf1353a276b1d45f94b6788f559488b715dd4022
 
 Read-only inventory, eight-field reuse matrix, domain ownership, alternatives,
 contracts, security/locking, migration/test plan and bounded provider/domain
@@ -367,3 +367,12 @@ and completed Inspection close before the next action. Retain all assertions and
 add closed named subphases/count-only fixture diagnostics to identify any repeat.
 No production/Auth/UI behavior, timeout or workflow assertion changed. A fresh
 final-head Foundation run is still required; no rerun-only success claim.
+
+## Final review F7–F9 checkpoint — 2026-11-03
+
+Restored the missing RAM worktree from the existing Git index after environment
+restart; no staged/unrelated edits existed. Fetch/ff-only pull and GitHub confirm
+cf1353a276b1d45f94b6788f559488b715dd4022. Scoped plan/reuse audit above is recorded
+before code/tests, retaining previous snapshots unchanged. Implement F7 then F8/F9
+with RED/GREEN evidence, three independent rounds and new-head canonical CI. No
+new migration or architectural/Provider/Domain work. Documentation Impact REQUIRED.
