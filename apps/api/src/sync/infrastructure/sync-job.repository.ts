@@ -374,6 +374,12 @@ export class SyncRepository implements SyncQueue {
         prior = unique.get(key);
       if (prior && prior.payloadHash !== entry.payloadHash)
         throw new SyncError(E.SOURCE_CONFLICT);
+      if (
+        prior &&
+        prior.sourceOrder !== null &&
+        (entry.sourceOrder === null || entry.sourceOrder < prior.sourceOrder)
+      )
+        continue;
       unique.set(key, entry);
     }
     await this.client.$transaction(
@@ -408,12 +414,23 @@ export class SyncRepository implements SyncQueue {
           );
           if (prior && prior.source_key !== r.key)
             throw new SyncError(E.SOURCE_CONFLICT);
+          const previousOrder = prior?.last_source_order ?? null;
+          const incomingOrder =
+            r.sourceOrder === null ? null : BigInt(r.sourceOrder);
+          const hashChanged = prior?.last_observed_hash !== r.payloadHash;
+          // Missing/equal order cannot establish which differing payload is newer,
+          // including providers whose ordering is only a coarse timestamp.
+          if (
+            previousOrder !== null &&
+            hashChanged &&
+            (incomingOrder === null || incomingOrder === previousOrder)
+          )
+            throw new SyncError(E.SOURCE_CONFLICT);
           const stale =
-            prior?.last_source_order !== null &&
-            prior?.last_source_order !== undefined &&
-            r.sourceOrder !== null &&
-            BigInt(r.sourceOrder) < prior.last_source_order;
-          const differs = !stale && prior?.last_observed_hash !== r.payloadHash;
+            previousOrder !== null &&
+            incomingOrder !== null &&
+            incomingOrder < previousOrder;
+          const differs = !stale && hashChanged;
           if (!prior) added++;
           else if (differs) changed++;
           else unchanged++;

@@ -225,7 +225,9 @@ test(
             first,
             "unchanged fetch must not UPDATE either physical tuple",
           );
-          await scan(rows(10, 5));
+          await scan(
+            rows(10, 5).map((r, i) => ({ ...r, sourceOrder: i < 5 ? 11 : 10 })),
+          );
           const changed = await snapshot();
           assert.equal(
             changed.filter((r) => r.observed_source_version === 2).length,
@@ -261,6 +263,174 @@ test(
           );
         },
       );
+      await t.test(
+        "F7 ambiguous ordering rolls back before every bulk write and preserves unordered scans",
+        async (ordering) => {
+          const lane = await connection();
+          const source = (key, value, order) => ({
+            ...record("ordering-" + key, value),
+            ...(order === undefined ? {} : { sourceOrder: order }),
+          });
+          const state = () =>
+            db.$queryRaw`SELECT s.*,s.xmin::text AS identity_tuple,p.xmin::text AS payload_tuple,p.normalized_payload,p.payload_hash,p.source_version,p.processor_version,p.updated_at AS payload_updated_at FROM sync_source_identities s LEFT JOIN provider_source_records p ON p.source_identity_id=s.id WHERE s.owner_user_id=${owner.id}::uuid AND s.external_account_id=${lane.externalAccountId} ORDER BY s.source_key`;
+          const start = () =>
+            repo.admit(owner.id, lane.id, "SHIPMENT", "MANUAL");
+          const applyAll = async (id) => {
+            while (
+              (await repo.job(owner.id, lane.id, id)).status !== "SUCCEEDED"
+            )
+              await repo.apply(await claim(), processor);
+          };
+          const scan = async (records) => {
+            const j = await start();
+            await repo.page(
+              await claim(),
+              { records, done: true, watermark: "confirmed" },
+              1,
+            );
+            await applyAll(j.id);
+            return j;
+          };
+          const conflict = async (records) => {
+            const j = await start(),
+              work = await claim();
+            const before = await state(),
+              checkpoint =
+                await db.$queryRaw`SELECT * FROM sync_jobs WHERE id=${j.id}::uuid`,
+              watermark =
+                await db.$queryRaw`SELECT * FROM sync_configs WHERE carrier_connection_id=${lane.id}::uuid`;
+            try {
+              await assert.rejects(
+                repo.page(
+                  work,
+                  {
+                    records,
+                    done: true,
+                    nextPage: 9,
+                    watermark: "unconfirmed",
+                  },
+                  1,
+                ),
+                (e) => e instanceof SyncError && e.code === "SOURCE_CONFLICT",
+              );
+              assert.deepEqual(
+                await state(),
+                before,
+                "no identity or staging tuple may change",
+              );
+              assert.deepEqual(
+                await db.$queryRaw`SELECT * FROM sync_jobs WHERE id=${j.id}::uuid`,
+                checkpoint,
+                "no checkpoint, counters or target watermark may advance",
+              );
+              assert.deepEqual(
+                await db.$queryRaw`SELECT * FROM sync_configs WHERE carrier_connection_id=${lane.id}::uuid`,
+                watermark,
+                "completed watermark remains confirmed",
+              );
+              assert.equal(
+                await db.syncJobItem.count({ where: { job_id: j.id } }),
+                0,
+              );
+            } finally {
+              await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL,finished_at=clock_timestamp() WHERE id=${j.id}::uuid`;
+            }
+          };
+          try {
+            await repo.configure(owner.id, lane.id, "SHIPMENT", false, 60);
+            await scan([source("trusted", 1, 20), source("unordered", 1)]);
+            await ordering.test(
+              "missing order with changed hash conflicts atomically",
+              () => conflict([source("trusted", 2)]),
+            );
+            await ordering.test(
+              "equal order with changed hash cannot choose an ambiguous revision",
+              () => conflict([source("trusted", 2, 20)]),
+            );
+            await ordering.test(
+              "one ambiguous row rejects preceding new and changed rows in the same batch",
+              () =>
+                conflict([
+                  source("new", 1),
+                  source("unordered", 2),
+                  source("trusted", 2),
+                ]),
+            );
+            await ordering.test(
+              "equal/missing order and identical payload leave physical tuples unchanged",
+              async () => {
+                const before = await state();
+                await scan([source("trusted", 1, 20)]);
+                assert.deepEqual(await state(), before);
+                await scan([source("trusted", 1)]);
+                assert.deepEqual(await state(), before);
+              },
+            );
+            await ordering.test(
+              "older changed response is ignored without creating a processing item",
+              async () => {
+                const before = await state(),
+                  j = await scan([source("trusted", 999, 15)]);
+                assert.deepEqual(await state(), before);
+                assert.equal(
+                  await db.syncJobItem.count({ where: { job_id: j.id } }),
+                  0,
+                );
+              },
+            );
+            await ordering.test(
+              "newer order and changed hash advance exactly one payload version/item",
+              async () => {
+                const j = await scan([source("trusted", 2, 21)]),
+                  row = (await state()).find(
+                    (r) => r.last_source_order === 21n,
+                  );
+                assert.equal(row.observed_source_version, 2);
+                assert.equal(row.source_version, 2);
+                assert.deepEqual(row.normalized_payload, { value: 2 });
+                const items = await db.syncJobItem.findMany({
+                  where: { job_id: j.id },
+                });
+                assert.equal(items.length, 1);
+                assert.equal(items[0].source_version, 2);
+              },
+            );
+            await ordering.test(
+              "unordered changed payload preserves full-fetch hash comparison",
+              async () => {
+                await scan([source("unordered", 2)]);
+                const row = (await state()).find(
+                  (r) => r.last_source_order === null,
+                );
+                assert.equal(row.observed_source_version, 2);
+                assert.deepEqual(row.normalized_payload, { value: 2 });
+              },
+            );
+            await ordering.test(
+              "identical-hash duplicates retain greatest order regardless of input order",
+              async () => {
+                await scan([
+                  source("duplicate-a", 1, 20),
+                  source("duplicate-a", 1),
+                  source("duplicate-a", 1, 15),
+                  source("duplicate-b", 1),
+                  source("duplicate-b", 1, 20),
+                ]);
+                for (const row of (await state()).filter((r) =>
+                  r.source_key.includes("duplicate-"),
+                )) {
+                  assert.equal(row.last_source_order, 20n);
+                  assert.equal(row.observed_source_version, 1);
+                }
+                await conflict([source("duplicate-a", 2)]);
+              },
+            );
+          } finally {
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL,finished_at=clock_timestamp() WHERE carrier_connection_id=${lane.id}::uuid AND status IN ('QUEUED','RUNNING','WAITING')`;
+          }
+        },
+      );
+
       await t.test(
         "F2 new versions clear retry deadlines and future PENDING/RETRYABLE items do not hot-loop",
         async () => {

@@ -52,3 +52,15 @@ Provider reservations renew their unique token while the operation runs and abor
 transport on loss; success, cooldown/reset and release are ownership-fenced. Existing
 quota/backoff and endpoint/validation policy remain. Six review fixes and their
 actual regressions are recorded in the NEXORA-034 scoped review revision.
+
+## 2026-11-03 final source-order clarification
+
+A missing order remains valid for genuinely unordered sources (prior order NULL)
+using full-fetch hash comparison. Once an identity has a nonnull order, a changed
+hash with missing or equal order cannot prove a newer observation: reject the
+entire page with existing SOURCE_CONFLICT before bulk writes/checkpoint changes.
+This also fails closed for coarse timestamps; order is not assumed to be a unique
+provider revision. Older observations are ignored; same hash/equal or missing
+order is physically unchanged; greater order advances metadata or payload version
+as applicable. Identical-hash page duplicates retain the greatest nonnull order.
+No provider contract, record outcome, retry/watermark policy or schema is added.

@@ -376,3 +376,24 @@ cf1353a276b1d45f94b6788f559488b715dd4022. Scoped plan/reuse audit above is recor
 before code/tests, retaining previous snapshots unchanged. Implement F7 then F8/F9
 with RED/GREEN evidence, three independent rounds and new-head canonical CI. No
 new migration or architectural/Provider/Domain work. Documentation Impact REQUIRED.
+
+### F7 execution checkpoint
+
+Existing cached public Prisma toolchain archive SHA-256
+e72c47d8c854ff5d8f57d820481870988c7e5d1ac1461471758ac4000948e00a was recovered;
+engine reports pinned0edf323efd1d98336f3f0a68684b56f689b900d3. Genuine generation/API
+build PASS, after initial binaries.prisma.sh403 FAIL. Frozen offline install lacked
+a tarball; normal frozen install PASS, no lock/dependency change. First temporary
+owned PG launcher mistakenly observed temporary Unix startup; TCP readiness fixed.
+The subsequent actual RED run reproduced missing/equal ordering writes and duplicate
+order loss. First GREEN attempt exposed new test-only Prisma field typos; corrected
+to existing snake_case model fields without changing assertions.
+
+At the final working-tree F7 correction,2026-11-03T13:05Z, full genuine Sync PG suite
+PASS33/33,0fail/0skip (90.7s), including eight F7 cases and F1–F6 regressions. Owned
+random loopback/tmpfs container cleanup verified, no user volumes touched. F7 adds
+pre-write order ambiguity validation and same-hash duplicate max-order preservation
+in sync-job.repository.ts. Mixed batches prove complete identity/staging/job/config
+rollback and no item creation. Independent Round1 found no confirmed P1/P2. F8/F9
+native RED tests reproduce absent Next Run and canonical icon/label mismatch;
+implementation and final-head hosted checks remain pending.
