@@ -1087,25 +1087,60 @@ export async function verifyCarrierBrowser({
       "real keyboard focus",
     );
     await capture("primary-focus", 1440, 900);
+    const detailUntil = async (expression) => {
+      try {
+        await until(expression);
+      } catch (error) {
+        // Only closed synthetic-fixture counts/flags; no DOM text, payload or credentials.
+        console.error(
+          "SYNC_ISSUES_FIXTURE_STATE",
+          await evaluate(
+            "({dialogs:document.querySelectorAll('dialog[open]').length,issues:document.querySelectorAll('[data-sync-issue]').length,historyRows:document.querySelectorAll('[data-carrier-history-id]').length,loading:!!document.querySelector('dialog[open] [role=status]'),alert:!!document.querySelector('dialog[open] [role=alert]'),denied:document.body.dataset.syncDenied==='true'})",
+          ),
+        );
+        throw error;
+      }
+    };
     checks.step("SYNC_ISSUES_EXISTING_INSPECTION_SDK_AND_DRAWER_STATE");
     await viewport(1440, 900);
     await navigate("?syncIssues");
-    await until("document.querySelectorAll('dialog[open]').length===1");
+    await detailUntil("document.querySelectorAll('dialog[open]').length===1");
+    checks.step("SYNC_ISSUES_SCHEDULE_DRAFT");
     await click("Lịch tự động");
+    await detailUntil("!!document.querySelector('dialog[open] [role=switch]')");
     await pointer("dialog[open] [role=switch]");
+    await detailUntil(
+      "document.querySelector('dialog[open] [role=switch]').getAttribute('aria-checked')==='true'",
+    );
     await click("Lịch sử đồng bộ");
+    await detailUntil(
+      "!!document.querySelector('[aria-label=\"Lọc loại dữ liệu đồng bộ\"]')",
+    );
     await select("Lọc loại dữ liệu đồng bộ", "SHIPMENT");
     await input(
       '[aria-label="Khoảng ngày lịch sử"]',
       "01/01/2026 - 01/01/2026",
     );
     await click("Lọc lại");
+    checks.step("SYNC_ISSUES_HISTORY_FILTERS_READY");
     const openIssue = async (n) => {
+      checks.step("SYNC_ISSUES_OPEN_JOB_" + n);
       await pointer('[data-carrier-history-id="' + issueJobId(n) + '"]');
-      await until("document.querySelectorAll('dialog[open]').length===2");
+      await detailUntil(
+        "document.querySelectorAll('dialog[open]').length===2 && [...document.querySelectorAll('dialog[open]')].at(-1).querySelector('header').textContent.includes(" +
+          JSON.stringify(issueJobId(n)) +
+          ")",
+      );
+    };
+    const closeIssue = async () => {
+      await click("Đóng Chi tiết lượt đồng bộ");
+      await detailUntil("document.querySelectorAll('dialog[open]').length===1");
     };
     await openIssue(1);
-    await until("document.querySelectorAll('[data-sync-issue]').length===10");
+    checks.step("SYNC_ISSUES_FIRST_RESPONSE");
+    await detailUntil(
+      "document.querySelectorAll('[data-sync-issue]').length===10",
+    );
     assert.equal(
       await evaluate(
         "document.body.textContent.includes('PRIVATE_RAW_PAYLOAD')||document.body.textContent.includes('PRIVATE_TOKEN')",
@@ -1119,8 +1154,9 @@ export async function verifyCarrierBrowser({
       true,
     );
     await capture("sync-issues-first-page", 1440, 900);
+    checks.step("SYNC_ISSUES_NEXT_PAGE");
     await click("Trang lỗi sau");
-    await until(
+    await detailUntil(
       "document.querySelectorAll('[data-sync-issue]').length===1 && document.querySelector('[data-sync-issue]').textContent.includes(" +
         JSON.stringify(issueSourceId(11)) +
         ")",
@@ -1128,8 +1164,9 @@ export async function verifyCarrierBrowser({
     await viewport(375, 812);
     await capture("sync-issues-mobile", 375, 812);
     await viewport(1440, 900);
+    checks.step("SYNC_ISSUES_KEYBOARD_AND_PARENT_STATE");
     await focusContained();
-    await click("Đóng Chi tiết lượt đồng bộ");
+    await closeIssue();
     assert.equal(
       await evaluate(
         "document.querySelector('[aria-label=\"Khoảng ngày lịch sử\"]').value",
@@ -1143,14 +1180,16 @@ export async function verifyCarrierBrowser({
       "SHIPMENT",
     );
     await openIssue(2);
-    await until(
+    await detailUntil(
       "document.body.textContent.includes('Không có bản ghi cần kiểm tra.')",
     );
-    await click("Đóng Chi tiết lượt đồng bộ");
+    await closeIssue();
     await openIssue(3);
-    await click("Đóng Chi tiết lượt đồng bộ");
+    await closeIssue();
     await openIssue(1);
-    await until("document.querySelectorAll('[data-sync-issue]').length===10");
+    await detailUntil(
+      "document.querySelectorAll('[data-sync-issue]').length===10",
+    );
     await delay(800);
     assert.equal(
       await evaluate(
@@ -1160,7 +1199,7 @@ export async function verifyCarrierBrowser({
       ),
       false,
     );
-    await click("Đóng Chi tiết lượt đồng bộ");
+    await closeIssue();
     await click("Lịch tự động");
     assert.equal(
       await evaluate(
@@ -1175,7 +1214,7 @@ export async function verifyCarrierBrowser({
       [5, "Không tìm thấy"],
     ]) {
       await openIssue(n);
-      await until(
+      await detailUntil(
         "document.body.textContent.includes(" + JSON.stringify(message) + ")",
       );
       assert.equal(
@@ -1188,10 +1227,10 @@ export async function verifyCarrierBrowser({
         ),
         false,
       );
-      await click("Đóng Chi tiết lượt đồng bộ");
+      await closeIssue();
     }
     await openIssue(6);
-    await until(
+    await detailUntil(
       "document.body.dataset.syncDenied==='true' && document.querySelectorAll('dialog[open]').length===1",
     );
     checks.step("SYNC_ISSUES_LOADING_EMPTY_PAGING_DENIAL_ABORT_STATE_PASS");

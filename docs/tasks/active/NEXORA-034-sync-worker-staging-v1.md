@@ -349,3 +349,21 @@ Customer SQL, fresh/staged migration/drift and current-source Chromium are separ
 actual runs above. Final-head Preflight/targeted/Foundation must still execute;
 their exact head/merge/run results will be appended to PR metadata after completion
 so evidence does not require a self-referential documentation commit.
+
+### First correction-head hosted Foundation failure
+
+At1ad8c0b, Preflight41595568207 and targeted41595568256 SUCCESS (6unit/24PG,
+0fail/0skip). Foundation41595568309 passed Docker quality,105integrations,
+legacy migration/provision/Customer SQL and actual provisioning/MFA PTY harnesses,
+but FAIL in new SYNC_ISSUES_EXISTING_INSPECTION_SDK_AND_DRAWER_STATE browser phase.
+HTTPS/persistence/development downstream steps were skipped. Account artifact was
+absent because that later browser sequence had not run; do not weaken its assertion.
+
+The generic failure exposed only the broad phase, not a specific assertion.
+Focused current TSX/SDK Chromium checks PASS in UTC, including6x CPU throttling;
+this does not erase the hosted FAIL or establish a production defect. Strengthen
+only the new F6 CDP observations: wait for schedule state, exact selected Job header
+and completed Inspection close before the next action. Retain all assertions and
+add closed named subphases/count-only fixture diagnostics to identify any repeat.
+No production/Auth/UI behavior, timeout or workflow assertion changed. A fresh
+final-head Foundation run is still required; no rerun-only success claim.
