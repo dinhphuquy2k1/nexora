@@ -572,3 +572,51 @@ required final-head targeted PostgreSQL and Foundation workflows after push.
 Final hosted results and the three scoped review rounds are reconciled in PR32
 metadata without an evidence-only self-referential commit loop. Task remains
 VERIFICATION PENDING/PARTIALLY VERIFIED for the unavailable live capability.
+
+### Bounded verification amendment — completion timestamp anchor
+
+Closure revision: closure-2026-11-03-outcome-contract-v2 (verification maintenance
+only). Foundation41669989298 attempt1 at2aee248 failed unchanged Carrier browser
+matrix/CHECK_FAILED; partial capture ends details390x844, exact condition/root
+cause unavailable. Account upload then failed; later smokes skipped. Existing local
+actual Chromium matrix reran unchanged and PASS; this does not establish cause or
+replace hosted verification. One unchanged hosted retry was attempted, not a loop.
+
+Attempt2 failed M3 integration line1832 (117/119 tests PASS; failing child plus
+parent,0skips): next_run_at was compared with later job.finished_at. Read-only
+inspection and independent review confirm unchanged apply() first writes config
+completion/schedule, then writes Job completion in a separate statement. The
+assertion incorrectly requires the two clocks to coincide. No runtime correction
+is authorized or needed by this evidence.
+
+Plan before test editing: use real owned PG with a controlled config-update delay
+to reproduce the wrong anchor; replace only that assertion with the persisted
+config.last_completed_at interval contract, retaining all technical FAILED,
+RETRYABLE_ERROR, version-reset, valid business review and watermark assertions.
+Keep the delay as a regression so the earlier assertion is deterministically RED.
+Bound the exact configured interval by database-clock observations immediately
+before/after apply, and verify config/Job completion lie within that same window.
+Separate clock_timestamp expressions need not coincide even within one statement;
+do not replace one false equality with another. Only the millisecond timestamp
+representation receives1ms boundary rounding allowance. Also assert the injected
+delay separates config completion from the later Job completion.
+No change to production SQL, completion policy, signatures, flags, locks or schema.
+Rerun genuine PG/quality and final-head hosted gates after the test-only fix; retain
+both failed attempts. Existing immutable v3 snapshot remains unchanged.
+
+Owned real PostgreSQL diagnostic RED on unchanged M3 assertion: after a controlled
+25ms AFTER-config-update trigger, schedule minus Job completion was3599972ms,
+schedule minus config completion3600000ms, and Job followed config by28ms. The
+same FAILED/retry/watermark assertions passed; the wrong lower bound alone failed.
+Owned tmpfs cleanup verified, no user volumes. This proves the assertion defect;
+it does not attribute the separate Carrier browser failure.
+
+Corrected M3 regression GREEN: genuine owned PostgreSQL38/38PASS,0fail/0skip,
+including the controlled completion delay and every existing Sync regression;
+owned tmpfs cleanup verified. Initial test-edit syntax typo was rejected by
+formatter and corrected before verification. Full pnpm quality rerun PASS:
+129root/186API/232Web/32UI/6database tests,0skip, format/lint/boundaries/preflight/
+docs/typecheck/contracts and4/4builds. Independent review confirms the test-only
+correction preserves all outcome/watermark assertions and production policy.
+Final new-head hosted gates still required; exact SHA/run/failure history is
+reconciled in PR metadata after execution. No further unchanged rerun loop.

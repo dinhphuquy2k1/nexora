@@ -1821,7 +1821,28 @@ test(
             assert.equal(source.source_version, 2);
             assert.equal(source.next_retry_at, null);
             assert.equal(source.attempt_count, 0);
-            await q.apply(await q.claim(randomUUID()), processor);
+            // Completion config and Job timestamps are written in separate SQL
+            // statements. Make their separation observable without changing policy.
+            await db.$executeRawUnsafe(
+              "CREATE FUNCTION sync_test_completion_latency() RETURNS trigger LANGUAGE plpgsql AS $latency$ BEGIN PERFORM pg_sleep(0.025); RETURN NEW; END $latency$",
+            );
+            await db.$executeRawUnsafe(
+              "CREATE TRIGGER sync_test_completion_latency AFTER UPDATE ON sync_configs FOR EACH ROW EXECUTE FUNCTION sync_test_completion_latency()",
+            );
+            const [completionStart] =
+              await db.$queryRaw`SELECT clock_timestamp() AS at`;
+            try {
+              await q.apply(await q.claim(randomUUID()), processor);
+            } finally {
+              await db.$executeRawUnsafe(
+                "DROP TRIGGER sync_test_completion_latency ON sync_configs",
+              );
+              await db.$executeRawUnsafe(
+                "DROP FUNCTION sync_test_completion_latency()",
+              );
+            }
+            const [completionEnd] =
+              await db.$queryRaw`SELECT clock_timestamp() AS at`;
             const reviewed = await q.job(owner.id, lane.id, next.id);
             assert.equal(reviewed.status, "SUCCEEDED");
             assert.equal(reviewed.needs_review_count, 1);
@@ -1829,11 +1850,24 @@ test(
               (c) => c.sync_type === "SHIPMENT",
             );
             assert.ok(config.last_success_at);
+            assert.equal(config.interval_minutes, 60);
+            // Validate the exact interval at the server-observed completion
+            // window; only millisecond timestamp representation gets 1ms slack.
+            for (const at of [
+              config.next_run_at.getTime() - config.interval_minutes * 60000,
+              config.last_completed_at.getTime(),
+              reviewed.finished_at.getTime(),
+            ])
+              assert.ok(
+                at >= completionStart.at.getTime() - 1 &&
+                  at <= completionEnd.at.getTime() + 1,
+                "schedule and both completion timestamps use the apply window",
+              );
             assert.ok(
-              config.next_run_at.getTime() - reviewed.finished_at.getTime() >=
-                3600000 &&
-                config.next_run_at.getTime() - reviewed.finished_at.getTime() <
-                  3601000,
+              reviewed.finished_at.getTime() -
+                config.last_completed_at.getTime() >=
+                20,
+              "controlled config delay separates later Job completion",
             );
             assert.equal(
               config.last_completed_watermark,
