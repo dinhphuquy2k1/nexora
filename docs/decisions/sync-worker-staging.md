@@ -64,3 +64,22 @@ provider revision. Older observations are ignored; same hash/equal or missing
 order is physically unchanged; greater order advances metadata or payload version
 as applicable. Identical-hash page duplicates retain the greatest nonnull order.
 No provider contract, record outcome, retry/watermark policy or schema is added.
+
+## 2026-11-03 runtime reliability and privilege corrections
+
+Scheduler selection filters ACTIVE/CONNECTED/capable/inactive lanes before LIMIT;
+expected/transient admission failures continue through a bounded keyset scan. A
+process-local continuation prevents repeated failed windows pinning later lanes;
+it never advances persisted due dates. Existing atomic admission and completion-
+based scheduling remain authoritative, including terminal technical failure.
+
+Expired RUNNING reclaims count failed execution attempts. Exhausted candidates
+release the selection lock, recheck under canonical lifecycle locks and atomically
+become FAILED with a new lease version and completion schedule. Checkpoint/source
+state is retained; last success/successful watermark do not advance. Record retry
+exhaustion remains technical FAILED, never synthetic NEEDS_REVIEW/SUCCEEDED.
+API reads use shared authorization locks; API writes and worker F5 capabilities
+remain. Shared reads can still block lifecycle/login writers. API staging DELETE
+is removed while worker retention DELETE remains. M4 shared-client work is deferred
+until a canonical system-wide mechanism exists; none is invented here. Unicode
+SourceKey normalization is explicitly withdrawn and byte distinctions remain.

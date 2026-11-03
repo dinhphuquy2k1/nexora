@@ -672,3 +672,28 @@ PATCH/readback, Cancel and unrelated draft/tab retention. History icon/label tes
 cover canonical SHIPMENT/CUSTOMER, legacy preview aliases and unknown fallback;
 raw filter values and server pagination remain unchanged. Browser checks extend
 the existing Carrier fixture rather than adding a launcher or production flag.
+
+### Sync runtime reliability corrections
+
+The genuine PostgreSQL Sync suite adds invalid/capability-filtered scheduler
+admission,100/200 trigger-induced lock failures, bounded keyset continuation across
+millisecond/UUID ties, no due-date writes, and concurrent lane uniqueness. Expired
+RUNNING recovery tests attempts2→3, terminal4→5, trigger-induced atomic completion
+rollback, stale-worker denial, exact completion scheduling and real executor resume
+from page8 after committed page7. Technical record exhaustion stays FAILED with
+honest issue metadata and no successful watermark; a new source version can later
+resolve to genuine business NEEDS_REVIEW.
+
+Actual API repository transactions prove shared-read overlap and mutation/disable/
+delete writer barriers, ownership denial and unchanged metadata. Existing worker
+read-lock/denied-write tests remain. Signed disposable role tests exercise API
+staging SELECT/INSERT/UPDATE, DELETE42501, repeat provisioning of a legacy DELETE
+ACL and worker retention deletion. Index catalog plus fresh/staged/repeated Prisma
+deploy/drift preserve legacy and populated Sync rows across the additive index DDL.
+
+Worker native tests use actual Prisma errors, closed Node/SQL codes, unknown/non-
+Error/hostile-getter and secret-bearing code/message inputs. Actual compiled worker
+processes cover configuration startup failure, database cycle failure, redaction
+and graceful shutdown. No regex-only safe-code claim or fake PostgreSQL substitute.
+M4 shared pool is DEFERRED, and the existing composed/decomposed Unicode source-key
+regression remains unchanged because normalization m3 was withdrawn.

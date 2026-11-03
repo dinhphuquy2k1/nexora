@@ -311,3 +311,19 @@ New source/processor versions clear next_retry_at; refetching the same version
 retains retry metadata. APPLYING selection and available_at share the exact ready
 predicate, so future deadlines do not hot-loop. Scheduler excludes active lanes
 before its existing100-row limit while atomic admission remains authoritative.
+
+The additive20261104000000_sync_fk_indexes migration adds jobs(connection),
+items(source identity), source identities(customer) WHERE nonnull and
+configs(next_run_at) WHERE enabled. The two ordinary indexes are Prisma-declared;
+the partial indexes are SQL-owned like the existing active-lane predicate. No
+unique/FK/delete behavior, business columns or data are changed. Runtime migration
+count is13. Fresh/staged/repeated deploy, catalog and drift checks preserve both
+legacy and populated Sync rows.
+
+nexora_app retains staging SELECT/INSERT/UPDATE but no DELETE, including after
+repeat provisioning revokes older ACLs. nexora_sync retains retention DELETE.
+API Sync metadata queries acquire shared authorization locks with existing API
+privileges; mutations retain exclusive locks. Worker authorization functions and
+metadata write denial remain unchanged. Expired job exhaustion finalizes under
+normal lifecycle→job ordering with a fresh expired-version CAS, not an inverse
+job→lifecycle transaction.

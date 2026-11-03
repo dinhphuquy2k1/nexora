@@ -448,3 +448,59 @@ LazyPrisma/sharedClient/DatabaseModule in branch or origin/main; no pool manager
 will be introduced. M3 production apply already preserves technical FAILED; add
 regressions only. m3 WITHDRAWN/NOT APPLICABLE: Unicode sourceKey stays untouched.
 Documentation Impact REQUIRED; implementation and actual verification pending.
+
+### Runtime correction implementation and targeted evidence
+
+| Finding | Root cause                                                           | Solution / files changed                                                                                                                                                      | Regression / actual result                                                                                                              | Status                     |
+| ------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| I1      | Ineligible and repeatedly rejected lanes consumed LIMIT100           | SyncRepository.schedule filters ACTIVE/CONNECTED/capability and active lanes before LIMIT; bounded200-candidate/100-admission timestamp/UUID continuation, no due-date writes | Actual PG100invalid+healthy,100/200 SQL-trigger failures/continuation, UUID/millisecond ties and concurrent admission PASS              | FIXED, targeted VERIFIED   |
+| M1      | API reads used exclusive authorization locks                         | Internal read/write lock mode in connection; four reads use SHARE, mutations exclusive, F5 worker branch unchanged                                                            | Actual read overlap, detail/issues/config reads, mutation/disable/delete barriers, metadata and ownership PASS                          | FIXED, targeted VERIFIED   |
+| M2      | Expired RUNNING claims did not consume attempts                      | Count reclaims; exhausted candidate rechecks after canonical locks then atomic FAILED/version/owner/config completion                                                         | PG2→3 and4→5, terminal rollback, concurrent claim, stale fences, real executor page8/reset and exact completion schedule PASS           | FIXED, targeted VERIFIED   |
+| M3      | Proposed patch would convert technical exhaustion to business review | Production apply semantics retained; test-only additions                                                                                                                      | PG FAILED/RETRYABLE_ERROR/no success-watermark, next admission/source-version reset and genuine NEEDS_REVIEW warning PASS               | Existing behavior VERIFIED |
+| M4      | Independent lazy clients create separate pools                       | No canonical LazyPrisma/sharedClient/DatabaseModule in branch/main app.module or adapters; no new manager                                                                     | Read-only search confirms conditional case B; no shared-pool/shutdown PASS claimed                                                      | DEFERRED                   |
+| M5      | Generic startup/cycle logs lacked safe diagnostic types              | Infrastructure-local allowlisted projection, typed configuration failure, both worker call sites; no arbitrary throwable serialization                                        | 12/12 Sync units including actual startup/cycle, secrets/spoofed/unknown and hostile changing getters PASS; independent logging6/6 PASS | FIXED, targeted VERIFIED   |
+| m1      | No leading FK/due access indexes                                     | New20261104000000_sync_fk_indexes; two Prisma ordinary/two SQL partial indexes; legacy/runtime migration harness updated to13                                                 | Fresh/staged/repeat deploy, populated Sync/legacy preservation, catalog and drift PASS                                                  | FIXED, targeted VERIFIED   |
+| m2      | API retained unnecessary staging DELETE ACL                          | Remove only RUNTIME_GRANTS.provider_source_records DELETE; keep SYNC_GRANTS                                                                                                   | Actual signed-role SELECT/INSERT/UPDATE, DELETE42501, legacy ACL revocation and worker retention DELETE PASS                            | FIXED, targeted VERIFIED   |
+| m3      | Unicode proposal withdrawn by owner                                  | sourceKey body and composed/decomposed regression unchanged                                                                                                                   | Existing source policy unit PASS                                                                                                        | WITHDRAWN / NOT APPLICABLE |
+
+Initial real PG RED reproduced I1 starvation, M1 exclusive-read contention, M2
+uncounted reclaim and missing indexes. M3 already PASS without production changes.
+New DDL trigger fixtures initially lost dollar delimiters during text insertion
+(42601); tagged delimiters fixed the test setup. A role fixture parameter needed
+explicit UUID casts (42P08). Canonical local cluster launch first failed53100;
+all signed assertions then ran unchanged using the same launcher with only a512MiB
+owned tmpfs storage option, not user volumes. Initial staging DELETE-denial assertion
+was RED; final actual roles/legacy-ACL/worker cleanup PASS. Final canonical hosted
+Foundation must additionally verify the unmodified launcher in its environment.
+
+An added test fragment was initially inserted after the suite; formatter/syntax
+validation rejected it and it was corrected before any PASS claim. Full quality
+attempts also caught missing explicit timer/global imports in the new tests;
+these are fixed without disabling lint. No failed run is relabeled PASS.
+
+Independent Round1 closed I1/M2/M3 without confirmed P1/P2. Round2 found a genuine
+P2 in new logging: a changing getter could return an allowlisted code then a secret
+on a second read. New actual-class regressions were RED; snapshot-once validation
+and projection are GREEN,12/12 Sync units. Reviewer independently reran6/6 logging
+cases, including real processes, and closed P2. No remaining confirmed P1/P2 in
+those reviewed scopes; M4 remains the explicit owner-directed deferral.
+
+| Claim                                              | Evidence                                                                                                                                | Date       | Result |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Scheduler/read/reclaim/index defects reproduced    | Actual owned PostgreSQL new tests RED before implementation; technical exhaustion already correct                                       | 2026-11-03 | FAIL   |
+| Current complete Sync PG and F1–F9 regressions     | 38/38PASS,0fail/0skip; fresh migrated owned UUID DB, real triggers/concurrency/executor and verified tmpfs cleanup                      | 2026-11-03 | PASS   |
+| Four index migration and preservation              | Genuine fresh deploy/diff, staged legacy+populatedSync snapshot preservation, repeat deploy/final drift                                 | 2026-11-03 | PASS   |
+| API/worker staging privilege separation            | Signed cluster actual role CRUD/DELETEdenial, repeat legacy ACL revocation and worker retention; same assertions/tmpfs launcher variant | 2026-11-03 | PASS   |
+| Safe diagnostics changing-getter attack reproduced | Actual Prisma/Sync code getters returned allowed then secret; new native tests RED                                                      | 2026-11-03 | FAIL   |
+| Final safe diagnostics and unchanged source policy | 12/12Sync units,0skip; independent logging6/6 including compiled startup/cycle and one-read getters                                     | 2026-11-03 | PASS   |
+
+No Carrier UI, API/SDK contract, domain handler/outcome, default retry/quota or
+SourceKey Unicode changes. Full canonical quality, Round3 and final-head hosted
+Preflight/targeted/Foundation remain pending at this checkpoint; exact final
+SHA/merge/run evidence is reconciled in PR metadata after execution to avoid a
+self-referential documentation commit loop. Task remains active/pending for the
+unavailable Live Provider/Domain scope; no merge or deployment.
+
+### Final local runtime-correction quality checkpoint
+
+Complete pnpm quality PASS at 2026-11-03T15:06:18.272Z: format/lint/boundaries/preflight/docs/typecheck,129root/186API/232Web/32UI/6database tests (0fail/0skip), contracts reproducible and build. Core/DB/logging commits are f85e859/ff8fb78/50e133a; v3 plan b00680a. Actual sourceKey function bytes equal reviewed2ff53fb; no UI/SDK/business handler changes. Extra millisecond-keyset/executor-page8/legacy-grant assertions are included in final38/38PG and final signed-role PASS. Independent Round2 changing-getter P2 is closed after6/6 logging rerun; M4 remains DEFERRED. Round3/full final-head hosted gates remain pending, with exact head/merge/run reconciliation in PR metadata after execution.

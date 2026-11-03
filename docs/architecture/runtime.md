@@ -162,3 +162,27 @@ capabilities; generation/updated_at mutations are denied. Stop matching old writ
 apply the additive read-lock migration and rerun explicit API/worker provisioning
 before starting the matching images. Existing column ACLs are revoked, not moved
 to another metadata column. No keys/roles/tables or custody format are added.
+
+### Sync runtime correction boundaries
+
+Scheduler filters currently eligible lanes before LIMIT100 and scans at most200
+candidates/admitting at most100 per call. Its process-local timestamp/UUID cursor
+continues across polls after admission failure and resets at observed end; restart
+may restart scanning, without skipping a persisted due schedule. Unsupported or
+inactive connections do not consume the window. Unexpected errors still surface
+to cycle logging/poll delay after advancing the selected-row cursor.
+
+Expired RUNNING lease recovery consumes an attempt; ordinary QUEUED/WAITING claims
+do not add one. Retry exhaustion atomically fails the job, bumps its lease version,
+clears ownership/expiry and schedules from completion without successful watermark
+or last-success writes. Successful page reset remains unchanged. API shared reads
+still serialize with lifecycle writers; they are not lock-free.
+
+Worker startup/cycle failure logs project only fixed event/code/errorType and
+allowlisted errorCode from actual Prisma classes, closed Node/database codes or
+known Sync/configuration errors. Unknown/spoofed/getter throwables become
+UNKNOWN_ERROR; no arbitrary names/messages/stacks/meta/SQL/URLs/secrets/payloads.
+Each accessor-backed code is captured once; the validated primitive is the exact
+value emitted, and throwing/unknown getters fail closed. The small helper is Sync infrastructure-local. No logging framework or pool manager
+is introduced. API adapters still own independent lazy clients; shared-client
+consolidation M4 is explicitly DEFERRED pending the official system-wide mechanism.
