@@ -644,6 +644,28 @@ try {
   );
   assert.match(lane.indexdef, /UNIQUE.*WHERE/);
 
+  step = "SYNC_READ_LOCK_CAPABILITIES";
+  const lockMigration = "20261103000000_sync_read_locks";
+  await cp(
+    resolve("prisma/migrations", lockMigration),
+    join(work, "prisma/migrations", lockMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  for (const table of syncBaselineTables)
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`),
+      syncBaseline[table],
+    );
+  assert.equal(
+    (
+      await db.$queryRawUnsafe(
+        "SELECT count(*)::int AS n FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('sync_lock_user','sync_lock_epoch','sync_lock_connection','sync_lock_customer')",
+      )
+    )[0].n,
+    4,
+  );
+
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },

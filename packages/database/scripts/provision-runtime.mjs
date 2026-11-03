@@ -2,6 +2,8 @@ import { Client } from "pg";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 export const RUNTIME_ROLE = "nexora_app";
+const SYNC_LOCK_FUNCTIONS =
+  "public.sync_lock_user(uuid),public.sync_lock_epoch(uuid),public.sync_lock_connection(uuid,uuid),public.sync_lock_customer(uuid,uuid)";
 export const SYNC_GRANTS = {
   sync_configs: ["SELECT", "INSERT", "UPDATE"],
   sync_jobs: ["SELECT", "INSERT", "UPDATE"],
@@ -198,11 +200,14 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
         await db.query(
           `REVOKE ALL ON FUNCTION public.reject_security_audit_mutation() FROM PUBLIC,${role}`,
         );
-      } else {
-        await db.query(
-          `GRANT UPDATE(updated_at) ON users,carrier_connections,customers TO ${role}; GRANT UPDATE(generation) ON carrier_user_states TO ${role}`,
-        );
       }
+      await db.query(
+        `REVOKE ALL ON FUNCTION ${SYNC_LOCK_FUNCTIONS} FROM PUBLIC,${role}`,
+      );
+      if (role !== RUNTIME_ROLE)
+        await db.query(
+          `GRANT EXECUTE ON FUNCTION ${SYNC_LOCK_FUNCTIONS} TO ${role}`,
+        );
       await db.query("COMMIT");
       const runtimeRole = role;
       const runtime = new Client({

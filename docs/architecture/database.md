@@ -288,9 +288,26 @@ connection FK after cancellation; identities remain owner/account scoped, with n
 domain cascade or cross-owner transfer. No automatic domain rollback exists.
 
 nexora_app gains explicit Sync-table permissions. A separately provisioned
-nexora_sync role has Sync-table permissions plus SELECT and narrow timestamp/generation-column
-UPDATE authority needed for authorization row locks on users/epochs/connections/
-Customers. It has no session/credential/audit/DDL/admin or Customer-creation grants.
+nexora_sync role has Sync-table permissions and SELECT on authorization metadata,
+but no UPDATE column/table privileges on users, epochs, connections or Customers.
+PostgreSQL requires UPDATE privilege even for direct FOR SHARE. Four fixed
+SECURITY DEFINER read-lock functions therefore acquire FOR SHARE facts in the
+existing order; schema-qualified tables, pinned pg_catalog search_path, no dynamic
+SQL/writes, PUBLIC/API execution revoked and exact worker-only EXECUTE signatures.
+They return only status, generation, scoped connection metadata or owned Customer
+ID. The worker repository explicitly selects this trusted lock context; API keeps
+its existing exclusive parent-lock path and runtime grants. Sync jobs/sources/items
+retain exclusive write locks. The forward-only20261103000000_sync_read_locks
+migration adds functions only, no tables/roles/model changes. It has no session/
+credential/audit/DDL/admin or Customer-creation grants.
 Future domain writers require actual approved invariants and deliberate grants.
 Existing role provisioning lock/timeout/redaction and all historical migrations
 remain. The optional role argument is allowlisted, never caller SQL.
+
+Review corrections keep identity UPSERT physically unchanged when both hash and
+trusted ordering are unchanged. A forward nonnull order may update metadata without
+source-version growth; null/stale ordering cannot erase/replace newer evidence.
+New source/processor versions clear next_retry_at; refetching the same version
+retains retry metadata. APPLYING selection and available_at share the exact ready
+predicate, so future deadlines do not hot-loop. Scheduler excludes active lanes
+before its existing100-row limit while atomic admission remains authoritative.

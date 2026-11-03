@@ -72,6 +72,7 @@ class WorkerLoop implements OnApplicationBootstrap, OnApplicationShutdown {
           loadSyncConfig(process.env),
           unavailableProvider,
           unavailableProcessor,
+          "shared",
         );
       },
     },

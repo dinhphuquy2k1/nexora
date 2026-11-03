@@ -37,3 +37,18 @@ provider, page/job payload snapshots, changing hard delete to soft delete, phone
 Customer identity, invented Shipment schema. Costs: explicit SQL fencing/coordination
 and restart tests; benefits: durable progress and clear owner/security boundaries.
 See the NEXORA-034 snapshot/task for interfaces, migration and verification.
+
+## 2026-11-03 scoped review corrections
+
+Authorization facts use worker FOR SHARE read locks, which still block ordinary
+lifecycle/status updates; jobs/sources/items keep exclusive write locks. PostgreSQL
+requires UPDATE for direct row-locking SELECT even in SHARE mode. Fixed read-only
+SECURITY DEFINER functions with schema-qualified tables/pinned search_path and
+worker-only execution supply this lock capability without metadata UPDATE grants.
+API parent locking and privileges remain unchanged. This is a bounded privilege
+correction, not a new role/table/business module or a different locking order.
+
+Provider reservations renew their unique token while the operation runs and abort
+transport on loss; success, cooldown/reset and release are ownership-fenced. Existing
+quota/backoff and endpoint/validation policy remain. Six review fixes and their
+actual regressions are recorded in the NEXORA-034 scoped review revision.

@@ -51,6 +51,7 @@ export class SyncRepository implements SyncQueue {
     readonly config: SyncConfig,
     private readonly provider: SyncProvider,
     private readonly processor: SyncDomainProcessor,
+    private readonly authorizationLocks: "exclusive" | "shared" = "exclusive",
   ) {}
   get client(): PrismaClient {
     return (this.instance ??= createDatabase(this.url));
@@ -71,16 +72,31 @@ export class SyncRepository implements SyncQueue {
     id: string,
     connected = false,
   ): Promise<Connection> {
-    const u = await tx.$queryRaw<
-      { status: string }[]
-    >`SELECT status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+    const u =
+      this.authorizationLocks === "shared"
+        ? await tx.$queryRaw<
+            { status: string }[]
+          >`SELECT status FROM public.sync_lock_user(${userId}::uuid)`
+        : await tx.$queryRaw<
+            { status: string }[]
+          >`SELECT status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
     if (u[0]?.status !== UserStatus.ACTIVE) throw new SyncError(E.UNAUTHORIZED);
-    const epochs = await tx.$queryRaw<
-      { generation: number }[]
-    >`SELECT generation FROM carrier_user_states WHERE user_id=${userId}::uuid FOR UPDATE`;
-    const rows = await tx.$queryRaw<
-      Omit<Connection, "generation">[]
-    >`SELECT id,user_id,provider,external_account_id,status,lifecycle_version FROM carrier_connections WHERE id=${id}::uuid AND user_id=${userId}::uuid FOR UPDATE`;
+    const epochs =
+      this.authorizationLocks === "shared"
+        ? await tx.$queryRaw<
+            { generation: number }[]
+          >`SELECT generation FROM public.sync_lock_epoch(${userId}::uuid)`
+        : await tx.$queryRaw<
+            { generation: number }[]
+          >`SELECT generation FROM carrier_user_states WHERE user_id=${userId}::uuid FOR UPDATE`;
+    const rows =
+      this.authorizationLocks === "shared"
+        ? await tx.$queryRaw<
+            Omit<Connection, "generation">[]
+          >`SELECT * FROM public.sync_lock_connection(${id}::uuid,${userId}::uuid)`
+        : await tx.$queryRaw<
+            Omit<Connection, "generation">[]
+          >`SELECT id,user_id,provider,external_account_id,status,lifecycle_version FROM carrier_connections WHERE id=${id}::uuid AND user_id=${userId}::uuid FOR UPDATE`;
     if (!rows[0]) throw new SyncError(E.NOT_FOUND);
     if (connected && rows[0].status !== ConnectionStatus.CONNECTED)
       throw new SyncError(E.SYNC_UNAVAILABLE);
@@ -473,9 +489,14 @@ export class SyncRepository implements SyncQueue {
                 (proposedCustomerId && proposedCustomerId !== id)
               )
                 throw new SyncError(E.SOURCE_CONFLICT);
-              const rows = await tx.$queryRaw<
-                { id: string }[]
-              >`SELECT id FROM customers WHERE id=${id}::uuid AND owner_user_id=${job.owner_user_id}::uuid FOR UPDATE`;
+              const rows =
+                this.authorizationLocks === "shared"
+                  ? await tx.$queryRaw<
+                      { id: string }[]
+                    >`SELECT id FROM public.sync_lock_customer(${id}::uuid,${job.owner_user_id}::uuid)`
+                  : await tx.$queryRaw<
+                      { id: string }[]
+                    >`SELECT id FROM customers WHERE id=${id}::uuid AND owner_user_id=${job.owner_user_id}::uuid FOR UPDATE`;
               if (rows.length !== 1) throw new SyncError(E.SOURCE_CONFLICT);
               proposedCustomerId = id;
             },

@@ -87,7 +87,13 @@ test(
         },
       );
       db = createDatabase(url.toString());
-      repo = new SyncRepository(url.toString(), cfg, provider, processor);
+      repo = new SyncRepository(
+        url.toString(),
+        cfg,
+        provider,
+        processor,
+        "shared",
+      );
       carrier = new CarrierAdapter(url.toString());
       identity = new UserManagementAdapter(url.toString());
       const owner = await db.user.create({

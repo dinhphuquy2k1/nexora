@@ -146,3 +146,19 @@ Source infrastructure is implemented separately from production provider/domain
 readiness. Both flags and actual handler capabilities must pass admission and
 execution. Missing data endpoint/domain contracts keep current live types
 unavailable even when flags are true. No fabricated successful job is created.
+
+### Sync review correction: reservation and read-lock custody
+
+The PostgreSQL provider acquisition reservation remains2slots with30-second leases.
+Token/unexpired CAS renewal runs every10seconds with at most one renewal in flight;
+HTTP never holds its transaction. Loss aborts the signal forwarded through both
+authenticate and verify. Terminal ownership is checked before success/failure
+bookkeeping, and only the owning token may release; a late operation cannot reset
+failures, impose cooldown or clear a successor. Transport timeout/business/live
+authorization policies are unchanged; no Promise.race-only cancellation claim.
+
+Worker metadata SELECT is supplemented only by four fixed shared-read-lock function
+capabilities; generation/updated_at mutations are denied. Stop matching old writers,
+apply the additive read-lock migration and rerun explicit API/worker provisioning
+before starting the matching images. Existing column ACLs are revoked, not moved
+to another metadata column. No keys/roles/tables or custody format are added.

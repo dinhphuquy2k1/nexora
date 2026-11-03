@@ -137,18 +137,136 @@ try {
       ])
         assert.equal(flags[key], false);
       await worker.query("SELECT id FROM sync_jobs LIMIT 1");
-      await worker.query("BEGIN");
-      await worker.query("SELECT id FROM users FOR UPDATE");
-      await worker.query(
-        "SELECT generation FROM carrier_user_states FOR UPDATE",
+      // Direct PostgreSQL row-locking SELECT itself requires UPDATE; worker has none.
+      await assert.rejects(
+        worker.query("SELECT id FROM users FOR SHARE"),
+        (e) => e.code === "42501",
       );
-      await worker.query("SELECT id FROM carrier_connections FOR UPDATE");
-      await worker.query("ROLLBACK");
+      const inspector = new Client({ connectionString: databaseUrl });
+      const actor = randomUUID(),
+        connectionId = randomUUID(),
+        customerId = randomUUID();
+      await inspector.connect();
+      try {
+        await inspector.query(
+          "INSERT INTO users(id,username,role,status,updated_at) VALUES($1::uuid,$1::text,'OPERATOR','ACTIVE',now())",
+          [actor],
+        );
+        await inspector.query(
+          "INSERT INTO carrier_user_states(user_id,generation) VALUES($1,0)",
+          [actor],
+        );
+        await inspector.query(
+          "INSERT INTO carrier_connections(id,user_id,provider,external_account_id,display_name,status) VALUES($1::uuid,$2,'uniship',$1::text,'Synthetic','CONNECTED')",
+          [connectionId, actor],
+        );
+        await inspector.query(
+          "INSERT INTO customers(id,owner_user_id,created_by_user_id,name,phone_normalized,updated_at) VALUES($1,$2,$2,'Synthetic','+84900000000',now())",
+          [customerId, actor],
+        );
+        const functions = (
+          await inspector.query(
+            "SELECT p.proname,p.prosecdef,p.proconfig,has_function_privilege('nexora_app',p.oid,'EXECUTE') AS api_execute FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('sync_lock_user','sync_lock_epoch','sync_lock_connection','sync_lock_customer')",
+          )
+        ).rows;
+        assert.equal(functions.length, 4);
+        for (const fn of functions) {
+          assert.equal(fn.prosecdef, true);
+          assert.deepEqual(fn.proconfig, ["search_path=pg_catalog"]);
+          assert.equal(fn.api_execute, false);
+        }
+        await worker.query("BEGIN");
+        assert.equal(
+          (
+            await worker.query("SELECT status FROM public.sync_lock_user($1)", [
+              actor,
+            ])
+          ).rows[0].status,
+          "ACTIVE",
+        );
+        assert.equal(
+          (
+            await worker.query(
+              "SELECT generation FROM public.sync_lock_epoch($1)",
+              [actor],
+            )
+          ).rows[0].generation,
+          0,
+        );
+        assert.equal(
+          (
+            await worker.query(
+              "SELECT id FROM public.sync_lock_connection($1,$2)",
+              [connectionId, actor],
+            )
+          ).rows[0].id,
+          connectionId,
+        );
+        assert.equal(
+          (
+            await worker.query(
+              "SELECT id FROM public.sync_lock_customer($1,$2)",
+              [customerId, actor],
+            )
+          ).rows[0].id,
+          customerId,
+        );
+        assert.equal(
+          (
+            await worker.query(
+              "SELECT id FROM public.sync_lock_customer($1,$2)",
+              [customerId, randomUUID()],
+            )
+          ).rowCount,
+          0,
+        );
+        const disable = inspector.query(
+          "UPDATE users SET status='DISABLED' WHERE id=$1",
+          [actor],
+        );
+        let blocked = false;
+        try {
+          for (let i = 0; i < 100; i++) {
+            blocked =
+              (
+                await admin.query(
+                  "SELECT wait_event_type='Lock' AS blocked FROM pg_stat_activity WHERE pid=$1",
+                  [inspector.processID],
+                )
+              ).rows[0]?.blocked === true;
+            if (blocked) break;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          }
+          assert.equal(
+            blocked,
+            true,
+            "ordinary status UPDATE must wait behind worker SHARE locks",
+          );
+        } finally {
+          await worker.query("ROLLBACK");
+          await disable;
+        }
+        assert.equal(
+          (
+            await worker.query("SELECT status FROM public.sync_lock_user($1)", [
+              actor,
+            ])
+          ).rows[0].status,
+          "DISABLED",
+        );
+      } finally {
+        await worker.query("ROLLBACK");
+        await inspector.end();
+      }
       for (const sql of [
         "SELECT * FROM sessions",
         "SELECT * FROM user_credentials",
         "SELECT * FROM user_mfa",
         "SELECT * FROM carrier_connection_secrets",
+        "UPDATE carrier_user_states SET generation=generation+1",
+        "UPDATE users SET updated_at=clock_timestamp()",
+        "UPDATE carrier_connections SET updated_at=clock_timestamp()",
+        "UPDATE customers SET updated_at=clock_timestamp()",
         "UPDATE users SET status=status",
         "UPDATE carrier_connections SET status=status",
         "DELETE FROM customers",
