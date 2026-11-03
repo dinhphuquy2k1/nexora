@@ -9,16 +9,14 @@ export const ISSUE_CONNECTION_ID = "11111111-1111-4111-8111-111111111111";
 export const issueJobId = (n: number) =>
   "22222222-2222-4222-8222-" + String(n).padStart(12, "0");
 const data: SyncPresentation = {
-  items: SYNC_FIXTURE.items
-    .slice(0, 2)
-    .map((item, i) => ({
-      ...item,
-      available: true,
-      autoEnabled: false,
-      state: "completed",
-      warning: true,
-      jobId: issueJobId(i + 1),
-    })),
+  items: SYNC_FIXTURE.items.slice(0, 2).map((item, i) => ({
+    ...item,
+    available: true,
+    autoEnabled: false,
+    state: "completed",
+    warning: true,
+    jobId: issueJobId(i + 1),
+  })),
   history: Array.from({ length: 6 }, (_, i) => ({
     id: issueJobId(i + 1),
     time: "Synthetic",

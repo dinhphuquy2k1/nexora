@@ -323,3 +323,29 @@ Provenance: these local targeted results execute task-owned working-tree fixes b
 on6f0292604261b4a7dccc775da611a048842ed019, not a claim about that old commit's code.
 New scoped snapshot is b436333a4b319afb802e6253ecf5e1b46a179fd8d092fc1d078788762f9dfc63.
 Final commit/merge/run lineage will be recorded in PR metadata after CI completion.
+
+### Grouped correction verification and review handoff
+
+Reviewable commits:039e0ca scoped plan;98940c1 F1–F3;3b8ebee F4;39442fe F5;
+337bb92 F6. The final evidence commit also normalizes the test-only TSX fixture
+formatting. Initial full quality stopped at format:check on that fixture; its
+formatting was corrected and the complete command rerun, without skipping gates.
+
+Current-source Chromium rerun PASS: existing Carrier six-viewport regression matrix
+and Job Detail SDK/loading/empty/pagination/403/404/401/abort/switch/draft-state checks.
+The isolated signed-cluster Customer SQL suite also PASS with verified owned-resource
+cleanup. Native detail/lifecycle total is13/13 after the independently reviewed
+parent-denial fix. All three independent rounds are closed for their scoped code
+findings; canonical full quality and final-head hosted evidence are recorded below
+when available. The PR remains Draft and Live Provider/Domain remains unavailable.
+
+Complete local canonical `pnpm quality` rerun PASS on the committed six-fix code
+plus the formatting correction: format:check, lint/boundaries, preflight:check,
+docs:check, typecheck,129root/180API/224Web/32UI/6database tests (0fail/0skip),
+contracts:check (reproducible, no generated-contract diff) and build. Turbo reused
+valid prerequisite caches; this is host-toolchain quality evidence, not Docker or
+final-head hosted evidence. Owned PG24/24, transport5/5, signed provision and
+Customer SQL, fresh/staged migration/drift and current-source Chromium are separate
+actual runs above. Final-head Preflight/targeted/Foundation must still execute;
+their exact head/merge/run results will be appended to PR metadata after completion
+so evidence does not require a self-referential documentation commit.
