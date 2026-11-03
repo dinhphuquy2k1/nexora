@@ -620,6 +620,30 @@ offline toolchain verification; no credentials/data are uploaded. Foundation's
 canonical Docker quality, LOCAL/TTY/MFA/browser/HTTPS/data/dev smoke remains required.
 Passing unit/source checks never establishes actual runtime or provider readiness.
 
+### Production processor outcome contract
+
+Every production SyncDomainProcessor must have an ordinary automatically discovered
+`apps/api/test/sync/**/*.test.cjs` suite using that actual implementation and its
+domain-specific fixtures. Build prerequisites and genuine PostgreSQL integration
+remain required for fenced persistence/outcome/watermark behavior. The first such
+PR must execute the following classification cases; a generic fake processor or
+placeholder passing test is not conformance evidence:
+
+| Domain-specific input                                                | Expected outcome |
+| -------------------------------------------------------------------- | ---------------- |
+| Stable identity with missing required payload field                  | REJECTED_SOURCE  |
+| Stable identity with wrong payload type                              | REJECTED_SOURCE  |
+| Stable identity with empty required string                           | REJECTED_SOURCE  |
+| Valid data with ambiguous Domain matching                            | NEEDS_REVIEW     |
+| Transient database/dependency failure under an explicit retry policy | RETRYABLE_ERROR  |
+| Valid successful Domain operation                                    | APPLIED          |
+
+Also verify invalid identity fails safely under the existing ingestion policy,
+technical exhaustion remains FAILED without success watermark, and only APPLIED
+advances applied version. Domain writes stay in the fenced session without network
+I/O. There is no production processor now; S1 production conformance is PENDING.
+No shared helper or placeholder suite is introduced until a real consumer exists.
+
 The Sync executor renews its lease while a page/batch is active and bounds a page
 to20seconds, forwarding cancellation to the provider port. Delayed-page PostgreSQL
 coverage proves renewal; unit coverage proves no checkpoint after timeout.

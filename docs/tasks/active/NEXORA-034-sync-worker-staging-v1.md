@@ -504,3 +504,71 @@ unavailable Live Provider/Domain scope; no merge or deployment.
 ### Final local runtime-correction quality checkpoint
 
 Complete pnpm quality PASS at 2026-11-03T15:06:18.272Z: format/lint/boundaries/preflight/docs/typecheck,129root/186API/232Web/32UI/6database tests (0fail/0skip), contracts reproducible and build. Core/DB/logging commits are f85e859/ff8fb78/50e133a; v3 plan b00680a. Actual sourceKey function bytes equal reviewed2ff53fb; no UI/SDK/business handler changes. Extra millisecond-keyset/executor-page8/legacy-grant assertions are included in final38/38PG and final signed-role PASS. Independent Round2 changing-getter P2 is closed after6/6 logging rerun; M4 remains DEFERRED. Round3/full final-head hosted gates remain pending, with exact head/merge/run reconciliation in PR metadata after execution.
+
+## Final review closure — 2026-11-03
+
+### Bounded pre-code plan
+
+Closure revision: closure-2026-11-03-outcome-contract-v1. Reviewed clean baseline:
+cd22af296afc25a76883be008a4e1c719b6e7ddc. This BOUNDED documentation/interface-comment
+clarification retains the v3 architectural snapshot and its digest unchanged; no
+signature, outcome, transaction, scheduler, pool, schema, SDK or runtime change.
+
+| Component                  | Existing implementations                                                                                                                                          | Domain owner                                                    | Reuse alternatives                                        | Selected approach                                                                 | Rationale                                                         | Risks                                                             | Verification                                                                                           |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Processor outcome contract | sync/application/sync.port.ts SyncDecision/SyncDomainProcessor; sync/infrastructure/sync-job.repository.ts apply; sync/domain/sync.constants.ts outcomes; ADR-010 | Sync application port; business policies stay in owning domains | Clarify existing contract vs new processor/test framework | JSDoc plus concise ADR and testing requirements; retain existing PG outcome tests | No production processor exists to certify; avoid fake conformance | Ambiguous technical/business classification or false verification | Inspect unchanged signatures/runtime; quality/contracts/docs/preflight; final-head targeted/Foundation |
+
+Search scope: SyncDomainProcessor/SyncDecision/outcome/RETRYABLE_ERROR across Sync
+ports, repository, tests, ADR/testing docs; createDatabase/LazyPrisma/sharedClient
+in API composition/database/Sync. Reuse existing tests and commands, no speculative
+helper. First real processor must register domain-specific contract fixtures in
+the ordinary discovered suite. Plan: clarify S1, record M4 issue and m4 benchmark
+criteria, run checks, review three rounds, commit/push and reconcile final-head
+hosted evidence in PR metadata. Documentation Impact: REQUIRED.
+
+### Deferred findings
+
+- M4: DEFERRED. Tracking Issue: [#33](https://github.com/dinhphuquy2k1/nexora/issues/33).
+  Implementation PR: NOT CREATED. Required before Live Sync activation: YES —
+  implement or explicitly evaluate and approve measured resource limits first.
+  Issue search found no duplicate; separate implementation starts from latest
+  main only after PR32 merges. No pool manager is added here.
+- m4: DEFERRED. Impact: Scheduler polling overhead. Current evidence: no
+  representative production-scale benchmark. Merge blocker: NO. Reopen only with
+  an authorized representative PostgreSQL dataset (approximately5000 configs,
+  many ineligible connections), EXPLAIN (ANALYZE, BUFFERS), worker queries/minute,
+  database CPU/query latency, healthy-lane admission time and material operational
+  impact. No cadence/cache/poll/next_run_at change or selected optimization now;
+  if justified later, consider separate schedule/claim cadence before caching.
+
+Historical cd22af2 CI is VERIFIED: Preflight41661889820 (24policy), targeted41661889815
+(12unit/38PG) and Foundation41661889919 (119integration/full Docker/runtime/TTY/MFA/
+browser/HTTPS/persistence/development/cleanup) PASS,0test skips. Checkout was merge
+4c83bc1396fffdcffbe235851111c66a1b3a46b0 into base156a324. These results do not certify
+the new closure commit; its final-head runs and review closure belong in PR32 metadata.
+
+### S1 implementation and verification boundary
+
+S1: FIXED (contract documentation). SyncDomainProcessor JSDoc and ADR-010 define
+APPLIED, deterministic identified-source REJECTED_SOURCE, valid business ambiguity
+NEEDS_REVIEW and transient technical RETRYABLE_ERROR. Exhaustion remains FAILED;
+missing identity must follow safe ingestion failure, and fenced-session/no-network
+constraints remain. Testing operations requires actual first-processor fixtures for
+missing field, wrong type, empty string, ambiguity, transient failure and success,
+plus real persistence/retry/watermark checks. S1 production conformance: PENDING —
+no production processor exists; no placeholder test/helper or false PASS added.
+
+Files: sync/application/sync.port.ts (JSDoc only), ADR-010, testing operations and
+this task. TypeScript signature and comment-stripped transpilation compare equal
+to cd22af2 (PASS). No runtime, Job completion, M3 outcome, flag, API/SDK, schema,
+migration, pool, scheduler, Provider, Domain handler or UI changes. Required local
+quality and final-head hosted evidence are recorded after actual execution.
+
+Local closure verification: pnpm quality PASS on 2026-11-03 (format/lint/boundaries,
+preflight/docs/typecheck,129root/186API/232Web/32UI/6database tests,0fail/0skip,
+reproducible contracts and4/4 builds; three prerequisite build cache hits retained).
+No new runtime test is claimed: unchanged existing outcomes are exercised by the
+required final-head targeted PostgreSQL and Foundation workflows after push.
+Final hosted results and the three scoped review rounds are reconciled in PR32
+metadata without an evidence-only self-referential commit loop. Task remains
+VERIFICATION PENDING/PARTIALLY VERIFIED for the unavailable live capability.

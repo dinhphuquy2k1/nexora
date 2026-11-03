@@ -59,7 +59,28 @@ export type SyncDecision = {
   code?: SyncCode;
   retryAfterMs?: number;
 };
-/** Implementations may only do local domain work through the fenced session. No network. */
+/**
+ * Outcome classification for every Sync Domain Processor:
+ * - APPLIED: a valid Domain transition completed successfully.
+ * - REJECTED_SOURCE: deterministic source-data validation failure with a stable
+ *   source identity (missing/empty required payload, wrong type, invalid weight,
+ *   date format or Domain Policy limit). Resolved without applying Domain work.
+ * - NEEDS_REVIEW: valid data requires a business decision, such as ambiguous
+ *   Customer/Shipment matching, ownership/state conflict or link confirmation.
+ *   Never use this for database, network or programming failures.
+ * - RETRYABLE_ERROR: transient technical failure with an explicit bounded retry
+ *   policy (lock timeout, serialization conflict, unavailable dependency).
+ *   Exhaustion makes the Job FAILED; never convert it to NEEDS_REVIEW/APPLIED.
+ *   Deterministic source validation must not be classified as RETRYABLE_ERROR.
+ *
+ * Rejection/review are resolved outcomes; only APPLIED updates applied version.
+ * Invalid/missing source identity follows the existing safe fail-batch policy;
+ * never silently skip it or default to REJECTED_SOURCE without a safe identity.
+ * Domain writes stay in the fenced transaction through the supplied session;
+ * no external network operations inside that transaction.
+ * Each production implementation must run domain-specific contract fixtures for
+ * these classifications; infrastructure fixtures do not certify conformance.
+ */
 export interface SyncDomainProcessor {
   readonly version: number;
   supports(type: SyncType): boolean;

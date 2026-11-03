@@ -83,3 +83,25 @@ remain. Shared reads can still block lifecycle/login writers. API staging DELETE
 is removed while worker retention DELETE remains. M4 shared-client work is deferred
 until a canonical system-wide mechanism exists; none is invented here. Unicode
 SourceKey normalization is explicitly withdrawn and byte distinctions remain.
+
+## Outcome Classification Contract
+
+SyncDomainProcessor classifies a successful valid Domain transition as APPLIED.
+With a stable source identity, deterministic invalid payload (missing/empty required
+field, wrong type, invalid weight/date or policy limit) is REJECTED_SOURCE, resolved
+without Domain application. Valid data needing a business decision (ambiguous
+matching, ownership/state conflict or link confirmation) is NEEDS_REVIEW.
+
+RETRYABLE_ERROR is only for transient technical failures with a bounded retry policy,
+such as lock timeout, serialization conflict or temporary dependency outage. Its
+exhaustion makes the Job FAILED; database/network/programming failures must never
+be converted to business review or application to advance successful watermark.
+Unexpected faults retain existing rollback/retry/failure behavior. Invalid or missing
+source identity follows the existing safe ingestion failure policy, not silent
+rejection/skipping. Domain writes use the supplied fenced session without network I/O.
+
+The first production processor must run domain-specific contract fixtures covering
+all four outcomes and deterministic validation versus transient technical errors.
+No production processor exists at this baseline: this classification contract is
+documented, but production conformance remains PENDING. Existing infrastructure
+fixtures do not certify a future processor; see the testing requirements.
