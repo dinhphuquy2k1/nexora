@@ -12,7 +12,11 @@ import {
   unavailableProvider,
   unavailableProcessor,
 } from "../sync/infrastructure/provider-fetch.adapter";
-import { loadSyncConfig } from "../sync/domain/sync-policy";
+import { logWorkerFailure } from "../sync/infrastructure/worker-failure-log";
+import {
+  loadSyncConfig,
+  SyncConfigurationError,
+} from "../sync/domain/sync-policy";
 class WorkerLoop implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly abort = new AbortController();
   private loop?: Promise<void>;
@@ -36,13 +40,8 @@ class WorkerLoop implements OnApplicationBootstrap, OnApplicationShutdown {
         await writeFile("/tmp/nexora-sync-heartbeat", String(Date.now()), {
           mode: 0o600,
         });
-      } catch {
-        console.error(
-          JSON.stringify({
-            event: "sync_worker_cycle_failed",
-            code: "INTERNAL_ERROR",
-          }),
-        );
+      } catch (error) {
+        logWorkerFailure("sync_worker_cycle_failed", error);
       }
       try {
         await delay(this.queue.config.pollMs, undefined, {
@@ -66,7 +65,9 @@ class WorkerLoop implements OnApplicationBootstrap, OnApplicationShutdown {
       provide: SyncRepository,
       useFactory: () => {
         if (!process.env.DATABASE_URL)
-          throw new Error("Missing worker database configuration");
+          throw new SyncConfigurationError(
+            "Missing worker database configuration",
+          );
         return new SyncRepository(
           process.env.DATABASE_URL,
           loadSyncConfig(process.env),

@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
 import { SyncErrorCode, SyncType, type SyncCode } from "./sync.constants";
+export class SyncConfigurationError extends Error {
+  constructor(message = "Invalid Sync configuration") {
+    super(message);
+  }
+}
 export class SyncError extends Error {
   constructor(
     readonly code: SyncCode,
@@ -19,8 +24,7 @@ export interface SyncConfig {
 export function loadSyncConfig(env: NodeJS.ProcessEnv): SyncConfig {
   const flag = (key: string) => {
     const v = env[key] ?? "false";
-    if (v !== "true" && v !== "false")
-      throw new Error("Invalid Sync configuration");
+    if (v !== "true" && v !== "false") throw new SyncConfigurationError();
     return v === "true";
   };
   const positive = (key: string, fallback: number, max: number) => {
@@ -30,7 +34,7 @@ export function loadSyncConfig(env: NodeJS.ProcessEnv): SyncConfig {
       !Number.isSafeInteger(Number(v)) ||
       Number(v) > max
     )
-      throw new Error("Invalid Sync configuration");
+      throw new SyncConfigurationError();
     return Number(v);
   };
   return {
