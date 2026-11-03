@@ -183,3 +183,27 @@ test("Server-paged history uses backend total and scoped summary without summing
   assert.match(html, /aria-label="Trang lịch sử 3" aria-current="page"[^>]*>3/);
   assert.doesNotMatch(html, /thời điểm bắt đầu không hợp lệ/);
 });
+test("Job Detail uses existing generated SDK with scoped IDs, issue page and cancellation", async () => {
+  const { createSyncApi, JOB_ISSUE_PAGE_SIZE } = loadComponent(apiFile);
+  let call;
+  const api = createSyncApi({
+    GET: async (path, options) => {
+      call = { path, options };
+      return {
+        response: new globalThis.Response("{}"),
+        data: { job: { id: "job" }, issues: [], issueTotal: 0 },
+      };
+    },
+  });
+  const signal = new globalThis.AbortController().signal;
+  assert.equal(
+    (await api.jobDetail("connection", "job", 2, signal)).issueTotal,
+    0,
+  );
+  assert.equal(call.path, "/api/carrier-connections/{id}/sync-jobs/{jobId}");
+  assert.equal(call.options.params.path.id, "connection");
+  assert.equal(call.options.params.path.jobId, "job");
+  assert.equal(call.options.params.query.page, 2);
+  assert.equal(call.options.params.query.pageSize, JOB_ISSUE_PAGE_SIZE);
+  assert.equal(call.options.signal, signal);
+});

@@ -382,5 +382,14 @@ three tabs, Inspection and shared controls. Generated SDK calls provide Sync con
 availability and job counters/history. AbortController/generation guards isolate
 connection reads; mutations have a synchronous single-flight gate, and confirmed
 write completion is separate from read reconciliation. Unsupported types remain
-unavailable; no mock production jobs or new page/design/token changes. Historical
-UI-only fixtures remain explicitly injected and never invoke live SDK operations.
+unavailable; no mock production jobs or new page/design/token changes. Default
+UI-only fixtures remain explicitly injected. The separate issues fixture uses SDK
+reads only against an owned loopback synthetic server, never live Provider traffic.
+
+The existing CarrierSyncInspection consumes the existing Job Detail endpoint through
+the generated SDK. It shows only safe Source ID/source version/processor version/
+outcome/error code with server issue pagination. Selection/page/connection reads
+have AbortController and generation fences, no polling;401 closes Inspection and
+uses the parent sticky denial/login flow,403/404 clear scoped data. Inspection
+changes never remount the Drawer or reset its draft/tab/history query. Existing
+overlay and shared controls/styles are reused; no new page, modal or review actions.

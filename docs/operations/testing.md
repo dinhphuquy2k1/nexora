@@ -628,3 +628,31 @@ mutation/read races and partial schedule readback/Cancel. These controlled tests
 complement genuine Nest/SDK HTTP tests and browser evidence; they do not certify
 production provider authorization. The staged legacy migration harness must append
 Sync after Customers and preserve previous rows before its final schema-drift check.
+
+### Six Sync review regressions
+
+Sync PostgreSQL integration checks physical xmin/timestamps for100 unchanged
+identities/payloads,5changed versions, forward/null/stale order, retry reset only for
+new source/processor versions, future PENDING/RETRYABLE deadlines without repeated
+claims and101due lanes with concurrent/manual admission. Budget tests hold both
+slots beyond30seconds, force loss/successor races and expire a fast operation
+before the heartbeat to test terminal ownership, failure/reset and token release.
+Real loopback auth/verify transport cancellation is separate from PG quota evidence.
+
+The signed owned-cluster provision suite proves direct SELECT-only FOR SHARE fails
+42501 on PostgreSQL, then verifies the fixed read-lock functions with nexora_sync,
+ordinary status-update blocking and denied generation/updated_at writes. It checks
+function security configuration and API execution denial. Current legacy migration
+verification includes the function migration and exact row preservation as well as
+Prisma drift; functions are additionally checked because Prisma models omit them.
+No cluster-global role/password mutation may run against shared databases.
+
+Native Job Detail tests execute the existing generated SDK and actual Inspection/
+Drawer closures for empty/review/paging,401/403/404, abort/unmount/job-switch fences
+and retained schedule/tab/history state. The current Carrier CDP fixture has an
+explicit syncIssues mode backed by an owned GET-only synthetic HTTP server, never a
+product route or live Provider. It exercises the actual TSX/CSS/SDK, nested modal
+focus, issue pagination, privacy, late responses, parent state and narrow viewport
+geometry. Default Carrier fixtures keep their previous behavior. Synthetic extra
+payload/token fields must never render. Captures live in ignored/14-day artifact
+output; their existence alone does not prove assertions or manual visual review.

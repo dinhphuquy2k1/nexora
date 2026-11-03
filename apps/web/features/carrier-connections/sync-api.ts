@@ -1,4 +1,11 @@
 import { createNexoraClient, type components } from "@nexora/sdk";
+export const JOB_ISSUE_PAGE_SIZE = 10;
+export type SyncJobDetail = components["schemas"]["SyncJobDetailResponseDto"];
+export type JobDetailReader = (
+  jobId: string,
+  page: number,
+  signal: AbortSignal,
+) => Promise<SyncJobDetail>;
 export type SyncJobResponse = components["schemas"]["SyncJobDto"];
 export type SyncConfigResponse = components["schemas"]["SyncConfigDto"];
 export type SyncType = SyncConfigResponse["syncType"];
@@ -42,6 +49,21 @@ export function createSyncApi(client = createNexoraClient()) {
       result(
         await client.GET("/api/carrier-connections/{id}/sync-jobs", {
           params: { path: { id }, query: { page, pageSize: 4, ...filters } },
+          signal,
+        }),
+      ),
+    jobDetail: async (
+      id: string,
+      jobId: string,
+      page: number,
+      signal: AbortSignal,
+    ) =>
+      result(
+        await client.GET("/api/carrier-connections/{id}/sync-jobs/{jobId}", {
+          params: {
+            path: { id, jobId },
+            query: { page, pageSize: JOB_ISSUE_PAGE_SIZE },
+          },
           signal,
         }),
       ),

@@ -1,7 +1,8 @@
 "use client";
-import { useId, useState, useEffect } from "react";
+import { useId, useState, useEffect, useCallback } from "react";
 import { Button, Overlay, TabBar } from "@nexora/ui";
 import { RefreshCw, SlidersHorizontal, Clock } from "lucide-react";
+import type { JobDetailReader } from "./sync-api.ts";
 import type {
   CarrierConnectionRow,
   SyncPresentation,
@@ -39,7 +40,13 @@ export function CarrierDataSyncDrawer({
   historyQuery,
   onHistoryChange,
   scheduleRevision = 0,
+  jobDetail,
+  onDetailUnauthorized,
+  denied = false,
 }: {
+  denied?: boolean;
+  jobDetail?: JobDetailReader;
+  onDetailUnauthorized?: () => void;
   onSync?: (type: string) => void;
   onSaveSchedule?: (
     draft: ReturnType<typeof initialSchedule>,
@@ -89,8 +96,16 @@ export function CarrierDataSyncDrawer({
     if (dirty) setDiscard(true);
     else onClose();
   };
-  const inspect = (kind: "progress" | "error", item: SyncItem) =>
-    setInspection({ kind, item });
+  const detailUnauthorized = useCallback(() => {
+    setInspection(null);
+    onDetailUnauthorized?.();
+  }, [onDetailUnauthorized]);
+  useEffect(() => {
+    if (denied) setInspection(null);
+  }, [denied]);
+  const inspect = (kind: "progress" | "error", item: SyncItem) => {
+    if (!denied) setInspection({ kind, item });
+  };
   const readyScheduleText = onSaveSchedule
     ? "Cấu hình trên máy chủ"
     : "Chưa tích hợp cấu hình";
@@ -254,14 +269,19 @@ export function CarrierDataSyncDrawer({
                   ? onHistoryChange(patch)
                   : setHistory((h) => ({ ...h, ...patch }))
               }
-              onInspect={(item) => setInspection({ kind: "history", item })}
+              onInspect={(item) => {
+                if (!denied) setInspection({ kind: "history", item });
+              }}
             />
           )}
         </div>
       </CarrierDrawerFrame>
-      {inspection && (
+      {inspection && !denied && (
         <CarrierSyncInspection
           inspection={inspection}
+          connectionId={row?.id}
+          jobDetail={jobDetail}
+          onUnauthorized={detailUnauthorized}
           onClose={() => setInspection(null)}
         />
       )}{" "}

@@ -25,6 +25,7 @@ export function CarrierLiveSyncDrawer({
     generation = useRef(0),
     flight = useRef(false),
     denied = useRef(false),
+    detailScope = useRef(new AbortController()),
     mounted = useRef(true),
     request = useRef<AbortController | null>(null),
     [data, setData] = useState<SyncPresentation>(),
@@ -41,6 +42,7 @@ export function CarrierLiveSyncDrawer({
     });
   const deny = useCallback(() => {
     denied.current = true;
+    detailScope.current.abort();
     request.current?.abort();
     generation.current++;
     flight.current = true;
@@ -128,6 +130,7 @@ export function CarrierLiveSyncDrawer({
   useEffect(
     () => () => {
       mounted.current = false;
+      // Inspection owns unmount cancellation; this shared scope is sticky denial only.
       request.current?.abort();
       generation.current++;
     },
@@ -146,6 +149,20 @@ export function CarrierLiveSyncDrawer({
     const timer = setTimeout(() => void load(), 5000);
     return () => clearTimeout(timer);
   }, [data, load, busy, blocked]);
+  const jobDetail = useCallback(
+    async (jobId: string, page: number, signal: AbortSignal) => {
+      if (denied.current || !mounted.current) throw new SyncApiError(401);
+      const data = await api.jobDetail(
+        row.id,
+        jobId,
+        page,
+        AbortSignal.any([signal, detailScope.current.signal]),
+      );
+      if (denied.current || !mounted.current) throw new SyncApiError(401);
+      return data;
+    },
+    [row.id],
+  );
   const reload = async () => {
     if ((await load()) && !denied.current) {
       flight.current = false;
@@ -220,6 +237,9 @@ export function CarrierLiveSyncDrawer({
     <CarrierDataSyncDrawer
       row={row}
       data={data}
+      denied={denied.current}
+      jobDetail={jobDetail}
+      onDetailUnauthorized={deny}
       onClose={onClose}
       onSync={(type) => void mutate(() => api.admit(row.id, type as SyncType))}
       onSaveSchedule={save}

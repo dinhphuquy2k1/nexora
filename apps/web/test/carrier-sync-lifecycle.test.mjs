@@ -1,89 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import vm from "node:vm";
-import { clearTimeout, setImmediate } from "node:timers";
-import ts from "typescript";
+import { setImmediate } from "node:timers";
+import { componentHarness } from "./helpers/component-harness.mjs";
 import { loadComponent } from "./helpers/render-component.mjs";
 
-// Execute the actual component closures with deterministic hooks and controlled I/O.
-// Child markup is opaque here; actual browser geometry remains in the CDP suite.
-function componentHarness(file, dependencies) {
-  const slots = [],
-    effects = [];
-  let cursor = 0;
-  const changed = (previous, next) =>
-    !previous || next.some((value, i) => value !== previous[i]);
-  const hooks = {
-    useRef(value) {
-      const i = cursor++;
-      return (slots[i] ??= { current: value });
-    },
-    useState(value) {
-      const i = cursor++;
-      if (!(i in slots))
-        slots[i] = typeof value === "function" ? value() : value;
-      return [
-        slots[i],
-        (next) => {
-          slots[i] = typeof next === "function" ? next(slots[i]) : next;
-        },
-      ];
-    },
-    useId() {
-      return "fixture-id";
-    },
-    useCallback(fn, deps) {
-      const i = cursor++;
-      if (!slots[i] || changed(slots[i].deps, deps)) slots[i] = { fn, deps };
-      return slots[i].fn;
-    },
-    useEffect(fn, deps) {
-      const i = cursor++;
-      if (changed(slots[i], deps)) {
-        slots[i] = deps;
-        effects.push(fn);
-      }
-    },
-  };
-  const module = { exports: {} };
-  const code = ts.transpileModule(
-    readFileSync(new URL(file, import.meta.url), "utf8"),
-    {
-      compilerOptions: {
-        module: ts.ModuleKind.CommonJS,
-        jsx: ts.JsxEmit.ReactJSX,
-        target: ts.ScriptTarget.ES2022,
-      },
-    },
-  ).outputText;
-  vm.runInNewContext(code, {
-    module,
-    exports: module.exports,
-    AbortController: globalThis.AbortController,
-    setTimeout,
-    clearTimeout,
-    require(name) {
-      if (name === "react") return hooks;
-      if (name === "react/jsx-runtime")
-        return {
-          jsx: (type, props) => ({ type, props }),
-          jsxs: (type, props) => ({ type, props }),
-        };
-      if (name.endsWith(".css")) return { default: {} };
-      if (name in dependencies) return dependencies[name];
-      throw Error("Unexpected component dependency: " + name);
-    },
-  });
-  return {
-    render(props) {
-      cursor = 0;
-      const result = Object.values(module.exports)[0](props);
-      for (const effect of effects.splice(0)) effect();
-      return result;
-    },
-  };
-}
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 test("Sync mutation 401 fences pending reads, reconciliation, retries and late successful responses", async () => {
   const { SyncApiError } = loadComponent(
@@ -332,4 +252,62 @@ test("Sync blocks writes until authoritative config data exists; initial loading
   ready.props.onSync("SHIPMENT");
   await tick();
   assert.equal(writes, 1);
+});
+test("parent read401 aborts pending Inspection and rejects late detail200 plus future reads", async () => {
+  const { SyncApiError } = loadComponent(
+    new URL("../features/carrier-connections/sync-api.ts", import.meta.url),
+  );
+  let reads = 0,
+    details = 0,
+    finish,
+    detailSignal;
+  const api = {
+    configs: async () => {
+      if (++reads > 1) throw new SyncApiError(401);
+      return {};
+    },
+    jobs: async () => ({}),
+    jobDetail: (_id, _job, _page, signal) => {
+      details++;
+      detailSignal = signal;
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    },
+  };
+  const router = { replace() {} };
+  const h = componentHarness(
+    "../features/carrier-connections/CarrierLiveSyncDrawer.tsx",
+    {
+      "@nexora/shared": { SyncJobStatus: {} },
+      "next/navigation": { useRouter: () => router },
+      "./sync-api.ts": { createSyncApi: () => api, SyncApiError },
+      "./sync-response.ts": { syncPresentation: () => ({ items: [] }) },
+      "./sync-presentation.ts": { syncHistoryRange: () => ({}) },
+      "./CarrierDataSyncDrawer.tsx": { CarrierDataSyncDrawer: "drawer" },
+    },
+  );
+  const p = { row: { id: "connection" }, onClose() {} };
+  h.render(p);
+  await tick();
+  let view = h.render(p);
+  const result = view.props
+    .jobDetail("job", 1, new globalThis.AbortController().signal)
+    .then(
+      (data) => ({ data }),
+      (error) => ({ error }),
+    );
+  view.props.onReload();
+  await tick();
+  view = h.render(p);
+  assert.equal(view.props.denied, true);
+  assert.equal(detailSignal.aborted, true);
+  finish({ issues: [{ sourceId: "private-after-denial" }], issueTotal: 1 });
+  assert.equal((await result).error?.status, 401);
+  await assert.rejects(
+    view.props.jobDetail("job", 1, new globalThis.AbortController().signal),
+    (e) => e.status === 401,
+  );
+  assert.equal(details, 1);
+  h.unmount();
 });
