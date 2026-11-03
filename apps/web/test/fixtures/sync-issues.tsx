@@ -12,7 +12,9 @@ const data: SyncPresentation = {
   items: SYNC_FIXTURE.items.slice(0, 2).map((item, i) => ({
     ...item,
     available: true,
-    autoEnabled: false,
+    autoEnabled: i === 1,
+    autoInterval: i === 1 ? "120" : "60",
+    nextRun: i === 1 ? "2026-11-03T10:20:00Z" : undefined,
     state: "completed",
     warning: true,
     jobId: issueJobId(i + 1),

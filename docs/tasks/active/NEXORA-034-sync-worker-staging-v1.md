@@ -389,7 +389,7 @@ The subsequent actual RED run reproduced missing/equal ordering writes and dupli
 order loss. First GREEN attempt exposed new test-only Prisma field typos; corrected
 to existing snake_case model fields without changing assertions.
 
-At the final working-tree F7 correction,2026-11-03T13:05Z, full genuine Sync PG suite
+At the final working-tree F7 correction,2026-11-03T13:04:43.525Z, full genuine Sync PG suite
 PASS33/33,0fail/0skip (90.7s), including eight F7 cases and F1–F6 regressions. Owned
 random loopback/tmpfs container cleanup verified, no user volumes touched. F7 adds
 pre-write order ambiguity validation and same-hash duplicate max-order preservation
@@ -397,3 +397,45 @@ in sync-job.repository.ts. Mixed batches prove complete identity/staging/job/con
 rollback and no item creation. Independent Round1 found no confirmed P1/P2. F8/F9
 native RED tests reproduce absent Next Run and canonical icon/label mismatch;
 implementation and final-head hosted checks remain pending.
+
+### F8/F9 execution and local verification
+
+F8 root cause: Schedule Panel ignored the already-mapped Backend nextRunAt.
+CarrierSyncPanels now uses existing displayTime only for enabled saved settings
+matching that row's draft; invalid/missing/off or changed row draft never invents a
+schedule. F9 root cause: history compared title-case preview values rather than
+canonical Backend SyncType. A feature-local icon/label pair handles canonical
+SHIPMENT/CUSTOMER and presentation-only legacy aliases; raw filters/page data stay
+unchanged. No CSS/token/layout/SDK/schema/queue/domain contract changed.
+
+Native panel and actual Drawer/live-closure tests were RED, then requested three
+Web suites plus new panel suite PASS41/41,0skip; independently rerun by Round2.
+They cover timezone, missing/invalid/off schedules, enabled/interval drafts,
+PATCH→confirmed readback, Cancel/tab/unrelated draft preservation, canonical/legacy/
+unknown icons/labels, raw filter callbacks and server page navigation. Independent
+Round2 found no confirmed P1/P2.
+
+Initial full local quality FAIL at database build because Turbo filtered the
+explicit engine-path environment and attempted blocked Prisma download. Linking
+the verified official pinned engine into its normal package cache resolved this
+without repo/env-policy/TLS/checksum changes; normal database build and complete
+quality rerun PASS. Local browser first FAIL at the old accessible-name assertion
+requiring Shipment. Its expected label now matches requested Kiện hàng while role,
+status, timestamp and keyboard assertions remain intact; no assertion was removed.
+
+| Claim                                              | Evidence                                                                                                                                                                       | Date       | Result |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| F7 rejects ambiguous order before any bulk writes  | Genuine owned PostgreSQL full Sync33/33,0skip; eight F7 cases and F1–F6; cleanup verified                                                                                      | 2026-11-03 | PASS   |
+| F8/F9 source behavior was reproduced before fixes  | Native Next Run/label/icon tests RED on prior code                                                                                                                             | 2026-11-03 | FAIL   |
+| F8/F9 confirmed saved/draft and raw-code behavior  | Requested Web suites plus panel41/41,0skip, independently rerun                                                                                                                | 2026-11-03 | PASS   |
+| Canonical host quality after engine-cache recovery | pnpm quality: format/lint/preflight/docs/typecheck,129root/180API/232Web/32UI/6database tests,0skip, contracts reproducible and build                                          | 2026-11-03 | PASS   |
+| Browser old accessible-name expectation            | Existing Carrier CDP expected old Shipment text after requested Vietnamese label correction                                                                                    | 2026-11-03 | FAIL   |
+| Actual current-source browser and F6 regression    | Existing compiled TSX/CSS/SDK Carrier six-viewport CDP, persisted Next Run/draft reset, canonical history icon/label/raw select, issue paging/privacy/abort/denial/draft state | 2026-11-03 | PASS   |
+
+Browser images remain ignored and the current mobile issue capture was manually
+reviewed. This is synthetic owned GET-only fixture evidence, not Live Provider.
+Final-head hosted Preflight/targeted/Foundation and independent Round3 runtime
+closure remain required. Final SHA/merge/run evidence will be recorded in PR
+metadata after completion, avoiding self-referential evidence-only commits.
+
+Local provenance: full quality log completed 2026-11-03T13:10:49.997Z; actual browser rerun completed 2026-11-03T13:11:00.597Z. These runs tested the task-owned fixes based on cf1353a; hosted evidence must bind the final pushed HEAD.

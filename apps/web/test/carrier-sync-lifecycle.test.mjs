@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { setImmediate } from "node:timers";
 import { componentHarness } from "./helpers/component-harness.mjs";
-import { loadComponent } from "./helpers/render-component.mjs";
+import { loadComponent, React, render } from "./helpers/render-component.mjs";
 
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 test("Sync mutation 401 fences pending reads, reconciliation, retries and late successful responses", async () => {
@@ -310,4 +310,197 @@ test("parent read401 aborts pending Inspection and rejects late detail200 plus f
   );
   assert.equal(details, 1);
   h.unmount();
+});
+
+test("F8 accepted schedule reload and Cancel show persisted nextRun without losing another draft/tab", () => {
+  const model = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-presentation.ts",
+      import.meta.url,
+    ),
+  );
+  const { SyncSchedulePanel } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierSyncPanels.tsx",
+      import.meta.url,
+    ),
+  );
+  const harness = componentHarness(
+    "../features/carrier-connections/CarrierDataSyncDrawer.tsx",
+    {
+      "@nexora/ui": { Button: "button", Overlay: "overlay", TabBar: "tabs" },
+      "lucide-react": {},
+      "./presentation.ts": { UNAVAILABLE: "unavailable" },
+      "./sync-presentation.ts": model,
+      "./CarrierConnectionList.tsx": { ConnectionBadge: "badge" },
+      "./CarrierConnectionDrawer.tsx": { CarrierDrawerFrame: "frame" },
+      "./CarrierSyncPanels.tsx": {
+        SyncStatusPanel: "status",
+        SyncSchedulePanel: "schedule",
+        SyncHistoryPanel: "history",
+      },
+      "./CarrierSyncInspection.tsx": { CarrierSyncInspection: "inspection" },
+    },
+  );
+  const item = (id, enabled, nextRun, interval = "60") => ({
+    id,
+    label: id,
+    icon: "package",
+    state: "idle",
+    available: true,
+    autoEnabled: enabled,
+    autoInterval: interval,
+    nextRun,
+  });
+  let props = {
+    data: {
+      items: [
+        item("SHIPMENT", true, "2026-11-03T10:20:00Z"),
+        item("CUSTOMER", false),
+      ],
+    },
+    onClose() {},
+  };
+  findElement(harness.render(props), "tabs").props.onValueChange("schedule");
+  const html = () =>
+    render(
+      React.createElement(
+        SyncSchedulePanel,
+        findElement(harness.render(props), "schedule").props,
+      ),
+    );
+  assert.match(html(), /17:20/);
+  let panel = findElement(harness.render(props), "schedule");
+  panel.props.onChange("SHIPMENT", { enabled: true, interval: "120" });
+  panel.props.onChange("CUSTOMER", { enabled: true, interval: "240" });
+  assert.doesNotMatch(html(), /17:20/);
+  // The existing PATCH/readback lifecycle accepts only Backend-confirmed values.
+  props = {
+    ...props,
+    data: {
+      items: [
+        item("SHIPMENT", true, "2026-11-03T11:20:00Z", "120"),
+        item("CUSTOMER", false),
+      ],
+    },
+  };
+  harness.render(props);
+  assert.match(html(), /18:20/);
+  assert.equal(
+    findElement(harness.render(props), "tabs").props.value,
+    "schedule",
+  );
+  assert.equal(
+    findElement(harness.render(props), "schedule").props.draft.CUSTOMER
+      .interval,
+    "240",
+  );
+  findElement(
+    findElement(harness.render(props), "frame").props.footer,
+    "button",
+  ).props.onClick();
+  assert.match(html(), /18:20/);
+  assert.equal(
+    findElement(harness.render(props), "schedule").props.draft.CUSTOMER.enabled,
+    false,
+  );
+  assert.equal(
+    findElement(harness.render(props), "schedule").props.draft.SHIPMENT
+      .interval,
+    "120",
+  );
+});
+
+test("F8 successful PATCH is followed by real presentation of Backend-confirmed nextRun", async () => {
+  const response = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-response.ts",
+      import.meta.url,
+    ),
+  );
+  let configs = [
+      {
+        syncType: "SHIPMENT",
+        enabled: false,
+        intervalMinutes: 60,
+        nextRunAt: null,
+        available: true,
+      },
+    ],
+    writes = 0,
+    reads = 0;
+  const api = {
+    configs: async () => {
+      reads++;
+      return configs;
+    },
+    jobs: async () => ({
+      jobs: [],
+      total: 0,
+      types: ["SHIPMENT"],
+      summary: { total: 0, completed: 0, running: 0, failed: 0 },
+    }),
+    configure: async (_id, type, enabled, interval) => {
+      writes++;
+      assert.equal(type, "SHIPMENT");
+      assert.equal(enabled, true);
+      assert.equal(interval, 120);
+      configs = [
+        {
+          ...configs[0],
+          enabled,
+          intervalMinutes: interval,
+          nextRunAt: "2026-11-03T10:20:00Z",
+        },
+      ];
+      return configs[0];
+    },
+  };
+  const harness = componentHarness(
+    "../features/carrier-connections/CarrierLiveSyncDrawer.tsx",
+    {
+      "@nexora/shared": { SyncJobStatus: {} },
+      "next/navigation": { useRouter: () => ({ replace() {} }) },
+      "./sync-api.ts": { createSyncApi: () => api },
+      "./sync-response.ts": response,
+      "./sync-presentation.ts": { syncHistoryRange: () => ({}) },
+      "./CarrierDataSyncDrawer.tsx": { CarrierDataSyncDrawer: "drawer" },
+    },
+  );
+  const props = { row: { id: "owned" }, onClose() {} };
+  harness.render(props);
+  await tick();
+  const before = harness.render(props);
+  assert.equal(before.props.data.items[0].nextRun, undefined);
+  await before.props.onSaveSchedule({
+    SHIPMENT: { enabled: true, interval: "120" },
+  });
+  await tick();
+  const saved = harness.render(props);
+  assert.equal(writes, 1);
+  assert.ok(reads >= 2);
+  assert.equal(saved.props.data.items[0].nextRun, "2026-11-03T10:20:00Z");
+  assert.equal(saved.props.data.items[0].autoInterval, "120");
+  const { SyncSchedulePanel } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierSyncPanels.tsx",
+      import.meta.url,
+    ),
+  );
+  const { initialSchedule } = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-presentation.ts",
+      import.meta.url,
+    ),
+  );
+  assert.match(
+    render(
+      React.createElement(SyncSchedulePanel, {
+        items: saved.props.data.items,
+        draft: initialSchedule(saved.props.data.items),
+        onChange() {},
+      }),
+    ),
+    /17:20/,
+  );
 });

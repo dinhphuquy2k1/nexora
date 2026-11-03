@@ -1,5 +1,6 @@
 "use client";
 import { Fragment } from "react";
+import { SyncType } from "@nexora/shared";
 import { Button, Select, TextInput } from "@nexora/ui";
 import {
   Package,
@@ -344,7 +345,12 @@ export function SyncSchedulePanel({
                   </label>
                   <label>
                     Lần chạy tiếp theo
-                    <span className={styles.readonlyField}>—</span>
+                    <span className={styles.readonlyField}>
+                      {item.autoEnabled &&
+                      value.interval === (item.autoInterval ?? "60")
+                        ? displayTime(item.nextRun)
+                        : "—"}
+                    </span>
                   </label>
                 </div>
               ) : (
@@ -379,10 +385,17 @@ export interface HistoryQuery {
   appliedRange: string;
   page: number;
 }
+function historyType(type: string) {
+  // Legacy aliases belong to preview presentation, never API/filter values.
+  if (type === SyncType.SHIPMENT || type === "Shipment")
+    return { Icon: Package, label: "Kiện hàng" };
+  if (type === SyncType.CUSTOMER || type === "Customer")
+    return { Icon: User, label: "Khách hàng" };
+  return { Icon: Layers, label: type };
+}
 function HistoryTypeIcon({ type }: { type: string }) {
-  if (type === "Shipment") return <Package size={14} />;
-  if (type === "Customer") return <User size={14} />;
-  return <Layers size={14} />;
+  const { Icon } = historyType(type);
+  return <Icon size={14} />;
 }
 export function SyncHistoryPanel({
   data,
@@ -454,7 +467,7 @@ export function SyncHistoryPanel({
             <option value="all">Tất cả loại dữ liệu</option>
             {dataTypes.map((type) => (
               <option key={type} value={type}>
-                {type}
+                {historyType(type).label}
               </option>
             ))}
           </Select>
@@ -530,7 +543,7 @@ export function SyncHistoryPanel({
                 <span className={styles.historyIcon} data-type={item.dataType}>
                   <HistoryTypeIcon type={item.dataType} />
                 </span>
-                <strong>{item.dataType}</strong>
+                <strong>{historyType(item.dataType).label}</strong>
                 <span
                   className={styles.sourceChip}
                   data-manual={item.source === "Thủ công"}

@@ -1043,7 +1043,7 @@ export async function verifyCarrierBrowser({
       });
       const card = tree.nodes.find((n) => n.role?.value === "button");
       assert.ok(card, "native history card role");
-      for (const text of ["Shipment", "Đang chạy", "09/10/2026 14:27"])
+      for (const text of ["Kiện hàng", "Đang chạy", "09/10/2026 14:27"])
         assert.ok(
           card.name.value.includes(text),
           "visible history metadata in accessible name",
@@ -1106,12 +1106,31 @@ export async function verifyCarrierBrowser({
     await navigate("?syncIssues");
     await detailUntil("document.querySelectorAll('dialog[open]').length===1");
     checks.step("SYNC_ISSUES_SCHEDULE_DRAFT");
+    checks.step("SYNC_PRESENTATION_PERSISTED_NEXT_RUN");
     await click("Lịch tự động");
     await detailUntil("!!document.querySelector('dialog[open] [role=switch]')");
     await pointer("dialog[open] [role=switch]");
     await detailUntil(
       "document.querySelector('dialog[open] [role=switch]').getAttribute('aria-checked')==='true'",
     );
+    await detailUntil(
+      "document.querySelectorAll('dialog[open] select[aria-label^=\"Chu kỳ\"]').length===2",
+    );
+    const savedSchedule =
+      "[...document.querySelectorAll('dialog[open] article')].at(1)";
+    await detailUntil(savedSchedule + ".textContent.includes('17:20')");
+    await evaluate(
+      "(()=>{const e=" +
+        savedSchedule +
+        ".querySelector('select');e.value='240';e.dispatchEvent(new Event('change',{bubbles:true}));})()",
+    );
+    await detailUntil("!" + savedSchedule + ".textContent.includes('17:20')");
+    await evaluate(
+      "(()=>{const e=" +
+        savedSchedule +
+        ".querySelector('select');e.value='120';e.dispatchEvent(new Event('change',{bubbles:true}));})()",
+    );
+    await detailUntil(savedSchedule + ".textContent.includes('17:20')");
     await click("Lịch sử đồng bộ");
     await detailUntil(
       "!!document.querySelector('[aria-label=\"Lọc loại dữ liệu đồng bộ\"]')",
@@ -1122,6 +1141,27 @@ export async function verifyCarrierBrowser({
       "01/01/2026 - 01/01/2026",
     );
     await click("Lọc lại");
+
+    await detailUntil(
+      "document.querySelector('[data-carrier-history-id=\"" +
+        issueJobId(1) +
+        "\"] .lucide-package') && document.querySelector('[data-carrier-history-id=\"" +
+        issueJobId(1) +
+        "\"] strong').textContent==='Kiện hàng'",
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('select[aria-label=\"Lọc loại dữ liệu đồng bộ\"] option[value=SHIPMENT]').textContent",
+      ),
+      "Kiện hàng",
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('select[aria-label=\"Lọc loại dữ liệu đồng bộ\"]').value",
+      ),
+      "SHIPMENT",
+    );
+    checks.step("SYNC_PRESENTATION_SAVED_SCHEDULE_AND_HISTORY_TYPES_PASS");
     checks.step("SYNC_ISSUES_HISTORY_FILTERS_READY");
     const openIssue = async (n) => {
       checks.step("SYNC_ISSUES_OPEN_JOB_" + n);

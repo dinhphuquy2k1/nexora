@@ -656,3 +656,19 @@ focus, issue pagination, privacy, late responses, parent state and narrow viewpo
 geometry. Default Carrier fixtures keep their previous behavior. Synthetic extra
 payload/token fields must never render. Captures live in ignored/14-day artifact
 output; their existence alone does not prove assertions or manual visual review.
+
+### Final Sync ordering and presentation regressions
+
+The existing real PostgreSQL Sync suite additionally checks missing/equal changed
+order conflicts, unchanged physical tuples, stale/newer/unordered records and
+identical-hash duplicate order retention. Mixed pages must rollback every source,
+staging/item write, job counter/checkpoint/target and completed watermark when one
+row is ambiguous. F1 still proves exactly five physical identity writes by giving
+only its five changed rows a valid newer order.
+
+Carrier native panel/Drawer/live-closure tests check Backend-confirmed Next Run in
+Vietnam time, null/invalid timestamps, row-local saved/draft matching, confirmed
+PATCH/readback, Cancel and unrelated draft/tab retention. History icon/label tests
+cover canonical SHIPMENT/CUSTOMER, legacy preview aliases and unknown fallback;
+raw filter values and server pagination remain unchanged. Browser checks extend
+the existing Carrier fixture rather than adding a launcher or production flag.

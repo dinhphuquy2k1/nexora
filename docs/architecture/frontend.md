@@ -393,3 +393,12 @@ have AbortController and generation fences, no polling;401 closes Inspection and
 uses the parent sticky denial/login flow,403/404 clear scoped data. Inspection
 changes never remount the Drawer or reset its draft/tab/history query. Existing
 overlay and shared controls/styles are reused; no new page, modal or review actions.
+
+Final Sync review presentation corrections retain the existing Schedule/History
+layout and controls. Next Run uses only the Backend-confirmed nextRunAt, formatted
+by displayTime in Vietnam time; it is unavailable when the saved schedule is off,
+the timestamp is invalid/missing, or that row's draft differs from saved settings.
+Other rows' unsaved drafts do not hide a confirmed schedule. History SHIPMENT and
+CUSTOMER use Package/User and Vietnamese labels; legacy preview aliases stay
+presentation-only, unknown types retain fallback, and filter values/page semantics
+remain the original Backend codes. No schedule arithmetic, extra request or timer.
