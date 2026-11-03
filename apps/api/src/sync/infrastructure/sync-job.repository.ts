@@ -44,7 +44,9 @@ type Connection = {
   lifecycle_version: number;
   generation: number;
 };
+type ConnectionLockMode = "read" | "write";
 export class SyncRepository implements SyncQueue {
+  private scheduledAfter?: { at: string; id: string };
   private instance?: PrismaClient;
   constructor(
     private readonly url: string,
@@ -71,7 +73,9 @@ export class SyncRepository implements SyncQueue {
     userId: string,
     id: string,
     connected = false,
+    mode: ConnectionLockMode = "write",
   ): Promise<Connection> {
+    const lock = Prisma.raw(mode === "read" ? "FOR SHARE" : "FOR UPDATE");
     const u =
       this.authorizationLocks === "shared"
         ? await tx.$queryRaw<
@@ -79,7 +83,7 @@ export class SyncRepository implements SyncQueue {
           >`SELECT status FROM public.sync_lock_user(${userId}::uuid)`
         : await tx.$queryRaw<
             { status: string }[]
-          >`SELECT status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+          >`SELECT status FROM users WHERE id=${userId}::uuid ${lock}`;
     if (u[0]?.status !== UserStatus.ACTIVE) throw new SyncError(E.UNAUTHORIZED);
     const epochs =
       this.authorizationLocks === "shared"
@@ -88,7 +92,7 @@ export class SyncRepository implements SyncQueue {
           >`SELECT generation FROM public.sync_lock_epoch(${userId}::uuid)`
         : await tx.$queryRaw<
             { generation: number }[]
-          >`SELECT generation FROM carrier_user_states WHERE user_id=${userId}::uuid FOR UPDATE`;
+          >`SELECT generation FROM carrier_user_states WHERE user_id=${userId}::uuid ${lock}`;
     const rows =
       this.authorizationLocks === "shared"
         ? await tx.$queryRaw<
@@ -96,7 +100,7 @@ export class SyncRepository implements SyncQueue {
           >`SELECT * FROM public.sync_lock_connection(${id}::uuid,${userId}::uuid)`
         : await tx.$queryRaw<
             Omit<Connection, "generation">[]
-          >`SELECT id,user_id,provider,external_account_id,status,lifecycle_version FROM carrier_connections WHERE id=${id}::uuid AND user_id=${userId}::uuid FOR UPDATE`;
+          >`SELECT id,user_id,provider,external_account_id,status,lifecycle_version FROM carrier_connections WHERE id=${id}::uuid AND user_id=${userId}::uuid ${lock}`;
     if (!rows[0]) throw new SyncError(E.NOT_FOUND);
     if (connected && rows[0].status !== ConnectionStatus.CONNECTED)
       throw new SyncError(E.SYNC_UNAVAILABLE);
@@ -170,7 +174,7 @@ export class SyncRepository implements SyncQueue {
     filters: SyncJobFilters = {},
   ) {
     return this.client.$transaction(async (tx) => {
-      await this.connection(tx, userId, id);
+      await this.connection(tx, userId, id, false, "read");
       const type = filters.type ?? null,
         statuses = filters.statuses ?? [],
         from = filters.from ?? null,
@@ -213,7 +217,7 @@ export class SyncRepository implements SyncQueue {
     pageSize: number,
   ) {
     return this.client.$transaction(async (tx) => {
-      await this.connection(tx, userId, id);
+      await this.connection(tx, userId, id, false, "read");
       const jobs = await tx.$queryRaw<
         { id: string }[]
       >`SELECT id FROM sync_jobs WHERE id=${jobId}::uuid AND carrier_connection_id=${id}::uuid AND owner_user_id=${userId}::uuid`;
@@ -229,7 +233,7 @@ export class SyncRepository implements SyncQueue {
   }
   async job(userId: string, id: string, jobId: string) {
     return this.client.$transaction(async (tx) => {
-      await this.connection(tx, userId, id);
+      await this.connection(tx, userId, id, false, "read");
       const rows = await tx.$queryRaw<
         SyncJob[]
       >`SELECT * FROM sync_jobs WHERE id=${jobId}::uuid AND carrier_connection_id=${id}::uuid AND owner_user_id=${userId}::uuid`;
@@ -239,7 +243,7 @@ export class SyncRepository implements SyncQueue {
   }
   async configs(userId: string, id: string) {
     return this.client.$transaction(async (tx) => {
-      const c = await this.connection(tx, userId, id);
+      const c = await this.connection(tx, userId, id, false, "read");
       const rows = await tx.$queryRaw<
         SyncSchedule[]
       >`SELECT * FROM sync_configs WHERE carrier_connection_id=${id}::uuid`;
@@ -281,7 +285,7 @@ export class SyncRepository implements SyncQueue {
   }
   async claim(workerId: string) {
     if (!this.config.enabled || !this.config.types.length) return null;
-    const candidate = await this.client.$transaction(async (tx) => {
+    const selected = await this.client.$transaction(async (tx) => {
       const pairs = await tx.$queryRaw<
         { provider: string; sync_type: SyncType }[]
       >`SELECT DISTINCT provider,sync_type FROM sync_jobs WHERE status IN ('QUEUED','WAITING','RUNNING')`;
@@ -294,13 +298,47 @@ export class SyncRepository implements SyncQueue {
       >`SELECT j.* FROM sync_jobs j WHERE sync_type=ANY(${[...this.config.types]}::text[]) AND (provider||':'||sync_type)=ANY(${eligible}::text[]) AND ((status IN ('QUEUED','WAITING') AND available_at<=clock_timestamp()) OR (status='RUNNING' AND lease_expires_at<=clock_timestamp())) ORDER BY available_at,id FOR UPDATE SKIP LOCKED LIMIT 1`;
       const job = rows[0];
       if (!job || !this.available(job.provider, job.sync_type)) return null;
+      const reclaimed = job.status === J.RUNNING;
+      const attempts = job.attempt_count + (reclaimed ? 1 : 0);
+      if (reclaimed && attempts >= this.config.maxAttempts)
+        return { job, exhausted: true };
       const claimed = await tx.$queryRaw<
         SyncJob[]
-      >`UPDATE sync_jobs SET status=${J.RUNNING},worker_id=${workerId}::uuid,lease_version=lease_version+1,lease_expires_at=clock_timestamp()+${this.config.leaseSeconds}*interval '1 second',started_at=coalesce(started_at,clock_timestamp()),updated_at=clock_timestamp() WHERE id=${job.id}::uuid RETURNING *`;
-      return claimed[0];
+      >`UPDATE sync_jobs SET status=${J.RUNNING},attempt_count=${attempts},worker_id=${workerId}::uuid,lease_version=lease_version+1,lease_expires_at=clock_timestamp()+${this.config.leaseSeconds}*interval '1 second',started_at=coalesce(started_at,clock_timestamp()),updated_at=clock_timestamp() WHERE id=${job.id}::uuid RETURNING *`;
+      return { job: claimed[0], exhausted: false };
     });
-    if (!candidate) return null;
+    if (!selected) return null;
+    const candidate = selected.job;
     try {
+      if (selected.exhausted) {
+        // The selection lock is released. Finalize only under normal lifecycle order.
+        return await this.client.$transaction(async (tx) => {
+          if (!candidate.carrier_connection_id) return null;
+          const connection = await this.connection(
+            tx,
+            candidate.owner_user_id,
+            candidate.carrier_connection_id,
+            true,
+          );
+          if (
+            connection.generation !== candidate.generation ||
+            connection.lifecycle_version !== candidate.lifecycle_version ||
+            !this.available(connection.provider, candidate.sync_type)
+          )
+            throw new SyncError(E.SYNC_STALE);
+          const rows = await tx.$queryRaw<
+            SyncJob[]
+          >`SELECT * FROM sync_jobs WHERE id=${candidate.id}::uuid AND lease_version=${candidate.lease_version} AND status=${J.RUNNING} AND lease_expires_at<=clock_timestamp() FOR UPDATE`;
+          const current = rows[0];
+          if (!current || current.attempt_count + 1 < this.config.maxAttempts)
+            return null;
+          const [failed] = await tx.$queryRaw<
+            { finished_at: Date }[]
+          >`UPDATE sync_jobs SET status=${J.FAILED},attempt_count=attempt_count+1,last_error_code=${E.INTERNAL_ERROR},lease_version=lease_version+1,worker_id=NULL,lease_expires_at=NULL,finished_at=clock_timestamp(),updated_at=clock_timestamp() WHERE id=${current.id}::uuid AND lease_version=${current.lease_version} RETURNING finished_at`;
+          await tx.$executeRaw`UPDATE sync_configs SET last_completed_at=${failed.finished_at},next_run_at=CASE WHEN enabled THEN ${failed.finished_at}::timestamptz+interval_minutes*interval '1 minute' ELSE NULL END WHERE carrier_connection_id=${current.carrier_connection_id}::uuid AND sync_type=${current.sync_type}`;
+          return null;
+        });
+      }
       await this.client.$transaction((tx) => this.fence(tx, candidate));
       return candidate;
     } catch (error) {
@@ -603,16 +641,73 @@ export class SyncRepository implements SyncQueue {
     }
   }
   async schedule() {
-    if (!this.config.enabled) return;
-    const due = await this.client.$queryRaw<
-      { user_id: string; id: string; sync_type: SyncType; provider: string }[]
-    >`SELECT c.user_id,c.id,s.sync_type,c.provider FROM sync_configs s JOIN carrier_connections c ON c.id=s.carrier_connection_id WHERE s.enabled AND s.next_run_at<=clock_timestamp() AND NOT EXISTS(SELECT 1 FROM sync_jobs j WHERE j.carrier_connection_id=c.id AND j.sync_type=s.sync_type AND j.status=ANY(${ACTIVE_SYNC_JOBS}::text[])) ORDER BY s.next_run_at LIMIT 100`;
-    for (const c of due) {
-      if (!this.available(c.provider, c.sync_type)) continue;
-      try {
-        await this.admit(c.user_id, c.id, c.sync_type, SyncTrigger.AUTO);
-      } catch (error) {
-        if (!(error instanceof SyncError)) throw error;
+    if (!this.config.enabled || !this.config.types.length) return;
+    const pairs = await this.client.$queryRaw<
+      { provider: string; sync_type: SyncType }[]
+    >`SELECT DISTINCT c.provider,s.sync_type FROM sync_configs s JOIN carrier_connections c ON c.id=s.carrier_connection_id WHERE s.enabled`;
+    const eligible = pairs
+      .filter((p) => this.available(p.provider, p.sync_type))
+      .map((p) => p.provider + ":" + p.sync_type);
+    if (!eligible.length) {
+      this.scheduledAfter = undefined;
+      return;
+    }
+    let scanned = 0,
+      admitted = 0;
+    while (scanned < 200 && admitted < 100) {
+      const after = this.scheduledAfter;
+      const due = await this.client.$queryRaw<
+        {
+          user_id: string;
+          id: string;
+          sync_type: SyncType;
+          provider: string;
+          config_id: string;
+          cursor_at: string;
+        }[]
+      >`SELECT c.user_id,c.id,s.sync_type,c.provider,s.id AS config_id,s.next_run_at::text AS cursor_at FROM sync_configs s JOIN carrier_connections c ON c.id=s.carrier_connection_id JOIN users u ON u.id=c.user_id WHERE s.enabled AND s.next_run_at<=clock_timestamp() AND u.status=${UserStatus.ACTIVE} AND c.status=${ConnectionStatus.CONNECTED} AND (c.provider||':'||s.sync_type)=ANY(${eligible}::text[]) AND (${after?.at ?? null}::timestamptz IS NULL OR (s.next_run_at,s.id)>(${after?.at ?? null}::timestamptz,${after?.id ?? null}::uuid)) AND NOT EXISTS(SELECT 1 FROM sync_jobs j WHERE j.carrier_connection_id=c.id AND j.sync_type=s.sync_type AND j.status=ANY(${ACTIVE_SYNC_JOBS}::text[])) ORDER BY s.next_run_at,s.id LIMIT 100`;
+      if (!due.length) {
+        this.scheduledAfter = undefined;
+        return;
+      }
+      for (const c of due) {
+        this.scheduledAfter = { at: c.cursor_at, id: c.config_id };
+        scanned++;
+        try {
+          await this.admit(c.user_id, c.id, c.sync_type, SyncTrigger.AUTO);
+          admitted++;
+        } catch (error) {
+          if (!(error instanceof SyncError)) {
+            const meta =
+              error instanceof Prisma.PrismaClientKnownRequestError
+                ? (error.meta as
+                    | {
+                        code?: unknown;
+                        driverAdapterError?: {
+                          cause?: { originalCode?: unknown };
+                        };
+                      }
+                    | undefined)
+                : undefined;
+            const state =
+              meta?.code ?? meta?.driverAdapterError?.cause?.originalCode;
+            if (
+              !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+              !(
+                error.code === "P2034" ||
+                (error.code === "P2010" &&
+                  typeof state === "string" &&
+                  ["55P03", "40P01", "40001"].includes(state))
+              )
+            )
+              throw error;
+          }
+        }
+        if (scanned >= 200 || admitted >= 100) return;
+      }
+      if (due.length < 100) {
+        this.scheduledAfter = undefined;
+        return;
       }
     }
   }

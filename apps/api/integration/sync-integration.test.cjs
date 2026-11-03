@@ -1442,6 +1442,554 @@ test(
         },
       );
       await t.test(
+        "I1 scheduler filters invalid/capability lanes and scans bounded failures without moving due dates",
+        async () => {
+          const u = await db.user.create({
+            data: { username: "fair-" + randomUUID(), role: "OPERATOR" },
+          });
+          const q = new SyncRepository(
+            url.toString(),
+            cfg,
+            provider,
+            { ...processor, supports: (type) => type === "SHIPMENT" },
+            "shared",
+          );
+          const seed = async (n, type = "SHIPMENT", status = "CONNECTED") => {
+            const lanes = Array.from({ length: n }, () => ({
+              id: randomUUID(),
+              userId: u.id,
+              provider: "uniship",
+              externalAccountId: randomUUID(),
+              displayName: "Synthetic",
+              status,
+            }));
+            await db.carrierConnection.createMany({ data: lanes });
+            const configs = lanes.map((c) => ({
+              id: randomUUID(),
+              carrier_connection_id: c.id,
+              sync_type: type,
+              enabled: true,
+              interval_minutes: 60,
+              next_run_at: new Date("2000-01-01T00:00:00Z"),
+            }));
+            await db.syncConfig.createMany({ data: configs });
+            return configs.sort((a, b) => a.id.localeCompare(b.id));
+          };
+          const disable = () =>
+            db.$executeRaw`UPDATE sync_configs SET enabled=false WHERE carrier_connection_id IN (SELECT id FROM carrier_connections WHERE user_id=${u.id}::uuid)`;
+          try {
+            const invalid = await seed(100, "SHIPMENT", "REAUTH_REQUIRED");
+            await seed(100, "CUSTOMER");
+            const [good] = await seed(1);
+            await db.$executeRaw`UPDATE sync_configs SET next_run_at='2000-01-02' WHERE id=${good.id}::uuid`;
+            await q.schedule();
+            assert.equal(
+              await db.syncJob.count({ where: { owner_user_id: u.id } }),
+              1,
+            );
+            assert.equal(
+              (await db.syncJob.findFirst({ where: { owner_user_id: u.id } }))
+                .carrier_connection_id,
+              good.carrier_connection_id,
+            );
+            assert.equal(
+              (
+                await db.syncConfig.findUnique({ where: { id: invalid[0].id } })
+              ).next_run_at.toISOString(),
+              "2000-01-01T00:00:00.000Z",
+            );
+            await disable();
+            // Actual PostgreSQL admission failures, not mocked infrastructure.
+            const failures = await seed(201),
+              rejected = failures
+                .slice(0, 200)
+                .map((c) => c.carrier_connection_id);
+            await db.$executeRawUnsafe(
+              `CREATE FUNCTION sync_test_admission_failure() RETURNS trigger LANGUAGE plpgsql AS $sync_test$ BEGIN RAISE EXCEPTION 'Synthetic admission lock' USING ERRCODE='55P03'; END $sync_test$; CREATE TRIGGER sync_test_admission_failure BEFORE INSERT ON sync_jobs FOR EACH ROW WHEN (NEW.carrier_connection_id=ANY('{${rejected.join(",")}}'::uuid[])) EXECUTE FUNCTION sync_test_admission_failure()`,
+            );
+            // Millisecond boundaries and UUID ties preserve the database cursor.
+            for (let offset = 0; offset < failures.length; offset += 50)
+              await db.$executeRaw`UPDATE sync_configs SET next_run_at=${new Date(Date.UTC(2000, 0, 1, 0, 0, 0, 123 + offset / 50))} WHERE id=ANY(${failures.slice(offset, offset + 50).map((c) => c.id)}::uuid[])`;
+            const before =
+              await db.$queryRaw`SELECT id,next_run_at FROM sync_configs WHERE id=ANY(${failures.map((c) => c.id)}::uuid[]) ORDER BY id`;
+            await q.schedule();
+            assert.equal(
+              await db.syncJob.count({
+                where: {
+                  carrier_connection_id: {
+                    in: failures.map((c) => c.carrier_connection_id),
+                  },
+                },
+              }),
+              0,
+              "one bounded cycle must not fabricate success",
+            );
+            await q.schedule();
+            const admitted = await db.syncJob.findMany({
+              where: {
+                carrier_connection_id: {
+                  in: failures.map((c) => c.carrier_connection_id),
+                },
+              },
+            });
+            assert.equal(admitted.length, 1);
+            assert.equal(
+              admitted[0].carrier_connection_id,
+              failures[200].carrier_connection_id,
+              "continuation reaches healthy lane beyond200 failures",
+            );
+            assert.deepEqual(
+              await db.$queryRaw`SELECT id,next_run_at FROM sync_configs WHERE id=ANY(${failures.map((c) => c.id)}::uuid[]) ORDER BY id`,
+              before,
+              "admission never advances due dates",
+            );
+            await db.$executeRawUnsafe(
+              "DROP TRIGGER sync_test_admission_failure ON sync_jobs; DROP FUNCTION sync_test_admission_failure()",
+            );
+            //100 actual admission failures still allow the101st candidate in this call.
+            await db.$executeRaw`UPDATE sync_configs SET enabled=false WHERE id=ANY(${failures.slice(101, 200).map((c) => c.id)}::uuid[])`;
+            await db.$executeRawUnsafe(
+              `CREATE FUNCTION sync_test_admission_failure() RETURNS trigger LANGUAGE plpgsql AS $sync_test$ BEGIN RAISE EXCEPTION 'Synthetic admission lock' USING ERRCODE='55P03'; END $sync_test$; CREATE TRIGGER sync_test_admission_failure BEFORE INSERT ON sync_jobs FOR EACH ROW WHEN (NEW.carrier_connection_id=ANY('{${rejected.slice(0, 100).join(",")}}'::uuid[])) EXECUTE FUNCTION sync_test_admission_failure()`,
+            );
+            await q.schedule();
+            assert.equal(
+              await db.syncJob.count({
+                where: {
+                  carrier_connection_id: failures[100].carrier_connection_id,
+                },
+              }),
+              1,
+            );
+            await db.$executeRawUnsafe(
+              "DROP TRIGGER sync_test_admission_failure ON sync_jobs; DROP FUNCTION sync_test_admission_failure()",
+            );
+            const otherScheduler = new SyncRepository(
+              url.toString(),
+              cfg,
+              provider,
+              processor,
+              "shared",
+            );
+            try {
+              await Promise.all([q.schedule(), otherScheduler.schedule()]);
+            } finally {
+              await otherScheduler.close();
+            }
+            const duplicate =
+              await db.$queryRaw`SELECT carrier_connection_id,count(*) FROM sync_jobs WHERE owner_user_id=${u.id}::uuid AND status IN ('QUEUED','RUNNING','WAITING') GROUP BY carrier_connection_id,sync_type HAVING count(*)>1`;
+            assert.equal(duplicate.length, 0);
+          } finally {
+            await db.$executeRawUnsafe(
+              "DROP TRIGGER IF EXISTS sync_test_admission_failure ON sync_jobs; DROP FUNCTION IF EXISTS sync_test_admission_failure()",
+            );
+            await disable();
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE owner_user_id=${u.id}::uuid AND status IN ('QUEUED','RUNNING','WAITING')`;
+            await q.close();
+          }
+        },
+      );
+      await t.test(
+        "M2 expired reclaim counts crashes, terminalizes atomically and preserves checkpoint/watermarks",
+        async () => {
+          const lane = await connection(),
+            q = new SyncRepository(
+              url.toString(),
+              cfg,
+              provider,
+              processor,
+              "shared",
+            );
+          let j;
+          try {
+            await q.configure(owner.id, lane.id, "SHIPMENT", true, 60);
+            j = await q.admit(owner.id, lane.id, "SHIPMENT", "MANUAL");
+            const first = await q.claim(randomUUID());
+            assert.equal(first.attempt_count, 0);
+            await q.page(
+              first,
+              {
+                records: [record("crash-checkpoint")],
+                done: false,
+                nextPage: 8,
+                nextCursor: "committed-7",
+                watermark: "unconfirmed",
+              },
+              1,
+            );
+            const waiting = await q.claim(randomUUID());
+            assert.equal(waiting.attempt_count, 0);
+            await db.$executeRaw`UPDATE sync_jobs SET attempt_count=2,lease_expires_at=clock_timestamp()-interval '1 second' WHERE id=${j.id}::uuid`;
+            const recovered = await q.claim(randomUUID());
+            assert.equal(recovered.attempt_count, 3);
+            assert.equal(recovered.next_page, 8);
+            assert.equal(recovered.next_cursor, "committed-7");
+            await assert.rejects(
+              q.page(waiting, { records: [record("zombie")], done: true }, 1),
+              (e) => e.code === "SYNC_STALE",
+            );
+            await db.$executeRaw`UPDATE sync_jobs SET attempt_count=4,lease_expires_at=clock_timestamp()-interval '1 second' WHERE id=${j.id}::uuid`;
+            const before = await q.job(owner.id, lane.id, j.id);
+            await db.$executeRawUnsafe(
+              `CREATE FUNCTION sync_test_completion_failure() RETURNS trigger LANGUAGE plpgsql AS $sync_test$ BEGIN RAISE EXCEPTION 'Synthetic completion rollback'; END $sync_test$; CREATE TRIGGER sync_test_completion_failure BEFORE UPDATE ON sync_configs FOR EACH ROW WHEN (NEW.carrier_connection_id='${lane.id}'::uuid) EXECUTE FUNCTION sync_test_completion_failure()`,
+            );
+            await assert.rejects(q.claim(randomUUID()));
+            assert.deepEqual(
+              await q.job(owner.id, lane.id, j.id),
+              before,
+              "terminal attempt/version/status must rollback with config failure",
+            );
+            await db.$executeRawUnsafe(
+              "DROP TRIGGER sync_test_completion_failure ON sync_configs; DROP FUNCTION sync_test_completion_failure()",
+            );
+            const contender = new SyncRepository(
+              url.toString(),
+              cfg,
+              provider,
+              processor,
+              "shared",
+            );
+            try {
+              assert.deepEqual(
+                await Promise.all([
+                  q.claim(randomUUID()),
+                  contender.claim(randomUUID()),
+                ]),
+                [null, null],
+              );
+            } finally {
+              await contender.close();
+            }
+            const failed = await q.job(owner.id, lane.id, j.id);
+            assert.equal(failed.status, "FAILED");
+            assert.equal(failed.attempt_count, 5);
+            assert.equal(failed.last_error_code, "INTERNAL_ERROR");
+            assert.equal(failed.lease_version, recovered.lease_version + 1);
+            assert.equal(failed.worker_id, null);
+            assert.equal(failed.lease_expires_at, null);
+            assert.equal(failed.next_page, 8);
+            assert.equal(failed.next_cursor, "committed-7");
+            assert.equal(failed.target_watermark, "unconfirmed");
+            await assert.rejects(
+              q.page(
+                recovered,
+                { records: [record("late-after-failed")], done: true },
+                1,
+              ),
+              (e) => e.code === "SYNC_STALE",
+            );
+            const config = (await q.configs(owner.id, lane.id)).find(
+              (c) => c.sync_type === "SHIPMENT",
+            );
+            assert.equal(config.last_success_at, null);
+            assert.equal(config.last_completed_watermark, null);
+            assert.equal(
+              config.next_run_at.getTime() - failed.finished_at.getTime(),
+              3600000,
+            );
+            await db.$executeRaw`UPDATE sync_configs SET next_run_at=clock_timestamp()-interval '1 second' WHERE carrier_connection_id=${lane.id}::uuid`;
+            await q.schedule();
+            const fresh = await q.admit(
+              owner.id,
+              lane.id,
+              "SHIPMENT",
+              "MANUAL",
+            );
+            assert.notEqual(fresh.id, j.id);
+            assert.equal(fresh.trigger_source, "AUTO");
+            assert.equal(
+              await db.syncJob.count({
+                where: {
+                  carrier_connection_id: lane.id,
+                  status: { in: ["QUEUED", "RUNNING", "WAITING"] },
+                },
+              }),
+              1,
+            );
+            const pageSeven = await q.claim(randomUUID());
+            await q.page(
+              pageSeven,
+              {
+                records: [],
+                done: false,
+                nextPage: 8,
+                nextCursor: "page-7-committed",
+              },
+              1,
+            );
+            const beforeCrash = await q.claim(randomUUID());
+            await db.$executeRaw`UPDATE sync_jobs SET attempt_count=2,lease_expires_at=clock_timestamp()-interval '1 second' WHERE id=${fresh.id}::uuid`;
+            const resume = await q.claim(randomUUID()),
+              fetched = [];
+            await new SyncJobExecutor(
+              q,
+              {
+                ...provider,
+                fetch: async (work) => {
+                  fetched.push(work.next_page);
+                  return { records: [], done: true, nextPage: 9 };
+                },
+              },
+              processor,
+            ).execute(resume, new globalThis.AbortController().signal);
+            assert.deepEqual(
+              fetched,
+              [8],
+              "executor resumes after committed page7, not an earlier page",
+            );
+            const advanced = await q.job(owner.id, lane.id, fresh.id);
+            assert.equal(advanced.next_page, 9);
+            assert.equal(
+              advanced.attempt_count,
+              0,
+              "successful page retains its existing attempt reset",
+            );
+            await assert.rejects(
+              q.heartbeat(beforeCrash),
+              (e) => e.code === "SYNC_STALE",
+            );
+          } finally {
+            await db.$executeRawUnsafe(
+              "DROP TRIGGER IF EXISTS sync_test_completion_failure ON sync_configs; DROP FUNCTION IF EXISTS sync_test_completion_failure()",
+            );
+            await db.$executeRaw`UPDATE sync_configs SET enabled=false WHERE carrier_connection_id=${lane.id}::uuid`;
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE carrier_connection_id=${lane.id}::uuid AND status IN ('QUEUED','RUNNING','WAITING')`;
+            await q.close();
+          }
+        },
+      );
+      await t.test(
+        "M3 technical retry exhaustion stays FAILED while valid business review and new versions recover",
+        async () => {
+          const lane = await connection(),
+            q = new SyncRepository(
+              url.toString(),
+              { ...cfg, maxAttempts: 2 },
+              provider,
+              processor,
+              "shared",
+            );
+          try {
+            await q.configure(owner.id, lane.id, "SHIPMENT", true, 60);
+            const j = await q.admit(owner.id, lane.id, "SHIPMENT", "MANUAL");
+            await q.page(
+              await q.claim(randomUUID()),
+              {
+                records: [record("technical-exhaustion", 1)],
+                done: true,
+                watermark: "must-not-succeed",
+              },
+              1,
+            );
+            for (let i = 0; i < 2; i++) {
+              await q.apply(await q.claim(randomUUID()), {
+                ...processor,
+                apply: async () => ({ outcome: "RETRYABLE_ERROR" }),
+              });
+              if (i === 0) {
+                await db.$executeRaw`UPDATE sync_jobs SET available_at=clock_timestamp()-interval '1 second' WHERE id=${j.id}::uuid`;
+                await db.$executeRaw`UPDATE provider_source_records SET next_retry_at=clock_timestamp()-interval '1 second' WHERE source_identity_id IN (SELECT source_identity_id FROM sync_job_items WHERE job_id=${j.id}::uuid)`;
+              }
+            }
+            const failed = await q.job(owner.id, lane.id, j.id),
+              issues = await q.issues(owner.id, lane.id, j.id, 1, 10);
+            assert.equal(failed.status, "FAILED");
+            assert.equal(failed.applied_count, 0);
+            assert.equal(failed.needs_review_count, 0);
+            assert.equal(
+              issues.issues[0].processing_outcome,
+              "RETRYABLE_ERROR",
+            );
+            assert.equal(issues.issues[0].last_error_code, "INTERNAL_ERROR");
+            let config = (await q.configs(owner.id, lane.id)).find(
+              (c) => c.sync_type === "SHIPMENT",
+            );
+            assert.equal(config.last_success_at, null);
+            assert.equal(config.last_completed_watermark, null);
+            const next = await q.admit(owner.id, lane.id, "SHIPMENT", "MANUAL");
+            await q.page(
+              await q.claim(randomUUID()),
+              {
+                records: [record("technical-exhaustion", 2)],
+                done: true,
+                watermark: "confirmed-new-version",
+              },
+              1,
+            );
+            const source = (
+              await db.$queryRaw`SELECT p.* FROM provider_source_records p JOIN sync_job_items i ON i.source_identity_id=p.source_identity_id WHERE i.job_id=${next.id}::uuid`
+            )[0];
+            assert.equal(source.source_version, 2);
+            assert.equal(source.next_retry_at, null);
+            assert.equal(source.attempt_count, 0);
+            await q.apply(await q.claim(randomUUID()), processor);
+            const reviewed = await q.job(owner.id, lane.id, next.id);
+            assert.equal(reviewed.status, "SUCCEEDED");
+            assert.equal(reviewed.needs_review_count, 1);
+            config = (await q.configs(owner.id, lane.id)).find(
+              (c) => c.sync_type === "SHIPMENT",
+            );
+            assert.ok(config.last_success_at);
+            assert.ok(
+              config.next_run_at.getTime() - reviewed.finished_at.getTime() >=
+                3600000 &&
+                config.next_run_at.getTime() - reviewed.finished_at.getTime() <
+                  3601000,
+            );
+            assert.equal(
+              config.last_completed_watermark,
+              "confirmed-new-version",
+            );
+            assert.equal(
+              (await q.issues(owner.id, lane.id, j.id, 1, 10)).issues[0]
+                .processing_outcome,
+              "RETRYABLE_ERROR",
+            );
+          } finally {
+            await db.$executeRaw`UPDATE sync_configs SET enabled=false WHERE carrier_connection_id=${lane.id}::uuid`;
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE carrier_connection_id=${lane.id}::uuid AND status IN ('QUEUED','RUNNING','WAITING')`;
+            await q.close();
+          }
+        },
+      );
+      await t.test(
+        "M1 API shared reads overlap while mutations, disable and delete retain lifecycle barriers",
+        async () => {
+          const u = await db.user.create({
+            data: { username: "read-" + randomUUID(), role: "OPERATOR" },
+          });
+          const lane = await db.carrierConnection.create({
+            data: {
+              userId: u.id,
+              provider: "uniship",
+              externalAccountId: randomUUID(),
+              displayName: "Synthetic",
+              status: "CONNECTED",
+            },
+          });
+          const read = new SyncRepository(
+              url.toString(),
+              cfg,
+              provider,
+              processor,
+            ),
+            second = new SyncRepository(
+              url.toString(),
+              cfg,
+              provider,
+              processor,
+            );
+          let release, held;
+          const original = read.client.$transaction.bind(read.client);
+          const hold = () => {
+            const ready = new Promise((r) => (held = r)),
+              gate = new Promise((r) => (release = r));
+            read.client.$transaction = (callback) =>
+              original(async (tx) => {
+                const result = await callback(tx);
+                held();
+                await gate;
+                return result;
+              });
+            return ready;
+          };
+          const settles = async (p) => {
+            let done = false;
+            p.then(
+              () => (done = true),
+              () => (done = true),
+            );
+            for (let i = 0; i < 20 && !done; i++)
+              await new Promise((r) => setTimeout(r, 50));
+            return done;
+          };
+          try {
+            const j = await second.admit(u.id, lane.id, "SHIPMENT", "MANUAL");
+            await db.$executeRaw`UPDATE sync_jobs SET status='SUCCEEDED',finished_at=clock_timestamp() WHERE id=${j.id}::uuid`;
+            const metadata =
+              await db.$queryRaw`SELECT updated_at FROM users WHERE id=${u.id}::uuid`;
+            let ready = hold(),
+              first = read.jobs(u.id, lane.id, 1, 10);
+            await ready;
+            const otherReads = Promise.all([
+              second.jobs(u.id, lane.id, 1, 10),
+              second.job(u.id, lane.id, j.id),
+              second.issues(u.id, lane.id, j.id, 1, 10),
+              second.configs(u.id, lane.id),
+            ]);
+            const overlap = await settles(otherReads);
+            release();
+            await first;
+            await otherReads;
+            assert.equal(
+              overlap,
+              true,
+              "API reads must coexist with another read's held authorization locks",
+            );
+            assert.deepEqual(
+              await db.$queryRaw`SELECT updated_at FROM users WHERE id=${u.id}::uuid`,
+              metadata,
+            );
+            ready = hold();
+            first = read.configs(u.id, lane.id);
+            await ready;
+            let changed = false;
+            const write = second
+              .configure(u.id, lane.id, "SHIPMENT", false, 60)
+              .then(() => (changed = true));
+            await new Promise((r) => setTimeout(r, 100));
+            assert.equal(
+              changed,
+              false,
+              "mutation still waits behind shared read",
+            );
+            release();
+            await first;
+            await write;
+            ready = hold();
+            first = read.configs(u.id, lane.id);
+            await ready;
+            let disabled = false;
+            const disabling = identity
+              .setStatus(adminUser.id, u.id, "DISABLED")
+              .then(() => (disabled = true));
+            await new Promise((r) => setTimeout(r, 100));
+            assert.equal(disabled, false);
+            release();
+            await first;
+            await disabling;
+            await assert.rejects(
+              second.configs(u.id, lane.id),
+              (e) => e.code === "UNAUTHORIZED",
+            );
+            await identity.setStatus(adminUser.id, u.id, "ACTIVE");
+            ready = hold();
+            first = read.jobs(u.id, lane.id, 1, 10);
+            await ready;
+            let deleted = false;
+            const deleting = carrier
+              .remove(u.id, lane.id)
+              .then(() => (deleted = true));
+            await new Promise((r) => setTimeout(r, 100));
+            assert.equal(deleted, false);
+            release();
+            await first;
+            await deleting;
+            await assert.rejects(
+              second.configs(u.id, lane.id),
+              (e) => e.code === "NOT_FOUND",
+            );
+            await assert.rejects(
+              second.jobs(other.id, lane.id, 1, 10),
+              (e) => e.code === "NOT_FOUND",
+            );
+          } finally {
+            release?.();
+            await read.close();
+            await second.close();
+          }
+        },
+      );
+      await t.test(
         "real API and worker processes share the same provider reservation budget",
         async () => {
           await db.$executeRaw`UPDATE sync_provider_budget SET blocked_until=NULL,failures=0,lease_token=NULL,lease_expires_at=NULL`;
