@@ -14,10 +14,10 @@ Branch: feat/sync-worker-staging-v1. No merge/deployment authorized.
 
 Task ID: NEXORA-034
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-02-sync-v1
-Design Snapshot: docs/tasks/design-reviews/NEXORA-034-rev-2026-11-02-sync-v1.md
-Design SHA-256: d6bcf89e94380e4a81386e3e54e86efc47142455258e8e0498a4ca86021ba20b
-Reviewed baseline: 156a32414dfefdc235804367307b5f052d9dcb47
+Plan revision: rev-2026-11-03-sync-review-fixes-v1
+Design Snapshot: docs/tasks/design-reviews/NEXORA-034-rev-2026-11-03-sync-review-fixes-v1.md
+Design SHA-256: b436333a4b319afb802e6253ecf5e1b46a179fd8d092fc1d078788762f9dfc63
+Reviewed baseline: 6f0292604261b4a7dccc775da611a048842ed019
 
 Read-only inventory, eight-field reuse matrix, domain ownership, alternatives,
 contracts, security/locking, migration/test plan and bounded provider/domain
@@ -83,6 +83,13 @@ Run pnpm docs:check, pnpm preflight:check and pnpm format:check.
 | Customer SQL upgrade order and security assertions            | node scripts/provision-cluster-smoke.mjs --suite=customer-sql after ordered pre/post migration phases; actual owned PostgreSQL1/1 plus verified cleanup, all old assertions preserved                                        | 2026-11-03 | PASS   |
 | Hosted cold loopback timing failure                           | Foundation41544905459 ata5723652: existing Uniship verify happy path exceeded100ms; later gates skipped, not PASS                                                                                                            | 2026-11-03 | FAIL   |
 | Functional HTTP checks separated from deliberate100ms timeout | node --test apps/api/test/uniship-verify.test.cjs3/3; real loopback, all header/auth/status/body/error assertions retained, distinct never-responding deadline case, no production changes                                   | 2026-11-03 | PASS   |
+| Review F1–F4 queue/staging/scheduler/budget regressions       | node --test apps/api/integration/sync-integration.test.cjs against owned PostgreSQL17.11:24/24,0skip; RED cases retained; long reservation >31s and lost/terminal fences included                                            | 2026-11-03 | PASS   |
+| Review F5 engine capability before fix                        | Signed owned-cluster SELECT-only FOR SHARE fails42501, demonstrating direct SHARE still needs UPDATE; no substitute column grant accepted                                                                                    | 2026-11-03 | FAIL   |
+| Review F5 least-privilege locking                             | node scripts/provision-cluster-smoke.mjs --suite=provision; exact worker function execution/shared lock blocking/direct metadata UPDATE denial and verified cleanup                                                          | 2026-11-03 | PASS   |
+| Review function migration preservation                        | Genuine Prisma deploy/diff and packages/database/test/migration.mjs:12forward migrations, four fixed functions, old rows preserved, no model drift                                                                           | 2026-11-03 | PASS   |
+| Review transport cancellation                                 | node --test apps/api/test/uniship-budget-cancellation.test.cjs apps/api/test/uniship-verify.test.cjs:5/5 actual loopback HTTP; both auth/verify cancelled before transport timeout                                           | 2026-11-03 | PASS   |
+| Review F6 SDK/Inspection/Drawer lifecycle                     | node --test apps/web/test/carrier-sync-api.test.mjs apps/web/test/carrier-sync-issues.test.mjs apps/web/test/carrier-sync-lifecycle.test.mjs:13/13 including parent401/late Detail200                                        | 2026-11-03 | PASS   |
+| Review F6 browser/privacy/parent state                        | Existing compiled Carrier fixture+Chromium CDP: six-viewport baseline and new issues SDK paging/empty/denial/abort/filter/draft/focus PASS; two synthetic screenshots manually reviewed                                      | 2026-11-03 | PASS   |
 
 ## Blockers and limitations
 
@@ -247,3 +254,72 @@ entrypoint. Make the heartbeat assertion await actual progress within a bounded
 window across file replacement instead of assuming a single2.2-second read cannot
 race a restart. Preserve real API readiness, privilege/custody and independence
 assertions; do not add retries/skips to the Foundation job or change production logic.
+
+## Six-finding correction checkpoint —2026-11-03
+
+Owner request targets reviewed HEAD6f0292604261b4a7dccc775da611a048842ed019 on
+existing PR32/branch. Clean status, fetch and ff-only pull confirmed same HEAD.
+Original design revision rev-2026-11-02-sync-v1 and raw digest
+d6bcf89e94380e4a81386e3e54e86efc47142455258e8e0498a4ca86021ba20b remain immutable
+historical scope. The current scoped review-fix revision above records the six
+corrections, reuse/security alternatives and test-first plan; it does not reopen
+architecture or require owner approval. Documentation Impact remains REQUIRED.
+
+Read-only inspection confirms F1–F6 locations. F5 platform uncertainty is explicit:
+prove SELECT-only FOR SHARE permissions in the signed owned cluster; do not silently
+retain/substitute UPDATE grants. A narrow fixed read-lock function alternative is
+preplanned only if PostgreSQL requires it, with no tables/roles/business writes.
+No production/tests changed before this scoped plan/reuse review.
+
+| Finding             | Root cause                                                     | Files / selected fix                                         | Regression / status                                                        |
+| ------------------- | -------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| F1 UPSERT           | Identity conflict branch writes unchanged rows                 | SyncRepository.page conditional hash/order predicate         | Real PG timestamps/tuple versions; TARGETED PASS                           |
+| F2 Retry            | New version retains next_retry_at; readiness predicates differ | page/apply reset and matched readiness/deadline selection    | Real PG source/processor/future retry; TARGETED PASS                       |
+| F3 Scheduler        | Active lanes consume LIMIT100                                  | schedule NOT EXISTS active lanes before LIMIT                | 101lanes/manual/concurrent schedulers; TARGETED PASS                       |
+| F4 Provider budget  | 30s token expires during operation                             | Token renewal/abort ownership and Uniship signal plumbing    | Real PG long/lost/successor and real HTTP cancel; TARGETED PASS            |
+| F5 Worker authority | UPDATE metadata grants used for row locks                      | Shared authorization locks/least privilege with engine proof | Signed cluster positive/denied updates/disable races; TARGETED PASS        |
+| F6 Issues           | Existing detail endpoint not consumed                          | SDK method/current Inspection read lifecycle/page rendering  | SDK/native/Chromium empty/review/paging/errors/abort/switch; TARGETED PASS |
+
+### Six-finding actual execution checkpoint
+
+F1/F2/F3 genuine PG regressions were RED (unchanged xmin/timestamps changed, new
+version deadline retained,101st lane not admitted), then GREEN. F4 tests were RED
+for expired long reservations/missing cancellation, then GREEN with token renewal
+and ownership-fenced terminal effects. The current expanded real PostgreSQL suite
+passed24/24 with0skip, including >31second concurrent reservations, lost-owner late
+success/failure and fast-expiry-before-heartbeat. The real loopback auth/verify
+cancellation plus preserved verify tests passed5/5. Native SDK/Inspection/Drawer
+regressions passed12/12; the actual Chromium Carrier six-viewport matrix plus new
+issues/parent-state/error/abort/paging checks PASS. Desktop1440x900 and mobile375x812
+synthetic issue captures were manually reviewed: fields wrap, controls remain
+inside the existing overlay, no raw payload/token renders. Images/logs are ignored.
+
+F5 SELECT-only direct FOR SHARE failed42501 in the signed owned-cluster probe,
+confirming the platform issue. The preplanned fixed read-only function alternative
+was implemented, with API exclusive path unchanged. Provision/worker-lock suite
+PASS, including direct UPDATE denial and real shared-lock/status-writer blocking.
+Two fixture-only setup errors (42P08 UUID/text inference and42703 normalized-phone
+column name) were corrected against the actual migrations, not by weakening ACL or
+locking assertions. Fresh deploy/drift plus full staged legacy migration/row
+preservation PASS with the function-only forward migration. No tables/roles added.
+
+Round1 independent correctness review found no confirmed P1/P2 in F1–F3. Round2
+independent security/concurrency review found no confirmed P1/P2 in F4/F5 and read
+actual24/24PG/privilege logs. Round3/full canonical/final-head hosted gates were pending at this checkpoint. Local full lint initially found missing explicit JS globals imports in new
+tests; these were corrected. No final-head PASS claim from the historical6f029260
+Foundation is made; final run/head/merge evidence will be reconciled in PR metadata.
+
+### Round3 denial regression closure
+
+Independent Round3 found parent GET401 did not fence an already-open detail read.
+The new actual-component regression was RED, then13/13 native tests PASS after a
+sticky parent denial signal, pre/post detail guards and immediate Inspection
+unmount/abort. No further SDK reads can start after denial. Normal Inspection
+close/switch owns its own signal, preserving StrictMode lifecycle behavior and
+non-denied parent drafts. Independent reviewer reran13/13,0skip and closed the P2;
+no remaining confirmed P1/P2 in F1–F6. Final canonical/hosted checks still required.
+
+Provenance: these local targeted results execute task-owned working-tree fixes based
+on6f0292604261b4a7dccc775da611a048842ed019, not a claim about that old commit's code.
+New scoped snapshot is b436333a4b319afb802e6253ecf5e1b46a179fd8d092fc1d078788762f9dfc63.
+Final commit/merge/run lineage will be recorded in PR metadata after CI completion.
