@@ -219,6 +219,7 @@ model SyncConfig {
  updated_at DateTime @default(now()) @db.Timestamptz(3)
  connection CarrierConnection @relation(fields:[carrier_connection_id],references:[id],onDelete:Cascade,onUpdate:NoAction)
  @@unique([carrier_connection_id,sync_type])
+ // Partial enabled next_run_at index is SQL-owned by 20261104000000_sync_fk_indexes.
  @@map("sync_configs")
 }
 model SyncJob {
@@ -262,6 +263,7 @@ model SyncJob {
  // Partial uq_sync_jobs_active is migration-owned.
  @@index([status,available_at],map:"idx_sync_jobs_ready")
  @@index([owner_user_id,carrier_connection_id,created_at(sort:Desc),id(sort:Desc)],map:"idx_sync_jobs_owner")
+ @@index([carrier_connection_id],map:"idx_sync_jobs_connection")
  @@map("sync_jobs")
 }
 model SyncSourceIdentity {
@@ -294,6 +296,7 @@ model SyncSourceIdentity {
  record ProviderSourceRecord?
  items SyncJobItem[]
  @@unique([owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key_hash])
+ // Partial nonnull customer_id index is SQL-owned by 20261104000000_sync_fk_indexes.
  @@map("sync_source_identities")
 }
 model ProviderSourceRecord {
@@ -331,6 +334,7 @@ model SyncJobItem {
  identity SyncSourceIdentity @relation(fields:[source_identity_id],references:[id],onDelete:Restrict,onUpdate:NoAction)
  @@unique([job_id,source_identity_id,source_version,processor_version])
  @@index([job_id,processing_outcome,id],map:"idx_sync_job_items_pending")
+ @@index([source_identity_id],map:"idx_sync_job_items_source")
  @@map("sync_job_items")
 }
 model SyncProviderBudget {

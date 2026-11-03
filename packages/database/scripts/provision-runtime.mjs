@@ -21,7 +21,7 @@ export const RUNTIME_GRANTS = {
   sync_jobs: ["SELECT", "INSERT", "UPDATE"],
   sync_job_items: ["SELECT", "INSERT", "UPDATE"],
   sync_source_identities: ["SELECT", "INSERT", "UPDATE"],
-  provider_source_records: ["SELECT", "INSERT", "UPDATE", "DELETE"],
+  provider_source_records: ["SELECT", "INSERT", "UPDATE"],
   sync_provider_budget: ["SELECT", "INSERT", "UPDATE"],
   customers: ["SELECT", "INSERT", "UPDATE"],
   customer_addresses: ["SELECT", "INSERT", "UPDATE", "DELETE"],

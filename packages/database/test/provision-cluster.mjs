@@ -110,6 +110,20 @@ try {
   await assertRuntimePrivileges(urlA, sharedRuntimeSecret);
   await assertRuntimePrivileges(urlB, sharedRuntimeSecret);
 
+  // Prove repeat provisioning revokes the prior API DELETE ACL on upgrade too.
+  for (const databaseUrl of [urlA, urlB]) {
+    const legacy = new Client({ connectionString: databaseUrl });
+    await legacy.connect();
+    try {
+      await legacy.query(
+        "GRANT DELETE ON provider_source_records TO nexora_app",
+      );
+    } finally {
+      await legacy.end();
+    }
+    await provisionRuntime(databaseUrl, sharedRuntimeSecret);
+  }
+
   // Sync role mutations are authorized only in this owned, signed disposable cluster.
   const workerSecret = randomBytes(32).toString("hex");
   await Promise.all([
@@ -164,6 +178,59 @@ try {
           "INSERT INTO customers(id,owner_user_id,created_by_user_id,name,phone_normalized,updated_at) VALUES($1,$2,$2,'Synthetic','+84900000000',now())",
           [customerId, actor],
         );
+        const api = new Client({
+          connectionString: runtimeUrl(databaseUrl, sharedRuntimeSecret),
+        });
+        await api.connect();
+        try {
+          const source = randomUUID();
+          await api.query(
+            "INSERT INTO sync_source_identities(id,owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key,source_key_hash) VALUES($1::uuid,$2::uuid,'uniship',$1::text,'SHIPMENT','grant-fixture','[\"grant\"]',$3)",
+            [source, actor, "a".repeat(64)],
+          );
+          await api.query(
+            "INSERT INTO provider_source_records(source_identity_id,normalized_payload,payload_hash,source_version,processor_version) VALUES($1,'{}',$2,1,1)",
+            [source, "b".repeat(64)],
+          );
+          assert.equal(
+            (
+              await api.query(
+                "SELECT id FROM provider_source_records WHERE source_identity_id=$1",
+                [source],
+              )
+            ).rowCount,
+            1,
+          );
+          await api.query(
+            "UPDATE provider_source_records SET normalized_payload='{\"synthetic\":true}' WHERE source_identity_id=$1",
+            [source],
+          );
+          await assert.rejects(
+            api.query(
+              "DELETE FROM provider_source_records WHERE source_identity_id=$1",
+              [source],
+            ),
+            (e) => e.code === "42501",
+          );
+          await worker.query(
+            "UPDATE provider_source_records SET processing_status='APPLIED',processed_at=clock_timestamp()-interval '2 days' WHERE source_identity_id=$1",
+            [source],
+          );
+          const removed = await worker.query(
+            "DELETE FROM provider_source_records p WHERE p.id IN (SELECT id FROM provider_source_records WHERE processing_status IN ('APPLIED','REJECTED_SOURCE') AND processed_at<clock_timestamp()-interval '1 day' ORDER BY id LIMIT 500) AND NOT EXISTS(SELECT 1 FROM sync_job_items i JOIN sync_jobs j ON j.id=i.job_id WHERE i.source_identity_id=p.source_identity_id AND j.status IN ('QUEUED','RUNNING','WAITING'))",
+          );
+          assert.equal(
+            removed.rowCount,
+            1,
+            "worker retention still has DELETE authority",
+          );
+          await inspector.query(
+            "DELETE FROM sync_source_identities WHERE id=$1",
+            [source],
+          );
+        } finally {
+          await api.end();
+        }
         const functions = (
           await inspector.query(
             "SELECT p.proname,p.prosecdef,p.proconfig,has_function_privilege('nexora_app',p.oid,'EXECUTE') AS api_execute FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('sync_lock_user','sync_lock_epoch','sync_lock_connection','sync_lock_customer')",

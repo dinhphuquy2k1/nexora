@@ -1990,6 +1990,25 @@ test(
         },
       );
       await t.test(
+        "m1 required FK/due indexes have exact columns/predicates without duplicate names",
+        async () => {
+          const indexes =
+            await db.$queryRaw`SELECT indexname,indexdef FROM pg_indexes WHERE schemaname='public' AND indexname=ANY(${["idx_sync_jobs_connection", "idx_sync_source_identities_customer", "idx_sync_job_items_source", "idx_sync_configs_due"]}::text[])`;
+          assert.equal(indexes.length, 4);
+          for (const [name, column, partial] of [
+            ["idx_sync_jobs_connection", "carrier_connection_id", false],
+            ["idx_sync_source_identities_customer", "customer_id", true],
+            ["idx_sync_job_items_source", "source_identity_id", false],
+            ["idx_sync_configs_due", "next_run_at", true],
+          ]) {
+            const row = indexes.find((r) => r.indexname === name);
+            assert.ok(row.indexdef.includes("(" + column + ")"));
+            assert.equal(row.indexdef.includes("WHERE"), partial);
+          }
+        },
+      );
+
+      await t.test(
         "real API and worker processes share the same provider reservation budget",
         async () => {
           await db.$executeRaw`UPDATE sync_provider_budget SET blocked_until=NULL,failures=0,lease_token=NULL,lease_expires_at=NULL`;

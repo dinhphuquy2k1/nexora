@@ -666,6 +666,54 @@ try {
     4,
   );
 
+  step = "SYNC_FK_INDEXES";
+  const indexMigration = "20261104000000_sync_fk_indexes";
+  const fixtureConnection = randomUUID(),
+    fixtureJob = randomUUID(),
+    fixtureSource = randomUUID();
+  await db.$executeRaw`INSERT INTO carrier_connections(id,user_id,provider,external_account_id,display_name,status) VALUES(${fixtureConnection}::uuid,${ids[0]}::uuid,'uniship',${fixtureConnection},'Index preservation fixture','CONNECTED')`;
+  await db.$executeRaw`INSERT INTO sync_configs(carrier_connection_id,sync_type,enabled,interval_minutes) VALUES(${fixtureConnection}::uuid,'SHIPMENT',false,60)`;
+  await db.$executeRaw`INSERT INTO sync_jobs(id,carrier_connection_id,owner_user_id,provider,external_account_id,sync_type,trigger_source,status,generation,lifecycle_version) VALUES(${fixtureJob}::uuid,${fixtureConnection}::uuid,${ids[0]}::uuid,'uniship',${fixtureConnection},'SHIPMENT','MANUAL','SUCCEEDED',0,1)`;
+  await db.$executeRaw`INSERT INTO sync_source_identities(id,owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key,source_key_hash) VALUES(${fixtureSource}::uuid,${ids[0]}::uuid,'uniship',${fixtureConnection},'SHIPMENT','index-fixture','["preserved"]',${"a".repeat(64)})`;
+  await db.$executeRaw`INSERT INTO provider_source_records(source_identity_id,normalized_payload,payload_hash,source_version,processor_version) VALUES(${fixtureSource}::uuid,'{"synthetic":true}',${"b".repeat(64)},1,1)`;
+  await db.$executeRaw`INSERT INTO sync_job_items(job_id,source_identity_id,source_version,processor_version) VALUES(${fixtureJob}::uuid,${fixtureSource}::uuid,1,1)`;
+  const indexBaseline = {};
+  for (const table of syncBaselineTables)
+    indexBaseline[table] = await db.$queryRawUnsafe(
+      `SELECT * FROM ${table} ORDER BY 1`,
+    );
+  const syncRowsBeforeIndexes = {};
+  for (const table of [
+    "sync_configs",
+    "sync_jobs",
+    "sync_source_identities",
+    "provider_source_records",
+    "sync_job_items",
+  ])
+    syncRowsBeforeIndexes[table] = await db.$queryRawUnsafe(
+      `SELECT * FROM ${table} ORDER BY 1`,
+    );
+  await cp(
+    resolve("prisma/migrations", indexMigration),
+    join(work, "prisma/migrations", indexMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  for (const table of syncBaselineTables)
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`),
+      indexBaseline[table],
+    );
+  for (const table of Object.keys(syncRowsBeforeIndexes))
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`),
+      syncRowsBeforeIndexes[table],
+    );
+  const indexNames = await db.$queryRawUnsafe(
+    "SELECT indexname FROM pg_indexes WHERE indexname IN ('idx_sync_jobs_connection','idx_sync_source_identities_customer','idx_sync_job_items_source','idx_sync_configs_due')",
+  );
+  assert.equal(indexNames.length, 4);
+
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },
