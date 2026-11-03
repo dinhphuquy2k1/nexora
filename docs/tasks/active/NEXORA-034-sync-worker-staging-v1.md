@@ -14,10 +14,10 @@ Branch: feat/sync-worker-staging-v1. No merge/deployment authorized.
 
 Task ID: NEXORA-034
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-03-sync-final-review-v2
-Design Snapshot: docs/tasks/design-reviews/NEXORA-034-rev-2026-11-03-sync-final-review-v2.md
-Design SHA-256: cbac9a184e51ce25cfba7fdf97c624f62ee417b3feb0a75194f2f56cef1efc42
-Reviewed baseline: cf1353a276b1d45f94b6788f559488b715dd4022
+Plan revision: rev-2026-11-03-sync-runtime-review-v3
+Design Snapshot: docs/tasks/design-reviews/NEXORA-034-rev-2026-11-03-sync-runtime-review-v3.md
+Design SHA-256: b115147fe3de5b1ccdb235bd4ff60a378eec5e25e6ee17852a54cd45cb6a2b7c
+Reviewed baseline: 2ff53fb994b130cc5e5b1d23778d41e3f7bc732d
 
 Read-only inventory, eight-field reuse matrix, domain ownership, alternatives,
 contracts, security/locking, migration/test plan and bounded provider/domain
@@ -439,3 +439,12 @@ closure remain required. Final SHA/merge/run evidence will be recorded in PR
 metadata after completion, avoiding self-referential evidence-only commits.
 
 Local provenance: full quality log completed 2026-11-03T13:10:49.997Z; actual browser rerun completed 2026-11-03T13:11:00.597Z. These runs tested the task-owned fixes based on cf1353a; hosted evidence must bind the final pushed HEAD.
+
+## Runtime review I1/M1–M5/m1–m3 — 2026-11-03
+
+Clean fetch/ff-only pull confirms 2ff53fb. Scoped v3 plan/reuse/security audit
+recorded before code/tests. Existing snapshots remain immutable. M4 DEFERRED: no
+LazyPrisma/sharedClient/DatabaseModule in branch or origin/main; no pool manager
+will be introduced. M3 production apply already preserves technical FAILED; add
+regressions only. m3 WITHDRAWN/NOT APPLICABLE: Unicode sourceKey stays untouched.
+Documentation Impact REQUIRED; implementation and actual verification pending.
