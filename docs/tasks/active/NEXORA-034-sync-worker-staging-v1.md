@@ -14,10 +14,10 @@ Branch: feat/sync-worker-staging-v1. No merge/deployment authorized.
 
 Task ID: NEXORA-034
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-03-sync-runtime-review-v3
-Design Snapshot: docs/tasks/design-reviews/NEXORA-034-rev-2026-11-03-sync-runtime-review-v3.md
-Design SHA-256: b115147fe3de5b1ccdb235bd4ff60a378eec5e25e6ee17852a54cd45cb6a2b7c
-Reviewed baseline: 2ff53fb994b130cc5e5b1d23778d41e3f7bc732d
+Plan revision: rev-2026-11-05-sync-status-contract-v4
+Design Snapshot: docs/tasks/design-reviews/NEXORA-034-rev-2026-11-05-sync-status-contract-v4.md
+Design SHA-256: 144543b508b9a730433a2942382a4cff421536ff8ad666c3cd1321f69a393994
+Reviewed baseline: 8d451e092e114c09cd50b3a5a9e3fceff82402c3
 
 Read-only inventory, eight-field reuse matrix, domain ownership, alternatives,
 contracts, security/locking, migration/test plan and bounded provider/domain
@@ -620,3 +620,64 @@ docs/typecheck/contracts and4/4builds. Independent review confirms the test-only
 correction preserves all outcome/watermark assertions and production policy.
 Final new-head hosted gates still required; exact SHA/run/failure history is
 reconciled in PR metadata after execution. No further unchanged rerun loop.
+
+## Sync status/database contract correction — 2026-11-05
+
+Scoped v4 plan recorded before code/tests at reviewed8d451e0. Runtime SQL audit,
+reuse/boundaries and verification strategy are in the immutable snapshot. Existing
+SQL migration matches Domain status sets; no migration/schema/status change.
+Full real-PG contract tests belong to the existing API integration suite so database
+never imports application policy. Documentation Impact: REQUIRED. Implementation,
+three review rounds and final-head hosted evidence pending.
+
+Verification clarification before test correction: Prisma7 runtime DMMF exposes
+only name/kind/type and omits defaults; the initial metadata test therefore FAILed
+on undefined, while actual PG catalog/behavior and negative DDL controls passed.
+Use the exact SyncJob.status field in schema.prisma plus actual generated-client
+INSERT without status and native INSERT/catalog default checks. No new dependency
+or internal Prisma parser is needed; this preserves all default assertions without
+pretending runtime DMMF contains unavailable metadata. New v4 artifact formatting
+was normalized before first publication; final raw digest is pinned above.
+
+New draft snapshot metadata initially failed structural preflight (missing Task ID
+and revision punctuation); normalized canonical fields before first publication,
+repinned exact raw digest and reran checks. Historical snapshots remain untouched.
+
+### Status contract implementation and local execution
+
+Runtime ordinary predicates now bind existing constants in disable/remove,
+admission fallback, issue count/page, claim candidate/selection, staging manifest
+and retention. Processing filters use SyncProcessingStatus, not Job status. The
+only preserved static status predicate is admit ON CONFLICT, required for partial
+unique-index inference and documented at the query. No status definitions changed.
+
+Eight API-local contract cases execute through the existing integration entrypoint:
+Prisma schema/generated/native default; validated CHECK and exact active-index
+catalog; valid/invalid status behavior; every active pair/23505 exact index;
+different types/terminal history; named prepared inference/repository existing ID;
+all-status disable and owner/connection-specific remove with lease invalidation.
+Six real DDL mutations rollback and prove drift fails catalog assertions (wrong
+default, missing/extra CHECK status, CHECK bypass, missing/extra active predicate).
+Migration tests replace the loose index regex with actual unique/valid/ready/key
+catalog assertions; no database→API dependency or new package/framework/workflow.
+
+| Claim                                | Actual execution                                                                                                                                    | Result                              |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Initial test prerequisite assumption | Prisma7 runtime DMMF omits default; native catalog/behavior otherwise passed                                                                        | FAIL, corrected verification method |
+| Draft plan metadata                  | Preflight rejected missing Task ID/revision punctuation before publication                                                                          | FAIL, corrected metadata and digest |
+| Current Sync integration             | Actual owned migrated PostgreSQL46/46,0fail/0skip; eight new cases plus all prior regressions; cleanup verified                                     | PASS                                |
+| Fresh/staged/repeat/drift migration  | Genuine Prisma13 migrations, legacy/Sync preservation, structural index assertion, no difference; cleanup verified                                  | PASS                                |
+| Current local full quality           | pnpm quality: format/lint/boundaries/preflight/docs/typecheck,129root/186API/232Web/32UI/6database,0fail/0skip; reproducible contracts and4/4builds | PASS                                |
+| Schema/migration immutability        | git diff --exit-code8d451e0 -- packages/database/prisma                                                                                             | PASS                                |
+
+Actual local logs remain outside Git. No production/SDK/UI/business policy,
+lock order, retry/outcome/checkpoint/watermark, retention set, pool or timestamp
+change. Runtime grants are unchanged; final canonical hosted Foundation must still
+execute real role/cluster/runtime/TTY/MFA/browser/HTTPS/data/dev checks. Three scoped
+review rounds and final-head hosted Preflight/targeted/Foundation evidence are
+reconciled in PR metadata after execution, avoiding a SHA-only commit loop.
+
+Existing targeted workflow path filters also include the new contract fixture and
+canonical shared sync-status leaf, so future fixture-only/shared-vocabulary edits
+trigger that same real PG gate. Foundation already runs for every PR. No duplicate
+workflow, test command, dependency or build prerequisite is introduced.
