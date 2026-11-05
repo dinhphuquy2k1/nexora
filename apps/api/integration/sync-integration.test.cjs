@@ -131,6 +131,9 @@ test(
         }
         return state;
       };
+      await require("./fixtures/sync-status-contract.cjs").verifySyncStatusContracts(
+        { t, url: url.toString(), db, owner, repo },
+      );
       await t.test(
         "20 concurrent admissions return one active lane",
         async () => {

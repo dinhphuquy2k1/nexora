@@ -640,9 +640,17 @@ try {
       0,
     );
   const [lane] = await db.$queryRawUnsafe(
-    "SELECT indexdef FROM pg_indexes WHERE indexname='uq_sync_jobs_active'",
+    "SELECT i.indisunique,i.indisvalid,i.indisready,(i.indpred IS NOT NULL) AS partial,ARRAY(SELECT a.attname::text FROM unnest(i.indkey) WITH ORDINALITY AS k(attnum,n) JOIN pg_attribute a ON a.attrelid=i.indrelid AND a.attnum=k.attnum WHERE k.n<=i.indnkeyatts ORDER BY k.n) AS columns FROM pg_index i WHERE i.indexrelid='uq_sync_jobs_active'::regclass AND i.indrelid='sync_jobs'::regclass",
   );
-  assert.match(lane.indexdef, /UNIQUE.*WHERE/);
+  assert.deepEqual(lane, {
+    indisunique: true,
+    indisvalid: true,
+    indisready: true,
+    partial: true,
+    columns: ["carrier_connection_id", "sync_type"],
+  });
+  // Exact Domain status/default/predicate sets and behavior run in the existing
+  // API Sync PostgreSQL suite, without making database depend on application.
 
   step = "SYNC_READ_LOCK_CAPABILITIES";
   const lockMigration = "20261103000000_sync_read_locks";

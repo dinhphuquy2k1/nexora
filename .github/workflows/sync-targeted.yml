@@ -5,6 +5,8 @@ on:
       - "apps/api/src/sync/**"
       - "apps/api/src/worker/**"
       - "apps/api/integration/sync-integration.test.cjs"
+      - "apps/api/integration/fixtures/sync-status-contract.cjs"
+      - "packages/shared/src/sync-status.ts"
       - "packages/database/prisma/**"
       - ".github/workflows/sync-targeted.yml"
 permissions:
