@@ -721,3 +721,26 @@ processes cover configuration startup failure, database cycle failure, redaction
 and graceful shutdown. No regex-only safe-code claim or fake PostgreSQL substitute.
 M4 shared pool is DEFERRED, and the existing composed/decomposed Unicode source-key
 regression remains unchanged because normalization m3 was withdrawn.
+
+### Sync Job status/database contract gate
+
+The existing sync-integration.test.cjs invokes its API-local fixture
+`integration/fixtures/sync-status-contract.cjs` against the same migrated owned
+UUID database. This preserves dependency direction: database has no API import,
+and no shared active-lane policy is invented for tests. The helper is not an
+ordinary independently discovered suite; its eight real PostgreSQL cases execute
+in both existing targeted and Foundation workflows after genuine API/database/
+shared build prerequisites. Missing infrastructure fails, never skips.
+
+Assertions cover Prisma schema String/default, actual generated-client and native
+INSERT defaults, validated CHECK membership, exact unique-index keys and predicate,
+all active-status pair conflicts (23505 from uq_sync_jobs_active), invalid status
+CHECK identity, terminal history, different types, named prepared ON CONFLICT,
+actual repository return-existing and participant owner/connection/lease scoping.
+Catalog membership accepts only PostgreSQL's normalized status-ANY-array shape,
+compares sets instead of migration formatting and rejects additional clauses.
+Transaction-rollback DDL mutations add/remove a valid code, bypass CHECK, alter
+an active predicate or change default and must make the gate fail; originals are
+rechecked after rollback. Test-only native pg resolves from its existing database
+package owner; no new dependency or framework. Synthetic rows/actors and the
+native client are cleaned in finally, then the enclosing suite drops its own DB.

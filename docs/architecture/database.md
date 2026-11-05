@@ -327,3 +327,25 @@ privileges; mutations retain exclusive locks. Worker authorization functions and
 metadata write denial remain unchanged. Expired job exhaustion finalizes under
 normal lifecycle→job ordering with a fresh expired-version CAS, not an inverse
 job→lifecycle transaction.
+
+### Sync status contract consistency
+
+TypeScript as-const Job codes remain in the existing shared contract and active
+lane/processing policy in Sync Domain. Ordinary runtime SQL binds those constants;
+the static admit ON CONFLICT predicate is retained for partial-index inference.
+Prisma String defaults and explicit SQL CHECK/index literals remain independently
+versioned schema declarations, not generated runtime TypeScript or ENUMs.
+
+The existing API-owned migrated Sync PostgreSQL suite compares actual Domain
+constants with schema status default, generated-client/native default INSERT,
+pg_constraint status membership and pg_index unique keys/exact active predicate.
+It verifies valid/invalid statuses, every active pair, different types, terminal
+history, named prepared inference, repository return-existing and scoped disable/
+remove lease invalidation. Rollback DDL mutations prove default/CHECK/index drift
+fails the contract. The database migration suite additionally checks unique/index
+structure and legacy preservation/repeat/drift. Database never imports API policy.
+
+All existing migrations remain immutable. A future status/lifecycle change must
+coordinate constants, any required forward migration and Prisma schema, existing
+data assessment and these genuine contract tests. Current status sets match;
+this correction requires no schema change or migration.
