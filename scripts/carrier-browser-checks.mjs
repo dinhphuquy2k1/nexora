@@ -1,3 +1,8 @@
+import {
+  syncIssueResponse,
+  issueJobId,
+  issueSourceId,
+} from "./fixtures/sync-issues.mjs";
 import { verifyCarrierConsistency } from "./carrier-consistency-checks.mjs";
 import { browserContrastExpression } from "./browser-contrast.mjs";
 import { waitForInteractiveAccount } from "./browser-login-ready.mjs";
@@ -30,7 +35,15 @@ export async function verifyCarrierBrowser({
       const { url, method } = m.params.request,
         u = new URL(url);
       if (
-        (u.origin === baseUrl && /\/api\/carrier/.test(u.pathname)) ||
+        (u.origin === baseUrl &&
+          /\/api\/carrier/.test(u.pathname) &&
+          !(
+            method === "GET" &&
+            (u.pathname === "/api/carrier-connections" ||
+              /^\/api\/carrier-connections\/[a-f0-9-]+\/sync-(configs|jobs)(\/[a-f0-9-]+)?$/.test(
+                u.pathname,
+              ))
+          )) ||
         (u.origin === origin && !["GET", "HEAD"].includes(method))
       )
         badRequests.push(method);
@@ -279,7 +292,7 @@ export async function verifyCarrierBrowser({
     await send("Network.enable");
     await send("Runtime.enable");
     if (!fixtureOnly) {
-      checks.step("CARRIER_PRODUCTION_ROUTE_AND_NO_BACKEND");
+      checks.step("CARRIER_PRODUCTION_ROUTE_AND_METADATA");
       const guest = await fetch(baseUrl + "/settings/carrier-connections", {
         redirect: "manual",
       });
@@ -316,19 +329,23 @@ export async function verifyCarrierBrowser({
         true,
       );
       await key("Escape");
+      // Wait for the real owner-scoped metadata response, not the initial placeholder.
+      await until(
+        "document.querySelector('[data-carrier-count]')?.textContent==='0 tài khoản'",
+      );
       assert.equal(
         await evaluate("document.querySelectorAll('tbody tr').length"),
         0,
       );
       assert.equal(
         await evaluate(
-          "document.querySelector('[data-carrier-connections]').textContent.includes('Chưa tích hợp')",
+          "document.querySelector('[data-carrier-connections]').textContent.includes('Không tìm thấy tài khoản hãng phù hợp')",
         ),
         true,
       );
       assert.equal(
         await evaluate(
-          "document.querySelector('[data-carrier-pagination]').textContent.includes('—')",
+          "document.querySelector('[data-carrier-pagination]').textContent.includes('0–0')",
         ),
         true,
       );
@@ -376,6 +393,7 @@ export async function verifyCarrierBrowser({
       ["/inter.woff2", resolve("apps/web/app/fonts/InterVariable.woff2")],
     ]);
     server = createServer((req, res) => {
+      if (syncIssueResponse(req, res)) return;
       const path = new URL(req.url, "http://localhost").pathname,
         file = files.get(path);
       if (req.method !== "GET" || !file) {
@@ -1025,7 +1043,7 @@ export async function verifyCarrierBrowser({
       });
       const card = tree.nodes.find((n) => n.role?.value === "button");
       assert.ok(card, "native history card role");
-      for (const text of ["Shipment", "Đang chạy", "09/10/2026 14:27"])
+      for (const text of ["Kiện hàng", "Đang chạy", "09/10/2026 14:27"])
         assert.ok(
           card.name.value.includes(text),
           "visible history metadata in accessible name",
@@ -1069,6 +1087,193 @@ export async function verifyCarrierBrowser({
       "real keyboard focus",
     );
     await capture("primary-focus", 1440, 900);
+    const detailUntil = async (expression) => {
+      try {
+        await until(expression);
+      } catch (error) {
+        // Only closed synthetic-fixture counts/flags; no DOM text, payload or credentials.
+        console.error(
+          "SYNC_ISSUES_FIXTURE_STATE",
+          await evaluate(
+            "({dialogs:document.querySelectorAll('dialog[open]').length,issues:document.querySelectorAll('[data-sync-issue]').length,historyRows:document.querySelectorAll('[data-carrier-history-id]').length,loading:!!document.querySelector('dialog[open] [role=status]'),alert:!!document.querySelector('dialog[open] [role=alert]'),denied:document.body.dataset.syncDenied==='true'})",
+          ),
+        );
+        throw error;
+      }
+    };
+    checks.step("SYNC_ISSUES_EXISTING_INSPECTION_SDK_AND_DRAWER_STATE");
+    await viewport(1440, 900);
+    await navigate("?syncIssues");
+    await detailUntil("document.querySelectorAll('dialog[open]').length===1");
+    checks.step("SYNC_ISSUES_SCHEDULE_DRAFT");
+    checks.step("SYNC_PRESENTATION_PERSISTED_NEXT_RUN");
+    await click("Lịch tự động");
+    await detailUntil("!!document.querySelector('dialog[open] [role=switch]')");
+    await pointer("dialog[open] [role=switch]");
+    await detailUntil(
+      "document.querySelector('dialog[open] [role=switch]').getAttribute('aria-checked')==='true'",
+    );
+    await detailUntil(
+      "document.querySelectorAll('dialog[open] select[aria-label^=\"Chu kỳ\"]').length===2",
+    );
+    const savedSchedule =
+      "[...document.querySelectorAll('dialog[open] article')].at(1)";
+    await detailUntil(savedSchedule + ".textContent.includes('17:20')");
+    await evaluate(
+      "(()=>{const e=" +
+        savedSchedule +
+        ".querySelector('select');e.value='240';e.dispatchEvent(new Event('change',{bubbles:true}));})()",
+    );
+    await detailUntil("!" + savedSchedule + ".textContent.includes('17:20')");
+    await evaluate(
+      "(()=>{const e=" +
+        savedSchedule +
+        ".querySelector('select');e.value='120';e.dispatchEvent(new Event('change',{bubbles:true}));})()",
+    );
+    await detailUntil(savedSchedule + ".textContent.includes('17:20')");
+    await click("Lịch sử đồng bộ");
+    await detailUntil(
+      "!!document.querySelector('[aria-label=\"Lọc loại dữ liệu đồng bộ\"]')",
+    );
+    await select("Lọc loại dữ liệu đồng bộ", "SHIPMENT");
+    await input(
+      '[aria-label="Khoảng ngày lịch sử"]',
+      "01/01/2026 - 01/01/2026",
+    );
+    await click("Lọc lại");
+
+    await detailUntil(
+      "document.querySelector('[data-carrier-history-id=\"" +
+        issueJobId(1) +
+        "\"] .lucide-package') && document.querySelector('[data-carrier-history-id=\"" +
+        issueJobId(1) +
+        "\"] strong').textContent==='Kiện hàng'",
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('select[aria-label=\"Lọc loại dữ liệu đồng bộ\"] option[value=SHIPMENT]').textContent",
+      ),
+      "Kiện hàng",
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('select[aria-label=\"Lọc loại dữ liệu đồng bộ\"]').value",
+      ),
+      "SHIPMENT",
+    );
+    checks.step("SYNC_PRESENTATION_SAVED_SCHEDULE_AND_HISTORY_TYPES_PASS");
+    checks.step("SYNC_ISSUES_HISTORY_FILTERS_READY");
+    const openIssue = async (n) => {
+      checks.step("SYNC_ISSUES_OPEN_JOB_" + n);
+      await pointer('[data-carrier-history-id="' + issueJobId(n) + '"]');
+      await detailUntil(
+        "document.querySelectorAll('dialog[open]').length===2 && [...document.querySelectorAll('dialog[open]')].at(-1).querySelector('header').textContent.includes(" +
+          JSON.stringify(issueJobId(n)) +
+          ")",
+      );
+    };
+    const closeIssue = async () => {
+      await click("Đóng Chi tiết lượt đồng bộ");
+      await detailUntil("document.querySelectorAll('dialog[open]').length===1");
+    };
+    await openIssue(1);
+    checks.step("SYNC_ISSUES_FIRST_RESPONSE");
+    await detailUntil(
+      "document.querySelectorAll('[data-sync-issue]').length===10",
+    );
+    assert.equal(
+      await evaluate(
+        "document.body.textContent.includes('PRIVATE_RAW_PAYLOAD')||document.body.textContent.includes('PRIVATE_TOKEN')",
+      ),
+      false,
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[data-sync-issue]').textContent.includes('Source Version')&&document.querySelector('[data-sync-issue]').textContent.includes('Processor Version')&&document.querySelector('[data-sync-issue]').textContent.includes('NEEDS_REVIEW')",
+      ),
+      true,
+    );
+    await capture("sync-issues-first-page", 1440, 900);
+    checks.step("SYNC_ISSUES_NEXT_PAGE");
+    await click("Trang lỗi sau");
+    await detailUntil(
+      "document.querySelectorAll('[data-sync-issue]').length===1 && document.querySelector('[data-sync-issue]').textContent.includes(" +
+        JSON.stringify(issueSourceId(11)) +
+        ")",
+    );
+    await viewport(375, 812);
+    await capture("sync-issues-mobile", 375, 812);
+    await viewport(1440, 900);
+    checks.step("SYNC_ISSUES_KEYBOARD_AND_PARENT_STATE");
+    await focusContained();
+    await closeIssue();
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[aria-label=\"Khoảng ngày lịch sử\"]').value",
+      ),
+      "01/01/2026 - 01/01/2026",
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelector('[aria-label=\"Lọc loại dữ liệu đồng bộ\"]').value",
+      ),
+      "SHIPMENT",
+    );
+    await openIssue(2);
+    await detailUntil(
+      "document.body.textContent.includes('Không có bản ghi cần kiểm tra.')",
+    );
+    await closeIssue();
+    await openIssue(3);
+    await closeIssue();
+    await openIssue(1);
+    await detailUntil(
+      "document.querySelectorAll('[data-sync-issue]').length===10",
+    );
+    await delay(800);
+    assert.equal(
+      await evaluate(
+        "[...document.querySelectorAll('[data-sync-issue]')].some(e=>e.textContent.includes(" +
+          JSON.stringify(issueSourceId(99)) +
+          "))",
+      ),
+      false,
+    );
+    await closeIssue();
+    await click("Lịch tự động");
+    assert.equal(
+      await evaluate(
+        "document.querySelector('dialog[open] [role=switch]').getAttribute('aria-checked')",
+      ),
+      "true",
+    );
+    await click("Lịch sử đồng bộ");
+    await select("Lọc lịch sử đồng bộ", "failed");
+    for (const [n, message] of [
+      [4, "không có quyền"],
+      [5, "Không tìm thấy"],
+    ]) {
+      await openIssue(n);
+      await detailUntil(
+        "document.body.textContent.includes(" + JSON.stringify(message) + ")",
+      );
+      assert.equal(
+        await evaluate("document.querySelectorAll('[data-sync-issue]').length"),
+        0,
+      );
+      assert.equal(
+        await evaluate(
+          "document.body.textContent.includes('PRIVATE_PROVIDER_RESPONSE')",
+        ),
+        false,
+      );
+      await closeIssue();
+    }
+    await openIssue(6);
+    await detailUntil(
+      "document.body.dataset.syncDenied==='true' && document.querySelectorAll('dialog[open]').length===1",
+    );
+    checks.step("SYNC_ISSUES_LOADING_EMPTY_PAGING_DENIAL_ABORT_STATE_PASS");
     await navigate("?empty");
     await until("document.querySelectorAll('tbody tr').length===0");
     assert.equal(
@@ -1105,6 +1310,10 @@ export async function verifyCarrierBrowser({
         ),
       );
     }
-    assert.deepEqual(badRequests, [], "No Carrier API calls or fixture writes");
+    assert.deepEqual(
+      badRequests,
+      [],
+      "No production Carrier writes or fixture mutations",
+    );
   }
 }

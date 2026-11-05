@@ -1,3 +1,13 @@
+import { SyncService } from "./sync/application/sync-admission.service";
+import { SyncPort } from "./sync/application/sync.port";
+import { SyncRepository } from "./sync/infrastructure/sync-job.repository";
+import {
+  unavailableProvider,
+  unavailableProcessor,
+} from "./sync/infrastructure/provider-fetch.adapter";
+import { loadSyncConfig } from "./sync/domain/sync-policy";
+import { SyncController } from "./sync/presentation/sync.controller";
+import { PostgresProviderBudget } from "./carrier/infrastructure/uniship/postgres-provider-budget";
 import { CustomerController } from "./customer/presentation/customer.controller";
 import { CustomerService } from "./customer/application/customer.service";
 import { CustomerPort } from "./customer/application/customer.port";
@@ -47,6 +57,7 @@ export const CONFIG = "CONFIG";
 
 @Module({
   controllers: [
+    SyncController,
     CustomerController,
     CarrierController,
     CarrierLifecycleController,
@@ -56,6 +67,22 @@ export const CONFIG = "CONFIG";
     SetupPasswordController,
   ],
   providers: [
+    {
+      provide: SyncPort,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) =>
+        new SyncRepository(
+          c.DATABASE_URL,
+          loadSyncConfig(process.env),
+          unavailableProvider,
+          unavailableProcessor,
+        ),
+    },
+    {
+      provide: SyncService,
+      inject: [SyncPort],
+      useFactory: (port: SyncPort) => new SyncService(port),
+    },
     {
       provide: CustomerPort,
       inject: [CONFIG],
@@ -85,12 +112,14 @@ export const CONFIG = "CONFIG";
         CarrierLifecycleAdapter,
         SecretCipher,
         PostgresSecurityAudit,
+        PostgresProviderBudget,
         CONFIG,
       ],
       useFactory: (
         store: CarrierLifecycleAdapter,
         cipher: SecretCipher,
         audit: PostgresSecurityAudit,
+        budget: PostgresProviderBudget,
         c: ReturnType<typeof loadConfig>,
       ) =>
         new CarrierConnectionLifecycleService(
@@ -104,12 +133,19 @@ export const CONFIG = "CONFIG";
                 liveAuthorized: c.UNISHIP_LIVE_AUTHORIZED === "true",
                 isProduction: c.NODE_ENV === "production",
               }),
+              budget,
             ),
             audit,
           ),
           new UserCarrierAdmission(),
           audit,
         ),
+    },
+    {
+      provide: PostgresProviderBudget,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) =>
+        new PostgresProviderBudget(c.DATABASE_URL),
     },
     {
       provide: SecretCipher,

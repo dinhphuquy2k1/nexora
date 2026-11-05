@@ -135,18 +135,29 @@ export class UnishipHttpClient {
     this.timeoutMs = options.timeoutMs ?? 5000;
   }
 
-  async authenticate(input: {
-    username: string;
-    password: string;
-  }): Promise<UnishipLoginResult> {
-    return this.post("/client/api-token-auth/", {
-      username: input.username,
-      password: input.password,
-      FirebaseToken: null,
-    });
+  async authenticate(
+    input: {
+      username: string;
+      password: string;
+    },
+    signal?: AbortSignal,
+  ): Promise<UnishipLoginResult> {
+    return this.post(
+      "/client/api-token-auth/",
+      {
+        username: input.username,
+        password: input.password,
+        FirebaseToken: null,
+      },
+      undefined,
+      signal,
+    );
   }
 
-  async verify(candidateToken: string): Promise<UnishipLoginResult> {
+  async verify(
+    candidateToken: string,
+    signal?: AbortSignal,
+  ): Promise<UnishipLoginResult> {
     if (unsafeToken(candidateToken)) {
       throw this.unavailable();
     }
@@ -154,6 +165,7 @@ export class UnishipHttpClient {
       "/client/api-token-verify/",
       { token: candidateToken, FirebaseToken: null },
       candidateToken,
+      signal,
     );
     // Hashes have fixed length, so comparison does not expose token prefixes/lengths.
     const digest = (value: string) =>
@@ -186,6 +198,7 @@ export class UnishipHttpClient {
     path: string,
     body: Record<string, unknown>,
     token?: string,
+    cancellation?: AbortSignal,
   ): Promise<UnishipLoginResult> {
     if (!this.apiUrl) {
       throw new HttpException(
@@ -255,7 +268,10 @@ export class UnishipHttpClient {
     }
 
     let response: Response;
-    const signal = AbortSignal.timeout(this.timeoutMs);
+    const timeout = AbortSignal.timeout(this.timeoutMs);
+    const signal = cancellation
+      ? AbortSignal.any([timeout, cancellation])
+      : timeout;
     try {
       response = await fetch(targetUrl.toString(), {
         method: "POST",

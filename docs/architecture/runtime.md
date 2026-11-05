@@ -130,3 +130,59 @@ tracked/staged evidence policy checks and real disposable-index regression tests
 Quality reuses that dev image. Git is installed only after tools/deps: release
 API/Web/migrate images do not gain this development prerequisite. No new service,
 application dependency, source ownership or runtime credential behavior changes.
+
+## Sync V1 worker — NEXORA-034
+
+[ADR-010](../decisions/sync-worker-staging.md) adds one independent non-HTTP Nest
+context from the same API image. sync-worker depends on completed migrations and
+runtime grants, not API health; API never depends on worker. Non-root worker has
+only sync_credentials:/sync-config, no administrator/Identity key or published
+port. Public overlay attaches it only to backend. Development reuses initialized
+builds and pauses the worker with API/Web during quality rewrites. SIGTERM/SIGINT
+abort the current provider signal and await the batch before closing clients.
+Heartbeat is a private /tmp file, checked by Docker, not an HTTP endpoint.
+
+Source infrastructure is implemented separately from production provider/domain
+readiness. Both flags and actual handler capabilities must pass admission and
+execution. Missing data endpoint/domain contracts keep current live types
+unavailable even when flags are true. No fabricated successful job is created.
+
+### Sync review correction: reservation and read-lock custody
+
+The PostgreSQL provider acquisition reservation remains2slots with30-second leases.
+Token/unexpired CAS renewal runs every10seconds with at most one renewal in flight;
+HTTP never holds its transaction. Loss aborts the signal forwarded through both
+authenticate and verify. Terminal ownership is checked before success/failure
+bookkeeping, and only the owning token may release; a late operation cannot reset
+failures, impose cooldown or clear a successor. Transport timeout/business/live
+authorization policies are unchanged; no Promise.race-only cancellation claim.
+
+Worker metadata SELECT is supplemented only by four fixed shared-read-lock function
+capabilities; generation/updated_at mutations are denied. Stop matching old writers,
+apply the additive read-lock migration and rerun explicit API/worker provisioning
+before starting the matching images. Existing column ACLs are revoked, not moved
+to another metadata column. No keys/roles/tables or custody format are added.
+
+### Sync runtime correction boundaries
+
+Scheduler filters currently eligible lanes before LIMIT100 and scans at most200
+candidates/admitting at most100 per call. Its process-local timestamp/UUID cursor
+continues across polls after admission failure and resets at observed end; restart
+may restart scanning, without skipping a persisted due schedule. Unsupported or
+inactive connections do not consume the window. Unexpected errors still surface
+to cycle logging/poll delay after advancing the selected-row cursor.
+
+Expired RUNNING lease recovery consumes an attempt; ordinary QUEUED/WAITING claims
+do not add one. Retry exhaustion atomically fails the job, bumps its lease version,
+clears ownership/expiry and schedules from completion without successful watermark
+or last-success writes. Successful page reset remains unchanged. API shared reads
+still serialize with lifecycle writers; they are not lock-free.
+
+Worker startup/cycle failure logs project only fixed event/code/errorType and
+allowlisted errorCode from actual Prisma classes, closed Node/database codes or
+known Sync/configuration errors. Unknown/spoofed/getter throwables become
+UNKNOWN_ERROR; no arbitrary names/messages/stacks/meta/SQL/URLs/secrets/payloads.
+Each accessor-backed code is captured once; the validated primitive is the exact
+value emitted, and throwing/unknown getters fail closed. The small helper is Sync infrastructure-local. No logging framework or pool manager
+is introduced. API adapters still own independent lazy clients; shared-client
+consolidation M4 is explicitly DEFERRED pending the official system-wide mechanism.

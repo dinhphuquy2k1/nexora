@@ -268,3 +268,84 @@ Addresses have customer FK ON DELETE CASCADE, nullable VARCHAR100 label, VARCHAR
 Provisioning adds only customers SELECT/INSERT/UPDATE, customer_addresses SELECT/INSERT/UPDATE/DELETE, USAGE on public.customer_code_seq and EXECUTE on public.next_customer_code(). No customer DELETE, broad sequence/default grant, DDL/elevation, migration-history access or broader audit/Carrier secret authority is added. Existing runtime custody/privileges remain. Actual PostgreSQL grants and Prisma generation/migrate/drift are separate verification gates; see [task027](../tasks/active/NEXORA-027-customer-management-backend.md).
 
 PR23 address-rule revision requires no physical migration or additional grants. The current partial unique index provides at-most-one default, not at-least-one address/default. Mandatory create and parent-locked deletion/default transactions enforce the minimum for valid API records. Historical zero/no-default profiles are not silently repaired on read. Owner-scoped Add Address and Set Default retain their approved behavior; no existing migration, data, sequence or default is automatically rewritten. A broken or missing physical index is not made valid by ordinary API operations.
+
+## Sync V1 schema — NEXORA-034
+
+Forward-only migration20261102000000_sync_v1 adds five main tables: sync_configs,
+sync_jobs, sync_job_items, sync_source_identities and provider_source_records.
+The sixth sync_provider_budget is technical two-slot acquisition coordination,
+not another business mapping/review table. Scalar VARCHAR/CHECK vocabulary, UUID
+FKs, a partial unique active lane and reference-only versioned items protect queue
+consistency. Source key hash uniqueness is always checked against bounded complete
+canonical keys; no per-job/page payload snapshots. Pending items coalesce to the
+current fetched version before APPLYING. Source identity keeps resolved metadata
+and mapping independently from payload retention. No Shipment FK is fabricated
+while the Shipment table does not exist. Nullable Customer FK is owner-checked.
+
+Disable cancels active jobs/disables schedules in the existing transaction. Hard
+connection delete stays hard delete: configs cascade, jobs detach through nullable
+connection FK after cancellation; identities remain owner/account scoped, with no
+domain cascade or cross-owner transfer. No automatic domain rollback exists.
+
+nexora_app gains explicit Sync-table permissions. A separately provisioned
+nexora_sync role has Sync-table permissions and SELECT on authorization metadata,
+but no UPDATE column/table privileges on users, epochs, connections or Customers.
+PostgreSQL requires UPDATE privilege even for direct FOR SHARE. Four fixed
+SECURITY DEFINER read-lock functions therefore acquire FOR SHARE facts in the
+existing order; schema-qualified tables, pinned pg_catalog search_path, no dynamic
+SQL/writes, PUBLIC/API execution revoked and exact worker-only EXECUTE signatures.
+They return only status, generation, scoped connection metadata or owned Customer
+ID. The worker repository explicitly selects this trusted lock context; API keeps
+its existing exclusive parent-lock path and runtime grants. Sync jobs/sources/items
+retain exclusive write locks. The forward-only20261103000000_sync_read_locks
+migration adds functions only, no tables/roles/model changes. It has no session/
+credential/audit/DDL/admin or Customer-creation grants.
+Future domain writers require actual approved invariants and deliberate grants.
+Existing role provisioning lock/timeout/redaction and all historical migrations
+remain. The optional role argument is allowlisted, never caller SQL.
+
+Review corrections keep identity UPSERT physically unchanged when both hash and
+trusted ordering are unchanged. A forward nonnull order may update metadata without
+source-version growth; null/stale ordering cannot erase/replace newer evidence.
+New source/processor versions clear next_retry_at; refetching the same version
+retains retry metadata. APPLYING selection and available_at share the exact ready
+predicate, so future deadlines do not hot-loop. Scheduler excludes active lanes
+before its existing100-row limit while atomic admission remains authoritative.
+
+The additive20261104000000_sync_fk_indexes migration adds jobs(connection),
+items(source identity), source identities(customer) WHERE nonnull and
+configs(next_run_at) WHERE enabled. The two ordinary indexes are Prisma-declared;
+the partial indexes are SQL-owned like the existing active-lane predicate. No
+unique/FK/delete behavior, business columns or data are changed. Runtime migration
+count is13. Fresh/staged/repeated deploy, catalog and drift checks preserve both
+legacy and populated Sync rows.
+
+nexora_app retains staging SELECT/INSERT/UPDATE but no DELETE, including after
+repeat provisioning revokes older ACLs. nexora_sync retains retention DELETE.
+API Sync metadata queries acquire shared authorization locks with existing API
+privileges; mutations retain exclusive locks. Worker authorization functions and
+metadata write denial remain unchanged. Expired job exhaustion finalizes under
+normal lifecycle→job ordering with a fresh expired-version CAS, not an inverse
+job→lifecycle transaction.
+
+### Sync status contract consistency
+
+TypeScript as-const Job codes remain in the existing shared contract and active
+lane/processing policy in Sync Domain. Ordinary runtime SQL binds those constants;
+the static admit ON CONFLICT predicate is retained for partial-index inference.
+Prisma String defaults and explicit SQL CHECK/index literals remain independently
+versioned schema declarations, not generated runtime TypeScript or ENUMs.
+
+The existing API-owned migrated Sync PostgreSQL suite compares actual Domain
+constants with schema status default, generated-client/native default INSERT,
+pg_constraint status membership and pg_index unique keys/exact active predicate.
+It verifies valid/invalid statuses, every active pair, different types, terminal
+history, named prepared inference, repository return-existing and scoped disable/
+remove lease invalidation. Rollback DDL mutations prove default/CHECK/index drift
+fails the contract. The database migration suite additionally checks unique/index
+structure and legacy preservation/repeat/drift. Database never imports API policy.
+
+All existing migrations remain immutable. A future status/lifecycle change must
+coordinate constants, any required forward migration and Prisma schema, existing
+data assessment and these genuine contract tests. Current status sets match;
+this correction requires no schema change or migration.

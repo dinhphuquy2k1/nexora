@@ -1,4 +1,11 @@
 name: nexora
+x-api-build: &api-build
+  context: .
+  dockerfile: apps/api/Dockerfile
+  target: api-runtime
+  additional_contexts:
+    base: service:builder
+    tools: service:init
 services:
   builder:
     build:
@@ -21,6 +28,7 @@ services:
     volumes:
       - credentials:/config
       - runtime_credentials:/runtime-config
+      - sync_credentials:/sync-config
       - uploads:/uploads
   postgres:
     image: postgres:17.11-bookworm
@@ -76,21 +84,48 @@ services:
     volumes:
       - credentials:/config:ro
       - runtime_credentials:/runtime-config:ro
+      - sync_credentials:/sync-config:ro
     depends_on:
       migrate: { condition: service_completed_successfully }
+  sync-worker:
+    stop_grace_period: 30s
+    build: *api-build
+    image: nexora-api:0.1.0
+    user: "1000:1000"
+    entrypoint: [sh, /scripts/sync-worker-entrypoint.sh]
+    command: [node, dist/worker/main.js]
+    environment:
+      NODE_ENV: production
+      SYNC_ENABLED: "${SYNC_ENABLED:-false}"
+      SYNC_SHIPMENT_ENABLED: "${SYNC_SHIPMENT_ENABLED:-false}"
+      SYNC_CUSTOMER_ENABLED: "${SYNC_CUSTOMER_ENABLED:-false}"
+      SYNC_RESOLVED_RETENTION_DAYS: "${SYNC_RESOLVED_RETENTION_DAYS:-}"
+    volumes:
+      - sync_credentials:/sync-config:ro
+    depends_on:
+      db-runtime: { condition: service_completed_successfully }
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "const fs=require('node:fs');const n=Number(fs.readFileSync('/tmp/nexora-sync-heartbeat','utf8'));process.exit(Date.now()-n<120000?0:1)",
+        ]
+      interval: 15s
+      timeout: 3s
+      retries: 5
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-      target: api-runtime
-      additional_contexts:
-        base: service:builder
-        tools: service:init
+    build: *api-build
     image: nexora-api:0.1.0
     entrypoint: [sh, /scripts/api-entrypoint.sh]
     command: [node, dist/main.js]
     environment:
       NODE_ENV: production
+      SYNC_ENABLED: "${SYNC_ENABLED:-false}"
+      SYNC_SHIPMENT_ENABLED: "${SYNC_SHIPMENT_ENABLED:-false}"
+      SYNC_CUSTOMER_ENABLED: "${SYNC_CUSTOMER_ENABLED:-false}"
       STORAGE_ROOT: /data/uploads
       API_DOCS_ENABLED: "false"
       WEB_PORT: "${WEB_PORT:-127.0.0.1:3001}"
@@ -145,6 +180,7 @@ services:
       timeout: 8s
       retries: 20
 volumes:
+  sync_credentials:
   runtime_credentials:
   credentials:
   postgres:

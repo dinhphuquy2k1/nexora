@@ -78,6 +78,22 @@ services:
     volumes: *development-volumes
     depends_on:
       dependencies: { condition: service_completed_successfully }
+  sync-worker:
+    build: !reset null
+    image: nexora-dev:0.1.0
+    user: "0:0"
+    entrypoint: [sh, /workspace/scripts/dev-entrypoint.sh]
+    command:
+      [
+        sh,
+        /workspace/scripts/sync-worker-entrypoint.sh,
+        node,
+        --watch,
+        apps/api/dist/worker/main.js,
+      ]
+    volumes: *development-volumes
+    depends_on:
+      dependencies: { condition: service_completed_successfully }
   quality:
     profiles: [test]
     image: nexora-dev:0.1.0

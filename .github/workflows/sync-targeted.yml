@@ -1,0 +1,59 @@
+name: Sync V1 targeted PostgreSQL verification
+on:
+  pull_request:
+    paths:
+      - "apps/api/src/sync/**"
+      - "apps/api/src/worker/**"
+      - "apps/api/integration/sync-integration.test.cjs"
+      - "apps/api/integration/fixtures/sync-status-contract.cjs"
+      - "packages/shared/src/sync-status.ts"
+      - "packages/database/prisma/**"
+      - ".github/workflows/sync-targeted.yml"
+permissions:
+  contents: read
+jobs:
+  sync-postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.11-bookworm
+        env:
+          POSTGRES_USER: nexora
+          POSTGRES_DB: sync_ci
+          POSTGRES_PASSWORD: isolated-ci-fixture-only
+        ports: ["5432/tcp"]
+        options: >-
+          --health-cmd "pg_isready -U nexora -d sync_ci"
+          --health-interval 3s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Install pinned package manager and frozen graph
+        run: npm install --global pnpm@10.34.6 && pnpm install --frozen-lockfile
+      - name: Genuine Prisma generation and prerequisite build
+        run: pnpm --filter @nexora/api... build
+      - name: Sync unit tests
+        run: node --test "apps/api/test/sync/**/*.test.cjs"
+      - name: Sync real disposable PostgreSQL regression
+        working-directory: apps/api
+        run: node --test integration/sync-integration.test.cjs
+        env:
+          DATABASE_URL: postgresql://nexora:isolated-ci-fixture-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/sync_ci
+      - name: Collect public Prisma toolchain
+        if: always()
+        run: |
+          mkdir -p artifacts/sync-toolchain
+          for base in node_modules "$HOME/.cache/prisma"; do
+            if [ -d "$base" ]; then find "$base" -name "schema-engine*" -type f -exec cp {} artifacts/sync-toolchain/ \;; fi
+          done
+      - name: Retain public Prisma toolchain for reproducible offline verification
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sync-prisma-toolchain
+          path: artifacts/sync-toolchain
+          if-no-files-found: error
+          retention-days: 14

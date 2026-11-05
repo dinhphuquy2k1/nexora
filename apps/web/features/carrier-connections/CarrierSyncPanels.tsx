@@ -1,5 +1,6 @@
 "use client";
 import { Fragment } from "react";
+import { SyncType } from "@nexora/shared";
 import { Button, Select, TextInput } from "@nexora/ui";
 import {
   Package,
@@ -60,9 +61,11 @@ export function DataTypeIcon({ item }: { item: Pick<SyncItem, "icon"> }) {
 export function SyncBadge({
   state,
   history = false,
+  warning = false,
 }: {
   state: SyncState;
   history?: boolean;
+  warning?: boolean;
 }) {
   const Icon = {
     running: RefreshCw,
@@ -84,7 +87,9 @@ export function SyncBadge({
       ) : (
         <Icon size={12} />
       )}
-      {(history ? HISTORY_SYNC_LABELS : SYNC_LABELS)[state]}
+      {warning
+        ? "Hoàn tất có cảnh báo"
+        : (history ? HISTORY_SYNC_LABELS : SYNC_LABELS)[state]}
     </span>
   );
 }
@@ -94,7 +99,11 @@ export function SyncStatusPanel({
   hasData,
   onExpanded,
   onInspect,
+  onSync,
+  busy = false,
 }: {
+  onSync?: (type: string) => void;
+  busy?: boolean;
   items: readonly SyncItem[];
   expanded: boolean;
   hasData: boolean;
@@ -106,9 +115,13 @@ export function SyncStatusPanel({
       <div className={styles.syncContext}>
         <div>
           <h3>Trạng thái các luồng dữ liệu</h3>
-          <p>Chưa tích hợp thao tác đồng bộ dữ liệu.</p>
+          <p>
+            {onSync
+              ? "Trạng thái tác vụ trên máy chủ; luồng chưa hỗ trợ vẫn chưa khả dụng."
+              : "Chưa tích hợp thao tác đồng bộ dữ liệu."}
+          </p>
         </div>
-        {hasData && (
+        {hasData && !onSync && (
           <Button variant="secondary" onClick={onExpanded}>
             <Layers size={14} />
             {expanded ? "Thu gọn: 2 loại" : "Mô phỏng: 8 loại dữ liệu"}
@@ -128,7 +141,7 @@ export function SyncStatusPanel({
                   <small>Mã luồng: {item.code ?? "—"}</small>
                 </div>
               </div>
-              <SyncBadge state={item.state} />
+              <SyncBadge state={item.state} warning={item.warning} />
             </div>
             {item.progress !== undefined && (
               <div className={styles.progressBox}>
@@ -204,14 +217,26 @@ export function SyncStatusPanel({
                     >
                       Xem lỗi
                     </Button>
-                    <Button variant="emphasis" disabled title={UNAVAILABLE}>
+                    <Button
+                      variant="emphasis"
+                      disabled={!item.available || !onSync || busy}
+                      onClick={() => onSync?.(item.id)}
+                      title={!item.available ? UNAVAILABLE : undefined}
+                    >
                       <RotateCcw size={12} />
                       Thử lại ngay
                     </Button>
                   </>
                 )}
-                {!["running", "waiting", "failed"].includes(item.state) && (
-                  <Button variant="secondary" disabled title={UNAVAILABLE}>
+                {!["running", "waiting", "queued", "failed"].includes(
+                  item.state,
+                ) && (
+                  <Button
+                    variant="secondary"
+                    disabled={!item.available || !onSync || busy}
+                    onClick={() => onSync?.(item.id)}
+                    title={!item.available ? UNAVAILABLE : undefined}
+                  >
                     <RefreshCw size={12} />
                     Đồng bộ ngay
                   </Button>
@@ -224,20 +249,25 @@ export function SyncStatusPanel({
       <p className={styles.information}>
         <Info size={16} />
         <span>
-          <strong>Cơ chế xử lý nền: </strong>Chưa tích hợp dữ liệu hoặc thao tác
-          đồng bộ. Các trạng thái chỉ hiển thị khi có nguồn dữ liệu; không khởi
-          chạy tiến trình trong giao diện này.
+          <strong>Cơ chế xử lý nền: </strong>
+          {onSync
+            ? "Tác vụ chạy trong Worker. Chỉ luồng có Provider và Domain handler hợp lệ mới được bật."
+            : "Chưa tích hợp dữ liệu hoặc thao tác đồng bộ. Các trạng thái chỉ hiển thị khi có nguồn dữ liệu; không khởi chạy tiến trình trong giao diện này."}
         </span>
       </p>
     </div>
   );
 }
 export function SyncSchedulePanel({
+  integrated = false,
+  busy = false,
   items,
   draft,
   onChange,
 }: {
   items: readonly SyncItem[];
+  integrated?: boolean;
+  busy?: boolean;
   draft: ScheduleDraft;
   onChange: (id: string, value: { enabled: boolean; interval: string }) => void;
 }) {
@@ -273,6 +303,9 @@ export function SyncSchedulePanel({
                   <small>{value.enabled ? "Đang bật" : "Đang tắt"}</small>
                   <Button
                     variant="ghost"
+                    disabled={
+                      busy || (integrated && !item.available && !value.enabled)
+                    }
                     role="switch"
                     aria-checked={value.enabled}
                     aria-label={`Bật tự động cho ${item.label}`}
@@ -292,6 +325,7 @@ export function SyncSchedulePanel({
                   <label>
                     Chu kỳ đồng bộ
                     <Select
+                      disabled={busy || (integrated && !item.available)}
                       aria-label={`Chu kỳ ${item.label}`}
                       value={value.interval}
                       onChange={(e) =>
@@ -311,7 +345,12 @@ export function SyncSchedulePanel({
                   </label>
                   <label>
                     Lần chạy tiếp theo
-                    <span className={styles.readonlyField}>—</span>
+                    <span className={styles.readonlyField}>
+                      {item.autoEnabled &&
+                      value.interval === (item.autoInterval ?? "60")
+                        ? displayTime(item.nextRun)
+                        : "—"}
+                    </span>
                   </label>
                 </div>
               ) : (
@@ -326,8 +365,14 @@ export function SyncSchedulePanel({
       <p className={styles.information}>
         <Info size={16} />
         <span>
-          Thay đổi lịch hiện chỉ là bản nháp; <strong>Lưu cấu hình</strong> chưa
-          khả dụng và không tạo lịch chạy.
+          {integrated ? (
+            "Lịch chỉ được bật cho luồng đủ điều kiện. Chu kỳ tính từ lúc tác vụ kết thúc, không phải SLA độ tươi."
+          ) : (
+            <>
+              Thay đổi lịch hiện chỉ là bản nháp; <strong>Lưu cấu hình</strong>{" "}
+              chưa khả dụng và không tạo lịch chạy.
+            </>
+          )}
         </span>
       </p>
     </div>
@@ -340,10 +385,17 @@ export interface HistoryQuery {
   appliedRange: string;
   page: number;
 }
+function historyType(type: string) {
+  // Legacy aliases belong to preview presentation, never API/filter values.
+  if (type === SyncType.SHIPMENT || type === "Shipment")
+    return { Icon: Package, label: "Kiện hàng" };
+  if (type === SyncType.CUSTOMER || type === "Customer")
+    return { Icon: User, label: "Khách hàng" };
+  return { Icon: Layers, label: type };
+}
 function HistoryTypeIcon({ type }: { type: string }) {
-  if (type === "Shipment") return <Package size={14} />;
-  if (type === "Customer") return <User size={14} />;
-  return <Layers size={14} />;
+  const { Icon } = historyType(type);
+  return <Icon size={14} />;
 }
 export function SyncHistoryPanel({
   data,
@@ -363,11 +415,17 @@ export function SyncHistoryPanel({
       query.appliedRange,
     ),
     draftCheck = filterSyncHistory([], "all", "all", query.range),
-    totalPages = Math.max(1, Math.ceil(filtered.entries.length / 4)),
+    totalPages = Math.max(
+      1,
+      Math.ceil((data?.serverHistory?.total ?? filtered.entries.length) / 4),
+    ),
     page = Math.min(query.page, totalPages),
-    history = filtered.entries.slice((page - 1) * 4, page * 4),
-    counts = historySummary(data),
-    dataTypes = historyDataTypes(data?.history ?? []),
+    history = data?.serverHistory
+      ? data.history
+      : filtered.entries.slice((page - 1) * 4, page * 4),
+    counts = data?.serverHistory?.summary ?? historySummary(data),
+    dataTypes =
+      data?.serverHistory?.types ?? historyDataTypes(data?.history ?? []),
     pages =
       totalPages <= 5
         ? Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -393,7 +451,9 @@ export function SyncHistoryPanel({
       <header className={styles.historyHeading}>
         <h3>Lịch sử các lượt đồng bộ</h3>
         <span>
-          Hiển thị {data ? filtered.entries.length : "—"} bản ghi gần nhất
+          Hiển thị{" "}
+          {data ? (data.serverHistory?.total ?? filtered.entries.length) : "—"}{" "}
+          bản ghi gần nhất
         </span>
       </header>
       <div className={styles.historyFilters}>
@@ -407,7 +467,7 @@ export function SyncHistoryPanel({
             <option value="all">Tất cả loại dữ liệu</option>
             {dataTypes.map((type) => (
               <option key={type} value={type}>
-                {type}
+                {historyType(type).label}
               </option>
             ))}
           </Select>
@@ -483,7 +543,7 @@ export function SyncHistoryPanel({
                 <span className={styles.historyIcon} data-type={item.dataType}>
                   <HistoryTypeIcon type={item.dataType} />
                 </span>
-                <strong>{item.dataType}</strong>
+                <strong>{historyType(item.dataType).label}</strong>
                 <span
                   className={styles.sourceChip}
                   data-manual={item.source === "Thủ công"}
@@ -491,7 +551,7 @@ export function SyncHistoryPanel({
                   {item.source}
                 </span>
               </span>
-              <SyncBadge state={item.state} history />
+              <SyncBadge state={item.state} history warning={item.warning} />
             </span>
             <span className={styles.historyRowMeta}>
               <span>

@@ -1,3 +1,5 @@
+import { SyncController } from "./sync/presentation/sync.controller";
+import { SyncService } from "./sync/application/sync-admission.service";
 import { CustomerController } from "./customer/presentation/customer.controller";
 import { CustomerService } from "./customer/application/customer.service";
 import { CarrierLifecycleController } from "./carrier/presentation/carrier-lifecycle.controller";
@@ -24,6 +26,7 @@ import { AuthService } from "./identity/application/auth.service";
 // Documentation-only module: no listener, database, storage or operational endpoint.
 @Module({
   controllers: [
+    SyncController,
     CustomerController,
     CarrierController,
     CarrierLifecycleController,
@@ -33,6 +36,7 @@ import { AuthService } from "./identity/application/auth.service";
     SetupPasswordController,
   ],
   providers: [
+    { provide: SyncService, useValue: {} },
     { provide: CustomerService, useValue: {} },
     { provide: CarrierConnectionLifecycleService, useValue: {} },
     { provide: CarrierService, useValue: {} },

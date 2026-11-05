@@ -80,33 +80,15 @@ export function filterSyncHistory(
   range: string,
 ) {
   const timestamps = entries.map((entry) =>
-    parseSyncStartedAt(entry.startedAt),
+    parseSyncStartedAt(entry.startedAt ?? entry.createdAt),
   );
   if (timestamps.some((value) => value === null))
     return {
       entries: [],
       error: "Dữ liệu lịch sử có thời điểm bắt đầu không hợp lệ.",
     };
-  let min = -Infinity,
-    max = Infinity;
-  if (range.trim()) {
-    const match =
-      /^(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})$/.exec(
-        range.trim(),
-      );
-    if (!match)
-      return {
-        entries: [],
-        error: "Khoảng ngày phải có dạng dd/mm/yyyy - dd/mm/yyyy.",
-      };
-    const start = calendarDay(+match[3], +match[2], +match[1]);
-    const end = calendarDay(+match[6], +match[5], +match[4]);
-    if (start === null || end === null || start > end)
-      return { entries: [], error: "Khoảng ngày không hợp lệ." };
-    // Vietnam's established UTC+07 presentation day, inclusive through 23:59:59.999.
-    min = start - 7 * 3600000;
-    max = end + 86400000 - 1 - 7 * 3600000;
-  }
+  const { min, max, error } = syncHistoryRange(range);
+  if (error) return { entries: [], error };
   return {
     entries: entries.filter(
       (entry, index) =>
@@ -126,4 +108,34 @@ export function historySummary(data: SyncPresentation | undefined) {
     running: data.history.filter((e) => e.state === "running").length,
     failed: data.history.filter((e) => e.state === "failed").length,
   };
+}
+
+export function syncHistoryRange(range: string) {
+  let min = -Infinity,
+    max = Infinity;
+  if (range.trim()) {
+    const match =
+      /^(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})$/.exec(
+        range.trim(),
+      );
+    if (!match)
+      return {
+        min: Infinity,
+        max: -Infinity,
+        error: "Khoảng ngày phải có dạng dd/mm/yyyy - dd/mm/yyyy.",
+      };
+    const start = calendarDay(+match[3], +match[2], +match[1]);
+    const end = calendarDay(+match[6], +match[5], +match[4]);
+    if (start === null || end === null || start > end)
+      return {
+        min: Infinity,
+        max: -Infinity,
+        error: "Khoảng ngày không hợp lệ.",
+      };
+    // Vietnam's established UTC+07 presentation day, inclusive through 23:59:59.999.
+    min = start - 7 * 3600000;
+    max = end + 86400000 - 1 - 7 * 3600000;
+  }
+
+  return { min, max, error: "" };
 }

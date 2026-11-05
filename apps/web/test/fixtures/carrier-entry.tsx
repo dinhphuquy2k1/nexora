@@ -1,5 +1,6 @@
 // Isolated fixture entry: never imported by a product route or authentication guard.
 import { createRoot } from "react-dom/client";
+import { SyncIssuesFixture } from "./sync-issues.tsx";
 import { ToastProvider } from "@nexora/ui";
 import { CarrierConnectionsPage } from "../../features/carrier-connections/CarrierConnectionsPage.tsx";
 import {
@@ -65,5 +66,6 @@ createRoot(document.getElementById("fixture-root")!).render(
         )}
       />
     </div>
+    {params.has("syncIssues") && <SyncIssuesFixture />}
   </ToastProvider>,
 );

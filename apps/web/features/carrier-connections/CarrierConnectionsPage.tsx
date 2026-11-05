@@ -45,6 +45,7 @@ import {
   CarrierConfirmDialog,
 } from "./CarrierConnectionDrawer.tsx";
 import { CarrierDataSyncDrawer } from "./CarrierDataSyncDrawer.tsx";
+import { CarrierLiveSyncDrawer } from "./CarrierLiveSyncDrawer.tsx";
 import styles from "./carrier-connections.module.css";
 const TABS: readonly TabBarItem<CarrierTab>[] = [
   {
@@ -79,7 +80,9 @@ export function CarrierConnectionsPage({
   records,
   syncByConnection = {},
   previewProviders,
+  liveSync = false,
 }: {
+  liveSync?: boolean;
   records?: readonly CarrierConnectionRow[];
   syncByConnection?: Readonly<Record<string, SyncPresentation>>;
   previewProviders?: readonly CarrierProviderPresentation[];
@@ -241,7 +244,14 @@ export function CarrierConnectionsPage({
       {surface?.type === "disconnect" && (
         <CarrierConfirmDialog row={surface.row} onClose={close} />
       )}{" "}
-      {surface?.type === "sync" && (
+      {surface?.type === "sync" && liveSync && (
+        <CarrierLiveSyncDrawer
+          key={surface.row.id}
+          row={surface.row}
+          onClose={close}
+        />
+      )}
+      {surface?.type === "sync" && !liveSync && (
         <CarrierDataSyncDrawer
           row={surface.row}
           data={syncByConnection[surface.row.id]}

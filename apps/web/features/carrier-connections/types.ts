@@ -68,6 +68,8 @@ export type SyncState =
   | "queued"
   | "idle";
 export interface SyncItem {
+  readonly warning?: boolean;
+  readonly available?: boolean;
   readonly id: string;
   readonly label: string;
   readonly state: SyncState;
@@ -100,10 +102,12 @@ export interface SyncItem {
   readonly nextRun?: string;
 }
 export interface SyncHistoryEntry {
+  readonly warning?: boolean;
   readonly id: string;
   readonly time: string;
   // Full ISO timestamp with explicit Z or numeric offset; time is display-only.
-  readonly startedAt: string;
+  readonly startedAt: string | null;
+  readonly createdAt?: string;
   readonly dataType: string;
   readonly source: string;
   readonly state: SyncState;
@@ -111,6 +115,16 @@ export interface SyncHistoryEntry {
   readonly detail: string;
 }
 export interface SyncPresentation {
+  readonly serverHistory?: {
+    total: number;
+    types: readonly string[];
+    summary: {
+      total: number;
+      completed: number;
+      running: number;
+      failed: number;
+    };
+  };
   readonly items: readonly SyncItem[];
   readonly history: readonly SyncHistoryEntry[];
   readonly historyRange?: string;
