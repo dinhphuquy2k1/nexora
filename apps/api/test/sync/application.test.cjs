@@ -80,6 +80,8 @@ test("executor bounds a nonresponsive provider, forwards abort and never checkpo
     signal;
   const queue = {
     config: { leaseSeconds: 60 },
+    available: () => true,
+    capabilities: { resolve: () => ({ provider, processor: { version: 1 } }) },
     heartbeat: async () => {},
     page: async () => written++,
     wait: async (_job, code) => (waited = code),
@@ -98,7 +100,7 @@ test("executor bounds a nonresponsive provider, forwards abort and never checkpo
     sync_type: "SHIPMENT",
     attempt_count: 0,
   };
-  await new SyncJobExecutor(queue, provider, { version: 1 }, 20).execute(
+  await new SyncJobExecutor(queue, 20).execute(
     job,
     new globalThis.AbortController().signal,
   );

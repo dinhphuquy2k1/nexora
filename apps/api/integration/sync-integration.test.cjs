@@ -1,3 +1,8 @@
+const {
+  testRepository,
+  applyWithProcessor,
+  testExecutor,
+} = require("./fixtures/sync-capabilities.cjs");
 // Real migrated PostgreSQL. No live provider, shared cluster role changes or user volumes.
 require("reflect-metadata");
 const { test } = require("node:test");
@@ -8,9 +13,6 @@ const { resolve } = require("node:path");
 const { clearTimeout } = require("node:timers");
 const { createDatabase } = require("@nexora/database");
 const {
-  SyncRepository,
-} = require("../dist/sync/infrastructure/sync-job.repository");
-const {
   CarrierAdapter,
 } = require("../dist/carrier/infrastructure/carrier.adapter");
 const {
@@ -18,9 +20,6 @@ const {
   loadSyncConfig,
   SyncError,
 } = require("../dist/sync/domain/sync-policy");
-const {
-  SyncJobExecutor,
-} = require("../dist/sync/application/sync-job-executor.service");
 const {
   PostgresProviderBudget,
 } = require("../dist/carrier/infrastructure/uniship/postgres-provider-budget");
@@ -87,13 +86,7 @@ test(
         },
       );
       db = createDatabase(url.toString());
-      repo = new SyncRepository(
-        url.toString(),
-        cfg,
-        provider,
-        processor,
-        "shared",
-      );
+      repo = testRepository(url.toString(), cfg, provider, processor, "shared");
       carrier = new CarrierAdapter(url.toString());
       identity = new UserManagementAdapter(url.toString());
       const owner = await db.user.create({
@@ -126,7 +119,7 @@ test(
         let state = await repo.job(owner.id, c.id, j.id);
         while (!["SUCCEEDED", "FAILED", "CANCELLED"].includes(state.status)) {
           const work = await claim();
-          await repo.apply(work, p);
+          await applyWithProcessor(repo, work, p);
           state = await repo.job(owner.id, c.id, j.id);
         }
         return state;
@@ -134,6 +127,14 @@ test(
       await require("./fixtures/sync-status-contract.cjs").verifySyncStatusContracts(
         { t, url: url.toString(), db, owner, repo },
       );
+      await require("./fixtures/sync-extension.cjs").verifySyncExtensions({
+        t,
+        url: url.toString(),
+        db,
+        owner,
+        other,
+        cfg,
+      });
       await t.test(
         "20 concurrent admissions return one active lane",
         async () => {
@@ -282,7 +283,7 @@ test(
             while (
               (await repo.job(owner.id, lane.id, id)).status !== "SUCCEEDED"
             )
-              await repo.apply(await claim(), processor);
+              await applyWithProcessor(repo, await claim(), processor);
           };
           const scan = async (records) => {
             const j = await start();
@@ -457,7 +458,7 @@ test(
           };
           try {
             const old = await start(1);
-            await repo.apply(await claim(), retry);
+            await applyWithProcessor(repo, await claim(), retry);
             const originalDeadline = (
               await db.$queryRaw`SELECT p.next_retry_at FROM provider_source_records p JOIN sync_source_identities s ON s.id=p.source_identity_id WHERE s.source_key=${sourceKey("fixture-v1", ["retry-version"]).key}`
             )[0].next_retry_at;
@@ -477,7 +478,7 @@ test(
               originalDeadline.getTime(),
             );
             assert.equal(unchangedRetry.attempt_count, 1);
-            await repo.apply(await claim(), processor);
+            await applyWithProcessor(repo, await claim(), processor);
             assert.ok(
               (await repo.job(owner.id, c.id, same.id)).available_at >
                 new Date(),
@@ -495,7 +496,10 @@ test(
             const upgraded = await start(2, 2);
             // Legacy PENDING with a future deadline must wait, not claim/release repeatedly.
             await db.$executeRaw`UPDATE provider_source_records SET next_retry_at=clock_timestamp()+interval '1 minute' WHERE source_identity_id=${source.source_identity_id}::uuid`;
-            await repo.apply(await claim(), { ...processor, version: 2 });
+            await applyWithProcessor(repo, await claim(), {
+              ...processor,
+              version: 2,
+            });
             const waiting = await repo.job(owner.id, c.id, upgraded.id);
             assert.equal(waiting.status, "WAITING");
             assert.ok(waiting.available_at > new Date());
@@ -700,7 +704,7 @@ test(
             1,
           );
           const work = await claim();
-          await repo.apply(work, p);
+          await applyWithProcessor(repo, work, p);
           const done = await repo.job(owner.id, c.id, j.id);
           assert.equal(done.status, "SUCCEEDED");
           assert.equal(done.applied_count, 99);
@@ -719,7 +723,7 @@ test(
             )[0].n,
             0,
           );
-          await repo.apply(await claim(), p);
+          await applyWithProcessor(repo, await claim(), p);
           const upgraded = await repo.admit(
             owner.id,
             c.id,
@@ -736,7 +740,7 @@ test(
           assert.deepEqual(source, [
             { source_version: 1, processor_version: 2 },
           ]);
-          await repo.apply(await claim(), { ...p, version: 2 });
+          await applyWithProcessor(repo, await claim(), { ...p, version: 2 });
           assert.equal(
             (await repo.job(owner.id, c.id, upgraded.id)).status,
             "SUCCEEDED",
@@ -767,7 +771,7 @@ test(
               },
               1,
             );
-            await repo.apply(await claim(), {
+            await applyWithProcessor(repo, await claim(), {
               ...processor,
               apply: async (source, session) => {
                 await session.linkExistingCustomer(customer.id);
@@ -799,7 +803,7 @@ test(
               3,
             );
             await assert.rejects(
-              repo.apply(await claim(), {
+              applyWithProcessor(repo, await claim(), {
                 ...processor,
                 version: 3,
                 apply: async (source, session) => {
@@ -824,7 +828,7 @@ test(
       await t.test(
         "exhausted poison record does not block valid records beyond the first100 batch",
         async () => {
-          const poisonRepo = new SyncRepository(
+          const poisonRepo = testRepository(
             url.toString(),
             { ...cfg, maxAttempts: 1 },
             provider,
@@ -853,14 +857,14 @@ test(
                     : "NEEDS_REVIEW",
               }),
             };
-            await poisonRepo.apply(await claim(), p);
+            await applyWithProcessor(poisonRepo, await claim(), p);
             assert.equal(
               (await repo.job(owner.id, c.id, j.id)).status,
               "WAITING",
             );
             let state = await repo.job(owner.id, c.id, j.id);
             while (state.status === "WAITING") {
-              await poisonRepo.apply(await claim(), p);
+              await applyWithProcessor(poisonRepo, await claim(), p);
               state = await repo.job(owner.id, c.id, j.id);
             }
             assert.equal(state.status, "FAILED");
@@ -876,7 +880,7 @@ test(
         "persisted unsupported oldest job does not starve supported lanes after deployment",
         async () => {
           let a, b;
-          const changed = new SyncRepository(
+          const changed = testRepository(
             url.toString(),
             cfg,
             {
@@ -921,18 +925,18 @@ test(
               };
             },
           };
-          let q = new SyncRepository(url.toString(), cfg, full, processor);
+          let q = testRepository(url.toString(), cfg, full, processor);
           try {
             const j = await q.admit(owner.id, live.id, "SHIPMENT", "MANUAL");
             assert.equal(j.fetch_strategy, "FULL");
             let work = await q.claim(randomUUID());
-            await new SyncJobExecutor(q, full, processor).execute(
+            await testExecutor(q, full, processor).execute(
               work,
               new globalThis.AbortController().signal,
             );
             await q.close();
-            q = new SyncRepository(url.toString(), cfg, full, processor);
-            const executor = new SyncJobExecutor(q, full, processor);
+            q = testRepository(url.toString(), cfg, full, processor);
+            const executor = testExecutor(q, full, processor);
             for (
               let i = 0;
               i < 10 &&
@@ -966,7 +970,7 @@ test(
               return { records: [], done: true, watermark: "wm-2" };
             },
           };
-          const inc = new SyncRepository(
+          const inc = testRepository(
             url.toString(),
             cfg,
             incremental,
@@ -975,7 +979,7 @@ test(
           try {
             const j = await inc.admit(owner.id, live.id, "SHIPMENT", "MANUAL");
             assert.equal(j.fetch_strategy, "INCREMENTAL");
-            const executor = new SyncJobExecutor(inc, incremental, processor);
+            const executor = testExecutor(inc, incremental, processor);
             for (
               let i = 0;
               i < 4 &&
@@ -1013,7 +1017,7 @@ test(
                 return { records: [record("heartbeat")], done: true };
               },
             },
-            q = new SyncRepository(
+            q = testRepository(
               url.toString(),
               { ...cfg, leaseSeconds: 2 },
               slow,
@@ -1023,7 +1027,7 @@ test(
           try {
             j = await q.admit(owner.id, con.id, "SHIPMENT", "MANUAL");
             const work = await q.claim(randomUUID());
-            await new SyncJobExecutor(q, slow, processor).execute(
+            await testExecutor(q, slow, processor).execute(
               work,
               new globalThis.AbortController().signal,
             );
@@ -1096,7 +1100,7 @@ test(
             },
             1,
           );
-          await repo.apply(await claim(), {
+          await applyWithProcessor(repo, await claim(), {
             ...processor,
             apply: async (source) => ({
               outcome:
@@ -1116,7 +1120,7 @@ test(
           await db.$executeRaw`UPDATE sync_jobs SET available_at=clock_timestamp() WHERE id=${j.id}::uuid`;
           await finish(j);
           const retry = await repo.admit(owner.id, c.id, "SHIPMENT", "MANUAL");
-          const exec = new SyncJobExecutor(
+          const exec = testExecutor(
             repo,
             {
               strategy: () => "FULL",
@@ -1157,7 +1161,7 @@ test(
           const started = new Promise((r) => (entered = r)),
             barrier = new Promise((r) => (release = r));
           let disabled = false;
-          const applying = repo.apply(a, {
+          const applying = applyWithProcessor(repo, a, {
             ...processor,
             apply: async () => {
               entered();
@@ -1201,7 +1205,7 @@ test(
           );
           const a = await claim();
           await identity.setStatus(adminUser.id, owner.id, "DISABLED");
-          await assert.rejects(repo.apply(a, processor));
+          await assert.rejects(applyWithProcessor(repo, a, processor));
           assert.equal(
             (
               await db.$queryRaw`SELECT status FROM sync_jobs WHERE id=${j.id}::uuid`
@@ -1450,7 +1454,7 @@ test(
           const u = await db.user.create({
             data: { username: "fair-" + randomUUID(), role: "OPERATOR" },
           });
-          const q = new SyncRepository(
+          const q = testRepository(
             url.toString(),
             cfg,
             provider,
@@ -1566,7 +1570,7 @@ test(
             await db.$executeRawUnsafe(
               "DROP TRIGGER sync_test_admission_failure ON sync_jobs; DROP FUNCTION sync_test_admission_failure()",
             );
-            const otherScheduler = new SyncRepository(
+            const otherScheduler = testRepository(
               url.toString(),
               cfg,
               provider,
@@ -1595,7 +1599,7 @@ test(
         "M2 expired reclaim counts crashes, terminalizes atomically and preserves checkpoint/watermarks",
         async () => {
           const lane = await connection(),
-            q = new SyncRepository(
+            q = testRepository(
               url.toString(),
               cfg,
               provider,
@@ -1644,7 +1648,7 @@ test(
             await db.$executeRawUnsafe(
               "DROP TRIGGER sync_test_completion_failure ON sync_configs; DROP FUNCTION sync_test_completion_failure()",
             );
-            const contender = new SyncRepository(
+            const contender = testRepository(
               url.toString(),
               cfg,
               provider,
@@ -1723,7 +1727,7 @@ test(
             await db.$executeRaw`UPDATE sync_jobs SET attempt_count=2,lease_expires_at=clock_timestamp()-interval '1 second' WHERE id=${fresh.id}::uuid`;
             const resume = await q.claim(randomUUID()),
               fetched = [];
-            await new SyncJobExecutor(
+            await testExecutor(
               q,
               {
                 ...provider,
@@ -1764,7 +1768,7 @@ test(
         "M3 technical retry exhaustion stays FAILED while valid business review and new versions recover",
         async () => {
           const lane = await connection(),
-            q = new SyncRepository(
+            q = testRepository(
               url.toString(),
               { ...cfg, maxAttempts: 2 },
               provider,
@@ -1784,7 +1788,7 @@ test(
               1,
             );
             for (let i = 0; i < 2; i++) {
-              await q.apply(await q.claim(randomUUID()), {
+              await applyWithProcessor(q, await q.claim(randomUUID()), {
                 ...processor,
                 apply: async () => ({ outcome: "RETRYABLE_ERROR" }),
               });
@@ -1835,7 +1839,11 @@ test(
             const [completionStart] =
               await db.$queryRaw`SELECT clock_timestamp() AS at`;
             try {
-              await q.apply(await q.claim(randomUUID()), processor);
+              await applyWithProcessor(
+                q,
+                await q.claim(randomUUID()),
+                processor,
+              );
             } finally {
               await db.$executeRawUnsafe(
                 "DROP TRIGGER sync_test_completion_latency ON sync_configs",
@@ -1903,18 +1911,8 @@ test(
               status: "CONNECTED",
             },
           });
-          const read = new SyncRepository(
-              url.toString(),
-              cfg,
-              provider,
-              processor,
-            ),
-            second = new SyncRepository(
-              url.toString(),
-              cfg,
-              provider,
-              processor,
-            );
+          const read = testRepository(url.toString(), cfg, provider, processor),
+            second = testRepository(url.toString(), cfg, provider, processor);
           let release, held;
           const original = read.client.$transaction.bind(read.client);
           const hold = () => {
@@ -2123,7 +2121,7 @@ test(
               { records: [record("http-1"), record("http-2")], done: true },
               1,
             );
-            await repo.apply(await claim(), processor);
+            await applyWithProcessor(repo, await claim(), processor);
             process.env.DATABASE_URL = url.toString();
             process.env.STORAGE_ROOT = root;
             process.env.ALLOWED_ORIGINS = "http://localhost:3001";

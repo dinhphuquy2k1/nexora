@@ -1,16 +1,9 @@
 import { SyncError, retryDelay } from "../domain/sync-policy";
 import { SyncErrorCode, SyncProcessingPhase } from "../domain/sync.constants";
-import type {
-  SyncQueue,
-  SyncProvider,
-  SyncDomainProcessor,
-  SyncJob,
-} from "./sync.port";
+import type { SyncQueue, SyncJob } from "./sync.port";
 export class SyncJobExecutor {
   constructor(
     private readonly queue: SyncQueue,
-    private readonly provider: SyncProvider,
-    private readonly processor: SyncDomainProcessor,
     private readonly pageTimeoutMs = 20000,
   ) {}
   async execute(job: SyncJob, signal: AbortSignal) {
@@ -40,9 +33,15 @@ export class SyncJobExecutor {
     let removeAbort = () => {};
     try {
       execution.throwIfAborted();
+      const capability = this.queue.capabilities.resolve(
+        job.provider,
+        job.sync_type,
+      );
+      if (!this.queue.available(job.provider, job.sync_type) || !capability)
+        throw new SyncError(SyncErrorCode.SYNC_UNAVAILABLE);
       if (job.processing_phase === SyncProcessingPhase.FETCHING) {
         if (
-          this.provider.strategy(job.provider, job.sync_type) !==
+          capability.provider.strategy(job.provider, job.sync_type) !==
           job.fetch_strategy
         )
           throw new SyncError(SyncErrorCode.SYNC_UNAVAILABLE);
@@ -53,12 +52,14 @@ export class SyncJobExecutor {
           if (execution.aborted) handler();
         });
         const page = await Promise.race([
-          Promise.resolve().then(() => this.provider.fetch(job, execution)),
+          Promise.resolve().then(() =>
+            capability.provider.fetch(job, execution),
+          ),
           aborted,
         ]);
         execution.throwIfAborted();
-        await this.queue.page(job, page, this.processor.version);
-      } else await this.queue.apply(job, this.processor);
+        await this.queue.page(job, page, capability.processor.version);
+      } else await this.queue.apply(job);
     } catch (error) {
       let failure = error;
       if (execution.aborted)

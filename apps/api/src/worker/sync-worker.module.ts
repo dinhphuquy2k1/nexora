@@ -8,10 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { writeFile, rm } from "node:fs/promises";
 import { SyncJobExecutor } from "../sync/application/sync-job-executor.service";
 import { SyncRepository } from "../sync/infrastructure/sync-job.repository";
-import {
-  unavailableProvider,
-  unavailableProcessor,
-} from "../sync/infrastructure/provider-fetch.adapter";
+import { createSyncRuntimeCapabilities } from "../sync/infrastructure/sync-runtime-capabilities";
 import { logWorkerFailure } from "../sync/infrastructure/worker-failure-log";
 import {
   loadSyncConfig,
@@ -26,11 +23,7 @@ class WorkerLoop implements OnApplicationBootstrap, OnApplicationShutdown {
   }
   private async run() {
     const workerId = randomUUID(),
-      executor = new SyncJobExecutor(
-        this.queue,
-        unavailableProvider,
-        unavailableProcessor,
-      );
+      executor = new SyncJobExecutor(this.queue);
     while (!this.abort.signal.aborted) {
       try {
         await this.queue.schedule();
@@ -71,8 +64,7 @@ class WorkerLoop implements OnApplicationBootstrap, OnApplicationShutdown {
         return new SyncRepository(
           process.env.DATABASE_URL,
           loadSyncConfig(process.env),
-          unavailableProvider,
-          unavailableProcessor,
+          createSyncRuntimeCapabilities(),
           "shared",
         );
       },
