@@ -431,8 +431,11 @@ export async function verifyCarrierBrowser({
     origin = "http://127.0.0.1:" + server.address().port;
     const navigate = async (query = "") => {
       await send("Page.navigate", { url: origin + "/fixture" + query });
+      const dialogGate = query.includes("syncIssues")
+        ? ""
+        : " && !document.querySelector('dialog[open]')";
       await until(
-        "document.readyState==='complete' && !!document.querySelector('[data-carrier-table-container]') && !document.querySelector('dialog[open]')",
+        `document.readyState==='complete' && !!document.querySelector('[data-carrier-table-container]')${dialogGate}`,
       );
     };
     await viewport(1440, 900);
