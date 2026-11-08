@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Implementation: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -111,3 +111,5 @@ Documentation Impact: REQUIRED
 | Full monorepo TypeScript verification                  | `pnpm typecheck`                                                                                                                                      | 2026-11-08 | PASS   |
 | Hosted CI Preflight Checkpoint (Run 42478180082)       | PR description lacked parser-compliant metadata block. Resolved via PR body update.                                                                   | 2026-11-08 | FAIL   |
 | Hosted CI Foundation Checkpoint (Run 42478180153)      | Carrier viewport matrix navigation timing race on second-operator. Resolved via clean-slate modal fence.                                              | 2026-11-08 | FAIL   |
+| Hosted CI Preflight Governance (Run 42494331975)       | GitHub Actions PR metadata and preflight deterministic checks verified on commit `ea860db`.                                                           | 2026-11-08 | PASS   |
+| Hosted CI Docker Foundation Smoke (Run 42494331836)    | Full Docker quality, integration, TTY, browser matrices (M1, Customer, Retail M3, Account, Carrier 6-viewport), HTTPS, DB persistence, and HMR smoke. | 2026-11-08 | PASS   |
