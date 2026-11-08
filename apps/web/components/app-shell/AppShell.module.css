@@ -59,6 +59,15 @@
 .mobileCloseButton:focus-visible {
   text-decoration: none;
 }
+.expiredNotice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 @media (max-width: 900px) {
   .desktopSidebar {
     display: none;

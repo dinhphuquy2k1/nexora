@@ -740,7 +740,7 @@ test(
             4,
             { password: "wrong" },
           );
-          assert.equal(wrong.status, 401);
+          assert.equal(wrong.status, 400);
           assert.equal((await wrong.json()).code, "PROVIDER_AUTH_FAILED");
           assert.deepEqual(await rows(), before);
           assert.deepEqual(
@@ -873,7 +873,7 @@ test(
               4,
               { password: "synthetic" },
             );
-            assert.equal(inconsistent.status, 401);
+            assert.equal(inconsistent.status, 400);
             assert.equal(
               (await inconsistent.json()).code,
               "PROVIDER_AUTH_FAILED",
@@ -1013,7 +1013,7 @@ test(
             1,
             { password: "synthetic-other" },
           );
-          assert.equal(mismatchResponse.status, 401);
+          assert.equal(mismatchResponse.status, 400);
           identityOther = false;
           assert.equal(
             (

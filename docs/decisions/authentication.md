@@ -107,3 +107,18 @@ Owner-approved Nginx/Certbot ingress adds an explicit PUBLIC_HTTPS deployment pr
 Before API listen in public mode, verify actual registered SessionGuard/AdminBoundaryGuard and the AdminGuard assurance assertion/no-session Public-admin denial; then restricted-role read-only enrollment and Identity key/ciphertext readiness for every ACTIVE ADMIN, with at least one present. This is not an authenticated session and does not upgrade PASSWORD rows or replace DB-backed per-request authorization. CLI-only provisioning/enrollment can run privately before HTTP startup. Missing/bad Identity keys block public startup; LOCAL retains lazy crypto validation/OPERATOR independence. Canonical HTTPS origin owns public setup links and redirects. No password-only ADMIN public capability or plaintext HTTP authentication fallback exists.
 
 No actual public host/domain is selected. Production TLS/DNS/firewall/renewal and host NTP require separate real evidence before activation; disposable CI TLS does not establish them.
+
+## Centralized Workspace Session Expiration & Carrier Error Normalization — NEXORA-035
+
+1. **Centralized Workspace Session Expiration Policy**:
+   - `401 UNAUTHORIZED` handling for client-side API calls is centralized at the Web Application Boundary (`apps/web/components/app-shell/ShellClient.tsx` coordinated via `apps/web/lib/api/workspace-auth.ts`).
+   - `createWorkspaceApiClient()` in `apps/web/lib/api/workspace-client.ts` attaches non-destructive response observer middleware intercepting HTTP 401 with `{ code: "UNAUTHORIZED" }`.
+   - Stale in-flight responses from prior sessions are fenced using monotonic session epochs (`getCurrentSessionEpoch()`).
+   - Upon session expiration, `ShellClient` renders an accessible alert notice (`role="alert"`) masking content and executes a single-flight redirect to sanitized `/login?from=...`.
+   - Feature pages and components (Customers, Carrier Connections, System) do not duplicate `router.replace("/login")` calls, but retain their local abort signals, denial states (`read.deny()`, `onDenied()`, `denied.current = true`), mutation locks, and reconciliation invariants.
+   - HTTP 400, 403, 429, 500, and 503 are never classified as workspace session expiration.
+
+2. **Carrier Reconnect Error Contract Normalization**:
+   - `POST /api/carrier-connections/:id/reconnect` normalizes logistics provider authentication failures (`PROVIDER_AUTH_FAILED`, `TOKEN_REJECTED`, `IDENTITY_MISMATCH`, `CANDIDATE_IDENTITY_MISMATCH`, `REAUTH_REQUIRED`) from HTTP 401 to **HTTP 400 Bad Request** with error code `PROVIDER_AUTH_FAILED`.
+   - Establishes a clean architectural boundary between internal Nexora session expiration (401) and external logistics carrier credential rejections (400).
+   - Preserves credential ciphertext, `lastVerifiedAt`, connection status preservation, and immutable security audit event logging.

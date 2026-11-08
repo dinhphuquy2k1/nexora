@@ -95,7 +95,7 @@ export class CarrierLifecycleController {
       let status = 503,
         code: string = "SERVICE_UNAVAILABLE";
       if (auth) {
-        status = 401;
+        status = 400;
         code = "PROVIDER_AUTH_FAILED";
       }
       if (error.code === LifecycleCode.UNAUTHORIZED) {

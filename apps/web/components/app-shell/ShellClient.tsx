@@ -1,12 +1,16 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button, Overlay } from "@nexora/ui";
 import { X } from "lucide-react";
 import { Sidebar } from "./Sidebar.tsx";
 import { Header } from "./Header.tsx";
 import type { DeploymentPresentation } from "../../lib/auth/deployment-presentation.ts";
 import { resolveWorkspaceVariant } from "../../lib/navigation/resolve-active.ts";
+import {
+  registerWorkspaceAuthBoundary,
+  computeSafeLoginRedirect,
+} from "../../lib/api/workspace-auth.ts";
 import frame from "./WorkspaceFrame.module.css";
 import styles from "./AppShell.module.css";
 interface ShellClientProps {
@@ -20,8 +24,25 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
   const [isCompact, setIsCompact] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    return registerWorkspaceAuthBoundary(
+      () => {
+        setIsSessionExpired(true);
+        const currentPath =
+          typeof window !== "undefined"
+            ? window.location.pathname + window.location.search
+            : "";
+        const target = computeSafeLoginRedirect(currentPath);
+        router.replace(target);
+      },
+      { userId: user?.id },
+    );
+  }, [user?.id, router]);
   useEffect(() => {
     setMounted(true);
     const mobile = window.matchMedia("(max-width: 900px)");
@@ -117,7 +138,13 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
           id="workspace-content"
           tabIndex={-1}
         >
-          {children}
+          {isSessionExpired ? (
+            <div role="status" className={styles.expiredNotice}>
+              Phiên làm việc đã hết hạn. Đang chuyển hướng về trang đăng nhập…
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>
