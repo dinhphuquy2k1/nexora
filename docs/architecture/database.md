@@ -349,3 +349,15 @@ All existing migrations remain immutable. A future status/lifecycle change must
 coordinate constants, any required forward migration and Prisma schema, existing
 data assessment and these genuine contract tests. Current status sets match;
 this correction requires no schema change or migration.
+
+### Phase A Domain mapping ownership — NEXORA-035
+
+No schema, migration, CHECK, FK, role or grant changes. Customer's infrastructure
+binding now owns the existing customer_id/link_origin projection, owner lock and
+LINKED_EXISTING mapping update; the generic engine owns only source/version/outcome
+and job provenance. Other Domain bindings may prove APPLIED without Customer linkage
+when they supply an actual scoped transactional persistence operation. Processor
+gets narrow staged capabilities only; commit validation, close and the existing
+final lease fence keep Domain and Sync writes atomic. Synthetic test-owned tables
+prove this seam in disposable PostgreSQL, not production Domain conformance or new
+worker permissions. See [extension guide](sync-extensions.md).

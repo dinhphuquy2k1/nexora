@@ -186,3 +186,14 @@ Each accessor-backed code is captured once; the validated primitive is the exact
 value emitted, and throwing/unknown getters fail closed. The small helper is Sync infrastructure-local. No logging framework or pool manager
 is introduced. API adapters still own independent lazy clients; shared-client
 consolidation M4 is explicitly DEFERRED pending the official system-wide mechanism.
+
+### Phase A capability composition — NEXORA-035
+
+API and worker independently create the same static declarations through
+sync/infrastructure/sync-runtime-capabilities.ts. One registry pairs each exact
+provider/type with its fetcher and versioned Domain binding; duplicate/malformed
+registration fails closed. Executor consumes the queue's resolver rather than an
+independently injected provider/processor. Production declarations remain empty;
+unavailable fallbacks, default-false flags, image/process topology, credentials,
+grants and issue33 deferral remain unchanged. No handler creation performs HTTP or
+crypto during bootstrap. See [extension guide](sync-extensions.md).

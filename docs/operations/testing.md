@@ -760,3 +760,26 @@ scripts/login-readiness-diagnostics.test.mjs. Counters diagnose a failed precond
 they do not prove hydration, identify a cause by themselves or replace actual
 Login/MFA/HTTPS security assertions. The real visibility transition remains the
 readiness requirement with its existing deadline.
+
+## Sync Phase A extension verification — NEXORA-035
+
+Ordinary Sync tests include test/sync/capability.test.cjs: exact provider/type/version,
+duplicate/unsupported/disabled registrations, empty common production declarations,
+fetch dispatch, strategy/abort and safe provider-failure classification. Native
+recursive discovery includes the new suite without adding filename lists.
+
+The existing migrated integration/sync-integration.test.cjs also invokes
+fixtures/sync-extension.cjs. Two synthetic capabilities use current SHIPMENT/CUSTOMER
+vocabulary, MANUAL/AUTO admission and the unchanged scheduler/worker. Genuine
+PostgreSQL checks FULL pages, INCREMENTAL cursor/watermark restart, neutral APPLIED
+with no Customer linkage, non-APPLIED no-write, missing proposal, invalid outcome,
+owner/processor version/source-scope isolation and actual exception/lease rollback.
+An owned test-only transactional table supplies Domain write evidence; no production
+business table/grant is added and processor sees no SQL/Prisma.
+
+fixtures/sync-capabilities.cjs adapts prior direct provider/processor fixture injection
+to explicit immutable registries. Legacy tests retain real repository transactions,
+assertions and lock modes; any temporary repository is closed. All previous Sync
+and Customer-link regressions remain. Fixtures are never production registrations.
+Run the existing targeted and Foundation gates; local or historical tests alone do
+not certify a production handler, changed head or skipped runtime gate.
