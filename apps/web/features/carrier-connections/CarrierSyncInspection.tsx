@@ -1,4 +1,11 @@
 "use client";
+import { useEffect, useRef, useState } from "react";
+import {
+  JOB_ISSUE_PAGE_SIZE,
+  SyncApiError,
+  type JobDetailReader,
+  type SyncJobDetail,
+} from "./sync-api.ts";
 import { Button, Overlay } from "@nexora/ui";
 import { RefreshCw, AlertCircle, Clock, X } from "lucide-react";
 import type { SyncItem, SyncHistoryEntry } from "./types.ts";
@@ -10,10 +17,69 @@ export type SyncInspection =
 export function CarrierSyncInspection({
   inspection,
   onClose,
+  connectionId,
+  jobDetail,
+  onUnauthorized,
 }: {
   inspection: SyncInspection;
+  connectionId?: string;
+  jobDetail?: JobDetailReader;
+  onUnauthorized?: () => void;
   onClose: () => void;
 }) {
+  const jobId =
+    inspection.kind === "history" ? inspection.item.id : inspection.item.jobId;
+  const key = connectionId && jobId ? connectionId + ":" + jobId : null;
+  const generation = useRef(0);
+  const [pagination, setPagination] = useState({ key, page: 1 });
+  const page = pagination.key === key ? pagination.page : 1;
+  const [revision, setRevision] = useState(0);
+  const [read, setRead] = useState<{
+    key: string;
+    page: number;
+    data?: SyncJobDetail;
+    error?: number;
+  }>();
+  const visible = read?.key === key && read.page === page ? read : undefined;
+  useEffect(() => {
+    const abort = new AbortController(),
+      version = ++generation.current;
+    if (jobDetail && key && jobId) {
+      setRead({ key, page });
+      void jobDetail(jobId, page, abort.signal)
+        .then((data) => {
+          if (abort.signal.aborted || version !== generation.current) return;
+          const last = Math.max(
+            1,
+            Math.ceil(data.issueTotal / JOB_ISSUE_PAGE_SIZE),
+          );
+          if (page > last) {
+            setPagination({ key, page: last });
+            return;
+          }
+          setRead({ key, page, data });
+        })
+        .catch((error) => {
+          if (abort.signal.aborted || version !== generation.current) return;
+          const status = error instanceof SyncApiError ? error.status : 500;
+          setRead({ key, page, error: status });
+          if (status === 401) onUnauthorized?.();
+        });
+    }
+    return () => {
+      generation.current++;
+      abort.abort();
+    };
+  }, [jobDetail, key, jobId, page, revision, onUnauthorized]);
+  let readError = "Không thể tải chi tiết job. Hãy thử lại.";
+  if (visible?.error === 403)
+    readError = "Bạn không có quyền xem chi tiết job này.";
+  else if (visible?.error === 404)
+    readError = "Không tìm thấy job trong kết nối này.";
+  else if (visible?.error === 401) readError = "Phiên đăng nhập đã kết thúc.";
+  let previewLogs: readonly string[] | undefined;
+  if (!jobDetail && inspection.kind === "progress")
+    previewLogs = inspection.item.logs;
   const { kind } = inspection;
   const title = {
     progress: "Tiến trình đồng bộ",
@@ -84,12 +150,14 @@ export function CarrierSyncInspection({
                 </span>
               </div>
             </div>
-            <strong className={styles.logHeading}>
-              Nhật ký Worker thời gian thực
-            </strong>
-            <pre className={styles.workerLog}>
-              {inspection.item.logs?.join("\n") ?? "Chưa có nhật ký."}
-            </pre>
+            {previewLogs && previewLogs.length > 0 && (
+              <>
+                <strong className={styles.logHeading}>
+                  Nhật ký Worker thời gian thực
+                </strong>
+                <pre className={styles.workerLog}>{previewLogs.join("\n")}</pre>
+              </>
+            )}
             {inspection.item.waitingNote && (
               <p className={styles.information}>
                 <Clock size={16} />
@@ -141,6 +209,98 @@ export function CarrierSyncInspection({
               </p>
             </section>
           </>
+        )}
+        {jobDetail && key && (
+          <section
+            className={styles.metadataSection}
+            aria-label="Bản ghi cần kiểm tra"
+            aria-busy={!visible?.data && !visible?.error}
+          >
+            <strong className={styles.logHeading}>
+              Bản ghi cần kiểm tra
+              {visible?.data ? ` (${visible.data.issueTotal})` : ""}
+            </strong>
+            {!visible?.data && !visible?.error && (
+              <p role="status">Đang tải chi tiết job…</p>
+            )}
+            {visible?.error && (
+              <div role="alert">
+                <p>{readError}</p>
+                <Button
+                  variant="secondary"
+                  onClick={() => setRevision((v) => v + 1)}
+                >
+                  Thử lại chi tiết
+                </Button>
+              </div>
+            )}
+            {visible?.data && (
+              <>
+                {visible.data.issues.length === 0 && (
+                  <p role="status">Không có bản ghi cần kiểm tra.</p>
+                )}
+                {visible.data.issues.map((issue) => (
+                  <article
+                    key={issue.id}
+                    className={styles.metadataSection}
+                    data-sync-issue={issue.id}
+                  >
+                    <div className={styles.metadataGrid}>
+                      {[
+                        { label: "Source ID", value: issue.sourceId },
+                        { label: "Source Version", value: issue.sourceVersion },
+                        {
+                          label: "Processor Version",
+                          value: issue.processorVersion,
+                        },
+                        { label: "Outcome", value: issue.outcome },
+                        { label: "Error Code", value: issue.errorCode ?? "—" },
+                      ].map((field) => (
+                        <div key={field.label}>
+                          <small>{field.label}</small>
+                          <strong className={styles.mono}>{field.value}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+                {visible.data.issueTotal > JOB_ISSUE_PAGE_SIZE && (
+                  <nav
+                    className={styles.pageButtons}
+                    aria-label="Phân trang bản ghi lỗi"
+                  >
+                    <Button
+                      variant="secondary"
+                      aria-label="Trang lỗi trước"
+                      disabled={page === 1}
+                      onClick={() => setPagination({ key, page: page - 1 })}
+                    >
+                      Trước
+                    </Button>
+                    <span>
+                      Trang {page} /{" "}
+                      {Math.max(
+                        1,
+                        Math.ceil(
+                          visible.data.issueTotal / JOB_ISSUE_PAGE_SIZE,
+                        ),
+                      )}
+                    </span>
+                    <Button
+                      variant="secondary"
+                      aria-label="Trang lỗi sau"
+                      disabled={
+                        page * JOB_ISSUE_PAGE_SIZE >= visible.data.issueTotal
+                      }
+                      onClick={() => setPagination({ key, page: page + 1 })}
+                    >
+                      Sau
+                    </Button>
+                  </nav>
+                )}
+              </>
+            )}
+          </section>
         )}
       </div>
       <footer className={styles.drawerFooter}>

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Client } from "pg";
 import { readdir, readFile } from "node:fs/promises";
 import { randomUUID, randomBytes } from "node:crypto";
-import { provisionRuntime } from "../scripts/provision-runtime.mjs";
+import { provisionRuntime, runtimeUrl } from "../scripts/provision-runtime.mjs";
 import { assertRuntimePrivileges } from "./runtime-privilege-assertions.mjs";
 
 const adminUrl = process.env.DISPOSABLE_CLUSTER_ADMIN_URL;
@@ -109,6 +109,245 @@ try {
 
   await assertRuntimePrivileges(urlA, sharedRuntimeSecret);
   await assertRuntimePrivileges(urlB, sharedRuntimeSecret);
+
+  // Prove repeat provisioning revokes the prior API DELETE ACL on upgrade too.
+  for (const databaseUrl of [urlA, urlB]) {
+    const legacy = new Client({ connectionString: databaseUrl });
+    await legacy.connect();
+    try {
+      await legacy.query(
+        "GRANT DELETE ON provider_source_records TO nexora_app",
+      );
+    } finally {
+      await legacy.end();
+    }
+    await provisionRuntime(databaseUrl, sharedRuntimeSecret);
+  }
+
+  // Sync role mutations are authorized only in this owned, signed disposable cluster.
+  const workerSecret = randomBytes(32).toString("hex");
+  await Promise.all([
+    provisionRuntime(urlA, workerSecret, { role: "nexora_sync" }),
+    provisionRuntime(urlB, workerSecret, { role: "nexora_sync" }),
+  ]);
+  for (const databaseUrl of [urlA, urlB]) {
+    const worker = new Client({
+      connectionString: runtimeUrl(databaseUrl, workerSecret, "nexora_sync"),
+    });
+    try {
+      await worker.connect();
+      const flags = (
+        await worker.query(
+          "SELECT current_user AS actor,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls FROM pg_roles WHERE rolname=current_user",
+        )
+      ).rows[0];
+      assert.equal(flags.actor, "nexora_sync");
+      for (const key of [
+        "rolsuper",
+        "rolcreatedb",
+        "rolcreaterole",
+        "rolreplication",
+        "rolbypassrls",
+      ])
+        assert.equal(flags[key], false);
+      await worker.query("SELECT id FROM sync_jobs LIMIT 1");
+      // Direct PostgreSQL row-locking SELECT itself requires UPDATE; worker has none.
+      await assert.rejects(
+        worker.query("SELECT id FROM users FOR SHARE"),
+        (e) => e.code === "42501",
+      );
+      const inspector = new Client({ connectionString: databaseUrl });
+      const actor = randomUUID(),
+        connectionId = randomUUID(),
+        customerId = randomUUID();
+      await inspector.connect();
+      try {
+        await inspector.query(
+          "INSERT INTO users(id,username,role,status,updated_at) VALUES($1::uuid,$1::text,'OPERATOR','ACTIVE',now())",
+          [actor],
+        );
+        await inspector.query(
+          "INSERT INTO carrier_user_states(user_id,generation) VALUES($1,0)",
+          [actor],
+        );
+        await inspector.query(
+          "INSERT INTO carrier_connections(id,user_id,provider,external_account_id,display_name,status) VALUES($1::uuid,$2,'uniship',$1::text,'Synthetic','CONNECTED')",
+          [connectionId, actor],
+        );
+        await inspector.query(
+          "INSERT INTO customers(id,owner_user_id,created_by_user_id,name,phone_normalized,updated_at) VALUES($1,$2,$2,'Synthetic','+84900000000',now())",
+          [customerId, actor],
+        );
+        const api = new Client({
+          connectionString: runtimeUrl(databaseUrl, sharedRuntimeSecret),
+        });
+        await api.connect();
+        try {
+          const source = randomUUID();
+          await api.query(
+            "INSERT INTO sync_source_identities(id,owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key,source_key_hash) VALUES($1::uuid,$2::uuid,'uniship',$1::text,'SHIPMENT','grant-fixture','[\"grant\"]',$3)",
+            [source, actor, "a".repeat(64)],
+          );
+          await api.query(
+            "INSERT INTO provider_source_records(source_identity_id,normalized_payload,payload_hash,source_version,processor_version) VALUES($1,'{}',$2,1,1)",
+            [source, "b".repeat(64)],
+          );
+          assert.equal(
+            (
+              await api.query(
+                "SELECT id FROM provider_source_records WHERE source_identity_id=$1",
+                [source],
+              )
+            ).rowCount,
+            1,
+          );
+          await api.query(
+            "UPDATE provider_source_records SET normalized_payload='{\"synthetic\":true}' WHERE source_identity_id=$1",
+            [source],
+          );
+          await assert.rejects(
+            api.query(
+              "DELETE FROM provider_source_records WHERE source_identity_id=$1",
+              [source],
+            ),
+            (e) => e.code === "42501",
+          );
+          await worker.query(
+            "UPDATE provider_source_records SET processing_status='APPLIED',processed_at=clock_timestamp()-interval '2 days' WHERE source_identity_id=$1",
+            [source],
+          );
+          const removed = await worker.query(
+            "DELETE FROM provider_source_records p WHERE p.id IN (SELECT id FROM provider_source_records WHERE processing_status IN ('APPLIED','REJECTED_SOURCE') AND processed_at<clock_timestamp()-interval '1 day' ORDER BY id LIMIT 500) AND NOT EXISTS(SELECT 1 FROM sync_job_items i JOIN sync_jobs j ON j.id=i.job_id WHERE i.source_identity_id=p.source_identity_id AND j.status IN ('QUEUED','RUNNING','WAITING'))",
+          );
+          assert.equal(
+            removed.rowCount,
+            1,
+            "worker retention still has DELETE authority",
+          );
+          await inspector.query(
+            "DELETE FROM sync_source_identities WHERE id=$1",
+            [source],
+          );
+        } finally {
+          await api.end();
+        }
+        const functions = (
+          await inspector.query(
+            "SELECT p.proname,p.prosecdef,p.proconfig,has_function_privilege('nexora_app',p.oid,'EXECUTE') AS api_execute FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('sync_lock_user','sync_lock_epoch','sync_lock_connection','sync_lock_customer')",
+          )
+        ).rows;
+        assert.equal(functions.length, 4);
+        for (const fn of functions) {
+          assert.equal(fn.prosecdef, true);
+          assert.deepEqual(fn.proconfig, ["search_path=pg_catalog"]);
+          assert.equal(fn.api_execute, false);
+        }
+        await worker.query("BEGIN");
+        assert.equal(
+          (
+            await worker.query("SELECT status FROM public.sync_lock_user($1)", [
+              actor,
+            ])
+          ).rows[0].status,
+          "ACTIVE",
+        );
+        assert.equal(
+          (
+            await worker.query(
+              "SELECT generation FROM public.sync_lock_epoch($1)",
+              [actor],
+            )
+          ).rows[0].generation,
+          0,
+        );
+        assert.equal(
+          (
+            await worker.query(
+              "SELECT id FROM public.sync_lock_connection($1,$2)",
+              [connectionId, actor],
+            )
+          ).rows[0].id,
+          connectionId,
+        );
+        assert.equal(
+          (
+            await worker.query(
+              "SELECT id FROM public.sync_lock_customer($1,$2)",
+              [customerId, actor],
+            )
+          ).rows[0].id,
+          customerId,
+        );
+        assert.equal(
+          (
+            await worker.query(
+              "SELECT id FROM public.sync_lock_customer($1,$2)",
+              [customerId, randomUUID()],
+            )
+          ).rowCount,
+          0,
+        );
+        const disable = inspector.query(
+          "UPDATE users SET status='DISABLED' WHERE id=$1",
+          [actor],
+        );
+        let blocked = false;
+        try {
+          for (let i = 0; i < 100; i++) {
+            blocked =
+              (
+                await admin.query(
+                  "SELECT wait_event_type='Lock' AS blocked FROM pg_stat_activity WHERE pid=$1",
+                  [inspector.processID],
+                )
+              ).rows[0]?.blocked === true;
+            if (blocked) break;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          }
+          assert.equal(
+            blocked,
+            true,
+            "ordinary status UPDATE must wait behind worker SHARE locks",
+          );
+        } finally {
+          await worker.query("ROLLBACK");
+          await disable;
+        }
+        assert.equal(
+          (
+            await worker.query("SELECT status FROM public.sync_lock_user($1)", [
+              actor,
+            ])
+          ).rows[0].status,
+          "DISABLED",
+        );
+      } finally {
+        await worker.query("ROLLBACK");
+        await inspector.end();
+      }
+      for (const sql of [
+        "SELECT * FROM sessions",
+        "SELECT * FROM user_credentials",
+        "SELECT * FROM user_mfa",
+        "SELECT * FROM carrier_connection_secrets",
+        "UPDATE carrier_user_states SET generation=generation+1",
+        "UPDATE users SET updated_at=clock_timestamp()",
+        "UPDATE carrier_connections SET updated_at=clock_timestamp()",
+        "UPDATE customers SET updated_at=clock_timestamp()",
+        "UPDATE users SET status=status",
+        "UPDATE carrier_connections SET status=status",
+        "DELETE FROM customers",
+        "CREATE TABLE sync_illegal(id int)",
+        "SET ROLE nexora",
+      ])
+        await assert.rejects(worker.query(sql), (e) => e.code === "42501");
+    } finally {
+      await worker.end();
+    }
+  }
+  console.log(
+    "Sync worker restricted role, authorization locks and secret/domain denial PASS",
+  );
 
   // B. Bounded lock waiting, timeout recovery, and safe lockHolder cleanup:
   const lockHolder = new Client({ connectionString: adminUrl });

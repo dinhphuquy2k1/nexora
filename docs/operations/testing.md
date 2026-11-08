@@ -601,3 +601,162 @@ checks combine type/state/date, reset last-page selection and inspect the matchi
 entry. Existing Retail/shared TabBar geometry, Auth/MFA, no-network/storage/password
 and short-height/long-content assertions remain mandatory. Final-head hosted
 Foundation supplies genuine Docker/PostgreSQL integration/runtime evidence.
+
+## Sync V1 verification — NEXORA-034
+
+Native discovery includes `apps/api/test/sync/**/*.test.cjs` and
+apps/api/integration/sync-integration.test.cjs. The latter creates its own migrated
+UUID database and removes only that database. It covers20-way admission,10000→10005
+current sources with30 new items, cross-page version coalescing,99 existing Customer
+links/1 review, retry outcomes, rollback, lease fences, disable/delete, retention,
+processor version and separate provider-budget clients. These are synthetic provider
+and processor fixtures against real PG, not live synchronization or Shipment
+creation. Cluster-global role mutations remain restricted to the existing owned
+cluster launcher; ordinary tests must not mutate shared role passwords.
+
+The focused Sync workflow uses an ephemeral PostgreSQL Docker service and genuine
+Prisma/API prerequisite build. Public Prisma engine artifact retention14days supports
+offline toolchain verification; no credentials/data are uploaded. Foundation's
+canonical Docker quality, LOCAL/TTY/MFA/browser/HTTPS/data/dev smoke remains required.
+Passing unit/source checks never establishes actual runtime or provider readiness.
+
+### Production processor outcome contract
+
+Every production SyncDomainProcessor must have an ordinary automatically discovered
+`apps/api/test/sync/**/*.test.cjs` suite using that actual implementation and its
+domain-specific fixtures. Build prerequisites and genuine PostgreSQL integration
+remain required for fenced persistence/outcome/watermark behavior. The first such
+PR must execute the following classification cases; a generic fake processor or
+placeholder passing test is not conformance evidence:
+
+| Domain-specific input                                                | Expected outcome |
+| -------------------------------------------------------------------- | ---------------- |
+| Stable identity with missing required payload field                  | REJECTED_SOURCE  |
+| Stable identity with wrong payload type                              | REJECTED_SOURCE  |
+| Stable identity with empty required string                           | REJECTED_SOURCE  |
+| Valid data with ambiguous Domain matching                            | NEEDS_REVIEW     |
+| Transient database/dependency failure under an explicit retry policy | RETRYABLE_ERROR  |
+| Valid successful Domain operation                                    | APPLIED          |
+
+Also verify invalid identity fails safely under the existing ingestion policy,
+technical exhaustion remains FAILED without success watermark, and only APPLIED
+advances applied version. Domain writes stay in the fenced session without network
+I/O. There is no production processor now; S1 production conformance is PENDING.
+No shared helper or placeholder suite is introduced until a real consumer exists.
+
+The Sync executor renews its lease while a page/batch is active and bounds a page
+to20seconds, forwarding cancellation to the provider port. Delayed-page PostgreSQL
+coverage proves renewal; unit coverage proves no checkpoint after timeout.
+`carrier-sync-lifecycle.test.mjs` executes actual component closures for denied
+mutation/read races and partial schedule readback/Cancel. These controlled tests
+complement genuine Nest/SDK HTTP tests and browser evidence; they do not certify
+production provider authorization. The staged legacy migration harness must append
+Sync after Customers and preserve previous rows before its final schema-drift check.
+
+### Six Sync review regressions
+
+Sync PostgreSQL integration checks physical xmin/timestamps for100 unchanged
+identities/payloads,5changed versions, forward/null/stale order, retry reset only for
+new source/processor versions, future PENDING/RETRYABLE deadlines without repeated
+claims and101due lanes with concurrent/manual admission. Budget tests hold both
+slots beyond30seconds, force loss/successor races and expire a fast operation
+before the heartbeat to test terminal ownership, failure/reset and token release.
+Real loopback auth/verify transport cancellation is separate from PG quota evidence.
+
+The signed owned-cluster provision suite proves direct SELECT-only FOR SHARE fails
+42501 on PostgreSQL, then verifies the fixed read-lock functions with nexora_sync,
+ordinary status-update blocking and denied generation/updated_at writes. It checks
+function security configuration and API execution denial. Current legacy migration
+verification includes the function migration and exact row preservation as well as
+Prisma drift; functions are additionally checked because Prisma models omit them.
+No cluster-global role/password mutation may run against shared databases.
+
+Native Job Detail tests execute the existing generated SDK and actual Inspection/
+Drawer closures for empty/review/paging,401/403/404, abort/unmount/job-switch fences
+and retained schedule/tab/history state. The current Carrier CDP fixture has an
+explicit syncIssues mode backed by an owned GET-only synthetic HTTP server, never a
+product route or live Provider. It exercises the actual TSX/CSS/SDK, nested modal
+focus, issue pagination, privacy, late responses, parent state and narrow viewport
+geometry. Default Carrier fixtures keep their previous behavior. Synthetic extra
+payload/token fields must never render. Captures live in ignored/14-day artifact
+output; their existence alone does not prove assertions or manual visual review.
+
+### Final Sync ordering and presentation regressions
+
+The existing real PostgreSQL Sync suite additionally checks missing/equal changed
+order conflicts, unchanged physical tuples, stale/newer/unordered records and
+identical-hash duplicate order retention. Mixed pages must rollback every source,
+staging/item write, job counter/checkpoint/target and completed watermark when one
+row is ambiguous. F1 still proves exactly five physical identity writes by giving
+only its five changed rows a valid newer order.
+
+Carrier native panel/Drawer/live-closure tests check Backend-confirmed Next Run in
+Vietnam time, null/invalid timestamps, row-local saved/draft matching, confirmed
+PATCH/readback, Cancel and unrelated draft/tab retention. History icon/label tests
+cover canonical SHIPMENT/CUSTOMER, legacy preview aliases and unknown fallback;
+raw filter values and server pagination remain unchanged. Browser checks extend
+the existing Carrier fixture rather than adding a launcher or production flag.
+
+### Sync runtime reliability corrections
+
+The genuine PostgreSQL Sync suite adds invalid/capability-filtered scheduler
+admission,100/200 trigger-induced lock failures, bounded keyset continuation across
+millisecond/UUID ties, no due-date writes, and concurrent lane uniqueness. Expired
+RUNNING recovery tests attempts2→3, terminal4→5, trigger-induced atomic completion
+rollback, stale-worker denial, exact completion scheduling and real executor resume
+from page8 after committed page7. Technical record exhaustion stays FAILED with
+honest issue metadata and no successful watermark; a new source version can later
+resolve to genuine business NEEDS_REVIEW.
+
+Actual API repository transactions prove shared-read overlap and mutation/disable/
+delete writer barriers, ownership denial and unchanged metadata. Existing worker
+read-lock/denied-write tests remain. Signed disposable role tests exercise API
+staging SELECT/INSERT/UPDATE, DELETE42501, repeat provisioning of a legacy DELETE
+ACL and worker retention deletion. Index catalog plus fresh/staged/repeated Prisma
+deploy/drift preserve legacy and populated Sync rows across the additive index DDL.
+
+Worker native tests use actual Prisma errors, closed Node/SQL codes, unknown/non-
+Error/hostile-getter and secret-bearing code/message inputs. Actual compiled worker
+processes cover configuration startup failure, database cycle failure, redaction
+and graceful shutdown. No regex-only safe-code claim or fake PostgreSQL substitute.
+M4 shared pool is DEFERRED, and the existing composed/decomposed Unicode source-key
+regression remains unchanged because normalization m3 was withdrawn.
+
+### Sync Job status/database contract gate
+
+The existing sync-integration.test.cjs invokes its API-local fixture
+`integration/fixtures/sync-status-contract.cjs` against the same migrated owned
+UUID database. This preserves dependency direction: database has no API import,
+and no shared active-lane policy is invented for tests. The helper is not an
+ordinary independently discovered suite; its eight real PostgreSQL cases execute
+in both existing targeted and Foundation workflows after genuine API/database/
+shared build prerequisites. Missing infrastructure fails, never skips.
+
+Assertions cover Prisma schema String/default, actual generated-client and native
+INSERT defaults, validated CHECK membership, exact unique-index keys and predicate,
+all active-status pair conflicts (23505 from uq_sync_jobs_active), invalid status
+CHECK identity, terminal history, different types, named prepared ON CONFLICT,
+actual repository return-existing and participant owner/connection/lease scoping.
+Catalog membership accepts only PostgreSQL's normalized status-ANY-array shape,
+compares sets instead of migration formatting and rejects additional clauses.
+Transaction-rollback DDL mutations add/remove a valid code, bypass CHECK, alter
+an active predicate or change default and must make the gate fail; originals are
+rechecked after rollback. Test-only native pg resolves from its existing database
+package owner; no new dependency or framework. Synthetic rows/actors and the
+native client are cleaned in finally, then the enclosing suite drops its own DB.
+
+### Public HTTPS pre-auth readiness diagnostics
+
+The existing HTTPS browser harness enables Runtime events and records bounded
+counts of script responses/HTTP failures, script/document load failures, known
+certificate failures, runtime exceptions, context clearing, navigation/load events
+and evaluation/protocol failures. A test-only native event/MutationObserver records
+only password-visibility click/type-transition counts and a capped closed-category
+sequence. It never reads input values or changes DOM/React state. Observation is
+stopped before credentials are entered; authentication submits are not retried.
+Failure diagnostics contain no raw CDP payloads, URLs, exception text, headers,
+request bodies, cookies or tokens. Privacy/shape regressions are in
+scripts/login-readiness-diagnostics.test.mjs. Counters diagnose a failed precondition;
+they do not prove hydration, identify a cause by themselves or replace actual
+Login/MFA/HTTPS security assertions. The real visibility transition remains the
+readiness requirement with its existing deadline.

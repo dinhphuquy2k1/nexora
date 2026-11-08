@@ -1,3 +1,4 @@
+import { TransactionSyncDisablement } from "../../sync/infrastructure/sync-disablement.participant";
 import { UserStatus } from "../../identity/domain/user-policy";
 import {
   createDatabase,
@@ -56,6 +57,7 @@ export class CarrierAdapter implements CarrierPort {
   async remove(userId: string, id: string) {
     await this.client.$transaction(async (tx) => {
       await this.active(tx, userId);
+      await new TransactionSyncDisablement(tx).removeConnection(userId, id);
       const result = await tx.carrierConnection.deleteMany({
         where: { id, userId },
       });

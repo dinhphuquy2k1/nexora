@@ -175,3 +175,20 @@ CustomerPage in Application owns CustomerStats. Adapter runs filtered count, bou
 OpenAPI/SDK are generated from required CustomerStatsDto and CustomersResponseDto.stats. Backend-first deployment must coordinate generated SDK/Web versions. The actual SDK transport tolerates additive fields and leaves stats absent with an old server; it does not fabricate zeros. Four old/new transport combinations are covered by the representative SDK test. Frontend M2 must still verify actual loading/unavailable/error states and deployment skew; it is not implemented or deployment-certified here.
 
 Customer query `page/pageSize` is parsed by the pure `@nexora/shared` pagination validator used in both API and Web; the default remains `page=1,pageSize=20`. Limits and error mapping are unchanged. The FE performs only basic raw phone input checks; backend PhoneNumber E.164 validation remains authoritative.
+
+## Sync V1 additive transport — NEXORA-034
+
+POST/GET /api/carrier-connections/:id/sync-jobs, GET
+/api/carrier-connections/:id/sync-jobs/:jobId and GET/PATCH
+/api/carrier-connections/:id/sync-configs[/:type] delegate to SyncService. Existing
+global ACTIVE session/ADMIN assurance and Origin on mutations remain. Owner-only
+including ADMIN, foreign/missing404, strict input400, unauthenticated401 and
+unavailable handler503 SYNC_UNAVAILABLE use the unchanged safe error envelope.
+No secrets/payload/lease/checkpoint editing endpoint is exposed. Job history uses
+canonical page/pageSize(default20,max100); config supports the existing UI intervals
+15/30/60/120/240 minutes. Manual admission returns the existing active lane job.
+
+DTOs expose job status/phase/counters/start/end/creation and closed error code;
+config includes actual capability availability and completion-based times. Current
+production provider/domain capability is unavailable, so no fake successful sync
+or enabled production command is advertised. Generated SDK remains canonical.

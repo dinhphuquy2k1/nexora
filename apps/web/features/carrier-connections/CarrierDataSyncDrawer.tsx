@@ -1,7 +1,8 @@
 "use client";
-import { useId, useState } from "react";
+import { useId, useState, useEffect, useCallback } from "react";
 import { Button, Overlay, TabBar } from "@nexora/ui";
 import { RefreshCw, SlidersHorizontal, Clock } from "lucide-react";
+import type { JobDetailReader } from "./sync-api.ts";
 import type {
   CarrierConnectionRow,
   SyncPresentation,
@@ -30,7 +31,33 @@ export function CarrierDataSyncDrawer({
   row,
   data,
   onClose,
+  onSync,
+  onSaveSchedule,
+  busy = false,
+  blocked = false,
+  feedback,
+  onReload,
+  historyQuery,
+  onHistoryChange,
+  scheduleRevision = 0,
+  jobDetail,
+  onDetailUnauthorized,
+  denied = false,
 }: {
+  denied?: boolean;
+  jobDetail?: JobDetailReader;
+  onDetailUnauthorized?: () => void;
+  onSync?: (type: string) => void;
+  onSaveSchedule?: (
+    draft: ReturnType<typeof initialSchedule>,
+  ) => Promise<unknown>;
+  busy?: boolean;
+  blocked?: boolean;
+  feedback?: string;
+  onReload?: () => void;
+  historyQuery?: HistoryQuery;
+  onHistoryChange?: (patch: Partial<HistoryQuery>) => void;
+  scheduleRevision?: number;
   row?: CarrierConnectionRow;
   data?: SyncPresentation;
   onClose: () => void;
@@ -41,29 +68,53 @@ export function CarrierDataSyncDrawer({
     [inspection, setInspection] = useState<SyncInspection | null>(null),
     [discard, setDiscard] = useState(false);
   const items = data?.items ?? UNAVAILABLE_SYNC_ITEMS,
-    [base] = useState(() => initialSchedule(items)),
+    [base, setBase] = useState(() => initialSchedule(items)),
     [draft, setDraft] = useState(base),
     dirty = scheduleDirty(base, draft),
-    [history, setHistory] = useState<HistoryQuery>({
+    [localHistory, setHistory] = useState<HistoryQuery>({
       type: "all",
       state: "all",
       range: data?.historyRange ?? "",
       appliedRange: data?.historyRange ?? "",
       page: 1,
     });
+  const history = historyQuery ?? localHistory;
+  useEffect(() => {
+    if (!data) return;
+    const next = initialSchedule(items);
+    // Accepted reads always rebase Cancel; preserve edits until a complete save.
+    setBase(next);
+    if (!scheduleDirty(base, draft)) setDraft(next);
+  }, [items]);
+  useEffect(() => {
+    const next = initialSchedule(items);
+    setBase(next);
+    setDraft(next);
+  }, [scheduleRevision]);
   const shown = expanded ? items : items.slice(0, 2);
   const requestClose = () => {
     if (dirty) setDiscard(true);
     else onClose();
   };
-  const inspect = (kind: "progress" | "error", item: SyncItem) =>
-    setInspection({ kind, item });
+  const detailUnauthorized = useCallback(() => {
+    setInspection(null);
+    onDetailUnauthorized?.();
+  }, [onDetailUnauthorized]);
+  useEffect(() => {
+    if (denied) setInspection(null);
+  }, [denied]);
+  const inspect = (kind: "progress" | "error", item: SyncItem) => {
+    if (!denied) setInspection({ kind, item });
+  };
+  const readyScheduleText = onSaveSchedule
+    ? "Cấu hình trên máy chủ"
+    : "Chưa tích hợp cấu hình";
   let footer;
   if (tab === "schedule")
     footer = (
       <>
         <span className={dirty ? styles.dirtyIndicator : styles.muted}>
-          {dirty ? "Có thay đổi chưa lưu" : "Chưa tích hợp cấu hình"}
+          {dirty ? "Có thay đổi chưa lưu" : readyScheduleText}
         </span>
         <div className={styles.actions}>
           <Button
@@ -73,7 +124,12 @@ export function CarrierDataSyncDrawer({
           >
             Hủy
           </Button>
-          <Button variant="emphasis" disabled title={UNAVAILABLE}>
+          <Button
+            variant="emphasis"
+            disabled={!onSaveSchedule || !dirty || busy || blocked}
+            onClick={() => onSaveSchedule?.(draft)}
+            title={!onSaveSchedule ? UNAVAILABLE : undefined}
+          >
             Lưu cấu hình
           </Button>
         </div>
@@ -83,9 +139,17 @@ export function CarrierDataSyncDrawer({
     footer = (
       <>
         <span className={styles.muted}>
-          Tổng cộng: <strong>{data ? data.history.length : "—"}</strong> phiên
-          đồng bộ
+          Tổng cộng:{" "}
+          <strong>
+            {data ? (data.serverHistory?.total ?? data.history.length) : "—"}
+          </strong>{" "}
+          phiên đồng bộ
         </span>
+        {onReload && (
+          <Button variant="secondary" onClick={onReload} disabled={busy}>
+            Làm mới
+          </Button>
+        )}
         <Button variant="secondary" onClick={requestClose}>
           Đóng
         </Button>
@@ -94,7 +158,11 @@ export function CarrierDataSyncDrawer({
   else
     footer = (
       <>
-        <span className={styles.muted}>Đồng bộ dữ liệu chưa khả dụng</span>
+        <span className={styles.muted}>
+          {onReload
+            ? "Đồng bộ chạy ở máy chủ khi được hỗ trợ"
+            : "Đồng bộ dữ liệu chưa khả dụng"}
+        </span>
         <Button variant="secondary" onClick={requestClose}>
           Đóng
         </Button>
@@ -113,6 +181,16 @@ export function CarrierDataSyncDrawer({
         onClose={requestClose}
         footer={footer}
       >
+        {feedback && (
+          <p role="status">
+            {feedback}{" "}
+            {onReload && (
+              <Button variant="secondary" onClick={onReload} disabled={busy}>
+                Tải lại
+              </Button>
+            )}
+          </p>
+        )}
         <div className={styles.syncTabs}>
           <TabBar
             items={[
@@ -163,6 +241,8 @@ export function CarrierDataSyncDrawer({
           {tab === "status" && (
             <SyncStatusPanel
               items={shown}
+              onSync={onSync}
+              busy={busy || blocked}
               expanded={expanded}
               hasData={!!data}
               onExpanded={() => setExpanded((v) => !v)}
@@ -171,6 +251,8 @@ export function CarrierDataSyncDrawer({
           )}{" "}
           {tab === "schedule" && (
             <SyncSchedulePanel
+              integrated={!!onSaveSchedule}
+              busy={busy || blocked}
               items={shown}
               draft={draft}
               onChange={(key, value) =>
@@ -182,15 +264,24 @@ export function CarrierDataSyncDrawer({
             <SyncHistoryPanel
               data={data}
               query={history}
-              onChange={(patch) => setHistory((h) => ({ ...h, ...patch }))}
-              onInspect={(item) => setInspection({ kind: "history", item })}
+              onChange={(patch) =>
+                onHistoryChange
+                  ? onHistoryChange(patch)
+                  : setHistory((h) => ({ ...h, ...patch }))
+              }
+              onInspect={(item) => {
+                if (!denied) setInspection({ kind: "history", item });
+              }}
             />
           )}
         </div>
       </CarrierDrawerFrame>
-      {inspection && (
+      {inspection && !denied && (
         <CarrierSyncInspection
           inspection={inspection}
+          connectionId={row?.id}
+          jobDetail={jobDetail}
+          onUnauthorized={detailUnauthorized}
           onClose={() => setInspection(null)}
         />
       )}{" "}

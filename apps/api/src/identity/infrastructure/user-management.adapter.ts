@@ -1,3 +1,4 @@
+import { TransactionSyncDisablement } from "../../sync/infrastructure/sync-disablement.participant";
 import { ConnectionStatus } from "../../carrier/domain/carrier";
 import {
   createDatabase,
@@ -148,6 +149,7 @@ export class UserManagementAdapter implements UserManagementPort {
         data: { status },
       });
       if (status === UserStatus.DISABLED) {
+        await new TransactionSyncDisablement(tx).disable(userId);
         await tx.session.deleteMany({ where: { userId } });
         await tx.mfaChallenge.deleteMany({ where: { userId } });
         await tx.operatorSetupToken.updateMany({

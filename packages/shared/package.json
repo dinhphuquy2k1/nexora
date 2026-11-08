@@ -22,6 +22,10 @@
     "./customer-status": {
       "types": "./dist/customer-status.d.ts",
       "default": "./dist/customer-status.js"
+    },
+    "./sync-status": {
+      "types": "./dist/sync-status.d.ts",
+      "default": "./dist/sync-status.js"
     }
   },
   "typesVersions": {
@@ -31,6 +35,9 @@
       ],
       "customer-status": [
         "dist/customer-status.d.ts"
+      ],
+      "sync-status": [
+        "dist/sync-status.d.ts"
       ]
     }
   }

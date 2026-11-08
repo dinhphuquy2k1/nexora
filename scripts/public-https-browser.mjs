@@ -1,3 +1,7 @@
+import {
+  createLoginReadinessDiagnostics,
+  loginReadinessObserver,
+} from "./login-readiness-diagnostics.mjs";
 import { waitForInteractiveLogin } from "./browser-login-ready.mjs";
 import {
   terminateChildProcess,
@@ -107,6 +111,7 @@ function totp(key) {
 }
 const profile = await mkdtemp(join(tmpdir(), "nexora-https-browser-"));
 let chrome, socket;
+let loginDiagnostics = createLoginReadinessDiagnostics();
 const browserStatuses = new Map();
 const browserRequests = new Set();
 const observedPaths = new Map([
@@ -337,13 +342,16 @@ try {
     setupToken;
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
+    loginDiagnostics.observe(message);
     if (message.id) {
       const op = pending.get(message.id);
       if (op) {
         pending.delete(message.id);
         clearTimeout(op.timer);
-        if (message.error) op.reject(Error("CDP operation failed"));
-        else op.resolve(message.result);
+        if (message.error) {
+          loginDiagnostics.protocolFailed();
+          op.reject(Error("CDP operation failed"));
+        } else op.resolve(message.result);
       }
     }
     if (message.method === "Network.responseReceived") {
@@ -389,7 +397,10 @@ try {
       awaitPromise: true,
       returnByValue: true,
     });
-    if (r.exceptionDetails) throw Error("Browser evaluation failed");
+    if (r.exceptionDetails) {
+      loginDiagnostics.evaluationFailed();
+      throw Error("Browser evaluation failed");
+    }
     return r.result.value;
   };
   const until = async (expression) => {
@@ -416,8 +427,15 @@ try {
       "Native input must reach the focused field",
     );
   };
+  await send("Runtime.enable");
   await send("Network.enable");
   await send("Page.enable");
+  const { identifier: loginObserverId } = await send(
+    "Page.addScriptToEvaluateOnNewDocument",
+    {
+      source: loginReadinessObserver,
+    },
+  );
   await send("Page.bringToFront");
   await send("Page.navigate", { url: origin + "/login" });
   checks.step("ADMIN_BROWSER_INTERACTIVE_LOGIN");
@@ -431,17 +449,24 @@ try {
         usernamePresent: !!document.querySelector("input[name=username]"),
         passwordPresent: !!document.querySelector("input[name=password]"),
         togglePresent: !!document.querySelector('button[aria-label="Hiện mật khẩu"]'),
-        toggleDisabled: !!document.querySelector('button[aria-label="Hiện mật khẩu"]:disabled')
+        toggleDisabled: !!document.querySelector('button[aria-label="Hiện mật khẩu"]:disabled'),
+        passwordType: ({text: "TEXT", password: "PASSWORD"})[document.querySelector("input[name=password]")?.type] ?? "NONE",
+        ...window.__nexoraLoginReadiness?.snapshot()
       })`);
       console.error(
         "PUBLIC_ADMIN_INTERACTIVE_LOGIN_DIAGNOSTIC",
-        JSON.stringify(diag),
+        JSON.stringify({ ...diag, ...loginDiagnostics.snapshot() }),
       );
     } catch {
       /* ignore evaluation error on timeout */
     }
     throw error;
   }
+  loginDiagnostics.stop();
+  await evaluate("window.__nexoraLoginReadiness?.stop()");
+  await send("Page.removeScriptToEvaluateOnNewDocument", {
+    identifier: loginObserverId,
+  });
   checks.step("ADMIN_BROWSER_PASSWORD_LOGIN");
   await type("username", f.username);
   await type("password", f.password);
@@ -728,7 +753,9 @@ try {
     `fetch("/api/auth/setup-password",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token:${JSON.stringify(setupToken)},password:${JSON.stringify(f.password)}})}).then(r=>r.status)`,
   );
   checks.status(replay, 400);
+  loginDiagnostics = createLoginReadinessDiagnostics();
   checks.step("REMOTE_OPERATOR_INTERACTIVE_LOGIN");
+  await evaluate(loginReadinessObserver);
   try {
     await waitForInteractiveLogin({ until, evaluate });
   } catch (error) {
@@ -739,17 +766,21 @@ try {
         usernamePresent: !!document.querySelector("input[name=username]"),
         passwordPresent: !!document.querySelector("input[name=password]"),
         togglePresent: !!document.querySelector('button[aria-label="Hiện mật khẩu"]'),
-        toggleDisabled: !!document.querySelector('button[aria-label="Hiện mật khẩu"]:disabled')
+        toggleDisabled: !!document.querySelector('button[aria-label="Hiện mật khẩu"]:disabled'),
+        passwordType: ({text: "TEXT", password: "PASSWORD"})[document.querySelector("input[name=password]")?.type] ?? "NONE",
+        ...window.__nexoraLoginReadiness?.snapshot()
       })`);
       console.error(
         "PUBLIC_OPERATOR_INTERACTIVE_LOGIN_DIAGNOSTIC",
-        JSON.stringify(diag),
+        JSON.stringify({ ...diag, ...loginDiagnostics.snapshot() }),
       );
     } catch {
       /* ignore evaluation error on timeout */
     }
     throw error;
   }
+  loginDiagnostics.stop();
+  await evaluate("window.__nexoraLoginReadiness?.stop()");
   checks.step("REMOTE_OPERATOR_LOGIN_AND_STORAGE_PRIVACY");
   await type("username", "https_operator");
   await type("password", f.password);

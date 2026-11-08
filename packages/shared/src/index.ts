@@ -20,3 +20,10 @@ export {
   normalizeRawBoundedText,
 } from "./validation/text";
 export { CustomerInputLimits } from "./validation/customer-limits";
+
+export {
+  SyncJobStatus,
+  SyncProcessingPhase,
+  SyncType,
+  SyncTrigger,
+} from "./sync-status";

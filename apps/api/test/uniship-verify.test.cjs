@@ -34,78 +34,85 @@ test("owner amendment ignores is_verified and username; userid remains authorita
   }
 });
 
-test("verify uses observed contract, matches candidate safely and bounds failures", async () => {
-  let mode = "ok";
-  let calls = 0;
-  const server = http.createServer(async (req, res) => {
-    calls++;
-    assert.equal(req.method, "POST");
-    assert.equal(req.url, "/client/api-token-verify/");
-    assert.equal(req.headers.authorization, "Bearer synthetic-candidate");
-    assert.equal(req.headers.accept, "application/json");
-    let body = "";
-    for await (const chunk of req) body += chunk;
-    assert.deepEqual(JSON.parse(body), {
-      token: "synthetic-candidate",
-      FirebaseToken: null,
-    });
-    if (mode === "429") {
-      res.writeHead(429, { "Retry-After": "2" });
-      return res.end();
-    }
-    if (mode === "401" || mode === "500") {
-      res.writeHead(Number(mode));
-      return res.end();
-    }
-    if (mode === "redirect") {
-      res.writeHead(302, { Location: "/other" });
-      return res.end();
-    }
-    if (mode === "timeout") return;
-    if (mode === "oversize") return res.end("x".repeat(70000));
-    if (mode === "invalid") return res.end("not-json");
-    res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
-        token: mode === "replacement" ? "different" : "synthetic-candidate",
-        user: { userid: 12345, is_verified: false },
-      }),
-    );
-  });
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const client = new UnishipHttpClient({
-    apiUrl: `http://127.0.0.1:${server.address().port}`,
-    timeoutMs: 100,
-  });
-  try {
-    assert.equal(
-      (await client.verify("synthetic-candidate")).externalAccountId,
-      "12345",
-    );
-    for (const [next, status] of [
-      ["replacement", 401],
-      ["429", 429],
-      ["401", 401],
-      ["500", 503],
-      ["oversize", 503],
-      ["invalid", 503],
-      ["redirect", 503],
-      ["timeout", 503],
-    ]) {
-      mode = next;
-      await assert.rejects(
-        client.verify("synthetic-candidate"),
-        (e) => e.getStatus?.() === status,
+test(
+  "verify uses observed contract, matches candidate safely and bounds failures",
+  { timeout: 10000 },
+  async () => {
+    let mode = "ok";
+    let calls = 0;
+    const server = http.createServer(async (req, res) => {
+      calls++;
+      assert.equal(req.method, "POST");
+      assert.equal(req.url, "/client/api-token-verify/");
+      assert.equal(req.headers.authorization, "Bearer synthetic-candidate");
+      assert.equal(req.headers.accept, "application/json");
+      let body = "";
+      for await (const chunk of req) body += chunk;
+      assert.deepEqual(JSON.parse(body), {
+        token: "synthetic-candidate",
+        FirebaseToken: null,
+      });
+      if (mode === "429") {
+        res.writeHead(429, { "Retry-After": "2" });
+        return res.end();
+      }
+      if (mode === "401" || mode === "500") {
+        res.writeHead(Number(mode));
+        return res.end();
+      }
+      if (mode === "redirect") {
+        res.writeHead(302, { Location: "/other" });
+        return res.end();
+      }
+      if (mode === "timeout") return;
+      if (mode === "oversize") return res.end("x".repeat(70000));
+      if (mode === "invalid") return res.end("not-json");
+      res.setHeader("Content-Type", "application/json");
+      res.end(
+        JSON.stringify({
+          token: mode === "replacement" ? "different" : "synthetic-candidate",
+          user: { userid: 12345, is_verified: false },
+        }),
       );
+    });
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const apiUrl = `http://127.0.0.1:${server.address().port}`;
+    const client = new UnishipHttpClient({ apiUrl });
+    const timeoutClient = new UnishipHttpClient({ apiUrl, timeoutMs: 100 });
+    try {
+      assert.equal(
+        (await client.verify("synthetic-candidate")).externalAccountId,
+        "12345",
+      );
+      for (const [next, status] of [
+        ["replacement", 401],
+        ["429", 429],
+        ["401", 401],
+        ["500", 503],
+        ["oversize", 503],
+        ["invalid", 503],
+        ["redirect", 503],
+      ]) {
+        mode = next;
+        await assert.rejects(
+          client.verify("synthetic-candidate"),
+          (e) => e.getStatus?.() === status,
+        );
+      }
+      mode = "timeout";
+      await assert.rejects(
+        timeoutClient.verify("synthetic-candidate"),
+        (e) => e.getStatus?.() === 503,
+      );
+      const before = calls;
+      await assert.rejects(client.verify("bad\r\nheader"));
+      assert.equal(calls, before);
+    } finally {
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
     }
-    const before = calls;
-    await assert.rejects(client.verify("bad\r\nheader"));
-    assert.equal(calls, before);
-  } finally {
-    server.closeAllConnections();
-    await new Promise((resolve) => server.close(resolve));
-  }
-});
+  },
+);
 
 test("external live remains closed even with runtime opt-in until official authorization", async () => {
   const originalFetch = globalThis.fetch;

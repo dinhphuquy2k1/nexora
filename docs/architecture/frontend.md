@@ -374,3 +374,41 @@ and reports invalid history data even without an active range. Ranges retain the
 Vietnamese UTC+07 day, inclusive00:00:00 through23:59:59.999. Type/state/range filters
 combine without changing source records; filters reset paging and derived pages
 clamp to current results. This is frontend normalization, not an API/SDK contract.
+
+## Sync V1 transport integration — NEXORA-034
+
+The Carrier route reads real connection metadata and reuses the existing Drawer,
+three tabs, Inspection and shared controls. Generated SDK calls provide Sync config
+availability and job counters/history. AbortController/generation guards isolate
+connection reads; mutations have a synchronous single-flight gate, and confirmed
+write completion is separate from read reconciliation. Unsupported types remain
+unavailable; no mock production jobs or new page/design/token changes. Default
+UI-only fixtures remain explicitly injected. The separate issues fixture uses SDK
+reads only against an owned loopback synthetic server, never live Provider traffic.
+
+The existing CarrierSyncInspection consumes the existing Job Detail endpoint through
+the generated SDK. It shows only safe Source ID/source version/processor version/
+outcome/error code with server issue pagination. Selection/page/connection reads
+have AbortController and generation fences, no polling;401 closes Inspection and
+uses the parent sticky denial/login flow,403/404 clear scoped data. Inspection
+changes never remount the Drawer or reset its draft/tab/history query. Existing
+overlay and shared controls/styles are reused; no new page, modal or review actions.
+
+Final Sync review presentation corrections retain the existing Schedule/History
+layout and controls. Next Run uses only the Backend-confirmed nextRunAt, formatted
+by displayTime in Vietnam time; it is unavailable when the saved schedule is off,
+the timestamp is invalid/missing, or that row's draft differs from saved settings.
+Other rows' unsaved drafts do not hide a confirmed schedule. History SHIPMENT and
+CUSTOMER use Package/User and Vietnamese labels; legacy preview aliases stay
+presentation-only, unknown types retain fallback, and filter values/page semantics
+remain the original Backend codes. No schedule arithmetic, extra request or timer.
+
+### Sync Inspection log capability boundary
+
+Live Sync presentation renders only Job metadata supplied by the existing API:
+state, counters, phase and safe error code. The API supplies no realtime Worker
+log stream. Inspection therefore hides the log block for a Live Job reader and
+never substitutes preview lines or an empty realtime-log claim. Existing populated
+reference-preview logs retain their presentation; SyncItem.logs is preview-only.
+No streaming endpoint, WebSocket/SSE, backend log persistence or new polling is
+introduced. Existing issue paging, cancellation, denial and Drawer state remain.

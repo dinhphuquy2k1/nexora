@@ -28,13 +28,16 @@ export function tokenExpiry(token: string): Date | null {
 export class UnishipAdapter {
   constructor(
     private readonly client: UnishipHttpClient,
-    private readonly budget = new ProviderBudget(),
+    private readonly budget: Pick<ProviderBudget, "run"> = new ProviderBudget(),
   ) {}
   async acquire(username: string, password: string) {
-    return this.budget.run(async () => {
+    return this.budget.run(async (signal) => {
       try {
-        const login = await this.client.authenticate({ username, password });
-        const verified = await this.client.verify(login.candidateToken);
+        const login = await this.client.authenticate(
+          { username, password },
+          signal,
+        );
+        const verified = await this.client.verify(login.candidateToken, signal);
         if (login.externalAccountId !== verified.externalAccountId)
           throw new LifecycleFailure(LifecycleCode.CANDIDATE_IDENTITY_MISMATCH);
         return {

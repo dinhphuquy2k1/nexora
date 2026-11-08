@@ -17,3 +17,11 @@ Business domains follow [ADR-008](../decisions/tactical-ddd.md): Modular Monolit
 No application imports another application. Future capabilities get domain/application/infrastructure/presentation separation only when actual code exists. No Redis, queues, MinIO, Kubernetes or additional backend in Next.
 
 Architectural lint reads TypeScript import/export, require and dynamic-import literals, including relative workspace paths. Only API infrastructure consumes database code. Frontend never imports database code. SDK never imports backend runtime code.
+
+## Sync V1 additive runtime
+
+[ADR-010](../decisions/sync-worker-staging.md) adds a PostgreSQL-backed queue and
+independent sync-worker context within apps/api (NEXORA-034). Earlier no-worker
+statements describe the prior foundation/multi-carrier milestones. Infrastructure
+and mock verification are distinct from live provider/domain integration; no
+Shipment schema or authorized Uniship data fetch exists at this checkpoint.

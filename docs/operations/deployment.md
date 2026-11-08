@@ -98,3 +98,16 @@ Build matching source images, validate public settings/networks/certificates, ru
 Rollback closes ingress/80/443 first, stops Web/API writers, retains volumes/keys/certificates, and restores compatible matching binaries/configuration. Use LOCAL only with loopback publishing; never expose downgraded HTTP. No destructive migration rollback or old incompatible binary against a newer schema. Restore backups into a separate validated target before any deliberate production recovery; keep original volumes until acceptance. Actual production backup/restore has not been performed by CI. The disposable HTTPS harness verifies a logical database restore and original file archive extraction in its owned test project only.
 
 Before public activation, use a trusted private administrative terminal to inventory all relevant ACTIVE ADMIN rows (never expose this through readiness): `SELECT u.id,u.username,(m.user_id IS NOT NULL) AS enrolled,m.key_version FROM users u LEFT JOIN user_mfa m ON m.user_id=u.id WHERE u.role='ADMIN' AND u.status='ACTIVE';`. At least one must exist; enroll each missing administrator through the trusted CLI. Inventory key versions without exposing ciphertext/plaintext. Startup still performs actual runtime-role ciphertext authentication; SQL metadata alone is not proof of readable custody. Never reset MFA or disable accounts automatically to bypass this release prerequisite.
+
+## Sync V1 upgrade boundary
+
+Stop API/Web/worker/provisioning writers, back up using existing custody procedures,
+apply the forward Sync migration and repeat explicit API/worker role provisioning
+before starting the matching image. Preserve all existing volumes/key versions;
+new worker credential volume is generated once, never by deleting old custody.
+API can operate with worker stopped; worker has no HTTP listener/API dependency.
+Enable flags only for actually authorized/supported handlers. At the initial V1
+checkpoint no production data handler is available. Do not call flags an API grant.
+Completion-based next run is interval after terminal completion; job duration,
+last successful completion and stale-data warnings determine observed freshness,
+not a guaranteed hourly SLA. No default production data-retention period is chosen.

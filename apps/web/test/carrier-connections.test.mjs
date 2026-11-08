@@ -137,7 +137,7 @@ test("default sync has unavailable status and backend actions, no running progre
   assert.match(html, /Chưa khả dụng/);
   assert.doesNotMatch(html, /<progress|Đang đồng bộ|1240|2026/);
 });
-test("production feature does not import fixtures or call network, timers, storage or SDK operations", async () => {
+test("Carrier presentation stays isolated; SDK reads and bounded polling have explicit owners", async () => {
   const { readdir, readFile } = await import("node:fs/promises");
   const dir = new URL("../features/carrier-connections/", import.meta.url);
   for (const file of await readdir(dir)) {
@@ -145,9 +145,17 @@ test("production feature does not import fixtures or call network, timers, stora
     const text = await readFile(new URL(file, dir), "utf8");
     assert.doesNotMatch(
       text,
-      /fixtures|createNexoraClient|fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|setTimeout|setInterval/,
+      /fixtures|fetch\s*\(|XMLHttpRequest|WebSocket|localStorage|sessionStorage|setInterval/,
       file,
     );
+    if (file !== "sync-api.ts")
+      assert.doesNotMatch(text, /createNexoraClient/, file);
+    if (file !== "CarrierLiveSyncDrawer.tsx")
+      assert.doesNotMatch(text, /setTimeout/, file);
+    else {
+      assert.match(text, /clearTimeout/);
+      assert.match(text, /AbortController/);
+    }
   }
   const page = await readFile(
     new URL(

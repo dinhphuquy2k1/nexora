@@ -88,3 +88,21 @@ The supplied Nginx profile serves one canonical PUBLIC_FQDN/certificate authorit
 Public TLS1.2 permits only ECDHE AEAD AES-GCM/ChaCha20 suites (no static RSA exchange or CBC); TLS1.3 uses the current library suites. Disposable certificate replacement/reload verification is separate from actual Certbot renewal on a production host.
 
 Nginx normalizes operator FQDN/origin case and removes explicit default443 before rendering its canonical authority and redirect. Both bare canonical Host and explicit :443 are accepted for the default TLS port; alternate configured ports remain exact. The portable entrypoint policy rejects mismatched FQDN, non-HTTPS origin and malformed/ambiguous/zero/out-of-range ports before template substitution.
+
+## Sync V1 flags and custody — NEXORA-034
+
+SYNC_ENABLED, SYNC_SHIPMENT_ENABLED and SYNC_CUSTOMER_ENABLED default false and
+accept exactly true/false. Flags never substitute for provider authorization or a
+supported domain handler. SYNC_LEASE_SECONDS(default60,max300), SYNC_POLL_MS
+(default1000,max60000), SYNC_MAX_ATTEMPTS(default5,max20) are positive bounded
+integers. Optional SYNC_RESOLVED_RETENTION_DAYS has no default and accepts1..36500;
+without an approved configured retention duration no payload cleanup runs.
+Unresolved review/retry payloads are not automatically removed. Jobs/identity/
+provenance have no automatic deletion policy in V1.
+
+Trusted init creates sync_credentials:/sync-config/postgres_sync_password once
+with32 random bytes as64 hex, mode0600, never rotating existing secrets. Only init,
+db-runtime and sync-worker mount it; worker constructs nexora_sync DATABASE_URL
+in memory and has no administrator fallback. API retains its independent runtime
+file and no worker password. Worker currently needs no Carrier or Identity key
+because no authorized production fetch/domain handler is bound.

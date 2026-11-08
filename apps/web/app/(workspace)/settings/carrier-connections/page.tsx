@@ -1,5 +1,4 @@
-import { CarrierConnectionsPage } from "../../../../features/carrier-connections/CarrierConnectionsPage.tsx";
-// Existing workspace layout owns session/auth. Deliberately no Carrier fetch/data.
+import { CarrierConnectionsLive } from "../../../../features/carrier-connections/CarrierConnectionsLive.tsx";
 export default function CarrierConnections() {
-  return <CarrierConnectionsPage />;
+  return <CarrierConnectionsLive />;
 }
