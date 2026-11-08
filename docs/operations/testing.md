@@ -744,3 +744,19 @@ an active predicate or change default and must make the gate fail; originals are
 rechecked after rollback. Test-only native pg resolves from its existing database
 package owner; no new dependency or framework. Synthetic rows/actors and the
 native client are cleaned in finally, then the enclosing suite drops its own DB.
+
+### Public HTTPS pre-auth readiness diagnostics
+
+The existing HTTPS browser harness enables Runtime events and records bounded
+counts of script responses/HTTP failures, script/document load failures, known
+certificate failures, runtime exceptions, context clearing, navigation/load events
+and evaluation/protocol failures. A test-only native event/MutationObserver records
+only password-visibility click/type-transition counts and a capped closed-category
+sequence. It never reads input values or changes DOM/React state. Observation is
+stopped before credentials are entered; authentication submits are not retried.
+Failure diagnostics contain no raw CDP payloads, URLs, exception text, headers,
+request bodies, cookies or tokens. Privacy/shape regressions are in
+scripts/login-readiness-diagnostics.test.mjs. Counters diagnose a failed precondition;
+they do not prove hydration, identify a cause by themselves or replace actual
+Login/MFA/HTTPS security assertions. The real visibility transition remains the
+readiness requirement with its existing deadline.

@@ -52,8 +52,20 @@ deferred connection-pool review finding M4 tracked by issue33.
 ### Verification and acceptance checkpoint
 
 - [x] Baseline99241c0 infrastructure: Preflight24/24, targeted12unit/46PG and Foundation127integration/migration/roles/LOCAL runtime PASS; see the dated evidence and PR32.
-- [ ] Current correction HEAD: full quality, focused regressions and exact-head hosted gates must be executed and recorded.
-- [ ] M5 full verification: Foundation HTTPS, persistence, development and cleanup must all PASS on the final correction HEAD. Baseline Foundation42008705394 attempt2 FAILED HTTPS and skipped persistence/development.
+      Verified checkpoint54075570d41108e9991d08cced48d9a0867ec1a3 (2026-11-08),
+      not automatic certification of later edits:
+
+- [x] Full quality:587 tests,0fail/0skip; formatting/lint/typecheck/contracts/build PASS.
+- [x] Focused Carrier regressions:17/17 PASS; real Sync PostgreSQL46/46 PASS.
+- [x] Hosted Preflight42441313560:24/24 PASS.
+- [x] Hosted Sync Targeted42441313602:12unit/46PG PASS.
+- [x] Foundation42441313561 Docker quality and127/127integration/migration/roles/cluster PASS.
+- [x] Foundation42441313561 LOCAL runtime/provisioning/TTY/MFA/browser PASS.
+- [x] Foundation42441313561 five artifact uploads and owned-resource cleanup PASS.
+- [ ] Public HTTPS end-to-end: Foundation42441313561 FAILED at ADMIN_BROWSER_INTERACTIVE_LOGIN/REQUEST_TIMEOUT before observed auth dispatch; F1 OPEN, root cause not verified.
+- [ ] Persistence smoke: SKIPPED after HTTPS failure, not PASS.
+- [ ] Development smoke: SKIPPED after HTTPS failure, not PASS.
+- [ ] M5 full Foundation acceptance: requires all mandatory gates on the final follow-up HEAD; exact-head results are reconciled in PR32 after execution, including any FAIL/SKIPPED. Baseline42008705394 attempt2 also FAILED HTTPS; that history is unchanged.
 - [ ] Owner Infrastructure acceptance. Task remains VERIFICATION PENDING/PARTIALLY VERIFIED; no source-only completion or Live Sync readiness claim.
 
 Actual final-head workflow reconciliation is recorded in PR32 metadata after
@@ -81,33 +93,37 @@ Run pnpm docs:check, pnpm preflight:check and pnpm format:check.
 
 ## Evidence
 
-| Claim                                                         | Evidence                                                                                                                                                                                                                     | Date       | Result |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
-| Initial plan governance                                       | preflight/docs found metadata formatting errors before code; corrected to canonical format                                                                                                                                   | 2026-11-02 | FAIL   |
-| Genuine PostgreSQL queue/staging/application/HTTP behavior    | Owned tmpfs PostgreSQL17.11 launcher; integration/sync-integration.test.cjs18/18, including20-way admission,10000→10005/30items, retries, page restart, heartbeat, disable/delete fences, real Nest guards and generated SDK | 2026-11-03 | PASS   |
-| Cross-process acquisition budget                              | Same PG suite: actual child worker process plus separate API client, two slots/third denied                                                                                                                                  | 2026-11-03 | PASS   |
-| Restricted worker privileges/cluster cleanup                  | node scripts/provision-cluster-smoke.mjs --suite=provision; actual signed disposable cluster, concurrent roles, lock permissions and forbidden secret/session/DDL access                                                     | 2026-11-03 | PASS   |
-| Existing Carrier visual/accessibility regressions             | Actual compiled TSX/CSS and Chromium CDP; six-viewport matrix, menus, keyboard, cleanup, date/history/status regressions                                                                                                     | 2026-11-03 | PASS   |
-| Round3 denial and partial-schedule regressions                | node --test apps/web/test/carrier-sync-lifecycle.test.mjs; actual component closures,401 fences late200 and further actions; partial readback rebases Cancel while preserving draft                                          | 2026-11-03 | PASS   |
-| Local canonical quality attempt before commit                 | pnpm quality: format/lint/preflight/docs/typecheck/tests executed; contracts regeneration reproducible but gate rejects uncommitted generated files; rerun required after commit                                             | 2026-11-03 | FAIL   |
-| Old remote head Foundation                                    | Run41470963835 at4e08bc1: lint failed; later runtime steps skipped. Findings fixed locally, not evidence for a new head                                                                                                      | 2026-11-03 | FAIL   |
-| Old remote targeted PostgreSQL                                | Run41470963851 at4e08bc1: actual generated build,2policy tests and11PG tests passed; final head must be checked separately                                                                                                   | 2026-11-03 | PASS   |
-| Full local quality after committed contracts                  | API_INTERNAL_URL=http://127.0.0.1:4000 NEXT_TELEMETRY_DISABLED=1 pnpm quality at5a3cc013; format/lint/governance/docs/typecheck,129root/178API/217Web/32UI/6database tests, reproducible contracts and build                 | 2026-11-03 | PASS   |
-| Live Sync component browser behavior                          | Disposable compiled actual TSX/CSS/SDK with isolated synthetic HTTP server and Chromium CDP: partial schedule readback/Cancel, mutation401 denial,360/768/1440 viewport overflow checks; not real Provider integration       | 2026-11-03 | PASS   |
-| Legacy upgrade harness before adding Sync step                | Owned PG test/migration.mjs failed REPEAT_AND_DRIFT because staged fixture omitted new migration; fresh full deploy/diff already passed                                                                                      | 2026-11-03 | FAIL   |
-| Additive legacy migration preservation and drift              | Genuine Prisma deploy/diff plus packages/database/test/migration.mjs in owned PostgreSQL; old rows preserved, empty Sync tables, partial unique lane, repeated deploy and final drift                                        | 2026-11-03 | PASS   |
-| Current implementation hosted targeted verification           | Run41542685993 bound to5a3cc013, checkout57f2ae2 merge with baseline156a324; genuine generated build,6unit/18PG PASS with0skip                                                                                               | 2026-11-03 | PASS   |
-| Hosted full gate before Customer fixture ordering fix         | Foundation41543570656 at82b4000: quality/99integration/legacy drift/provision PASS, customer-sql42P01; later runtime/HTTPS/data/dev skipped                                                                                  | 2026-11-03 | FAIL   |
-| Customer SQL upgrade order and security assertions            | node scripts/provision-cluster-smoke.mjs --suite=customer-sql after ordered pre/post migration phases; actual owned PostgreSQL1/1 plus verified cleanup, all old assertions preserved                                        | 2026-11-03 | PASS   |
-| Hosted cold loopback timing failure                           | Foundation41544905459 ata5723652: existing Uniship verify happy path exceeded100ms; later gates skipped, not PASS                                                                                                            | 2026-11-03 | FAIL   |
-| Functional HTTP checks separated from deliberate100ms timeout | node --test apps/api/test/uniship-verify.test.cjs3/3; real loopback, all header/auth/status/body/error assertions retained, distinct never-responding deadline case, no production changes                                   | 2026-11-03 | PASS   |
-| Review F1–F4 queue/staging/scheduler/budget regressions       | node --test apps/api/integration/sync-integration.test.cjs against owned PostgreSQL17.11:24/24,0skip; RED cases retained; long reservation >31s and lost/terminal fences included                                            | 2026-11-03 | PASS   |
-| Review F5 engine capability before fix                        | Signed owned-cluster SELECT-only FOR SHARE fails42501, demonstrating direct SHARE still needs UPDATE; no substitute column grant accepted                                                                                    | 2026-11-03 | FAIL   |
-| Review F5 least-privilege locking                             | node scripts/provision-cluster-smoke.mjs --suite=provision; exact worker function execution/shared lock blocking/direct metadata UPDATE denial and verified cleanup                                                          | 2026-11-03 | PASS   |
-| Review function migration preservation                        | Genuine Prisma deploy/diff and packages/database/test/migration.mjs:12forward migrations, four fixed functions, old rows preserved, no model drift                                                                           | 2026-11-03 | PASS   |
-| Review transport cancellation                                 | node --test apps/api/test/uniship-budget-cancellation.test.cjs apps/api/test/uniship-verify.test.cjs:5/5 actual loopback HTTP; both auth/verify cancelled before transport timeout                                           | 2026-11-03 | PASS   |
-| Review F6 SDK/Inspection/Drawer lifecycle                     | node --test apps/web/test/carrier-sync-api.test.mjs apps/web/test/carrier-sync-issues.test.mjs apps/web/test/carrier-sync-lifecycle.test.mjs:13/13 including parent401/late Detail200                                        | 2026-11-03 | PASS   |
-| Review F6 browser/privacy/parent state                        | Existing compiled Carrier fixture+Chromium CDP: six-viewport baseline and new issues SDK paging/empty/denial/abort/filter/draft/focus PASS; two synthetic screenshots manually reviewed                                      | 2026-11-03 | PASS   |
+| Claim                                                         | Evidence                                                                                                                                                                                                                                                                                      | Date       | Result |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Checkpoint5407557 quality and focused regressions             | pnpm quality587/587 and focused Carrier17/17 plus real SyncPG46/46; exact head54075570d41108e9991d08cced48d9a0867ec1a3,2026-11-08                                                                                                                                                             | 2026-11-08 | PASS   |
+| Checkpoint5407557 hosted infrastructure gates                 | [Preflight42441313560](https://github.com/dinhphuquy2k1/nexora/actions/runs/42441313560)24/24; [targeted42441313602](https://github.com/dinhphuquy2k1/nexora/actions/runs/42441313602)12unit/46PG; merge3480877d28672a4557343819997c8742418de226 into156a32414dfefdc235804367307b5f052d9dcb47 | 2026-11-08 | PASS   |
+| Checkpoint5407557 Foundation partial execution                | [Foundation42441313561](https://github.com/dinhphuquy2k1/nexora/actions/runs/42441313561) quality587 and127integration/migration/roles/LOCAL/TTY/browser, uploads and cleanup PASS; same head/merge as above,03:06–03:20UTC                                                                   | 2026-11-08 | PASS   |
+| Checkpoint5407557 full Foundation acceptance                  | Same run at03:20:28UTC FAILED HTTPS interactive Login/REQUEST_TIMEOUT; no auth dispatch. Persistence/development SKIPPED, not PASS; root cause UNVERIFIED                                                                                                                                     | 2026-11-08 | FAIL   |
+| Initial plan governance                                       | preflight/docs found metadata formatting errors before code; corrected to canonical format                                                                                                                                                                                                    | 2026-11-02 | FAIL   |
+| Genuine PostgreSQL queue/staging/application/HTTP behavior    | Owned tmpfs PostgreSQL17.11 launcher; integration/sync-integration.test.cjs18/18, including20-way admission,10000→10005/30items, retries, page restart, heartbeat, disable/delete fences, real Nest guards and generated SDK                                                                  | 2026-11-03 | PASS   |
+| Cross-process acquisition budget                              | Same PG suite: actual child worker process plus separate API client, two slots/third denied                                                                                                                                                                                                   | 2026-11-03 | PASS   |
+| Restricted worker privileges/cluster cleanup                  | node scripts/provision-cluster-smoke.mjs --suite=provision; actual signed disposable cluster, concurrent roles, lock permissions and forbidden secret/session/DDL access                                                                                                                      | 2026-11-03 | PASS   |
+| Existing Carrier visual/accessibility regressions             | Actual compiled TSX/CSS and Chromium CDP; six-viewport matrix, menus, keyboard, cleanup, date/history/status regressions                                                                                                                                                                      | 2026-11-03 | PASS   |
+| Round3 denial and partial-schedule regressions                | node --test apps/web/test/carrier-sync-lifecycle.test.mjs; actual component closures,401 fences late200 and further actions; partial readback rebases Cancel while preserving draft                                                                                                           | 2026-11-03 | PASS   |
+| Local canonical quality attempt before commit                 | pnpm quality: format/lint/preflight/docs/typecheck/tests executed; contracts regeneration reproducible but gate rejects uncommitted generated files; rerun required after commit                                                                                                              | 2026-11-03 | FAIL   |
+| Old remote head Foundation                                    | Run41470963835 at4e08bc1: lint failed; later runtime steps skipped. Findings fixed locally, not evidence for a new head                                                                                                                                                                       | 2026-11-03 | FAIL   |
+| Old remote targeted PostgreSQL                                | Run41470963851 at4e08bc1: actual generated build,2policy tests and11PG tests passed; final head must be checked separately                                                                                                                                                                    | 2026-11-03 | PASS   |
+| Full local quality after committed contracts                  | API_INTERNAL_URL=http://127.0.0.1:4000 NEXT_TELEMETRY_DISABLED=1 pnpm quality at5a3cc013; format/lint/governance/docs/typecheck,129root/178API/217Web/32UI/6database tests, reproducible contracts and build                                                                                  | 2026-11-03 | PASS   |
+| Live Sync component browser behavior                          | Disposable compiled actual TSX/CSS/SDK with isolated synthetic HTTP server and Chromium CDP: partial schedule readback/Cancel, mutation401 denial,360/768/1440 viewport overflow checks; not real Provider integration                                                                        | 2026-11-03 | PASS   |
+| Legacy upgrade harness before adding Sync step                | Owned PG test/migration.mjs failed REPEAT_AND_DRIFT because staged fixture omitted new migration; fresh full deploy/diff already passed                                                                                                                                                       | 2026-11-03 | FAIL   |
+| Additive legacy migration preservation and drift              | Genuine Prisma deploy/diff plus packages/database/test/migration.mjs in owned PostgreSQL; old rows preserved, empty Sync tables, partial unique lane, repeated deploy and final drift                                                                                                         | 2026-11-03 | PASS   |
+| Current implementation hosted targeted verification           | Run41542685993 bound to5a3cc013, checkout57f2ae2 merge with baseline156a324; genuine generated build,6unit/18PG PASS with0skip                                                                                                                                                                | 2026-11-03 | PASS   |
+| Hosted full gate before Customer fixture ordering fix         | Foundation41543570656 at82b4000: quality/99integration/legacy drift/provision PASS, customer-sql42P01; later runtime/HTTPS/data/dev skipped                                                                                                                                                   | 2026-11-03 | FAIL   |
+| Customer SQL upgrade order and security assertions            | node scripts/provision-cluster-smoke.mjs --suite=customer-sql after ordered pre/post migration phases; actual owned PostgreSQL1/1 plus verified cleanup, all old assertions preserved                                                                                                         | 2026-11-03 | PASS   |
+| Hosted cold loopback timing failure                           | Foundation41544905459 ata5723652: existing Uniship verify happy path exceeded100ms; later gates skipped, not PASS                                                                                                                                                                             | 2026-11-03 | FAIL   |
+| Functional HTTP checks separated from deliberate100ms timeout | node --test apps/api/test/uniship-verify.test.cjs3/3; real loopback, all header/auth/status/body/error assertions retained, distinct never-responding deadline case, no production changes                                                                                                    | 2026-11-03 | PASS   |
+| Review F1–F4 queue/staging/scheduler/budget regressions       | node --test apps/api/integration/sync-integration.test.cjs against owned PostgreSQL17.11:24/24,0skip; RED cases retained; long reservation >31s and lost/terminal fences included                                                                                                             | 2026-11-03 | PASS   |
+| Review F5 engine capability before fix                        | Signed owned-cluster SELECT-only FOR SHARE fails42501, demonstrating direct SHARE still needs UPDATE; no substitute column grant accepted                                                                                                                                                     | 2026-11-03 | FAIL   |
+| Review F5 least-privilege locking                             | node scripts/provision-cluster-smoke.mjs --suite=provision; exact worker function execution/shared lock blocking/direct metadata UPDATE denial and verified cleanup                                                                                                                           | 2026-11-03 | PASS   |
+| Review function migration preservation                        | Genuine Prisma deploy/diff and packages/database/test/migration.mjs:12forward migrations, four fixed functions, old rows preserved, no model drift                                                                                                                                            | 2026-11-03 | PASS   |
+| Review transport cancellation                                 | node --test apps/api/test/uniship-budget-cancellation.test.cjs apps/api/test/uniship-verify.test.cjs:5/5 actual loopback HTTP; both auth/verify cancelled before transport timeout                                                                                                            | 2026-11-03 | PASS   |
+| Review F6 SDK/Inspection/Drawer lifecycle                     | node --test apps/web/test/carrier-sync-api.test.mjs apps/web/test/carrier-sync-issues.test.mjs apps/web/test/carrier-sync-lifecycle.test.mjs:13/13 including parent401/late Detail200                                                                                                         | 2026-11-03 | PASS   |
+| Review F6 browser/privacy/parent state                        | Existing compiled Carrier fixture+Chromium CDP: six-viewport baseline and new issues SDK paging/empty/denial/abort/filter/draft/focus PASS; two synthetic screenshots manually reviewed                                                                                                       | 2026-11-03 | PASS   |
 
 ## Blockers and limitations
 
@@ -803,3 +819,76 @@ steps, and reconciled in PR32. Current lifecycle remains VERIFICATION PENDING;
 capability IMPLEMENTED; verification PARTIALLY VERIFIED. S1 production conformance
 and issue33 pool work stay deferred. No Live activation, merge, deployment or
 Draft transition is authorized by this correction.
+
+## Remaining HTTPS readiness investigation — 2026-11-08
+
+Bounded correction revision: correction-2026-11-08-https-readiness-v2.
+Reviewed baseline54075570d41108e9991d08cced48d9a0867ec1a3; clean existing
+branch/PR32. Immutable v4 snapshot and its binding remain unchanged.
+Documentation Impact: REQUIRED (task checklist/evidence and testing diagnostics).
+No new approval gate or architecture revision is needed for this bounded work.
+
+Read-only inspection reconfirmed the hosted failure before authentication dispatch;
+DOM presence does not establish hydration. Nginx forwards the approved Host/port;
+CSP has no script-src restriction. Repeated visibility clicks and swallowed CDP
+evaluation errors are hypotheses, not proven causes. Existing loopback experiments
+cannot certify named-FQDN ingress. F2/F3 code is retained for regression only.
+
+| Field                    | Investigation / documentation correction                                                                                                                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Pre-auth HTTPS/CDP observation and task verification checkpoint                                                                                                                                                       |
+| Existing implementations | scripts/public-https-browser.mjs, browser-login-ready.mjs, browser-startup-diagnostics.mjs, browser-teardown.mjs; existing LoginForm, Docker Nginx and Foundation                                                     |
+| Domain owner             | Test infrastructure; no Identity/Sync business change                                                                                                                                                                 |
+| Alternatives             | Blind retry/timeout change, new browser framework, production logging, or bounded existing-harness diagnostics                                                                                                        |
+| Selected approach        | Reuse current Chromium/CDP, TLS fixture and cleanup. Add only closed/count diagnostics while investigating; fix behavior only after a demonstrated defect. Split verified checkpoint rows from failed/skipped gates.  |
+| Rationale                | Expose missing resource/context/interaction evidence without pretending DOM is hydration or altering security assertions                                                                                              |
+| Risks                    | Raw CDP exceptions/URLs can leak secrets; cap observations, retain no payload/headers/URLs/messages and stop pre-auth observation before credential entry                                                             |
+| Verification             | Privacy/closed-shape unit regressions first; actual production Login/Chromium on named host and Nginx where available; canonical hosted Foundation, F2 contracts/F3 tests, quality and independent three-round review |
+
+Plan before code/tests: (1) verify actual baseline logs and bounded named-host
+fixture prerequisites; (2) test-first add narrowly scoped, bounded pre-auth
+resource/navigation/runtime/evaluation and harmless toggle observation to the
+existing HTTPS harness; no auth retry, timeout increase, fixed readiness delay or
+DOM/React-internal readiness mutation; (3) use new actual observations to choose
+a minimal regression/fix, or retain ROOT CAUSE NOT VERIFIED/BLOCKED; (4) correct
+F4 checklist with exact checkpoint provenance and preserve every historical
+FAIL/SKIPPED; (5) run focused regressions/full quality, normal push and exact-head
+Preflight/targeted/Foundation with actual logs. No speculative production fix,
+new dependency, API/schema/Sync lifecycle/pool/Live/UI change. After three failed
+experiments stop edits, summarize and re-plan under Implementation Workflow.
+
+### Targeted investigation observations
+
+| Hypothesis                                      | Evidence                                                     | Experiment                                                                                | Result                                                                            | Conclusion                                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| DOM presence proves hydration                   | Baseline hosted inputs/toggle exist but no auth dispatch     | Existing actual visibility helper retained                                                | Hosted readiness FAIL                                                             | Presence alone insufficient; root cause UNVERIFIED                          |
+| Repeated clicks invert delayed state            | Prior three bounded real Login probes observed one show/hide | No helper behavior change; add bounded native event/type sequence                         | No local reproduction                                                             | Hypothesis, not a demonstrated defect                                       |
+| Missing scripts/runtime/context failure         | Old HTTPS harness had no Runtime/loading failure observation | Enable existing CDP events; record bounded counts only                                    | New diagnostic unit/privacy tests PASS3/3                                         | Requires actual named-host hosted trace before attribution                  |
+| Named TLS fixture matches hosted symptom        | Owned production Web + Nginx1.30.6 + test CA/FQDN            | Strict Node CA/name Login200, then real Chromium navigation                               | Browser ERR_ABORTED/error document/no inputs                                      | Local diagnostic setup failure, distinct from hosted inputs-present failure |
+| Diagnostic observer alters Login or spans Setup | Actual built Login/Setup and native Chromium                 | Observe real show/hide, stop, full-document Setup, real return link, fresh Login observer | PASS; one show/one hide, three type transitions; zero auth dispatch; cleanup PASS | Observer lifecycle verified, not F1/HTTPS acceptance                        |
+
+Round1 independent review found that automatic new-document registration could
+recreate observation on Setup. Corrected by removing that registration after
+ADMIN readiness, guarding Login path, installing fresh observation explicitly
+before remote Login readiness and stopping before credential input. Three unit
+cases include Setup/client-navigation/explicit-install/stop behavior; actual
+Chromium Login/Setup lifecycle also PASS. Round1 recheck CLOSED; independent
+Round2 found no new P1/P2. No claim that either review closes F1.
+
+Executed correction verification before push: diagnostics+Carrier focused
+20/20PASS,0skip; full pnpm quality132root/186API/234Web/32UI/6database =590tests,
+0fail/0skip, reproducible contracts and4/4builds PASS. Existing F2 presentation,
+OpenAPI/SDK, F3 implementation, schema/snapshots and browser readiness helper
+have zero diff from5407557. Full local logs and fixture material stay outside Git.
+The diagnostic host and Nginx projects used owned resources only and were removed.
+Initial internal-network fixture readiness failed before Chromium; corrected local
+network setup did not reproduce the hosted Login symptom. No failed setup or
+loopback result is represented as canonical public HTTPS PASS.
+
+New code changes test diagnostics only, not a readiness fix: ROOT CAUSE NOT
+VERIFIED until actual hosted evidence establishes one. Final follow-up HEAD,
+run links, tested merge and each completed/failed/skipped gate are reconciled in
+PR32 metadata after execution; prior5407557 results above do not certify this new
+code. If any mandatory gate fails or root cause remains unresolved, keep F1 OPEN,
+Draft and full acceptance BLOCKED without blind retries. Documentation Impact
+remains REQUIRED; task lifecycle/verification status and immutable v4 unchanged.
