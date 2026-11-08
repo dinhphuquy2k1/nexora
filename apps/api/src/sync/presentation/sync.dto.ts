@@ -2,6 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import {
   SyncJobStatus,
   SyncProcessingPhase,
+  SyncProcessingStatus,
   SyncType,
   SyncTrigger,
 } from "../domain/sync.constants";
@@ -47,7 +48,13 @@ export class SyncIssueDto {
   @ApiProperty({ format: "uuid" }) sourceId!: string;
   @ApiProperty({ type: "integer" }) sourceVersion!: number;
   @ApiProperty({ type: "integer" }) processorVersion!: number;
-  @ApiProperty({ enum: ["NEEDS_REVIEW", "REJECTED_SOURCE", "RETRYABLE_ERROR"] })
+  @ApiProperty({
+    enum: [
+      SyncProcessingStatus.NEEDS_REVIEW,
+      SyncProcessingStatus.REJECTED_SOURCE,
+      SyncProcessingStatus.RETRYABLE_ERROR,
+    ],
+  })
   outcome!: string;
   @ApiProperty({ type: String, nullable: true }) errorCode!: string | null;
 }

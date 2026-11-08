@@ -15,6 +15,7 @@ import type { Request } from "express";
 import { OriginGuard } from "../../identity/presentation/origin.guard";
 import { ApiErrorDto } from "../../http";
 import { SyncService } from "../application/sync-admission.service";
+import { SyncType } from "../domain/sync.constants";
 import type { SyncJob, SyncSchedule } from "../application/sync.port";
 import {
   CreateSyncJobDto,
@@ -78,7 +79,7 @@ export class SyncController {
   @ApiQuery({
     name: "syncType",
     required: false,
-    enum: ["SHIPMENT", "CUSTOMER"],
+    enum: Object.values(SyncType),
   })
   @ApiQuery({
     name: "status",
@@ -161,7 +162,7 @@ export class SyncController {
   @Patch("sync-configs/:type")
   @UseGuards(OriginGuard)
   @Header("Cache-Control", "no-store")
-  @ApiParam({ name: "type", enum: ["SHIPMENT", "CUSTOMER"] })
+  @ApiParam({ name: "type", enum: Object.values(SyncType) })
   @ApiResponse({ status: 200, type: SyncConfigResponseDto })
   async configure(
     @Req() r: AuthRequest,
