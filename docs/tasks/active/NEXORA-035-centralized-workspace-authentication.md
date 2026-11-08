@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Implementation: IMPLEMENTED
-Verification: VERIFIED
+Verification: PARTIALLY VERIFIED
 
 ## Scope
 
@@ -60,10 +60,10 @@ Documentation Impact: REQUIRED
 ### Implementation Plan
 
 - [x] M1: Implement `workspace-auth.ts` coordinator (single-flight redirect, session epoch fencing, safe return URL calculation) and `workspace-client.ts` (`openapi-fetch` middleware detecting `401 UNAUTHORIZED`).
-- [x] M2: Attach workspace auth boundary to `ShellClient.tsx` to handle session expiration, mask sensitive workspace content, and perform single safe redirect to `/login`.
+- [x] M2: Attach workspace auth boundary to `ShellClient.tsx` to handle session expiration, mask sensitive workspace content (`role="alert"`), and perform single safe redirect to `/login`.
 - [x] M3: Update `POST /api/carrier-connections/:id/reconnect` in `carrier-lifecycle.controller.ts` to return HTTP 400 for `PROVIDER_AUTH_FAILED`; update contract tests and regenerate SDK.
 - [x] M4: Refactor Customer and Carrier feature callers (`CustomerListPage.tsx`, `CustomerDrawers.tsx`, `useCustomerRead.ts`, `useCustomerMutation.ts`, `CarrierConnectionsLive.tsx`, `CarrierLiveSyncDrawer.tsx`) to remove duplicate `router.replace` calls while preserving all local denial/cancellation logic.
-- [x] M5: Implement comprehensive regression test suite (12 required cases) covering Customer/Carrier session expiration, concurrent 401s, provider auth failure, safe return URL, stale requests, and contract verification.
+- [x] M5: Implement comprehensive regression test suite (15 cases) using real disposable HTTP transport server, genuine openapi-fetch pipeline, non-destructive cloning, Strict Mode remount buffering, and epoch fail-closed fencing.
 
 ## Review Rounds
 
@@ -80,29 +80,34 @@ Documentation Impact: REQUIRED
 - Monotonic session epochs (`getCurrentSessionEpoch`) fence against stale 401 responses from past sessions logging out active new sessions.
 - Return URL is strictly validated via `sanitizeReturnUrl`, preventing open-redirect attacks (`//`, `/\`, `javascript:`).
 - Customer aggregate reconciliation invariants (`read.deny()`, `onDenied()`, `power.reject()`, locks) and Carrier credential ciphertext encryption remain completely intact.
+- F1/F2/F3 review findings addressed: genuine openapi-fetch pipeline tested via disposable Node HTTP server, Strict Mode remount preserves session epoch, buffered unmount expirations dispatch on remount, and missing/invalid epochs fail closed.
 - Verdict: APPROVED
 
 ### Review 3: Final Verification & PR Readiness
 
-- All 12 test cases in `apps/web/test/workspace-auth.test.mjs` pass.
+- All 15 test cases in `apps/web/test/workspace-auth.test.mjs` pass via genuine HTTP requests.
 - All 7 carrier sync lifecycle tests in `apps/web/test/carrier-sync-lifecycle.test.mjs` pass.
+- All 43 customer UI model and mutation reconciliation tests pass.
 - All 40 unit tests in `apps/api/test/carrier-lifecycle.test.cjs` pass.
 - All 19 integration tests in `apps/api/integration/carrier-lifecycle-integration.test.cjs` pass in Docker.
-- `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm contracts:check`, `pnpm docs:check`, `pnpm preflight:check` all pass.
+- Historical CI runs recorded: Run 42478180082 failed on PR description metadata; Run 42478180153 failed on carrier browser matrix navigation race. Both addressed on current HEAD.
+- `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm contracts:check`, `pnpm docs:check`, `pnpm preflight:check` all pass locally.
 - Verdict: APPROVED
 
 ## Evidence
 
-| Claim                                                  | Evidence                                                                                                                                            | Date       | Result |
-| :----------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
-| Pre-code design review recorded and preflight passed   | `pnpm preflight:check; pnpm docs:check`                                                                                                             | 2026-11-08 | PASS   |
-| Workspace auth boundary & coordinator suite (12 cases) | `node --test apps/web/test/workspace-auth.test.mjs`                                                                                                 | 2026-11-08 | PASS   |
-| Customer UI model & mutation reconciliation regression | `node --test apps/web/test/customer-ui-model.test.mjs apps/web/test/customer-mutation-reconciliation.test.mjs apps/web/test/auth-frontend.test.mjs` | 2026-11-08 | PASS   |
-| Carrier sync lifecycle caller refactoring              | `node --test apps/web/test/carrier-sync-lifecycle.test.mjs`                                                                                         | 2026-11-08 | PASS   |
-| Carrier lifecycle unit tests (40 cases)                | `node --test apps/api/test/carrier-lifecycle.test.cjs`                                                                                              | 2026-11-08 | PASS   |
-| Carrier lifecycle PostgreSQL integration in Docker     | `docker compose run quality cd apps/api && node integration/carrier-lifecycle-integration.test.cjs`                                                 | 2026-11-08 | PASS   |
-| Contracts reproducibility check                        | `pnpm contracts:check`                                                                                                                              | 2026-11-08 | PASS   |
-| Documentation policy and task integrity check          | `pnpm docs:check`                                                                                                                                   | 2026-11-08 | PASS   |
-| Preflight governance and duplicate guards              | `pnpm preflight:check`                                                                                                                              | 2026-11-08 | PASS   |
-| Workspace boundary and linting check                   | `pnpm lint`                                                                                                                                         | 2026-11-08 | PASS   |
-| Full monorepo TypeScript verification                  | `pnpm typecheck`                                                                                                                                    | 2026-11-08 | PASS   |
+| Claim                                                  | Evidence                                                                                                                                              | Date       | Result |
+| :----------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Pre-code design review recorded and preflight passed   | `pnpm preflight:check; pnpm docs:check`                                                                                                               | 2026-11-08 | PASS   |
+| Workspace auth boundary & coordinator suite (15 cases) | `node --test apps/web/test/workspace-auth.test.mjs`                                                                                                   | 2026-11-08 | PASS   |
+| Customer UI model & mutation reconciliation regression | `node --test apps/web/test/customer-ui-model.test.mjs apps/web/test/customer-mutation-reconciliation.test.mjs apps/web/test/auth-frontend.test.mjs`   | 2026-11-08 | PASS   |
+| Carrier sync lifecycle caller refactoring              | `node --test apps/web/test/carrier-sync-lifecycle.test.mjs`                                                                                           | 2026-11-08 | PASS   |
+| Carrier lifecycle unit tests (40 cases)                | `node --test apps/api/test/carrier-lifecycle.test.cjs`                                                                                                | 2026-11-08 | PASS   |
+| Carrier lifecycle PostgreSQL integration in Docker     | `docker compose -f compose.yml -f compose.dev.yml run --rm -T quality sh -c "cd apps/api && node integration/carrier-lifecycle-integration.test.cjs"` | 2026-11-08 | PASS   |
+| Contracts reproducibility check                        | `pnpm contracts:check`                                                                                                                                | 2026-11-08 | PASS   |
+| Documentation policy and task integrity check          | `pnpm docs:check`                                                                                                                                     | 2026-11-08 | PASS   |
+| Preflight governance and duplicate guards              | `pnpm preflight:check`                                                                                                                                | 2026-11-08 | PASS   |
+| Workspace boundary and linting check                   | `pnpm lint`                                                                                                                                           | 2026-11-08 | PASS   |
+| Full monorepo TypeScript verification                  | `pnpm typecheck`                                                                                                                                      | 2026-11-08 | PASS   |
+| Hosted CI Preflight Checkpoint (Run 42478180082)       | PR description lacked parser-compliant metadata block. Resolved via PR body update.                                                                   | 2026-11-08 | FAIL   |
+| Hosted CI Foundation Checkpoint (Run 42478180153)      | Carrier viewport matrix navigation timing race on second-operator. Resolved via clean-slate modal fence.                                              | 2026-11-08 | FAIL   |

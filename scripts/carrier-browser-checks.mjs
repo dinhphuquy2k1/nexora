@@ -48,8 +48,16 @@ export async function verifyCarrierBrowser({
       )
         badRequests.push(method);
     }
-    if (m.method === "Runtime.exceptionThrown")
-      errors.push("BROWSER_EXCEPTION");
+    if (m.method === "Runtime.exceptionThrown") {
+      const details = m.params?.exceptionDetails;
+      console.error(
+        "CARRIER_BROWSER_EXCEPTION:",
+        details?.exception?.description || details?.text || details,
+      );
+      errors.push(
+        `BROWSER_EXCEPTION: ${details?.exception?.description || details?.text || JSON.stringify(details)}`,
+      );
+    }
   };
   socket.addEventListener("message", listener);
   async function until(expression) {
@@ -423,7 +431,9 @@ export async function verifyCarrierBrowser({
     origin = "http://127.0.0.1:" + server.address().port;
     const navigate = async (query = "") => {
       await send("Page.navigate", { url: origin + "/fixture" + query });
-      await until("!!document.querySelector('[data-carrier-table-container]')");
+      await until(
+        "document.readyState==='complete' && !!document.querySelector('[data-carrier-table-container]') && !document.querySelector('dialog[open]')",
+      );
     };
     await viewport(1440, 900);
     await navigate();

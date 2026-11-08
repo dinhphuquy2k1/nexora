@@ -11,6 +11,7 @@ import {
  * - Clones the response non-destructively so downstream callers still receive full error bodies and request IDs.
  * - Confirms that error code is strictly "UNAUTHORIZED".
  * - Fences against stale in-flight requests from prior sessions using session epochs.
+ * - Fails closed: if no valid request epoch is bound, session expiration cannot be triggered.
  * - Triggers single-flight session-expired handling at the Workspace boundary.
  */
 export function createWorkspaceApiClient(baseUrl = "") {
@@ -19,12 +20,20 @@ export function createWorkspaceApiClient(baseUrl = "") {
 
   const authMiddleware: Middleware = {
     onRequest({ id }) {
-      requestEpochs.set(id, getCurrentSessionEpoch());
+      const currentEpoch = getCurrentSessionEpoch();
+      if (currentEpoch > 0) {
+        requestEpochs.set(id, currentEpoch);
+      }
       return undefined;
     },
     async onResponse({ id, response }) {
       const epoch = requestEpochs.get(id);
       requestEpochs.delete(id);
+
+      // Fail-closed: require valid recorded epoch
+      if (typeof epoch !== "number" || epoch <= 0) {
+        return undefined;
+      }
 
       if (response.status === 401) {
         try {

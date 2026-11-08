@@ -139,7 +139,7 @@ export function ShellClient({ children, user, deployment }: ShellClientProps) {
           tabIndex={-1}
         >
           {isSessionExpired ? (
-            <div role="status" className={styles.expiredNotice}>
+            <div role="alert" className={styles.expiredNotice}>
               Phiên làm việc đã hết hạn. Đang chuyển hướng về trang đăng nhập…
             </div>
           ) : (
