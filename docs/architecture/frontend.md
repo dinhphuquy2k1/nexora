@@ -402,3 +402,13 @@ Other rows' unsaved drafts do not hide a confirmed schedule. History SHIPMENT an
 CUSTOMER use Package/User and Vietnamese labels; legacy preview aliases stay
 presentation-only, unknown types retain fallback, and filter values/page semantics
 remain the original Backend codes. No schedule arithmetic, extra request or timer.
+
+### Sync Inspection log capability boundary
+
+Live Sync presentation renders only Job metadata supplied by the existing API:
+state, counters, phase and safe error code. The API supplies no realtime Worker
+log stream. Inspection therefore hides the log block for a Live Job reader and
+never substitutes preview lines or an empty realtime-log claim. Existing populated
+reference-preview logs retain their presentation; SyncItem.logs is preview-only.
+No streaming endpoint, WebSocket/SSE, backend log persistence or new polling is
+introduced. Existing issue paging, cancellation, denial and Drawer state remain.

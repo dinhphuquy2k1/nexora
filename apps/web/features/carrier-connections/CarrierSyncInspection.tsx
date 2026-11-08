@@ -77,6 +77,9 @@ export function CarrierSyncInspection({
   else if (visible?.error === 404)
     readError = "Không tìm thấy job trong kết nối này.";
   else if (visible?.error === 401) readError = "Phiên đăng nhập đã kết thúc.";
+  let previewLogs: readonly string[] | undefined;
+  if (!jobDetail && inspection.kind === "progress")
+    previewLogs = inspection.item.logs;
   const { kind } = inspection;
   const title = {
     progress: "Tiến trình đồng bộ",
@@ -147,12 +150,14 @@ export function CarrierSyncInspection({
                 </span>
               </div>
             </div>
-            <strong className={styles.logHeading}>
-              Nhật ký Worker thời gian thực
-            </strong>
-            <pre className={styles.workerLog}>
-              {inspection.item.logs?.join("\n") ?? "Chưa có nhật ký."}
-            </pre>
+            {previewLogs && previewLogs.length > 0 && (
+              <>
+                <strong className={styles.logHeading}>
+                  Nhật ký Worker thời gian thực
+                </strong>
+                <pre className={styles.workerLog}>{previewLogs.join("\n")}</pre>
+              </>
+            )}
             {inspection.item.waitingNote && (
               <p className={styles.information}>
                 <Clock size={16} />

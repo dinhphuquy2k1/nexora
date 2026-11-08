@@ -94,6 +94,7 @@ export interface SyncItem {
   readonly errorCode?: string;
   readonly errorTime?: string;
   readonly jobId?: string;
+  /** Reference-preview lines only; the Live Job API supplies no log stream. */
   readonly logs?: readonly string[];
   readonly checkpoint?: string;
   readonly waitingNote?: string;

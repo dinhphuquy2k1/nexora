@@ -252,3 +252,62 @@ test("opening/closing Inspection preserves Drawer schedule draft, tab and histor
   );
   h.unmount();
 });
+
+test("Live progress retains real Job metadata but never claims unsupported realtime logs", async () => {
+  for (const logs of [undefined, ["UNSUPPORTED_LIVE_LOG"]]) {
+    const h = harness();
+    const p = {
+      inspection: {
+        kind: "progress",
+        item: {
+          id: "SHIPMENT",
+          label: "Kiện hàng",
+          state: "running",
+          jobId: "owned-job",
+          processed: 3,
+          total: 7,
+          checkpoint: "APPLYING",
+          detail: "APPLYING · Áp dụng 3 · Cần xem 1",
+          logs,
+        },
+      },
+      connectionId: "owned-connection",
+      jobDetail: async () => ({
+        job: { id: "owned-job" },
+        issues: [],
+        issueTotal: 0,
+      }),
+      onClose() {},
+    };
+    h.render(p);
+    await tick();
+    const view = json(h.render(p));
+    assert.ok(view.includes("owned-job"));
+    assert.ok(view.includes("APPLYING · Áp dụng 3 · Cần xem 1"));
+    assert.ok(!view.includes("Nhật ký Worker thời gian thực"));
+    assert.ok(!view.includes("Chưa có nhật ký"));
+    assert.ok(!view.includes("UNSUPPORTED_LIVE_LOG"));
+    h.unmount();
+  }
+});
+
+test("Preview progress preserves supplied reference log presentation", () => {
+  const h = harness();
+  const view = json(
+    h.render({
+      inspection: {
+        kind: "progress",
+        item: {
+          id: "preview",
+          label: "Synthetic preview",
+          state: "running",
+          logs: ["PREVIEW_FIRST", "PREVIEW_SECOND"],
+        },
+      },
+      onClose() {},
+    }),
+  );
+  assert.ok(view.includes("Nhật ký Worker thời gian thực"));
+  assert.ok(view.includes("PREVIEW_FIRST\\nPREVIEW_SECOND"));
+  h.unmount();
+});
