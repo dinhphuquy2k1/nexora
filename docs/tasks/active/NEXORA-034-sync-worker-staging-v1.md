@@ -37,11 +37,29 @@ claim transaction. No owner approval gate under current ADR-009.
 
 ## Milestones
 
-- [ ] M1: additive worker ADR, application context, Docker/custody/grants/flags.
-- [ ] M2: durable queue/admission/scheduler/lease and disable/delete integration.
-- [ ] M3: source identities, conditional staging, retention/provenance.
-- [ ] M4: processing manifest, versions/outcomes and atomic completion.
-- [ ] M5: provider ports, API/SDK, existing Drawer, monitoring, full verification.
+### Infrastructure implementation
+
+- [x] M1: additive worker ADR, application context, Docker/custody/grants/flags.
+- [x] M2: durable queue/admission/scheduler/lease and disable/delete integration.
+- [x] M3: source identities, conditional staging, retention/provenance.
+- [x] M4: processing manifest, versions/outcomes and atomic completion.
+- [x] M5 implementation: fail-closed Provider/Processor ports, API/SDK and existing Drawer/Inspection metadata. Live handlers and realtime log streaming are not implemented.
+
+These implementation boxes describe source availability, not full milestone
+acceptance. M4 here is the original processing milestone, distinct from the
+deferred connection-pool review finding M4 tracked by issue33.
+
+### Verification and acceptance checkpoint
+
+- [x] Baseline99241c0 infrastructure: Preflight24/24, targeted12unit/46PG and Foundation127integration/migration/roles/LOCAL runtime PASS; see the dated evidence and PR32.
+- [ ] Current correction HEAD: full quality, focused regressions and exact-head hosted gates must be executed and recorded.
+- [ ] M5 full verification: Foundation HTTPS, persistence, development and cleanup must all PASS on the final correction HEAD. Baseline Foundation42008705394 attempt2 FAILED HTTPS and skipped persistence/development.
+- [ ] Owner Infrastructure acceptance. Task remains VERIFICATION PENDING/PARTIALLY VERIFIED; no source-only completion or Live Sync readiness claim.
+
+Actual final-head workflow reconciliation is recorded in PR32 metadata after
+execution; historical checkpoints below retain their original FAIL/PASS/SKIPPED
+results. Production Provider/Domain conformance and approved connection capacity
+remain separate pre-Live conditions, not capabilities invented for this PR.
 
 ## Documentation Impact
 
@@ -99,6 +117,8 @@ be called live integration. No default retention period or destructive cleanup.
 Initial host disk25MiB recovered through unused build-cache cleanup; RAM worktree preserves existing work. Final CI required.
 
 ## Implementation checkpoint
+
+Historical initial integration checkpoint; current milestone state is above.
 
 M1–M5 code is being integrated; no milestone is claimed fully verified.
 Initial source policy tests RED (missing module), then2/2 PASS. Local boundaries,
@@ -681,3 +701,105 @@ Existing targeted workflow path filters also include the new contract fixture an
 canonical shared sync-status leaf, so future fixture-only/shared-vocabulary edits
 trigger that same real PG gate. Foundation already runs for every PR. No duplicate
 workflow, test command, dependency or build prerequisite is introduced.
+
+## Bounded final findings correction — 2026-11-08
+
+Correction revision: correction-2026-11-08-review-v1. Reviewed clean HEAD:
+99241c005fbb7a0ef524359d075bde621edf08c9. Existing PR32/branch only. This is a
+bounded correction within the SIGNIFICANT task; v4 architecture/snapshot binding
+and every historical snapshot remain unchanged. Documentation Impact: REQUIRED.
+
+Read-only evidence: actual Foundation42008705394 attempt1 failed Carrier browser
+matrix, attempt2 passed127integration/LOCAL runtime then failed HTTPS
+ADMIN_BROWSER_INTERACTIVE_LOGIN/REQUEST_TIMEOUT before any auth request. Cause
+UNVERIFIED; historical NEXORA-031 runner-latency attribution is not proof for this
+failure. Current waitForInteractiveLogin mutates a harmless visibility control
+inside polling; investigate event/hydration/navigation ordering, chunk failures
+and exceptions before proposing a fix. No timeout increase, fixed delay, fake
+hydration/authentication or production change without a demonstrated defect.
+
+| Field                    | Browser readiness                                                                                            | OpenAPI metadata                                                                                               | Inspection/milestones                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Component                | Existing login probe and HTTPS CDP harness                                                                   | Sync controller/DTO enums                                                                                      | CarrierSyncInspection and task checklists                                                                               |
+| Existing implementations | scripts/browser-login-ready.mjs, public-https-browser.mjs, browser-login-smoke.mjs; actual LoginForm.tsx     | SyncType/SyncProcessingStatus in existing Domain/shared leaf; two type arrays and issue subset in presentation | sync-response supplies Job counters/phase/errors but no logs; preview SyncItem.logs optional; all M1–M5 boxes unchecked |
+| Domain owner             | Test infrastructure; Identity behavior preserved                                                             | Sync Presentation consumes canonical Domain vocabulary                                                         | Carrier Web presentation; task workflow                                                                                 |
+| Reuse alternatives       | Existing probe/CDP vs new framework or speculative Login fix                                                 | Existing constants vs new registry                                                                             | Conditional existing block vs invented realtime backend; separate implementation/verification                           |
+| Selected approach        | Bounded actual Chromium/HTTPS experiments and closed diagnostics; confirmed defect only, otherwise BLOCKED   | Bind existing constants preserving exact enum values/order                                                     | Hide unsupported live logs, preserve populated preview; truthful checklists                                             |
+| Rationale                | Evidence before causality; keep actual interaction/security assertions                                       | No public contract drift                                                                                       | No false capability or verification claim                                                                               |
+| Risks                    | Mutation/poll race, SSR without handlers, resource failures; sensitive diagnostics                           | Enum order or outcome expansion                                                                                | Preview parity, stale props, misleading checked verification                                                            |
+| Verification             | Real Chromium with actual React controls; disposable HTTPS; no auth submit retry; full final-head Foundation | Generate/check OpenAPI/SDK and require no semantic/generated churn                                             | RED/GREEN live/preview component tests, full Carrier regressions, docs/preflight                                        |
+
+Plan before code/tests: prioritize bounded F1 investigation (up to three distinct
+focused experiment cycles, no blind CI rerun); capture only fixed categories and
+safe booleans/counts, never credentials, tokens, bodies or raw browser errors.
+A reproduced harness defect gets a regression and smallest fix; production
+Login/MFA stays unchanged unless direct cause is proved. Then F2 constants and
+contract comparison, F3 unsupported-log conditional and focused tests, F4 honest
+milestone reconciliation. Independent reviews cover correctness/scope,
+architecture/regression and actual final-head CI. Complete quality and mandatory
+Preflight/targeted/Foundation including previously skipped data/dev gates.
+If diagnosis or verification remains unresolved, retain Draft/BLOCKED. No Live
+Provider/Processor, pool consolidation, migration, retry/fencing/watermark change,
+new dependency/framework, UI theme/control-size change, merge or deploy.
+
+### Correction implementation and bounded diagnosis
+
+F2 replaces both SyncType metadata arrays with Object.values(SyncType), and the
+three supported issue outcomes with explicit SyncProcessingStatus members in the
+original order. contracts:generate and contracts:check PASS; generated OpenAPI and
+SDK have zero diff. No schema, business outcome or canonical definition changes.
+
+F3 hides the log heading/block whenever the Inspection has the existing Live
+jobDetail reader, even if stale preview lines are accidentally supplied. Populated
+reference preview logs still render; Live job state/counters/phase/error and
+existing ownership, pagination, abort and denial behavior remain unchanged.
+The real component-harness regression first FAILED (5/6 PASS), then PASSED after
+the conditional rendering correction. No CSS, transport, backend or polling change.
+
+F1 remains UNVERIFIED/BLOCKED, not a demonstrated Login or runner defect. Actual
+freshly built Next Login and unmodified waitForInteractiveLogin were driven by
+Chromium/CDP in an owned local TLS diagnostic fixture, without entering any
+credentials or submitting auth. Three bounded scenarios passed the harmless
+show/hide interaction: normal; real JS delivery delayed180ms with CPU16x;
+CPU32x. Each observed one show click, one hide click, final password input, zero
+runtime exceptions, zero script failures/HTTP errors and zero auth requests.
+Owned Web/TLS/Chromium profiles were cleaned up. These observations did not
+reproduce the historical timeout or prove that repeated polling cannot race.
+
+The initial named-FQDN diagnostic navigation instead produced an error document
+and ERR_ABORTED, with no Login inputs; that setup failure differs from the CI
+symptom (inputs present). Loopback navigation delivered the actual Login200.
+This diagnostic rewrote the upstream Host to the test PUBLIC_HTTPS authority and
+used only the disposable leaf SPKI exception. It is a pre-auth helper experiment,
+not canonical FQDN/Origin/MFA/remote-onboarding verification. Therefore no browser
+harness or production Auth change, timeout increase, fixed readiness delay,
+auth retry, assertion removal or claim that the original failure was repaired.
+Historical attempt1/2 failures remain open evidence; a later green run alone
+cannot establish their root cause.
+
+### Correction execution evidence — 2026-11-08
+
+Source under test: bounded correction on baseline99241c0; implementation commits
+51e5a59 (F2) and7ed69b7 (F3). Exact final documentation HEAD and hosted checkout
+binding/results are reconciled in PR32 metadata after pushing, avoiding a
+self-referential SHA-only documentation loop. Full local logs and browser data
+remain outside Git.
+
+| Command / review                                                                                                                             | Actual result                                                                 | Limit                                                                       |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| pnpm install --frozen-lockfile                                                                                                               | PASS                                                                          | Pinned Node24.19.0/pnpm10.34.6; no lock change                              |
+| pnpm contracts:generate; pnpm contracts:check                                                                                                | PASS; reproducible output                                                     | Generated OpenAPI/SDK unchanged                                             |
+| node --test apps/web/test/carrier-sync-issues.test.mjs before fix                                                                            | FAIL:5PASS/1FAIL/0skip                                                        | New unsupported Live-log assertion exposed defect                           |
+| node --test apps/web/test/carrier-sync-api.test.mjs apps/web/test/carrier-sync-issues.test.mjs apps/web/test/carrier-sync-lifecycle.test.mjs | PASS17/17,0skip                                                               | Component/transport/lifecycle regression, not live Provider verification    |
+| pnpm quality                                                                                                                                 | PASS:129root/186API/234Web/32UI/6database,0fail/0skip; contracts and4/4builds | Host quality; does not certify Docker runtime or hosted final HEAD          |
+| node --test integration/sync-integration.test.cjs against owned Docker PostgreSQL17.11                                                       | PASS46/46,0skip; migrated database and container cleanup PASS                 | Actual queue/staging/lifecycle/status-contract regression; no live Provider |
+| Actual built Login CDP pre-auth experiment                                                                                                   | Three scenarios PASS; cleanup PASS                                            | Original F1 not reproduced; canonical HTTPS/authentication still required   |
+| Independent Round1 correctness/scope                                                                                                         | No confirmed new P1/P2;6/6 focused Inspection tests PASS                      | F1 explicitly remains BLOCKED                                               |
+| Independent Round2 architecture/regression                                                                                                   | No confirmed new P1/P2/P3;17/17 focused tests and diff check PASS             | No independent approval of unexecuted hosted gates                          |
+
+Canonical Docker/PostgreSQL execution and final-head Preflight, targeted and
+Foundation results must be read from their actual execution, including skipped
+steps, and reconciled in PR32. Current lifecycle remains VERIFICATION PENDING;
+capability IMPLEMENTED; verification PARTIALLY VERIFIED. S1 production conformance
+and issue33 pool work stay deferred. No Live activation, merge, deployment or
+Draft transition is authorized by this correction.
