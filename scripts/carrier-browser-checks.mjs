@@ -136,10 +136,13 @@ export async function verifyCarrierBrowser({
       );
     }
   }
-  async function capture(phase, width, height, expected) {
+  async function settleLayout() {
     await evaluate(
       "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))))",
     );
+  }
+  async function capture(phase, width, height, expected) {
+    await settleLayout();
     const geometry = await evaluate(
       `(()=>{const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height,bottom:r.bottom,right:r.right}};const root=document.querySelector('[data-carrier-connections]'),container=document.querySelector('[data-carrier-table-container]'),d=[...document.querySelectorAll('dialog[open]')];return {connectionBadges:[...document.querySelectorAll('span[data-tone=good],span[data-tone=bad]')].map(e=>{const s=getComputedStyle(e);return {label:e.textContent.trim(),color:s.color,background:s.backgroundColor,border:s.borderColor,dot:e.firstElementChild?getComputedStyle(e.firstElementChild).backgroundColor:null}}),page:rect(root),deck:rect(document.querySelector('[data-carrier-command-deck]')),container:rect(container),footer:rect(document.querySelector('[data-carrier-pagination]')),columns:[...document.querySelectorAll('table th')].map(rect),rows:[...document.querySelectorAll('tbody tr')].map(rect),frame:rect(d.at(-1)),frameHeader:rect(d.at(-1)?.querySelector(':scope>header')),noOverflow:document.documentElement.scrollWidth<=innerWidth,noVerticalBorders:[...document.querySelectorAll('table th:not(:last-child),table td:not(:last-child)')].every(e=>getComputedStyle(e).borderRightWidth==='0px'||getComputedStyle(e).borderRightStyle==='none'),controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(rect),syncBodyFits:[...document.querySelectorAll('dialog[open] [role=tabpanel]')].every(e=>e.scrollWidth<=e.clientWidth+1)}})()`,
     );
@@ -422,8 +425,14 @@ export async function verifyCarrierBrowser({
     });
     origin = "http://127.0.0.1:" + server.address().port;
     const navigate = async (query = "") => {
-      await send("Page.navigate", { url: origin + "/fixture" + query });
-      await until("!!document.querySelector('[data-carrier-table-container]')");
+      const url = origin + "/fixture" + query;
+      await evaluate("window.__nexoraCarrierNavigation = true");
+      const navigation = await send("Page.navigate", { url });
+      if (navigation.errorText) throw Error("CARRIER_NAVIGATION_FAILED");
+      await until(
+        `window.__nexoraCarrierNavigation !== true && location.href === ${JSON.stringify(url)} && document.readyState === "complete" && !!document.querySelector('[data-carrier-table-container]')`,
+      );
+      await settleLayout();
     };
     await viewport(1440, 900);
     await navigate();

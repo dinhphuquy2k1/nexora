@@ -783,3 +783,9 @@ assertions and lock modes; any temporary repository is closed. All previous Sync
 and Customer-link regressions remain. Fixtures are never production registrations.
 Run the existing targeted and Foundation gates; local or historical tests alone do
 not certify a production handler, changed head or skipped runtime gate.
+
+Carrier CDP fixture navigation requires a fresh complete document at the exact
+fixture URL, followed by font readiness and two layout frames before interactions
+and geometry comparisons. The prior-document marker cannot satisfy readiness;
+navigation errors fail closed. This synchronization does not relax geometry
+assertions, tolerances, timeout budgets or production UI behavior.

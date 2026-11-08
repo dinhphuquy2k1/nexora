@@ -143,3 +143,37 @@ final-head results will be reconciled in PR metadata.
 A subsequent host quality invocation without API_INTERNAL_URL failed the existing
 Web build configuration gate. Re-run with the documented local upstream variable;
 no Web/production configuration code or assertion changed.
+
+## A7 verification clarification — real browser synchronization
+
+Before changing the browser harness, hosted head eea7287cb85536b0309ec2ba63da561bfe543fef
+Preflight42469166797 and targeted42469166904 passed. Foundation42469166660
+Docker quality600ordinary tests,133integration tests, genuine migration/role
+checks and both real PTY harnesses passed, but runtime browser failed CHECK_FAILED
+at CARRIER_V2_SOURCE_BACKED_SIX_VIEWPORT_MATRIX. Retained artifact13612643217
+(raw ZIP SHA256 c863fe2e479c71b7fd62fdbd419aae72c21be9d170f3cbb63a5cabd0c86f0d38)
+records87captures, last admin filter768x1024. Account upload subsequently failed
+for missing evidence; HTTPS/data/dev skipped and are not PASS.
+
+Read-only diagnosis: Carrier harness and all production Web/UI files have zero
+diff from main. The existing navigate helper waits a root present in the previous
+document and does not settle fonts before immediate geometry comparisons. A real
+Chromium fixture-only run of unchanged compiled TSX independently failed the
+status/environment badge-width equality (100.453125 versus104.1875). This is a
+separate reproduced readiness defect; it does not establish the exact original
+CI timeout's cause. No blind rerun or assertion weakening.
+
+Bounded A7 plan before harness edits: reuse the existing navigate/until/evaluate
+path; mark the previous document, require a fresh complete document/root and
+settled font/two-frame layout before interactions. Re-run the actual full fixture
+and hosted Foundation. Do not alter UI, selectors, assertions, geometry tolerances,
+timeouts, credentials or production behavior. This changes test synchronization,
+not the immutable approved architecture or capability model.
+
+A7 bounded implementation re-review found no confirmed P1/P2. Full actual local
+Chromium Carrier fixture now PASS, including status/environment equality, all six
+viewport surfaces, keyboard/history and Sync issues, with owned browser/profile
+cleanup PASS. AST assertion inventory remains106before/106after; original
+assertions, tolerance values and polling budgets are unchanged. Full host quality
+rerun and new-head hosted verification remain pending at this source checkpoint.
+The first hosted browser failure remains unattributed, not retroactively PASS.
