@@ -1150,7 +1150,11 @@ try {
     "Actual browser unified Login, fragment Setup privacy, no auto-login, OPERATOR login, cookies and Logout PASS",
   );
 } catch (error) {
-  console.error("BROWSER_LOGIN_SMOKE_ERROR_DIAGNOSTIC", error?.message, error?.stack);
+  console.error(
+    "BROWSER_LOGIN_SMOKE_ERROR_DIAGNOSTIC",
+    error?.message,
+    error?.stack,
+  );
   checks.failure(error);
   process.exitCode = 1;
 } finally {
