@@ -1,4 +1,4 @@
-import { createNexoraClient } from "@nexora/sdk";
+import { createWorkspaceApiClient } from "../../lib/api/workspace-client.ts";
 import type {
   Query,
   Create,
@@ -8,7 +8,7 @@ import type {
 } from "./types.ts";
 import { CustomerApiError } from "./errors.ts";
 import { readCustomerPage, readCustomer, isAddress } from "./response.ts";
-export function createCustomerApi(client = createNexoraClient()) {
+export function createCustomerApi(client = createWorkspaceApiClient()) {
   const result = (r: {
     response: Response;
     data?: unknown;

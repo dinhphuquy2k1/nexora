@@ -1,6 +1,5 @@
 "use client";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "@nexora/ui";
 import { customerError } from "./errors.ts";
 import { DraftError } from "./payload.ts";
@@ -11,7 +10,6 @@ import {
   isMutationReadInScope,
   type WriteOutcome,
 } from "./mutation-policy.ts";
-import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 
 export type MutationPhase = "idle" | "writing" | "reconciling" | "blocked";
 
@@ -43,7 +41,6 @@ export function useCustomerMutation(
     ReturnType<typeof customerError> & { announced?: boolean }
   >();
   const targetRequestId = useRef<number | null>(null);
-  const router = useRouter();
   const toast = useToast();
 
   const isTargetObject =
@@ -165,10 +162,6 @@ export function useCustomerMutation(
         if (safe.unauthenticated) {
           onDenied?.();
           toast.clear();
-          const from = sanitizeReturnUrl(location.pathname + location.search);
-          router.replace(
-            from ? `/login?from=${encodeURIComponent(from)}` : "/login",
-          );
           lock.current = false;
           setPhase("idle");
           setBusy(false);

@@ -118,6 +118,14 @@ Lifecycle version/generation remain authorization and write fences, not evidence
 
 LifecycleSnapshot adds internal tokenRevision, computed after the database transaction from SHA256 of stored token ciphertext, nonce, tag and key version. Existing timestamps have millisecond resolution and row IDs survive upsert, so neither reliably proves rotation. The digest never uses plaintext or keys and never reaches DTOs, logs or audit. No schema column, encrypted format or keyring change. The application treats it as opaque metadata; encryption/decrypt/provider I/O remain infrastructure-only.
 
+## Carrier Reconnect Provider Authentication Error Policy (NEXORA-035)
+
+Under `POST /api/carrier-connections/:id/reconnect`:
+
+- Provider authentication rejections (`PROVIDER_AUTH_FAILED`, `TOKEN_REJECTED`, `IDENTITY_MISMATCH`, `CANDIDATE_IDENTITY_MISMATCH`, `REAUTH_REQUIRED`) map to **HTTP 400 Bad Request** with error code `PROVIDER_AUTH_FAILED` and generic message `Không thể thực hiện yêu cầu`.
+- This establishes an unambiguous separation from Nexora Workspace session expiration (HTTP 401 `UNAUTHORIZED`), ensuring that logistics carrier credential failures never trigger automated client-side session termination.
+- All credential ciphertext, `lastVerifiedAt`, connection status preservation, fail-closed handling, and security audit logging remain strictly enforced.
+
 Each logical withToken operation shares at most3 recovery-flight decisions across initial expiry and rejection handling, at most1 vault/password recovery attempt and at most1 provider-operation retry. Version-only supersession and claim CAS loss before vault entry consume rechecks but no password attempt. A joined flight shares its leader's attempt consumption. Vault entry conservatively consumes the only attempt even if a later STALE occurred before decrypt, since it might instead have occurred after provider acquisition. Repeated churn or an unusable result with no budget returns existing STALE (safe503), never false recovery success or an unbounded login loop. Flight metadata remains bounded128, contains no plaintext and is cleaned on success/failure.
 
 A stale recovery completion may reuse a newer manual winner only after current authorization and token evidence pass; it cannot overwrite that winner. Disable/delete/REAUTH_REQUIRED remain fail-closed. Existing user-first locks, generation/version CAS, durable audit-before-decrypt/revalidation, manual replacement policy, recovery failure classification, provider budgets/backoff and live gate are unchanged.

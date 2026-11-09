@@ -1,4 +1,5 @@
-import { createNexoraClient, type components } from "@nexora/sdk";
+import { createWorkspaceApiClient } from "../../lib/api/workspace-client.ts";
+import type { components } from "@nexora/sdk";
 export const JOB_ISSUE_PAGE_SIZE = 10;
 export type SyncJobDetail = components["schemas"]["SyncJobDetailResponseDto"];
 export type JobDetailReader = (
@@ -10,15 +11,17 @@ export type SyncJobResponse = components["schemas"]["SyncJobDto"];
 export type SyncConfigResponse = components["schemas"]["SyncConfigDto"];
 export type SyncType = SyncConfigResponse["syncType"];
 export class SyncApiError extends Error {
-  constructor(readonly status: number) {
+  status: number;
+  constructor(status: number) {
     super(
       status === 401
         ? "Phiên đăng nhập đã hết hạn."
         : "Không thể tải hoặc lưu đồng bộ. Vui lòng thử lại.",
     );
+    this.status = status;
   }
 }
-export function createSyncApi(client = createNexoraClient()) {
+export function createSyncApi(client = createWorkspaceApiClient()) {
   function result<T>(r: { response: Response; data?: T }): T {
     if (!r.response.ok) throw new SyncApiError(r.response.status);
     if (!r.data) throw new SyncApiError(500);

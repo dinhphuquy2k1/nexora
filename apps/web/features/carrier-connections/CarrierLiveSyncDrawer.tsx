@@ -1,7 +1,6 @@
 "use client";
 import { SyncJobStatus as J } from "@nexora/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   createSyncApi,
   SyncApiError,
@@ -21,8 +20,7 @@ export function CarrierLiveSyncDrawer({
   row: CarrierConnectionRow;
   onClose: () => void;
 }) {
-  const router = useRouter(),
-    generation = useRef(0),
+  const generation = useRef(0),
     flight = useRef(false),
     denied = useRef(false),
     detailScope = useRef(new AbortController()),
@@ -50,8 +48,7 @@ export function CarrierLiveSyncDrawer({
     setBusy(false);
     setBlocked(true);
     setFeedback("Phiên đăng nhập đã kết thúc.");
-    router.replace("/login");
-  }, [router]);
+  }, []);
   const load = useCallback(async () => {
     if (denied.current) return false;
     request.current?.abort();

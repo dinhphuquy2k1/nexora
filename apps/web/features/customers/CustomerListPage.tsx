@@ -10,7 +10,6 @@ import {
 } from "./list-statistics.ts";
 import { CustomerPowerFlight } from "./power-flight.ts";
 import { customerError, customerPowerFailure } from "./errors.ts";
-import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 import { useReadNotice } from "./useReadNotice.ts";
 import { CustomerStatus, PaginationLimits } from "@nexora/shared";
 import { parseCustomerQuery, customerQueryString } from "./query.ts";
@@ -134,10 +133,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
       const safe = customerError(error);
       if (safe.unauthenticated) {
         read.deny();
-        const from = sanitizeReturnUrl(location.pathname + location.search);
-        router.replace(
-          from ? `/login?from=${encodeURIComponent(from)}` : "/login",
-        );
       } else {
         setRecoveryError(
           "Không thể xác minh hồ sơ khách hàng. Hãy tải lại và thử tiếp.",
@@ -292,10 +287,6 @@ export function CustomerListPage({ ownerId }: { ownerId: string }) {
         setOverlay(null);
         setStatistics(undefined);
         power.current.reject(token);
-        const from = sanitizeReturnUrl(location.pathname + location.search);
-        router.replace(
-          from ? `/login?from=${encodeURIComponent(from)}` : "/login",
-        );
       } else {
         const failure = customerPowerFailure(error);
         toast.enqueue({

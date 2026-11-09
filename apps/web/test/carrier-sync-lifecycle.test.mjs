@@ -11,7 +11,6 @@ test("Sync mutation 401 fences pending reads, reconciliation, retries and late s
   );
   let reads = 0,
     writes = 0,
-    redirects = 0,
     late;
   const api = {
     configs: async () => {
@@ -28,7 +27,7 @@ test("Sync mutation 401 fences pending reads, reconciliation, retries and late s
       throw new SyncApiError(401);
     },
   };
-  const router = { replace: () => redirects++ };
+  const router = { replace() {} };
   const harness = componentHarness(
     "../features/carrier-connections/CarrierLiveSyncDrawer.tsx",
     {
@@ -48,7 +47,6 @@ test("Sync mutation 401 fences pending reads, reconciliation, retries and late s
   await tick();
   view.props.onSync("SHIPMENT");
   await tick();
-  assert.equal(redirects, 1);
   assert.equal(reads, 2, "401 must not start reconciliation");
   late({});
   await tick();

@@ -1,14 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@nexora/ui";
 import { CarrierConnectionsPage } from "./CarrierConnectionsPage.tsx";
 import { createSyncApi, SyncApiError } from "./sync-api.ts";
 import type { CarrierConnectionRow } from "./types.ts";
 const api = createSyncApi();
 export function CarrierConnectionsLive() {
-  const router = useRouter(),
-    generation = useRef(0),
+  const generation = useRef(0),
     [rows, setRows] = useState<CarrierConnectionRow[]>(),
     [error, setError] = useState(""),
     [refresh, setRefresh] = useState(0);
@@ -30,15 +28,14 @@ export function CarrierConnectionsLive() {
       .catch((e) => {
         if (abort.signal.aborted || v !== generation.current) return;
         setRows(undefined);
-        if (e instanceof SyncApiError && e.status === 401)
-          router.replace("/login");
-        else setError("Không thể tải kết nối.");
+        if (e instanceof SyncApiError && e.status === 401) return;
+        setError("Không thể tải kết nối.");
       });
     return () => {
       abort.abort();
       generation.current++;
     };
-  }, [refresh, router]);
+  }, [refresh]);
   return (
     <>
       {error && (
