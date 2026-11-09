@@ -398,7 +398,7 @@ export async function verifyCarrierBrowser({
     const files = new Map([
       ["/fixture", resolve(fixtureDirectory, "index.html")],
       ["/bundle.js", resolve(fixtureDirectory, "bundle.js")],
-      ["/inter.woff2", resolve("apps/web/app/fonts/InterVariable.woff2")],
+      ["/inter.woff2", resolve("apps/web/assets/fonts/InterVariable.woff2")],
     ]);
     server = createServer((req, res) => {
       if (syncIssueResponse(req, res)) return;
