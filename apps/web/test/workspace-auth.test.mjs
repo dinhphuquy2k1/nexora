@@ -623,3 +623,264 @@ test("Case 15 — Feature API factories accept real workspace client and operate
     await close();
   }
 });
+
+test("Case 16 — Request initiated before Workspace Auth Boundary registers correctly triggers session expiration on 401", async () => {
+  resetWorkspaceAuthState();
+
+  const { url, close } = await createTestServer((req, res) => {
+    res.writeHead(401, {
+      "Content-Type": "application/json",
+      "x-request-id": "test-early-request",
+    });
+    res.end(
+      JSON.stringify({
+        code: "UNAUTHORIZED",
+        message: "Phiên làm việc đã hết hạn",
+      }),
+    );
+  });
+
+  try {
+    const client = createWorkspaceApiClient(url);
+
+    // 1. Request is initiated BEFORE boundary registers
+    const requestPromise = client.GET("/api/customers");
+
+    // 2. Boundary registers AFTER request was initiated
+    let redirected = 0;
+    const unregister = registerWorkspaceAuthBoundary(
+      () => {
+        redirected++;
+      },
+      { userId: "user-early-request" },
+    );
+
+    // 3. Await response
+    await requestPromise;
+
+    // 4. Assert session expiration redirect occurred
+    assert.equal(
+      redirected,
+      1,
+      "Early request 401 must trigger session expiration redirect",
+    );
+    unregister();
+  } finally {
+    await close();
+  }
+});
+
+test("Case 17 — 401 response returning BEFORE boundary registers is buffered and dispatches immediately on registration", async () => {
+  resetWorkspaceAuthState();
+
+  const { url, close } = await createTestServer((req, res) => {
+    res.writeHead(401, {
+      "Content-Type": "application/json",
+      "x-request-id": "test-early-response",
+    });
+    res.end(
+      JSON.stringify({
+        code: "UNAUTHORIZED",
+        message: "Phiên làm việc đã hết hạn",
+      }),
+    );
+  });
+
+  try {
+    const client = createWorkspaceApiClient(url);
+
+    // 1. Request is initiated and completed BEFORE boundary registers
+    await client.GET("/api/customers");
+
+    // 2. Boundary registers AFTER response arrived
+    let redirected = 0;
+    const unregister = registerWorkspaceAuthBoundary(
+      () => {
+        redirected++;
+      },
+      { userId: "user-buffered" },
+    );
+
+    // 3. Assert buffered expiration was dispatched on registration
+    assert.equal(
+      redirected,
+      1,
+      "Buffered 401 must immediately execute on boundary registration",
+    );
+    unregister();
+  } finally {
+    await close();
+  }
+});
+
+test("Case 18 — Multiple concurrent initial requests before boundary registration trigger exactly one redirect", async () => {
+  resetWorkspaceAuthState();
+
+  const { url, close } = await createTestServer((req, res) => {
+    res.writeHead(401, {
+      "Content-Type": "application/json",
+      "x-request-id": "test-concurrent-initial",
+    });
+    res.end(
+      JSON.stringify({
+        code: "UNAUTHORIZED",
+        message: "Phiên làm việc đã hết hạn",
+      }),
+    );
+  });
+
+  try {
+    const client = createWorkspaceApiClient(url);
+
+    // 1. Fire 3 concurrent requests before boundary registration
+    const p1 = client.GET("/api/customers");
+    const p2 = client.GET("/api/carrier-connections");
+    const p3 = client.GET("/api/auth/session");
+
+    let redirected = 0;
+    const unregister = registerWorkspaceAuthBoundary(
+      () => {
+        redirected++;
+      },
+      { userId: "user-concurrent-init" },
+    );
+
+    await Promise.all([p1, p2, p3]);
+
+    assert.equal(
+      redirected,
+      1,
+      "Concurrent initial requests must trigger exactly ONE redirect",
+    );
+    unregister();
+  } finally {
+    await close();
+  }
+});
+
+test("Case 19 — Stale request from previous session generation through real openapi-fetch pipeline does not expire new session", async () => {
+  resetWorkspaceAuthState();
+
+  let requestCount = 0;
+  const { url, close } = await createTestServer((req, res) => {
+    requestCount++;
+    // Add artificial delay for the first request so it arrives after session transition
+    if (requestCount === 1) {
+      setTimeout(() => {
+        res.writeHead(401, {
+          "Content-Type": "application/json",
+          "x-request-id": "test-stale-pipeline",
+        });
+        res.end(
+          JSON.stringify({
+            code: "UNAUTHORIZED",
+            message: "Phiên cũ hết hạn",
+          }),
+        );
+      }, 50);
+    } else {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    }
+  });
+
+  try {
+    const client = createWorkspaceApiClient(url);
+
+    // Session 1: Request 1 starts with epoch 1
+    let session1Redirects = 0;
+    const unregister1 = registerWorkspaceAuthBoundary(
+      () => {
+        session1Redirects++;
+      },
+      { userId: "user-session-1" },
+    );
+    const staleRequestPromise = client.GET("/api/customers");
+    unregister1();
+
+    // Transition to Session 2 (e.g. new user or explicit session restart)
+    let session2Redirects = 0;
+    const unregister2 = registerWorkspaceAuthBoundary(
+      () => {
+        session2Redirects++;
+      },
+      { userId: "user-session-2" },
+    );
+    assert.equal(
+      getCurrentSessionEpoch(),
+      2,
+      "Session 2 must have incremented epoch",
+    );
+
+    // Now wait for the delayed request from Session 1 to finish
+    await staleRequestPromise;
+
+    // Session 2 must NOT have been logged out by the late 401 from Session 1
+    assert.equal(
+      session2Redirects,
+      0,
+      "Stale 401 from Session 1 must not trigger redirect in Session 2",
+    );
+    assert.equal(session1Redirects, 0);
+
+    unregister2();
+  } finally {
+    await close();
+  }
+});
+
+test("Case 20 — Early request -> boundary registration -> strict mode remount -> in-page 401 redirect", async () => {
+  resetWorkspaceAuthState();
+
+  const { url, close } = await createTestServer((req, res) => {
+    res.writeHead(401, {
+      "Content-Type": "application/json",
+      "x-request-id": "test-strict-mode-full-cycle",
+    });
+    res.end(
+      JSON.stringify({
+        code: "UNAUTHORIZED",
+        message: "Phiên hết hạn",
+      }),
+    );
+  });
+
+  try {
+    const client = createWorkspaceApiClient(url);
+
+    // 1. Early request initiated
+    const requestPromise = client.GET("/api/customers");
+
+    // 2. ShellClient mounts (first run)
+    let redirectCount = 0;
+    const cleanup1 = registerWorkspaceAuthBoundary(
+      () => {
+        redirectCount++;
+      },
+      { userId: "user-lifecycle" },
+    );
+
+    // 3. Strict Mode effect cleanup
+    cleanup1();
+
+    // 4. Strict Mode remount
+    const cleanup2 = registerWorkspaceAuthBoundary(
+      () => {
+        redirectCount++;
+      },
+      { userId: "user-lifecycle" },
+    );
+
+    // 5. Response arrives
+    await requestPromise;
+
+    assert.equal(
+      redirectCount,
+      1,
+      "Strict mode remounted boundary must receive exactly one redirect",
+    );
+    cleanup2();
+  } finally {
+    await close();
+  }
+});

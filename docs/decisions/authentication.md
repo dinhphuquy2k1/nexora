@@ -114,6 +114,10 @@ No actual public host/domain is selected. Production TLS/DNS/firewall/renewal an
    - `401 UNAUTHORIZED` handling for client-side API calls is centralized at the Web Application Boundary (`apps/web/components/app-shell/ShellClient.tsx` coordinated via `apps/web/lib/api/workspace-auth.ts`).
    - `createWorkspaceApiClient()` in `apps/web/lib/api/workspace-client.ts` attaches non-destructive response observer middleware intercepting HTTP 401 with `{ code: "UNAUTHORIZED" }`.
    - Stale in-flight responses from prior sessions are fenced using monotonic session epochs (`getCurrentSessionEpoch()`).
+   - Initial generation is ensured on first demand (active epoch >= 1), eliminating effect ordering races when child components fetch before the boundary effect completes. Initial boundary mount binds `userId` without bumping the epoch, preserving early in-flight requests.
+   - Strict Mode unmount/remount preserves generation and buffers transient unmount 401 events for immediate dispatch upon remount.
+   - Full document navigation is guaranteed on login and logout (`window.location.href`), ensuring complete JS runtime reset between authentication lifecycles.
+   - Documented boundary: client-side JavaScript does not access or poll HttpOnly `nexora_session` cookies; same-user cross-session transitions within the same runtime without document navigation are intentionally bounded to avoid token leakage or unneeded polling.
    - Upon session expiration, `ShellClient` renders an accessible alert notice (`role="alert"`) masking content and executes a single-flight redirect to sanitized `/login?from=...`.
    - Feature pages and components (Customers, Carrier Connections, System) do not duplicate `router.replace("/login")` calls, but retain their local abort signals, denial states (`read.deny()`, `onDenied()`, `denied.current = true`), mutation locks, and reconciliation invariants.
    - HTTP 400, 403, 429, 500, and 503 are never classified as workspace session expiration.

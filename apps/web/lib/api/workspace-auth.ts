@@ -33,7 +33,9 @@ export function registerWorkspaceAuthBoundary(
   options?: RegisterBoundaryOptions,
 ): () => void {
   const isNewUser =
-    options?.userId !== undefined && options.userId !== activeSession.userId;
+    activeSession.userId !== undefined &&
+    options?.userId !== undefined &&
+    options.userId !== activeSession.userId;
   const shouldBump =
     !activeSession.initialized || options?.forceNewSession || isNewUser;
 
@@ -45,6 +47,11 @@ export function registerWorkspaceAuthBoundary(
     };
     redirecting = false;
     pendingExpirationEpoch = null;
+  } else if (
+    activeSession.userId === undefined &&
+    options?.userId !== undefined
+  ) {
+    activeSession.userId = options.userId;
   }
 
   activeListener = listener;
@@ -65,6 +72,13 @@ export function registerWorkspaceAuthBoundary(
 }
 
 export function getCurrentSessionEpoch(): number {
+  if (!activeSession.initialized) {
+    activeSession = {
+      epoch: 1,
+      userId: undefined,
+      initialized: true,
+    };
+  }
   return activeSession.epoch;
 }
 
