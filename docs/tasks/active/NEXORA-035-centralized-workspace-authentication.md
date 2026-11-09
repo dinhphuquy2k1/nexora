@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Implementation: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -118,3 +118,5 @@ Documentation Impact: REQUIRED
 | Hosted CI Docker Foundation Smoke (Run 42494331836)    | Full Docker quality, integration, TTY, browser matrices (M1, Customer, Retail M3, Account, Carrier 6-viewport), HTTPS, DB persistence, and HMR smoke. | 2026-11-08 | PASS   |
 | Hosted CI Preflight Governance (Run 42495993554)       | Verified on PR HEAD commit `6d9a8b2766bd6a0b08f0b8cb0a1cdcfe80d0bb6f`.                                                                                | 2026-11-08 | PASS   |
 | Hosted CI Docker Foundation Smoke (Run 42495993621)    | Verified on PR HEAD commit `6d9a8b2766bd6a0b08f0b8cb0a1cdcfe80d0bb6f` in 15m42s.                                                                      | 2026-11-08 | PASS   |
+| Hosted CI Preflight Governance (Run 42544342863)       | Verified on final PR HEAD commit `2c9baed` in 10s.                                                                                                    | 2026-11-09 | PASS   |
+| Hosted CI Docker Foundation Smoke (Run 42544342722)    | Full Docker quality, integration, and real in-page session expiration browser smoke verified on commit `2c9baed` in 17m26s.                           | 2026-11-09 | PASS   |
