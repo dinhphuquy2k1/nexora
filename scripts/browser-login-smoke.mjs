@@ -1009,16 +1009,20 @@ try {
   await send("Page.navigate", { url: `${baseUrl}/customers?page=2` });
   let customerPageReady = false;
   for (let i = 0; i < 150; i++) {
-    customerPageReady = await evaluate(`(() => {
-      if (location.pathname !== "/customers" || !location.search.includes("page=2")) return false;
-      if (!document.querySelector("h1#customer-heading")) return false;
-      const reloadBtn = document.querySelector('button[aria-label="Làm mới"]');
-      if (!reloadBtn || reloadBtn.disabled) return false;
-      const accountMenu = document.querySelector('button[aria-label^="Tài khoản người dùng"]');
-      if (!accountMenu) return false;
-      return true;
-    })()`);
-    if (customerPageReady) break;
+    try {
+      customerPageReady = await evaluate(`(() => {
+        if (location.pathname !== "/customers" || !location.search.includes("page=2")) return false;
+        if (!document.querySelector("h1#customer-heading")) return false;
+        const reloadBtn = document.querySelector('button[aria-label="Làm mới"]');
+        if (!reloadBtn || reloadBtn.disabled) return false;
+        const accountMenu = document.querySelector('button[aria-label^="Tài khoản người dùng"]');
+        if (!accountMenu) return false;
+        return true;
+      })()`);
+      if (customerPageReady) break;
+    } catch {
+      // In-flight document load context transition
+    }
     await delay(100);
   }
   assert.equal(
@@ -1034,25 +1038,49 @@ try {
     "Current URL must be /customers?page=2",
   );
 
-  // 5. Revoke session directly from backend PostgreSQL database
+  // 5. Install mutation observer to capture workspace boundary alert during transition
+  await evaluate(`(() => {
+    window.__nexora_expired_alert_rendered = false;
+    const observer = new MutationObserver(() => {
+      const alert = document.querySelector('[role=alert]');
+      if (alert && alert.textContent.includes('Phiên làm việc đã hết hạn')) {
+        window.__nexora_expired_alert_rendered = true;
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  })()`);
+
+  // 6. Revoke session directly from backend PostgreSQL database
   sql(
     `UPDATE sessions SET expires_at=to_timestamp(0) WHERE user_id IN (SELECT id FROM users WHERE username='${operatorName}');`,
   );
 
-  // 6 & 7. Browser remains on /customers?page=2; trigger protected API call via UI button click
+  // 7. Browser remains on /customers?page=2; trigger protected API call via UI button click
   assert.equal(await evaluate("location.pathname"), "/customers");
   await evaluate(
     "document.querySelector('button[aria-label=\"Làm mới\"]').click()",
   );
 
-  // 8, 9, 10, 11. Verify Workspace Auth Boundary receives event and displays role="alert" masking notice
+  // 8. Verify Workspace Auth Boundary receives event, renders alert, and navigates to /login
   let alertMasked = false;
-  for (let i = 0; i < 100; i++) {
-    alertMasked = await evaluate(`(() => {
-      const alert = document.querySelector('[role=alert]');
-      return alert && alert.textContent.includes('Phiên làm việc đã hết hạn');
-    })()`);
-    if (alertMasked) break;
+  let loginRedirected = false;
+  for (let i = 0; i < 150; i++) {
+    try {
+      const state = await evaluate(`(() => {
+        const alert = document.querySelector('[role=alert]');
+        const hasAlert = alert && alert.textContent.includes('Phiên làm việc đã hết hạn');
+        const observed = window.__nexora_expired_alert_rendered;
+        const isLogin = location.pathname === "/login";
+        return { hasAlert: Boolean(hasAlert || observed), isLogin };
+      })()`);
+      if (state?.hasAlert) alertMasked = true;
+      if (state?.isLogin) {
+        loginRedirected = true;
+        break;
+      }
+    } catch {
+      // In-flight route transition context change
+    }
     await delay(50);
   }
   assert.equal(
@@ -1060,33 +1088,31 @@ try {
     true,
     "Expired session masking alert must be rendered at workspace boundary",
   );
-
-  // 12 & 13. Verify browser navigates to /login with sanitized return URL in 'from' query parameter
-  let loginRedirected = false;
-  for (let i = 0; i < 150; i++) {
-    const isLogin = await evaluate(`location.pathname === "/login"`);
-    if (isLogin) {
-      loginRedirected = true;
-      break;
-    }
-    await delay(100);
-  }
   assert.equal(
     loginRedirected,
     true,
     "In-page 401 must trigger navigation to /login",
   );
 
-  const loginSearchParams = await evaluate(
-    `new URLSearchParams(location.search).get("from")`,
-  );
+  let loginSearchParams;
+  for (let i = 0; i < 50; i++) {
+    try {
+      loginSearchParams = await evaluate(
+        `new URLSearchParams(location.search).get("from")`,
+      );
+      if (loginSearchParams) break;
+    } catch {
+      // in flight
+    }
+    await delay(50);
+  }
   assert.equal(
     loginSearchParams,
     "/customers?page=2",
     "Login 'from' parameter must preserve exact original path and query (/customers?page=2)",
   );
 
-  // 14. Verify no redirect loop
+  // 9. Verify no redirect loop
   await delay(500);
   assert.equal(
     await evaluate("location.pathname"),
@@ -1124,6 +1150,7 @@ try {
     "Actual browser unified Login, fragment Setup privacy, no auto-login, OPERATOR login, cookies and Logout PASS",
   );
 } catch (error) {
+  console.error("BROWSER_LOGIN_SMOKE_ERROR_DIAGNOSTIC", error?.message, error?.stack);
   checks.failure(error);
   process.exitCode = 1;
 } finally {
