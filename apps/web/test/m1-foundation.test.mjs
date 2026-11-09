@@ -12,10 +12,14 @@ test("M1 approved geometry and self-hosted licensed font are wired without remot
     /--sidebar-collapsed-width:\s*72px/,
   );
   assert.match(source("../app/layout.tsx"), /next\/font\/local/);
-  assert.match(source("../app/fonts/OFL.txt"), /SIL OPEN FONT LICENSE/);
-  const manifest = JSON.parse(source("../app/fonts/verification.json"));
+  assert.match(
+    source("../app/layout.tsx"),
+    /src:\s*"\.\.\/assets\/fonts\/InterVariable\.woff2"/,
+  );
+  assert.match(source("../assets/fonts/OFL.txt"), /SIL OPEN FONT LICENSE/);
+  const manifest = JSON.parse(source("../assets/fonts/verification.json"));
   const font = readFileSync(
-    new URL("../app/fonts/InterVariable.woff2", import.meta.url),
+    new URL("../assets/fonts/InterVariable.woff2", import.meta.url),
   );
   assert.equal(
     createHash("sha256").update(font).digest("hex"),

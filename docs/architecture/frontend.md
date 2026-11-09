@@ -212,7 +212,7 @@ CustomerStatsBar exists in M2 code; runtime acceptance remains pending. Merged N
 
 ## NEXORA-031 M1 foundation
 
-M1 implements the approved presentation foundation on the existing App Router/security architecture; M2–M5 are NOT STARTED. Header56px, sidebar240px/72px, current navy/orange semantic palette and local Inter normal-variable100–900 are retained as central tokens. The unmodified font and SIL OFL license/provenance are in app/fonts; actual cmap covers U+1EA0–U+1EF9 plus Đ/đ, verified against source bytes. next/font/local supplies the root --font-inter variable; no external font request. Existing Panel and boolean/null StatusBadge semantics are unchanged.
+M1 implements the approved presentation foundation on the existing App Router/security architecture; M2–M5 are NOT STARTED. Header56px, sidebar240px/72px, current navy/orange semantic palette and local Inter normal-variable100–900 are retained as central tokens. The unmodified font and SIL OFL license/provenance are in apps/web/assets/fonts; actual cmap covers U+1EA0–U+1EF9 plus Đ/đ, verified against source bytes. next/font/local supplies the root --font-inter variable; no external font request. Existing Panel and boolean/null StatusBadge semantics are unchanged.
 
 Neutral packages/ui Button/TextInput/Checkbox are consumed by Login/MFA; Overlay is consumed by mobile navigation and login-help dialog. No unused Select or generic form framework. Overlay uses native modal dialog/top-layer/inert background/focus containment, Escape/backdrop dismissal and overflow restoration. Existing useDismissable remains the popover policy. The shell adapts to tablet collapse and off-canvas at widths<=900px, closes on route/viewport change, restores trigger focus and exposes the existing honest empty NotificationMenu. Navigation registry and availability remain unchanged: Overview/System/Settings only; no Customer/Retail/Carrier activation.
 
@@ -418,3 +418,18 @@ never substitutes preview lines or an empty realtime-log claim. Existing populat
 reference-preview logs retain their presentation; SyncItem.logs is preview-only.
 No streaming endpoint, WebSocket/SSE, backend log persistence or new polling is
 introduced. Existing issue paging, cancellation, denial and Drawer state remain.
+
+## Frontend asset and stylesheet ownership
+
+`apps/web/app/` owns App Router routes, layouts and the global CSS entrypoint
+`app/styles.css`. Source assets imported or bundled by Web live under `assets/`: the
+unmodified local Inter4.1 font, OFL license and provenance are in `assets/fonts/`.
+Root Layout continues to use `next/font/local` with `--font-inter`, display swap
+and variable weights100–900; Next builds and serves the bundled font locally.
+
+`styles/tokens.css` remains the canonical design-token source. CSS Modules stay
+with their component or feature owner; shared primitives keep their CSS under
+`packages/ui`. Stylesheets are not moved into assets. `public/` is reserved for
+files that need stable public URLs, rather than being synonymous with source
+assets. Create `assets/images/` or `assets/icons/` only when actual owned files
+require them; keep Lucide imports and do not copy library icons into SVG files.

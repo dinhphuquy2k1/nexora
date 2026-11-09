@@ -1,8 +1,8 @@
 # NEXORA-036 — Web asset organization
 
-Status: PLANNED
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -33,12 +33,12 @@ resource inventory are in the snapshot. No owner approval gate applies.
 
 ## Scope and acceptance
 
-- [ ] Move all four Inter files, exact baseline bytes, no duplicate font.
-- [ ] Root Layout source path only; variable/display/weight/layout unchanged.
-- [ ] M1 and Retail/Carrier fixture paths updated, assertions unchanged or stronger.
-- [ ] Global CSS, tokens, CSS Modules, UI, backend/SDK/DB and Docker unchanged.
-- [ ] No active old-path references; historical task/snapshot references preserved.
-- [ ] Canonical asset/style/public ownership documented, no empty directories.
+- [x] Move all four Inter files, exact baseline bytes, no duplicate font.
+- [x] Root Layout source path only; variable/display/weight/layout unchanged.
+- [x] M1 and Retail/Carrier fixture paths updated, assertions unchanged or stronger.
+- [x] Global CSS, tokens, CSS Modules, UI, backend/SDK/DB and Docker unchanged.
+- [x] No active old-path references; historical task/snapshot references preserved.
+- [x] Canonical asset/style/public ownership documented, no empty directories.
 - [ ] M1, full quality, production build and actual font/browser gates PASS.
 - [ ] Three review rounds, final-head hosted Preflight/Foundation and new PR.
 
@@ -78,3 +78,48 @@ Pre-code read-only independent review: no P1/P2. Post-move scope, executed runti
 visual evidence and final PR/CI rounds remain pending. Full Docker quality/runtime
 must have actual evidence; no claim from YAML, historical CI or host tests alone.
 No merge/deploy, font replacement, schema/API/business change or unrelated fix.
+
+## Execution checkpoint — 2026-11-09
+
+Source: plan HEAD565d391 plus task-owned implementation worktree; final-head
+hosted evidence will be reconciled in PR metadata after the last commit.
+
+| Claim                                   | Evidence                                                                                                                                                         | Date       | Result |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Test-first relocation contract RED      | node --test apps/web/test/m1-foundation.test.mjs before move:1PASS/1FAIL; new src assertion rejected old layout path                                             | 2026-11-09 | FAIL   |
+| M1 GREEN after move                     | Same command2/2PASS,0skip; all prior license/hash/coverage/weight assertions retained                                                                            | 2026-11-09 | PASS   |
+| Four-file integrity                     | Buffer.equals against base8a427da for all4files; manifest/hash equality; Git4renames100%                                                                         | 2026-11-09 | PASS   |
+| Actual glyph coverage                   | native fc-scan charset contains all90 U+1EA0–U+1EF9 plus U+0110/U+0111                                                                                           | 2026-11-09 | PASS   |
+| Frozen graph                            | pnpm10.34.6 install --frozen-lockfile on Node24.19.0                                                                                                             | 2026-11-09 | PASS   |
+| Initial quality formatting              | pnpm quality stopped at longer Retail path formatting; only affected script formatted, no assertion change                                                       | 2026-11-09 | FAIL   |
+| Full host quality rerun                 | API_INTERNAL_URL=http://127.0.0.1:4000 pnpm quality:610/610,0skip(132root/186API/254Web/32UI/6DB), typecheck/contracts/4builds PASS                              | 2026-11-09 | PASS   |
+| Local Carrier Chromium fixture          | Existing actual compiled TSX/CSS fixture, full six-viewport/status/history/Sync checks PASS; owned browser/profile cleanup PASS                                  | 2026-11-09 | PASS   |
+| Auxiliary local Retail Chromium fixture | Existing fixture-only runner failed RETAIL_COLUMNS_PRESET_DEFAULT: background rgb248/250/252 versus255/255/255; cause not attributed to font; owned cleanup PASS | 2026-11-09 | FAIL   |
+
+The auxiliary Retail failure is not hidden or treated as a font defect. No CSS,
+assertion, tolerance, selector or browser behavior was changed; only font paths
+changed. Canonical hosted Retail/Carrier/M1/Customer browser gates remain required.
+Independent post-move scope review reran M1:2/2PASS, validated all4byte identities,
+immutable digest and absence of active old paths; no P1/P2. Runtime/evidence and
+final PR reviews remain open. Full local Docker builds NOT RUN: approximately3GiB
+available versus the documented20GiB requirement; actual hosted Docker/runtime
+evidence is required, not inferred from host builds or prior runs.
+
+## Auxiliary HTTP probe re-evaluation
+
+After three unsuccessful local HTTP probe attempts, stopped and re-evaluated the
+launcher/assumptions rather than changing product code. Initial root-CWD starts
+failed next.config.ts relative module resolution; Web-CWD start reached HTTP200
+but the auxiliary HTML-preload regex found no font link. This is not a proven
+font/bundling defect. Compiled next-font-manifest.json maps Root Layout to emitted
+static/media/0336a89fb4e7fc1d-s.p.woff2, whose actual bytes match the original font
+hash. No production config, CSS, manifest or loader was changed.
+
+Bounded verification re-plan: use the existing canonical start launcher and actual
+emitted font manifest/CSS when probing source packaging; separately require real
+M1/Customer/Retail/Carrier font/browser assertions in final-head Foundation. Do not
+turn the failed auxiliary probe or Retail assertion into PASS. No new immutable
+architecture revision is needed; only verification assumptions are corrected.
+
+Evidence checkpoint 2026-11-09T02:45:31.089Z UTC, HEAD565d391 with the
+recorded task-owned worktree; current mandatory runtime/hosted status remains open.
