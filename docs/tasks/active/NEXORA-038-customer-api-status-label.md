@@ -1,8 +1,8 @@
 # NEXORA-038 — Customer API status label presentation
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -33,13 +33,13 @@ No owner approval gate. See snapshot for scope, risks and test-first sequence.
 
 ## Acceptance
 
-- [ ] Required generated status/statusLabel props and direct response text.
-- [ ] Three consumers updated; status tone/dot/classes and nine columns unchanged.
-- [ ] Custom and empty API labels rendered in table and both Detail badges.
-- [ ] Both response helpers retain required-string validation, including empty.
-- [ ] Actual dropdown/statistics shared labels and codes unchanged.
-- [ ] Only two production files change; no CSS/backend/contracts/SDK/DB changes.
-- [ ] Canonical docs synchronized; targeted/full quality and independent review.
+- [x] Required generated status/statusLabel props and direct response text.
+- [x] Three consumers updated; status tone/dot/classes and nine columns unchanged.
+- [x] Custom and empty API labels rendered in table and both Detail badges.
+- [x] Both response helpers retain required-string validation, including empty.
+- [x] Actual dropdown/statistics shared labels and codes unchanged.
+- [x] Only two production files change; no CSS/backend/contracts/SDK/DB changes.
+- [x] Canonical docs synchronized; targeted/full quality and independent review.
 - [ ] Final-head hosted Preflight/Foundation, separate PR; no merge/deploy.
 
 ## Documentation Impact
@@ -67,5 +67,35 @@ pnpm format:check, pnpm docs:check, pnpm preflight:check.
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Fresh baseline targeted tests | node --test apps/web/test/customer-table.test.mjs apps/web/test/customer-ui-api.test.mjs apps/web/test/customer-status.test.mjs on dccbfee: 14/14 PASS, 0 skip | 2026-11-10 | PASS   |
 
-Implementation, RED/GREEN, review and final-head CI evidence remain pending.
-Detailed logs and any captures stay outside Git; no historical CI is reused.
+## Implementation checkpoint — 2026-11-10
+
+Implementation commit: 6c475b63edc5b11c0184f293d6a234472e102770.
+Final documentation commit and hosted merge-ref outcomes will be reconciled in PR
+metadata without a self-referential SHA-only documentation commit loop.
+
+| Claim                             | Evidence                                                                                                                                                                                                                                                              | Date       | Result |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Initial structural preflight      | pnpm preflight:check rejected missing inline reuse matrix; matrix added to mutable task, snapshot unchanged                                                                                                                                                           | 2026-11-10 | FAIL   |
+| Corrected structural preflight    | pnpm preflight:check passed after inline matrix added                                                                                                                                                                                                                 | 2026-11-10 | PASS   |
+| Test-first RED                    | Four targeted suites before production edits: 16 PASS / 5 FAIL, exactly table and four Detail API-label render assertions                                                                                                                                             | 2026-11-10 | FAIL   |
+| Targeted GREEN                    | node --test apps/web/test/customer-table.test.mjs apps/web/test/customer-detail-status.test.mjs apps/web/test/customer-ui-api.test.mjs apps/web/test/customer-status.test.mjs: 21/21 PASS, 0 skip                                                                     | 2026-11-10 | PASS   |
+| Frozen installation               | pnpm10.34.6 install --frozen-lockfile on Node24.19.0                                                                                                                                                                                                                  | 2026-11-10 | PASS   |
+| Lint policy tests                 | pnpm test:lint: 52/52 PASS, 0 skip                                                                                                                                                                                                                                    | 2026-11-10 | PASS   |
+| Full host quality                 | API_INTERNAL_URL=http://127.0.0.1:4000 pnpm quality: format/lint/boundaries/preflight/docs/typecheck/contracts/build PASS; 617/617 tests, 0 skip (132 root/186 API/261 Web/32 UI/6 DB); Turbo reports cached unchanged prerequisites, fresh Web build/typecheck/tests | 2026-11-10 | PASS   |
+| Independent implementation review | Read-only reviewer inspected full diff and independently executed targeted suites: 21/21 PASS; no P1/P2/P3                                                                                                                                                            | 2026-11-10 | PASS   |
+| Scope and snapshot integrity      | git diff --check; exactly two production TSX files; snapshot SHA256 unchanged b19e81f9…; no backend/validator/CSS/SDK/DB diff                                                                                                                                         | 2026-11-10 | PASS   |
+
+Both actual Detail badges render through real React SSR, actual UI/ToastProvider,
+mutation hook and CustomerBadge, with only accepted read data supplied through a
+fresh existing loader cache per render. No helper expansion or dependencies.
+SSR does not certify browser geometry, computed CSS or lifecycle behavior.
+
+Local canonical Docker verification: NOT RUN; this host has about3GiB free against
+the documented20GiB requirement. Hosted final-head Foundation must establish
+fresh Docker/integration/runtime/TTY/browser/public HTTPS/data/development checks.
+No public deployment or shared/production database is touched. Full host quality passed;
+final-head hosted CI remains pending at this checkpoint. Detailed logs/captures stay
+outside Git; no historical CI is reused and no screenshots were manually reviewed.
+
+Execution checkpoint: 2026-11-10T07:31:34Z UTC; exact CI head/merge/run provenance
+will be recorded in the PR once the runs finish.
