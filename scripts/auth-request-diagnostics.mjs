@@ -1,3 +1,4 @@
+import { performance } from "node:perf_hooks";
 import { loginOutcome } from "../apps/web/lib/auth/login-outcome.ts";
 
 const operations = new Map([
