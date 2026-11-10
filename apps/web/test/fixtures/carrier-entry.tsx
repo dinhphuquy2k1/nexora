@@ -10,7 +10,7 @@ import {
   PARITY_SYNC,
   PARITY_PROVIDERS,
 } from "./carrier-connections.ts";
-import "../../app/styles.css";
+import "../../styles/globals.css";
 const params = new URLSearchParams(location.search),
   parity = params.has("parity"),
   statusCase = (["CONNECTED", "ERROR", "REAUTH_REQUIRED"] as const).find(

@@ -108,7 +108,7 @@ To eliminate visual layout shifts, misleading accessibility semantics, and hydra
 - First-Paint Parity: Before React hydration completes, the visible button in the accessibility tree and visual layout match the 72px collapsed Sidebar identically without layout shift (shift < 0.05, typically 0.00) or hydration warning.
 - Post-Hydration Interaction: Manual sidebar toggle overrides cleanly switch to user-controlled state (`userOverride`), with interactive clicks at 1024px expanding the sidebar to 240px and collapsing back to 72px without breaking responsive rules.
 
-### H. Minimal Global Styles (`apps/web/app/styles.css`)
+### H. Minimal Global Styles (`apps/web/styles/globals.css`)
 
 Global CSS is restricted to root token imports, basic CSS reset, base typography, and macro page layout grids (`.grid`, `.status-grid`). All internal component presentation for `Panel`, `StatusBadge`, and form controls is decoupled into `@nexora/ui` CSS Modules.
 
@@ -421,8 +421,10 @@ introduced. Existing issue paging, cancellation, denial and Drawer state remain.
 
 ## Frontend asset and stylesheet ownership
 
-`apps/web/app/` owns App Router routes, layouts and the global CSS entrypoint
-`app/styles.css`. Source assets imported or bundled by Web live under `assets/`: the
+`apps/web/app/` owns App Router routes and layouts. Root Layout imports
+`styles/globals.css` once; that file owns global reset, base typography and the
+existing global rules, loading `styles/tokens.css` first. Source assets imported
+or bundled by Web live under `assets/`: the
 unmodified local Inter4.1 font, OFL license and provenance are in `assets/fonts/`.
 Root Layout continues to use `next/font/local` with `--font-inter`, display swap
 and variable weights100–900; Next builds and serves the bundled font locally.

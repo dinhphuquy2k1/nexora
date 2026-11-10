@@ -5,7 +5,7 @@ import { ToastProvider } from "@nexora/ui";
 import { RetailPackageListPage } from "../../features/retail-packages/RetailPackageListPage.tsx";
 import { STATUS_LABELS } from "../../features/retail-packages/columns.ts";
 import { SYNTHETIC_PACKAGES } from "./retail-packages.ts";
-import "../../app/styles.css";
+import "../../styles/globals.css";
 const packages = Array.from({ length: 30 }, (_, i) => ({
   ...SYNTHETIC_PACKAGES[i % 6],
   id: `fixture-${i}`,
