@@ -20,6 +20,7 @@ import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { createSmokeChecks } from "./smoke-checks.mjs";
+import { createAuthRequestDiagnostics } from "./auth-request-diagnostics.mjs";
 const checks = createSmokeChecks(console.error, "PUBLIC_HTTPS_SMOKE_FAILED");
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
@@ -112,6 +113,7 @@ function totp(key) {
 const profile = await mkdtemp(join(tmpdir(), "nexora-https-browser-"));
 let chrome, socket;
 let loginDiagnostics = createLoginReadinessDiagnostics();
+const authDiagnostics = createAuthRequestDiagnostics(origin);
 const browserStatuses = new Map();
 const browserRequests = new Set();
 const observedPaths = new Map([
@@ -343,6 +345,20 @@ try {
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
     loginDiagnostics.observe(message);
+    const completedAuthRequest = authDiagnostics.observe(message);
+    if (completedAuthRequest) {
+      void send("Network.getResponseBody", { requestId: completedAuthRequest })
+        .then((result) =>
+          authDiagnostics.body(
+            completedAuthRequest,
+            result.body,
+            result.base64Encoded,
+          ),
+        )
+        .catch(() =>
+          authDiagnostics.body(completedAuthRequest, undefined, false),
+        );
+    }
     if (message.id) {
       const op = pending.get(message.id);
       if (op) {
@@ -853,10 +869,18 @@ try {
   }
   checks.status((await request("/api/health/ready")).status, 200);
   console.log(
+    "PUBLIC_AUTH_LIFECYCLE",
+    JSON.stringify(authDiagnostics.snapshot()),
+  );
+  console.log(
     "Strict CA/name HTTPS, isolated Chromium leaf pin, Secure MFA/session cookies, real remote setup/replay/privacy, Host/Origin/forwarding and ingress429 PASS",
   );
 } catch (error) {
   checks.failure(error);
+  console.error(
+    "PUBLIC_AUTH_LIFECYCLE",
+    JSON.stringify(authDiagnostics.snapshot()),
+  );
   console.error(
     "PUBLIC_AUTH_REQUEST_DIAGNOSTIC",
     JSON.stringify({

@@ -1,8 +1,8 @@
 # NEXORA-039 — Public HTTPS login investigation
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -31,7 +31,7 @@ immutable snapshot. Separate from Customer PR38; no production Auth/ingress fix.
 
 ## Acceptance
 
-- [ ] Safe observer RED/GREEN: request lifecycle, closed fields and no secrets.
+- [x] Safe observer RED/GREEN: request lifecycle, closed fields and no secrets.
 - [ ] Controlled exact-main/exact-PR38 comparison on one hosted job.
 - [ ] Actual versions/config/fixture differences and outcomes recorded honestly.
 - [ ] Root cause or evidence limitation recorded; separate scoped fix if proven.
@@ -63,3 +63,19 @@ pnpm format:check, pnpm docs:check, pnpm preflight:check.
 
 No code/test edits preceded this plan. Historical runs are not a controlled pair.
 Local Docker resource gate unmet (about3GiB available); no user/shared volumes used.
+
+## Implementation checkpoint
+
+| Claim              | Evidence                                                                                                                                       | Date       | Result |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Test-first RED     | node --test scripts/auth-request-diagnostics.test.mjs before implementation failed missing module                                              | 2026-11-10 | FAIL   |
+| Targeted GREEN     | auth-request-diagnostics, smoke-checks, browser-login-ready suites: 9/9 PASS, 0 skip; five observer cases                                      | 2026-11-10 | PASS   |
+| Independent review | No P1/P2; reviewer independently ran initial diagnostic suites 7/7 PASS; P3 async observation now explicit BODY_PENDING and regression checked | 2026-11-10 | PASS   |
+| Structural checks  | node scripts/docs-check.mjs; node scripts/preflight-policy-check.mjs                                                                           | 2026-11-10 | PASS   |
+
+Unknown raw values never reach snapshots; setup JSON observation does not reuse a
+Login success contract incorrectly. An intermediate edit had a missing brace;
+syntax error was fixed before GREEN without changing assertions. The first lint
+invocation could not resolve @eslint/js in the new worktree; installed dependency
+links were corrected, not repository dependency versions. Hosted comparison/full
+Foundation and current-head closure remain pending. No production files changed.

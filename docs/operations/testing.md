@@ -760,3 +760,25 @@ scripts/login-readiness-diagnostics.test.mjs. Counters diagnose a failed precond
 they do not prove hydration, identify a cause by themselves or replace actual
 Login/MFA/HTTPS security assertions. The real visibility transition remains the
 readiness requirement with its existing deadline.
+
+### Safe public HTTPS login investigation
+
+`auth-request-diagnostics.mjs` observes exact same-origin auth POST lifecycle in
+the existing CDP stream: pending, HTTP response, finished or failed; numeric status
+and elapsed time; closed transport/blocked categories; bounded exception count;
+and the existing `loginOutcome` for completed Login/MFA JSON responses. Setup
+JSON is observed without claiming Login contract validation. It never emits raw
+URLs, headers, bodies, credentials, cookies or exception text. Unknown values are
+closed `OTHER`/unavailable categories. Five focused Node tests protect lifecycle,
+classification, bounded state, detached snapshots and secret redaction. This is
+observation only; it does not retry submissions or change any security assertion.
+
+`https-login-comparison.yml` is a bounded diagnostic experiment, separate from
+Foundation. It runs exact recorded main/PR38 revisions sequentially on one hosted
+runner with identical observation, fresh canonical script-owned fixtures/volumes,
+recorded tool versions and source hashes. It executes each cohort once and fails
+if either exits nonzero; recording the second cohort after the first fails is not
+an optional/continue-on-error Foundation gate. Production source remains at each
+recorded revision; two test-only observer files are overlaid identically. Results
+cannot certify an untested later head. No raw fixture or response artifacts are
+uploaded. Task NEXORA-039 owns the experiment budget and comparison limitations.
