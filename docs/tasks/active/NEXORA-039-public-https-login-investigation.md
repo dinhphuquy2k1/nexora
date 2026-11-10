@@ -109,3 +109,21 @@ after the second comparison; record root cause or limits honestly.
 V2 comparison cleans its run/attempt/cohort-owned development namespace and
 propagates both execution and cleanup exits. Root observer/configuration changes
 are isolated in PR39; PR38 source/snapshot remain unchanged.
+
+## Comparison checkout correction (within v2 setup scope)
+
+Run42787971381/job129733888761 exited128 before either cohort started: unable to
+read tree dccbfee after cloning the runner checkout. The earlier full local clone
+probe did not model shallow CI object availability. This is a proven defect in
+this new comparison setup, not an HTTPS outcome or original Auth root cause.
+Use independent init+explicit depth1 fetch of the pinned revision; no production
+or security change and no additional native PR38 retry. V2 snapshot unchanged.
+
+| Claim                     | Evidence                                                                                                             | Date       | Result |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| V2 setup failure          | controlled run42787971381 exit128 before cohort; no HTTPS test executed                                              | 2026-11-10 | FAIL   |
+| Real Git regression RED   | actual workflow checkout commands against shallow caller missing target tree exited128 before correction             | 2026-11-10 | FAIL   |
+| Real Git regression GREEN | same owned Git fixture after init+explicit fetch: exact baseline HEAD/content, real .git directory, caller unchanged | 2026-11-10 | PASS   |
+
+The corrected launch executes the previously planned second hypothesis pair; no
+failed HTTPS experiment is reclassified as PASS. Preserve all historical runs.

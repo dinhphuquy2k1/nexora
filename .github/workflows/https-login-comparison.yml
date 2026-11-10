@@ -37,8 +37,11 @@ jobs:
             checkout="$RUNNER_TEMP/nexora-https-control-$cohort"
             export COMPOSE_PROJECT_NAME="nexora-control-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${cohort}"
             test ! -e "$checkout"
-            git clone --no-hardlinks --no-checkout "$observer_root" "$checkout"
-            git -C "$checkout" checkout --detach "$revision"
+            git init "$checkout"
+            git -C "$checkout" remote add origin "https://github.com/dinhphuquy2k1/nexora.git"
+            git -C "$checkout" fetch --no-tags --depth=1 origin "$revision"
+            git -C "$checkout" checkout --detach FETCH_HEAD
+            test "$(git -C "$checkout" rev-parse HEAD)" = "$revision"
             cp scripts/auth-request-diagnostics.mjs "$checkout/scripts/"
             cp scripts/public-https-browser.mjs "$checkout/scripts/"
             set +e

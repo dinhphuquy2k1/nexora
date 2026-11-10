@@ -786,3 +786,11 @@ an optional/continue-on-error Foundation gate. Production source remains at each
 recorded revision; two test-only observer files are overlaid identically. Results
 cannot certify an untested later head. No raw fixture or response artifacts are
 uploaded. Task NEXORA-039 owns the experiment budget and comparison limitations.
+
+The comparison checkout initializes an independent Git repository and explicitly
+fetches each pinned revision, including its tree, before detached checkout. It
+does not depend on objects available in the runner's shallow/partial source
+checkout. `https-comparison-checkout.test.mjs` executes the actual workflow
+checkout commands against an owned local Git remote and shallow caller missing
+the target tree; it verifies exact HEAD/content, independent `.git` directory and
+unchanged caller, without network or Docker. This protects setup, not HTTPS.
