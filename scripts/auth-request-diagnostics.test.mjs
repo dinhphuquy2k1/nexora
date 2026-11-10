@@ -164,3 +164,69 @@ test("setup success reports JSON observation without pretending to validate a lo
   f.diagnostics.body("setup", '{"success":true}', false);
   assert.equal(f.diagnostics.snapshot().requests[0].outcome, "JSON_OBSERVED");
 });
+
+test("static bootstrap failures use closed metadata without reading scripts or crowding out auth", () => {
+  const f = fixture();
+  const script = (
+    id,
+    url = origin + "/_next/static/chunks/private-marker.js?secret=query",
+  ) =>
+    f.observe("Network.requestWillBeSent", {
+      requestId: id,
+      type: "Script",
+      request: { method: "GET", url },
+    });
+  script("first");
+  f.advance();
+  f.observe("Network.loadingFailed", {
+    requestId: "first",
+    errorText: "net::ERR_CONNECTION_RESET",
+  });
+  assert.deepEqual(f.diagnostics.snapshot().scriptRequests[0], {
+    operation: "SCRIPT",
+    state: "FAILED",
+    transportCode: "net::ERR_CONNECTION_RESET",
+    elapsedMs: 25,
+  });
+  for (let i = 0; i < 100; i++) script(String(i));
+  assert.equal(f.diagnostics.snapshot().scriptRequests.length, 8);
+  f.start("auth");
+  assert.equal(f.diagnostics.snapshot().requests.length, 1);
+  assert.doesNotMatch(
+    JSON.stringify(f.diagnostics.snapshot()),
+    /private-marker|secret|query|\.js/,
+  );
+});
+
+test("only same-origin Next script GETs are observed; finished assets never request a body", () => {
+  const f = fixture();
+  for (const [id, url, type, method] of [
+    ["foreign", "https://evil.example/_next/static/a.js", "Script", "GET"],
+    ["path", origin + "/api/auth/login", "Script", "GET"],
+    ["type", origin + "/_next/static/a.js", "Fetch", "GET"],
+    ["method", origin + "/_next/static/a.js", "Script", "POST"],
+  ])
+    f.observe("Network.requestWillBeSent", {
+      requestId: id,
+      type,
+      request: { method, url },
+    });
+  assert.equal(f.diagnostics.snapshot().scriptRequests.length, 0);
+  f.observe("Network.requestWillBeSent", {
+    requestId: "script",
+    type: "Script",
+    request: { method: "GET", url: origin + "/_next/static/a.js" },
+  });
+  f.observe("Network.responseReceived", {
+    requestId: "script",
+    response: { status: 200 },
+  });
+  assert.equal(
+    f.observe("Network.loadingFinished", { requestId: "script" }),
+    undefined,
+  );
+  f.diagnostics.body("script", "secret-body", false);
+  assert.deepEqual(f.diagnostics.snapshot().scriptRequests, [
+    { operation: "SCRIPT", state: "FINISHED", status: 200, elapsedMs: 0 },
+  ]);
+});

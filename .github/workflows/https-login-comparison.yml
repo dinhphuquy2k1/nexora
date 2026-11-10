@@ -35,7 +35,10 @@ jobs:
             revision=$main_sha
             if [ "$cohort" = pr38 ]; then revision=$pr_sha; fi
             checkout="$RUNNER_TEMP/nexora-https-control-$cohort"
-            git worktree add --detach "$checkout" "$revision"
+            export COMPOSE_PROJECT_NAME="nexora-control-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${cohort}"
+            test ! -e "$checkout"
+            git clone --no-hardlinks --no-checkout "$observer_root" "$checkout"
+            git -C "$checkout" checkout --detach "$revision"
             cp scripts/auth-request-diagnostics.mjs "$checkout/scripts/"
             cp scripts/public-https-browser.mjs "$checkout/scripts/"
             set +e
@@ -44,15 +47,21 @@ jobs:
               cd "$checkout"
               printf 'CONTROLLED_COHORT %s REVISION %s\n' "$cohort" "$(git rev-parse HEAD)"
               sha256sum scripts/public-https-browser.mjs scripts/auth-request-diagnostics.mjs scripts/public-https-smoke.sh compose.yml compose.public.yml pnpm-lock.yaml
-              docker compose build
+              sh scripts/quality-docker.sh
               docker run --rm --network none --entrypoint pnpm nexora-tools:0.1.0 --version
+              docker compose -f compose.yml -f compose.dev.yml down
+              sh scripts/runtime-smoke.sh
               sh scripts/public-https-smoke.sh
             )
             status=$?
             set -e
             printf 'CONTROLLED_COHORT %s EXIT %s\n' "$cohort" "$status"
-            if [ "$status" -ne 0 ]; then failed=1; fi
+            cleanup_status=0
+            (cd "$checkout" && docker compose -f compose.yml -f compose.dev.yml down -v --remove-orphans) || cleanup_status=$?
+            printf 'CONTROLLED_COHORT %s CLEANUP_EXIT %s\n' "$cohort" "$cleanup_status"
+            if [ "$status" -ne 0 ] || [ "$cleanup_status" -ne 0 ]; then failed=1; fi
             cd "$observer_root"
-            git worktree remove --force "$checkout"
+            test -d "$checkout/.git"
+            rm -rf -- "$checkout"
           done
           exit "$failed"

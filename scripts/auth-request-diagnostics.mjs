@@ -19,6 +19,12 @@ const transportCodes = new Set([
   "net::ERR_ADDRESS_UNREACHABLE",
   "net::ERR_EMPTY_RESPONSE",
   "net::ERR_HTTP2_PROTOCOL_ERROR",
+  "net::ERR_HTTP2_SERVER_REFUSED_STREAM",
+  "net::ERR_CONTENT_LENGTH_MISMATCH",
+  "net::ERR_CONTENT_DECODING_FAILED",
+  "net::ERR_INSUFFICIENT_RESOURCES",
+  "net::ERR_INSECURE_RESPONSE",
+  "net::ERR_TOO_MANY_RETRIES",
   "net::ERR_INVALID_RESPONSE",
   "net::ERR_CERT_AUTHORITY_INVALID",
   "net::ERR_CERT_COMMON_NAME_INVALID",
@@ -56,6 +62,7 @@ export function createAuthRequestDiagnostics(
   now = () => performance.now(),
 ) {
   const records = new Map();
+  const scriptRecords = new Map();
   let runtimeExceptions = 0;
   const elapsed = (start) =>
     Math.max(0, Math.min(3600000, Math.round(now() - start)));
@@ -64,24 +71,38 @@ export function createAuthRequestDiagnostics(
       if (method === "Runtime.exceptionThrown")
         runtimeExceptions = Math.min(10000, runtimeExceptions + 1);
       if (method === "Network.requestWillBeSent") {
-        if (records.has(params.requestId) || records.size >= 16) return;
         const request = params.request;
-        if (request?.method !== "POST") return;
         let url;
         try {
-          url = new URL(request.url);
+          url = new URL(request?.url);
         } catch {
           return;
         }
-        const operation = url.origin === origin && operations.get(url.pathname);
-        if (operation)
-          records.set(params.requestId, {
+        if (url.origin !== origin) return;
+        let operation, target, limit;
+        if (
+          request.method === "GET" &&
+          params.type === "Script" &&
+          url.pathname.startsWith("/_next/static/") &&
+          url.pathname.endsWith(".js")
+        ) {
+          operation = "SCRIPT";
+          target = scriptRecords;
+          limit = 8;
+        } else if (request.method === "POST" && operations.has(url.pathname)) {
+          operation = operations.get(url.pathname);
+          target = records;
+          limit = 16;
+        } else return;
+        if (!target.has(params.requestId) && target.size < limit)
+          target.set(params.requestId, {
             start: now(),
             value: { operation, state: "PENDING" },
           });
         return;
       }
-      const record = records.get(params.requestId);
+      const record =
+        records.get(params.requestId) ?? scriptRecords.get(params.requestId);
       if (!record) return;
       if (method === "Network.responseReceived") {
         const status = params.response?.status;
@@ -105,7 +126,10 @@ export function createAuthRequestDiagnostics(
       if (method === "Network.loadingFinished") {
         record.value.state = "FINISHED";
         record.value.elapsedMs = elapsed(record.start);
-        if (record.value.status !== undefined) {
+        if (
+          records.has(params.requestId) &&
+          record.value.status !== undefined
+        ) {
           record.value.outcome = "BODY_PENDING";
           return params.requestId;
         }
@@ -138,11 +162,14 @@ export function createAuthRequestDiagnostics(
       }
     },
     snapshot() {
-      return {
-        requests: [...records.values()].map(({ start, value }) => ({
+      const snapshotRecords = (source) =>
+        [...source.values()].map(({ start, value }) => ({
           ...value,
           elapsedMs: value.elapsedMs ?? elapsed(start),
-        })),
+        }));
+      return {
+        requests: snapshotRecords(records),
+        scriptRequests: snapshotRecords(scriptRecords),
         runtimeExceptions,
       };
     },

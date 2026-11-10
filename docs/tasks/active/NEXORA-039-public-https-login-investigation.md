@@ -99,3 +99,13 @@ prelude in its one remaining hypothesis pair. No production/Auth/harness wait
 correction is justified yet. PR38 native final attempt3 is separately running;
 no further native retry will be requested if it fails. Stop speculative attempts
 after the second comparison; record root cause or limits honestly.
+
+| Claim                           | Evidence                                                                                                                                                       | Date       | Result |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| V2 test-first RED               | New static-bootstrap tests failed before extension (missing scriptRequests), existing auth tests retained                                                      | 2026-11-10 | FAIL   |
+| V2 targeted GREEN               | auth-request-diagnostics7 + smoke-checks3 + browser-login-ready1:11/11 PASS,0skip                                                                              | 2026-11-10 | PASS   |
+| Controlled checkout feasibility | Independent clone probe checked exact96e6cd0 with a real .git directory; prevents unmounted Git worktree pointer from invalidating Docker quality index checks | 2026-11-10 | PASS   |
+
+V2 comparison cleans its run/attempt/cohort-owned development namespace and
+propagates both execution and cleanup exits. Root observer/configuration changes
+are isolated in PR39; PR38 source/snapshot remain unchanged.
