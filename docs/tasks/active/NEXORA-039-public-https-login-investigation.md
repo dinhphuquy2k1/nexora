@@ -8,26 +8,26 @@ Verification: PARTIALLY VERIFIED
 
 Task ID: NEXORA-039
 Classification: SPIKE
-Plan revision: rev-2026-11-10-https-login-investigation-v1
-Design Snapshot: docs/tasks/design-reviews/NEXORA-039-rev-2026-11-10-https-login-investigation-v1.md
-Design SHA-256: 5191efb5e50a7d83f46d3efbd06ce7f7c4297edae5ff7fe49b2087e996fbbee7
-Reviewed baseline: dccbfee75c5d024d3973504c9c004e4f939799b9
+Plan revision: rev-2026-11-10-https-bootstrap-observation-v2
+Design Snapshot: docs/tasks/design-reviews/NEXORA-039-rev-2026-11-10-https-bootstrap-observation-v2.md
+Design SHA-256: 467a2350faab6899a872476bfa9e9a029d26926e9ba3e12a0b1077d87aa402fa
+Reviewed baseline: b9d343514d2986a59b27798bcac6e887064acea9
 Branch: test/public-https-login-diagnostics
 
 Question: which actual request layer/outcome prevents public ADMIN login from
 transitioning to MFA? Scope, hypotheses and bounded experiment budget are in the
 immutable snapshot. Separate from Customer PR38; no production Auth/ingress fix.
 
-| Field                    | Decision                                                                                                                                                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Component                | Test-only safe auth lifecycle observer and controlled comparison workflow                                                                                                                                    |
-| Existing implementations | public-https-browser.mjs request/status maps; login-readiness-diagnostics.mjs counters; browser-login-ready.mjs; smoke-checks.mjs; public-https-smoke.sh; data-smoke.sh; dev-smoke.sh; Web login-outcome.ts  |
-| Domain owner             | Root test infrastructure owns observation; Identity/Web retain login/MFA semantics                                                                                                                           |
-| Reuse alternatives       | Existing CDP stream/canonical harness versus new browser framework or production logging changes                                                                                                             |
-| Selected approach        | Add bounded metadata-only CDP observer to existing listener; reuse loginOutcome for successful JSON classification; compare exact main/PR38 in one fresh hosted job with same instrumentation                |
-| Rationale                | Determine terminal request state and layer while avoiding duplicate validation and misleading UI error inference                                                                                             |
-| Risks                    | Secret leakage, false PASS, changed observation timing, comparing different configurations                                                                                                                   |
-| Verification             | Test-first redaction/closed fields, pending/HTTP/completion/failure/status/elapsed/outcome cases; unchanged security assertions; same-run versions/hashes and owned cleanup; both experiment exits propagate |
+| Field                    | Decision                                                                                                                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Extend existing test-only lifecycle observer to bounded static script GET records                                                                                                           |
+| Existing implementations | auth-request-diagnostics.mjs closed failure codes/timing; login-readiness-diagnostics.mjs script counters; existing public browser listener; canonical quality/runtime/public shell scripts |
+| Domain owner             | Root browser test infrastructure; no business Domain change or aggregate                                                                                                                    |
+| Reuse alternatives       | Extend current observer versus duplicate network mapping or production access logging                                                                                                       |
+| Selected approach        | Separate maximum8 same-origin /\_next/static/ JS script records from maximum16 auth records; reuse exact closed failure classification; never read script response bodies                   |
+| Rationale                | Distinguish bootstrap transport failures from login HTTP outcomes without retaining asset URLs or credentials                                                                               |
+| Risks                    | Script traffic crowding out auth records, snapshot leakage, hiding failure through optional gates                                                                                           |
+| Verification             | RED/GREEN static lifecycle/privacy/cap tests; unchanged auth9tests/security assertions; controlled full-prelude comparison with both nonzero exits and owned cleanup preserved              |
 
 ## Acceptance
 
@@ -79,3 +79,23 @@ syntax error was fixed before GREEN without changing assertions. The first lint
 invocation could not resolve @eslint/js in the new worktree; installed dependency
 links were corrected, not repository dependency versions. Hosted comparison/full
 Foundation and current-head closure remain pending. No production files changed.
+
+## Revision 2 investigation checkpoint
+
+The v1 snapshot remains unchanged (5191efb5…). Controlled build-to-HTTPS pair
+42784732523 succeeded on exact main/PR38, with identical observation/configuration
+and Node24.19/pnpm10.34.6/Docker28.0.4/Compose2.38.2/Chrome156.0.8078.79.
+Initial LOGIN HTTP200/mfa:50ms main,90ms PR38; no runtime exceptions. This does
+not prove a historical root cause or flakiness and is not native PR38 acceptance.
+
+| Claim                   | Evidence                                                                                                                                                                                                                                 | Date       | Result |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Full host quality at v1 | pnpm quality:615/615 PASS,0skip; pnpm test:lint52/52 PASS; no production changes                                                                                                                                                         | 2026-11-10 | PASS   |
+| Controlled short pair   | run42784732523/job129723014444: main dccbfee and PR38 96e6cd0 each canonical HTTPS exit0, actual MFA transition                                                                                                                          | 2026-11-10 | PASS   |
+| Full prelude differs    | Foundation42784732602/job129723014473 at b9d343/mergef7035db: HTTPS failed ADMIN_BROWSER_INTERACTIVE_LOGIN at08:56:47Z; scriptLoadFailures7,scriptResponses0,certificateFailures0,runtimeExceptions0; no auth requests; data/dev SKIPPED | 2026-11-10 | FAIL   |
+
+V2 extends observation to static bootstrap and uses the same full canonical
+prelude in its one remaining hypothesis pair. No production/Auth/harness wait
+correction is justified yet. PR38 native final attempt3 is separately running;
+no further native retry will be requested if it fails. Stop speculative attempts
+after the second comparison; record root cause or limits honestly.
