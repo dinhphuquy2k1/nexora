@@ -54,3 +54,18 @@ This is an Application CustomerPage/CustomerStats projection under ADR-008, with
 ## Customer UI M2 boundary
 
 NEXORA-031 adds protected list/detail, real filtered statistics, Create/Edit and address/default/delete presentation over the existing eight generated SDK operations. Backend ownership/normalization/aggregate locks and all rules above remain authoritative; browser drafts are view state, not new Domain entities. No Customer DELETE, list addressCount/N+1, Shipment or Carrier integration. Customer menu activation and runtime acceptance are tracked separately in task031; historical backend-only/frontend-planned statements above retain their dated amendment context. Missing stats is unavailable rather than fabricated0; default reassignment/deletion remains two requests with explicit partial-success reconciliation.
+
+## Customer status label presentation
+
+Customer List rows and both Detail badges (header and profile) display the
+required API `statusLabel` string directly. `CustomerBadge` receives generated
+Summary `status` and `statusLabel` fields: status alone controls tone/dot/classes,
+while the label is response text without local remapping or fallback. Response
+validation still rejects missing/null/nonstring labels and accepts empty strings.
+
+The API presenter continues deriving `statusLabel` from
+`CustomerStatusLabelsVi`; the profile status dropdown and statistics tabs continue
+using that shared metadata with canonical ACTIVE/INACTIVE codes. This refactor
+does not change backend contracts, persistence or command values. Coordinating
+API/Web revisions and any label differences caused by deployment skew remains a
+release responsibility outside this change; no synchronization mechanism is added.
