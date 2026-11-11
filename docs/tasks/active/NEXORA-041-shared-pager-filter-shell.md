@@ -45,7 +45,8 @@ testing-command documentation; v1 remains immutable. No owner approval gate.
 - [x] Targeted tests, local browser comparison and acceptance-only execution.
 - [x] Final-source full host quality:625 tests and all gates.
 - [ ] Canonical Docker and final-head hosted gates.
-- [ ] Canonical docs synchronized, independent review and new PR main; no merge.
+- [x] Canonical docs synchronized; fresh branch pushed and new PR41 to main; no merge.
+- [ ] Independent reviewer/owner approval obtained.
 
 ## Documentation Impact
 
@@ -161,3 +162,29 @@ quality/preflight failure and correction are preserved above; final task/snapsho
 binding and required rationale now pass. No historical snapshot rewritten.
 
 Canonical/hosted runtime and independent review remain pending, not waived.
+
+## Publication checkpoint — 2026-11-11
+
+Implementation commit: `35bc78aeb2a2149372647897e27bf0dd85e0c63c`.
+Pushed upstream: `refactor/m5-shared-pager-filter-shell`.
+New PR: [#41](https://github.com/dinhphuquy2k1/nexora/pull/41), OPEN, base main.
+`gh pr create --base main --head refactor/m5-shared-pager-filter-shell --title
+"refactor(ui): share Pager and filter popover shell" --body-file
+/workspace/work/m5-pr.md` succeeded. Tree was clean after publication.
+
+Independent review request through GitHub requested_reviewers API for
+copilot-pull-request-reviewer[bot] returned successfully but no assigned reviewer.
+Subsequent requested-reviewers, review-list and timeline reads showed no review
+assignment/submission. This is not independent approval; owner review remains
+required. PR description explicitly requests it. No self-certification or merge.
+
+| Claim                                | Evidence                                                                                                              | Date       | Result |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Commit/push/new PR                   | git commit produced35bc78a; git push -u created new remote branch; gh pr view confirmed41 OPEN/main and expected head | 2026-11-11 | PASS   |
+| Implementation-head hosted Preflight | [run43003172448](https://github.com/dinhphuquy2k1/nexora/actions/runs/43003172448) completed success on35bc78a        | 2026-11-11 | PASS   |
+
+Implementation-head [Foundation run43003172441](https://github.com/dinhphuquy2k1/nexora/actions/runs/43003172441)
+was running Docker quality/integration; M5 and later runtime steps were pending.
+No canonical/hosted PASS claimed from job existence. Final documentation-only
+checkpoint HEAD, final-head run status and subsequent independent-review outcome
+are tracked in mutable PR metadata, avoiding self-referential SHA update loops.
