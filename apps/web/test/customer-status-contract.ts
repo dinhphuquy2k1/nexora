@@ -1,6 +1,7 @@
 import {
   CustomerStatus,
   CustomerStatusLabelsVi,
+  isCustomerStatus,
   type CustomerStatusCode,
 } from "@nexora/shared";
 import type { components } from "@nexora/sdk";
@@ -15,3 +16,13 @@ const agreement: SameStatus = true;
 const label: components["schemas"]["CustomerSummaryDto"]["statusLabel"] =
   CustomerStatusLabelsVi[CustomerStatus.ACTIVE];
 export const statusContract = { agreement, label };
+
+export function narrowCustomerStatus(
+  value: unknown,
+): CustomerStatusCode | null {
+  if (isCustomerStatus(value)) {
+    const status: CustomerStatusCode = value;
+    return status;
+  }
+  return null;
+}
