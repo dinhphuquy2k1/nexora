@@ -1,7 +1,6 @@
 "use client";
-import { Fragment } from "react";
 import { SyncType } from "@nexora/shared";
-import { Button, Select, TextInput } from "@nexora/ui";
+import { Button, Pager, Select, TextInput } from "@nexora/ui";
 import {
   Package,
   User,
@@ -430,22 +429,6 @@ export function SyncHistoryPanel({
       totalPages <= 5
         ? Array.from({ length: totalPages }, (_, i) => i + 1)
         : pageWindow(page, totalPages);
-  const nav = (
-    label: string,
-    to: number,
-    disabled: boolean,
-    Icon: typeof ChevronLeft,
-  ) => (
-    <Button
-      icon
-      variant="secondary"
-      aria-label={label}
-      disabled={!data || disabled}
-      onClick={() => onChange({ page: to })}
-    >
-      <Icon size={14} />
-    </Button>
-  );
   return (
     <div className={styles.historyPanel}>
       <header className={styles.historyHeading}>
@@ -577,41 +560,47 @@ export function SyncHistoryPanel({
         )}
       </div>
       <div className={styles.historyPagination}>
-        <span>
-          Trang <strong>{data ? page : "—"}</strong> /{" "}
-          <strong>{data ? totalPages : "—"}</strong>
-        </span>
-        <nav className={styles.pageButtons} aria-label="Phân trang lịch sử">
-          {nav("Trang đầu lịch sử", 1, page === 1, ChevronsLeft)}
-          {nav("Trang trước lịch sử", page - 1, page === 1, ChevronLeft)}
-          {data &&
-            pages.map((n, i) => (
-              <Fragment key={n}>
-                {i > 0 && n - pages[i - 1] > 1 && <span>…</span>}
-                <Button
-                  icon
-                  variant={page === n ? "emphasis" : "secondary"}
-                  aria-label={`Trang lịch sử ${n}`}
-                  aria-current={page === n ? "page" : undefined}
-                  onClick={() => onChange({ page: n })}
-                >
-                  {n}
-                </Button>
-              </Fragment>
-            ))}
-          {nav(
-            "Trang sau lịch sử",
-            page + 1,
-            page === totalPages,
-            ChevronRight,
-          )}
-          {nav(
-            "Trang cuối lịch sử",
-            totalPages,
-            page === totalPages,
-            ChevronsRight,
-          )}
-        </nav>
+        <Pager
+          page={page}
+          pages={data ? pages : []}
+          targets={{
+            first: 1,
+            previous: page - 1,
+            next: page + 1,
+            last: totalPages,
+          }}
+          disabled={{
+            first: !data || page === 1,
+            previous: !data || page === 1,
+            numbers: !data,
+            next: !data || page === totalPages,
+            last: !data || page === totalPages,
+          }}
+          onPage={(page) => onChange({ page })}
+          selectedVariant="emphasis"
+          numberIcon
+          numberLayout="inline"
+          labels={{
+            navigation: "Phân trang lịch sử",
+            first: "Trang đầu lịch sử",
+            previous: "Trang trước lịch sử",
+            next: "Trang sau lịch sử",
+            last: "Trang cuối lịch sử",
+            page: (n) => `Trang lịch sử ${n}`,
+          }}
+          icons={{
+            first: <ChevronsLeft size={14} />,
+            previous: <ChevronLeft size={14} />,
+            next: <ChevronRight size={14} />,
+            last: <ChevronsRight size={14} />,
+          }}
+          summary={
+            <span>
+              Trang <strong>{data ? page : "—"}</strong> /{" "}
+              <strong>{data ? totalPages : "—"}</strong>
+            </span>
+          }
+        />
       </div>
     </div>
   );

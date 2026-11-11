@@ -557,12 +557,6 @@
 .pageSizeLabel select {
   width: auto;
 }
-.pageButtons,
-.pageNumber {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-}
 .pageSelected {
   background-color: var(--color-pagination-selected-bg);
   color: var(--color-pagination-selected-text);

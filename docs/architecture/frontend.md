@@ -435,3 +435,27 @@ with their component or feature owner; shared primitives keep their CSS under
 files that need stable public URLs, rather than being synonymous with source
 assets. Create `assets/images/` or `assets/icons/` only when actual owned files
 require them; keep Lucide imports and do not copy library icons into SVG files.
+
+## M5 shared pagination and filter disclosure
+
+Tier A `@nexora/ui` Pager presents explicit feature-owned page windows, navigation
+targets/disabled states and ReactNode summary/page-size slots. Customer keeps
+`derivePaginationModel`, Retail its client calculations/reset-to-page-1 callback,
+Carrier its account model, and history its every-page-through-five rule followed
+by `pageWindow`. Counts and availability never move into shared UI. Existing
+outer wrappers, Customer range/total strong elements, Retail data-retail-count
+text, Carrier data-carrier-pagination and history page/total markup remain.
+
+All four actual control groups use labeled native nav landmarks. Retail's former
+div/group and Carrier account's nav with overriding group role now expose
+navigation semantics: intentional accessibility improvements, not a claim of an
+identical accessibility tree. Existing control labels, disabled behavior and
+aria-current policy remain feature-supplied; no nested navigation is introduced.
+
+Tier B FilterPopoverShell owns the common Retail/Carrier disclosure structure,
+state, generated trigger/panel association, initial focus, canonical useDismissable
+integration and close render slot. Stable aria-controls is the other intentional
+accessibility change. Features retain filtering models, submit/error lifecycle and
+visual geometry exceptions. Shared behavior and public customization details are
+owned by the [reusable registry](reusable-components.md#web-filterpopovershell-m5).
+No new dependencies, backend contracts, routes or security changes are introduced.
