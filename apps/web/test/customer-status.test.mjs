@@ -4,6 +4,31 @@ import { CustomerStatus, CustomerStatusLabelsVi } from "@nexora/shared";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
+test("shared Customer status guard validates unknown values through public exports", async () => {
+  const esm = await import("@nexora/shared");
+  const common = require("@nexora/shared");
+  const leaf = require("@nexora/shared/customer-status");
+  assert.equal(typeof esm.isCustomerStatus, "function");
+  assert.equal(common.isCustomerStatus, esm.isCustomerStatus);
+  assert.equal(leaf.isCustomerStatus, esm.isCustomerStatus);
+  for (const [value, expected] of [
+    ["ACTIVE", true],
+    ["INACTIVE", true],
+    ["UNKNOWN", false],
+    ["active", false],
+    ["", false],
+    [null, false],
+    [undefined, false],
+    [123, false],
+    [{}, false],
+    [[], false],
+    [" ACTIVE ", false],
+    [new String("ACTIVE"), false],
+  ]) {
+    assert.equal(esm.isCustomerStatus(value), expected);
+  }
+});
+
 test("Web ESM and API CommonJS share status codes and labels with generated OpenAPI", () => {
   const common = require("@nexora/shared");
   assert.equal(common.CustomerStatus, CustomerStatus);
@@ -54,7 +79,7 @@ test("shared root exports bundle for a browser without Node/server dependencies"
     const entry = join(dir, "entry.js");
     await writeFile(
       entry,
-      `import { CustomerStatus, CustomerStatusLabelsVi } from ${JSON.stringify(require.resolve("@nexora/shared"))}; export const options = Object.values(CustomerStatus).map(value => ({value, label: CustomerStatusLabelsVi[value]}));`,
+      `import { CustomerStatus, CustomerStatusLabelsVi, isCustomerStatus } from ${JSON.stringify(require.resolve("@nexora/shared"))}; export const valid = [isCustomerStatus("ACTIVE"), isCustomerStatus("UNKNOWN")]; export const options = Object.values(CustomerStatus).map(value => ({value, label: CustomerStatusLabelsVi[value]}));`,
     );
     const compiler = webpack({
       mode: "production",
@@ -86,6 +111,7 @@ test("shared root exports bundle for a browser without Node/server dependencies"
     }
     const browser = {};
     runInNewContext(await readFile(join(dir, "bundle.js"), "utf8"), browser);
+    assert.deepEqual(Array.from(browser.StatusContract.valid), [true, false]);
     assert.deepEqual(
       JSON.parse(JSON.stringify(browser.StatusContract.options)),
       [
