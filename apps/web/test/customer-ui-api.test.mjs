@@ -92,3 +92,46 @@ test("all eight generated SDK operations retain exact path/method/body and old s
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test("list and Detail require string statusLabel without imposing nonempty or shared labels", async () => {
+  const { readCustomerPage, readCustomer } = await import(
+    "../features/customers/response.ts"
+  );
+  const customer = {
+    id: "c",
+    code: "KH000001",
+    name: "Synthetic",
+    phone: "+84912345678",
+    email: null,
+    note: null,
+    status: "ACTIVE",
+    createdAt: "now",
+    updatedAt: "now",
+    addresses: [],
+  };
+  const page = (c) => ({
+    customers: [c],
+    pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+  });
+  for (const invalid of [
+    customer,
+    ...[null, 42, {}, [], true].map((statusLabel) => ({
+      ...customer,
+      statusLabel,
+    })),
+  ]) {
+    assert.throws(() => readCustomerPage(page(invalid)), /MALFORMED_RESPONSE/);
+    assert.throws(
+      () => readCustomer({ customer: invalid }),
+      /MALFORMED_RESPONSE/,
+    );
+  }
+  for (const statusLabel of ["", "Label from API"]) {
+    const c = { ...customer, statusLabel };
+    assert.equal(
+      readCustomerPage(page(c)).customers[0].statusLabel,
+      statusLabel,
+    );
+    assert.equal(readCustomer({ customer: c }).statusLabel, statusLabel);
+  }
+});

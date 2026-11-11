@@ -312,3 +312,29 @@ test("retained rows remain visible but Edit is disabled until their read is auth
   assert.ok(active);
   assert.doesNotMatch(active, /\bdisabled(?:=""|(?=\s|>))/);
 });
+
+test("row badges render API labels while status alone controls tone and nine columns", () => {
+  for (const [status, label, tone] of [
+    ["ACTIVE", "API label: enabled", "Active"],
+    ["INACTIVE", "API label: paused", "Inactive"],
+    ["ACTIVE", "", "Active"],
+    ["INACTIVE", "", "Inactive"],
+  ]) {
+    const html = render(
+      React.createElement(CustomerTable, {
+        ...props,
+        rows: [{ ...row, status, statusLabel: label }],
+      }),
+    );
+    const body = html.match(/<tbody>(.*?)<\/tbody>/s)[1];
+    assert.equal((body.match(/<td[\s>]/g) ?? []).length, 9);
+    assert.ok(body.includes(`<span>${label}</span>`));
+    assert.match(
+      body,
+      new RegExp(`badge ${status === "ACTIVE" ? "good" : "bad"} statusChip`),
+    );
+    assert.match(body, new RegExp(`statusChip${tone}`));
+    assert.match(body, new RegExp(`chipDot${tone}`));
+    assert.doesNotMatch(body, /Đang hoạt động|Ngừng hoạt động/);
+  }
+});

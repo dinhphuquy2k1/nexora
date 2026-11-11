@@ -125,7 +125,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - `CustomerStatusLabelsVi: Record<CustomerStatusCode, string>`
 - **Intended Consumers**:
   - `CustomerStatus` / `CustomerStatusCode`: API Domain `CustomerStatusVO`, API Presentation DTOs, Web frontend pages/components.
-  - `CustomerStatusLabelsVi`: API Presentation presenter (`statusLabel` response property) and Web UI components.
+  - `CustomerStatusLabelsVi`: API Presentation presenter (`statusLabel` response property), Web Customer profile status dropdown and statistics tabs. List/Detail `CustomerBadge` displays the API response `statusLabel` directly; shared status codes still control badge tone.
 - **Supported Behavior**:
   - Browser-safe, framework-independent, single source of truth for customer status codes and Vietnamese presentation labels.
   - Pure code leaf subpath allows backend Domain to import codes without loading presentation labels.

@@ -97,3 +97,49 @@ test("shared root exports bundle for a browser without Node/server dependencies"
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("actual profile dropdown and statistics retain shared labels and canonical status codes", async () => {
+  const { loadComponent, React, render } = await import(
+    "./helpers/render-component.mjs"
+  );
+  const { CustomerProfileFields } = loadComponent(
+    new URL("../features/customers/CustomerProfileFields.tsx", import.meta.url),
+  );
+  const { CustomerStatsBar } = loadComponent(
+    new URL("../features/customers/CustomerStatsBar.tsx", import.meta.url),
+  );
+  for (const status of Object.values(CustomerStatus)) {
+    const fields = render(
+      React.createElement(CustomerProfileFields, {
+        value: { name: "Synthetic", phone: "", email: "", note: "", status },
+        edit: true,
+        onChange() {},
+      }),
+    );
+    const stats = render(
+      React.createElement(CustomerStatsBar, {
+        stats: { total: 3, active: 2, inactive: 1 },
+        loading: false,
+        status,
+        onChange() {},
+      }),
+    );
+    for (const code of Object.values(CustomerStatus)) {
+      assert.match(
+        fields,
+        new RegExp(
+          `<option value="${code}"[^>]*>${CustomerStatusLabelsVi[code]}</option>`,
+        ),
+      );
+      assert.ok(
+        stats.includes(CustomerStatusLabelsVi[code].toLocaleUpperCase("vi")),
+      );
+      assert.ok(stats.includes(`id="customer-tab-${code}"`));
+    }
+    assert.match(fields, new RegExp(`<option value="${status}" selected=""`));
+    assert.match(
+      stats,
+      new RegExp(`id="customer-tab-${status}"[^>]*aria-selected="true"`),
+    );
+  }
+});

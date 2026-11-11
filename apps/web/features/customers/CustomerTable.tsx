@@ -9,11 +9,7 @@ import {
   Users,
   AlertCircle,
 } from "lucide-react";
-import {
-  CustomerStatus,
-  CustomerStatusLabelsVi,
-  type CustomerStatusCode,
-} from "@nexora/shared";
+import { CustomerStatus, type CustomerStatusCode } from "@nexora/shared";
 import type { Summary } from "./types.ts";
 import type { customerError } from "./errors.ts";
 import { customerColumns, customerTableMinWidth } from "./columns.ts";
@@ -23,7 +19,13 @@ const tones = {
   [CustomerStatus.ACTIVE]: true,
   [CustomerStatus.INACTIVE]: false,
 } satisfies Record<CustomerStatusCode, boolean>;
-export function CustomerBadge({ status }: { status: CustomerStatusCode }) {
+export function CustomerBadge({
+  status,
+  statusLabel,
+}: {
+  status: Summary["status"];
+  statusLabel: Summary["statusLabel"];
+}) {
   const active = status === CustomerStatus.ACTIVE;
   return (
     <StatusBadge
@@ -34,7 +36,7 @@ export function CustomerBadge({ status }: { status: CustomerStatusCode }) {
         className={`${styles.chipDot} ${active ? styles.chipDotActive : styles.chipDotInactive}`}
         aria-hidden="true"
       />
-      <span>{CustomerStatusLabelsVi[status]}</span>
+      <span>{statusLabel}</span>
     </StatusBadge>
   );
 }
@@ -269,7 +271,10 @@ export function CustomerTable({
                   </span>
                 </td>
                 <td className={styles.statusCell}>
-                  <CustomerBadge status={c.status} />
+                  <CustomerBadge
+                    status={c.status}
+                    statusLabel={c.statusLabel}
+                  />
                 </td>
                 <td className={styles.dateCell}>{customerDate(c.createdAt)}</td>
                 <td
