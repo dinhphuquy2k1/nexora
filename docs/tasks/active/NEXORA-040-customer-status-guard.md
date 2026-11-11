@@ -35,7 +35,7 @@ No existing shared predicate; preserve domain VO and input/query policies.
 - [x] RED/GREEN, invalid shapes and label/SSR regressions.
 - [x] Canonical docs and host quality evidence recorded; independent owner review required.
 - [ ] Canonical Docker/hosted verification and independent review resolved.
-- [ ] Commit/push/new PR to main; no merge.
+- [x] Commit/push/new PR to main; no merge.
 
 ## Documentation Impact
 
@@ -103,3 +103,21 @@ code findings. This is self-review, not independent approval. Only collaborator
 returned by GitHub is the authenticated PR author, dinhphuquy2k1; an independent
 reviewer is unavailable in this environment. Owner review is required and will be
 explicitly requested in the PR description. Canonical/hosted checks remain gates.
+
+## Publication checkpoint — 2026-11-11
+
+Implementation commit: `a8eccf5c71f5f3cacebc5c92b5264f866d902529`.
+Branch pushed with upstream: `fix/m2-customer-status-guard`.
+New PR: [#40](https://github.com/dinhphuquy2k1/nexora/pull/40), OPEN,
+base main; created through `gh pr create --base main --head
+fix/m2-customer-status-guard --title "refactor(shared): add reusable Customer
+status guard" --body-file /workspace/work/m2-pr.md`. PR description explicitly
+requests independent owner review and records the local Docker capacity blocker.
+No merge or deployment. Final documentation-only checkpoint SHA and hosted
+head/merge-ref verification belong to mutable PR metadata to avoid a
+self-referential commit loop. Hosted checks were not yet reported at publication.
+
+| Claim           | Evidence                                                                                                                                                                            | Date       | Result |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Commit and push | `git commit -m "refactor(shared): centralize Customer status validation"` created a8eccf5; `git push -u origin fix/m2-customer-status-guard` created new remote branch              | 2026-11-11 | PASS   |
+| New focused PR  | `gh pr view --json number,url,state,baseRefName,headRefName,headRefOid,statusCheckRollup` confirmed #40 OPEN, base main, expected branch/implementation SHA; checks initially empty | 2026-11-11 | PASS   |
