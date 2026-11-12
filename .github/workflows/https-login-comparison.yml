@@ -1,0 +1,70 @@
+name: Controlled HTTPS login comparison
+on:
+  pull_request:
+    paths:
+      - .github/workflows/https-login-comparison.yml
+      - scripts/auth-request-diagnostics.mjs
+      - scripts/auth-request-diagnostics.test.mjs
+      - scripts/public-https-browser.mjs
+permissions:
+  contents: read
+jobs:
+  compare-exact-revisions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Compare fixed main and PR38 once each with identical safe observation
+        shell: bash
+        run: |
+          set -eu
+          main_sha=dccbfee75c5d024d3973504c9c004e4f939799b9
+          pr_sha=96e6cd0d15840d275a91b1e60279a90750a9d5d3
+          git fetch --no-tags origin "$main_sha" "$pr_sha"
+          node --version
+          docker version --format '{{.Server.Version}}'
+          docker compose version
+          export CHROME_BIN=$(command -v google-chrome)
+          "$CHROME_BIN" --version
+          observer_root=$PWD
+          failed=0
+          for cohort in main pr38; do
+            revision=$main_sha
+            if [ "$cohort" = pr38 ]; then revision=$pr_sha; fi
+            checkout="$RUNNER_TEMP/nexora-https-control-$cohort"
+            export COMPOSE_PROJECT_NAME="nexora-control-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${cohort}"
+            test ! -e "$checkout"
+            git init "$checkout"
+            git -C "$checkout" remote add origin "https://github.com/dinhphuquy2k1/nexora.git"
+            git -C "$checkout" fetch --no-tags --depth=1 origin "$revision"
+            git -C "$checkout" checkout --detach FETCH_HEAD
+            test "$(git -C "$checkout" rev-parse HEAD)" = "$revision"
+            cp scripts/auth-request-diagnostics.mjs "$checkout/scripts/"
+            cp scripts/public-https-browser.mjs "$checkout/scripts/"
+            set +e
+            (
+              set -eu
+              cd "$checkout"
+              printf 'CONTROLLED_COHORT %s REVISION %s\n' "$cohort" "$(git rev-parse HEAD)"
+              sha256sum scripts/public-https-browser.mjs scripts/auth-request-diagnostics.mjs scripts/public-https-smoke.sh compose.yml compose.public.yml pnpm-lock.yaml
+              sh scripts/quality-docker.sh
+              docker run --rm --network none --entrypoint pnpm nexora-tools:0.1.0 --version
+              docker compose -f compose.yml -f compose.dev.yml down
+              sh scripts/runtime-smoke.sh
+              sh scripts/public-https-smoke.sh
+            )
+            status=$?
+            set -e
+            printf 'CONTROLLED_COHORT %s EXIT %s\n' "$cohort" "$status"
+            cleanup_status=0
+            (cd "$checkout" && docker compose -f compose.yml -f compose.dev.yml down -v --remove-orphans) || cleanup_status=$?
+            printf 'CONTROLLED_COHORT %s CLEANUP_EXIT %s\n' "$cohort" "$cleanup_status"
+            if [ "$status" -ne 0 ] || [ "$cleanup_status" -ne 0 ]; then failed=1; fi
+            cd "$observer_root"
+            test -d "$checkout/.git"
+            rm -rf -- "$checkout"
+          done
+          exit "$failed"
