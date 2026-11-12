@@ -1,4 +1,7 @@
-import { SyncCapabilityRegistry } from "./sync-capability.registry";
+import {
+  SyncCapabilityRegistry,
+  type BoundSyncCapability,
+} from "./sync-capability.registry";
 import { createDatabase, Prisma, type PrismaClient } from "@nexora/database";
 import { UserStatus } from "../../identity/domain/user-policy";
 import { ConnectionStatus } from "../../carrier/domain/carrier";
@@ -55,11 +58,14 @@ export class SyncRepository implements SyncQueue {
     return (this.instance ??= createDatabase(this.url));
   }
   available(provider: string, type: SyncType) {
-    return (
-      this.config.enabled &&
-      this.config.types.includes(type) &&
-      this.capabilities.resolve(provider, type) !== null
-    );
+    return this.admissible(provider, type) !== null;
+  }
+  private admissible(
+    provider: string,
+    type: SyncType,
+  ): BoundSyncCapability | null {
+    if (!this.config.enabled || !this.config.types.includes(type)) return null;
+    return this.capabilities.resolve(provider, type);
   }
   private async connection(
     tx: Tx,
@@ -151,9 +157,7 @@ export class SyncRepository implements SyncQueue {
   ) {
     return this.client.$transaction(async (tx) => {
       const c = await this.connection(tx, userId, id, true);
-      if (!this.config.enabled || !this.config.types.includes(type))
-        throw new SyncError(E.SYNC_UNAVAILABLE);
-      const capability = this.capabilities.resolve(c.provider, type);
+      const capability = this.admissible(c.provider, type);
       if (!capability) throw new SyncError(E.SYNC_UNAVAILABLE);
       // Static predicate preserves PostgreSQL partial-index inference; covered by
       // integration/fixtures/sync-status-contract.cjs prepared/admit contract.

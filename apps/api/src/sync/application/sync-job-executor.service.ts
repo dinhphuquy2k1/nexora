@@ -40,10 +40,7 @@ export class SyncJobExecutor {
       if (!this.queue.available(job.provider, job.sync_type) || !capability)
         throw new SyncError(SyncErrorCode.SYNC_UNAVAILABLE);
       if (job.processing_phase === SyncProcessingPhase.FETCHING) {
-        if (
-          capability.provider.strategy(job.provider, job.sync_type) !==
-          job.fetch_strategy
-        )
+        if (job.fetch_strategy !== capability.strategy)
           throw new SyncError(SyncErrorCode.SYNC_UNAVAILABLE);
         const aborted = new Promise<never>((_resolve, reject) => {
           const handler = () => reject(execution.reason);

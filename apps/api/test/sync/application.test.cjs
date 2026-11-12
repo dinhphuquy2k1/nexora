@@ -81,7 +81,13 @@ test("executor bounds a nonresponsive provider, forwards abort and never checkpo
   const queue = {
     config: { leaseSeconds: 60 },
     available: () => true,
-    capabilities: { resolve: () => ({ provider, processor: { version: 1 } }) },
+    capabilities: {
+      resolve: () => ({
+        provider,
+        strategy: "FULL",
+        processor: { version: 1 },
+      }),
+    },
     heartbeat: async () => {},
     page: async () => written++,
     wait: async (_job, code) => (waited = code),

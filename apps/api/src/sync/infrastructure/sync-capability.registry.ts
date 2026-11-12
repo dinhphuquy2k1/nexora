@@ -15,7 +15,6 @@ export interface SyncCapabilityRegistration {
 }
 export interface BoundSyncCapability extends SyncCapability {
   readonly domain: SyncDomainBinding;
-  readonly strategy: (typeof SyncStrategy)[keyof typeof SyncStrategy];
 }
 /** Explicit code registration only; no mutation, discovery, I/O or credentials. */
 export class SyncCapabilityRegistry implements SyncCapabilityResolver {

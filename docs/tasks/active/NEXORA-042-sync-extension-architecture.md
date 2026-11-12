@@ -37,8 +37,8 @@ PR32 merged as baseline above; GitHub merged=true, fresh origin/main ancestry an
 - [x] A4 neutral Domain invocation and Customer-owned link boundary.
 - [x] A5 API/Worker wiring, empty production capabilities.
 - [x] A6 compatibility and developer extension guide.
-- [ ] A7 real multi-capability PostgreSQL/quality/runtime/hosted verification.
-- [ ] Three independent review rounds and final-head evidence.
+- [ ] A7 on the new captured-strategy/admissible HEAD; af61ba7 passed historically, new-head hosted gates required.
+- [ ] Three independent review rounds and final-head evidence for the new delta; prior af61ba7 review remains historical, not owner approval.
 
 ## Documentation Impact
 
@@ -283,3 +283,134 @@ all earlier FAILs, including eea7287. Publishing it creates a documentation-only
 head, which requires fresh Preflight, Sync Targeted and full Foundation gates;
 none may be inferred from7d96b86. Keep A7 unchecked until those final-head gates
 all succeed. Status VERIFICATION PENDING; provider-length PLAN ISSUE remains.
+
+## Final publication-head checkpoint — 2026-11-12
+
+Final pushed HEAD: af61ba76311ec6bd788b130b9686b53d045b3802.
+Actual completed Preflight/Targeted checkout merge:
+d1953127eab8fbdc9d4ce737bc7257857b0428ce into
+3906f8243347fb7c697bf5f6949389c3a784a13d. Independent reviewer decoded
+both checkout logs; only this task differs from the prior source commit7d96b86.
+This post-CI evidence update remains local/uncommitted to preserve the final pushed
+HEAD and avoid a self-referential SHA-only publication loop. PR metadata retains
+NEXORA-042/v2/a1174be3bf5dc965220c5fe904341a9b24c43de0048bcf818d9960c5ef0c5de7.
+
+| Claim                                        | Evidence                                                                                                                                                                                                                                                                                                                                                           | Date       | Result |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Final-head local quality                     | API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality on exact af61ba7,14:44–14:47Z: FAIL at root130/132tests,0skip. Unchanged dev-cleanup-smoke.test.mjs reported DDL_AND_FIXTURES and signal fixture not ready; package tests/contracts/build were not reached in this invocation. Earlier source-head638PASS is separate evidence | 2026-11-12 | FAIL   |
+| Focused readiness diagnostic                 | NODE_ENV=production node --test scripts/dev-cleanup-smoke.test.mjs on af61ba7:3/3PASS,0skip at14:47–14:48Z, no source/assertion/timeout change. Does not replace failed full local quality or establish root cause                                                                                                                                                 | 2026-11-12 | PASS   |
+| Final-head independent source/binding review | Reviewer confirms af61ba7 task-only delta, original failures preserved, v1/v2 hashes unchanged, PR metadata matching, protected source/test/harness bytes unchanged and no confirmed new P1/P2/P3 defect. Source PASS is not owner approval or a missing hosted gate waiver                                                                                        | 2026-11-12 | PASS   |
+
+Final Preflight43240342956 and Sync Targeted43240342764 are SUCCESS on this
+head; independent decoded logs show24policy,24Syncunit and52realPG tests all
+0fail/skip with owned cleanup. Full Foundation43240342931 remains running at
+this checkpoint; its Docker quality/integration and M5 steps report SUCCESS, but
+A7 remains unchecked until runtime/HTTPS/persistence/dev also finish successfully.
+No historical FAIL is deleted.
+
+### Final-head hosted closure and independent round3 — 2026-11-12
+
+Final HEAD/merge/base are af61ba76311ec6bd788b130b9686b53d045b3802 /
+d1953127eab8fbdc9d4ce737bc7257857b0428ce /
+3906f8243347fb7c697bf5f6949389c3a784a13d, confirmed in all three actual
+checkout logs by root and the independent reviewer. Times below are UTC.
+The local-af61ba7 full quality FAIL above remains FAIL; canonical Docker quality
+below is a distinct executed PASS on the same final head, not a rewritten result.
+
+| Claim                                             | Evidence                                                                                                                                                                                                                                                                                                                                                                        | Date       | Result |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Final Preflight Policy & Design Governance        | [Run43240342956](https://github.com/dinhphuquy2k1/nexora/actions/runs/43240342956), final head/merge above, SUCCESS2026-11-12T14:44:47Z; metadata binding and24/24 tests0skip                                                                                                                                                                                                   | 2026-11-12 | PASS   |
+| Final Sync V1 targeted PostgreSQL verification    | [Run43240342764](https://github.com/dinhphuquy2k1/nexora/actions/runs/43240342764), final head/merge above, completed SUCCESS14:46:56Z; genuine Prisma generation/build,24units+52realPG0fail/skip; owned cleanup PASS                                                                                                                                                          | 2026-11-12 | PASS   |
+| Final Nexora foundation                           | [Run43240342931 job131258730813](https://github.com/dinhphuquy2k1/nexora/actions/runs/43240342931/job/131258730813), final head/merge above, SUCCESS2026-11-12T15:04:10Z; every mandatory step ran and passed, only failure-only Diagnostics SKIPPED                                                                                                                            | 2026-11-12 | PASS   |
+| Canonical final-head quality and full integration | Same Foundation, step4 PASS14:51:44Z; actual pnpm quality638/638ordinary, pnpm test:integration133/133realPG and disposable-cluster1/1, all0fail/skip. Contracts reproducible, migrations/repeat/drift, restricted worker-role/custody and owned cleanup PASS                                                                                                                   | 2026-11-12 | PASS   |
+| Final M5/browser and runtime gates                | Same Foundation: M5 step5 PASS14:52:35Z with16captures; runtime/provisioning/TTY/browser step7 PASS14:59:02Z; HTTPS/onboarding/ingress/restore step8 PASS15:00:30Z; persistence step9 PASS15:01:30Z; dev HMR/drift step10 PASS15:03:52Z; CI-owned cleanup PASS15:04:08Z                                                                                                         | 2026-11-12 | PASS   |
+| Independent Round3 closure                        | Separate read-only reviewer decoded all final-head job logs, exact HEAD/merge/base, counts and step outcomes; source/evidence review PASS, no confirmed blocking P1/P2 or new P3 code defect. Six browser artifacts present/unexpired and bound to final HEAD; archives not downloaded/hash-verified/manually viewed. Local Carrier124PNG hashes independently verified earlier | 2026-11-12 | PASS   |
+
+A7 checked only after final Foundation completed SUCCESS15:04:10Z. Independent
+round3 is technical review, not owner approval/merge authority. Keep Status
+VERIFICATION PENDING and Verification PARTIALLY VERIFIED: provider-length ownership
+PLAN ISSUE remains explicitly deferred, production Domain/provider authorization
+and registration remain unavailable. No production activation, automatic task
+closure, merge or deployment. No startup-cause fix/flakiness claim is inferred
+from the successful documentation-head run. Historical eea7287/7d96b86 failures,
+local PG/prerequisite failures and local final-quality failure remain preserved.
+
+Final evidence/checkbox updates in this working task are intentionally uncommitted;
+all production/test/harness/canonical-doc changes, identity rename and v2 snapshot
+are pushed at af61ba7. PR34 is updated with final results; avoid another SHA-only
+commit/CI loop. Only this task differs locally from the exact verified pushed head.
+
+## Captured strategy and shared admissibility delta — 2026-11-12
+
+Step1 READ-ONLY completed before edits at2026-11-12T15:14Z: gh run list
+--branch feat/sync-extension-architecture and gh run view43240342931 --log-failed
+plus connector jobs confirm af61ba76311ec6bd788b130b9686b53d045b3802
+Preflight43240342956, SyncTargeted43240342764, Foundation43240342931 all
+SUCCESS. Actual merge d1953127eab8fbdc9d4ce737bc7257857b0428ce into main3906f82;
+all Foundation steps4–10 succeeded. Existing exact UTC/run evidence above retained.
+No manual rerun was required or made. Conditional Step2 launcher PR is unnecessary;
+do not change m5-browser-checks.mjs or create a launcher task/branch.
+
+Read-only inspection: executor currently calls provider.strategy after registry
+resolution; repository repeats flags in available/admit. Reuse captured strategy,
+current closed SyncProvider.strategy return type, existing registry and native
+capability/application tests. Selected correction: expose the already validated
+readonly strategy on the application SyncCapability interface, derived as
+NonNullable<ReturnType<SyncProvider["strategy"]>>, inherit it in BoundSyncCapability
+and use job.fetch_strategy versus capability.strategy in executor. This does
+change the internal application metadata type: it explicitly supersedes v2's
+earlier "application resolver port unchanged" detail, without changing capture,
+public HTTP/SDK contracts or importing infrastructure into Application.
+
+Repository private admissible(provider,type):BoundSyncCapability|null combines
+existing config.enabled/types.includes/resolve short circuit. available returns
+admissible!==null; admit invokes admissible once after existing connection lock.
+Keep SYNC_UNAVAILABLE, SQL/fences/flags behavior and six protected method bodies
+schedule/claim/heartbeat/wait/cleanup/page unchanged. No schema/migration/grant/
+vocabulary/API/OpenAPI/SDK change; production registration stays empty and
+PROVIDER_LENGTH_SINGLE_SOURCE remains open.
+
+Independent reviewer assessed this exact scope before edits: bounded refactor
+within existing SIGNIFICANT v2 task, no material new architecture/behavior requiring
+v3. Preserve v1/v2 bytes, revision/digest/PR binding. Delta canonical documentation
+impact NONE: existing capture/availability policy is unchanged; mutable task holds
+internal type/refactor and verification detail, while overall task Documentation
+Impact remains REQUIRED for PhaseA. No new dependency/helper framework.
+
+Test-first: add actual-registry executor cases changing provider strategy AFTER
+resolve, asserting captured match fetches and captured mismatch waits without
+fetch/checkpoint. Observe both RED before production edits, then GREEN. Retain
+existing available/admit disabled/unknown/type-disabled/single-resolve cases; no
+implementation-mirroring private-method test. Update one existing fake resolver
+fixture to supply the same captured metadata required by the application port.
+Run requested Sync units, test:lint/docs/preflight/format/fullquality/boundaries,
+push one scoped source delta, await all3 final-head hosted gates including
+Foundation4–10. Publish actual evidence in task; any documentation-only commit
+also requires its own green gates. Do not reuse af61ba7/7d96b86 for a new HEAD.
+A7/review stay unchecked until the new final head passes; Status remains
+VERIFICATION PENDING. Preserve every historical FAIL.
+
+Previously local-only af61ba7 evidence above is now carried into this authorized
+publication; its earlier local/uncommitted wording describes that old checkpoint,
+not a continuing exemption from publishing the current task evidence.
+
+### Captured-strategy delta local execution — 2026-11-12
+
+Actual git HEAD for local working-diff checks: af61ba76311ec6bd788b130b9686b53d045b3802
+plus the six source/test files above and this task. Source/test manifest digest
+6b9bd3420367e9631e72faf67130503c9b2ef9442a11c6623fcc565e004df23a. Node24.22.1, pinned pnpm10.34.6.
+Observed completion 2026-11-12T15:21:04Z.
+This is working-diff evidence, not a claim that old af61ba7 verified changed code.
+
+| Claim                               | Evidence                                                                                                                                                                                                                                                                                                                                          | Date       | Result |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Strategy mutation RED               | node --test apps/api/test/sync/capability.test.cjs before production edits:14tests12PASS/2FAIL,0skip; real registry captures FULL then provider changes to INCREMENTAL; FULL job got0fetches instead of1, INCREMENTAL job got1instead of0                                                                                                         | 2026-11-12 | FAIL   |
+| Build and targeted GREEN            | npx --yes pnpm@10.34.6 --filter @nexora/api... build then node --test apps/api/test/sync/\*.test.cjs:26/26PASS,0skip. Captured match fetches/checkpoints, captured mismatch waits SYNC_UNAVAILABLE without fetch/checkpoint; strategy reads counted once in each resolver test                                                                    | 2026-11-12 | PASS   |
+| Lint regression                     | npx --yes pnpm@10.34.6 test:lint:52/52PASS,0skip                                                                                                                                                                                                                                                                                                  | 2026-11-12 | PASS   |
+| Docs/preflight/format/boundaries    | npx --yes pnpm@10.34.6 docs:check, preflight:check, format:check and node scripts/boundaries.mjs:PASS                                                                                                                                                                                                                                             | 2026-11-12 | PASS   |
+| Full local quality on delta         | API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality:exit0;640/640tests0fail/skip (132root/200API/266Web/36UI/6DB); format/lint/preflight/docs/typecheck/contracts/build PASS. Turbo reused unchanged prerequisites; tests executed                                                                                | 2026-11-12 | PASS   |
+| Independent follow-up source review | Separate read-only reviewer: no confirmed P1/P2/P3, no v3 needed; independently26/26Syncunits, APItsc--noEmit, boundaries and diff checks PASS. Six protected method tokens equal af61ba7; no external contract/schema/grant/vocabulary/M5/harness change. Internal application metadata type exposure explicitly reviewed, not claimed unchanged | 2026-11-12 | PASS   |
+
+Next source and documentation-publication heads each require all3 fresh hosted
+gates. Final acceptance and PR description must name the last green publication
+SHA. No manual AF rerun, no launcher PR, no ignored failure or premature A7 check.

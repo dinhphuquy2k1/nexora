@@ -519,3 +519,60 @@ test("admit resolves once and persists the strategy captured by that resolution"
     }
   }
 });
+
+for (const [jobStrategy, shouldFetch] of [
+  ["FULL", true],
+  ["INCREMENTAL", false],
+]) {
+  test(`executor uses captured strategy after provider changes: ${jobStrategy}`, async () => {
+    const a = registration("fixture-a", "SHIPMENT");
+    let strategyCalls = 0,
+      fetched = 0,
+      checkpointed = 0;
+    const waited = [];
+    a.provider.strategy = () => {
+      strategyCalls++;
+      return "FULL";
+    };
+    a.provider.fetch = async () => {
+      fetched++;
+      return { records: [], done: true };
+    };
+    const registry = new SyncCapabilityRegistry([a]);
+    const resolve = registry.resolve.bind(registry);
+    registry.resolve = (...args) => {
+      const capability = resolve(...args);
+      a.provider.strategy = () => {
+        strategyCalls++;
+        return "INCREMENTAL";
+      };
+      return capability;
+    };
+    const queue = {
+      config: cfg(),
+      capabilities: registry,
+      available: () => true,
+      heartbeat: async () => {},
+      page: async () => checkpointed++,
+      wait: async (_job, code) => waited.push(code),
+    };
+    await new SyncJobExecutor(queue).execute(
+      {
+        provider: "fixture-a",
+        sync_type: "SHIPMENT",
+        processing_phase: "FETCHING",
+        fetch_strategy: jobStrategy,
+        attempt_count: 0,
+      },
+      new globalThis.AbortController().signal,
+    );
+    assert.equal(fetched, shouldFetch ? 1 : 0);
+    assert.equal(checkpointed, shouldFetch ? 1 : 0);
+    assert.deepEqual(waited, shouldFetch ? [] : ["SYNC_UNAVAILABLE"]);
+    assert.equal(
+      strategyCalls,
+      1,
+      "only registry resolution reads provider strategy",
+    );
+  });
+}
