@@ -21,7 +21,6 @@ import {
 import { customerApi } from "./api.ts";
 import { customerError } from "./errors.ts";
 import { verifyCustomerRecoveryById } from "./mutation-policy.ts";
-import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 import {
   useCustomerMutation,
   type SettlementTarget,
@@ -207,10 +206,6 @@ export function CustomerDrawer({
       const safe = customerError(error);
       if (safe.unauthenticated) {
         onDenied();
-        const from = sanitizeReturnUrl(location.pathname + location.search);
-        router.replace(
-          from ? `/login?from=${encodeURIComponent(from)}` : "/login",
-        );
       } else {
         setRecoveryError(
           "Không thể xác minh hồ sơ khách hàng. Hãy đối chiếu lại và thử tiếp.",

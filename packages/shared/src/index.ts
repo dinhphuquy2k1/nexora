@@ -7,7 +7,7 @@ export {
   normalizeOrigin,
 } from "./deployment";
 export type { DeploymentPolicy } from "./deployment";
-export { CustomerStatus } from "./customer-status";
+export { CustomerStatus, isCustomerStatus } from "./customer-status";
 export type { CustomerStatusCode } from "./customer-status";
 export { CustomerStatusLabelsVi } from "./customer-status-labels";
 export {

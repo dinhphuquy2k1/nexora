@@ -1,4 +1,4 @@
-import { Button, Select } from "@nexora/ui";
+import { Pager, Select } from "@nexora/ui";
 import {
   ChevronsLeft,
   ChevronLeft,
@@ -28,92 +28,69 @@ export function RetailPagination({
   const end = Math.min(page * pageSize, total);
   const rangeDisplay = unavailable ? "—" : `${start}–${end}`;
   return (
-    <div className={styles.paginationBar} aria-label="Phân trang kiện lẻ">
-      <div className={styles.paginationInfo}>
-        <div className={styles.paginationSummary}>
-          <span>Hiển thị</span>{" "}
-          <strong className={styles.paginationRange}>{rangeDisplay}</strong>{" "}
-          <span>/</span>{" "}
-          <span data-retail-count>{unavailable ? "—" : total} kiện lẻ</span>
-        </div>
-        <span className={styles.paginationDivider} aria-hidden="true">
-          |
-        </span>
-        <label className={styles.pageSizeLabel}>
-          <span>Số dòng:</span>
-          <div className={styles.pageSizeSelectWrapper}>
-            <Select
-              aria-label="Số dòng mỗi trang"
-              value={pageSize}
-              onChange={(e) => onSize(Number(e.target.value))}
-            >
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={size} value={size}>
-                  {size} / trang
-                </option>
-              ))}
-            </Select>
-          </div>
-        </label>
-      </div>
-      <div
-        className={styles.paginationControls}
-        role="group"
-        aria-label="Trang"
-      >
-        <Button
-          variant="secondary"
-          icon
-          disabled={unavailable || page <= 1}
-          onClick={() => onPage(1)}
-          aria-label="Trang đầu"
-        >
-          <ChevronsLeft size={14} />
-        </Button>
-        <Button
-          variant="secondary"
-          icon
-          disabled={unavailable || page <= 1}
-          onClick={() => onPage(page - 1)}
-          aria-label="Trang trước"
-        >
-          <ChevronLeft size={14} />
-        </Button>
-        {pageWindow(page, pages).map((number, index, window) => (
-          <span key={number} className={styles.pageNumber}>
-            {index > 0 && number - window[index - 1] > 1 && (
-              <span aria-hidden="true">…</span>
-            )}
-            <Button
-              variant={number === page ? "emphasis" : "secondary"}
-              aria-current={number === page ? "page" : undefined}
-              aria-label={`Trang ${number}`}
-              disabled={unavailable}
-              onClick={() => onPage(number)}
-            >
-              {number}
-            </Button>
-          </span>
-        ))}
-        <Button
-          variant="secondary"
-          icon
-          disabled={unavailable || page >= pages}
-          onClick={() => onPage(page + 1)}
-          aria-label="Trang sau"
-        >
-          <ChevronRight size={14} />
-        </Button>
-        <Button
-          variant="secondary"
-          icon
-          disabled={unavailable || page >= pages}
-          onClick={() => onPage(pages)}
-          aria-label="Trang cuối"
-        >
-          <ChevronsRight size={14} />
-        </Button>
-      </div>
+    <div className={styles.paginationBar}>
+      <Pager
+        page={page}
+        pages={pageWindow(page, pages)}
+        targets={{ first: 1, previous: page - 1, next: page + 1, last: pages }}
+        disabled={{
+          first: unavailable || page <= 1,
+          previous: unavailable || page <= 1,
+          numbers: unavailable,
+          next: unavailable || page >= pages,
+          last: unavailable || page >= pages,
+        }}
+        onPage={onPage}
+        selectedVariant="emphasis"
+        labels={{
+          navigation: "Phân trang kiện lẻ",
+          first: "Trang đầu",
+          previous: "Trang trước",
+          next: "Trang sau",
+          last: "Trang cuối",
+          page: (n) => `Trang ${n}`,
+        }}
+        icons={{
+          first: <ChevronsLeft size={14} />,
+          previous: <ChevronLeft size={14} />,
+          next: <ChevronRight size={14} />,
+          last: <ChevronsRight size={14} />,
+        }}
+        summaryClassName={styles.paginationInfo}
+        summary={
+          <>
+            <div className={styles.paginationSummary}>
+              <span>Hiển thị</span>{" "}
+              <strong className={styles.paginationRange}>{rangeDisplay}</strong>{" "}
+              <span>/</span>{" "}
+              <span data-retail-count>{unavailable ? "—" : total} kiện lẻ</span>
+            </div>
+          </>
+        }
+        pageSize={
+          <>
+            <span className={styles.paginationDivider} aria-hidden="true">
+              |
+            </span>
+            <label className={styles.pageSizeLabel}>
+              <span>Số dòng:</span>
+              <div className={styles.pageSizeSelectWrapper}>
+                <Select
+                  aria-label="Số dòng mỗi trang"
+                  value={pageSize}
+                  onChange={(e) => onSize(Number(e.target.value))}
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size} / trang
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </label>
+          </>
+        }
+      />
     </div>
   );
 }

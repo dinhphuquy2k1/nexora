@@ -2,7 +2,7 @@
 import { createRoot } from "react-dom/client";
 import { AccountMenu } from "../../components/app-shell/AccountMenu.tsx";
 import { NotificationMenu } from "../../components/app-shell/NotificationMenu.tsx";
-import "../../app/styles.css";
+import "../../styles/globals.css";
 const username =
   new URLSearchParams(location.search).get("username") ?? "account_fixture";
 createRoot(document.getElementById("fixture-root")!).render(

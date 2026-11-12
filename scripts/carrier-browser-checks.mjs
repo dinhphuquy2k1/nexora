@@ -48,8 +48,16 @@ export async function verifyCarrierBrowser({
       )
         badRequests.push(method);
     }
-    if (m.method === "Runtime.exceptionThrown")
-      errors.push("BROWSER_EXCEPTION");
+    if (m.method === "Runtime.exceptionThrown") {
+      const details = m.params?.exceptionDetails;
+      console.error(
+        "CARRIER_BROWSER_EXCEPTION:",
+        details?.exception?.description || details?.text || details,
+      );
+      errors.push(
+        `BROWSER_EXCEPTION: ${details?.exception?.description || details?.text || JSON.stringify(details)}`,
+      );
+    }
   };
   socket.addEventListener("message", listener);
   async function until(expression) {
@@ -393,7 +401,7 @@ export async function verifyCarrierBrowser({
     const files = new Map([
       ["/fixture", resolve(fixtureDirectory, "index.html")],
       ["/bundle.js", resolve(fixtureDirectory, "bundle.js")],
-      ["/inter.woff2", resolve("apps/web/app/fonts/InterVariable.woff2")],
+      ["/inter.woff2", resolve("apps/web/assets/fonts/InterVariable.woff2")],
     ]);
     server = createServer((req, res) => {
       if (syncIssueResponse(req, res)) return;
@@ -429,8 +437,11 @@ export async function verifyCarrierBrowser({
       await evaluate("window.__nexoraCarrierNavigation = true");
       const navigation = await send("Page.navigate", { url });
       if (navigation.errorText) throw Error("CARRIER_NAVIGATION_FAILED");
+      const dialogGate = query.includes("syncIssues")
+        ? ""
+        : " && !document.querySelector('dialog[open]')";
       await until(
-        `window.__nexoraCarrierNavigation !== true && location.href === ${JSON.stringify(url)} && document.readyState === "complete" && !!document.querySelector('[data-carrier-table-container]')`,
+        `window.__nexoraCarrierNavigation !== true && location.href === ${JSON.stringify(url)} && document.readyState === "complete" && !!document.querySelector('[data-carrier-table-container]')${dialogGate}`,
       );
       await settleLayout();
     };

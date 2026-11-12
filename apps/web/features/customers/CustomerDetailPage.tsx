@@ -108,7 +108,9 @@ export function CustomerDetailPage({ id }: { id: string }) {
                 {c?.name ?? "Chi tiết khách hàng"}
               </h1>
               {c && <span className={styles.codeBadge}>{c.code}</span>}
-              {c && <CustomerBadge status={c.status} />}
+              {c && (
+                <CustomerBadge status={c.status} statusLabel={c.statusLabel} />
+              )}
             </div>
             {c && (
               <p className={styles.detailSubtitle}>
@@ -218,7 +220,10 @@ export function CustomerDetailPage({ id }: { id: string }) {
                     {label === "Mã khách hàng" ? (
                       <span className={styles.codeText}>{value}</span>
                     ) : label === "Trạng thái" ? (
-                      <CustomerBadge status={c.status} />
+                      <CustomerBadge
+                        status={c.status}
+                        statusLabel={c.statusLabel}
+                      />
                     ) : (
                       value
                     )}

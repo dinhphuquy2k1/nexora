@@ -230,7 +230,10 @@ export async function verifyRetailBrowser({
       ["/bundle.js", resolve(fixtureDirectory, "bundle.js")],
       ["/fixture", resolve(fixtureDirectory, "index.html")],
       ["/reference-sample", resolve(fixtureDirectory, "index.html")],
-      ["/inter.woff2", resolve(root, "apps/web/app/fonts/InterVariable.woff2")],
+      [
+        "/inter.woff2",
+        resolve(root, "apps/web/assets/fonts/InterVariable.woff2"),
+      ],
     ]);
     await readFile(files.get("/bundle.js")); // Missing real compiled fixture is a failure, not a skip.
     server = createServer((req, res) => {

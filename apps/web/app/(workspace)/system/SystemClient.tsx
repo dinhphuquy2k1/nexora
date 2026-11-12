@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createNexoraClient } from "@nexora/sdk";
+import { createWorkspaceApiClient } from "../../../lib/api/workspace-client.ts";
 import { Button, Panel, StatusBadge } from "@nexora/ui";
 
 type Result = {
@@ -20,7 +20,7 @@ export function SystemClient() {
     setLoading(true);
     setError("");
     try {
-      const client = createNexoraClient();
+      const client = createWorkspaceApiClient();
       const [live, ready] = await Promise.all([
         client.GET("/api/health/live"),
         client.GET("/api/health/ready"),

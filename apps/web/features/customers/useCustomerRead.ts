@@ -1,7 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@nexora/ui";
-import { useRouter } from "next/navigation";
 import { CustomerReadLane } from "./request.ts";
 import { customerError, CustomerApiError } from "./errors.ts";
 import {
@@ -11,7 +10,6 @@ import {
   rejectRead,
   type ReadState,
 } from "./read-state.ts";
-import { sanitizeReturnUrl } from "../../lib/auth/sanitize.ts";
 /** Generic keyed result retention; Customer statistics stay at the List composition. */
 export function useCustomerRead<T>(
   key: string,
@@ -38,7 +36,6 @@ export function useCustomerRead<T>(
     outcome: "pending",
   });
   const [revision, retry] = useState(0);
-  const router = useRouter();
   const toast = useToast();
   const deny = useCallback(() => {
     deniedNow.current = true;
@@ -92,14 +89,10 @@ export function useCustomerRead<T>(
           );
           if (safe.unauthenticated) {
             toast.clear();
-            const from = sanitizeReturnUrl(location.pathname + location.search);
-            router.replace(
-              from ? `/login?from=${encodeURIComponent(from)}` : "/login",
-            );
           }
         });
     return () => current.dispose();
-  }, [key, revision, enabled, router, toast]);
+  }, [key, revision, enabled, toast]);
   const visible =
     state.key === key ? state : beginRead(state, key, state.requestId);
   return {

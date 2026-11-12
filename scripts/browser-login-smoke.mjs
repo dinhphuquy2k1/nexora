@@ -82,6 +82,36 @@ const exited = new Promise((resolve) => {
 });
 let socket;
 let restartMfaSession;
+const compose = [
+  "compose",
+  "-f",
+  "compose.yml",
+  ...(process.env.NEXORA_COMPOSE_OVERRIDE
+    ? ["-f", process.env.NEXORA_COMPOSE_OVERRIDE]
+    : []),
+];
+const sql = (command) => {
+  const result = spawnSync(
+    "docker",
+    [
+      ...compose,
+      "exec",
+      "-T",
+      "postgres",
+      "psql",
+      "-U",
+      "nexora",
+      "-d",
+      "nexora",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      command,
+    ],
+    { stdio: "pipe", timeout: 15000 },
+  );
+  assert.equal(result.status, 0);
+};
 try {
   checks.step("BROWSER_LAUNCH");
   let port;
@@ -508,34 +538,9 @@ try {
     );
     checks.step("ADMIN_MFA_EXPIRED_CHALLENGE");
     assert.match(username, /^[a-z_]+$/);
-    const compose = [
-      "compose",
-      "-f",
-      "compose.yml",
-      ...(process.env.NEXORA_COMPOSE_OVERRIDE
-        ? ["-f", process.env.NEXORA_COMPOSE_OVERRIDE]
-        : []),
-    ];
-    const expired = spawnSync(
-      "docker",
-      [
-        ...compose,
-        "exec",
-        "-T",
-        "postgres",
-        "psql",
-        "-U",
-        "nexora",
-        "-d",
-        "nexora",
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-c",
-        `UPDATE mfa_challenges SET expires_at=now()-interval '1 second' WHERE user_id=(SELECT id FROM users WHERE username='${username}');`,
-      ],
-      { stdio: "pipe" },
+    sql(
+      `UPDATE mfa_challenges SET expires_at=now()-interval '1 second' WHERE user_id=(SELECT id FROM users WHERE username='${username}');`,
     );
-    assert.equal(expired.status, 0);
     checks.status(await submitCode(totp(mfaSetupKey)), 401);
     for (let i = 0; i < 100; i++) {
       if (
@@ -578,28 +583,6 @@ try {
     });
     await waitCancelError();
     await send("Fetch.disable");
-    const sql = (command) => {
-      const result = spawnSync(
-        "docker",
-        [
-          ...compose,
-          "exec",
-          "-T",
-          "postgres",
-          "psql",
-          "-U",
-          "nexora",
-          "-d",
-          "nexora",
-          "-v",
-          "ON_ERROR_STOP=1",
-          "-c",
-          command,
-        ],
-        { stdio: "pipe", timeout: 15000 },
-      );
-      assert.equal(result.status, 0);
-    };
     checks.step("ADMIN_CANCEL_DATABASE_FAILURE");
     sql(
       "CREATE FUNCTION smoke_reject_cancel() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled cancellation failure'; END $$; CREATE TRIGGER smoke_reject_cancel BEFORE DELETE ON mfa_challenges FOR EACH ROW EXECUTE FUNCTION smoke_reject_cancel();",
@@ -1015,6 +998,127 @@ try {
       false,
     );
   }
+  checks.step("IN_PAGE_WORKSPACE_SESSION_EXPIRATION");
+  // 1. Authenticate operator using real login endpoint
+  const inPageLogin = await evaluate(
+    `fetch("/api/auth/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:${JSON.stringify(operatorName)},password:${JSON.stringify(password)}})}).then(r=>r.status)`,
+  );
+  checks.status(inPageLogin, 200);
+
+  // 2. Navigate directly to /customers?page=2 in the real browser
+  await send("Page.navigate", { url: `${baseUrl}/customers?page=2` });
+  let customerPageReady = false;
+  for (let i = 0; i < 150; i++) {
+    try {
+      customerPageReady = await evaluate(`(() => {
+        if (location.pathname !== "/customers" || !location.search.includes("page=2")) return false;
+        if (!document.querySelector("h1#customer-heading")) return false;
+        const reloadBtn = document.querySelector('button[aria-label="Làm mới"]');
+        if (!reloadBtn || reloadBtn.disabled) return false;
+        const accountMenu = document.querySelector('button[aria-label^="Tài khoản người dùng"]');
+        if (!accountMenu) return false;
+        return true;
+      })()`);
+      if (customerPageReady) break;
+    } catch {
+      // In-flight document load context transition
+    }
+    await delay(100);
+  }
+  assert.equal(
+    customerPageReady,
+    true,
+    "Customer page 2 did not load properly with interactive reload button",
+  );
+
+  // 3 & 4. Verify AppShell is rendered, authenticated, and initial URL is preserved
+  assert.equal(
+    await evaluate("location.pathname + location.search"),
+    "/customers?page=2",
+    "Current URL must be /customers?page=2",
+  );
+
+  // 5. Install mutation observer to capture workspace boundary alert during transition
+  await evaluate(`(() => {
+    window.__nexora_expired_alert_rendered = false;
+    const observer = new MutationObserver(() => {
+      const alert = document.querySelector('[role=alert]');
+      if (alert && alert.textContent.includes('Phiên làm việc đã hết hạn')) {
+        window.__nexora_expired_alert_rendered = true;
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  })()`);
+
+  // 6. Revoke session directly from backend PostgreSQL database
+  sql(
+    `UPDATE sessions SET expires_at=to_timestamp(0) WHERE user_id IN (SELECT id FROM users WHERE username='${operatorName}');`,
+  );
+
+  // 7. Browser remains on /customers?page=2; trigger protected API call via UI button click
+  assert.equal(await evaluate("location.pathname"), "/customers");
+  await evaluate(
+    "document.querySelector('button[aria-label=\"Làm mới\"]').click()",
+  );
+
+  // 8. Verify Workspace Auth Boundary receives event, renders alert, and navigates to /login
+  let alertMasked = false;
+  let loginRedirected = false;
+  for (let i = 0; i < 150; i++) {
+    try {
+      const state = await evaluate(`(() => {
+        const alert = document.querySelector('[role=alert]');
+        const hasAlert = alert && alert.textContent.includes('Phiên làm việc đã hết hạn');
+        const observed = window.__nexora_expired_alert_rendered;
+        const isLogin = location.pathname === "/login";
+        return { hasAlert: Boolean(hasAlert || observed), isLogin };
+      })()`);
+      if (state?.hasAlert) alertMasked = true;
+      if (state?.isLogin) {
+        loginRedirected = true;
+        break;
+      }
+    } catch {
+      // In-flight route transition context change
+    }
+    await delay(50);
+  }
+  assert.equal(
+    alertMasked,
+    true,
+    "Expired session masking alert must be rendered at workspace boundary",
+  );
+  assert.equal(
+    loginRedirected,
+    true,
+    "In-page 401 must trigger navigation to /login",
+  );
+
+  let loginSearchParams;
+  for (let i = 0; i < 50; i++) {
+    try {
+      loginSearchParams = await evaluate(
+        `new URLSearchParams(location.search).get("from")`,
+      );
+      if (loginSearchParams) break;
+    } catch {
+      // in flight
+    }
+    await delay(50);
+  }
+  assert.equal(
+    loginSearchParams,
+    "/customers?page=2",
+    "Login 'from' parameter must preserve exact original path and query (/customers?page=2)",
+  );
+
+  // 9. Verify no redirect loop
+  await delay(500);
+  assert.equal(
+    await evaluate("location.pathname"),
+    "/login",
+    "Browser must stay at /login without redirect loop",
+  );
   if (process.env.COMPOSE_PROJECT_NAME) {
     checks.step("SETUP_SERVER_LOG_PRIVACY");
     const args = ["compose", "-f", "compose.yml"];
@@ -1046,6 +1150,11 @@ try {
     "Actual browser unified Login, fragment Setup privacy, no auto-login, OPERATOR login, cookies and Logout PASS",
   );
 } catch (error) {
+  console.error(
+    "BROWSER_LOGIN_SMOKE_ERROR_DIAGNOSTIC",
+    error?.message,
+    error?.stack,
+  );
   checks.failure(error);
   process.exitCode = 1;
 } finally {

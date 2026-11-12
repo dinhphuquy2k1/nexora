@@ -98,37 +98,63 @@ test("Design tokens: complete 2-tier architecture and scale tokens", () => {
   assert.match(tokensContent, /--shadow-lg:/, "Shadow lg present");
 });
 
-test("Decoupled Global CSS: no internal component classes in styles.css", () => {
-  const stylesPath = path.join(webRoot, "app/styles.css");
-  assert.ok(fs.existsSync(stylesPath), "styles.css must exist");
+test("Decoupled Global CSS: globals.css owns one token import and no internal component classes", () => {
+  const stylesPath = path.join(webRoot, "styles/globals.css");
+  assert.ok(fs.existsSync(stylesPath), "globals.css must exist");
+  assert.equal(
+    fs.existsSync(path.join(webRoot, "app", "styles.css")),
+    false,
+    "The obsolete App Router global stylesheet must be absent",
+  );
+
+  const rootLayout = fs.readFileSync(
+    path.join(webRoot, "app/layout.tsx"),
+    "utf8",
+  );
+  const rootCssImports = [
+    ...rootLayout.matchAll(/^\s*import\s+["']([^"']+\.css)["'];?/gm),
+  ].map((match) => match[1]);
+  assert.deepEqual(
+    rootCssImports,
+    ["../styles/globals.css"],
+    "Root Layout imports Global CSS once",
+  );
 
   const stylesContent = fs.readFileSync(stylesPath, "utf8");
+  assert.ok(
+    stylesContent.startsWith('@import "./tokens.css";\n'),
+    "Tokens precede all global rules",
+  );
+  const imports = [
+    ...stylesContent.matchAll(/^\s*@import\s+["']([^"']+)["'];/gm),
+  ].map((match) => match[1]);
+  assert.deepEqual(imports, ["./tokens.css"], "Global CSS imports tokens once");
 
   // Global CSS must NOT contain internal component styling rules
   assert.doesNotMatch(
     stylesContent,
     /^\.panel\s*\{/m,
-    "styles.css must not define .panel rule",
+    "globals.css must not define .panel rule",
   );
   assert.doesNotMatch(
     stylesContent,
     /^\.badge\s*\{/m,
-    "styles.css must not define .badge rule",
+    "globals.css must not define .badge rule",
   );
   assert.doesNotMatch(
     stylesContent,
     /^\.good\s*\{/m,
-    "styles.css must not define .good status rule",
+    "globals.css must not define .good status rule",
   );
   assert.doesNotMatch(
     stylesContent,
     /^\.bad\s*\{/m,
-    "styles.css must not define .bad status rule",
+    "globals.css must not define .bad status rule",
   );
   assert.doesNotMatch(
     stylesContent,
     /^\.pending\s*\{/m,
-    "styles.css must not define .pending status rule",
+    "globals.css must not define .pending status rule",
   );
 });
 

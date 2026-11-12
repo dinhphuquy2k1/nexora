@@ -175,6 +175,10 @@ test("F9 history callbacks retain canonical API filters and authoritative server
       continue;
     }
     nodes.push(node);
+    // Execute the extracted stateless presentation component, keeping its real
+    // callbacks in this feature-to-Pager integration assertion.
+    if (typeof node.type === "function" && node.type.name === "Pager")
+      pending.push(node.type(node.props));
     pending.push(node.props?.children);
   }
   const filter = nodes.find(

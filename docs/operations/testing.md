@@ -17,7 +17,7 @@ Cloud-only overrides may be supplied as `NEXORA_COMPOSE_OVERRIDE=/absolute/path/
 
 The authentication runtime smoke now provisions fresh operators through `dist/cli/user-create.js --password-stdin` via the runtime entrypoint, verifies duplicate rejection, and runs `scripts/provisioning-tty-smoke.py` against the same compiled non-root image. The pseudo-TTY harness uses Python standard-library PTY facilities, checks hidden password/confirmation, Enter, Backspace, Ctrl+C/Ctrl+D and both container/host terminal restoration without printing captured output.
 
-`scripts/auth-runtime-smoke.mjs` exercises the actual Web proxy: exact/missing/wrong Origin, invalid JSON fields, fake/malformed/expired sessions, cookie attributes under forged forwarding headers, persistence across API restart, idempotent logout, safe logout failure and fail-closed workspace access during a disposable PostgreSQL outage followed by recovery. It additionally asserts standalone public `/login` rendering (no AppShell), unauthenticated/stale session redirection (`/login?from=...`), and valid session workspace access. `scripts/browser-login-smoke.mjs` uses Chromium DevTools with Node's built-in WebSocket to verify standalone Login layout (no AppShell headers/navigation), unauthenticated workspace redirection, typing and submitting the real Login form, observing the response, verifying HttpOnly session and authenticated AppShell presence on protected navigation, and post-logout revoked session redirection. It adds no npm browser framework. Host smoke requires Node >=22, Python 3 and installed Chrome/Chromium (or CHROME_BIN); missing browser support fails instead of silently skipping. Existing foundation CI selects pinned host Node 24.19.0 and invokes these through runtime smoke. Credentials arrive by stdin and are never emitted in diagnostics.
+`scripts/auth-runtime-smoke.mjs` exercises the actual Web proxy: exact/missing/wrong Origin, invalid JSON fields, fake/malformed/expired sessions, cookie attributes under forged forwarding headers, persistence across API restart, idempotent logout, safe logout failure and fail-closed workspace access during a disposable PostgreSQL outage followed by recovery. It additionally asserts standalone public `/login` rendering (no AppShell), unauthenticated/stale session redirection (`/login?from=...`), and valid session workspace access. `scripts/browser-login-smoke.mjs` uses Chromium DevTools with Node's built-in WebSocket to verify standalone Login layout (no AppShell headers/navigation), unauthenticated workspace redirection, typing and submitting the real Login form, observing the response, verifying HttpOnly session and authenticated AppShell presence on protected navigation, post-logout revoked session redirection, and in-page workspace session expiration (`IN_PAGE_WORKSPACE_SESSION_EXPIRATION`: authenticating an operator, loading `/customers?page=2`, revoking the session in PostgreSQL, triggering a protected reload click, observing the `role="alert"` masking notice, and verifying client-side single-flight redirect to `/login?from=%2Fcustomers%3Fpage%3D2` without reload loops or runtime exceptions). It adds no npm browser framework. Host smoke requires Node >=22, Python 3 and installed Chrome/Chromium (or CHROME_BIN); missing browser support fails instead of silently skipping. Existing foundation CI selects pinned host Node 24.19.0 and invokes these through runtime smoke. Credentials arrive by stdin and are never emitted in diagnostics.
 
 `NEXORA_COMPOSE_OVERRIDE` also applies to runtime smoke, allowing the same cloud CA build-secret setup as quality. Run with a different loopback WEB_PORT to exercise port derivation without publishing API/database. All destructive expiry/outage/cleanup steps are limited to the disposable project's own data. Source changes and historical CI do not establish that these expanded checks passed; current evidence and gaps remain in NEXORA-009.
 
@@ -789,3 +789,29 @@ fixture URL, followed by font readiness and two layout frames before interaction
 and geometry comparisons. The prior-document marker cannot satisfy readiness;
 navigation errors fail closed. This synchronization does not relax geometry
 assertions, tolerances, timeout budgets or production UI behavior.
+
+## M5 Pager and filter disclosure acceptance
+
+Canonical Docker quality also compiles the isolated actual-component M5 fixture
+using the existing pinned Next webpack compiler. Foundation runs
+`node scripts/m5-browser-checks.mjs artifacts artifacts/m5 --acceptance` after
+Docker quality; it reuses the generated Retail/Carrier screen fixtures and an
+installed Chromium/Chrome (`CHROME_BIN` may select it). No browser npm package is
+required. The M5 artifact has14-day retention.
+
+For local visual comparison, compile components, Retail and Carrier into separate
+`components`, `retail`, `carrier` subdirectories of a scratch bundle root using
+`scripts/build-retail-fixture.mjs` and the M5/Retail/Carrier fixture entries.
+Run `node scripts/m5-browser-checks.mjs <bundle-root> <baseline-output>` before
+production edits, then rerun with candidate bundles and a third `<baseline-output>`
+argument. Comparison checks actual geometry/styles/DOM at desktop/mobile sizes;
+captures and manifests remain ignored/untracked, not committed evidence assets.
+Baseline bundle hashes distinguish retained source bytes from a later re-render.
+
+Acceptance covers all four page control groups and summaries, unknown/empty/single
+states, page-size reset, history window policy, actual pointer/keyboard focus and
+hover, both filters' field/default/error/duplicate/max behavior, focus restoration,
+outside target focus, stable aria-controls and enabled/disabled environment options.
+Isolated component/screens exercise real TSX/CSS but do not certify authenticated
+full-stack runtime, API ownership or backend concurrency; existing Foundation
+runtime/browser suites remain separate mandatory gates.

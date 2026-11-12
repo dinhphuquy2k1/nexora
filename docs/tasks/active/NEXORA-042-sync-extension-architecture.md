@@ -199,3 +199,14 @@ no shared TS provider-column limit; schema/migrations declare VarChar32 and regi
 has a local32 guard. Per explicit instruction no duplicate constant is introduced;
 P3(d) remains deferred for a deliberate ownership decision. Other requested bounded
 corrections proceed under v2. Production registrations remain empty.
+
+## Main merge conflict resolution — 2026-11-12
+
+Merged origin/main3906f8243347fb7c697bf5f6949389c3a784a13d (no rebase).
+Carrier navigate combines PR fresh-document marker/exact URL/navigation-error/
+settleLayout with main dialogGate in the same until expression, bypassing only
+for syncIssues; original assertions/tolerances/timeouts unchanged. Testing doc
+keeps both Sync Phase A extension verification and M5 Pager/filter acceptance.
+Backend auto-merge inspected: exactly one Phase A section for NEXORA-042 and one
+Carrier Reconnect policy section still attributed to PR35/NEXORA-035; neither
+lost/duplicated. Main API/Auth/UI changes are inherited, not new Sync scope.

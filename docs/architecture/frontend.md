@@ -108,7 +108,7 @@ To eliminate visual layout shifts, misleading accessibility semantics, and hydra
 - First-Paint Parity: Before React hydration completes, the visible button in the accessibility tree and visual layout match the 72px collapsed Sidebar identically without layout shift (shift < 0.05, typically 0.00) or hydration warning.
 - Post-Hydration Interaction: Manual sidebar toggle overrides cleanly switch to user-controlled state (`userOverride`), with interactive clicks at 1024px expanding the sidebar to 240px and collapsing back to 72px without breaking responsive rules.
 
-### H. Minimal Global Styles (`apps/web/app/styles.css`)
+### H. Minimal Global Styles (`apps/web/styles/globals.css`)
 
 Global CSS is restricted to root token imports, basic CSS reset, base typography, and macro page layout grids (`.grid`, `.status-grid`). All internal component presentation for `Panel`, `StatusBadge`, and form controls is decoupled into `@nexora/ui` CSS Modules.
 
@@ -171,6 +171,12 @@ Nexora is a local-first shipment management platform. In foundation v0.1.0, the 
 - **Route Guarding (`middleware.ts`)**: Enforces Host allowlist validation at ingress across all matched paths including `/api/*`. Provides fast loopback redirection for unauthenticated workspace requests lacking `nexora_session` cookies, and injects `x-pathname` header for downstream Server Components while avoiding network requests in middleware.
 - **Authenticated Account State (`AccountMenu`)**: Displays authenticated username with neutral “Tài khoản Nexora” subtitle and username-derived avatars. The disclosure has exactly three entries: planned/disabled Profile, native Carrier Connections Link (NEXORA-033 UI-only route), and real server-side logout destroying the session in PostgreSQL and clearing cookies. It contains no environment/runtime status, wallet/VIP or inferred role. Checks response status before redirecting and renders safe accessible error feedback on failure with retry.
 - **Upstream API Proxy (`next.config.ts`) & Server API Configuration (`lib/api/config.ts`)**: Authoritative configuration owner validates `API_INTERNAL_URL` as a required HTTP/HTTPS origin without path, credentials, query, or fragment. No implicit application fallback is permitted; Compose supplies `http://api:4000` for container runtime. Server Component session verification (`lib/api/session.ts`) queries `/api/auth/session` using this configuration, distinguishing authenticated (200), unauthenticated (401), and upstream unavailable (5xx/network) states while performing redirects strictly outside catch blocks.
+- **Centralized Workspace Session Expiration Policy (NEXORA-035)**:
+  - **Single Boundary Handler (`ShellClient.tsx` & `workspace-auth.ts`)**: Session expiration (`401 UNAUTHORIZED`) is coordinated centrally at the Web Application Boundary. `ShellClient` registers a listener with the auth coordinator; when a legitimate workspace session expiration is notified, content is masked with an accessible expiration notice (`role="alert"`) and a single-flight redirect to sanitized `/login?from=...` is initiated.
+  - **Shared Client Middleware (`workspace-client.ts`)**: Client instances created via `createWorkspaceApiClient()` attach a response observer middleware that non-destructively clones 401 responses, verifies `{ code: "UNAUTHORIZED" }`, and fences against stale in-flight responses from prior sessions using session epochs (`getCurrentSessionEpoch()`).
+  - **Early Initialization & Lifecycle Invariants**: The session generation is initialized on first demand (`getCurrentSessionEpoch()` returns an active epoch >= 1), ensuring child component requests dispatched before the boundary effect completes have valid generation tracking. Boundary registration binds `userId` without bumping the epoch, preserving early in-flight requests. React Strict Mode remounts preserve generation and immediately dispatch any expiration buffered during transient unmount gaps.
+  - **Feature Invariant Preservation**: Feature callers (Customer and Carrier hooks/drawers/pages) use `createWorkspaceApiClient()` and do not perform local navigation redirects. Local abort controllers, denial states (`read.deny()`, `onDenied()`, `denied.current`), mutation locks, and reconciliation invariants are strictly preserved.
+  - **Strict Error Separation**: HTTP 400, 403, 429, 500, 503, and carrier provider credential rejections (`400 PROVIDER_AUTH_FAILED`) are never classified as workspace session expiration and do not trigger login navigation.
 
 ## 9. Authentication transport and session payload validation
 
@@ -206,7 +212,7 @@ CustomerStatsBar exists in M2 code; runtime acceptance remains pending. Merged N
 
 ## NEXORA-031 M1 foundation
 
-M1 implements the approved presentation foundation on the existing App Router/security architecture; M2–M5 are NOT STARTED. Header56px, sidebar240px/72px, current navy/orange semantic palette and local Inter normal-variable100–900 are retained as central tokens. The unmodified font and SIL OFL license/provenance are in app/fonts; actual cmap covers U+1EA0–U+1EF9 plus Đ/đ, verified against source bytes. next/font/local supplies the root --font-inter variable; no external font request. Existing Panel and boolean/null StatusBadge semantics are unchanged.
+M1 implements the approved presentation foundation on the existing App Router/security architecture; M2–M5 are NOT STARTED. Header56px, sidebar240px/72px, current navy/orange semantic palette and local Inter normal-variable100–900 are retained as central tokens. The unmodified font and SIL OFL license/provenance are in apps/web/assets/fonts; actual cmap covers U+1EA0–U+1EF9 plus Đ/đ, verified against source bytes. next/font/local supplies the root --font-inter variable; no external font request. Existing Panel and boolean/null StatusBadge semantics are unchanged.
 
 Neutral packages/ui Button/TextInput/Checkbox are consumed by Login/MFA; Overlay is consumed by mobile navigation and login-help dialog. No unused Select or generic form framework. Overlay uses native modal dialog/top-layer/inert background/focus containment, Escape/backdrop dismissal and overflow restoration. Existing useDismissable remains the popover policy. The shell adapts to tablet collapse and off-canvas at widths<=900px, closes on route/viewport change, restores trigger focus and exposes the existing honest empty NotificationMenu. Navigation registry and availability remain unchanged: Overview/System/Settings only; no Customer/Retail/Carrier activation.
 
@@ -412,3 +418,48 @@ never substitutes preview lines or an empty realtime-log claim. Existing populat
 reference-preview logs retain their presentation; SyncItem.logs is preview-only.
 No streaming endpoint, WebSocket/SSE, backend log persistence or new polling is
 introduced. Existing issue paging, cancellation, denial and Drawer state remain.
+
+## Frontend asset and stylesheet ownership
+
+`apps/web/app/` owns App Router routes and layouts. Root Layout imports
+`styles/globals.css` once; that file owns global reset, base typography and the
+existing global rules, loading `styles/tokens.css` first. Source assets imported
+or bundled by Web live under `assets/`: the
+unmodified local Inter4.1 font, OFL license and provenance are in `assets/fonts/`.
+Root Layout continues to use `next/font/local` with `--font-inter`, display swap
+and variable weights100–900; Next builds and serves the bundled font locally.
+
+`styles/tokens.css` remains the canonical design-token source. CSS Modules stay
+with their component or feature owner; shared primitives keep their CSS under
+`packages/ui`. Stylesheets are not moved into assets. `public/` is reserved for
+files that need stable public URLs, rather than being synonymous with source
+assets. Create `assets/images/` or `assets/icons/` only when actual owned files
+require them; keep Lucide imports and do not copy library icons into SVG files.
+
+## M5 shared pagination and filter disclosure
+
+Tier A `@nexora/ui` Pager presents explicit feature-owned page windows, navigation
+targets/disabled states and ReactNode summary/page-size slots. Customer keeps
+`derivePaginationModel`, Retail its client calculations/reset-to-page-1 callback,
+Carrier its account model, and history its every-page-through-five rule followed
+by `pageWindow`. Counts and availability never move into shared UI. Existing
+outer wrappers, Customer range/total strong elements, Retail data-retail-count
+text, Carrier data-carrier-pagination and history page/total markup remain.
+
+All four actual control groups use labeled native nav landmarks. Retail's former
+div/group and Carrier account's nav with overriding group role now expose
+navigation semantics: intentional accessibility improvements, not a claim of an
+identical accessibility tree. Existing control labels, disabled behavior and
+aria-current policy remain feature-supplied; no nested navigation is introduced.
+The Pager decorative ellipsis is always aria-hidden, in grouped and inline
+layouts. Retail's nav is specifically named "Phân trang kiện lẻ"; its outer
+non-landmark pagination div has no redundant aria-label. These are intentional
+v3 accessibility corrections, not changes to visual layout.
+
+Tier B FilterPopoverShell owns the common Retail/Carrier disclosure structure,
+state, generated trigger/panel association, initial focus, canonical useDismissable
+integration and close render slot. Stable aria-controls is an intentional
+accessibility change. Features retain filtering models, submit/error lifecycle and
+visual geometry exceptions. Shared behavior and public customization details are
+owned by the [reusable registry](reusable-components.md#web-filterpopovershell-m5).
+No new dependencies, backend contracts, routes or security changes are introduced.

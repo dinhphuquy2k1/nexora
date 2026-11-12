@@ -1,4 +1,4 @@
-import { CustomerStatus } from "@nexora/shared";
+import { isCustomerStatus } from "@nexora/shared";
 import type {
   Stats,
   Summary,
@@ -35,8 +35,7 @@ export function isSummary(x: unknown): x is Summary {
       "createdAt",
       "updatedAt",
     ]) &&
-    (x.status === CustomerStatus.ACTIVE ||
-      x.status === CustomerStatus.INACTIVE) &&
+    isCustomerStatus(x.status) &&
     ["email", "note"].every((k) => x[k] === null || typeof x[k] === "string")
   );
 }
