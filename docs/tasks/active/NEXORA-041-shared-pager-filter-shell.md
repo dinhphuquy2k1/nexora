@@ -41,11 +41,11 @@ testing-command documentation; v1 remains immutable. No owner approval gate.
 - [x] Fresh main branch and scoped immutable pre-code plan.
 - [x] Baseline unit/browser evidence before production modifications.
 - [x] Four Pager consumers; both filters share Web shell.
-- [x] Original business/visual preservation and v2 intentional ARIA behavior verified at c1aa327; v3 a11y corrections await new-head CI.
+- [x] Original business/visual preservation and v2 intentional ARIA behavior verified at c1aa327; v3 ellipsis regression and new-head M5 Chromium acceptance PASS at 95f2145.
 - [x] Targeted tests, local browser comparison and acceptance-only execution.
 - [x] Historical c1aa327 full host quality:625 tests; not v3 evidence.
 - [x] New formatting-remediation local quality:626 tests and all gates; final-head hosted verification still required.
-- [ ] Canonical Docker and final-head hosted gates on the NEW F1/F2 commit (historical c1aa327 passed; new-head CI required).
+- [ ] Canonical Docker and final-head hosted gates: 95f2145 Docker/M5 PASS, but Foundation HTTPS FAIL; publication-head verification remains required (see latest evidence).
 - [x] Canonical docs synchronized; fresh branch pushed and new PR41 to main; no merge.
 - [ ] Independent reviewer/owner approval obtained.
 
@@ -373,6 +373,53 @@ Detailed mutation/lint logs remain outside Git in execution scratch.
 | Documentation                      | npx --yes pnpm@10.34.6 docs:check: PASS                                                                                                                                                                                                                                                                                                                                     | 2026-11-12 | PASS   |
 | Structural governance              | npx --yes pnpm@10.34.6 preflight:check: PASS; v3 binding unchanged                                                                                                                                                                                                                                                                                                          | 2026-11-12 | PASS   |
 
-Full quality and new-head hosted gates are pending for this delta. Historical
+At the initial test commit, full quality and hosted gates were pending. Historical
 FAIL evidence above remains intact. Only pager.test.mjs and this task may differ
 from a6e2761; snapshots, .prettierignore and all production files stay unchanged.
+
+### Committed test-head quality — 2026-11-12
+
+Test commit HEAD: 95f2145c65d3aca5703df6b268c5365f284f639d.
+Executed 2026-11-12T13:32:09Z–13:35:29Z UTC with a clean tracked working tree.
+
+| Claim                               | Evidence                                                                                                                                                                                                                                                                             | Date       | Result |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Full quality on committed test head | API_INTERNAL_URL=http://127.0.0.1:4000 npx --yes pnpm@10.34.6 quality: exit0; format/lint/boundaries/preflight/docs/typecheck/contracts/build PASS; 626/626 tests, 0 fail/skip (132 root, 186 API, 266 Web, 36 UI, 6 DB). Turbo reused unchanged build prerequisites; tests executed | 2026-11-12 | PASS   |
+| Scope and immutable integrity       | git diff a6e2761 --name-only contains only packages/ui/test/pager.test.mjs and this task; production Pager exact original SHA256; v3 digest remains be8e7589a235986abebe6d633125a04732f6a09d37c074fac9b193f07763da12; no .prettierignore or snapshot changes                         | 2026-11-12 | PASS   |
+
+Self-review used the repository implementation-code-review checklist: no contract,
+feature authority, layer, dependency, transaction or production delta. This is
+not independent reviewer/owner approval; that acceptance checkbox stays open.
+
+### Hosted test-head evidence and publication handoff — 2026-11-12
+
+User-authorized task evidence synchronization supersedes the older instruction to
+record results only in PR metadata. PR body/plan metadata remain unchanged.
+Both workflows below ran on HEAD
+95f2145c65d3aca5703df6b268c5365f284f639d, actual checkout merge
+11b56d3f6b7f2b434a0deb0d442cc840e50d344d into
+a3fd1049bb994af4982c59c93bf29f3b9dd939c4, attempt1. Checkout provenance was
+checked directly in both job logs. Times below are UTC.
+
+| Claim                                                       | Evidence                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Preflight Policy & Design Governance                        | [Run43228272357](https://github.com/dinhphuquy2k1/nexora/actions/runs/43228272357), HEAD95f2145 above, completed2026-11-12T13:32:44Z: SUCCESS; governance binding and24/24 tests,0skip                                                                                                                                    | 2026-11-12 | PASS   |
+| Nexora foundation — Docker quality and migrated integration | [Run43228272149 job131217044250](https://github.com/dinhphuquy2k1/nexora/actions/runs/43228272149/job/131217044250), HEAD95f2145 above, step4 completed2026-11-12T13:38:02Z: SUCCESS; format/lint/types/contracts/build/tests and migrated integration passed                                                             | 2026-11-12 | PASS   |
+| Nexora foundation — M5 Chromium acceptance                  | Same [Foundation run43228272149](https://github.com/dinhphuquy2k1/nexora/actions/runs/43228272149), HEAD95f2145 above, step5 completed2026-11-12T13:38:45Z: SUCCESS; log at13:38:44.846Z confirms M5 Chromium PASS,16 captures, focus/dismissal/unknown/navigation/ARIA/filter regressions                                | 2026-11-12 | PASS   |
+| Nexora foundation — runtime smoke                           | Same run/HEAD, step7 completed2026-11-12T13:44:16Z: SUCCESS; runtime/provisioning/TTY/browser smoke                                                                                                                                                                                                                       | 2026-11-12 | PASS   |
+| Nexora foundation — full workflow                           | Same run/HEAD, job completed2026-11-12T13:45:48Z: FAILURE. HTTPS step8 failed at13:45:22Z with PUBLIC_HTTPS_SMOKE_FAILED / ADMIN_BROWSER_INTERACTIVE_LOGIN / REQUEST_TIMEOUT; loginDispatched=false,mfaDispatched=false,setupDispatched=false. Persistence/development steps9–10 SKIPPED; no full Foundation PASS claimed | 2026-11-12 | FAIL   |
+
+No cause is established by this timeout and no Auth/HTTPS fix or retry-until-green
+is included in this test-only delta. Historical failures and this new FAIL stay
+recorded. The canonical final-head checkbox remains unchecked, as does independent
+reviewer/owner approval. Status stays VERIFICATION PENDING; no merge or deployment.
+
+This evidence publication changes only this task after the tested commit;
+pager.test.mjs and all production/snapshot bytes remain identical to95f2145.
+The publication commit will itself receive full local quality and fresh hosted
+Preflight/Foundation/M5 checks. Their exact final HEAD/run outcomes will be
+reported in the final handoff, without a self-referential SHA-only commit loop
+or any PR metadata edit. This checkpoint documents the actual new test-head
+results above, not an assertion that a later publication HEAD passed.
+M5 captures were executed/uploaded by CI; no artifact hash verification or manual
+screenshot inspection was performed in this delta.
