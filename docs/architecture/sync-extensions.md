@@ -26,7 +26,7 @@ SyncSource contains only id/sourceVersion/processorVersion/payload. The neutral
 session has immutable owner/connection/source/provider/account/type scope. The
 Customer-owned session separately exposes existingCustomerId/linkExistingCustomer;
 only its infrastructure binding reads/locks Customer and persists the existing
-owner-scoped FK/link_origin. A non-Customer binding need not fabricate that link.
+owner-scoped FK/link_origin. Sync alone writes applied-job provenance. A non-Customer binding need not fabricate that link.
 
 ## Extension procedure
 

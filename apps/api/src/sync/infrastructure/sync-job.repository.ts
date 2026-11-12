@@ -151,14 +151,16 @@ export class SyncRepository implements SyncQueue {
   ) {
     return this.client.$transaction(async (tx) => {
       const c = await this.connection(tx, userId, id, true);
-      if (!this.available(c.provider, type))
+      if (!this.config.enabled || !this.config.types.includes(type))
         throw new SyncError(E.SYNC_UNAVAILABLE);
+      const capability = this.capabilities.resolve(c.provider, type);
+      if (!capability) throw new SyncError(E.SYNC_UNAVAILABLE);
       // Static predicate preserves PostgreSQL partial-index inference; covered by
       // integration/fixtures/sync-status-contract.cjs prepared/admit contract.
       const rows = await tx.$queryRaw<
         SyncJob[]
       >`INSERT INTO sync_jobs(carrier_connection_id,owner_user_id,provider,external_account_id,sync_type,trigger_source,generation,lifecycle_version,fetch_strategy,target_watermark)
-   VALUES(${id}::uuid,${userId}::uuid,${c.provider},${c.external_account_id},${type},${trigger},${c.generation},${c.lifecycle_version},${this.capabilities.resolve(c.provider, type)!.provider.strategy(c.provider, type)},coalesce((SELECT last_completed_watermark FROM sync_configs WHERE carrier_connection_id=${id}::uuid AND sync_type=${type}),(SELECT target_watermark FROM sync_jobs WHERE carrier_connection_id=${id}::uuid AND owner_user_id=${userId}::uuid AND sync_type=${type} AND status=${J.SUCCEEDED} ORDER BY finished_at DESC,id DESC LIMIT 1)))
+   VALUES(${id}::uuid,${userId}::uuid,${c.provider},${c.external_account_id},${type},${trigger},${c.generation},${c.lifecycle_version},${capability.strategy},coalesce((SELECT last_completed_watermark FROM sync_configs WHERE carrier_connection_id=${id}::uuid AND sync_type=${type}),(SELECT target_watermark FROM sync_jobs WHERE carrier_connection_id=${id}::uuid AND owner_user_id=${userId}::uuid AND sync_type=${type} AND status=${J.SUCCEEDED} ORDER BY finished_at DESC,id DESC LIMIT 1)))
    ON CONFLICT(carrier_connection_id,sync_type) WHERE status IN ('QUEUED','RUNNING','WAITING') DO NOTHING RETURNING *`;
       if (rows[0]) return rows[0];
       const active = await tx.$queryRaw<

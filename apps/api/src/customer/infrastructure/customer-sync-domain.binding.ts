@@ -84,7 +84,7 @@ export function createCustomerSyncBinding(
           if (!proposedId) throw new SyncError(E.PROCESSOR_UNAVAILABLE);
           active = false;
           const changed =
-            await tx.$executeRaw`UPDATE sync_source_identities SET customer_id=${proposedId}::uuid,link_origin=${SyncLinkOrigin.LINKED_EXISTING},last_applied_sync_job_id=${job.id}::uuid WHERE id=${sourceId}::uuid AND owner_user_id=${ownerId}::uuid`;
+            await tx.$executeRaw`UPDATE sync_source_identities SET customer_id=${proposedId}::uuid,link_origin=${SyncLinkOrigin.LINKED_EXISTING} WHERE id=${sourceId}::uuid AND owner_user_id=${ownerId}::uuid`;
           assertVersion();
           if (changed !== 1) throw new SyncError(E.SOURCE_CONFLICT);
         },

@@ -210,3 +210,40 @@ keeps both Sync Phase A extension verification and M5 Pager/filter acceptance.
 Backend auto-merge inspected: exactly one Phase A section for NEXORA-042 and one
 Carrier Reconnect policy section still attributed to PR35/NEXORA-035; neither
 lost/duplicated. Main API/Auth/UI changes are inherited, not new Sync scope.
+
+## P3 test-first implementation checkpoint — 2026-11-12
+
+Against merged HEAD02e0c58, actual capability tests RED10PASS/2FAIL before
+production edits: mapping-only assertion saw extra last_applied_sync_job_id, and
+admit strategy count was3 rather than1. Both failures directly exercise actual
+compiled methods. Tests then guide removal of duplicate provenance write and
+reuse of one validated strategy captured by registry resolution. The application
+resolver port stays unchanged; only infrastructure BoundSyncCapability adds the
+captured strategy. available semantics and protected repository method bodies stay
+unchanged. Added real PG assertion requires99 applied existing-Customer sources
+to reference the applied job. Obsolete unavailable adapter has no production
+consumer; only its dedicated test assertions are removed, while empty factory/
+unsupported capability regressions remain. P3(d) stays an explicit PLAN ISSUE.
+
+## Merged-result verification checkpoint — 2026-11-12
+
+Execution source: merge02e0c58 plus scoped P3 working delta, Node v24.22.1,
+pinned pnpm10.34.6. Detailed logs/captures remain in execution scratch, not Git.
+
+| Claim                            | Evidence                                                                                                                                                                                                                                                                                                                                                         | Date       | Result |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Test-first P3 RED                | node --test apps/api/test/sync/capability.test.cjs before production edits:10PASS/2FAIL; binding extra provenance column and strategy3 versus1;0skip                                                                                                                                                                                                             | 2026-11-12 | FAIL   |
+| Initial P3 build                 | pnpm --filter @nexora/api... build rejected SyncStrategy used as type (TS2749); corrected to owning const-derived union, no compiler suppression                                                                                                                                                                                                                 | 2026-11-12 | FAIL   |
+| Prerequisite build GREEN         | npx --yes pnpm@10.34.6 --filter @nexora/api... build: genuine Prisma generation and API/shared/database builds PASS                                                                                                                                                                                                                                              | 2026-11-12 | PASS   |
+| Sync units GREEN                 | node --test apps/api/test/sync/\*.test.cjs:24/24PASS,0fail/skip, includes both new tests                                                                                                                                                                                                                                                                         | 2026-11-12 | PASS   |
+| Lint regression                  | npx --yes pnpm@10.34.6 test:lint:52/52PASS,0skip                                                                                                                                                                                                                                                                                                                 | 2026-11-12 | PASS   |
+| Docs and governance              | npx --yes pnpm@10.34.6 docs:check and preflight:check:PASS; v2 digest/binding retained                                                                                                                                                                                                                                                                           | 2026-11-12 | PASS   |
+| Formatting and boundaries        | npx --yes pnpm@10.34.6 format:check and node scripts/boundaries.mjs:PASS                                                                                                                                                                                                                                                                                         | 2026-11-12 | PASS   |
+| Independent round3 source review | Separate read-only reviewer at02e0c58+P3 delta,2026-11-12T14:30:51Z–14:32:04Z: no confirmed P1/P2/new P3 defect; independently24/24units,tsc --noEmit,boundaries,docs,preflight,snapshot formatting,diff checks PASS. Protected six methods token-identical vs main and13658fb; Carrier106assertions unchanged; integration214→215 with one provenance assertion | 2026-11-12 | PASS   |
+
+Round3 source assessment is independent technical review, not owner approval.
+Full local PostgreSQL integration and complete Carrier fixture are running against
+owned disposable resources; do not call partial progress PASS. Full quality and
+new-head hosted gates remain pending. Existing eea7287 Foundation FAIL and all
+other historical FAILs remain unchanged. A7 remains unchecked until every required
+hosted gate passes on the final pushed head. No merge or production activation.

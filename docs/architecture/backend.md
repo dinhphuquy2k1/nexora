@@ -201,3 +201,12 @@ verified Domain persistence only for APPLIED and closes capabilities in finally.
 Processor never receives Prisma/SQL or a public success receipt. Final lease fencing
 still rolls back all Domain and Sync work together. Test-owned neutral persistence
 is distinct from an authorized production handler; production registration is empty.
+
+Business-module infrastructure bindings may import only the SyncDomainBinding /
+BoundDomainExecution type contracts from sync/infrastructure/sync-domain.binding.
+Their signatures include Prisma.TransactionClient, so these persistence contracts
+cannot live in the Prisma-free application layer. This narrow type dependency
+does not authorize business Domain/application imports of Sync infrastructure or
+generic cross-module database access. Customer binding writes only customer_id
+and link_origin; the Sync repository alone writes last_applied_sync_job_id in the
+APPLIED bookkeeping branch under the same fenced transaction.

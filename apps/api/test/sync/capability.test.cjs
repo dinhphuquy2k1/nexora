@@ -16,10 +16,6 @@ const {
   loadSyncConfig,
   SyncConfigurationError,
 } = require("../../dist/sync/domain/sync-policy");
-const {
-  unavailableProvider,
-  unavailableProcessor,
-} = require("../../dist/sync/infrastructure/provider-fetch.adapter");
 const cfg = () =>
   loadSyncConfig({
     SYNC_ENABLED: "true",
@@ -132,14 +128,6 @@ test("global/type flags cannot create a production capability; API/worker share 
       "SHIPMENT",
     ),
     false,
-  );
-  await assert.rejects(
-    unavailableProvider.fetch(),
-    (e) => e.code === "SYNC_UNAVAILABLE",
-  );
-  await assert.rejects(
-    unavailableProcessor.apply(),
-    (e) => e.code === "PROCESSOR_UNAVAILABLE",
   );
 });
 
@@ -400,5 +388,134 @@ test("Customer binding rejects processor version drift after asynchronous begin 
       invocation.close();
     }
     assert.equal(applied, duringDecision ? 1 : 0);
+  }
+});
+
+test("Customer binding commits mapping only; Sync owns applied job provenance", async () => {
+  const {
+    createCustomerSyncBinding,
+  } = require("../../dist/customer/infrastructure/customer-sync-domain.binding");
+  const customerId = "11111111-1111-4111-8111-111111111111";
+  const job = {
+    id: "22222222-2222-4222-8222-222222222222",
+    owner_user_id: "33333333-3333-4333-8333-333333333333",
+    carrier_connection_id: "44444444-4444-4444-8444-444444444444",
+    provider: "uniship",
+    external_account_id: "fixture-account",
+    sync_type: "CUSTOMER",
+  };
+  const source = {
+    id: "55555555-5555-4555-8555-555555555555",
+    sourceVersion: 1,
+    processorVersion: 1,
+    payload: {},
+  };
+  const writes = [];
+  const binding = createCustomerSyncBinding({
+    version: 1,
+    supports: () => true,
+    async apply(_source, session) {
+      await session.linkExistingCustomer(customerId);
+      return { outcome: "APPLIED" };
+    },
+  });
+  const invocation = await binding.begin(
+    {
+      $queryRaw: async (parts) =>
+        parts.join("").includes("SELECT customer_id")
+          ? [{ customer_id: null }]
+          : [{ id: customerId }],
+      $executeRaw: async (parts, ...values) => {
+        writes.push({ sql: parts.join("?"), values });
+        return 1;
+      },
+    },
+    job,
+    source,
+    "shared",
+  );
+  try {
+    assert.equal((await invocation.decide()).outcome, "APPLIED");
+    assert.equal(writes.length, 0, "decision must only stage a proposal");
+    await invocation.commit();
+    assert.equal(writes.length, 1);
+    const set = writes[0].sql.split(" SET ")[1].split(" WHERE ")[0];
+    assert.deepEqual(
+      set.split(",").map((assignment) => assignment.split("=")[0].trim()),
+      ["customer_id", "link_origin"],
+    );
+    assert.deepEqual(writes[0].values, [
+      customerId,
+      "LINKED_EXISTING",
+      source.id,
+      job.owner_user_id,
+    ]);
+  } finally {
+    invocation.close();
+  }
+});
+
+test("admit resolves once and persists the strategy captured by that resolution", async () => {
+  for (const mode of ["available", "missing", "disabled", "type-disabled"]) {
+    let strategies = 0,
+      resolutions = 0,
+      inserts = 0;
+    const a = registration("fixture-a", "SHIPMENT");
+    a.provider.strategy = () => {
+      strategies++;
+      return "FULL";
+    };
+    const registry = new SyncCapabilityRegistry(mode === "missing" ? [] : [a]);
+    const resolve = registry.resolve.bind(registry);
+    registry.resolve = (...args) => {
+      resolutions++;
+      return resolve(...args);
+    };
+    const config = {
+      ...cfg(),
+      enabled: mode !== "disabled",
+      types: mode === "type-disabled" ? [] : cfg().types,
+    };
+    const queue = new SyncRepository("unused-unit-url", config, registry);
+    const connection = {
+      provider: "fixture-a",
+      external_account_id: "fixture-account",
+      generation: 1,
+      lifecycle_version: 1,
+    };
+    queue.connection = async () => connection;
+    Object.defineProperty(queue, "client", {
+      value: {
+        $transaction: async (run) =>
+          run({
+            $queryRaw: async (parts, ...values) => {
+              assert.match(parts.join("?"), /INSERT INTO sync_jobs/);
+              inserts++;
+              assert.equal(values[8], "FULL");
+              return [{ id: "admitted" }];
+            },
+          }),
+      },
+    });
+    if (mode === "available") {
+      assert.equal(
+        (await queue.admit("owner", "connection", "SHIPMENT", "MANUAL")).id,
+        "admitted",
+      );
+      assert.equal(
+        strategies,
+        1,
+        "reuse resolved strategy without a second provider call",
+      );
+      assert.equal(resolutions, 1, "availability must not resolve again");
+      assert.equal(inserts, 1);
+    } else {
+      await assert.rejects(
+        queue.admit("owner", "connection", "SHIPMENT", "MANUAL"),
+        (e) => e.code === "SYNC_UNAVAILABLE",
+      );
+      assert.equal(inserts, 0);
+      assert.equal(resolutions, mode === "missing" ? 1 : 0);
+    }
   }
 });

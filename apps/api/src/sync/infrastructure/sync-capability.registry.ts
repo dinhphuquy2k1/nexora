@@ -15,12 +15,13 @@ export interface SyncCapabilityRegistration {
 }
 export interface BoundSyncCapability extends SyncCapability {
   readonly domain: SyncDomainBinding;
+  readonly strategy: (typeof SyncStrategy)[keyof typeof SyncStrategy];
 }
 /** Explicit code registration only; no mutation, discovery, I/O or credentials. */
 export class SyncCapabilityRegistry implements SyncCapabilityResolver {
   private readonly entries = new Map<
     string,
-    Map<SyncType, BoundSyncCapability>
+    Map<SyncType, Omit<BoundSyncCapability, "strategy">>
   >();
   constructor(registrations: readonly SyncCapabilityRegistration[]) {
     for (const registration of registrations) {
@@ -55,12 +56,13 @@ export class SyncCapabilityRegistry implements SyncCapabilityResolver {
     if (
       !entry ||
       entry.domain.version !== entry.processor.version ||
-      !entry.processor.supports(type) ||
-      !Object.values(SyncStrategy).some(
-        (strategy) => strategy === entry.provider.strategy(provider, type),
-      )
+      !entry.processor.supports(type)
     )
       return null;
-    return entry;
+    const declaredStrategy = entry.provider.strategy(provider, type);
+    const strategy = Object.values(SyncStrategy).find(
+      (candidate) => candidate === declaredStrategy,
+    );
+    return strategy ? Object.freeze({ ...entry, strategy }) : null;
   }
 }

@@ -709,6 +709,13 @@ test(
           assert.equal(done.status, "SUCCEEDED");
           assert.equal(done.applied_count, 99);
           assert.equal(done.needs_review_count, 1);
+          const appliedProvenance = await db.$queryRaw`
+            SELECT count(*)::int AS n FROM sync_source_identities s
+            JOIN sync_job_items i ON i.source_identity_id=s.id
+            WHERE i.job_id=${j.id}::uuid AND s.customer_id IS NOT NULL
+              AND s.last_applied_sync_job_id=${j.id}::uuid`;
+          assert.equal(appliedProvenance[0].n, 99);
+
           await db.$executeRaw`UPDATE provider_source_records SET processed_at=clock_timestamp()-interval '2 days' WHERE processing_status='APPLIED'`;
           assert.equal(await repo.cleanup(), 99);
           const next = await repo.admit(owner.id, c.id, "CUSTOMER", "MANUAL");
