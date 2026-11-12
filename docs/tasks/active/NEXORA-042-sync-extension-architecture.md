@@ -14,7 +14,7 @@ Design SHA-256: a1174be3bf5dc965220c5fe904341a9b24c43de0048bcf818d9960c5ef0c5de7
 Reviewed baseline: 6a52c2ff90a1173a25053caf6fb7061b82f6b8dd
 Branch: feat/sync-extension-architecture
 
-PR32 merged as baseline above; GitHub merged=true, fresh origin/main ancestry and clean working tree verified2026-11-08. No prior branch reused. No NEXORA-042 task/reference found before creation. Selected interfaces, full eight-field reuse audit, scope/alternatives/security/compatibility and test-first plan are in the versioned snapshot. ADR-009 does not require owner approval.
+PR32 merged as baseline above; GitHub merged=true, fresh origin/main ancestry and clean working tree verified2026-11-08. No prior branch reused. Historical local creation audit considered NEXORA-035 unused; the later PR35 collision is corrected by the NEXORA-042 audit below. Selected interfaces, full eight-field reuse audit, scope/alternatives/security/compatibility and test-first plan are in the versioned snapshot. ADR-009 does not require owner approval.
 
 ### Reuse audit summary
 
@@ -46,7 +46,7 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
-Static capability composition, neutral fenced Domain invocation and extension procedure.
+Static capability composition, neutral fenced Domain invocation and extension procedure; corrected task identity NEXORA-042, the narrow infrastructure type dependency, and Customer mapping-only versus Sync applied-job provenance ownership.
 
 ### Canonical owners
 
@@ -247,3 +247,39 @@ owned disposable resources; do not call partial progress PASS. Full quality and
 new-head hosted gates remain pending. Existing eea7287 Foundation FAIL and all
 other historical FAILs remain unchanged. A7 remains unchecked until every required
 hosted gate passes on the final pushed head. No merge or production activation.
+
+## Exact pushed-head local and hosted evidence — 2026-11-12
+
+Pushed HEAD7d96b86ae4fe3dccd9b191dab50e647e6d85207e; actual hosted merge
+c69d17a3ccdcc3f2cae4142deed8293e254358f9 into
+3906f8243347fb7c697bf5f6949389c3a784a13d (main), attempt1. Times UTC.
+Full host quality ran on the clean committed head with Node24.22.1/pnpm10.34.6.
+Local Carrier fixture and PG execution started on the P3 delta before its commit;
+source bytes are unchanged in7d96b86. Carrier manifest sourceCommit is null, so
+its SHA is integrity/provenance for retained bytes, not an embedded HEAD claim.
+
+| Claim                                      | Evidence                                                                                                                                                                                                                                                                                                                                                                | Date       | Result |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Full host quality                          | API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality on7d96b86,14:33–14:38Z: exit0;638/638 tests0fail/skip (132root/198API/266Web/36UI/6DB), format/lint/preflight/docs/boundaries/typecheck/contracts/build PASS; unchanged prerequisites may use Turbo cache, tests executed                                                           | 2026-11-12 | PASS   |
+| Complete Carrier fixture                   | Compiled actual carrier-entry.tsx with node scripts/build-retail-fixture.mjs, then scratch CDP launcher invoked actual verifyCarrierBrowser fixtureOnly with merged navigate. PASS14:33:45.666Z:124captures, six viewport matrices, status/environment, menu/keyboard/history and Sync Issues; owned Chromium/profile cleanup PASS. All106 harness assertions unchanged | 2026-11-12 | PASS   |
+| Carrier retained integrity                 | Independent reviewer checked124/124 PNG hashes against fixture.json; manifest SHA256 a2c2523ac4a78b85651ef762f3ab5c3e14bd67b7fae2f9284d411fa68898cba8. No manual visual review claimed; captures/logs stay outside Git                                                                                                                                                  | 2026-11-12 | PASS   |
+| Local full PostgreSQL attempt              | npx --yes pnpm@10.34.6 test:integration against owned PG17.11,14:31:06Z–14:35:05Z:69tests61PASS/8FAIL,0skip. Existing suites lacked /runtime-config/postgres_app_password and migrated base tables. Sync suite itself52PASS; full suite NOT PASS. Owned container/volume cleanup PASS                                                                                   | 2026-11-12 | FAIL   |
+| Prepared local runner prerequisite         | Attempt to prepare canonical base migration/runtime-secret mount stopped before readiness while official node24.19.0-bookworm image preparation failed ENOSPC on8GB filesystem. No assertions executed in this attempt. Owned container/network/secret cleanup PASS; no prune/user-volume reset, no third local attempt or source/assertion relaxation                  | 2026-11-12 | FAIL   |
+| Preflight Policy & Design Governance       | [Run43238505170](https://github.com/dinhphuquy2k1/nexora/actions/runs/43238505170), exact head/merge above; SUCCESS14:34:09Z,24/24policy tests0skip and current v2 metadata binding                                                                                                                                                                                     | 2026-11-12 | PASS   |
+| Sync V1 targeted PostgreSQL verification   | [Run43238505313](https://github.com/dinhphuquy2k1/nexora/actions/runs/43238505313), job131252238367 completed14:36:28Z: SUCCESS, actual genuine generation/build,24unit+52realPG tests0fail/skip, all cleanup steps PASS                                                                                                                                                | 2026-11-12 | PASS   |
+| Foundation Docker quality/full integration | [Run43238505205 job131252238495](https://github.com/dinhphuquy2k1/nexora/actions/runs/43238505205/job/131252238495), exact head/merge above; step4 SUCCESS14:41:16Z.638ordinary+133full realPG integration+1cluster suite,0skip; actual role/migration/security/fixture gates passed. This supplies canonical full integration evidence; it does not rewrite local FAIL | 2026-11-12 | PASS   |
+| Foundation full workflow                   | Same run/head, job completed14:41:50Z FAILURE. Step5 M5 browser launcher failed AssertionError: Chromium startup at14:41:34Z before UI assertions. Steps6–10 runtime/TTY/browser,HTTPS,persistence,dev SKIPPED. Missing downstream artifacts are consequences, not separate confirmed UI regressions. No full Foundation PASS                                           | 2026-11-12 | FAIL   |
+
+Re-evaluation: local integration requires canonical fixture prerequisites and more
+image capacity; do not change tests or use an unmigrated/shared cluster. The
+exact-head hosted full133/133 integration above verifies the required genuine
+PostgreSQL behavior despite local preparation failures. M5 runner has zero diff
+from main. Its existing launcher discards child stderr, so available log proves
+startup readiness failure, not a root cause or flakiness. No timeout/assertion/
+production registration changes or blind manual rerun is made.
+
+This evidence-publication checkpoint must preserve the new Foundation FAIL and
+all earlier FAILs, including eea7287. Publishing it creates a documentation-only
+head, which requires fresh Preflight, Sync Targeted and full Foundation gates;
+none may be inferred from7d96b86. Keep A7 unchecked until those final-head gates
+all succeed. Status VERIFICATION PENDING; provider-length PLAN ISSUE remains.
