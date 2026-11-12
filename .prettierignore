@@ -7,3 +7,7 @@ node_modules
 .turbo
 **/.contracts/
 **/*.tsbuildinfo
+
+# Immutable committed v3: preserve raw SHA-256; preflight/docs validation still applies.
+# Bounded PR41 formatting correction is documented in the mutable NEXORA-041 task.
+docs/tasks/design-reviews/NEXORA-041-rev-2026-11-11-m5-r2-v3.md
