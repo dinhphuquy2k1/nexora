@@ -51,7 +51,7 @@ test("all four consumers retain summary contracts and expose one genuine navigat
         onPage: noop,
         onSize: noop,
       },
-      "Trang",
+      "Phân trang kiện lẻ",
       "emphasis",
       14,
       /data-retail-count="true">73 kiện lẻ/,
@@ -100,6 +100,9 @@ test("all four consumers retain summary contracts and expose one genuine navigat
     const s = html(c, p);
     assert.equal((s.match(/<nav /g) ?? []).length, 1);
     assert.match(s, new RegExp(`<nav[^>]*aria-label="${label}"`));
+    if (label === "Phân trang kiện lẻ") {
+      assert.doesNotMatch(s, /<div[^>]*aria-label="Phân trang kiện lẻ"/);
+    }
     assert.doesNotMatch(s, /<nav[^>]*role="group"/);
     assert.match(s, summary);
     assert.match(

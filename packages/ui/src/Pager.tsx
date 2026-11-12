@@ -84,11 +84,7 @@ export function Pager({
           const contents = (
             <>
               {index > 0 && number - pages[index - 1] > 1 && (
-                <span
-                  aria-hidden={numberLayout === "grouped" ? true : undefined}
-                >
-                  …
-                </span>
+                <span aria-hidden="true">…</span>
               )}
               <Button
                 icon={numberIcon}

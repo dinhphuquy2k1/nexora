@@ -28,7 +28,7 @@ export function RetailPagination({
   const end = Math.min(page * pageSize, total);
   const rangeDisplay = unavailable ? "—" : `${start}–${end}`;
   return (
-    <div className={styles.paginationBar} aria-label="Phân trang kiện lẻ">
+    <div className={styles.paginationBar}>
       <Pager
         page={page}
         pages={pageWindow(page, pages)}
@@ -43,7 +43,7 @@ export function RetailPagination({
         onPage={onPage}
         selectedVariant="emphasis"
         labels={{
-          navigation: "Trang",
+          navigation: "Phân trang kiện lẻ",
           first: "Trang đầu",
           previous: "Trang trước",
           next: "Trang sau",

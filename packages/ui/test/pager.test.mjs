@@ -105,3 +105,20 @@ test("Pager supports empty/single windows and feature-selected press/icon geomet
     if (pages.length) assert.match(html, /data-variant="primary"/);
   }
 });
+
+test("Pager always hides decorative ellipses in grouped and inline layouts", () => {
+  for (const numberLayout of ["grouped", "inline"]) {
+    const html = render(
+      React.createElement(Pager, {
+        ...props,
+        pages: [1, 2, 5],
+        numberLayout,
+      }),
+    );
+    assert.equal(
+      (html.match(/<span aria-hidden="true">…<\/span>/g) ?? []).length,
+      1,
+      `ellipsis must be hidden from screen readers in ${numberLayout} layout`,
+    );
+  }
+});
