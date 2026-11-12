@@ -8,9 +8,9 @@ Verification: PARTIALLY VERIFIED
 
 Task ID: NEXORA-041
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-11-m5-r2-v2
-Design Snapshot: docs/tasks/design-reviews/NEXORA-041-rev-2026-11-11-m5-r2-v2.md
-Design SHA-256: 50cb4dc81b567c8389759ef009de08a8f70e160ee2be4e471c01a63ae139a46c
+Plan revision: rev-2026-11-11-m5-r2-v3
+Design Snapshot: docs/tasks/design-reviews/NEXORA-041-rev-2026-11-11-m5-r2-v3.md
+Design SHA-256: be8e7589a235986abebe6d633125a04732f6a09d37c074fac9b193f07763da12
 Reviewed baseline: a3fd1049bb994af4982c59c93bf29f3b9dd939c4
 Branch: refactor/m5-shared-pager-filter-shell
 
@@ -44,7 +44,7 @@ testing-command documentation; v1 remains immutable. No owner approval gate.
 - [x] Business/visual preservation and intentional ARIA changes verified.
 - [x] Targeted tests, local browser comparison and acceptance-only execution.
 - [x] Final-source full host quality:625 tests and all gates.
-- [ ] Canonical Docker and final-head hosted gates.
+- [ ] Canonical Docker and final-head hosted gates on the NEW F1/F2 commit (rerun pending; historical c1aa327 passed).
 - [x] Canonical docs synchronized; fresh branch pushed and new PR41 to main; no merge.
 - [ ] Independent reviewer/owner approval obtained.
 
@@ -55,7 +55,7 @@ Documentation Impact: REQUIRED
 ### Changed facts
 
 Tier A Pager and Tier B FilterPopoverShell ownership, interfaces, consumers and
-intentional navigation/aria-controls accessibility improvements.
+intentional navigation/aria-controls plus v3 ellipsis and Retail landmark-label accessibility improvements.
 
 ### Canonical owners
 
@@ -107,7 +107,9 @@ scratch or ignored CI artifacts with14-day retention; no PNG/log added to Git.
 | First visual sampling              | Candidate comparison caught uncompleted hover transition sampling; 80ms wait was insufficient. Increased settling to250ms and reran retained baseline/candidate, without changing production styles to satisfy the test                                                                                                                                                        | 2026-11-11 | FAIL   |
 | Final visual comparison            | `node scripts/m5-browser-checks.mjs /workspace/work/m5-candidate /workspace/work/m5-final-evidence /workspace/work/m5-baseline-final`: 16/16 captures, DOM/styles equal and geometry delta <=0.6px, plus navigation, focus, ARIA and feature regressions passed                                                                                                                | 2026-11-11 | PASS   |
 | CI-mode local execution            | `node scripts/m5-browser-checks.mjs /workspace/work/m5-ci-artifacts /workspace/work/m5-ci-final-evidence --acceptance`: 16 captures, actual click/Enter/Tab, native Select keys, empty/single/unknown, history <=5, reset, filters/provider/environment/duplicate/max/error lifecycle passed. Host-generated bundles arranged as canonical artifact layout; not Docker success | 2026-11-11 | PASS   |
-| Canonical Docker                   | `NEXORA_COMPOSE_OVERRIDE=/workspace/work/m2-compose.yml sh scripts/quality-docker.sh` blocked during image preparation: ENOSPC on8GB filesystem before canonical assertions. Override supplies platform CA build secret only. Removed failed build cache; never reset user volumes                                                                                             | 2026-11-11 | FAIL   |
+| Local canonical Docker (8GB host)                   | `NEXORA_COMPOSE_OVERRIDE=/workspace/work/m2-compose.yml sh scripts/quality-docker.sh` blocked during image preparation: ENOSPC on8GB filesystem before canonical assertions. Override supplies platform CA build secret only. Removed failed build cache; never reset user volumes                                                                                             | 2026-11-11 | FAIL   |
+| Hosted Foundation/Docker at c1aa327 (historical) | [Foundation run43003465488](https://github.com/dinhphuquy2k1/nexora/actions/runs/43003465488): final-head c1aa327 Docker quality/integration, M5 Chromium, release/runtime, HTTPS, persistence and development smoke passed; completed 2026-11-11T10:44:01Z. Does NOT verify the later F1/F2 changes. | 2026-11-11 | PASS |
+| Hosted Preflight at c1aa327 (historical) | [Preflight run43003465424](https://github.com/dinhphuquy2k1/nexora/actions/runs/43003465424): success on c1aa327; not a substitute for new-head governance validation. | 2026-11-11 | PASS |
 | Initial host quality               | `API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality` failed runner lint (WebSocket/clearTimeout globals and conditional expression); fixed using globalThis, node:timers and explicit branch                                                                                                                                                  | 2026-11-11 | FAIL   |
 | Structural retry                   | Same quality command passed format/lint, then preflight required inline SIGNIFICANT invariants/DDD rationale in task; added the already-reviewed presentation-only omission rationale                                                                                                                                                                                          | 2026-11-11 | FAIL   |
 | Broad working-diff check           | Same quality command then passed all gates, 625 tests (scripts132/API186/Web266/database6/UI35), zero failures/skips; contracts/build passed. Final-source recheck follows CSS collateral restoration and runner refinement                                                                                                                                                    | 2026-11-11 | PASS   |
@@ -188,3 +190,24 @@ was running Docker quality/integration; M5 and later runtime steps were pending.
 No canonical/hosted PASS claimed from job existence. Final documentation-only
 checkpoint HEAD, final-head run status and subsequent independent-review outcome
 are tracked in mutable PR metadata, avoiding self-referential SHA update loops.
+
+## PR41 review remediation — Revision v3 (2026-11-12)
+
+Before modifying production code, recorded immutable v3 snapshot
+`docs/tasks/design-reviews/NEXORA-041-rev-2026-11-11-m5-r2-v3.md` (raw SHA-256 `be8e7589a235986abebe6d633125a04732f6a09d37c074fac9b193f07763da12`). The review requests
+F1: aria-hidden on decorative ellipsis in both Pager layouts; F2: descriptive
+Retail nav label and removal of its redundant outer div aria-label; F3: separate
+local Docker failure from prior hosted PASS and rerun all gates on new head.
+
+Historical verified head: `c1aa32798674cc6ac3bd4e75701b17fb35312992`.
+Previous hosted [Foundation](https://github.com/dinhphuquy2k1/nexora/actions/runs/43003465488)
+and [Preflight](https://github.com/dinhphuquy2k1/nexora/actions/runs/43003465424)
+PASS only for that head. The local ENOSPC failure is unchanged and historical.
+
+**New F1/F2 head verification:** PENDING. Do not check the acceptance box or claim
+625/625 tests on the new head until its own CI completes. Local environment here
+has Node v22.16.0 instead of required Node >=24.19; local pnpm full-suite and
+Chromium checks NOT RUN. CI is required. Independent owner approval: PENDING.
+FU1–FU4 (Pager defaults, Carrier CSS convergence, milestone-named harnesses and
+closed-state aria-controls) are explicitly deferred to a separate pre-Shipment UI
+follow-up, not bundled into this patch.
