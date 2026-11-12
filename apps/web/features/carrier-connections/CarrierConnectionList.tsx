@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Button, Select, TextInput } from "@nexora/ui";
+import { Button, Pager, Select, TextInput } from "@nexora/ui";
 import {
   Truck,
   Search,
@@ -383,96 +383,84 @@ export function CarrierConnectionPagination({
   const rangeDisplay = !known ? "—" : `${start}–${end}`;
   const windowPages = known ? pageWindow(model.page, pages) : [1];
 
-  const nav = (
-    label: string,
-    to: number,
-    disabled: boolean,
-    Icon: typeof ChevronLeft,
-  ) => (
-    <Button
-      icon
-      variant="secondary"
-      aria-label={label}
-      disabled={!known || disabled}
-      onClick={() => onChange({ page: to })}
-    >
-      <Icon size={14} />
-    </Button>
-  );
-
   return (
     <footer
       className={styles.pagination}
       data-carrier-pagination
       aria-label="Phân trang tài khoản"
     >
-      <div className={styles.summary}>
-        <div className={styles.paginationSummary}>
-          <span>Hiển thị</span>{" "}
-          <strong className={styles.paginationRange}>{rangeDisplay}</strong>{" "}
-          <span>/</span>{" "}
-          <span data-carrier-count>{!known ? "—" : model.total} tài khoản</span>
-        </div>
-        <span className={styles.separator} aria-hidden="true">
-          |
-        </span>
-        <label className={styles.pageSizeLabel}>
-          <span>Số dòng:</span>
-          <div className={styles.pageSizeSelectWrapper}>
-            <Select
-              aria-label="Số dòng tài khoản mỗi trang"
-              value={model.pageSize}
-              onChange={(e) =>
-                onChange({ pageSize: Number(e.target.value), page: 1 })
-              }
-            >
-              {[5, 10, 20, 50].map((n) => (
-                <option key={n} value={n}>
-                  {n} / trang
-                </option>
-              ))}
-            </Select>
-          </div>
-        </label>
-      </div>
-      <nav
-        className={styles.pageButtons}
-        role="group"
-        aria-label="Trang tài khoản"
-      >
-        {nav("Trang đầu tài khoản", 1, model.page <= 1, ChevronsLeft)}
-        {nav(
-          "Trang trước tài khoản",
-          model.page - 1,
-          model.page <= 1,
-          ChevronLeft,
-        )}
-        {windowPages.map((pageNumber, i, window) => (
-          <span key={pageNumber} className={styles.pageNumber}>
-            {i > 0 && pageNumber - window[i - 1] > 1 && (
-              <span aria-hidden="true">…</span>
-            )}
-            <Button
-              variant={pageNumber === model.page ? "emphasis" : "secondary"}
-              aria-label={`Trang tài khoản ${pageNumber}`}
-              aria-current={
-                known && pageNumber === model.page ? "page" : undefined
-              }
-              disabled={!known}
-              onClick={() => onChange({ page: pageNumber })}
-            >
-              {pageNumber}
-            </Button>
-          </span>
-        ))}
-        {nav(
-          "Trang sau tài khoản",
-          model.page + 1,
-          model.page >= pages,
-          ChevronRight,
-        )}
-        {nav("Trang cuối tài khoản", pages, model.page >= pages, ChevronsRight)}
-      </nav>
+      <Pager
+        page={model.page}
+        pages={windowPages}
+        currentPageKnown={known}
+        targets={{
+          first: 1,
+          previous: model.page - 1,
+          next: model.page + 1,
+          last: pages,
+        }}
+        disabled={{
+          first: !known || model.page <= 1,
+          previous: !known || model.page <= 1,
+          numbers: !known,
+          next: !known || model.page >= pages,
+          last: !known || model.page >= pages,
+        }}
+        onPage={(page) => onChange({ page })}
+        selectedVariant="emphasis"
+        labels={{
+          navigation: "Trang tài khoản",
+          first: "Trang đầu tài khoản",
+          previous: "Trang trước tài khoản",
+          next: "Trang sau tài khoản",
+          last: "Trang cuối tài khoản",
+          page: (n) => `Trang tài khoản ${n}`,
+        }}
+        icons={{
+          first: <ChevronsLeft size={14} />,
+          previous: <ChevronLeft size={14} />,
+          next: <ChevronRight size={14} />,
+          last: <ChevronsRight size={14} />,
+        }}
+        summaryClassName={styles.summary}
+        summary={
+          <>
+            <div className={styles.paginationSummary}>
+              <span>Hiển thị</span>{" "}
+              <strong className={styles.paginationRange}>{rangeDisplay}</strong>{" "}
+              <span>/</span>{" "}
+              <span data-carrier-count>
+                {!known ? "—" : model.total} tài khoản
+              </span>
+            </div>
+          </>
+        }
+        pageSize={
+          <>
+            <span className={styles.separator} aria-hidden="true">
+              |
+            </span>
+            <label className={styles.pageSizeLabel}>
+              <span>Số dòng:</span>
+              <div className={styles.pageSizeSelectWrapper}>
+                <Select
+                  aria-label="Số dòng tài khoản mỗi trang"
+                  value={model.pageSize}
+                  onChange={(e) =>
+                    onChange({ pageSize: Number(e.target.value), page: 1 })
+                  }
+                >
+                  {[5, 10, 20, 50].map((n) => (
+                    <option key={n} value={n}>
+                      {n} / trang
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </label>
+          </>
+        }
+      />
     </footer>
   );
 }

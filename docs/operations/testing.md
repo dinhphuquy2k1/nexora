@@ -760,3 +760,29 @@ scripts/login-readiness-diagnostics.test.mjs. Counters diagnose a failed precond
 they do not prove hydration, identify a cause by themselves or replace actual
 Login/MFA/HTTPS security assertions. The real visibility transition remains the
 readiness requirement with its existing deadline.
+
+## M5 Pager and filter disclosure acceptance
+
+Canonical Docker quality also compiles the isolated actual-component M5 fixture
+using the existing pinned Next webpack compiler. Foundation runs
+`node scripts/m5-browser-checks.mjs artifacts artifacts/m5 --acceptance` after
+Docker quality; it reuses the generated Retail/Carrier screen fixtures and an
+installed Chromium/Chrome (`CHROME_BIN` may select it). No browser npm package is
+required. The M5 artifact has14-day retention.
+
+For local visual comparison, compile components, Retail and Carrier into separate
+`components`, `retail`, `carrier` subdirectories of a scratch bundle root using
+`scripts/build-retail-fixture.mjs` and the M5/Retail/Carrier fixture entries.
+Run `node scripts/m5-browser-checks.mjs <bundle-root> <baseline-output>` before
+production edits, then rerun with candidate bundles and a third `<baseline-output>`
+argument. Comparison checks actual geometry/styles/DOM at desktop/mobile sizes;
+captures and manifests remain ignored/untracked, not committed evidence assets.
+Baseline bundle hashes distinguish retained source bytes from a later re-render.
+
+Acceptance covers all four page control groups and summaries, unknown/empty/single
+states, page-size reset, history window policy, actual pointer/keyboard focus and
+hover, both filters' field/default/error/duplicate/max behavior, focus restoration,
+outside target focus, stable aria-controls and enabled/disabled environment options.
+Isolated component/screens exercise real TSX/CSS but do not certify authenticated
+full-stack runtime, API ownership or backend concurrency; existing Foundation
+runtime/browser suites remain separate mandatory gates.

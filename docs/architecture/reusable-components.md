@@ -355,3 +355,53 @@ used by Customer and Retail pagination. Customer keeps its `customerPageWindow`
 alias for compatibility; the existing algorithm and tests are unchanged. This
 helper owns only bounded page-number presentation, not feature page-size defaults,
 API pagination authority, query validation or read/mutation lifecycle.
+
+## Shared Pager (M5)
+
+Owner: `packages/ui/src/Pager.tsx` and `Pager.module.css`, exported by `@nexora/ui`.
+A controlled presentation primitive: features supply page/window, explicit
+first/previous/next/last targets, five independent disabled states, selection
+callback, icon nodes and accessible labels. It never derives counts, authority,
+page windows, URLs or reset policies. `summary: ReactNode` retains feature markup;
+optional `pageSize: ReactNode` retains the real feature Select and callback.
+`summaryClassName` preserves the existing summary wrapper when supplied.
+
+Actual consumers: CustomerPagination, RetailPagination,
+CarrierConnectionPagination and SyncHistoryPanel. Customer retains primary
+selection, 16px icons, icon numbers, no press scaling and its selected/unselected
+semantic color classes. Other consumers retain emphasis selection and 14px
+navigation icons; history retains icon numbers and inline number layout, while
+the others group numbers/ellipsis. Feature CSS retains responsive/outer geometry;
+Pager owns common control and grouped-number layout. `currentPageKnown` controls
+current-page semantics separately from the supplied disabled states. Features
+must explicitly disable navigation when data is unavailable or estimated.
+Decorative separators (`…`) are always `aria-hidden="true"` regardless of
+`numberLayout`. Retail's native nav has the descriptive label
+`Phân trang kiện lẻ`; the feature's outer role-less div no longer owns an
+ARIA label. Both are intentional M5 v3 accessibility corrections.
+
+## Web FilterPopoverShell (M5)
+
+Owner: `apps/web/components/filter-popover/FilterPopoverShell.tsx` and its CSS.
+Tier B Web component, consumed by RetailFilterPopover and CarrierFilterPopover;
+not exported by `packages/ui`. Reuses Web `useDismissable` rather than copying it.
+Owns trigger/panel/header/close markup, open state, refs, stable generated IDs,
+Escape/outside listeners through the hook, initial field focus and restoration.
+
+The form render slot receives `close()` for successful feature submission/cancel;
+explicit close restores trigger focus. Outside dismissal preserves the clicked
+target's focus; Escape delegates restoration to the existing hook. `onDismiss`
+allows Carrier to clear its existing transient error; trigger toggling preserves
+drafts/errors as before. Retail/Carrier retain fields, operators, values,
+provider/environment availability, validation, duplicate/max-12 policy and onAdd.
+The shell imports no feature model. Existing trigger/dialog accessible names and
+press effects remain; stable `aria-controls` is an intentional accessibility
+improvement. Low-specificity surface/header/form defaults allow class hooks for
+existing feature geometry, typography and mobile positioning, not control-state
+redesign. Retail retains its compact surface; Carrier retains its wider padded
+surface and heading/field/footer spacing.
+
+RetailColumnPicker retains its independent feature anchor CSS, and
+CarrierSyncInspection retains the feature pageButtons rule for issue navigation;
+neither is an additional M5 consumer. Their existing behavior is preserved rather
+than extending this extraction beyond the agreed four pagers/two filters.

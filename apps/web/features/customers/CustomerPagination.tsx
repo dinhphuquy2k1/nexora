@@ -1,4 +1,4 @@
-import { Button, Select } from "@nexora/ui";
+import { Pager, Select } from "@nexora/ui";
 import {
   ChevronsLeft,
   ChevronLeft,
@@ -34,101 +34,83 @@ export function CustomerPagination({
 
   return (
     <footer className={styles.pagination}>
-      <div className={styles.paginationSummary}>
-        <div className={styles.paginationText}>
-          <span>Hiển thị</span>
-          <strong className={styles.paginationBold}>
-            {model.summaryRange}
-          </strong>
-          <span>/</span>
-          <strong className={styles.paginationBold}>
-            {model.summaryTotal}
-          </strong>
-          <span>khách hàng</span>
-        </div>
-        <span className={styles.paginationDivider} aria-hidden="true">
-          |
-        </span>
-        <label className={styles.pageSizeLabel}>
-          <span>Số dòng:</span>
-          <Select
-            aria-label="Số dòng mỗi trang"
-            value={model.pageSize}
-            onChange={(e) =>
-              onQuery({ pageSize: Number(e.target.value), page: 1 })
-            }
-          >
-            {[5, 10, 20, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n} / trang
-              </option>
-            ))}
-          </Select>
-        </label>
-      </div>
-      <nav aria-label="Phân trang khách hàng" className={styles.pageButtons}>
-        <Button
-          icon
-          variant="secondary"
-          pressEffect="none"
-          aria-label="Trang đầu"
-          disabled={!model.canFirst}
-          onClick={() => onQuery({ page: 1 })}
-        >
-          <ChevronsLeft size={16} />
-        </Button>
-        <Button
-          icon
-          variant="secondary"
-          pressEffect="none"
-          aria-label="Trang trước"
-          disabled={!model.canPrev}
-          onClick={() => onQuery({ page: Math.max(1, model.page - 1) })}
-        >
-          <ChevronLeft size={16} />
-        </Button>
-        {model.pages.map((n, i) => (
-          <span key={n} className={styles.pageNumber}>
-            {i > 0 && n - model.pages[i - 1] > 1 && (
-              <span aria-hidden="true">…</span>
-            )}
-            <Button
-              icon
-              variant={model.page === n ? "primary" : "secondary"}
-              pressEffect="none"
-              className={
-                model.page === n ? styles.pageSelected : styles.pageUnselected
-              }
-              aria-label={`Trang ${n}`}
-              aria-current={model.page === n ? "page" : undefined}
-              disabled={loading || !model.isAuthoritative}
-              onClick={() => onQuery({ page: n })}
-            >
-              {n}
-            </Button>
-          </span>
-        ))}
-        <Button
-          icon
-          variant="secondary"
-          pressEffect="none"
-          aria-label="Trang sau"
-          disabled={!model.canNext}
-          onClick={() => onQuery({ page: model.page + 1 })}
-        >
-          <ChevronRight size={16} />
-        </Button>
-        <Button
-          icon
-          variant="secondary"
-          pressEffect="none"
-          aria-label="Trang cuối"
-          disabled={!model.canLast}
-          onClick={() => onQuery({ page: model.totalPages })}
-        >
-          <ChevronsRight size={16} />
-        </Button>
-      </nav>
+      <Pager
+        page={model.page}
+        pages={model.pages}
+        targets={{
+          first: 1,
+          previous: Math.max(1, model.page - 1),
+          next: model.page + 1,
+          last: model.totalPages,
+        }}
+        disabled={{
+          first: !model.canFirst,
+          previous: !model.canPrev,
+          numbers: loading || !model.isAuthoritative,
+          next: !model.canNext,
+          last: !model.canLast,
+        }}
+        onPage={(page) => onQuery({ page })}
+        selectedVariant="primary"
+        numberIcon
+        pressEffect="none"
+        className={styles.pageButtons}
+        selectedClassName={styles.pageSelected}
+        unselectedClassName={styles.pageUnselected}
+        labels={{
+          navigation: "Phân trang khách hàng",
+          first: "Trang đầu",
+          previous: "Trang trước",
+          next: "Trang sau",
+          last: "Trang cuối",
+          page: (n) => `Trang ${n}`,
+        }}
+        icons={{
+          first: <ChevronsLeft size={16} />,
+          previous: <ChevronLeft size={16} />,
+          next: <ChevronRight size={16} />,
+          last: <ChevronsRight size={16} />,
+        }}
+        summaryClassName={styles.paginationSummary}
+        summary={
+          <>
+            <div className={styles.paginationText}>
+              <span>Hiển thị</span>
+              <strong className={styles.paginationBold}>
+                {model.summaryRange}
+              </strong>
+              <span>/</span>
+              <strong className={styles.paginationBold}>
+                {model.summaryTotal}
+              </strong>
+              <span>khách hàng</span>
+            </div>
+          </>
+        }
+        pageSize={
+          <>
+            <span className={styles.paginationDivider} aria-hidden="true">
+              |
+            </span>
+            <label className={styles.pageSizeLabel}>
+              <span>Số dòng:</span>
+              <Select
+                aria-label="Số dòng mỗi trang"
+                value={model.pageSize}
+                onChange={(e) =>
+                  onQuery({ pageSize: Number(e.target.value), page: 1 })
+                }
+              >
+                {[5, 10, 20, 50, 100].map((n) => (
+                  <option key={n} value={n}>
+                    {n} / trang
+                  </option>
+                ))}
+              </Select>
+            </label>
+          </>
+        }
+      />
     </footer>
   );
 }

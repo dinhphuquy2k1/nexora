@@ -35,3 +35,5 @@ export {
   type SelectButtonProps,
   type SelectButtonOption,
 } from "./SelectButton";
+
+export { Pager, type PagerProps } from "./Pager";

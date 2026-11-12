@@ -24,6 +24,8 @@ jobs:
           node-version: 24.19.0
       - name: Docker quality and migrated integration
         run: sh scripts/quality-docker.sh
+      - name: Shared Pager and filter browser acceptance
+        run: node scripts/m5-browser-checks.mjs artifacts artifacts/m5 --acceptance
       - name: Stop development before runtime smoke
         run: docker compose -f compose.yml -f compose.dev.yml down
       - name: Local release runtime, provisioning, TTY and browser smoke
@@ -73,6 +75,14 @@ jobs:
           name: carrier-ui-browser-evidence
           path: artifacts/carrier
           if-no-files-found: error
+          retention-days: 14
+      - name: Preserve shared Pager and filter browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: m5-browser-evidence
+          path: artifacts/m5
+          if-no-files-found: warn
           retention-days: 14
       - name: Diagnostics
         if: failure()

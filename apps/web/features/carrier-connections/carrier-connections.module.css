@@ -137,27 +137,23 @@
   right: 0;
 }
 .popoverAnchor {
-  position: relative;
   flex-shrink: 0;
 }
 .filterPanel {
-  position: absolute;
-  left: 0;
+  display: block;
+  gap: normal;
   top: calc(100% + 6px);
   width: 360px;
   max-width: calc(100vw - 48px);
   padding: 20px;
-  border: 1px solid var(--color-border-subtle);
+  border-color: var(--color-border-subtle);
   border-radius: 12px;
-  box-shadow: var(--shadow-lg);
-  background: var(--color-surface);
   z-index: 50;
   font-size: var(--font-size-sm);
 }
 .popoverHeading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: normal;
+  flex-wrap: nowrap;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 10px;
   margin-bottom: 12px;
@@ -167,8 +163,6 @@
   color: var(--color-carrier-text-strong);
 }
 .filterPanel form {
-  display: flex;
-  flex-direction: column;
   gap: 6px;
 }
 .filterPanel label {
@@ -621,16 +615,12 @@
   width: 110px;
   flex-shrink: 0;
 }
+/* Retained for CarrierSyncInspection issue navigation, outside M5 Pager scope. */
 .pageButtons {
   display: flex;
   align-items: center;
   gap: var(--space-1);
   flex-shrink: 0;
-}
-.pageNumber {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
 }
 @media (max-width: 768px) {
   .pagination {

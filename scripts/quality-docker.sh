@@ -19,6 +19,6 @@ restart(){ compose start api web sync-worker >/dev/null; }
 trap restart EXIT HUP INT TERM
 compose stop api web sync-worker
 # run invokes mapped-user entrypoint; exec bypasses that mapping.
-compose run --rm --no-deps -T quality sh -c 'NODE_ENV=production API_INTERNAL_URL=http://api:4000 pnpm quality && NODE_ENV=test pnpm test:integration && pnpm --filter @nexora/database test:migrations && node scripts/build-retail-fixture.mjs && node scripts/build-retail-fixture.mjs artifacts/carrier-fixture apps/web/test/fixtures/carrier-entry.tsx'
+compose run --rm --no-deps -T quality sh -c 'NODE_ENV=production API_INTERNAL_URL=http://api:4000 pnpm quality && NODE_ENV=test pnpm test:integration && pnpm --filter @nexora/database test:migrations && node scripts/build-retail-fixture.mjs && node scripts/build-retail-fixture.mjs artifacts/carrier-fixture apps/web/test/fixtures/carrier-entry.tsx && node scripts/build-retail-fixture.mjs artifacts/m5-fixture apps/web/test/fixtures/m5-entry.tsx'
 node scripts/provision-cluster-smoke.mjs
 node scripts/dev-cleanup-smoke.mjs
