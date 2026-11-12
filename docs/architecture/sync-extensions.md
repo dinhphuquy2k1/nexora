@@ -1,6 +1,6 @@
 # How to add a new Sync Provider / Data Type
 
-Phase A (NEXORA-035) extends the existing ADR-010 engine. It does not implement
+Phase A (NEXORA-042) extends the existing ADR-010 engine. It does not implement
 live Uniship fetching, Shipment persistence or Customer business matching. The
 production registry is intentionally empty; flags and API URLs cannot create a
 capability or authorize traffic. Existing Sync V1 scheduling, queue and worker

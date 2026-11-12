@@ -1,4 +1,4 @@
-# NEXORA-035 — Sync Provider & Domain Extension Architecture
+# NEXORA-042 — Sync Provider & Domain Extension Architecture
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
@@ -6,15 +6,15 @@ Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
-Task ID: NEXORA-035
+Task ID: NEXORA-042
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-08-sync-extension-v1
-Design Snapshot: docs/tasks/design-reviews/NEXORA-035-rev-2026-11-08-sync-extension-v1.md
-Design SHA-256: fd6b4419022e7c5cbdc82344883ceef54dc8f85652495c692b0fdb8a2747f29d
+Plan revision: rev-2026-11-12-sync-extension-v2
+Design Snapshot: docs/tasks/design-reviews/NEXORA-042-rev-2026-11-12-sync-extension-v2.md
+Design SHA-256: a1174be3bf5dc965220c5fe904341a9b24c43de0048bcf818d9960c5ef0c5de7
 Reviewed baseline: 6a52c2ff90a1173a25053caf6fb7061b82f6b8dd
 Branch: feat/sync-extension-architecture
 
-PR32 merged as baseline above; GitHub merged=true, fresh origin/main ancestry and clean working tree verified2026-11-08. No prior branch reused. No NEXORA-035 task/reference found before creation. Selected interfaces, full eight-field reuse audit, scope/alternatives/security/compatibility and test-first plan are in the versioned snapshot. ADR-009 does not require owner approval.
+PR32 merged as baseline above; GitHub merged=true, fresh origin/main ancestry and clean working tree verified2026-11-08. No prior branch reused. No NEXORA-042 task/reference found before creation. Selected interfaces, full eight-field reuse audit, scope/alternatives/security/compatibility and test-first plan are in the versioned snapshot. ADR-009 does not require owner approval.
 
 ### Reuse audit summary
 
@@ -177,3 +177,25 @@ cleanup PASS. AST assertion inventory remains106before/106after; original
 assertions, tolerance values and polling budgets are unchanged. Full host quality
 rerun and new-head hosted verification remain pending at this source checkpoint.
 The first hosted browser failure remains unattributed, not retroactively PASS.
+
+## Task identity correction and v2 plan — 2026-11-12
+
+Historical NEXORA-035-rev-2026-11-08-sync-extension-v1.md belongs to this Sync
+task before renaming; original bytes/digest fd6b4419022e7c5cbdc82344883ceef54dc8f85652495c692b0fdb8a2747f29d
+remain unchanged. PR35 independently owns NEXORA-035 centralized authentication.
+ID NEXORA-042 checked unused in origin/main active/completed/design-review trees
+and all5 open PR trees (39,34,22,21,14), plus gh pr list/connector metadata.
+Historical assertions about pre-creation uniqueness describe the old local audit,
+not a guarantee against the later collision.
+
+New immutable v2 records merge-main conflict strategy, P3 corrections and test-first
+verification before implementation. Documentation Impact remains REQUIRED: task
+identity, narrow infrastructure type dependency and binding/provenance ownership.
+Current reviewed HEAD13658fb; origin/main3906f82; no rebase. Preserve historical
+FAIL rows and keep A7/review unchecked until new executed evidence closes them.
+
+PLAN ISSUE PROVIDER_LENGTH_SINGLE_SOURCE: API/shared/Carrier/common search found
+no shared TS provider-column limit; schema/migrations declare VarChar32 and registry
+has a local32 guard. Per explicit instruction no duplicate constant is introduced;
+P3(d) remains deferred for a deliberate ownership decision. Other requested bounded
+corrections proceed under v2. Production registrations remain empty.

@@ -761,7 +761,7 @@ they do not prove hydration, identify a cause by themselves or replace actual
 Login/MFA/HTTPS security assertions. The real visibility transition remains the
 readiness requirement with its existing deadline.
 
-## Sync Phase A extension verification — NEXORA-035
+## Sync Phase A extension verification — NEXORA-042
 
 Ordinary Sync tests include test/sync/capability.test.cjs: exact provider/type/version,
 duplicate/unsupported/disabled registrations, empty common production declarations,

@@ -106,7 +106,7 @@ No production processor exists at this baseline: this classification contract is
 documented, but production conformance remains PENDING. Existing infrastructure
 fixtures do not certify a future processor; see the testing requirements.
 
-## 2026-11-08 Phase A extension clarification — NEXORA-035
+## 2026-11-08 Phase A extension clarification — NEXORA-042
 
 Existing V1 queue/scheduler/worker remain authoritative. Static exact provider/type
 capability resolution and one common empty production declaration source replace

@@ -182,7 +182,7 @@ retain a next retry, while unexpected transaction/programming faults retry/fail
 the job rather than rejecting source data. A durable review/rejection can finish a
 job with warnings; unresolved retries cannot advance the watermark.
 
-### Phase A Sync extension boundaries — NEXORA-035
+### Phase A Sync extension boundaries — NEXORA-042
 
 [Sync extension guide](sync-extensions.md) describes exact provider+SyncType static
 resolution and the neutral transaction-bound Domain invocation. SyncSource/session

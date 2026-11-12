@@ -350,7 +350,7 @@ coordinate constants, any required forward migration and Prisma schema, existing
 data assessment and these genuine contract tests. Current status sets match;
 this correction requires no schema change or migration.
 
-### Phase A Domain mapping ownership — NEXORA-035
+### Phase A Domain mapping ownership — NEXORA-042
 
 No schema, migration, CHECK, FK, role or grant changes. Customer's infrastructure
 binding now owns the existing customer_id/link_origin projection, owner lock and

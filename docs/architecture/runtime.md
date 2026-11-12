@@ -187,7 +187,7 @@ value emitted, and throwing/unknown getters fail closed. The small helper is Syn
 is introduced. API adapters still own independent lazy clients; shared-client
 consolidation M4 is explicitly DEFERRED pending the official system-wide mechanism.
 
-### Phase A capability composition — NEXORA-035
+### Phase A capability composition — NEXORA-042
 
 API and worker independently create the same static declarations through
 sync/infrastructure/sync-runtime-capabilities.ts. One registry pairs each exact
