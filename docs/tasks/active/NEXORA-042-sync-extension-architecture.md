@@ -37,8 +37,8 @@ PR32 merged as baseline above; GitHub merged=true, fresh origin/main ancestry an
 - [x] A4 neutral Domain invocation and Customer-owned link boundary.
 - [x] A5 API/Worker wiring, empty production capabilities.
 - [x] A6 compatibility and developer extension guide.
-- [ ] A7 on the new captured-strategy/admissible HEAD; af61ba7 passed historically, new-head hosted gates required.
-- [ ] Three independent review rounds and final-head evidence for the new delta; prior af61ba7 review remains historical, not owner approval.
+- [x] A7 captured-strategy implementation verified on c4caffe; final documentation-publication gates must also pass before handoff (final green SHA in PR description).
+- [x] Three independent technical review rounds and follow-up source assessment; final publication evidence is checked before handoff, not owner approval.
 
 ## Documentation Impact
 
@@ -414,3 +414,50 @@ This is working-diff evidence, not a claim that old af61ba7 verified changed cod
 Next source and documentation-publication heads each require all3 fresh hosted
 gates. Final acceptance and PR description must name the last green publication
 SHA. No manual AF rerun, no launcher PR, no ignored failure or premature A7 check.
+
+## Captured-strategy hosted closure and documentation publication
+
+Source HEAD: c4caffe33768b14445863ba31d153e441633c8f8.
+Actual checkout merge: 4682dd9f47d81a55a515be44ebca19a1afb8828d into
+main 3906f8243347fb7c697bf5f6949389c3a784a13d, attempt1.
+All three job logs bind this source head; timestamps below are UTC on 2026-11-12.
+No failed-job rerun was needed. Step1 af61ba7 was already fully green, so Step2
+launcher diagnosis/PR was not selected and M5 source remains untouched.
+
+| Claim                                 | Evidence                                                                                                                                                                                                                                                                              | Date       | Result |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Captured-strategy Preflight           | [Run43246873412](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873412), source HEAD/merge below; SUCCESS 2026-11-12T15:21:33Z, policy binding and 24/24 tests, 0 skipped.                                                                                                 | 2026-11-12 | PASS   |
+| Captured-strategy Sync Targeted       | [Run43246873613 job131281781423](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873613/job/131281781423), source HEAD/merge below; SUCCESS 2026-11-12T15:23:38Z. Actual generation/build, 26 units and 52 real PostgreSQL tests, 0 failures/skips; all cleanup steps PASS. | 2026-11-12 | PASS   |
+| Captured-strategy full Foundation     | [Run43246873727 job131281781892](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727/job/131281781892), source HEAD/merge below; SUCCESS 2026-11-12T15:37:46Z. Every mandatory step 4-10 executed and passed; only failure-only Diagnostics skipped.                     | 2026-11-12 | PASS   |
+| Canonical quality and full PostgreSQL | Same Foundation, step4 PASS 15:26:54Z: 640 ordinary tests, 133 real integration tests and 1 disposable-cluster test, all 0 failure/skip; contracts, migrations/repeat/drift and restricted-role/custody checks PASS.                                                                  | 2026-11-12 | PASS   |
+| M5 and runtime gates                  | Same Foundation: M5 step5 PASS 15:27:34Z (16 captures); runtime/provisioning/TTY/browser step7 PASS 15:33:06Z; HTTPS/ingress/onboarding/restore step8 PASS 15:34:26Z; persistence step9 PASS 15:35:22Z; development step10 PASS 15:37:24Z; owned cleanup PASS 15:37:44Z.              | 2026-11-12 | PASS   |
+
+Independent follow-up source review found no P1/P2/P3 defect and no material
+scope change needing snapshot v3. The internal application metadata field change
+is explicitly documented in the delta; it is not claimed to leave that type
+unchanged. Existing admission flags/null/type-disabled/single-resolution tests and
+all six protected repository bodies remain unchanged in behavior. Production
+registration is empty; PROVIDER_LENGTH_SINGLE_SOURCE remains open. Status stays
+VERIFICATION PENDING, Capability IMPLEMENTED, Verification PARTIALLY VERIFIED.
+
+The prior local-only af61ba7 evidence is now committed in c4caffe; all historical
+FAIL entries remain, including eea7287, 7d96b86 Chromium startup, local integration
+prerequisites/ENOSPC and af61ba7 host-quality failure. Current green runs do not
+establish their causes or rewrite them as PASS. No owner approval, merge or
+production activation is performed.
+
+This task-only evidence publication requires its OWN fresh Preflight, Sync
+Targeted and full Foundation steps4-10. At this checkpoint c4caffe is the verified
+implementation head; the new documentation head has not yet been certified.
+The final green documentation SHA, actual merge, run URLs and outcomes are
+recorded in PR34 description after execution, per testing.md, rather than a
+self-referential SHA-only documentation loop. Handoff is blocked until those
+documentation-head gates also pass.
+
+The selected local execution environment became unavailable after source-head CI
+completed. This evidence commit is published using the GitHub connector; no local
+commands on its new SHA are claimed. All local commands in the previous table
+ran before that loss of availability. New-head full quality, PostgreSQL and
+browser/runtime verification are performed by the actual canonical hosted jobs.
+No snapshot, formatter ignore, source, test, workflow or launcher change is
+included in this publication.
