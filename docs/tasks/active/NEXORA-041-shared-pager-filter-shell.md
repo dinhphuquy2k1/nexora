@@ -226,3 +226,20 @@ usable pinned pnpm environment. Targeted Node tests, full host quality, browser
 acceptance and canonical Docker are **NOT RUN locally** for these changes.
 Historical hosted PASS on c1aa327 remains historical only; do not mark the
 new head verified until its own GitHub Preflight and Foundation pass.
+
+### v3 CI event synchronization — 2026-11-12
+
+First v3 push (bd12bed) triggered [Preflight run43188739337](https://github.com/dinhphuquy2k1/nexora/actions/runs/43188739337),
+which FAILED the PR plan revision and snapshot/SHA binding because its GitHub
+pull_request event was dispatched before the edited v3 PR body was available.
+Current live PR body, task record and immutable snapshot all now declare the
+same v3 revision, path and raw SHA-256. A follow-up documentation commit triggers
+fresh checks with synchronized PR metadata. This failure is preserved, not waived.
+
+| Claim | Evidence | Date | Result |
+| --- | --- | --- | --- |
+| First v3 event preflight | [Run43188739337](https://github.com/dinhphuquy2k1/nexora/actions/runs/43188739337) rejected stale PR-event plan revision/digest. Live PR metadata corrected before rerun; no green claim for this run. | 2026-11-12 | FAIL |
+
+Final-head hosted checks on the subsequent documentation checkpoint remain
+PENDING; passing any earlier HEAD does not certify a new HEAD. No owner approval
+or merge was performed.
