@@ -176,9 +176,10 @@ Sync Application ports orchestrate admission/config/query and page/processing wo
 Infrastructure alone imports Prisma. Pure policies own closed codes, source key,
 canonical payload and retry bounds. This supporting queue capability intentionally
 has no fake Shipment aggregate or generic Unit of Work. Existing business domains
-retain their own aggregate invariants. Sync's Domain Session can link an existing
-owner-scoped Customer under the batch transaction; no production create/update
-handler or phone matching is invented without a provider command contract.
+retain their own aggregate invariants. Sync's neutral session carries immutable scope;
+Customer's separate binding can link an existing owner-scoped Customer under the
+batch transaction. No production create/update handler or phone matching is invented
+without a provider command contract.
 
 SKIP LOCKED claim commits before authorization locks. Batch writes use ACTIVE
 user→epoch→owned connection→job, captured generation/lifecycle and current
@@ -188,3 +189,24 @@ mapping/outcome in the same fenced transaction. Typed retryable record outcomes
 retain a next retry, while unexpected transaction/programming faults retry/fail
 the job rather than rejecting source data. A durable review/rejection can finish a
 job with warnings; unresolved retries cannot advance the watermark.
+
+### Phase A Sync extension boundaries — NEXORA-042
+
+[Sync extension guide](sync-extensions.md) describes exact provider+SyncType static
+resolution and the neutral transaction-bound Domain invocation. SyncSource/session
+no longer require Customer fields/methods. Customer owns its existing-link session
+and infrastructure binding, including owner/immutable-target checks and canonical
+locks. Generic apply resolves the registered binding, stages decisions, commits
+verified Domain persistence only for APPLIED and closes capabilities in finally.
+Processor never receives Prisma/SQL or a public success receipt. Final lease fencing
+still rolls back all Domain and Sync work together. Test-owned neutral persistence
+is distinct from an authorized production handler; production registration is empty.
+
+Business-module infrastructure bindings may import only the SyncDomainBinding /
+BoundDomainExecution type contracts from sync/infrastructure/sync-domain.binding.
+Their signatures include Prisma.TransactionClient, so these persistence contracts
+cannot live in the Prisma-free application layer. This narrow type dependency
+does not authorize business Domain/application imports of Sync infrastructure or
+generic cross-module database access. Customer binding writes only customer_id
+and link_origin; the Sync repository alone writes last_applied_sync_job_id in the
+APPLIED bookkeeping branch under the same fenced transaction.

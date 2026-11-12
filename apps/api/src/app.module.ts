@@ -1,10 +1,7 @@
 import { SyncService } from "./sync/application/sync-admission.service";
 import { SyncPort } from "./sync/application/sync.port";
 import { SyncRepository } from "./sync/infrastructure/sync-job.repository";
-import {
-  unavailableProvider,
-  unavailableProcessor,
-} from "./sync/infrastructure/provider-fetch.adapter";
+import { createSyncRuntimeCapabilities } from "./sync/infrastructure/sync-runtime-capabilities";
 import { loadSyncConfig } from "./sync/domain/sync-policy";
 import { SyncController } from "./sync/presentation/sync.controller";
 import { PostgresProviderBudget } from "./carrier/infrastructure/uniship/postgres-provider-budget";
@@ -74,8 +71,7 @@ export const CONFIG = "CONFIG";
         new SyncRepository(
           c.DATABASE_URL,
           loadSyncConfig(process.env),
-          unavailableProvider,
-          unavailableProcessor,
+          createSyncRuntimeCapabilities(),
         ),
     },
     {

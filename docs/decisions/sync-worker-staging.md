@@ -105,3 +105,21 @@ all four outcomes and deterministic validation versus transient technical errors
 No production processor exists at this baseline: this classification contract is
 documented, but production conformance remains PENDING. Existing infrastructure
 fixtures do not certify a future processor; see the testing requirements.
+
+## 2026-11-08 Phase A extension clarification — NEXORA-042
+
+Existing V1 queue/scheduler/worker remain authoritative. Static exact provider/type
+capability resolution and one common empty production declaration source replace
+independent port injection. Unknown/unsupported/disabled pairs remain unavailable.
+
+Generic Domain execution no longer equates APPLIED with a Customer FK. A trusted
+infrastructure binding creates a narrow immutable-scope session, stages proposals,
+commits checked scoped persistence only for APPLIED and revokes capabilities on
+close. Customer owns its existing-link projection/locks/immutable mapping; other
+Domains need their legitimate persistence contract. Final lease fencing and one
+transaction still cover Domain, mapping/outcome and job bookkeeping. Processor
+receives no Prisma/raw SQL or forgeable public success flag. No schema/grants or
+production handler are added; actual production Domain conformance remains pending.
+[Extension guide](../architecture/sync-extensions.md) records registration, contracts
+and later type/migration/authorization prerequisites. This clarification does not
+rewrite historical implementation or authorize live fetching/business transitions.
