@@ -330,3 +330,49 @@ SHA binding. New HEAD hosted results remain PENDING here at commit time; record
 actual final-head/merge SHA, run URLs/conclusions and artifact evidence in mutable
 PR metadata after execution. Owner approval stays PENDING, task stays
 VERIFICATION PENDING. Do not append a new SHA-only verification commit afterward.
+
+## Ellipsis test hardening within v3 — 2026-11-12
+
+Delta: siết test ellipsis, không đổi contract. Task classification remains
+SIGNIFICANT; plan revision, snapshot, raw digest and PR metadata remain unchanged.
+Read-only inspection at a6e2761e475628c31cffa88b81d61d6e0add4fcf confirms
+the existing grouped/inline SSR test counts hidden separators but would miss an
+additional visible separator. Reuse the actual Pager SSR loader and existing
+[1, 2, 5] fixture; add an independent total-character count of exactly one,
+retaining the hidden-count assertion of exactly one for both layouts. No new
+component, helper, dependency or production change is needed. This test-only
+verification delta changes no canonical product fact; existing task Documentation
+Impact remains REQUIRED for the broader M5 work, with only execution evidence
+updated here. No new DDD modeling, API/DB/authority or accessibility contract.
+
+Verification sequence: run targeted baseline; strengthen the existing test;
+temporarily inject one extra non-hidden ellipsis in Pager.tsx, observe the focused
+test fail, and restore the exact production bytes before further checks/commits.
+Run requested targeted, lint, docs, preflight and full quality checks. Push the
+test/evidence delta and inspect final-head Preflight, Foundation Docker quality
+and its M5 Chromium acceptance step. Preserve any failed runs. Mark canonical
+hosted acceptance only after all required gates pass on the tested head; keep
+Status VERIFICATION PENDING and independent reviewer/owner checkbox open.
+FU1–FU4, snapshots and .prettierignore are outside this delta.
+
+### Ellipsis delta local evidence
+
+Executed on baseline a6e2761e475628c31cffa88b81d61d6e0add4fcf plus the
+two-file test/task delta, Node v24.22.1 and pinned pnpm10.34.6,
+2026-11-12T13:31:00Z–13:31:46Z UTC. Production Pager SHA256 before and after
+mutation: a03122f701a620819a1fbea04fdae8bbfc95754b5300100ccfde187187594166.
+Detailed mutation/lint logs remain outside Git in execution scratch.
+
+| Claim                              | Evidence                                                                                                                                                                                                                                                                                                                                                                    | Date       | Result |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Targeted baseline                  | node --test packages/ui/test/pager.test.mjs apps/web/test/m5-sharing.test.mjs: 7/7 PASS, 0 skipped before test hardening                                                                                                                                                                                                                                                    | 2026-11-12 | PASS   |
+| Mutation negative control          | At 2026-11-12T13:31:25Z, temporarily added one extra non-hidden span containing an ellipsis before first navigation. node --test --test-name-pattern="Pager always hides decorative ellipses" packages/ui/test/pager.test.mjs exited1: expected FAIL, total2 versus expected1 in grouped layout. Original Pager bytes restored in finally; no production mutation committed | 2026-11-12 | FAIL   |
+| Mutation detection and restoration | Expected negative-control failure confirms the added assertion detects an extra visible ellipsis; Pager.tsx byte-identical to HEAD after restoration                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Targeted GREEN                     | node --test packages/ui/test/pager.test.mjs apps/web/test/m5-sharing.test.mjs: 7/7 PASS, 0 skipped; both layouts independently require total1 and hidden1                                                                                                                                                                                                                   | 2026-11-12 | PASS   |
+| Lint regression                    | npx --yes pnpm@10.34.6 test:lint: 52/52 PASS, 0 skipped                                                                                                                                                                                                                                                                                                                     | 2026-11-12 | PASS   |
+| Documentation                      | npx --yes pnpm@10.34.6 docs:check: PASS                                                                                                                                                                                                                                                                                                                                     | 2026-11-12 | PASS   |
+| Structural governance              | npx --yes pnpm@10.34.6 preflight:check: PASS; v3 binding unchanged                                                                                                                                                                                                                                                                                                          | 2026-11-12 | PASS   |
+
+Full quality and new-head hosted gates are pending for this delta. Historical
+FAIL evidence above remains intact. Only pager.test.mjs and this task may differ
+from a6e2761; snapshots, .prettierignore and all production files stay unchanged.

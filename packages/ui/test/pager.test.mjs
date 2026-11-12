@@ -116,6 +116,11 @@ test("Pager always hides decorative ellipses in grouped and inline layouts", () 
       }),
     );
     assert.equal(
+      (html.match(/…/g) ?? []).length,
+      1,
+      `exactly one ellipsis must be rendered in ${numberLayout} layout`,
+    );
+    assert.equal(
       (html.match(/<span aria-hidden="true">…<\/span>/g) ?? []).length,
       1,
       `ellipsis must be hidden from screen readers in ${numberLayout} layout`,
