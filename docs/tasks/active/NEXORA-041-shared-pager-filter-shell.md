@@ -41,10 +41,10 @@ testing-command documentation; v1 remains immutable. No owner approval gate.
 - [x] Fresh main branch and scoped immutable pre-code plan.
 - [x] Baseline unit/browser evidence before production modifications.
 - [x] Four Pager consumers; both filters share Web shell.
-- [x] Business/visual preservation and intentional ARIA changes verified.
+- [x] Original business/visual preservation and v2 intentional ARIA behavior verified at c1aa327; v3 a11y corrections await new-head CI.
 - [x] Targeted tests, local browser comparison and acceptance-only execution.
 - [x] Final-source full host quality:625 tests and all gates.
-- [ ] Canonical Docker and final-head hosted gates on the NEW F1/F2 commit (rerun pending; historical c1aa327 passed).
+- [ ] Canonical Docker and final-head hosted gates on the NEW F1/F2 commit (historical c1aa327 passed; new-head CI required).
 - [x] Canonical docs synchronized; fresh branch pushed and new PR41 to main; no merge.
 - [ ] Independent reviewer/owner approval obtained.
 
@@ -211,3 +211,18 @@ Chromium checks NOT RUN. CI is required. Independent owner approval: PENDING.
 FU1–FU4 (Pager defaults, Carrier CSS convergence, milestone-named harnesses and
 closed-state aria-controls) are explicitly deferred to a separate pre-Shipment UI
 follow-up, not bundled into this patch.
+
+### F1/F2 implementation checkpoint — 2026-11-12
+
+Scoped source/test commit: `6ca7fa848650a895a487a8ab5faead0bc5c8ad70`.
+Pager decorative ellipsis now always has `aria-hidden="true"` in grouped
+and inline layouts; unit test added for each. Retail nav is renamed
+"Phân trang kiện lẻ", and the redundant aria-label on its outer div removed;
+shared consumer test expects the new accessible label and checks the outer div
+has no duplicate label. Changes do not move feature pagination policy.
+
+Local runtime Node v22.16.0 is below repository minimum Node >=24.19 and has no
+usable pinned pnpm environment. Targeted Node tests, full host quality, browser
+acceptance and canonical Docker are **NOT RUN locally** for these changes.
+Historical hosted PASS on c1aa327 remains historical only; do not mark the
+new head verified until its own GitHub Preflight and Foundation pass.

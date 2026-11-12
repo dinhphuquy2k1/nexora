@@ -451,10 +451,14 @@ div/group and Carrier account's nav with overriding group role now expose
 navigation semantics: intentional accessibility improvements, not a claim of an
 identical accessibility tree. Existing control labels, disabled behavior and
 aria-current policy remain feature-supplied; no nested navigation is introduced.
+The Pager decorative ellipsis is always aria-hidden, in grouped and inline
+layouts. Retail's nav is specifically named "Phân trang kiện lẻ"; its outer
+non-landmark pagination div has no redundant aria-label. These are intentional
+v3 accessibility corrections, not changes to visual layout.
 
 Tier B FilterPopoverShell owns the common Retail/Carrier disclosure structure,
 state, generated trigger/panel association, initial focus, canonical useDismissable
-integration and close render slot. Stable aria-controls is the other intentional
+integration and close render slot. Stable aria-controls is an intentional
 accessibility change. Features retain filtering models, submit/error lifecycle and
 visual geometry exceptions. Shared behavior and public customization details are
 owned by the [reusable registry](reusable-components.md#web-filterpopovershell-m5).

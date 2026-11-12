@@ -375,6 +375,10 @@ the others group numbers/ellipsis. Feature CSS retains responsive/outer geometry
 Pager owns common control and grouped-number layout. `currentPageKnown` controls
 current-page semantics separately from the supplied disabled states. Features
 must explicitly disable navigation when data is unavailable or estimated.
+Decorative separators (`…`) are always `aria-hidden="true"` regardless of
+`numberLayout`. Retail's native nav has the descriptive label
+`Phân trang kiện lẻ`; the feature's outer role-less div no longer owns an
+ARIA label. Both are intentional M5 v3 accessibility corrections.
 
 ## Web FilterPopoverShell (M5)
 
