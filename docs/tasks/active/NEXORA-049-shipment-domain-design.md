@@ -84,6 +84,27 @@ The owner has settled the design; no alternative decision is requested. Provider
 8. Publish PR, wait for Preflight/Foundation and follow the single bounded runtime rerun policy; never merge.
 9. Close this task in the first commit of the next task's PR after merge.
 
+## Review delta
+
+PR #46 APPROVE WITH FIXES: three documentation corrections, without changing the
+plan revision or immutable snapshot:
+
+1. Charge rows use `line_no SMALLINT NOT NULL` in provider order from 1 and
+   `UNIQUE (shipment_id, line_no)`. Repeated charge_code values are allowed;
+   no line merging; Sync replaces the complete ordered set in one transaction.
+2. Stage history adds processor_version and
+   `UNIQUE (shipment_id, source_version, processor_version)`. A new processor can
+   reprocess the same source version and record UNKNOWN → mapped stage; identical
+   data with the same processor remains idempotent. This corrects the earlier
+   two-column history key and qualifies the unchanged-payload no-write statement
+   in the recorded design notes; the historical snapshot is preserved.
+3. ADR-011 explains that source-to-record mapping outlives payload retention
+   (ADR-010), human LINKED_EXISTING decisions cannot be reconstructed from provider
+   data, and re-matching risks duplicates and wrong merges.
+
+ADR-011 and database.md specify no concrete charge/history unique key, so no
+other key reference needs editing. Shipment remains a documentation design only.
+
 ## Acceptance criteria
 
 - [x] Canonical design decisions and cross-document consistency verified.
@@ -132,6 +153,12 @@ format:check, docs:check, preflight:check, test:docs, test:preflight; validatePr
 | Task/snapshot binding                            | validatePrTaskBinding with exactly five NEXORA-049 PR metadata lines; valid:true, failures:[], exit0; raw SHA-256 015be8d1a5f4d614ddcf1e6916c5780f0408b6ad38b3c20e2075a9f674a14533; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z                                                                                                      | 2026-11-13 | PASS   |
 | Scope, active inventory and decision consistency | git diff origin/main --stat: 13 documentation files/rename only; active045,046,047,049; self-review compares ADR-011, shipments.md, PROJECT_RULES.md and database.md to all settled decisions; no apps/packages/scripts/.github changes; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z                                                 | 2026-11-13 | PASS   |
 | Independent documentation review                 | Read-only shipment_design_review agent compared owner request, immutable plan, closure and complete docs diff; no remaining P1/P2/P3 findings after removing an added UNKNOWN/open-claim exception to preserve the owner decision; not a claim of runtime implementation or hosted PASS; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z | 2026-11-13 | PASS   |
+| Review delta — format:check                      | npx --yes pnpm@10.34.6 format:check; exit0; PASS; working tree on 7b8517862b5100b13e187d12246d305585ee7e43 with the three review corrections; 2026-11-13T08:11:44.306318+00:00                                                                                                                                                                                                                                     | 2026-11-13 | PASS   |
+| Review delta — docs:check                        | npx --yes pnpm@10.34.6 docs:check; exit0; PASS; working tree on 7b8517862b5100b13e187d12246d305585ee7e43 with the three review corrections; 2026-11-13T08:11:45.929843+00:00                                                                                                                                                                                                                                       | 2026-11-13 | PASS   |
+| Review delta — preflight:check                   | npx --yes pnpm@10.34.6 preflight:check; exit0; PASS; working tree on 7b8517862b5100b13e187d12246d305585ee7e43 with the three review corrections; 2026-11-13T08:11:47.821779+00:00                                                                                                                                                                                                                                  | 2026-11-13 | PASS   |
+| Review delta — test:docs                         | npx --yes pnpm@10.34.6 test:docs; exit0; 10/10 PASS, 0 skipped; working tree on 7b8517862b5100b13e187d12246d305585ee7e43 with the three review corrections; 2026-11-13T08:11:49.928364+00:00                                                                                                                                                                                                                       | 2026-11-13 | PASS   |
+| Review delta — test:preflight                    | npx --yes pnpm@10.34.6 test:preflight; exit0; 24/24 PASS, 0 skipped; working tree on 7b8517862b5100b13e187d12246d305585ee7e43 with the three review corrections; 2026-11-13T08:11:52.084573+00:00                                                                                                                                                                                                                  | 2026-11-13 | PASS   |
+| Review delta — immutable snapshot and scope      | sha256sum retains 015be8d1a5f4d614ddcf1e6916c5780f0408b6ad38b3c20e2075a9f674a14533; git diff 7b85178 --stat includes only shipments.md, ADR-011 and task049; no concrete charge/history key in database.md requires editing; git diff --check exit0; 2026-11-13T08:11:52Z                                                                                                                                          | 2026-11-13 | PASS   |
 
 Capability IMPLEMENTED refers only to delivered design documents. Shipment runtime,
 schema, adapter, migration and endpoints remain unimplemented. Future task

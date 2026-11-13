@@ -113,14 +113,14 @@ writer is introduced. This task neither edits that code nor grants worker writes
 
 ## Alternatives rejected and consequences
 
-| Rejected approach                                         | Reason                                                                                                                               |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Workspace                                                 | One organization per instance; one owner resolver supplies the current account scope and allows the approved later data-owner policy |
-| Polymorphic link table                                    | Obscures typed FK/domain ownership; a domain-owned multi-source table is justified only by actual merging                            |
-| API configuration in DB                                   | Protocol/validation/identity changes require code review, not mutable runtime execution configuration                                |
-| One domain column per Sync engine table                   | Couples the neutral engine to every added domain; linkage belongs to the domain                                                      |
-| Fixed fee columns                                         | A closed charge-code collection models the selected fees without a new column per fee                                                |
-| Store raw response then reinterpret mapping on every read | Retains unnecessary data and pushes normalization/ownership/query cost into read paths                                               |
+| Rejected approach                                         | Reason                                                                                                                                                                                                                      |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace                                                 | One organization per instance; one owner resolver supplies the current account scope and allows the approved later data-owner policy                                                                                        |
+| Polymorphic link table                                    | Obscures typed FK/domain ownership; a domain-owned multi-source table is justified only by actual merging                                                                                                                   |
+| API configuration in DB                                   | Protocol/validation/identity changes require code review, not mutable runtime execution configuration                                                                                                                       |
+| One domain column per Sync engine table                   | Couples the neutral engine to every added domain; linkage belongs to the domain                                                                                                                                             |
+| Fixed fee columns                                         | A closed charge-code collection models the selected fees without a new column per fee                                                                                                                                       |
+| Store raw response then reinterpret mapping on every read | Source-to-record mapping must outlive payload retention (ADR-010), and human linking decisions such as LINKED_EXISTING cannot be recomputed from provider data; re-matching on every run risks duplicates and wrong merges. |
 
 The cost is explicit per-domain bindings, a separate Customer linkage migration
 and verified provider contracts before activation. Benefits are stable ownership,

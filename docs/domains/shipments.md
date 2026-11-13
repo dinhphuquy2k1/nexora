@@ -141,29 +141,32 @@ Planned indexes:
 
 ### shipment_charges
 
-`id`, `shipment_id FK CASCADE`, `charge_code`, `amount NUMERIC(18,2)`,
+`id`, `shipment_id FK CASCADE`, `line_no SMALLINT NOT NULL`, `charge_code`, `amount NUMERIC(18,2)`,
 `currency CHAR(3)`, `provider_label`.
 
 `charge_code` is the closed set UNIT_PRICE, DOMESTIC_SHIPPING, INSURANCE, COUNTING,
-WOOD_PACKING, BUBBLE_WRAP, OTHER. `UNIQUE (shipment_id, charge_code)` permits one
-line per selected code; the Uniship contract must verify how actual fee detail
-fits, with no invented aggregation. When the payload changes, Sync replaces the
-parcel's complete provider charge set as one explicit aggregate operation in the
-same transaction. This is not a generic delete/reinsert full-aggregate save;
-persist scoped charge differences while retaining normal aggregate encapsulation.
-No fixed per-fee Shipment columns.
+WOOD_PACKING, BUBBLE_WRAP, OTHER. `line_no` preserves the provider's fee-line order,
+starting at 1. `UNIQUE (shipment_id, line_no)` identifies a line; `charge_code` is
+not unique. A parcel may have multiple lines with the same charge_code, for
+example several OTHER lines or several domestic shipping legs. Do not merge
+lines. Sync replaces the complete charge set in source order within the same
+transaction as one explicit provider-owned aggregate operation, not a generic
+full-aggregate save. No fixed per-fee Shipment columns.
 
 ### shipment_stage_history
 
 `id`, `shipment_id FK CASCADE`, `from_stage NULL`, `to_stage`, `provider_status`,
 `provider_changed_at NULL`, `observed_at`, `sync_job_id NULL FK SET NULL`,
-`source_version`.
+`source_version`, `processor_version`.
 
-`UNIQUE (shipment_id, source_version)` makes transition observations idempotent;
+`UNIQUE (shipment_id, source_version, processor_version)` makes transition observations idempotent;
 index `(shipment_id, observed_at)` supports history reads. History is append-only
 and written when the stage changes. Original provider time may be absent; observed
 local time does not pretend to be provider_changed_at. No mutable history child or
-invented transition event.
+invented transition event. Reprocessing the same source_version with a new
+processor_version (for example after mapping a previously UNKNOWN provider code)
+can append the transition UNKNOWN → the mapped stage. Repeating the same data
+with the same processor still cannot create duplicate history.
 
 ### Later tables
 
@@ -189,7 +192,7 @@ The internal claim case is independent of provider_claim_status.
    Domain writes, history, source outcome and bookkeeping commit together with the
    final fence. Reuse the existing ACTIVE user→epoch→connection→job order and
    scoped domain locks; never network under locks. Unique source/history keys,
-   version checks and unchanged-payload no-write preserve idempotency. No separate
+   version checks and unchanged-payload no-write with the same processor preserve idempotency. No separate
    scheduler/worker or in-memory consistency substitute.
 5. API reads persisted scoped projections, not provider payloads or full aggregates
    for lists. Charges are fetched for detail; history is a separate projection.
