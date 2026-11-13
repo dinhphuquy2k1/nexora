@@ -12,7 +12,7 @@ import {
   SyncErrorCode,
   SyncProcessingStatus,
 } from "../../sync/domain/sync.constants";
-import { ShipmentError } from "../domain/shipment";
+import { ShipmentError, parseShipmentProviderInput } from "../domain/shipment";
 import type { ShipmentSyncSession } from "./shipment-sync.port";
 /** No provider mapping is bundled. Each future verified mapper needs its own version. */
 export class ShipmentSyncProcessor
@@ -43,15 +43,16 @@ export class ShipmentSyncProcessor
     session: ShipmentSyncSession,
   ): Promise<SyncDecision> {
     try {
-      const status = Object.hasOwn(source.payload, "providerStatus")
-        ? source.payload.providerStatus
+      const input = parseShipmentProviderInput(source.payload);
+      const status = Object.hasOwn(input, "providerStatus")
+        ? input.providerStatus
         : session.existingProviderStatus;
       let stage = LogisticsStage.UNKNOWN as LogisticsStageCode;
       if (typeof status === "string" && Object.hasOwn(this.mappings, status))
         stage = this.mappings[status];
       else if (status !== null && status !== undefined)
         this.warn("SHIPMENT_STATUS_UNMAPPED");
-      await session.propose(source.payload, stage);
+      await session.propose(input, stage);
       return { outcome: SyncProcessingStatus.APPLIED };
     } catch (error) {
       if (error instanceof ShipmentError && error.code === "VALIDATION_ERROR")

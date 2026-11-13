@@ -148,16 +148,24 @@ function date(value: unknown): string {
   }
   return d.toISOString();
 }
-/** Narrow normalized transition, invoked only by the actual root lifecycle below. */
-function prepareOperation(
-  existing: { logisticsStage: LogisticsStageCode } | null,
-  input: unknown,
-  stage: LogisticsStageCode,
-): ProviderOperation {
+export type ShipmentChargeInput = Omit<
+  ChargeLine,
+  "lineNo" | "providerLabel"
+> & { providerLabel?: string | null };
+/** Explicit collection authority is part of the typed normalized contract. */
+export interface ShipmentProviderInput
+  extends Omit<ProviderFields, "logisticsStage"> {
+  charges?: { complete: true; lines: readonly ShipmentChargeInput[] };
+  providerChangedAt?: string | null;
+}
+interface NormalizedProviderPatch {
+  fields: Omit<ProviderFields, "logisticsStage">;
+  charges?: ChargeLine[];
+  providerChangedAt?: string | null;
+}
+function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
   const raw = shipmentRecord(input, allowed);
-  if (!Object.values(LogisticsStage).includes(stage)) invalid();
-  if (!existing && !Object.hasOwn(raw, "trackingCode")) invalid();
-  const out: Record<string, unknown> = { logisticsStage: stage };
+  const out: Record<string, unknown> = {};
   if (Object.hasOwn(raw, "shipmentKind")) {
     if (raw.shipmentKind !== ShipmentKind.RETAIL_PARCEL) invalid();
     out.shipmentKind = ShipmentKind.RETAIL_PARCEL;
@@ -236,9 +244,43 @@ function prepareOperation(
     providerChangedAt =
       raw.providerChangedAt === null ? null : date(raw.providerChangedAt);
   return {
-    fields: out as unknown as ProviderFields,
+    fields: out as Omit<ProviderFields, "logisticsStage">,
     providerChangedAt,
     charges,
+  };
+}
+
+/** Reuse the same validator at generic-source and Aggregate command boundaries. */
+export function parseShipmentProviderInput(
+  input: unknown,
+): ShipmentProviderInput {
+  const normalized = normalizeProviderPatch(input);
+  const result: ShipmentProviderInput = { ...normalized.fields };
+  if (normalized.charges !== undefined)
+    result.charges = {
+      complete: true,
+      lines: normalized.charges.map((c) => ({
+        chargeCode: c.chargeCode,
+        amount: c.amount,
+        currency: c.currency,
+        providerLabel: c.providerLabel,
+      })),
+    };
+  if (normalized.providerChangedAt !== undefined)
+    result.providerChangedAt = normalized.providerChangedAt;
+  return result;
+}
+function prepareOperation(
+  existing: { logisticsStage: LogisticsStageCode } | null,
+  input: unknown,
+  stage: LogisticsStageCode,
+): ProviderOperation {
+  if (!Object.values(LogisticsStage).includes(stage)) invalid();
+  const normalized = normalizeProviderPatch(input);
+  if (!existing && normalized.fields.trackingCode === undefined) invalid();
+  return {
+    ...normalized,
+    fields: { ...normalized.fields, logisticsStage: stage },
     stageChanged: !existing || existing.logisticsStage !== stage,
     fromStage: existing?.logisticsStage ?? null,
   };

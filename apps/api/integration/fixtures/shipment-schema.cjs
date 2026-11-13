@@ -327,6 +327,20 @@ module.exports.verifyShipmentSchema = async (db) => {
     await db.shipmentStageHistory.count({ where: { shipmentId: a[0].id } }),
     0,
   );
+  for (const assignment of [
+    "provider='uniship'",
+    "provider_status='invalid-without-provider'",
+    "weight_kg=-0.001",
+    "package_count=-1",
+    "item_count=-1",
+    "total_currency='cnY'",
+  ])
+    await assert.rejects(
+      db.$executeRawUnsafe(
+        `UPDATE shipments SET ${assignment} WHERE id=$1::uuid`,
+        b[0].id,
+      ),
+    );
   for (const field of [
     "weight_kg",
     "total_amount",

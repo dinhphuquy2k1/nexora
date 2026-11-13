@@ -203,3 +203,29 @@ test("actual root and Charge children preserve identity, ownership and hydrated 
   );
   assert.deepEqual(root.snapshot().charges, []);
 });
+
+test("typed normalized provider input keeps explicit complete marker and owns a validated copy", () => {
+  const {
+    parseShipmentProviderInput,
+  } = require("../../dist/shipment/domain/shipment");
+  const raw = input({
+    charges: { complete: true, lines: [line({ amount: "1.2" })] },
+  });
+  const parsed = parseShipmentProviderInput(raw);
+  assert.equal(parsed.charges.complete, true);
+  assert.equal(parsed.charges.lines[0].amount, "1.20");
+  assert.ok(!Object.hasOwn(parsed.charges.lines[0], "lineNo"));
+  raw.charges.lines[0].amount = "0.00";
+  assert.equal(parsed.charges.lines[0].amount, "1.20");
+  assert.ok(
+    !Object.hasOwn(
+      parseShipmentProviderInput({ providerStatus: "test" }),
+      "charges",
+    ),
+  );
+  invalid(() =>
+    parseShipmentProviderInput(
+      input({ charges: { complete: false, lines: [] } }),
+    ),
+  );
+});

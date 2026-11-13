@@ -120,12 +120,12 @@ possibly overlapping tabs. Missing/unavailable data is not fabricated as zero.
 [Database conventions](../architecture/database.md#naming-conventions-for-new-tables)
 apply prospectively: singular PascalCase models, mapped plural snake_case tables,
 camelCase mapped fields, scalar VARCHAR plus CHECK and Timestamptz(3). Money is
-NUMERIC, never a floating-point recalculation; future JSON money is a decimal
+NUMERIC, never a floating-point recalculation; API JSON money is a decimal
 string per the API contract. The forward migration 20261113000000_shipment_core creates the three tables; runtime provisioning applies scoped grants.
 
 ### shipments
 
-| Group / authority          | Planned columns and constraints                                                                                                                                                                                                                     |
+| Group / authority          | Columns and constraints                                                                                                                                                                                                                             |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Identity/ownership         | id; owner_user_id; code UNIQUE, database-generated using shipment_code_seq/next_shipment_code(), VD plus at least six digits; source_identity_id UUID UNIQUE NULL FK RESTRICT; carrier_connection_id NULL FK SET NULL; provider NULL; shipment_kind |
 | Provider-owned parcel data | tracking_code (not UNIQUE); origin_warehouse; service_level; weight_kg NUMERIC(10,3); package_count; item_count                                                                                                                                     |
@@ -222,7 +222,7 @@ The internal claim case is independent of provider_claim_status.
    do not retain a raw response to reinterpret it on every read.
 3. Processor uses the existing narrow session. Binding finds the Shipment by
    source_identity_id within the immutable source scope, creates it or updates
-   only the provider-owned set, replaces charges and appends history for a stage
+   only the provider-owned set, reconciles explicitly complete charges (preserving omitted collections) and appends history for a stage
    change; an unknown code yields UNKNOWN plus warning.
 4. Binding runs inside Sync's authorization/lease/version-fenced transaction.
    Domain writes, history, source outcome and bookkeeping commit together with the

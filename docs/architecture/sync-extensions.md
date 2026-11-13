@@ -169,3 +169,10 @@ registrations establish correctness, not real provider API access/completeness.
 Production capability declarations remain empty. Unknown source status yields a
 fixed SHIPMENT_STATUS_UNMAPPED warning without payload/credentials and maps UNKNOWN,
 not automatic NEEDS_REVIEW. Worker grants are documented in database.md.
+
+ShipmentProviderInput is the feature-owned typed normalized patch contract. Its
+optional charges property is an explicit complete:true collection; omission and
+complete empty are distinct. The Domain parser validates generic Sync JSON into a
+copied typed value, retaining the complete marker; Aggregate commands reuse the
+same validator and do not rely on TypeScript alone. Logistics stage is supplied by
+the injected mapper, never accepted as a provider payload field.

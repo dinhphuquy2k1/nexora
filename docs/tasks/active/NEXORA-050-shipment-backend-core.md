@@ -183,3 +183,15 @@ shorten only the synthetic prefix, not production constraints or assertions.
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Reproducible generated contract | npx --yes pnpm@10.34.6 contracts:check on f1a9df82355c0847813f8b345a6c1844c72fdf35; start2026-11-13T16:30:56.213540Z, finish2026-11-13T16:31:06.334672Z; exit0; generated files committed and byte-reproducible                                                                          | 2026-11-13 | PASS   |
 | Added ADMIN fixture seed        | Signed owned-cluster Shipment suite on f1a9df82355c0847813f8b345a6c1844c72fdf35; 1 PASS/1 FAIL before engine work: synthetic shipment-admin plus UUID exceeds username VARCHAR; 2026-11-13T16:31:06.336317Z–16:31:24.562252Z, exit1. Only fixture prefix shortened; real schema retained | 2026-11-13 | FAIL   |
+
+### Typed input contract checkpoint
+
+The planned narrow normalized input now has an explicit ShipmentProviderInput /
+ShipmentChargeInput contract. A shared feature-owned normalization algorithm feeds
+both the generic-source parser and Aggregate command validation. The parser copies
+validated values and preserves complete:true versus omission, without accepting
+logistics_stage from payload. This completes v2's recorded input contract; no API,
+schema, permission or provider activation delta is introduced. RED: the new parser
+unit test failed function-not-found before implementation; GREEN: 10/10 fast tests.
+Historical run start for this RED checkpoint was not retained; working tree on
+a1b11ca7f3665924a6de5c197aa8d914eafe598e, observed2026-11-13T16:42Z.
