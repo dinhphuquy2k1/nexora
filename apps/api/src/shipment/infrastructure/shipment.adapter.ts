@@ -39,6 +39,9 @@ export class ShipmentAdapter extends ShipmentReadPort {
   async close() {
     await this.instance?.$disconnect();
   }
+  async onApplicationShutdown() {
+    await this.close();
+  }
   private transaction<T>(
     owner: string,
     fn: (tx: Prisma.TransactionClient) => Promise<T>,

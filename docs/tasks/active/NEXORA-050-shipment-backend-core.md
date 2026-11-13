@@ -205,3 +205,16 @@ pinned installed dependencies; canonical quality builds it from the current lock
 No production launcher or source changes. RED: launcher regression failed the new
 current read-only API-source mount assertion (7 PASS/1 FAIL); adding only worker-suite
 mounts follows v2's requirement to execute the current implementation.
+
+### Adapter lifecycle correction
+
+Reuse Customer/Sync adapter onApplicationShutdown convention for the Shipment read
+pool. A real Nest application-context test observed zero disconnect calls before
+implementation (expected one); the hook delegates to existing lazy close, without
+opening an unused adapter. No database/API/Domain contract or snapshot change.
+This is a feature-owned lifecycle bug fix, not a generic adapter framework.
+
+Workspace pnpm test on42a8bcd stopped in the pre-existing 1s mocked TCP readiness
+fixture (136 PASS/1 FAIL before workspace package suites). Launcher alone remains
+8/8 PASS. Preserve the FAIL; resource-isolated host execution will be reported
+separately, without changing deadlines/assertions or repository test configuration.
