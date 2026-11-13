@@ -58,6 +58,18 @@ test("pre-auth diagnostics retain only closed counts, never CDP payloads or exce
     loadEvents: 1,
     evaluationFailures: 1,
     protocolFailures: 1,
+    scriptFailureReasons: {
+      ABORTED: 0,
+      BLOCKED: 0,
+      CERTIFICATE: 1,
+      CONNECTION_CLOSED: 0,
+      CONNECTION_RESET: 0,
+      EMPTY_RESPONSE: 0,
+      HTTP2_PROTOCOL_ERROR: 0,
+      TIMED_OUT: 0,
+      OTHER: 1,
+    },
+    scriptFailuresCanceled: 0,
   });
   assert.equal(JSON.stringify(d.snapshot()).includes(privateText), false);
   d.stop();
@@ -134,4 +146,47 @@ test("Login observer excludes full-document Setup and starts fresh on explicit L
   assert.equal(probe.snapshot().typeTransitions, 1);
   assert.equal(disconnected, 1);
   assert.equal(removals, 1);
+});
+
+test("script load failures map to closed reasons without payloads", () => {
+  const d = createLoginReadinessDiagnostics();
+  const cases = [
+    ["net::ERR_ABORTED", "ABORTED"],
+    ["net::ERR_CONNECTION_RESET", "CONNECTION_RESET"],
+    ["net::ERR_CONNECTION_CLOSED", "CONNECTION_CLOSED"],
+    ["net::ERR_EMPTY_RESPONSE", "EMPTY_RESPONSE"],
+    ["net::ERR_HTTP2_PROTOCOL_ERROR", "HTTP2_PROTOCOL_ERROR"],
+    ["net::ERR_TIMED_OUT", "TIMED_OUT"],
+    ["net::ERR_CERT_DATE_INVALID", "CERTIFICATE"],
+    ["private-url-token", "OTHER"],
+  ];
+  for (const [errorText] of cases)
+    d.observe({
+      method: "Network.loadingFailed",
+      params: { type: "Script", errorText },
+    });
+  d.observe({
+    method: "Network.loadingFailed",
+    params: {
+      type: "Script",
+      errorText: "net::ERR_BLOCKED_BY_RESPONSE",
+      blockedReason: "private-reason",
+    },
+  });
+  d.observe({
+    method: "Network.loadingFailed",
+    params: { type: "Script", errorText: "net::ERR_ABORTED", canceled: true },
+  });
+  d.observe({
+    method: "Network.loadingFailed",
+    params: { type: "Fetch", errorText: "net::ERR_ABORTED" },
+  });
+  const s = d.snapshot();
+  for (const [, reason] of cases)
+    assert.ok(s.scriptFailureReasons[reason] >= 1, reason);
+  assert.equal(s.scriptFailureReasons.ABORTED, 2);
+  assert.equal(s.scriptFailureReasons.BLOCKED, 1);
+  assert.equal(s.scriptFailuresCanceled, 1);
+  assert.equal(s.scriptLoadFailures, 10);
+  assert.equal(JSON.stringify(s).includes("private"), false);
 });
