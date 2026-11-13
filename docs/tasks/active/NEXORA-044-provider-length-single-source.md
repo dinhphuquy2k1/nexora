@@ -1,8 +1,8 @@
 # NEXORA-044 — Provider length single source
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Origin
 
@@ -67,3 +67,32 @@ pnpm docs:check, preflight:check, format:check.
 | Follow-up scope recorded from NEXORA-042 PLAN ISSUE PROVIDER_LENGTH_SINGLE_SOURCE | Created by NEXORA-043 task closure (PR #42)                                                                                                                                                                                                                                                                                                         | 2026-11-12 | PASS   |
 | Registry RED before implementation                                                | node --test apps/api/test/sync/capability.test.cjs on 75400be working tree with new tests: 13 PASS / 1 FAIL, exit 1; undefined !== 32 because Carrier constant is not exported yet; prerequisite npx --yes pnpm@10.34.6 --filter @nexora/api... build PASS                                                                                          | 2026-11-13 | FAIL   |
 | Genuine PostgreSQL integration RED before implementation                          | node --test integration/sync-integration.test.cjs from apps/api against owned disposable postgres:17.11-bookworm, real migrate deploy; 53 tests, 51 PASS / 2 FAIL (new parity subtest plus enclosing suite), 0 skipped, exit 1; provider columns match CARRIER_PROVIDER_MAX_LENGTH fails undefined !== 32, actual column table set/type checks pass | 2026-11-13 | FAIL   |
+| Frozen prerequisites                                                              | npx --yes pnpm@10.34.6 install --frozen-lockfile --offline; all 7 workspaces, 427 packages reused, exit 0                                                                                                                                                                                                                                           | 2026-11-13 | PASS   |
+| GREEN prerequisite build                                                          | npx --yes pnpm@10.34.6 --filter @nexora/api... build: genuine Prisma 7.10.0 generation, database/shared/API TypeScript builds, exit 0                                                                                                                                                                                                               | 2026-11-13 | PASS   |
+| GREEN Sync units                                                                  | node --test apps/api/test/sync/\*.test.cjs: 26/26 PASS, 0 skipped, exit 0; exact-limit accepted and limit+1 rejected                                                                                                                                                                                                                                | 2026-11-13 | PASS   |
+| GREEN genuine PostgreSQL parity and Sync regressions                              | node --test integration/sync-integration.test.cjs from apps/api using owned disposable postgres:17.11-bookworm with authentic Prisma migrations: 53/53 PASS, 0 skipped, exit 0; provider columns match CARRIER_PROVIDER_MAX_LENGTH PASS; exact five provider columns are character varying length 32; owned container cleanup exit 0                | 2026-11-13 | PASS   |
+| Formatting                                                                        | npx --yes pnpm@10.34.6 format:check: exit 0                                                                                                                                                                                                                                                                                                         | 2026-11-13 | PASS   |
+| Architectural lint                                                                | npx --yes pnpm@10.34.6 lint: boundaries and ESLint PASS, exit 0                                                                                                                                                                                                                                                                                     | 2026-11-13 | PASS   |
+| Documentation validation                                                          | npx --yes pnpm@10.34.6 docs:check: exit 0                                                                                                                                                                                                                                                                                                           | 2026-11-13 | PASS   |
+| Static preflight                                                                  | npx --yes pnpm@10.34.6 preflight:check: exit 0, local structural mode                                                                                                                                                                                                                                                                               | 2026-11-13 | PASS   |
+| Documentation regressions                                                         | npx --yes pnpm@10.34.6 test:docs: 10/10 PASS, 0 skipped, exit 0                                                                                                                                                                                                                                                                                     | 2026-11-13 | PASS   |
+| Preflight regressions                                                             | npx --yes pnpm@10.34.6 test:preflight: 24/24 PASS, 0 skipped, exit 0                                                                                                                                                                                                                                                                                | 2026-11-13 | PASS   |
+| Boundary guard                                                                    | node scripts/boundaries.mjs: exit 0                                                                                                                                                                                                                                                                                                                 | 2026-11-13 | PASS   |
+| Scope and snapshot review                                                         | git diff origin/main --stat contains exactly the nine owner-listed files; no schema/migration/API/SDK/vocabulary/production-registration or other task changes; raw snapshot SHA-256 remains a1fc997f18d5e3b7e61ce2ca37f4f627d56ba7ef29a954e3a286124ec1b77f19; skill-guided BOUNDED self-review finds no confirmed P1/P2 (not independent approval) | 2026-11-13 | PASS   |
+
+Local GREEN commands above ran on test-first HEAD 9113c84 with the reviewed
+implementation/documentation working delta, subsequently committed unchanged as
+the implementation commit preceding this evidence publication. Host Node24.22.1,
+pnpm10.34.6; real owned PostgreSQL17.11. Detailed logs remain execution scratch,
+not Git artifacts. Hosted final-head provenance is recorded in the PR after runs.
+
+### Verification not executed locally
+
+`API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`:
+NOT RUN locally due to limited execution filesystem capacity (727 MB free during
+the migrated integration run on the 7.9 GB workspace). No full host quality PASS
+is claimed; final-head hosted Foundation must supply canonical Docker quality,
+migrations/integration and runtime/HTTPS/persistence/development verification.
+Hosted Preflight, Sync Targeted and Foundation are pending publication. Closure of
+NEXORA-043/044 and the completed NEXORA-042 resolution link are deferred until after
+merge in the separate documentation PR explicitly requested by the owner.
