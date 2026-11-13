@@ -755,7 +755,7 @@ only password-visibility click/type-transition counts and a capped closed-catego
 sequence. It never reads input values or changes DOM/React state. Observation is
 stopped before credentials are entered; authentication submits are not retried.
 Failure diagnostics contain no raw CDP payloads, URLs, exception text, headers,
-request bodies, cookies or tokens. Privacy/shape regressions are in
+request bodies, cookies or tokens. Failed script loads are also classified into a closed reason set (ABORTED, BLOCKED, CERTIFICATE, CONNECTION_CLOSED, CONNECTION_RESET, EMPTY_RESPONSE, HTTP2_PROTOCOL_ERROR, TIMED_OUT, OTHER) with a canceled count, from Chromium's fixed net error codes only; see issue #44. Privacy/shape regressions are in
 scripts/login-readiness-diagnostics.test.mjs. Counters diagnose a failed precondition;
 they do not prove hydration, identify a cause by themselves or replace actual
 Login/MFA/HTTPS security assertions. The real visibility transition remains the

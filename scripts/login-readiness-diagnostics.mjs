@@ -1,4 +1,16 @@
 // Pre-auth test-only counters. Never retain CDP URLs, bodies, headers or exceptions.
+const SCRIPT_FAILURE_REASONS = {
+  "net::ERR_ABORTED": "ABORTED",
+  "net::ERR_CONNECTION_CLOSED": "CONNECTION_CLOSED",
+  "net::ERR_CONNECTION_RESET": "CONNECTION_RESET",
+  "net::ERR_EMPTY_RESPONSE": "EMPTY_RESPONSE",
+  "net::ERR_HTTP2_PROTOCOL_ERROR": "HTTP2_PROTOCOL_ERROR",
+  "net::ERR_TIMED_OUT": "TIMED_OUT",
+  "net::ERR_CERT_AUTHORITY_INVALID": "CERTIFICATE",
+  "net::ERR_CERT_COMMON_NAME_INVALID": "CERTIFICATE",
+  "net::ERR_CERT_DATE_INVALID": "CERTIFICATE",
+};
+
 export function createLoginReadinessDiagnostics() {
   let active = true;
   const counts = {
@@ -15,6 +27,18 @@ export function createLoginReadinessDiagnostics() {
     evaluationFailures: 0,
     protocolFailures: 0,
   };
+  const reasons = {
+    ABORTED: 0,
+    BLOCKED: 0,
+    CERTIFICATE: 0,
+    CONNECTION_CLOSED: 0,
+    CONNECTION_RESET: 0,
+    EMPTY_RESPONSE: 0,
+    HTTP2_PROTOCOL_ERROR: 0,
+    TIMED_OUT: 0,
+    OTHER: 0,
+  };
+  let canceled = 0;
   const increment = (key) => {
     if (active) counts[key] = Math.min(10000, counts[key] + 1);
   };
@@ -39,6 +63,12 @@ export function createLoginReadinessDiagnostics() {
             ].includes(params.errorText)
           )
             increment("certificateFailures");
+          const reason = params.blockedReason
+            ? "BLOCKED"
+            : (SCRIPT_FAILURE_REASONS[params.errorText] ?? "OTHER");
+          reasons[reason] = Math.min(10000, reasons[reason] + 1);
+          if (params.canceled === true)
+            canceled = Math.min(10000, canceled + 1);
         }
         if (params.type === "Document") increment("documentLoadFailures");
       }
@@ -51,7 +81,11 @@ export function createLoginReadinessDiagnostics() {
     },
     evaluationFailed: () => increment("evaluationFailures"),
     protocolFailed: () => increment("protocolFailures"),
-    snapshot: () => ({ ...counts }),
+    snapshot: () => ({
+      ...counts,
+      scriptFailureReasons: { ...reasons },
+      scriptFailuresCanceled: canceled,
+    }),
     stop() {
       active = false;
     },
