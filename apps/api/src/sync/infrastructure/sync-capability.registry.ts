@@ -1,3 +1,4 @@
+import { CARRIER_PROVIDER_MAX_LENGTH } from "../../carrier/domain/carrier";
 import type {
   SyncCapability,
   SyncCapabilityResolver,
@@ -28,7 +29,7 @@ export class SyncCapabilityRegistry implements SyncCapabilityResolver {
       if (
         typeof providerName !== "string" ||
         !providerName.length ||
-        providerName.length > 32 ||
+        providerName.length > CARRIER_PROVIDER_MAX_LENGTH ||
         !Object.values(SyncType).includes(type) ||
         !Number.isSafeInteger(domain.version) ||
         domain.version < 1 ||

@@ -93,6 +93,7 @@ CREATE INDEX idx_carrier_connections_user_provider ON carrier_connections(user_i
 - **Global Uniqueness**: `UNIQUE (provider, external_account_id)` strictly prohibits binding the same physical carrier account to multiple Nexora users. Attempted duplicate linkage returns a generic error (`400 CANNOT_CONNECT_CARRIER_ACCOUNT`) without leaking cross-user linkages.
 - **Ownership**: `user_id` is foreign-keyed to `users.id` with `ON DELETE CASCADE`.
 - **Domain Vocabulary & SQL CHECK**: `provider` is persisted domain vocabulary protected by raw SQL CHECK constraint `chk_carrier_connections_provider`. Adding future providers is executed via forward-only migrations modifying this constraint. Prisma enums, PostgreSQL ENUM types, and TypeScript enums are strictly forbidden.
+- **Provider column length**: every `provider` column (`carrier_connections`, `security_audit_events`, `sync_jobs`, `sync_source_identities`, `sync_provider_budget`) is `VARCHAR(32)`. The single TypeScript source is `CARRIER_PROVIDER_MAX_LENGTH` in `apps/api/src/carrier/domain/carrier.ts`; the Sync integration suite verifies every provider column against it. Changing the length requires a forward-only migration for all of these columns and a matching constant change.
 - **Conditional Login Identifier**: `login_identifier` (e.g. username/email) is conditional per adapter and nullable at the schema level to support providers that authenticate via OAuth, bearer tokens, or API keys without login usernames.
 
 ### 3. `carrier_connection_secrets` (PR 3)
