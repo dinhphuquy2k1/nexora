@@ -195,3 +195,13 @@ schema, permission or provider activation delta is introduced. RED: the new pars
 unit test failed function-not-found before implementation; GREEN: 10/10 fast tests.
 Historical run start for this RED checkpoint was not retained; working tree on
 a1b11ca7f3665924a6de5c197aa8d914eafe598e, observed2026-11-13T16:42Z.
+
+### Owned worker source provenance
+
+The signed-cluster worker suite now mounts current API, Shared and Database source
+and compiler inputs read-only, so an existing tooling-image cache cannot substitute
+older application code for current-HEAD verification. The image still supplies the
+pinned installed dependencies; canonical quality builds it from the current lock.
+No production launcher or source changes. RED: launcher regression failed the new
+current read-only API-source mount assertion (7 PASS/1 FAIL); adding only worker-suite
+mounts follows v2's requirement to execute the current implementation.

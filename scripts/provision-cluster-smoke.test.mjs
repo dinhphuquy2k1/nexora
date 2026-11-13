@@ -149,6 +149,28 @@ test("cluster normal/selectors/TCP-only temporary startup", async () => {
     const r = await fixture("normal", suite);
     assert.equal(r.code, 0, r.output);
     assert.equal(r.state.suites, count);
+    if (suite === "shipment-worker") {
+      const worker = r.state.calls.find(
+        (args) =>
+          args[0] === "create" &&
+          args.some((value) => value.includes("-shipment-worker")),
+      );
+      assert.ok(worker);
+      for (const path of [
+        "apps/api/src",
+        "apps/api/integration",
+        "apps/api/test",
+        "packages/shared/src",
+        "packages/shared/package.json",
+        "packages/database/src",
+        "tsconfig.base.json",
+      ])
+        assert.ok(
+          worker.some((arg) => arg.endsWith(`:/workspace/${path}:ro`)),
+          `current read-only source mount ${path}`,
+        );
+    }
+
     clean(r.state);
     assert.equal(r.state.socket, 0);
     assert.match(r.output, /Actual disposable cluster tests PASS/);

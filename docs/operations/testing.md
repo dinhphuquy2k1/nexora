@@ -847,3 +847,10 @@ integration uses no worker credential rotation. Native role probes and actual OR
 SQL binding execution are separate evidence; both are required. Root creation uses
 explicit provider columns because Prisma otherwise supplies created_at, which the
 least-privilege worker deliberately cannot insert. Do not expand grants to mask it.
+
+The Shipment worker suite mounts current API sources/integration/MFA helpers,
+Shared sources/manifest and Database sources/compiler inputs read-only. Its
+compiled outputs stay inside the owned test container. The tooling image supplies
+the pinned installed dependencies (build it from the current lockfile); cached
+application source is not accepted as current-HEAD evidence. Launcher regression
+checks assert these mounts and normal ownership/cleanup behavior.
