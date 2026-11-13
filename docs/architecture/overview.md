@@ -1,7 +1,8 @@
 # Architecture overview
 
 IMPLEMENTED: pnpm/Turbo monorepo, NestJS modular monolith, Next.js UI and same-origin HTTP transport, PostgreSQL storage catalog, local file adapter, generated OpenAPI SDK, local Scrypt identities, PostgreSQL-backed opaque sessions and owner-scoped Customer Backend V1 (verification pending).
-PLANNED: Customer frontend acceptance/navigation activation, shipment tracking & status history, weights/estimated fees, XLSX import, conditional provider integration/synchronization.
+DESIGNED: Shipment domain and data ownership ([ADR-011](../decisions/shipment-domain-data-ownership.md)), not implemented.
+PLANNED: Customer frontend acceptance/navigation activation, XLSX import, conditional provider integration/synchronization.
 
 | Workspace         | Actual responsibility                                                                                                           |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------- |

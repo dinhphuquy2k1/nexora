@@ -1,6 +1,6 @@
 # Database
 
-Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `operator_setup_tokens` (hashed single-use onboarding secrets), `carrier_connections` and `carrier_connection_secrets` (metadata and encrypted secrets), `carrier_user_states` (disablement epoch), `security_audit_events` (durable metadata-only audit), `customers`/`customer_addresses` (owner-scoped customer profiles and recipient addresses), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment domain schema is PLANNED; there are no fake smoke tables or business seeds.
+Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `operator_setup_tokens` (hashed single-use onboarding secrets), `carrier_connections` and `carrier_connection_secrets` (metadata and encrypted secrets), `carrier_user_states` (disablement epoch), `security_audit_events` (durable metadata-only audit), `customers`/`customer_addresses` (owner-scoped customer profiles and recipient addresses), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment domain schema is DESIGNED (ADR-011), not implemented; there are no fake smoke tables or business seeds.
 `20261006000000_storage_catalog`, `20261012000000_local_authentication`, `20261012010000_unified_identity` and `20261012020000_external_identities` plus `20261015000000_local_identity_onboarding` and `20261015010000_legacy_provider_session_cutover` plus `20261015020000_carrier_connections` plus `20261016000000_carrier_lifecycle`, `20261016010000_admin_totp_mfa` and `20261020010000_customers` define migrations deployed by `prisma migrate deploy`, gated on PostgreSQL healthy. Repeated deployment preserves existing rows except the explicitly approved experimental-session cutover described below. No reset, db push, migrate dev or demo seed runs at startup.
 Integration tests register/read/delete only their own UUID and do not truncate shared data. Persistence smoke runs on disposable projects; see task evidence.
 
@@ -353,6 +353,12 @@ this correction requires no schema change or migration.
 
 ### Phase A Domain mapping ownership — NEXORA-042
 
+Current `sync_source_identities.customer_id` is a nullable, nonunique FK.
+`Customer.syncSources` is a collection; the partial
+`idx_sync_source_identities_customer` is nonunique. Therefore multiple source
+identities may reference one Customer; neither the source-scoped binding nor the
+current schema establishes Customer 1:1 cardinality.
+
 No schema, migration, CHECK, FK, role or grant changes. Customer's infrastructure
 binding now owns the existing customer_id/link_origin projection, owner lock and
 LINKED_EXISTING mapping update; the generic engine owns only source/version/outcome
@@ -362,3 +368,38 @@ gets narrow staged capabilities only; commit validation, close and the existing
 final lease fence keep Domain and Sync writes atomic. Synthetic test-owned tables
 prove this seam in disposable PostgreSQL, not production Domain conformance or new
 worker permissions. See [extension guide](sync-extensions.md).
+
+## Naming conventions for new tables
+
+These conventions apply prospectively; no current schema is renamed by this design.
+
+- Prisma model: singular PascalCase; physical table: plural snake_case through `@@map`.
+- Prisma fields: camelCase; multiword fields use `@map` to snake_case columns.
+- Persisted status: scalar VARCHAR plus SQL CHECK; no Prisma/PostgreSQL/TypeScript enum.
+- `created_at` and `updated_at`: Timestamptz(3).
+- Constraint/index prefixes: `chk_`, `uq_`, `idx_`.
+- `stored_files` and `sync_*` are historical exceptions; do not rename them for symmetry.
+
+[Shipment schema draft](../domains/shipments.md#schema-draft--not-a-migration)
+records the designed tables, source linkage, write authority and indexes under
+[ADR-011](../decisions/shipment-domain-data-ownership.md). It is not a migration.
+Current Customer linkage/grants stay implemented. The latest owner decision in
+[ADR-011](../decisions/shipment-domain-data-ownership.md#customer-source-cardinality--resolved)
+resolves CUSTOMER_SOURCE_CARDINALITY by preserving many-source-to-one Customer
+mapping in sync_source_identities.customer_id/link_origin. Customer Domain owns
+validation/decisions; Sync retains this durable physical representation as a
+bounded compatibility exception. The engine still has Customer-specific fields;
+other domains must not automatically copy them. The former Customer 1:1 target is
+superseded and must not be implemented. No customer_source_links or other mapping
+table is introduced, and no mapping/provenance is deleted.
+
+Customer source-link storage relocation is DEFERRED with no selected destination;
+it is not required before Shipment Core. A justified future task must assess
+actual requirements/data/constraints and record its own design, preserve all
+many-source links/owners/origins/provenance and engine hash/checkpoint/version/job
+state, and supply a lossless migration, rollback strategy and genuine PostgreSQL
+tests (including two sources to one Customer, retention/restart and isolation).
+Unused-field cleanup is independently assessed, not bundled as a prerequisite.
+Shipment keeps its own unique nullable source_identity_id and Nexora-owned
+customer_id; provider Sync must not overwrite that internal association.
+No schema, migration, test, role or grant is changed here.

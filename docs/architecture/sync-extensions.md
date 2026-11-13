@@ -96,3 +96,57 @@ Prisma/PostgreSQL ENUM or turn the type into arbitrary runtime text.
 Phase B/C still own actual provider transports/payload contracts, business processors,
 Shipment schema/commands if selected, production grants and deployment/activation.
 Phase A's registry and invocation seam do not supply those missing capabilities.
+
+## Domain linkage and bounded Customer persistence exception — ADR-011
+
+Shipment keeps source_identity_id on its own table; no Shipment-specific column
+is added to Sync. Existing Customer mapping is an explicit bounded compatibility
+exception: retain sync_source_identities.customer_id/link_origin, the nullable
+nonunique Customer FK, collection relationship and nonunique index. Multiple
+Customer sources may map to one Nexora Customer. Customer Domain/processor owns
+matching/eligibility decisions and scoped immutable-target validation; Sync keeps
+the existing durable storage representation under current transaction/fences.
+Code decides; persisted source identity records the result. The engine is not
+completely free of Customer-specific fields, and new domains must not automatically
+copy this exception or add generic Sync matching logic.
+
+Confirmed links, especially LINKED_EXISTING, survive restart/resync/payload change
+and payload retention. Reuse them instead of rematching provider payload on every
+run; do not silently relink a source, automatically merge by name/phone/tracking
+code/unverified data, or bypass owner/lifecycle checks. Human confirmation retains
+NEEDS_REVIEW. No new matching algorithm or production Customer handler is added.
+
+[ADR-011](../decisions/shipment-domain-data-ownership.md#customer-source-cardinality--resolved)
+resolves CUSTOMER_SOURCE_CARDINALITY through the latest owner decision. The former
+Customer 1:1 migration target is superseded and must not be implemented. Do not
+create customer_source_links or another mapping table now. Physical relocation is
+DEFERRED, with no selected destination, and is not a Shipment Core prerequisite.
+Any justified future move needs a separate design, lossless mapping/origin/owner/
+provenance preservation, safe rollback and genuine PostgreSQL tests including
+two sources to one Customer; preserve engine versions/hashes/checkpoints and job
+provenance. Independently justified unused-field cleanup is a separate follow-up,
+not bundled or required before Shipment.
+
+Shipment's customer_id is a different Nexora-owned association: initially NULL is
+valid, and authorized future user commands link/unlink/relink an eligible existing
+owner-scoped Customer. Multiple Shipments can share one Customer. Shipment Sync
+never creates/matches a Customer as an ingestion prerequisite or overwrites or
+infers that association; no Uniship Customer identifier/API is assumed.
+
+## Provider/type independence
+
+| Pair                  | Meaning                                                                       |
+| --------------------- | ----------------------------------------------------------------------------- |
+| (uniship, SHIPMENT)   | Current planned Shipment-only scope, official authorization required          |
+| (carrier-b, SHIPMENT) | Illustrative future capability, not registered                                |
+| (carrier-b, CUSTOMER) | Separate illustrative capability only if officially supported, not registered |
+
+A provider can support only Shipment, only Customer or both. Use the existing
+exact-pair registry and shared empty production declarations; no scheduler/worker
+change per provider/type pair, provider-wide implicit capability, global
+Customer-before-Shipment ordering or separate worker per type. A flag cannot
+activate missing code or authorize traffic. Uniship Customer Sync is outside
+current scope and is not required before Shipment integration. Each actual pair
+independently verifies official API access, normalization, stable versioned identity,
+processing contracts and permissions. Provider-specific coordinated ordering, if
+needed, is separately evaluated, never assumed globally.

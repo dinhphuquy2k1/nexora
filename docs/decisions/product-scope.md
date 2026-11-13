@@ -68,3 +68,8 @@ Per [ADR-007](multi-carrier-architecture.md), Nexora introduces multi-carrier co
 
 1. **Scope Inclusion**: Connection metadata (`carrier_connections`), encrypted credential storage (`carrier_connection_secrets`), provider adapters (starting with Uniship in PR 4), and on-demand token verification (`POST /client/api-token-verify/`).
 2. **Strict Exclusions**: No shipment business tables (`shipments`, `tracking_events`), no background sync jobs, no message queues (Kafka/RabbitMQ), no Redis caching clusters, and no analytics dashboards. All carrier interactions remain on-demand. Carrier connections do not alter Nexora's ownership of the Shipment domain.
+
+The shipment-table portion of **Strict Exclusions** above is superseded by
+[ADR-011](shipment-domain-data-ownership.md) for the settled RETAIL_PARCEL/Uniship
+design scope. Shipment remains designed, not implemented; manual entry and Excel
+remain future capabilities. Other historical exclusions are unchanged by ADR-011.

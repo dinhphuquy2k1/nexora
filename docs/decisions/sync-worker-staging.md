@@ -123,3 +123,30 @@ production handler are added; actual production Domain conformance remains pendi
 [Extension guide](../architecture/sync-extensions.md) records registration, contracts
 and later type/migration/authorization prerequisites. This clarification does not
 rewrite historical implementation or authorize live fetching/business transitions.
+
+## 2026-11-13 Customer compatibility and provider scope clarification — ADR-011
+
+[ADR-011](shipment-domain-data-ownership.md) resolves Customer source cardinality:
+retain many-source-to-one Customer mapping in existing source identity
+customer_id/link_origin. Customer Domain owns decisions/validation; Sync retains
+the current durable representation as a bounded compatibility exception. The
+engine still contains Customer-specific persistence fields; no generic matching
+logic or Shipment-specific column is added, and no new domain automatically copies
+this exception. The former Customer 1:1 target is superseded, not a next migration.
+
+No mapping table is added or selected now. Customer storage relocation is DEFERRED
+and non-blocking for Shipment Core; a separately justified future design must
+preserve every link/origin/owner/provenance, many-source cardinality, engine hashes/
+checkpoints/versions and job state, with lossless migration/rollback and genuine
+PostgreSQL tests. Unused-field cleanup, including created_by_sync_job_id if
+independently justified, requires its own assessment and is not bundled here.
+
+The current planned Uniship integration is SHIPMENT-only under official API
+rights. Shipment customer_id is assigned by authorized Nexora business commands,
+never overwritten/inferred by provider Sync; no Customer matching/creation/API is
+needed for valid Shipment ingestion. Future providers independently support
+CUSTOMER, SHIPMENT or both via the existing static registry and scheduler/worker.
+No flag-only activation, global type ordering or worker per type. Confirmed
+Customer source mappings remain durable across restart/resync/payload/retention;
+LINKED_EXISTING and immutable owner-scoped targets are preserved. No code, schema,
+grants, production handlers, live integration or migration changes occur here.
