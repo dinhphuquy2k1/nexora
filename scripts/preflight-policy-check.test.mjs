@@ -434,8 +434,14 @@ function liveTaskFixture(t) {
 function liveRepoFixture(t) {
   const dir = mkdtempSync(resolve(tmpdir(), "nexora-live-repo-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
-  const link = (from, to) =>
-    symlinkSync(from, to, statSync(from).isDirectory() ? "dir" : "file");
+  const isWindows = process.platform === "win32";
+  const link = (from, to) => {
+    if (statSync(from).isDirectory()) {
+      symlinkSync(from, to, isWindows ? "junction" : "dir");
+    } else {
+      copyFileSync(from, to);
+    }
+  };
   for (const name of readdirSync(root)) {
     if (name === "docs" || name === ".git") continue;
     link(resolve(root, name), resolve(dir, name));
