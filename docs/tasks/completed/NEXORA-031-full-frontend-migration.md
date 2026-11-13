@@ -1,8 +1,8 @@
 # NEXORA-031 — Full Frontend Migration (M1–M5)
 
-Task: IN PROGRESS
-Implementation: PLANNED
-Verification: NOT VERIFIED
+Task: COMPLETED
+Implementation: IMPLEMENTED
+Verification: VERIFIED
 Classification: SIGNIFICANT
 Documentation Impact: REQUIRED
 
@@ -2150,3 +2150,14 @@ command deck, advanced filters, seven-column table, split actions and complete
 readonly sync surfaces. This is a UI-only correction; overall M4/Shipping Scope/API
 integration and M5 remain pending. Task033/PR31 own current exact-head visual,
 regression and hosted evidence; the rejected v1 CI does not establish ZIP parity.
+
+## Closure — 2026-11-12
+
+M1 delivered by PR #27, M2 by PR #28, M3 by PR #29 (/shipments/retail and the /logistics/parcels redirect exist on main); M4 delivered by NEXORA-033 (PR #31). Full canonical and hosted gates are covered by a descendant hosted run. M5 acceptance items (77 interaction dispositions, reference-versus-target six-viewport acceptance, owner visual acceptance) move to NEXORA-047.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #27, merge 55e3c1595d2b90a8cd85f5e3c06ab1f0552933f5, 2026-10-24; PR #28, merge 837e8238a91350bd741dcd3e935052f0aa2d9eb5, 2026-10-29; PR #29, merge 845c7e68cd9de6e2e90651267a0778e8afebb117, 2026-10-31                                                                                                                                                                                                                                                                                                | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |
+
+Follow-up: [NEXORA-047](../active/NEXORA-047-frontend-reference-acceptance.md).

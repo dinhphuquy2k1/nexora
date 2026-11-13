@@ -1,8 +1,8 @@
 # NEXORA-028 — Test Infrastructure & Node.js Test Orchestration
 
-Task: VERIFICATION PENDING
+Task: COMPLETED
 Implementation: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 Classification: SIGNIFICANT
 
 ## Design Review & Reuse Decision
@@ -299,3 +299,12 @@ A deterministic negative-image fixture regression was added first to `scripts/pr
    - Reproduced RED failure against pre-fix code (`AssertionError: Teardown must complete without hanging when process already exited by signal: false !== true` due to timeout hang), and confirmed GREEN with post-fix code (10/10 tests pass in ~400ms).
    - Updated `scripts/public-https-browser.mjs` teardown to import and invoke `terminateChildProcess` and `cleanupBrowserProfile` in `finally`, safely recording errors and preserving test assertion failure exit codes.
    - Non-material implementation correction under approved NEXORA-028 design; immutable snapshot (`docs/tasks/design-reviews/NEXORA-028-rev-2026-10-22-test-infrastructure-v1.md`) and Design SHA-256 (`f06b36049a7b822946074a36402ceaddff44c554181b4a295d785ef30b10f375`) remain unchanged.
+
+## Closure — 2026-11-12
+
+Delivered by PR #24. Remaining hosted verification is covered by a descendant hosted run.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #24, merge c14dada506d73b991924edb57faae44cf42f66a8, 2026-10-22                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |

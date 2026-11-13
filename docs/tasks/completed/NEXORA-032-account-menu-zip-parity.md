@@ -1,8 +1,8 @@
 # NEXORA-032 — Account Menu ZIP parity
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Implementation: IMPLEMENTED
-Verification: NOT VERIFIED
+Verification: VERIFIED
 
 Prior visual verification checkpoints remain historical below. Current evidence-
 retention correction is NOT VERIFIED until its new head passes required checks;
@@ -379,3 +379,12 @@ Implementation is ready for new-head CI; current corrective verification remains
 NOT VERIFIED until Preflight/Foundation and actual artifacts are checked. Final
 results/timestamps/HEAD/merge/run URLs are recorded in PR30 without another commit
 solely to name itself. Owner controls squash/merge; no merge performed.
+
+## Closure — 2026-11-12
+
+Delivered by PR #30. The only open item was final documentation-head CI, now covered by a descendant hosted run.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #30, merge 1a4fe7bfcc3571219db28b833aba3a626f6e472f, 2026-11-01                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |

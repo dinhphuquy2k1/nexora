@@ -1,7 +1,7 @@
 # Task: NEXORA-013 — Remove Custom Backup/Restore Infrastructure & Simplify Testing
 
 - **Task ID**: `NEXORA-013`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
 - **Verification**: `VERIFIED`
 
@@ -94,3 +94,11 @@ Documentation Impact: REQUIRED
 | Consolidated PR #13 CI run (commit 330e398)     | Run `38403928744` (ID 115318429013) all stages passed in 9m 23s                                                                                                       | 2026-10-13 | PASS   |
 | Hardened PR #13 CI run (commit 1d30747)         | Run `38407659362` (ID 115334994119) all stages passed in 9m 26s                                                                                                       | 2026-10-13 | PASS   |
 | Final remediation CI run (commit 6996126)       | Run `38410261458` (ID 115340397718) all stages passed in 9m 16s                                                                                                       | 2026-10-13 | PASS   |
+
+## Closure — 2026-11-12
+
+Delivered by PR #13. Already VERIFIED; the remaining owner review was concluded by the owner merging PR #13.
+
+| Claim          | Evidence                                                           | Date       | Result |
+| -------------- | ------------------------------------------------------------------ | ---------- | ------ |
+| Merged to main | PR #13, merge e18bef4e5a4557baee60b9b8729dc72b789315a1, 2026-10-13 | 2026-11-12 | PASS   |

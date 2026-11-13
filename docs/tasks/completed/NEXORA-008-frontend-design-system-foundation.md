@@ -1,9 +1,9 @@
 # Task: NEXORA-008 — Frontend Architecture & Design System Foundation
 
 - **Task ID**: `NEXORA-008`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `PARTIALLY VERIFIED`
+- **Verification**: `VERIFIED`
 
 ---
 
@@ -74,3 +74,12 @@ Documentation Impact: REQUIRED
 
 - **Hosted CI on Merge Commit**: Hosted GitHub Actions CI run (`docker-foundation`) on the eventual `main` merge commit cannot be executed or collected until PR #5 is merged.
 - **Task Lifecycle Decision**: The task remains `VERIFICATION PENDING` in `docs/tasks/active/` during PR #5. Transition to `docs/tasks/completed/` is explicitly deferred to a dedicated post-merge documentation follow-up once the merge commit SHA and its CI run are inspected.
+
+## Closure — 2026-11-12
+
+Delivered by PR #5. The only open gap was hosted CI on the merge commit, now covered by a descendant hosted run.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #5, merge 7cfb01a5756c6787d00cbb940bd406a0157bf5b7, 2026-10-11                                                                                                                                                                                                                                                                                                                                                                                                                                         | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |

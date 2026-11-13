@@ -1,8 +1,8 @@
 # NEXORA-033 — Carrier Connections UI migration
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Implementation: IMPLEMENTED
-Verification: NOT VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -572,3 +572,14 @@ final-head hosted Foundation. No old-head CI result is reused as new-head PASS.
 Commit/push and exact final head/tested merge/run/artifact results will be reconciled
 in PR metadata after execution, avoiding self-SHA-only documentation commit loops.
 PR remains Ready for Review as observed on GitHub; no acceptance or merge implied.
+
+## Closure — 2026-11-12
+
+Delivered by PR #31. Six-viewport Carrier acceptance and full canonical gates are covered by a descendant hosted run (Carrier six-viewport matrix in step 7). Source ZIP comparison moves to NEXORA-047; the owner concluded review by merging PR #31.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #31, merge 156a32414dfefdc235804367307b5f052d9dcb47, 2026-11-02                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |
+
+Follow-up: [NEXORA-047](../active/NEXORA-047-frontend-reference-acceptance.md).

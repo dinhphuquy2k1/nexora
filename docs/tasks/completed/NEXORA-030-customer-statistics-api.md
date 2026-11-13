@@ -1,8 +1,8 @@
 # NEXORA-030 — Customer Statistics API
 
-Task: VERIFICATION PENDING
+Task: COMPLETED
 Implementation: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 Classification: SIGNIFICANT
 Documentation Impact: REQUIRED
 
@@ -157,3 +157,12 @@ Evidence source is implementation/documentation head76dc91cd0c6ac16de592fe613554
 Same-head bounded failed-job rerun attempt2 was requested without code/timeout/assertion/security changes. Before this evidence capture it passed quality/integration, LOCAL runtime, HTTPS/onboarding and persistence steps; development smoke was still running, so whole Foundation success is not claimed here. Historical metadata-only checkpoint b9ad13b had the same HTTPS browser-MFA timeout; this is evidence of a pre-implementation occurrence, not proof of its root cause. Attempt1 failure remains historical even if rerun succeeds.
 
 Task stays VERIFICATION PENDING; capability IMPLEMENTED; Verification PARTIALLY VERIFIED now reflects genuine backend invariant evidence. Consumer UI loading/unavailable/error and deployed API/SDK/Web version-boundary behavior remain unverified NEXORA-029 M2 work, not implemented here or fabricated as0. Full required final-head CI must still pass before merge readiness; see PR26 for live final-head outcomes. No production deployment/TLS/DNS/backup certification is implied. No new code-review findings remain; owner PR review and branch requirements remain separate.
+
+## Closure — 2026-11-12
+
+Delivered by PR #26. Consumer UI behavior noted as NEXORA-029 M2 was delivered in NEXORA-031 PR #28; remaining hosted verification is covered by a descendant hosted run.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #26, merge ee8391212b2f1e8fe406d287ef0e7cc11fad79d7, 2026-10-23                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |

@@ -5,7 +5,7 @@ The18 generated ZIP reference PNGs were captured and checked on2026-10-31,
 recorded in commit2845e220d870a05a5adae3ec0b794e23690864e9, and removed from
 the final tree by the evidence-retention correction. No current image files or
 per-image path list is promised here. See [reference metadata](reference.json)
-and the [task](../../active/NEXORA-032-account-menu-zip-parity.md).
+and the [task](../../completed/NEXORA-032-account-menu-zip-parity.md).
 
 The original remix-nexora-logistics-management (1).zip is a user attachment, not
 a durable source URL. Its SHA-256 is

@@ -1,8 +1,8 @@
 # NEXORA-034 — Sync Worker and Staging V1
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -892,3 +892,14 @@ PR32 metadata after execution; prior5407557 results above do not certify this ne
 code. If any mandatory gate fails or root cause remains unresolved, keep F1 OPEN,
 Draft and full acceptance BLOCKED without blind retries. Documentation Impact
 remains REQUIRED; task lifecycle/verification status and immutable v4 unchanged.
+
+## Closure — 2026-11-12
+
+Delivered by PR #32. HTTPS, persistence and development gates that failed or were skipped earlier pass in a descendant hosted run. Connection-pool capacity remains tracked by GitHub issue #33; owner infrastructure acceptance was concluded by merging PR #32.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #32, merge 6a52c2ff90a1173a25053caf6fb7061b82f6b8dd, 2026-11-08                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |
+
+Connection-pool prerequisite: [GitHub issue #33](https://github.com/dinhphuquy2k1/nexora/issues/33).

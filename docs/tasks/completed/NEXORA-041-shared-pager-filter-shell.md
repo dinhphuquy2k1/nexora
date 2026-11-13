@@ -1,8 +1,8 @@
 # NEXORA-041 — M5 shared Pager and FilterPopoverShell
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -423,3 +423,14 @@ or any PR metadata edit. This checkpoint documents the actual new test-head
 results above, not an assertion that a later publication HEAD passed.
 M5 captures were executed/uploaded by CI; no artifact hash verification or manual
 screenshot inspection was performed in this delta.
+
+## Closure — 2026-11-12
+
+Delivered by PR #41. The descendant hosted run checks out main 3906f82, the PR #41 merge commit itself. Deferred follow-ups FU1–FU4 move to NEXORA-045.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #41, merge 3906f8243347fb7c697bf5f6949389c3a784a13d, 2026-11-12                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |
+
+Follow-up: [NEXORA-045](../active/NEXORA-045-pager-filter-convergence.md).

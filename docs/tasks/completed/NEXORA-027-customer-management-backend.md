@@ -1,8 +1,8 @@
 # NEXORA-027 — Customer Management Backend V1
 
-Task: VERIFICATION PENDING
+Task: COMPLETED
 Implementation: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 Classification: SIGNIFICANT
 
 Current merge policy: the [owner cleanup decision](#owner-decision--customer-v1-operator-audit-scope-cleanup--2026-10-22) below supersedes all earlier Customer Operator Data Audit blockers and Option A/B proposals. No audit or replacement deployment-audit gate is required. Final-head CI, tests, review and applicable branch protection remain mandatory.
@@ -574,3 +574,12 @@ Documentation Impact: REQUIRED for this cleanup; the existing canonical Document
 Current merge requirements: valid authenticated ADR009 approval; final-head Preflight and Foundation; Customer unit/domain, genuine Prisma/Nest/PostgreSQL ownership/security, transaction/concurrency/default/rollback, migration preservation/repeat/drift, physical constraints/restricted privileges, contracts and docs; independent code review or required owner review with no blocking findings; applicable GitHub branch protection. Customer Operator Data Audit is NOT REQUIRED FOR PR23 MERGE.
 
 Implementation remains IMPLEMENTED; task remains VERIFICATION PENDING until final-head execution and review evidence satisfy remaining requirements. Earlier79fcef19 hosted Preflight39722063286 and Foundation39722063196 SUCCESS are historical evidence, not certification of this cleanup's new HEAD. Final-head evidence is recorded in PR metadata to avoid SHA-only documentation commits. Production readiness remains separate and unverified; this cleanup authorizes no rollout, repair or operator database access.
+
+## Closure — 2026-11-12
+
+Delivered by PR #23. Unchecked acceptance boxes reflect the pre-merge checkpoint; Customer backend behavior is covered by later merged work and by a descendant hosted run including real PostgreSQL integration.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #23, merge 99a2886de2bdcfc5a668d9cad24dd04a8e6cf465, 2026-10-22                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |
