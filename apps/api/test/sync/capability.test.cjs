@@ -1,6 +1,9 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const {
+  CARRIER_PROVIDER_MAX_LENGTH,
+} = require("../../dist/carrier/domain/carrier");
+const {
   SyncCapabilityRegistry,
 } = require("../../dist/sync/infrastructure/sync-capability.registry");
 const {
@@ -71,12 +74,19 @@ test("duplicate and malformed registration fail closed without accepting a handl
         ]),
       SyncConfigurationError,
     );
-  for (const providerName of ["", "a".repeat(33)])
+  for (const providerName of ["", "a".repeat(CARRIER_PROVIDER_MAX_LENGTH + 1)])
     assert.throws(
       () =>
         new SyncCapabilityRegistry([registration(providerName, "SHIPMENT")]),
       SyncConfigurationError,
     );
+  assert.equal(CARRIER_PROVIDER_MAX_LENGTH, 32);
+  assert.doesNotThrow(
+    () =>
+      new SyncCapabilityRegistry([
+        registration("a".repeat(CARRIER_PROVIDER_MAX_LENGTH), "SHIPMENT"),
+      ]),
+  );
   assert.throws(
     () => new SyncCapabilityRegistry([registration("fixture-a", "UNKNOWN")]),
     SyncConfigurationError,

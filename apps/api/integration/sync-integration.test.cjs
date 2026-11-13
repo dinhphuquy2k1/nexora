@@ -127,6 +127,9 @@ test(
       await require("./fixtures/sync-status-contract.cjs").verifySyncStatusContracts(
         { t, url: url.toString(), db, owner, repo },
       );
+      await require("./fixtures/provider-length-contract.cjs").verifyProviderLengthContract(
+        { t, url: url.toString() },
+      );
       await require("./fixtures/sync-extension.cjs").verifySyncExtensions({
         t,
         url: url.toString(),
