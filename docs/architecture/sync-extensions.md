@@ -14,6 +14,7 @@ and a trusted infrastructure Domain binding. Duplicate pairs and invalid version
 fail startup; unsupported pairs/strategies/processors resolve unavailable. A
 captured processor version must agree throughout staging/application. Registries
 have no runtime mutation API, plugin loader or database-configured code.
+Registration rejects provider names longer than `CARRIER_PROVIDER_MAX_LENGTH` (Carrier domain).
 
 API and worker both call `createSyncRuntimeCapabilities()` from the same
 `sync-runtime-capabilities.ts` declaration source. They have independent instances,

@@ -1,4 +1,6 @@
 export const CarrierProvider = { UNISHIP: "uniship" } as const;
+/** Maximum length of persisted provider codes (VARCHAR(32) provider columns). */
+export const CARRIER_PROVIDER_MAX_LENGTH = 32;
 export const ConnectionStatus = {
   CONNECTED: "CONNECTED",
   REAUTH_REQUIRED: "REAUTH_REQUIRED",

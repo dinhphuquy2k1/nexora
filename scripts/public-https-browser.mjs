@@ -20,7 +20,9 @@ import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { createSmokeChecks } from "./smoke-checks.mjs";
-const checks = createSmokeChecks(console.error, "PUBLIC_HTTPS_SMOKE_FAILED");
+const checks = createSmokeChecks(console.error, "PUBLIC_HTTPS_SMOKE_FAILED", {
+  diagnostics: true,
+});
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
 let f;
@@ -291,6 +293,8 @@ try {
   });
   checks.status(plain.status, 308);
   assert.equal(plain.headers["set-cookie"], undefined);
+  // Browser launch and post-login conditions: 200 polls of 100 ms (~20 s), matching browser-login-smoke.mjs.
+  const UNTIL_POLLS = 200;
   checks.step("REAL_HTTPS_BROWSER");
   const executable =
     process.env.CHROME_BIN ||
@@ -315,7 +319,8 @@ try {
     { stdio: "ignore" },
   );
   let debugPort;
-  for (let i = 0; i < 100; i++) {
+  // Cold GitHub runners can initialize Chromium DevTools slowly; keep the launch gate bounded.
+  for (let i = 0; i < UNTIL_POLLS; i++) {
     try {
       debugPort = (
         await readFile(join(profile, "DevToolsActivePort"), "utf8")
@@ -386,7 +391,7 @@ try {
       const current = ++id;
       const timer = setTimeout(() => {
         pending.delete(current);
-        reject(Error("CDP timeout"));
+        reject(Object.assign(Error("CDP timeout"), { name: "TimeoutError" }));
       }, 15000);
       pending.set(current, { resolve, reject, timer });
       socket.send(JSON.stringify({ id: current, method, params }));
@@ -403,8 +408,8 @@ try {
     }
     return r.result.value;
   };
-  const until = async (expression) => {
-    for (let i = 0; i < 100; i++) {
+  const until = async (expression, polls = UNTIL_POLLS) => {
+    for (let i = 0; i < polls; i++) {
       try {
         if (await evaluate(expression)) return;
       } catch {
@@ -416,6 +421,10 @@ try {
       name: "TimeoutError",
     });
   };
+  // Login readiness keeps its original deadline (testing.md: per-condition deadlines unchanged).
+  const LOGIN_READINESS_POLLS = 100;
+  const untilReadiness = (expression) =>
+    until(expression, LOGIN_READINESS_POLLS);
   const type = async (name, value) => {
     await evaluate(`document.querySelector('input[name="${name}"]').focus()`);
     await send("Input.insertText", { text: value });
@@ -440,7 +449,7 @@ try {
   await send("Page.navigate", { url: origin + "/login" });
   checks.step("ADMIN_BROWSER_INTERACTIVE_LOGIN");
   try {
-    await waitForInteractiveLogin({ until, evaluate });
+    await waitForInteractiveLogin({ until: untilReadiness, evaluate });
   } catch (error) {
     try {
       const diag = await evaluate(`({
@@ -757,7 +766,7 @@ try {
   checks.step("REMOTE_OPERATOR_INTERACTIVE_LOGIN");
   await evaluate(loginReadinessObserver);
   try {
-    await waitForInteractiveLogin({ until, evaluate });
+    await waitForInteractiveLogin({ until: untilReadiness, evaluate });
   } catch (error) {
     try {
       const diag = await evaluate(`({

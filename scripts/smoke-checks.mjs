@@ -1,15 +1,28 @@
 import assert from "node:assert/strict";
 import { get } from "node:http";
 
+const DIAGNOSTIC_ERROR_TYPES = new Set([
+  "AbortError",
+  "AssertionError",
+  "Error",
+  "RangeError",
+  "SyntaxError",
+  "TimeoutError",
+  "TypeError",
+]);
+
 export function createSmokeChecks(
   write = console.error,
   label = "AUTH_RUNTIME_SMOKE_FAILED",
+  { diagnostics = false, now = Date.now } = {},
 ) {
   let step = "START";
+  let stepStarted = now();
   let statuses;
   return {
     step(name) {
       step = name;
+      stepStarted = now();
       statuses = undefined;
     },
     status(actual, expected) {
@@ -49,6 +62,17 @@ export function createSmokeChecks(
         write(`Actual HTTP status: ${statuses.actual}`);
       }
       write(`Category: ${category}`);
+      if (diagnostics) {
+        const type =
+          typeof error?.name === "string" &&
+          DIAGNOSTIC_ERROR_TYPES.has(error.name)
+            ? error.name
+            : "OTHER";
+        write(`Error type: ${type}`);
+        write(
+          `Step elapsed ms: ${Math.max(0, Math.round(now() - stepStarted))}`,
+        );
+      }
     },
   };
 }
