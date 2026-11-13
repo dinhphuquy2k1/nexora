@@ -8,11 +8,11 @@ Verification: NOT VERIFIED
 
 Task ID: NEXORA-050
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-13-shipment-core-v1
+Plan revision: rev-2026-11-13-shipment-core-v2
 Reviewed baseline: 055dfccb5f7feae36af41209fd6380916081f711
 Branch: feat/shipment-backend-core
-Design Snapshot: docs/tasks/design-reviews/NEXORA-050-rev-2026-11-13-shipment-core-v1.md
-Design SHA-256: 632298b8bbc2f3a1a12e9131141e1eb9304137dec485cb95e212115f91f4239e
+Design Snapshot: docs/tasks/design-reviews/NEXORA-050-rev-2026-11-13-shipment-core-v2.md
+Design SHA-256: a9efc763f6c85ae1aa0d40aaea405a5c8394532261e0173c604cdc8b2395c0b4
 
 The immutable snapshot records the complete read-only inspection, eight-field reuse
 audit, twelve-section SIGNIFICANT design, DDD contracts, alternatives, security,
@@ -67,6 +67,7 @@ and verification commands. Provider authorization and activation remain deferred
 
 - docs/domains/shipments.md
 - docs/architecture/database.md
+- docs/ai/PROJECT_RULES.md
 - docs/architecture/backend.md
 - docs/architecture/api-contract.md
 - docs/architecture/sync-extensions.md
@@ -110,3 +111,62 @@ execution still required, not claimed PASS. Reversible npm cache may be cleared.
 | Native SQL fixture attempts 1–3   | node --test packages/database/test/shipment-sql.mjs against signed task-owned PostgreSQL: missing user id, missing updated_at, then wrong INSERT-denial expectation for allowed-on-create source identity; replanned above                | 2026-11-13 | FAIL   |
 | First genuine binding integration | node --test integration/shipment-integration.test.cjs: nine subtests PASS including final-fence and SQL rollback, outer test FAIL due one extra parent segment in provision-runtime import; working tree8595f26                           | 2026-11-13 | FAIL   |
 | Host runtime preparation          | Missing /runtime-config EACCES; sudo unavailable; second Docker container creation fails no space left on device; no HTTP PASS claim                                                                                                      | 2026-11-13 | FAIL   |
+
+## Review delta — v2
+
+Independent draft review found four P2 issues: actual root/charge modeling, real worker-role engine verification, physical schema oracle/mutation/FK/index and Customer association proof, and Swagger integer/null semantics. The immutable v2 records corrections before affected code. v1 remains immutable. An explicit history-only providerChangedAt prevents derivation from root update time. Final independent review and canonical gates remain open.
+
+### V2 implementation clarification
+
+Provider-only Aggregate creation receives a separate trusted source scope (owner,
+source identity, nullable connection and provider), not payload mass assignment.
+This keeps the root's source/provider/status invariant valid even before DB root
+ID/code assignment. Hydration validates that immutable relationship; the existing
+v2 identity/ownership design and API contract are unchanged. Database/persistence
+faults during hydration occur before processor source validation and propagate.
+
+### Reuse boundary clarification
+
+Reuse common isUuid, Carrier's provider-length constant and shared pagination.
+Keep Shipment's strict record policy local because Customer's existing helper
+throws CustomerError and extraction would change an unrelated business domain.
+No generic command framework is introduced. Shared Shipment code leaf receives a
+strict zero-dependency boundary; vocabulary and nested-control-flow lint deliberately
+extend to the new domain, including history aliases and actual ESLint tests.
+
+### Local checkpoint — 2026-11-13T16:27Z
+
+Working tree on 18e230d contains implementation and v2 corrections. Executed native
+suite 9/9 PASS, real signed owned PostgreSQL17.11 Alpine worker suite 15/15 PASS,
+native SQL role suite PASS and full script suite 137/137 PASS. The script suite's
+first concurrent run was 136 PASS/1 FAIL (existing 1s temporary-TCP test fixture,
+TCP_READINESS_TIMEOUT under resource load); bounded solo run passed without timeout
+or assertion changes. The default launcher inventory intentionally grew from two
+to four suites; selector regression expected count changed accordingly (8/8 PASS).
+Prisma migration upgrade/repeat/drift passed; added final preservation comparisons
+for all old Sync fixture tables still require final execution.
+
+Worker engine RED showed PostgreSQL42501 for Prisma shipment.create: Prisma emitted
+created_at despite the worker's deliberately narrow grants. Replaced only this
+provider persistence operation with explicit columns/DB defaults; grants remain
+restricted. The following worker run passed. Boundary initially rejected the new
+shared subpath until its precise pure-code exception/negative tests were added.
+Lint initially caught an unused fixture variable and missing structuredClone global
+qualification; corrected without changing lint policy. V2 Aggregate and Swagger
+regressions were observed RED before implementation; final fast suite passed.
+
+Actual Docker restart initially failed the host readiness probe because Docker
+changed the dynamically published port (server itself restarted successfully).
+Refreshed the private fixture URL from docker port; second owned restart preserved
+Shipment, ordered duplicate OTHER fees, mixed-currency exact decimals and history,
+then cleaned only owned rows. This is Alpine fast-loop evidence, not canonical
+Bookworm or final-head hosted evidence. No production/user volume reset.
+
+| Claim                         | Evidence                                                                                                                                                                                                                                                                                                   | Date       | Result |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Draft independent review      | shipment_design_review read-only review: four P2 findings (root modeling, worker execution, schema oracle, Swagger); fixed under frozen v2; re-review found no remaining P1/P2/P3; no canonical/hosted success attested                                                                                    | 2026-11-13 | PASS   |
+| Aggregate and Swagger RED     | Added actual-root/Charge lifecycle test failed create-is-not-a-function; integer contract test failed number versus integer; original execution start UTC not retained, observed at this checkpoint on18e230d working tree                                                                                 | 2026-11-13 | FAIL   |
+| Restricted worker RED         | Signed owned-cluster engine test: 1 PASS/9 FAIL after first Prisma INSERT42501 permission denied shipments (created_at); dependent fixture failures retained; log last written 2026-11-13T16:10Z, working tree18e230d                                                                                      | 2026-11-13 | FAIL   |
+| Script concurrency checkpoint | node --test "scripts/\*_/_.test.mjs": 136 PASS/1 FAIL, TCP_READINESS_TIMEOUT in temporary launcher fixture; bounded solo run 137/137 PASS without changing timeout/assertions; working tree18e230d                                                                                                         | 2026-11-13 | FAIL   |
+| Restart probe first attempt   | Owned Docker PostgreSQL17.11 Alpine restarted; host probe retained old dynamic port32770 while published port became32771; bounded readiness FAIL, corrected by rediscovery only; working tree18e230d                                                                                                      | 2026-11-13 | FAIL   |
+| Actual restart durability     | node /tmp/nexora050-restart.cjs checks task resource label, migrates owned base, seeds Shipment/ordered duplicate fees/mixed currencies/history, captures snapshot, docker restart, rediscovers host port and compares exact snapshot; PASS with owned row cleanup; 2026-11-13T16:21Z, working tree18e230d | 2026-11-13 | PASS   |
