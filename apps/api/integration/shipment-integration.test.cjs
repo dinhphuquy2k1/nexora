@@ -88,7 +88,7 @@ test(
       });
       const adminActor = await db.user.create({
         data: {
-          username: "shipment-admin-" + randomUUID(),
+          username: "ship-ad-" + randomUUID(),
           role: "ADMIN",
           credential: { create: { passwordHash: hash } },
         },

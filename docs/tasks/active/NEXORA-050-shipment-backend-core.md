@@ -1,8 +1,8 @@
 # NEXORA-050 — Shipment Backend Core
 
-Status: IN PROGRESS
-Capability: NOT IMPLEMENTED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -170,3 +170,16 @@ Bookworm or final-head hosted evidence. No production/user volume reset.
 | Script concurrency checkpoint | node --test "scripts/\*_/_.test.mjs": 136 PASS/1 FAIL, TCP_READINESS_TIMEOUT in temporary launcher fixture; bounded solo run 137/137 PASS without changing timeout/assertions; working tree18e230d                                                                                                         | 2026-11-13 | FAIL   |
 | Restart probe first attempt   | Owned Docker PostgreSQL17.11 Alpine restarted; host probe retained old dynamic port32770 while published port became32771; bounded readiness FAIL, corrected by rediscovery only; working tree18e230d                                                                                                      | 2026-11-13 | FAIL   |
 | Actual restart durability     | node /tmp/nexora050-restart.cjs checks task resource label, migrates owned base, seeds Shipment/ordered duplicate fees/mixed currencies/history, captures snapshot, docker restart, rediscovers host port and compares exact snapshot; PASS with owned row cleanup; 2026-11-13T16:21Z, working tree18e230d | 2026-11-13 | PASS   |
+
+## Committed implementation verification
+
+Implementation commit f1a9df82355c0847813f8b345a6c1844c72fdf35 is recorded;
+canonical/hosted verification and owner review remain open. Contract generation is
+committed and contracts:check passed on that exact HEAD. A newly added ADMIN/MFA
+isolation fixture exceeded the existing username VARCHAR limit by its prefix;
+shorten only the synthetic prefix, not production constraints or assertions.
+
+| Claim                           | Evidence                                                                                                                                                                                                                                                                                 | Date       | Result |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Reproducible generated contract | npx --yes pnpm@10.34.6 contracts:check on f1a9df82355c0847813f8b345a6c1844c72fdf35; start2026-11-13T16:30:56.213540Z, finish2026-11-13T16:31:06.334672Z; exit0; generated files committed and byte-reproducible                                                                          | 2026-11-13 | PASS   |
+| Added ADMIN fixture seed        | Signed owned-cluster Shipment suite on f1a9df82355c0847813f8b345a6c1844c72fdf35; 1 PASS/1 FAIL before engine work: synthetic shipment-admin plus UUID exceeds username VARCHAR; 2026-11-13T16:31:06.336317Z–16:31:24.562252Z, exit1. Only fixture prefix shortened; real schema retained | 2026-11-13 | FAIL   |
