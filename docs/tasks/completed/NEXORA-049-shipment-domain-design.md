@@ -1,8 +1,8 @@
 # NEXORA-049 — Shipment domain design
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -229,8 +229,8 @@ other key reference needs editing. Shipment remains a documentation design only.
       Shipment fee/history contracts independently reviewed.
 - [x] Five local checks, metadata binding, v1/v2 immutable bytes, v3 digest and
       documentation-only scope verified.
-- [ ] Fresh final-head Preflight and Foundation results recorded in PR.
-- [ ] Owner merge decision; later closure under §1.7, never this PR itself.
+- [x] Fresh final-head Preflight and Foundation results recorded in PR.
+- [x] Owner merge decision; later closure under §1.7, never this PR itself.
 
 ## Documentation Impact
 
@@ -305,3 +305,17 @@ Cardinality is RESOLVED by the latest owner business decision; storage cleanup i
 DEFERRED and non-blocking, with no destination schema selected. Status remains
 VERIFICATION PENDING until post-merge closure. No migration, live adapter, new
 table, production change, merge or invented approval is performed here.
+
+## Closure — 2026-11-13
+
+Closed under TASK_WORKFLOW §1.7 in the first commit of NEXORA-050. PR #46
+was merged by the owner at 2026-11-13T15:01:35Z as
+055dfccb5f7feae36af41209fd6380916081f711. This closes the design deliverable;
+backend implementation belongs to NEXORA-050. Historical Evidence and immutable
+snapshots are preserved. Provider authorization prerequisites remain tracked in
+ADR-011 and the Shipment domain document, not represented as runtime PASS.
+
+| Claim                          | Evidence                                                                                                                                                                                                                                                                                                                                                                                                      | Date       | Result |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Owner merge                    | GitHub REST pulls/46: merged=true, merge SHA 055dfccb5f7feae36af41209fd6380916081f711, merged_at 2026-11-13T15:01:35Z; https://github.com/dinhphuquy2k1/nexora/pull/46                                                                                                                                                                                                                                        | 2026-11-13 | PASS   |
+| Final-head hosted verification | HEAD 59b259272a5ce66b8ea8b7543fe5fb610cc3395f; Preflight https://github.com/dinhphuquy2k1/nexora/actions/runs/43407437601 attempt 1 PASS at 2026-11-13T10:13:03Z; Foundation https://github.com/dinhphuquy2k1/nexora/actions/runs/43407437582 attempt 1 PASS, steps 4–10, completed 2026-11-13T10:32:27Z; tested merge 53804a421550e7edadc814aa3ebbce303488d3b0 into d0e75cc83619f11f7b192485d9fdd7a051179b6d | 2026-11-13 | PASS   |
