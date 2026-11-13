@@ -14,6 +14,8 @@ This directory contains Architecture Decision Records (ADRs) for Nexora. Durable
 | [ADR-007](multi-carrier-architecture.md)       | Multi-Carrier Management, Security Architecture & Independent Identity      | 2026-10-14 | Accepted |
 | [ADR-008](tactical-ddd.md)                     | Tactical DDD for Nexora Business Domains                                    | 2026-10-21 | Accepted |
 | [ADR-009](mandatory-pre-code-design-review.md) | Mandatory Pre-Code Design Review and Shared Validation Ownership            | 2026-10-21 | Accepted |
+| [ADR-010](sync-worker-staging.md)              | PostgreSQL Sync Worker and Current-State Staging                            | 2026-11-02 | Accepted |
+| [ADR-011](shipment-domain-data-ownership.md)   | Shipment domain and data ownership                                          | 2026-11-13 | Accepted |
 
 ## Foundational architectural topics
 

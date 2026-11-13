@@ -1,6 +1,6 @@
 # Database
 
-Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `operator_setup_tokens` (hashed single-use onboarding secrets), `carrier_connections` and `carrier_connection_secrets` (metadata and encrypted secrets), `carrier_user_states` (disablement epoch), `security_audit_events` (durable metadata-only audit), `customers`/`customer_addresses` (owner-scoped customer profiles and recipient addresses), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment domain schema is PLANNED; there are no fake smoke tables or business seeds.
+Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `operator_setup_tokens` (hashed single-use onboarding secrets), `carrier_connections` and `carrier_connection_secrets` (metadata and encrypted secrets), `carrier_user_states` (disablement epoch), `security_audit_events` (durable metadata-only audit), `customers`/`customer_addresses` (owner-scoped customer profiles and recipient addresses), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment domain schema is DESIGNED (ADR-011), not implemented; there are no fake smoke tables or business seeds.
 `20261006000000_storage_catalog`, `20261012000000_local_authentication`, `20261012010000_unified_identity` and `20261012020000_external_identities` plus `20261015000000_local_identity_onboarding` and `20261015010000_legacy_provider_session_cutover` plus `20261015020000_carrier_connections` plus `20261016000000_carrier_lifecycle`, `20261016010000_admin_totp_mfa` and `20261020010000_customers` define migrations deployed by `prisma migrate deploy`, gated on PostgreSQL healthy. Repeated deployment preserves existing rows except the explicitly approved experimental-session cutover described below. No reset, db push, migrate dev or demo seed runs at startup.
 Integration tests register/read/delete only their own UUID and do not truncate shared data. Persistence smoke runs on disposable projects; see task evidence.
 
@@ -362,3 +362,20 @@ gets narrow staged capabilities only; commit validation, close and the existing
 final lease fence keep Domain and Sync writes atomic. Synthetic test-owned tables
 prove this seam in disposable PostgreSQL, not production Domain conformance or new
 worker permissions. See [extension guide](sync-extensions.md).
+
+## Naming conventions for new tables
+
+These conventions apply prospectively; no current schema is renamed by this design.
+
+- Prisma model: singular PascalCase; physical table: plural snake_case through `@@map`.
+- Prisma fields: camelCase; multiword fields use `@map` to snake_case columns.
+- Persisted status: scalar VARCHAR plus SQL CHECK; no Prisma/PostgreSQL/TypeScript enum.
+- `created_at` and `updated_at`: Timestamptz(3).
+- Constraint/index prefixes: `chk_`, `uq_`, `idx_`.
+- `stored_files` and `sync_*` are historical exceptions; do not rename them for symmetry.
+
+[Shipment schema draft](../domains/shipments.md#schema-draft--not-a-migration)
+records the designed tables, source linkage, write authority and indexes under
+[ADR-011](../decisions/shipment-domain-data-ownership.md). It is not a migration.
+Current Sync Customer linkage and grants described above remain implemented until
+the next task performs ADR-011's reviewed cleanup; this PR changes no schema.

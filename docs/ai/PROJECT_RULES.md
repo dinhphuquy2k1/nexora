@@ -40,6 +40,11 @@ Nexora adopts Modular Monolith, Clean Architecture, Ports & Adapters and Tactica
 
 ### Shared domain vocabulary and strict commands
 
+- For new domains, place approved shared vocabulary under `packages/shared/src/<domain>/` with its own subpath export; do not move existing Customer/Sync files. Keep code-only leaves browser-safe and separate from labels/Domain behavior.
+- Labels live in `packages/shared` when both API and Web need them; Web-only labels live in `features/<domain>/presentation.ts`. Both use `satisfies Record<Code, string>` for exhaustive coverage; labels are never stored status values.
+- Every new persisted DB status requires genuine PostgreSQL parity tests following `apps/api/integration/fixtures/sync-status-contract.cjs`: bind the correct table/column through `conkey`, verify `convalidated`, exact allowed value sets, mutation sensitivity and actual valid/invalid INSERT behavior. A literal list or constraint name alone is insufficient.
+- Display status must have a different name from persisted status (for example `RetailTabKey`) and be computed by one exhaustively typed mapping function, which may combine multiple sources such as logistics stage and open claim state.
+
 - Canonical cross-package status codes/types live in @nexora/shared for actual consumers or explicit owner-approved contracts. API/Web must not redeclare them; feature Value Objects/transitions remain in Domain. Keep shared browser-safe, app/server-independent and acyclic. No TypeScript/Prisma/PostgreSQL enums; do not migrate Identity/Carrier vocabulary just for symmetry.
 - Exhaustive shared labels are presentation metadata, never persisted values, filters or Aggregate state. Domain imports pure code leaves, not labels/root barrels that load presentation metadata. HTTP response types come from generated SDK; shared runtime values and transport schemas must agree. Document same-revision deployment assumptions and deliberate additive/breaking contract changes.
 - Public Domain command operations reject unknown/mass-assignment fields, including mixed valid+forbidden fields and invalid runtime shapes. TypeScript alone is insufficient. Reuse canonical scalar/strictness policies; separate transport parsing without duplicating validation algorithms.

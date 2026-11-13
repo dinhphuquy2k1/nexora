@@ -96,3 +96,14 @@ Prisma/PostgreSQL ENUM or turn the type into arbitrary runtime text.
 Phase B/C still own actual provider transports/payload contracts, business processors,
 Shipment schema/commands if selected, production grants and deployment/activation.
 Phase A's registry and invocation seam do not supply those missing capabilities.
+
+## Domain-owned source linkage — ADR-011
+
+Do not add business-domain columns to Sync engine tables. Each domain keeps
+`source_identity_id` (UNIQUE, nullable, FK RESTRICT) on its own table; only an
+actual multiple-source merge requirement justifies a domain-owned link table,
+never a polymorphic one. [ADR-011](../decisions/shipment-domain-data-ownership.md)
+defines the designed Shipment ownership and the next-task cleanup of current
+Customer `customer_id/link_origin` and unused `created_by_sync_job_id`.
+The existing Customer binding/schema above remains current until that migration;
+no registration, engine behavior or grant is changed by this design.

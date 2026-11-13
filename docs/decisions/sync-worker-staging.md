@@ -123,3 +123,13 @@ production handler are added; actual production Domain conformance remains pendi
 [Extension guide](../architecture/sync-extensions.md) records registration, contracts
 and later type/migration/authorization prerequisites. This clarification does not
 rewrite historical implementation or authorize live fetching/business transitions.
+
+## 2026-11-13 domain-link cleanup direction — ADR-011
+
+[ADR-011](shipment-domain-data-ownership.md) requires domain tables to own their
+`source_identity_id`. The current `sync_source_identities.customer_id/link_origin`
+and unused `created_by_sync_job_id` (including its FK/Prisma created_sync relation)
+will be removed in the next implementation task, with Customer linkage migrated
+to customers. This is planned cleanup, not a schema change here. Preserve engine
+hash/version/order/outcome fields, counters, stored_files and security_audit_events;
+ADR-011 owns the exact migration, binding, worker-grant and test scope.
