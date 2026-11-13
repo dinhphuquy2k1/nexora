@@ -408,8 +408,8 @@ try {
     }
     return r.result.value;
   };
-  const until = async (expression) => {
-    for (let i = 0; i < UNTIL_POLLS; i++) {
+  const until = async (expression, polls = UNTIL_POLLS) => {
+    for (let i = 0; i < polls; i++) {
       try {
         if (await evaluate(expression)) return;
       } catch {
@@ -421,6 +421,10 @@ try {
       name: "TimeoutError",
     });
   };
+  // Login readiness keeps its original deadline (testing.md: per-condition deadlines unchanged).
+  const LOGIN_READINESS_POLLS = 100;
+  const untilReadiness = (expression) =>
+    until(expression, LOGIN_READINESS_POLLS);
   const type = async (name, value) => {
     await evaluate(`document.querySelector('input[name="${name}"]').focus()`);
     await send("Input.insertText", { text: value });
@@ -445,7 +449,7 @@ try {
   await send("Page.navigate", { url: origin + "/login" });
   checks.step("ADMIN_BROWSER_INTERACTIVE_LOGIN");
   try {
-    await waitForInteractiveLogin({ until, evaluate });
+    await waitForInteractiveLogin({ until: untilReadiness, evaluate });
   } catch (error) {
     try {
       const diag = await evaluate(`({
@@ -762,7 +766,7 @@ try {
   checks.step("REMOTE_OPERATOR_INTERACTIVE_LOGIN");
   await evaluate(loginReadinessObserver);
   try {
-    await waitForInteractiveLogin({ until, evaluate });
+    await waitForInteractiveLogin({ until: untilReadiness, evaluate });
   } catch (error) {
     try {
       const diag = await evaluate(`({
