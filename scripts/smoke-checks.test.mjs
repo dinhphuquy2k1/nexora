@@ -89,3 +89,49 @@ test("browser diagnostics map fixed diagnostic vocabulary codes without payload 
     ]);
   }
 });
+
+test("opt-in diagnostics report allowlisted error type and step elapsed time without payloads", () => {
+  let clock = 1000;
+  const lines = [];
+  const checks = createSmokeChecks(
+    (line) => lines.push(line),
+    "PUBLIC_HTTPS_SMOKE_FAILED",
+    { diagnostics: true, now: () => clock },
+  );
+  checks.step("ADMIN_BROWSER_RECOVERY_VERIFY");
+  clock = 13456;
+  checks.failure(Object.assign(new TypeError("private-url"), {}));
+  assert.deepEqual(lines, [
+    "PUBLIC_HTTPS_SMOKE_FAILED",
+    "Step: ADMIN_BROWSER_RECOVERY_VERIFY",
+    "Category: CHECK_FAILED",
+    "Error type: TypeError",
+    "Step elapsed ms: 12456",
+  ]);
+  lines.length = 0;
+  checks.step("CANONICAL_HTTPS_REMOTE_OPERATOR_SETUP");
+  checks.failure(
+    Object.assign(new Error("private"), { name: "PrivateCustomError" }),
+  );
+  assert.ok(lines.includes("Error type: OTHER"));
+  lines.length = 0;
+  checks.failure(
+    Object.assign(new Error("CDP timeout"), { name: "TimeoutError" }),
+  );
+  assert.ok(lines.includes("Category: REQUEST_TIMEOUT"));
+  assert.ok(lines.includes("Error type: TimeoutError"));
+  assert.equal(lines.join("\n").includes("private"), false);
+});
+
+test("diagnostics stay off by default", () => {
+  const lines = [];
+  const checks = createSmokeChecks((line) => lines.push(line));
+  checks.step("X");
+  checks.failure(new TypeError("private"));
+  assert.equal(
+    lines.some(
+      (l) => l.startsWith("Error type:") || l.startsWith("Step elapsed ms:"),
+    ),
+    false,
+  );
+});
