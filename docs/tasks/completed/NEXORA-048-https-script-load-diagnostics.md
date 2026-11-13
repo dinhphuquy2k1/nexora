@@ -1,8 +1,8 @@
 # NEXORA-048 — Public HTTPS script load diagnostics
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Origin
 
@@ -98,3 +98,12 @@ remain pending. No workflow rerun. The PR records final green SHA/run provenance
 after execution, or the explicitly directed step8 script-loading exception and
 stops for the owner. Issue44 receives a PR-linked comment after hosted evidence.
 No merge; NEXORA-048 is closed by the next task's PR.
+
+## Closure — 2026-11-13
+
+Delivered by PR #45. Final-head hosted gates passed on 26a89e23a6d13531e48470b5b8b3e49148158ce1. Script-load investigation continues in GitHub issue #44. Closed in the first commit of NEXORA-049 under §1.7.
+
+| Claim                   | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Date       | Result |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main          | PR #45; merge d0e75cc83619f11f7b192485d9fdd7a051179b6d; merged 2026-11-13T06:02:54Z                                                                                                                                                                                                                                                                                                                                                                                     | 2026-11-13 | PASS   |
+| Final-head hosted gates | PR #45 description: Preflight [43372669231](https://github.com/dinhphuquy2k1/nexora/actions/runs/43372669231), updated 2026-11-13T05:32:33Z; Foundation [43372669362](https://github.com/dinhphuquy2k1/nexora/actions/runs/43372669362), job 131711844923, completed 2026-11-13T05:51:02Z; head 26a89e23a6d13531e48470b5b8b3e49148158ce1; tested merge 9ff03135387ddd7f3906780302de58baa5433a4b into a66f548968819cd8b700d82956bdc658ab95d313; required steps 4–10 PASS | 2026-11-13 | PASS   |
