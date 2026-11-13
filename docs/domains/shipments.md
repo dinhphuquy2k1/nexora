@@ -8,6 +8,8 @@ Nexora owns the domain; the approved first scope is
 `shipment_kind = RETAIL_PARCEL` (kiện TMĐT/kiện lẻ) from Uniship. Bulk shipments,
 import/export entrustment (Ủy thác XNK), a second carrier, manual entry and Excel
 imports are later extensions. No provider data or API contract is invented here.
+The current planned Uniship scope is SHIPMENT-only. Uniship Customer Sync is not
+required or included; official Shipment API authorization still gates the adapter.
 
 ## Ubiquitous language and aggregate
 
@@ -45,6 +47,23 @@ never overwritten by Sync. The binding allowlists carrier fields, not the full
 payload/record. All customer/assignee references must obey the resolved ownership
 and authorization boundary; an FK alone is not permission. Nexora write commands
 are a later task, separate from ingestion.
+
+## Shipment–Customer association belongs to Nexora
+
+`shipments.id` is internal identity, `source_identity_id` identifies the external
+Shipment, and `customer_id` is the independent Nexora-owned Customer association.
+A Shipment can start with customer_id NULL. Valid ingestion requires neither
+Customer creation nor matching, and does not assume a Uniship Customer ID/API.
+Multiple Shipments from different provider sources can reference one internal
+Customer. Only an authorized future Nexora command can link an existing eligible
+owner-scoped Customer; preserve current authorization, isolation and Customer
+lifecycle constraints. Unlink/relink is a separate business command.
+
+Shipment Sync only updates provider-owned fields. It never overwrites or silently
+infers customer_id, even if a provider payload changes or contains a Customer-like
+identifier. The linking API/commands remain outside this PR. External Customer
+source mapping for a future CUSTOMER-capable provider is a different relationship,
+owned by Customer Domain and persisted through the existing Sync source fields.
 
 ## Three independent status layers
 
@@ -214,18 +233,16 @@ The internal claim case is independent of provider_claim_status.
 5. API reads persisted scoped projections, not provider payloads or full aggregates
    for lists. Charges are fetched for detail; history is a separate projection.
 
-Source linkage belongs to its domain, not new Sync engine columns. Shipment keeps
-its selected unique nullable source_identity_id; Customer currently permits
-multiple source identities per Customer. Customer cleanup is **blocked** by
-[ADR-011's open cardinality issue](../decisions/shipment-domain-data-ownership.md#customer-source-cardinality--open-plan-issue).
-The original future Customer 1:1 target is an intentional restriction, not current
-behavior. The Customer-owned link-table alternative is not accepted automatically;
-the owner left the choice open. Preserve all mappings/origins/provenance, explicitly
-assess two sources sharing one Customer, and do not remove old linkage until a
-settled, lossless transition passes genuine PostgreSQL migration tests. Safe abort
-alone does not settle that model. Cleanup of unused created_by_sync_job_id remains
-planned subject to provenance validation. No migration or registration is added;
-the production registry remains empty.
+Shipment source linkage remains on shipments; no Shipment-specific column enters
+Sync. Customer source cardinality is many sources → one Customer, now
+[resolved by ADR-011](../decisions/shipment-domain-data-ownership.md#customer-source-cardinality--resolved).
+The current Customer source FK/link_origin representation is retained as a bounded
+compatibility exception; Customer owns decisions/validation and confirmed results
+remain durably persisted across restarts, resync, payload change and retention.
+No new table, matching algorithm or storage relocation is required for Shipment
+Core. Customer physical cleanup is DEFERRED, non-blocking, with no selected
+destination schema. Unused-field cleanup needs its own justified assessment.
+The production capability registry remains empty; this design activates nothing.
 
 ## Planned read API
 
@@ -259,16 +276,21 @@ unregistered. UI fixtures and passing synthetic tests do not supply API rights.
 
 ## Implementation roadmap
 
-1. This documentation design task (NEXORA-049).
-2. Settle CUSTOMER_SOURCE_CARDINALITY with the owner before Customer Sync cleanup;
-   then perform the authorized lossless forward migration, grants, two-source
-   PostgreSQL migration tests and docs, including unused provenance-FK cleanup.
-   No implementation while the issue remains open.
-3. Shipment backend core: aggregate, schema, fenced persistence and read API;
+1. This documentation design task (NEXORA-049), with cardinality resolved by v3.
+2. Shipment backend core: aggregate, schema, fenced persistence and read API;
    test-first domain and genuine PostgreSQL status/FK/uniqueness/rollback tests.
-4. [NEXORA-045](../tasks/active/NEXORA-045-pager-filter-convergence.md) in parallel;
+3. [NEXORA-045](../tasks/active/NEXORA-045-pager-filter-convergence.md) in parallel;
    complete shared Pager/filter follow-ups before Shipment UI integration.
-5. Connect Retail UI to real read API with exhaustive tab mapping.
-6. Uniship adapter only after official documentation and the seven verifications.
-7. Later: multi-employee data-owner access and Nexora business operations,
+4. Connect Retail UI to real read API with exhaustive tab mapping.
+5. Uniship Shipment adapter only after official documentation and the seven verifications.
+6. Later: independently authorized provider Customer/Shipment capabilities and
+   separately justified storage/unused-field cleanup (not prerequisites to Core);
+   multi-employee data-owner access and Nexora business operations,
    manual/Excel ingestion and further shipment kinds/providers.
+
+Customer Sync is not a prerequisite to Uniship Shipment Sync or Shipment Core.
+Future providers may support CUSTOMER, SHIPMENT or both through independent
+static pairs; any provider-specific coordinated ordering needs its own evaluation.
+No scheduler/worker per type, implicit external Customer matching or flag-only
+activation is introduced. All first-scope mappings remain PROVISIONAL until
+original provider codes and official rights are verified.

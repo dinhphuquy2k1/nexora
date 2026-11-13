@@ -383,13 +383,23 @@ These conventions apply prospectively; no current schema is renamed by this desi
 [Shipment schema draft](../domains/shipments.md#schema-draft--not-a-migration)
 records the designed tables, source linkage, write authority and indexes under
 [ADR-011](../decisions/shipment-domain-data-ownership.md). It is not a migration.
-Current Customer linkage/grants stay implemented. ADR-011's original future
-Customer 1:1 target is an intentional restriction, not current schema; the owner
-has deferred its reconciliation in
-[PLAN ISSUE — CUSTOMER_SOURCE_CARDINALITY](../decisions/shipment-domain-data-ownership.md#customer-source-cardinality--open-plan-issue).
-A Customer-owned link table is only an alternative pending the decision. Future
-migration must inventory/retain every link, owner, origin and provenance, cover
-two sources sharing a Customer, and prove a lossless transition before removing
-old linkage; otherwise abort safely without loss. Tests/preflight do not decide
-the business policy. Shipment's one-source model stays separate. No schema,
-migration, test or grant changes are made here.
+Current Customer linkage/grants stay implemented. The latest owner decision in
+[ADR-011](../decisions/shipment-domain-data-ownership.md#customer-source-cardinality--resolved)
+resolves CUSTOMER_SOURCE_CARDINALITY by preserving many-source-to-one Customer
+mapping in sync_source_identities.customer_id/link_origin. Customer Domain owns
+validation/decisions; Sync retains this durable physical representation as a
+bounded compatibility exception. The engine still has Customer-specific fields;
+other domains must not automatically copy them. The former Customer 1:1 target is
+superseded and must not be implemented. No customer_source_links or other mapping
+table is introduced, and no mapping/provenance is deleted.
+
+Customer source-link storage relocation is DEFERRED with no selected destination;
+it is not required before Shipment Core. A justified future task must assess
+actual requirements/data/constraints and record its own design, preserve all
+many-source links/owners/origins/provenance and engine hash/checkpoint/version/job
+state, and supply a lossless migration, rollback strategy and genuine PostgreSQL
+tests (including two sources to one Customer, retention/restart and isolation).
+Unused-field cleanup is independently assessed, not bundled as a prerequisite.
+Shipment keeps its own unique nullable source_identity_id and Nexora-owned
+customer_id; provider Sync must not overwrite that internal association.
+No schema, migration, test, role or grant is changed here.

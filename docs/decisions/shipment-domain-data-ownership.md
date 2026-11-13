@@ -10,7 +10,8 @@ the foundation v0.1.0/multi-carrier milestone, for the scope settled here:
 RETAIL_PARCEL (e-commerce/retail parcels), initially Uniship. Bulk shipments,
 import/export entrustment, a second carrier, manual entry and Excel ingestion
 remain future capabilities. No migration, schema, adapter registration or live
-traffic is authorized by this documentation task. [Shipment](../domains/shipments.md)
+traffic is authorized by this documentation task. The current planned Uniship
+scope is Shipment-only; Uniship Customer Sync is not required or included. [Shipment](../domains/shipments.md)
 owns the schema draft, stage mapping and read-contract design.
 
 ## Organization, owner and authorization
@@ -47,23 +48,65 @@ independent of carrier status/fees. Identity/owner/code are domain/database
 metadata, not provider-assigned mutable fields. Charge replacement is an explicit
 provider-owned aggregate operation; append-only history records stage changes.
 
-## Source linkage belongs to the domain
+## Two independent relationships
 
-Sync engine tables must not contain columns belonging to any business domain.
-Shipment retains the selected `source_identity_id UUID UNIQUE NULL` on its own
-table, FK to `sync_source_identities` with `ON DELETE RESTRICT`: one source per
-Shipment, with NULL reserved for future records without a provider source. This
-Shipment design does not describe the current Customer relationship.
+### Shipment to Nexora Customer
 
-Current `sync_source_identities.customer_id` is a nullable, **nonunique** FK;
-`Customer.syncSources` is a collection. The nonunique partial index
-`idx_sync_source_identities_customer` and source-scoped Customer binding permit
-multiple source identities to link to one owner-scoped Customer. The original
-Customer 1:1 target below would intentionally restrict that supported cardinality.
-A separate Customer-domain-owned link table is the compatibility-preserving
-alternative for multiple sources. Neither a polymorphic cross-domain link table
-nor adding more domain columns to Sync is allowed. Customer transition remains
-blocked by the open cardinality issue below; no current schema is changed.
+A Shipment's `id` is its internal stable identity; `source_identity_id` identifies
+its external Shipment source; `customer_id` is a Nexora-owned association.
+Shipment retains `source_identity_id UUID UNIQUE NULL`, FK RESTRICT, as its
+selected one-source-per-Shipment model. This is separate from Customer source
+cardinality below.
+
+1. A Shipment may initially have `customer_id = NULL`. Ingesting a valid Shipment
+   requires neither Customer creation nor Customer matching.
+2. An authorized future Nexora operation can link an existing owner-scoped
+   eligible Customer. Preserve existing authorization, owner isolation and
+   Customer lifecycle constraints. Multiple Shipments, including different
+   provider sources, may reference the same internal Customer.
+3. Shipment Sync writes only provider-owned fields; it must never overwrite or
+   silently infer `shipments.customer_id` from provider data. Unlink/relink is a
+   separate authorized business command, never a side effect of Sync processing.
+4. Do not assume Uniship supplies Customer identifiers or a Customer API. The
+   current planned Uniship integration is Shipment-only, gated by official API
+   authorization. The future Customer-linking API/commands are outside this PR.
+
+### External Customer source to Nexora Customer
+
+For a provider actually supporting CUSTOMER, reuse
+`sync_source_identities.customer_id` (nullable, nonunique FK) and `link_origin`.
+`Customer.syncSources` is a collection; `idx_sync_source_identities_customer` is
+a nonunique partial index. Different source identities may link to one Customer,
+scoped by owner/provider/external account/SyncType/stable identity and scheme.
+
+Customer Domain/processor determines the eligible link. The existing trusted
+CustomerSyncBinding validates owner and immutable target under locks, stages the
+proposal and persists its result under the Sync transaction/fences. **Code owns
+the mapping decision; persisted source identity owns its durable recorded result
+in the current implementation.** This is not a runtime-only computed mapping.
+
+Reuse confirmed mappings across restarts, resynchronization, payload changes and
+payload retention cleanup; preserve `LINKED_EXISTING` and all provenance. Do not
+rematch on every run or silently relink an identity to another Customer. Never
+automatically merge Customers solely by name, phone, tracking code or unverified
+external information. Decisions needing human confirmation use existing
+`NEEDS_REVIEW` semantics. No new matching algorithm, Customer creation policy or
+production handler is authorized here.
+
+## Bounded Customer persistence compatibility exception
+
+New domain linkage belongs to the owning domain, and no Shipment-specific column
+is added to Sync. For **existing Customer mapping only**, retain the current
+Customer-specific FK/link_origin fields in `sync_source_identities` as an explicit,
+bounded compatibility exception. Customer Domain still owns decisions/validation;
+Sync retains the current physical representation and generic fenced execution.
+No generic mapping logic is added to Sync. The engine is not already completely
+free of Customer-specific persistence fields. Other domains must not automatically
+copy this exception; Shipment keeps source_identity_id on its own table.
+
+No `customer_source_links` or other mapping table is introduced or selected now.
+Physical relocation requires a separately justified and recorded future design;
+it is not required for Shipment Core and has no selected destination schema.
 
 ## Adapter configuration and source identity
 
@@ -88,89 +131,68 @@ and rate timestamp when supplied. Do not recalculate totals, fees or currency
 conversion, assume a rate, or invent values for missing fields. Mapping from UI
 labels is PROVISIONAL until official original status codes are verified.
 
-## Next-task Sync cleanup (not implemented here)
+## Customer source cardinality — resolved
 
-Customer mapping migration is blocked by **PLAN ISSUE — CUSTOMER_SOURCE_CARDINALITY**.
-The original owner-approved target below is retained as a future intentional
-cardinality restriction, not as the present schema or an unconditionally executable
-migration. On 2026-11-13 the owner explicitly answered: "Chưa quyết định; ghi PLAN ISSUE".
-Only after the choice and a lossless transition are settled may a later task
-implement the corresponding forward migration:
+**PLAN ISSUE — CUSTOMER_SOURCE_CARDINALITY: RESOLVED at the cardinality-decision
+level.** The latest owner clarification permits multiple external Customer
+sources to map to one internal Nexora Customer and explicitly selects reuse of
+current durable source-identity persistence. The proposed
+`customers.source_identity_id UUID UNIQUE NULL` 1:1 migration target is
+**superseded and must not be implemented**. This decision does not impose
+Customer Sync on Uniship or change Shipment's one-source linkage.
 
-- Remove `sync_source_identities.customer_id`, `link_origin`, their CHECK and
-  `idx_sync_source_identities_customer`.
-- Remove `created_by_sync_job_id`, its FK and Prisma `created_sync` relation. No
-  current application code writes it; it remains NULL on current application
-  paths. This is a source-inspection finding, not an audit of arbitrary external
-  production writes.
-- Add `customers.source_identity_id UUID UNIQUE NULL`, FK `ON DELETE RESTRICT`,
-  and `customers.link_origin` with CHECK membership
-  `CREATED_BY_SYNC | LINKED_EXISTING` and
-  `CHECK ((source_identity_id IS NULL) = (link_origin IS NULL))`.
-  This original target makes Customer–source one-to-one; it is not the current
-  many-source-to-one relationship and remains subject to the open issue below.
-- Preserve engine internal state: `last_*_hash`, `resolved_*`, `applied_*`,
-  `observed_source_version`, `last_source_order`, `resolved_version` and
-  `applied_version`; preserve `sync_jobs` counters, `stored_files` and
-  `security_audit_events`.
+Historical v1/v2 snapshots and Evidence preserve the earlier 1:1 proposal and the
+owner's then-deferred response, "Chưa quyết định; ghi PLAN ISSUE". The current
+clarification supersedes those selected migration assumptions without rewriting
+history. Cardinality is settled; storage relocation is a deferred architectural
+concern, not another unresolved blocking model decision.
 
-Implementation scope is a **new migration**, schema.prisma,
-`customer-sync-domain.binding.ts`,
-`packages/database/scripts/provision-runtime.mjs` (worker permissions on customers),
-Sync and migration tests, and synchronized documentation. Do not rewrite historical
-migrations. Assess/backfill actual existing links only under the settled model and
-validate the complete mapping/origin/provenance sets before removing old columns.
-Safe-abort checks protect data; they do not resolve the business-model mismatch. Customer creation/address invariants,
-engine fencing and least-privilege grants still apply; no generic cross-domain
-writer is introduced. This task neither edits that code nor grants worker writes.
+## Deferred physical cleanup
 
-## Customer source cardinality — open plan issue
+Customer source-link storage cleanup is **DEFERRED**, not a prerequisite to
+Shipment Backend Core. No next task is required to move Customer links, drop the
+current FK/link_origin/check/index or add a 1:1 field on customers. No destination
+schema, new table or migration is selected here, and no existing mapping or
+provenance may be deleted.
 
-**PLAN ISSUE — CUSTOMER_SOURCE_CARDINALITY: OPEN.** P2-1 is not resolved by green
-CI or a migration preflight. The owner's original 1:1 target conflicts with a
-relationship permitted by the implementation; the owner has not chosen how to
-reconcile them. These are alternatives, not two accepted architectures:
+If actual requirements/data/constraints justify relocation later, that task must
+record its own design decision and provide:
 
-| Alternative requiring owner decision                                                                  | Consequence                                                                                                                                                                                                                                                                                                                                                                                       |
-| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Preserve many-source-to-one Customer linkage in a Customer-domain-owned `customer_source_links` table | `source_identity_id UUID NOT NULL UNIQUE`; `customer_id UUID NOT NULL`, indexed but nonunique; per-link `link_origin` keeps CREATED_BY_SYNC/LINKED_EXISTING membership, appropriate FKs/delete restrictions and source/Customer owner checks. Every existing source link and human decision can be preserved without payload rematching. This table is provisional, not selected or created here. |
-| Retain the original `customers.source_identity_id UUID UNIQUE NULL` target                            | Intentional future 1:1 restriction with paired nullable link_origin and existing membership/NULL-pair CHECKs. It cannot represent several source identities on one Customer. The owner must authorize a lossless operational reconciliation/remediation policy for those mappings before migration; arbitrary dropping, choosing one or duplicating Customers is not authorized.                  |
+- Many-source-to-one Customer cardinality and owner-scope preservation.
+- A lossless inventory/backfill/full mapping-origin-provenance comparison,
+  retention of confirmed human links beyond payload cleanup, and no arbitrary
+  source selection, silent deletion/overwrite, payload rematching or unauthorized
+  duplicate Customers.
+- Reviewed cutover, validation, safe abort/rollback and genuine PostgreSQL tests,
+  including two source identities pointing to one Customer, restart/retention,
+  owner isolation, exact constraints, repeated deployment and rollback.
+- Preservation of engine hashes/checkpoints/version/order/outcome fields, job
+  counters/provenance, stored_files and security_audit_events. No rewrite of
+  historical migrations or unreviewed worker permission changes.
 
-The required owner decision is whether multiple sources per Customer remain
-supported, and, if restricting to 1:1, how every existing link/provenance record
-will survive an explicitly authorized reconciliation. Until then, retain the
-current relationship and do not implement either alternative. Shipment's selected
-one-source linkage remains distinct and unchanged.
+Independently justified unused-field cleanup, including
+`created_by_sync_job_id`/FK/Prisma `created_sync` if separately assessed, is an
+independent follow-up. It is not bundled into this PR or silently required before
+Shipment development. Source inspection of an absent writer is not a production
+data audit or permission to discard historical provenance.
 
-### Required lossless future migration contract
+## Independent provider capabilities
 
-1. Read-only assessment of **all** existing source-to-Customer mappings, including
-   unlinked rows, per-link origin and available provenance. Detect Customers with
-   two or more source identities and verify source/Customer owner consistency.
-   Source inspection here is not an audit of actual production data.
-2. Preserve every link and human LINKED_EXISTING decision beyond payload retention
-   (ADR-010). No silent deletion/overwrite, arbitrary first/canonical source,
-   provider-payload rematching, cross-owner transfer, or duplicate Customer creation
-   without an authorized business decision. Retain historical linking/provenance
-   data until transition validation completes.
-3. After model/remediation approval, use a reviewed consistent transactional or
-   coordinated cutover, backfill, and compare complete before/after mapping,
-   owner, origin and provenance sets. Validate exact FK/cardinality/CHECK behavior.
-   Do not remove the old relationship unless the transition is demonstrably lossless.
-4. Abort/roll back safely while any incompatible mappings remain unresolved.
-   An abort condition prevents damage but is not a business-policy resolution.
-   No data is silently discarded and historical migrations stay immutable.
-5. Genuine PostgreSQL migration tests must include **two distinct sources pointing
-   to the same Customer**. A many-source design preserves both; a 1:1 transition
-   without authorized remediation must refuse/roll back and leave both intact.
-   Also test owner mismatch, NULL links, LINKED_EXISTING durability after retention,
-   FK/delete/index/CHECK behavior, rollback and repeat deployment.
+| Pair                  | Design status                                                               |
+| --------------------- | --------------------------------------------------------------------------- |
+| (uniship, SHIPMENT)   | Current planned scope, subject to official API authorization; not activated |
+| (carrier-b, SHIPMENT) | Illustrative future pair, not a provider registration                       |
+| (carrier-b, CUSTOMER) | Illustrative future pair only if officially supported; not a registration   |
 
-Current integration coverage includes distinct Customer links, retention/processor
-upgrades, immutable source targets and non-APPLIED proposal rollback; migration
-coverage preserves staged rows and index shape. Inspection found no dedicated
-future two-source-to-one-Customer migration regression. Those tests and the actual
-migration belong to a subsequent implementation task after the decision, not this PR.
+A future provider may supply Shipment only, Customer only or both. Reuse
+NEXORA-042's exact static capability registry and existing scheduler/worker per
+pair; the common production declaration source is still empty. No provider must
+support both, no global Customer-before-Shipment order or worker per type, and no
+capability from flags alone. Provider Customer identifiers do not automatically
+identify Nexora Customers. Each real pair must independently establish official
+API rights, normalization, stable versioned keys, processing contracts and
+permissions before production activation. Any coordinated type ordering is a
+separately evaluated provider-specific dependency, not a global invariant.
 
 ## Alternatives rejected and consequences
 
@@ -179,12 +201,12 @@ migration belong to a subsequent implementation task after the decision, not thi
 | Workspace                                                 | One organization per instance; one owner resolver supplies the current account scope and allows the approved later data-owner policy                                                                                        |
 | Polymorphic link table                                    | Obscures typed FK/domain ownership; a domain-owned multi-source table is justified only by actual merging                                                                                                                   |
 | API configuration in DB                                   | Protocol/validation/identity changes require code review, not mutable runtime execution configuration                                                                                                                       |
-| One domain column per Sync engine table                   | Couples the neutral engine to every added domain; linkage belongs to the domain                                                                                                                                             |
+| One domain column per Sync engine table                   | Couples the engine to every added domain; existing Customer storage is a bounded compatibility exception, not a precedent                                                                                                   |
 | Fixed fee columns                                         | A closed charge-code collection models the selected fees without a new column per fee                                                                                                                                       |
 | Store raw response then reinterpret mapping on every read | Source-to-record mapping must outlive payload retention (ADR-010), and human linking decisions such as LINKED_EXISTING cannot be recomputed from provider data; re-matching on every run risks duplicates and wrong merges. |
 
-The cost is explicit per-domain bindings, a separate Customer linkage migration
-and verified provider contracts before activation. Benefits are stable ownership,
+The cost is explicit per-domain bindings, the documented temporary Customer
+persistence exception and verified provider contracts before activation. Benefits are stable ownership,
 scoped writes, queryable minimal state and extensibility without a launcher,
 framework, workspace or new service. [ADR-008](tactical-ddd.md) still governs
 aggregate encapsulation, locked hydration and minimal persistence.
