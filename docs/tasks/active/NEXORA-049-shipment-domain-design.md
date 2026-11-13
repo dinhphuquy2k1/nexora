@@ -1,8 +1,8 @@
 # NEXORA-049 — Shipment domain design
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -86,9 +86,9 @@ The owner has settled the design; no alternative decision is requested. Provider
 
 ## Acceptance criteria
 
-- [ ] Canonical design decisions and cross-document consistency verified.
-- [ ] Five local checks and exact task/snapshot binding pass; diff only docs, active tasks045–047 and049.
-- [ ] Independent design review recorded.
+- [x] Canonical design decisions and cross-document consistency verified.
+- [x] Five local checks and exact task/snapshot binding pass; diff only docs, active tasks045–047 and049.
+- [x] Independent design review recorded.
 - [ ] Final-head hosted Preflight and Foundation pass (or bounded rerun failure reported).
 - [ ] Owner merge decision; closure belongs to next task PR.
 
@@ -120,7 +120,23 @@ format:check, docs:check, preflight:check, test:docs, test:preflight; validatePr
 
 ## Evidence
 
-| Claim                       | Evidence                                                                                                                                                                              | Date       | Result |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
-| Baseline and unused task ID | origin/main d0e75cc83619f11f7b192485d9fdd7a051179b6d; active/completed/design-review inventory and gh pr list --state open show NEXORA-049 unused; branch docs/shipment-domain-design | 2026-11-13 | PASS   |
-| Prior task closure          | First commit 719b1bf closes048; PR45 merge d0e75cc83619f11f7b192485d9fdd7a051179b6d and final-head gates from PR description; npx --yes pnpm@10.34.6 docs:check exit0                 | 2026-11-13 | PASS   |
+| Claim                                            | Evidence                                                                                                                                                                                                                                                                                                                                                                                                           | Date       | Result |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Baseline and unused task ID                      | origin/main d0e75cc83619f11f7b192485d9fdd7a051179b6d; active/completed/design-review inventory and gh pr list --state open show NEXORA-049 unused; branch docs/shipment-domain-design                                                                                                                                                                                                                              | 2026-11-13 | PASS   |
+| Prior task closure                               | First commit 719b1bf closes048; PR45 merge d0e75cc83619f11f7b192485d9fdd7a051179b6d and final-head gates from PR description; npx --yes pnpm@10.34.6 docs:check exit0                                                                                                                                                                                                                                              | 2026-11-13 | PASS   |
+| Formatting                                       | npx --yes pnpm@10.34.6 format:check; exit0; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z                                                                                                                                                                                                                                              | 2026-11-13 | PASS   |
+| Documentation validation                         | npx --yes pnpm@10.34.6 docs:check; exit0; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z                                                                                                                                                                                                                                                | 2026-11-13 | PASS   |
+| Structural governance                            | npx --yes pnpm@10.34.6 preflight:check; local/static mode, exit0; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z                                                                                                                                                                                                                        | 2026-11-13 | PASS   |
+| Documentation regressions                        | npx --yes pnpm@10.34.6 test:docs; 10/10 PASS, 0 skipped, exit0; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z                                                                                                                                                                                                                          | 2026-11-13 | PASS   |
+| Preflight regressions                            | npx --yes pnpm@10.34.6 test:preflight; 24/24 PASS, 0 skipped, exit0; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z                                                                                                                                                                                                                     | 2026-11-13 | PASS   |
+| Task/snapshot binding                            | validatePrTaskBinding with exactly five NEXORA-049 PR metadata lines; valid:true, failures:[], exit0; raw SHA-256 015be8d1a5f4d614ddcf1e6916c5780f0408b6ad38b3c20e2075a9f674a14533; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z                                                                                                      | 2026-11-13 | PASS   |
+| Scope, active inventory and decision consistency | git diff origin/main --stat: 13 documentation files/rename only; active045,046,047,049; self-review compares ADR-011, shipments.md, PROJECT_RULES.md and database.md to all settled decisions; no apps/packages/scripts/.github changes; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z                                                 | 2026-11-13 | PASS   |
+| Independent documentation review                 | Read-only shipment_design_review agent compared owner request, immutable plan, closure and complete docs diff; no remaining P1/P2/P3 findings after removing an added UNKNOWN/open-claim exception to preserve the owner decision; not a claim of runtime implementation or hosted PASS; working tree on 2569ed41fd71138601e3219a5b163f0a366cc66f with documentation design delta; checkpoint 2026-11-13T07:44:59Z | 2026-11-13 | PASS   |
+
+Capability IMPLEMENTED refers only to delivered design documents. Shipment runtime,
+schema, adapter, migration and endpoints remain unimplemented. Future task
+prerequisites are explicit in the domain roadmap. Final-head hosted results and
+actual tested merge SHA will be recorded in the PR description after publication;
+no SHA-only evidence commit follows them. This SIGNIFICANT task has an independent
+documentation review, not invented owner approval. Status stays VERIFICATION
+PENDING until the post-merge closure task; no merge is performed here.
