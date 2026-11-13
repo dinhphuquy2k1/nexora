@@ -1,8 +1,8 @@
 # NEXORA-037 — Global stylesheet organization
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -117,3 +117,12 @@ review verified equality/import positions and reran shared-ui/M1:6/6PASS,0skip,
 with no P1/P2. Round2 runtime/browser and final PR review remain pending.
 
 Checkpoint 2026-11-09T06:59:30.244Z UTC. Detailed output/captures outside Git.
+
+## Closure — 2026-11-12
+
+Delivered by PR #37. Remaining final-head hosted verification is covered by a descendant hosted run.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #37, merge dccbfee75c5d024d3973504c9c004e4f939799b9, 2026-11-10                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |

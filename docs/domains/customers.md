@@ -1,6 +1,6 @@
 # Customer Management Backend V1
 
-Backend: IMPLEMENTED. Frontend Customer UI M2: IMPLEMENTED, verification pending in NEXORA-031/PR28. Verification and remaining gates are tracked in [NEXORA-027](../tasks/active/NEXORA-027-customer-management-backend.md); implementation is not a claim that mandatory runtime checks passed. Shipment management remains PLANNED. No shipment snapshots, portal, export, employee, Workspace, Shop, membership or synchronization is added.
+Backend: IMPLEMENTED. Frontend Customer UI M2: IMPLEMENTED and verified (NEXORA-031, PR #28). Verification and remaining gates are tracked in [NEXORA-027](../tasks/completed/NEXORA-027-customer-management-backend.md); implementation is not a claim that mandatory runtime checks passed. Shipment management remains PLANNED. No shipment snapshots, portal, export, employee, Workspace, Shop, membership or synchronization is added.
 
 ## Ownership and identity
 

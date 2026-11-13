@@ -127,3 +127,5 @@ or
 
 - **Reason**: <explanation why no canonical fact was changed>
 ```
+
+After merge, close the task following [Task workflow §1.7](TASK_WORKFLOW.md#17-closing-a-task-after-merge).

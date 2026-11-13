@@ -1,8 +1,9 @@
 # NEXORA-029 — Full Frontend Migration from Supplied Reference Design
 
-Task: PLANNED
-Implementation: PLANNED
-Verification: NOT VERIFIED
+Task: COMPLETED
+Implementation: IMPLEMENTED
+Verification: VERIFIED
+Superseded by: NEXORA-031, NEXORA-033
 Classification: SIGNIFICANT
 Documentation Impact: REQUIRED
 
@@ -147,3 +148,11 @@ No application or test implementation, schema/dependency/CI changes, backend tas
 PR25 has10 existing threads: P1 baseline and StatsBar contract; P2 frontend provenance, v1 hash, empty q, navigation, MFA enrollment, address payload, neutral badge and stale requests. New v8/task address them with source-based evidence; immutable v5/v7 text is historical, not an active instruction. Exact thread IDs/disposition and final-head evidence are recorded in PR metadata. Do not claim a thread resolved merely because it is outdated.
 
 PR remains Ready, not Draft; design-document merge eligibility depends on required final-head checks, not on frontend implementation completion. Design Approval is APPROVED, verified against https://github.com/dinhphuquy2k1/nexora/pull/25#issuecomment-6356392948 (authenticated owner User; created/updated2026-10-23T03:05:52Z; exact task/revision/raw-byte digest; no later valid revocation). Earlier reference6355371808 is no longer retrievable and is historical evidence only. Later prose-wrapped comment6355586299 is not used as approval evidence. Backend task/ID/branch not created or reserved. Task/Implementation remain PLANNED and frontend/runtime Verification NOT VERIFIED; this metadata fix does not begin M1 or backend implementation.
+
+## Closure — 2026-11-12
+
+Design-only task delivered by PR #25 (v8 design). Implementation was superseded by NEXORA-031 (PR #27, #28, #29) and NEXORA-033 (PR #31); unchecked implementation boxes are owned by those tasks.
+
+| Claim          | Evidence                                                           | Date       | Result |
+| -------------- | ------------------------------------------------------------------ | ---------- | ------ |
+| Merged to main | PR #25, merge b9d02f05c979affa5e0a416ea120efd80c6df0e6, 2026-10-23 | 2026-11-12 | PASS   |

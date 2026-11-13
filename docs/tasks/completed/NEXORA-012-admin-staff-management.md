@@ -1,9 +1,9 @@
 # Task: NEXORA-012 — SQL-Based Uniship Identity & Login Foundation
 
 - **Task ID**: `NEXORA-012`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `PARTIALLY VERIFIED`
+- **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
 
 ## Predecessor baseline and verification preflight
@@ -269,3 +269,12 @@ The first exact-HEAD CI run for this follow-up (`38361653288`, attempts 1 and 2 
 | First new-head hosted CI attempts before readiness repair                                | Actions run `38361653288` attempts 1 and 2 on `70c5e16c9d6a5c2cd32e94e302f8c9d03e510f15`: quality units/build/integration/migration passed, SQL harness failed at committed-schema; later smokes skipped                                        | 2026-10-13 | FAIL   |
 | PostgreSQL bootstrap false-ready condition reproduced                                    | Fresh network-none PostgreSQL 17.11 probe observed UNIX_SOCKET_READY with TCP_READINESS_STATUS=2 before final server startup                                                                                                                    | 2026-10-13 | PASS   |
 | SQL matrix after final-listener readiness repair                                         | `python3 scripts/sql-registration-smoke.py`: all six real PostgreSQL groups passed after TCP readiness change; registration SQL untouched                                                                                                       | 2026-10-13 | PASS   |
+
+## Closure — 2026-11-12
+
+Delivered by PR #10. Final hosted checks are covered by a descendant hosted run. Owner-deferred scope listed under 'Explicitly Deferred & Gated Scope' remains out of scope by owner decision; HTTPS ingress was later delivered by NEXORA-024 and Uniship integration by NEXORA-018.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #10, merge b1ec046155fef4ec144ab2f0a1596e242db49b12, 2026-10-13                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |

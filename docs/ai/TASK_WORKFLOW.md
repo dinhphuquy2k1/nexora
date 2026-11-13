@@ -55,6 +55,27 @@ The former **Approval authority/status/evidence** fields are optional **historic
 
 PR CI validates exact Task ID, Task Reference, Plan revision, snapshot/digest binding and safe paths, along with normal quality/security gates. It does **not** require an authenticated GitHub comment or `APPROVED` review to implement code. Local and PR modes both enforce structural plan integrity.
 
+### 1.7 Closing a task after merge
+
+A merged task is closed in a dedicated documentation-only PR (or in the task's
+final commit when every gate already passed before merge):
+
+1. Set Status to `COMPLETED` and move the file to `docs/tasks/completed/` with `git mv`.
+2. Add an Evidence row recording the merge SHA, PR and merge date.
+3. Gates that were still pending only because hosted CI had not run on the
+   merged code may be satisfied by a later hosted run whose checkout includes
+   that merge commit. Cite the run ID, job ID, checkout merge SHA and the steps
+   that passed.
+4. Any acceptance criterion that cannot be verified by CI (production
+   environment, manual visual acceptance, external authorization) is moved to a
+   named follow-up task in `PLANNED` status. The closed task links to it. Never
+   mark such a criterion as PASS.
+5. Open PLAN ISSUEs are either linked to a follow-up task or to the canonical
+   document that tracks them as a prerequisite.
+6. A task whose deliverable was taken over by another task is closed as
+   `COMPLETED` with a "Superseded by <Task ID>" note (precedent: NEXORA-021).
+7. Never edit historical Evidence rows, FAIL rows or immutable design snapshots.
+
 ## 2. Canonical evidence schema
 
 Normal task records document executable verification in an `## Evidence` section:

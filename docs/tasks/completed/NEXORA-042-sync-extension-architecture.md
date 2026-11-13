@@ -1,8 +1,8 @@
 # NEXORA-042 — Sync Provider & Domain Extension Architecture
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -461,3 +461,17 @@ ran before that loss of availability. New-head full quality, PostgreSQL and
 browser/runtime verification are performed by the actual canonical hosted jobs.
 No snapshot, formatter ignore, source, test, workflow or launcher change is
 included in this publication.
+
+## Closure — 2026-11-12
+
+Delivered by PR #34. Hosted Preflight, Sync Targeted and full Foundation passed on source head c4caffe (runs 43246873412, 43246873613, 43246873727); later commits before merge changed only the task file. PLAN ISSUE PROVIDER_LENGTH_SINGLE_SOURCE moves to NEXORA-044. PLAN ISSUE PRODUCTION_DOMAIN_WRITE_CONTRACT remains a Phase B/C prerequisite documented in docs/architecture/sync-extensions.md.
+
+| Claim                    | Evidence                                                                                                                                                                                                                                                                                                                                                                                                           | Date       | Result |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Merged to main           | PR #34, merge 010b6ec944f224f829eb0e663c70eca46e186379, 2026-11-12                                                                                                                                                                                                                                                                                                                                                 | 2026-11-12 | PASS   |
+| Source-head hosted gates | Preflight [43246873412](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873412), Sync Targeted [43246873613](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873613), Foundation [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727) on c4caffe33768b14445863ba31d153e441633c8f8 (merge 4682dd9f47d81a55a515be44ebca19a1afb8828d): all PASS, Foundation steps 4–10 | 2026-11-12 | PASS   |
+
+Follow-up: [NEXORA-044](../active/NEXORA-044-provider-length-single-source.md).
+
+PRODUCTION_DOMAIN_WRITE_CONTRACT remains a Phase B/C prerequisite in
+[Sync extensions](../../architecture/sync-extensions.md).

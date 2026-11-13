@@ -1,9 +1,9 @@
 # NEXORA-024 — Public HTTPS profile and ingress hardening
 
 - **Task ID**: `NEXORA-024`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `PARTIALLY VERIFIED`
+- **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
 - **Branch**: `feat/public-https-ingress`
 - **Baseline**: `6d6bd53024bc86480d069b00f3e5c281bd92690f`
@@ -204,3 +204,14 @@ The public HTTPS harness uses this observable readiness check for its two existi
 | Documentation head requires independent verification | [Foundation39031961153](https://github.com/dinhphuquy2k1/nexora/actions/runs/39031961153), actual merge37799f8 for headf30f1a6: quality/LOCAL pass; public browser pending-MFA timeout with no observed LOGIN status; data/dev skipped | 2026-10-17 | FAIL   |
 | DOM-only readiness regression                        | Isolated real Chromium with visible UTF-8 form and delayed handlers: old predicate violates the interactivity assertion before credentials                                                                                             | 2026-10-17 | FAIL   |
 | Observable interactive readiness                     | Same actual Chromium fixture using scripts/browser-login-ready.mjs: handler-backed visibility transition and restored masking before credential entry                                                                                  | 2026-10-17 | PASS   |
+
+## Closure — 2026-11-12
+
+Delivered by PR #20. CI-verifiable HTTPS/ingress/onboarding/restore behavior is covered by a descendant hosted run (step 8). Actual production environment acceptance cannot be verified in CI and moves to NEXORA-046.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #20, merge ea0fce64f0de5201301d05cfe35fde9f4265e80d, 2026-10-17                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |
+
+Follow-up: [NEXORA-046](../active/NEXORA-046-production-https-acceptance.md).

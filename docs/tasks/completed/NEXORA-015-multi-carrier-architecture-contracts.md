@@ -1,7 +1,7 @@
 # Task: NEXORA-015 — Multi-Carrier Architecture, Security & API Contracts
 
 - **Task ID**: `NEXORA-015`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
 - **Verification**: `VERIFIED`
 - **Classification**: SIGNIFICANT
@@ -197,3 +197,11 @@ Documentation Impact: REQUIRED
 | Architectural workspace boundaries verified  | `node scripts/boundaries.mjs` executed with PASS                                   | 2026-10-14 | PASS   |
 | API contracts reproducibility verified       | `pnpm contracts:check` executed with Contracts reproducible PASS                   | 2026-10-14 | PASS   |
 | Git whitespace and diff cleanliness verified | `git diff --check` executed with zero whitespace violations                        | 2026-10-14 | PASS   |
+
+## Closure — 2026-11-12
+
+Delivered by PR #15. Already VERIFIED; items in 'Deferred Beyond Milestone' remain documented deferrals in ADR-007.
+
+| Claim          | Evidence                                                           | Date       | Result |
+| -------------- | ------------------------------------------------------------------ | ---------- | ------ |
+| Merged to main | PR #15, merge cc43981b697673d6d1a488f76d9ef545b094b533, 2026-10-15 | 2026-11-12 | PASS   |

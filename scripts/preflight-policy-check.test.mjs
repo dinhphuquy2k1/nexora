@@ -414,7 +414,61 @@ test("parsePrPreflightBlock: parses canonical PR plan fields", () => {
 // PR-to-Task & Plan Revision Binding
 // ============================================================================
 
-test("PR-to-task binding: validates canonical metadata block, allows ellipses in PR body, and restricts traversal checks to taskReference", () => {
+function liveTaskFixture(t) {
+  const dir = mkdtempSync(resolve(tmpdir(), "nexora-live-task-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const taskRel = "docs/tasks/active/NEXORA-027-customer-management-backend.md";
+  mkdirSync(resolve(dir, "docs/tasks/active"), { recursive: true });
+  mkdirSync(resolve(dir, "docs/tasks/design-reviews"), { recursive: true });
+  copyFileSync(
+    resolve(
+      root,
+      "docs/tasks/completed/NEXORA-027-customer-management-backend.md",
+    ),
+    resolve(dir, taskRel),
+  );
+  copyFileSync(resolve(root, TEST_SNAPSHOT), resolve(dir, TEST_SNAPSHOT));
+  return dir;
+}
+
+function liveRepoFixture(t) {
+  const dir = mkdtempSync(resolve(tmpdir(), "nexora-live-repo-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const isWindows = process.platform === "win32";
+  const link = (from, to) => {
+    if (statSync(from).isDirectory()) {
+      symlinkSync(from, to, isWindows ? "junction" : "dir");
+    } else {
+      copyFileSync(from, to);
+    }
+  };
+  for (const name of readdirSync(root)) {
+    if (name === "docs" || name === ".git") continue;
+    link(resolve(root, name), resolve(dir, name));
+  }
+  mkdirSync(resolve(dir, "docs/tasks/active"), { recursive: true });
+  mkdirSync(resolve(dir, "docs/tasks/design-reviews"), { recursive: true });
+  for (const name of readdirSync(resolve(root, "docs"))) {
+    if (name !== "tasks")
+      link(resolve(root, "docs", name), resolve(dir, "docs", name));
+  }
+  for (const name of readdirSync(resolve(root, "docs/tasks"))) {
+    if (name !== "active" && name !== "design-reviews")
+      link(resolve(root, "docs/tasks", name), resolve(dir, "docs/tasks", name));
+  }
+  copyFileSync(
+    resolve(
+      root,
+      "docs/tasks/completed/NEXORA-027-customer-management-backend.md",
+    ),
+    resolve(dir, "docs/tasks/active/NEXORA-027-customer-management-backend.md"),
+  );
+  copyFileSync(resolve(root, TEST_SNAPSHOT), resolve(dir, TEST_SNAPSHOT));
+  return dir;
+}
+
+test("PR-to-task binding: validates canonical metadata block, allows ellipses in PR body, and restricts traversal checks to taskReference", (t) => {
+  const fixtureRoot = liveTaskFixture(t);
   const validPrBody = `
 ## Pull Request Preflight
 
@@ -429,7 +483,7 @@ This PR addresses several key improvements...
 More details follow below.
 Referencing previous changes at ../../docs/other.md for context.
   `;
-  const validBinding = validatePrTaskBinding(validPrBody, root);
+  const validBinding = validatePrTaskBinding(validPrBody, fixtureRoot);
   assert.equal(
     validBinding.valid,
     true,
@@ -444,7 +498,7 @@ Referencing previous changes at ../../docs/other.md for context.
   assert.equal(validBinding.tasks[0].planRevision, "rev-2026-10-21-reuse-v2");
 
   // Empty PR body
-  const emptyBinding = validatePrTaskBinding("", root);
+  const emptyBinding = validatePrTaskBinding("", fixtureRoot);
   assert.equal(emptyBinding.valid, false);
   assert.ok(emptyBinding.failures.some((f) => f.includes("empty or missing")));
 
@@ -455,7 +509,7 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Design Snapshot**: ${TEST_SNAPSHOT}
 - **Design SHA-256**: ${TEST_DIGEST}
   `;
-  const noTaskIdBinding = validatePrTaskBinding(noTaskIdPr, root);
+  const noTaskIdBinding = validatePrTaskBinding(noTaskIdPr, fixtureRoot);
   assert.equal(noTaskIdBinding.valid, false);
   assert.ok(
     noTaskIdBinding.failures.some((f) =>
@@ -468,7 +522,7 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Task ID**: NEXORA-027
 - **Task Reference**: docs/tasks/active/NEXORA-027-customer-management-backend.md
   `;
-  const noPlanRevBinding = validatePrTaskBinding(noPlanRevPr, root);
+  const noPlanRevBinding = validatePrTaskBinding(noPlanRevPr, fixtureRoot);
   assert.equal(noPlanRevBinding.valid, false);
   assert.ok(
     noPlanRevBinding.failures.some((f) =>
@@ -486,7 +540,7 @@ Referencing previous changes at ../../docs/other.md for context.
   `;
   const filenameMismatchBinding = validatePrTaskBinding(
     filenameMismatchPr,
-    root,
+    fixtureRoot,
   );
   assert.equal(filenameMismatchBinding.valid, false);
   assert.ok(
@@ -503,7 +557,10 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Design Snapshot**: ${TEST_SNAPSHOT}
 - **Design SHA-256**: ${TEST_DIGEST}
   `;
-  const planMismatchBinding = validatePrTaskBinding(planMismatchPr, root);
+  const planMismatchBinding = validatePrTaskBinding(
+    planMismatchPr,
+    fixtureRoot,
+  );
   assert.equal(planMismatchBinding.valid, false);
   assert.ok(
     planMismatchBinding.failures.some((f) =>
@@ -520,7 +577,7 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Design Snapshot**: ${TEST_SNAPSHOT}
 - **Design SHA-256**: ${TEST_DIGEST}
     `,
-    root,
+    fixtureRoot,
   );
   assert.equal(traversalBinding.valid, false);
   assert.ok(
@@ -536,7 +593,7 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Design Snapshot**: ${TEST_SNAPSHOT}
 - **Design SHA-256**: ${TEST_DIGEST}
     `,
-    root,
+    fixtureRoot,
   );
   assert.equal(absoluteBinding.valid, false);
   assert.ok(absoluteBinding.failures.some((f) => f.includes("path traversal")));
@@ -550,7 +607,7 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Design Snapshot**: ${TEST_SNAPSHOT}
 - **Design SHA-256**: ${TEST_DIGEST}
     `,
-    root,
+    fixtureRoot,
   );
   assert.equal(urlBinding.valid, false);
   assert.ok(
@@ -568,7 +625,7 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Design Snapshot**: ${TEST_SNAPSHOT}
 - **Design SHA-256**: ${TEST_DIGEST}
     `,
-    root,
+    fixtureRoot,
   );
   assert.equal(completedBinding.valid, false);
   assert.ok(
@@ -586,7 +643,7 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Design Snapshot**: ${TEST_SNAPSHOT}
 - **Design SHA-256**: ${TEST_DIGEST}
     `,
-    root,
+    fixtureRoot,
   );
   assert.equal(nonExistentBinding.valid, false);
   assert.ok(
@@ -603,7 +660,7 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Design SHA-256**: ${TEST_DIGEST}
 - **Task Reference**: docs/tasks/active/NEXORA-003-engineering-workflow.md
     `,
-    root,
+    fixtureRoot,
   );
   assert.equal(conflictingBinding.valid, false);
   assert.ok(
@@ -621,7 +678,7 @@ Referencing previous changes at ../../docs/other.md for context.
 - **Design Snapshot**: ${TEST_SNAPSHOT}
 - **Design SHA-256**: ${TEST_DIGEST}
     `,
-    root,
+    fixtureRoot,
   );
   assert.equal(markdownLinkBinding.valid, true);
   assert.equal(markdownLinkBinding.tasks.length, 1);
@@ -635,9 +692,10 @@ Referencing previous changes at ../../docs/other.md for context.
 // Execution Context & CI Event Isolation (runPreflightCheck)
 // ============================================================================
 
-test("runPreflightCheck: PR CI mode fails closed on missing body, missing payload, or wrong repo; push and local modes use structural validation", async () => {
+test("runPreflightCheck: PR CI mode fails closed on missing body, missing payload, or wrong repo; push and local modes use structural validation", async (t) => {
+  const fixtureRoot = liveRepoFixture(t);
   // 1. Missing PR body in pull_request CI mode fails
-  const missingBodyResult = await runPreflightCheck(root, {
+  const missingBodyResult = await runPreflightCheck(fixtureRoot, {
     isCi: true,
     eventName: "pull_request",
     eventPayload: {
@@ -653,7 +711,7 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
   );
 
   // 2. Missing event payload fails
-  const missingPayloadResult = await runPreflightCheck(root, {
+  const missingPayloadResult = await runPreflightCheck(fixtureRoot, {
     isCi: true,
     eventName: "pull_request",
     eventPayload: null,
@@ -666,7 +724,7 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
   );
 
   // 3. Repository mismatch fails
-  const repoMismatchResult = await runPreflightCheck(root, {
+  const repoMismatchResult = await runPreflightCheck(fixtureRoot, {
     isCi: true,
     eventName: "pull_request",
     eventPayload: {
@@ -685,7 +743,7 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
   );
 
   // 4. Missing PR number fails
-  const noPrNumberResult = await runPreflightCheck(root, {
+  const noPrNumberResult = await runPreflightCheck(fixtureRoot, {
     isCi: true,
     eventName: "pull_request",
     eventPayload: {
@@ -703,7 +761,7 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
   );
 
   // 5. Valid PR CI plan binding succeeds without owner approval
-  const validCiResult = await runPreflightCheck(root, {
+  const validCiResult = await runPreflightCheck(fixtureRoot, {
     isCi: true,
     eventName: "pull_request",
     eventPayload: {
@@ -730,7 +788,7 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
   assert.deepEqual(validCiResult.failures, []);
 
   // Owner approval is not needed even for tasks that retain historical pending metadata.
-  const unapprovedCiResult = await runPreflightCheck(root, {
+  const unapprovedCiResult = await runPreflightCheck(fixtureRoot, {
     isCi: true,
     eventName: "pull_request",
     eventPayload: {
@@ -758,7 +816,7 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
   );
 
   // 6. Push to main CI mode succeeds with static checks without PR body
-  const pushMainResult = await runPreflightCheck(root, {
+  const pushMainResult = await runPreflightCheck(fixtureRoot, {
     isCi: true,
     eventName: "push",
   });
@@ -766,7 +824,7 @@ test("runPreflightCheck: PR CI mode fails closed on missing body, missing payloa
   assert.deepEqual(pushMainResult.failures, []);
 
   // 7. Local mode succeeds without claiming GitHub approval
-  const localResult = await runPreflightCheck(root, {
+  const localResult = await runPreflightCheck(fixtureRoot, {
     isCi: false,
   });
   assert.equal(localResult.success, true);
@@ -825,6 +883,9 @@ test("skill scenario fixtures validate expected decisions", () => {
 import * as preflight from "./preflight-policy-check.mjs";
 import { createHash } from "node:crypto";
 import {
+  copyFileSync,
+  statSync,
+  readdirSync,
   mkdtempSync,
   mkdirSync,
   writeFileSync,
@@ -1079,7 +1140,8 @@ test("integrity: empty duplicate metadata cannot be hidden before a valid task f
   assert.equal(validatePrTaskBinding(f.pr, f.dir).valid, false);
 });
 
-test("runPreflightCheck: explicit event inputs override isolated environment fallback", async () => {
+test("runPreflightCheck: explicit event inputs override isolated environment fallback", async (t) => {
+  const fixtureRoot = liveRepoFixture(t);
   const dir = mkdtempSync(resolve(tmpdir(), "nexora-event-input-"));
   const hadPath = Object.hasOwn(process.env, "GITHUB_EVENT_PATH");
   const originalPath = process.env.GITHUB_EVENT_PATH;
@@ -1103,7 +1165,7 @@ test("runPreflightCheck: explicit event inputs override isolated environment fal
     writeFileSync(eventPath, JSON.stringify(event));
     process.env.GITHUB_EVENT_PATH = eventPath;
     for (const eventPayload of [null, undefined]) {
-      const result = await runPreflightCheck(root, {
+      const result = await runPreflightCheck(fixtureRoot, {
         ...options,
         eventPayload,
       });
@@ -1112,9 +1174,9 @@ test("runPreflightCheck: explicit event inputs override isolated environment fal
         result.failures.some((f) => f.includes("Missing GitHub event payload")),
       );
     }
-    const fallback = await runPreflightCheck(root, options);
+    const fallback = await runPreflightCheck(fixtureRoot, options);
     assert.equal(fallback.success, true, fallback.failures.join("\n"));
-    const explicit = await runPreflightCheck(root, {
+    const explicit = await runPreflightCheck(fixtureRoot, {
       ...options,
       eventPayload: {
         ...event,
@@ -1133,7 +1195,7 @@ test("runPreflightCheck: explicit event inputs override isolated environment fal
       if (invalidPath === eventPath) writeFileSync(eventPath, "{corrupt");
       if (invalidPath === undefined) delete process.env.GITHUB_EVENT_PATH;
       else process.env.GITHUB_EVENT_PATH = invalidPath;
-      const result = await runPreflightCheck(root, options);
+      const result = await runPreflightCheck(fixtureRoot, options);
       assert.equal(result.success, false);
       assert.ok(
         result.failures.some((f) => f.includes("Missing GitHub event payload")),

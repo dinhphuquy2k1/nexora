@@ -1,8 +1,8 @@
 # NEXORA-040 — M2 centralize Customer status validation
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -121,3 +121,12 @@ self-referential commit loop. Hosted checks were not yet reported at publication
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Commit and push | `git commit -m "refactor(shared): centralize Customer status validation"` created a8eccf5; `git push -u origin fix/m2-customer-status-guard` created new remote branch              | 2026-11-11 | PASS   |
 | New focused PR  | `gh pr view --json number,url,state,baseRefName,headRefName,headRefOid,statusCheckRollup` confirmed #40 OPEN, base main, expected branch/implementation SHA; checks initially empty | 2026-11-11 | PASS   |
+
+## Closure — 2026-11-12
+
+Delivered by PR #40. Remaining final-head hosted verification is covered by a descendant hosted run.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #40, merge a3fd1049bb994af4982c59c93bf29f3b9dd939c4, 2026-11-11                                                                                                                                                                                                                                                                                                                                                                                                                                        | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |

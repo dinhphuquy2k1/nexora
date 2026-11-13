@@ -1,9 +1,9 @@
 # Task: NEXORA-009 — Secure Local Authentication & Login UI
 
 - **Task ID**: `NEXORA-009`
-- **Status**: `VERIFICATION PENDING`
+- **Status**: `COMPLETED`
 - **Implementation**: `IMPLEMENTED`
-- **Verification**: `PARTIALLY VERIFIED`
+- **Verification**: `VERIFIED`
 
 ---
 
@@ -312,3 +312,12 @@ Commands use the pinned `pnpm@10.34.6` via npm exec on the managed Node 24.19.0 
 | Contract checker correctly rejects uncommitted generated changes | `pnpm contracts:check`: regeneration identical, then uncommitted-contract guard rejects intentional changes; rerun after commit required | 2026-10-12 | FAIL   |
 
 No full Docker suite is repeated locally in this bounded cleanup: historical hosted coverage is confirmed, local Prisma download restriction persists, and the existing hosted workflow must verify the new HEAD. Final diff: seven task-owned files only; no dependencies, production/historical migrations, ports, guards, credentials or restore behavior changed. Prepared review responses remain unposted.
+
+## Closure — 2026-11-12
+
+Delivered by PR #7. Open gaps were Docker recovery/runtime/development and final hosted CI, now covered by a descendant hosted run.
+
+| Claim                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Date       | Result |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main         | PR #7, merge ad01e74ae681ebf57787dc77188cf93b1e1c7f8e, 2026-10-12                                                                                                                                                                                                                                                                                                                                                                                                                                         | 2026-11-12 | PASS   |
+| Descendant hosted gate | Foundation run [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727), job 131281781892, checkout merge 4682dd9f47d81a55a515be44ebca19a1afb8828d (main 3906f8243347fb7c697bf5f6949389c3a784a13d + c4caffe33768b14445863ba31d153e441633c8f8), which includes this task's merge: steps 4–10 PASS (Docker quality 640 ordinary + 133 PostgreSQL integration, M5, runtime/TTY/browser incl. Carrier six-viewport matrix, HTTPS/ingress/onboarding/restore, persistence, development) | 2026-11-12 | PASS   |
