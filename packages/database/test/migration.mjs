@@ -722,6 +722,40 @@ try {
   );
   assert.equal(indexNames.length, 4);
 
+  step = "SHIPMENT_FORWARD";
+  const customerBeforeShipment = await db.customer.findMany({
+    orderBy: { id: "asc" },
+  });
+  const sourcesBeforeShipment = await db.syncSourceIdentity.findMany({
+    orderBy: { id: "asc" },
+  });
+  const shipmentMigration = "20261113000000_shipment_core";
+  await cp(
+    resolve("prisma/migrations", shipmentMigration),
+    join(work, "prisma/migrations", shipmentMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  assert.deepEqual(
+    await db.customer.findMany({ orderBy: { id: "asc" } }),
+    customerBeforeShipment,
+  );
+  assert.deepEqual(
+    await db.syncSourceIdentity.findMany({ orderBy: { id: "asc" } }),
+    sourcesBeforeShipment,
+  );
+  for (const table of syncBaselineTables)
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`),
+      indexBaseline[table],
+    );
+  for (const table of Object.keys(syncRowsBeforeIndexes))
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`),
+      syncRowsBeforeIndexes[table],
+    );
+  assert.equal(await db.shipment.count(), 0);
+
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },

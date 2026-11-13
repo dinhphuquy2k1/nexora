@@ -14,7 +14,7 @@ export default ts.config(
     ],
   },
   {
-    files: ["apps/api/src/{identity,carrier,customer}/**/*.ts"],
+    files: ["apps/api/src/{identity,carrier,customer,shipment}/**/*.ts"],
     ignores: [
       "**/test/**",
       "**/tests/**",
@@ -29,7 +29,7 @@ export default ts.config(
     rules: { "nexora/no-domain-vocabulary-literals": "error" },
   },
   {
-    files: ["apps/api/src/customer/**/*.ts"],
+    files: ["apps/api/src/{customer,shipment}/**/*.ts"],
     rules: { "no-nested-ternary": "error" },
   },
   js.configs.recommended,

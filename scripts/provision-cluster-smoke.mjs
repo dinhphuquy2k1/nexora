@@ -232,6 +232,12 @@ function suiteFailure(suite, result, exit) {
 }
 async function runSuites(suite) {
   const suites = {
+    "shipment-worker": ["node", "packages/database/test/shipment-worker.mjs"],
+    "shipment-sql": [
+      "node",
+      "--test",
+      "packages/database/test/shipment-sql.mjs",
+    ],
     provision: ["node", "packages/database/test/provision-cluster.mjs"],
     "customer-sql": [
       "node",

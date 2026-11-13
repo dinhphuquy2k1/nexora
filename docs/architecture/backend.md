@@ -156,7 +156,7 @@ The approved ingress derives rate attribution from socket IP, strips/overwrites 
 
 `customer/domain` owns CustomerStatusVO and bounded strict validation and normalized phones; `application` owns the small actor-only owner resolver, port and service; `infrastructure/CustomerAdapter` alone consumes Prisma; `presentation/CustomerController` delegates eight endpoints. AppModule registers the controller and explicit service/adapter factories. Customer is independent of Identity/Carrier application services except existing global SessionGuard and mutation OriginGuard; no admin route, extra permission framework or login/MFA/session change.
 
-All adapter transactions lock the actor user first and reject non-ACTIVE status after waiting. Mutations then lock a customer by both id and owner. Final queries remain owner-scoped; address writes constrain addressId, customerId and the related customer's owner. Reads also hold the actor lock, serializing with application writes for consistent list count/page. There is no external I/O under locks. The small-instance owner lock intentionally serializes writes for the same user; no new queue/advisory-lock framework is introduced. Default changes lock the parent and preserve partial uniqueness; initial customer/address is mandatory and failure rolls back both. Prisma owner-phone unique violations map narrowly to CUSTOMER_PHONE_EXISTS; unrelated database errors retain existing safe500. HTTP logging/error filter remain unchanged and exclude PII by construction. See [Customer domain](../domains/customers.md) and [API](api-contract.md). Customer frontend/Shipment remain PLANNED; runtime evidence is independent of implementation status.
+All adapter transactions lock the actor user first and reject non-ACTIVE status after waiting. Mutations then lock a customer by both id and owner. Final queries remain owner-scoped; address writes constrain addressId, customerId and the related customer's owner. Reads also hold the actor lock, serializing with application writes for consistent list count/page. There is no external I/O under locks. The small-instance owner lock intentionally serializes writes for the same user; no new queue/advisory-lock framework is introduced. Default changes lock the parent and preserve partial uniqueness; initial customer/address is mandatory and failure rolls back both. Prisma owner-phone unique violations map narrowly to CUSTOMER_PHONE_EXISTS; unrelated database errors retain existing safe500. HTTP logging/error filter remain unchanged and exclude PII by construction. See [Customer domain](../domains/customers.md) and [API](api-contract.md). Customer frontend and live Shipment provider integration remain PLANNED; runtime evidence is independent of implementation status.
 
 PR23 address correctness revision retains the same ACTIVE actor→Customer lock ordering. After locking, deletion first reads the owner/parent-bound address, counts addresses inside that transaction, applies LAST_CUSTOMER_ADDRESS before DEFAULT_ADDRESS_REASSIGN_REQUIRED and deletes only a secondary address. Mandatory create validation returns separate normalized create/patch types; port and adapter require address and persist it unconditionally. GET FOR UPDATE remains deliberately unchanged: no measured contention or verified lighter-read/disable/count consistency strategy justifies an Identity-related refactor. This is a follow-up requiring real concurrency evidence, not a resolved performance claim.
 
@@ -210,3 +210,23 @@ does not authorize business Domain/application imports of Sync infrastructure or
 generic cross-module database access. Customer binding writes only customer_id
 and link_origin; the Sync repository alone writes last_applied_sync_job_id in the
 APPLIED bookkeeping branch under the same fenced transaction.
+
+## Shipment core — NEXORA-050
+
+Shipment Domain encapsulates the root identity/owner/provider/Nexora state and current Charge children, hydrated together under locks. It owns strict provider operations, exact decimal validation, ordered
+charge snapshots and stage-change decisions. Domain imports only shared Shipment
+code leaves; no NestJS/Prisma. The provider-only proposal has no identity/owner or
+Nexora business-field setter. Read projections deliberately omit Aggregate hydration.
+ShipmentSyncProcessor accepts only an explicitly injected mapping/version, with no
+bundled Uniship codes; unknown codes map UNKNOWN plus fixed safe diagnostic.
+Infrastructure binding hydrates stage under source/root locks, copies the proposal,
+requires it for APPLIED, persists only provider fields/charge reconciliation/history
+and closes the session. It uses Sync's existing transaction and final lease fence.
+Unexpected database/program faults are not converted into source/business outcomes.
+
+ShipmentService uses one resolveShipmentOwner policy; ADMIN gets no owner bypass.
+Feature-local exhaustive map preserves global safe HTTP errors. Read adapter takes
+the same exclusive ACTIVE actor lock as Customer, yielding consistent scoped page
+and counts against worker actor locks. Root lists use bounded projections; detail
+fetches ordered fees, history is a separate bounded projection. No generic repository,
+Unit of Work, new worker or cross-domain writer is introduced.

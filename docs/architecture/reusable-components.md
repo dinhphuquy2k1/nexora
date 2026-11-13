@@ -405,3 +405,13 @@ RetailColumnPicker retains its independent feature anchor CSS, and
 CarrierSyncInspection retains the feature pageButtons rule for issue navigation;
 neither is an additional M5 consumer. Their existing behavior is preserved rather
 than extending this extraction beyond the agreed four pagers/two filters.
+
+## Shipment core code leaves
+
+packages/shared/src/shipment/index.ts exports ShipmentKind, LogisticsStage and
+ShipmentChargeCode (as const plus derived unions) via @nexora/shared/shipment for
+the approved API/future Web contract. No labels or Aggregate behavior in this leaf.
+Shipment Domain owns DecimalValue and strict provider commands; other domains do
+not import these business policies. Common isUuid and shared parsePagination remain
+the neutral primitives, not duplicated in Shipment. Extend vocabulary lint with new
+stored code contexts; migrations keep explicit SQL CHECK values and real PG parity.

@@ -1,5 +1,24 @@
 // Tooling vocabulary catalog; canonical runtime definitions stay with their domain/shared owners.
 const fields = {
+  shipmentKind: { RETAIL_PARCEL: "ShipmentKind.RETAIL_PARCEL" },
+  logisticsStage: {
+    TO_ORIGIN_WAREHOUSE: "LogisticsStage.TO_ORIGIN_WAREHOUSE",
+    AT_ORIGIN_WAREHOUSE: "LogisticsStage.AT_ORIGIN_WAREHOUSE",
+    TO_DEST_WAREHOUSE: "LogisticsStage.TO_DEST_WAREHOUSE",
+    AT_DEST_WAREHOUSE: "LogisticsStage.AT_DEST_WAREHOUSE",
+    DELIVERED: "LogisticsStage.DELIVERED",
+    UNKNOWN: "LogisticsStage.UNKNOWN",
+  },
+  chargeCode: {
+    UNIT_PRICE: "ShipmentChargeCode.UNIT_PRICE",
+    DOMESTIC_SHIPPING: "ShipmentChargeCode.DOMESTIC_SHIPPING",
+    INSURANCE: "ShipmentChargeCode.INSURANCE",
+    COUNTING: "ShipmentChargeCode.COUNTING",
+    WOOD_PACKING: "ShipmentChargeCode.WOOD_PACKING",
+    BUBBLE_WRAP: "ShipmentChargeCode.BUBBLE_WRAP",
+    OTHER: "ShipmentChargeCode.OTHER",
+  },
+
   authLevel: { PASSWORD: "AuthLevel.PASSWORD", MFA: "AuthLevel.MFA" },
   eventType: {
     PASSWORD_DECRYPT: "CarrierAuditType.PASSWORD_DECRYPT",
@@ -61,6 +80,18 @@ function field(node) {
   return name(node);
 }
 function normalize(value) {
+  if (
+    [
+      "logistics_stage",
+      "fromStage",
+      "from_stage",
+      "toStage",
+      "to_stage",
+    ].includes(value)
+  )
+    return "logisticsStage";
+  if (value === "shipment_kind") return "shipmentKind";
+  if (value === "charge_code") return "chargeCode";
   if (value === "auth_level") return "authLevel";
   if (value === "secret_type") return "secretType";
   if (value === "event_type") return "eventType";

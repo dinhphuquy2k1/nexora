@@ -1,3 +1,7 @@
+import { ShipmentController } from "./shipment/presentation/shipment.controller";
+import { ShipmentService } from "./shipment/application/shipment.service";
+import { ShipmentReadPort } from "./shipment/application/shipment-read.port";
+import { ShipmentAdapter } from "./shipment/infrastructure/shipment.adapter";
 import { SyncService } from "./sync/application/sync-admission.service";
 import { SyncPort } from "./sync/application/sync.port";
 import { SyncRepository } from "./sync/infrastructure/sync-job.repository";
@@ -54,6 +58,7 @@ export const CONFIG = "CONFIG";
 
 @Module({
   controllers: [
+    ShipmentController,
     SyncController,
     CustomerController,
     CarrierController,
@@ -64,6 +69,13 @@ export const CONFIG = "CONFIG";
     SetupPasswordController,
   ],
   providers: [
+    {
+      provide: ShipmentReadPort,
+      inject: [CONFIG],
+      useFactory: (c: ReturnType<typeof loadConfig>) =>
+        new ShipmentAdapter(c.DATABASE_URL),
+    },
+    ShipmentService,
     {
       provide: SyncPort,
       inject: [CONFIG],

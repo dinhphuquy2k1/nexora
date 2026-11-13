@@ -1,6 +1,6 @@
 # Database
 
-Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `operator_setup_tokens` (hashed single-use onboarding secrets), `carrier_connections` and `carrier_connection_secrets` (metadata and encrypted secrets), `carrier_user_states` (disablement epoch), `security_audit_events` (durable metadata-only audit), `customers`/`customer_addresses` (owner-scoped customer profiles and recipient addresses), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment domain schema is DESIGNED (ADR-011), not implemented; there are no fake smoke tables or business seeds.
+Only `packages/database` owns Prisma/schema/migrations. Only API infrastructure imports it. Persistent application tables include `stored_files` (real source-file catalog), `users` (identity, explicit role/status), `user_credentials` (optional one-to-one Nexora Scrypt credential), `operator_setup_tokens` (hashed single-use onboarding secrets), `carrier_connections` and `carrier_connection_secrets` (metadata and encrypted secrets), `carrier_user_states` (disablement epoch), `security_audit_events` (durable metadata-only audit), `customers`/`customer_addresses` (owner-scoped customer profiles and recipient addresses), and `sessions` (SHA-256 session token hashes with cascade deletion and expiry timestamps). Shipment core schema is implemented (ADR-011/NEXORA-050); there are no fake smoke tables or business seeds.
 `20261006000000_storage_catalog`, `20261012000000_local_authentication`, `20261012010000_unified_identity` and `20261012020000_external_identities` plus `20261015000000_local_identity_onboarding` and `20261015010000_legacy_provider_session_cutover` plus `20261015020000_carrier_connections` plus `20261016000000_carrier_lifecycle`, `20261016010000_admin_totp_mfa` and `20261020010000_customers` define migrations deployed by `prisma migrate deploy`, gated on PostgreSQL healthy. Repeated deployment preserves existing rows except the explicitly approved experimental-session cutover described below. No reset, db push, migrate dev or demo seed runs at startup.
 Integration tests register/read/delete only their own UUID and do not truncate shared data. Persistence smoke runs on disposable projects; see task evidence.
 
@@ -280,8 +280,7 @@ FKs, a partial unique active lane and reference-only versioned items protect que
 consistency. Source key hash uniqueness is always checked against bounded complete
 canonical keys; no per-job/page payload snapshots. Pending items coalesce to the
 current fetched version before APPLYING. Source identity keeps resolved metadata
-and mapping independently from payload retention. No Shipment FK is fabricated
-while the Shipment table does not exist. Nullable Customer FK is owner-checked.
+and mapping independently from payload retention. Shipment links its canonical source identity from shipments.source_identity_id; no Shipment-specific FK is added to Sync. Nullable Customer FK is owner-checked.
 
 Disable cancels active jobs/disables schedules in the existing transaction. Hard
 connection delete stays hard delete: configs cascade, jobs detach through nullable
@@ -380,9 +379,9 @@ These conventions apply prospectively; no current schema is renamed by this desi
 - Constraint/index prefixes: `chk_`, `uq_`, `idx_`.
 - `stored_files` and `sync_*` are historical exceptions; do not rename them for symmetry.
 
-[Shipment schema draft](../domains/shipments.md#schema-draft--not-a-migration)
-records the designed tables, source linkage, write authority and indexes under
-[ADR-011](../decisions/shipment-domain-data-ownership.md). It is not a migration.
+[Shipment core schema](../domains/shipments.md#core-schema)
+records the tables, source linkage, write authority and indexes under
+[ADR-011](../decisions/shipment-domain-data-ownership.md), implemented by forward migration 20261113000000_shipment_core.
 Current Customer linkage/grants stay implemented. The latest owner decision in
 [ADR-011](../decisions/shipment-domain-data-ownership.md#customer-source-cardinality--resolved)
 resolves CUSTOMER_SOURCE_CARDINALITY by preserving many-source-to-one Customer
@@ -402,4 +401,26 @@ tests (including two sources to one Customer, retention/restart and isolation).
 Unused-field cleanup is independently assessed, not bundled as a prerequisite.
 Shipment keeps its own unique nullable source_identity_id and Nexora-owned
 customer_id; provider Sync must not overwrite that internal association.
-No schema, migration, test, role or grant is changed here.
+The NEXORA-049 design did not change runtime state; NEXORA-050 adds only Shipment core tables and scoped grants.
+
+## Shipment core persistence — NEXORA-050
+
+Shipment, ShipmentCharge and ShipmentStageHistory use mapped snake_case tables,
+Timestamptz(3), scalar VARCHAR plus exact CHECKs, DB UUIDs and VD sequence codes.
+Source FK is unique nullable RESTRICT; connection SET NULL, Customer RESTRICT;
+tracking is nonunique. Charges use unique shipment/line_no, history uses unique
+shipment/source_version/processor_version; history versions are NOT NULL.
+Owner/stage/created/id, owner/created/id, owner/tracking, nonnull Customer and
+history observed/id indexes are migration-owned; unverified claim index is deferred.
+Money/rate/weight use exact NUMERIC. Domain rejects excess scale before typmod
+rounding; physical checks reject NaN, negative weight/counts and invalid currency.
+Current fees reconcile by position, without bulk reinsertion or computed totals.
+
+API role has SELECT only on the three new tables. Worker root INSERT allows trusted
+identity on creation plus provider fields; root UPDATE permits provider fields only.
+No worker INSERT/UPDATE of customer_id, assignee_user_id, internal_note or
+updated_by_user_id; no UPDATE of root identity/owner/source/code; no root DELETE.
+Charge keys/IDs cannot be updated, payload columns can; charges can be inserted and
+deleted. History permits SELECT/INSERT only. Worker alone receives Shipment sequence
+USAGE/function EXECUTE. Repeat provisioning clears and reapplies column ACLs.
+Existing Customer/Carrier/Identity/Sync grants and mapping storage remain unchanged.

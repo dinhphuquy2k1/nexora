@@ -140,9 +140,11 @@ test("fixture state remains complete when killed during a multi-page snapshot wr
 });
 test("cluster normal/selectors/TCP-only temporary startup", async () => {
   for (const [suite, count] of [
-    [undefined, 2],
+    [undefined, 4],
     ["provision", 1],
     ["customer-sql", 1],
+    ["shipment-sql", 1],
+    ["shipment-worker", 1],
   ]) {
     const r = await fixture("normal", suite);
     assert.equal(r.code, 0, r.output);

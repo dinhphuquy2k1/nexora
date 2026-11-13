@@ -817,3 +817,33 @@ outside target focus, stable aria-controls and enabled/disabled environment opti
 Isolated component/screens exercise real TSX/CSS but do not certify authenticated
 full-stack runtime, API ownership or backend concurrency; existing Foundation
 runtime/browser suites remain separate mandatory gates.
+
+## Shipment core verification — NEXORA-050
+
+Build @nexora/shared and @nexora/database, then compile API before native Domain tests:
+node --test apps/api/test/shipment/\*.test.cjs. Genuine integration:
+pnpm --filter @nexora/api test:integration includes shipment-integration.test.cjs,
+which creates/migrates/drops only its own database, exercises actual SyncRepository
+transactions/final fence and real authenticated Nest HTTP reads. Canonical Docker
+provides /runtime-config/postgres_app_password; host-owned development clusters may
+set SHIPMENT_TEST_RUNTIME_PASSWORD_FILE to a private synthetic password file.
+Never use that fixture against a user/production cluster or rotate shared credentials.
+
+node scripts/provision-cluster-smoke.mjs --suite=shipment-sql reuses the signed owned
+cluster launcher, migrates all SQL, provisions real nexora_sync/nexora_app roles,
+checks actual allowed operations/permission denials and repeat column provisioning.
+It is included in the launcher's default suites, therefore canonical quality.
+The forward Prisma migration harness also preserves existing Customer/Sync rows and
+checks repeat/drift after Shipment migration. No reset of actual user volumes.
+Run canonical sh scripts/quality-docker.sh plus contracts:generate/check, format,
+lint/test:lint, docs/preflight and fresh hosted final-head gates. Test specifications
+are not execution evidence; keep actual RED/GREEN/FAIL/CI provenance in task records.
+
+The signed launcher also runs --suite=shipment-worker. This compiles the existing
+packages and runs the same genuine integration suite with authenticated nexora_sync
+for every engine operation. Its private synthetic password comes from the launcher;
+cluster signature and URL must agree before worker role provisioning. Ordinary
+integration uses no worker credential rotation. Native role probes and actual ORM/
+SQL binding execution are separate evidence; both are required. Root creation uses
+explicit provider columns because Prisma otherwise supplies created_at, which the
+least-privilege worker deliberately cannot insert. Do not expand grants to mask it.

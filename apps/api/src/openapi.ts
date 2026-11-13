@@ -1,3 +1,5 @@
+import { ShipmentController } from "./shipment/presentation/shipment.controller";
+import { ShipmentService } from "./shipment/application/shipment.service";
 import { SyncController } from "./sync/presentation/sync.controller";
 import { SyncService } from "./sync/application/sync-admission.service";
 import { CustomerController } from "./customer/presentation/customer.controller";
@@ -26,6 +28,7 @@ import { AuthService } from "./identity/application/auth.service";
 // Documentation-only module: no listener, database, storage or operational endpoint.
 @Module({
   controllers: [
+    ShipmentController,
     SyncController,
     CustomerController,
     CarrierController,
@@ -36,6 +39,7 @@ import { AuthService } from "./identity/application/auth.service";
     SetupPasswordController,
   ],
   providers: [
+    { provide: ShipmentService, useValue: {} },
     { provide: SyncService, useValue: {} },
     { provide: CustomerService, useValue: {} },
     { provide: CarrierConnectionLifecycleService, useValue: {} },

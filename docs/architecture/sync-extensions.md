@@ -93,8 +93,7 @@ coordinated API/SDK/UI assessment where applicable and a forward-only migration 
 physical CHECK/schema contracts. Never remove CHECKs, rewrite migrations, use a
 Prisma/PostgreSQL ENUM or turn the type into arbitrary runtime text.
 
-Phase B/C still own actual provider transports/payload contracts, business processors,
-Shipment schema/commands if selected, production grants and deployment/activation.
+NEXORA-050 supplies Shipment core schema, normalized processor/binding and least-privilege grants. Phase B/C still own actual authorized provider transports/payload contracts, production registration and deployment/activation.
 Phase A's registry and invocation seam do not supply those missing capabilities.
 
 ## Domain linkage and bounded Customer persistence exception — ADR-011
@@ -150,3 +149,23 @@ current scope and is not required before Shipment integration. Each actual pair
 independently verifies official API access, normalization, stable versioned identity,
 processing contracts and permissions. Provider-specific coordinated ordering, if
 needed, is separately evaluated, never assumed globally.
+
+## Shipment normalized binding — NEXORA-050
+
+ShipmentSyncSession carries frozen scope, existingProviderStatus and propose(input,
+stage); no raw SQL, Prisma or transaction handle crosses the boundary. Binding uses
+the engine-supplied source/version/final-lease transaction, locks source then root
+by canonical source identity/owner, rejects stale processor versions and APPLIED
+without a prepared Domain operation, copies proposed data and revokes the session.
+Only provider columns, explicit ordered fee reconciliation and actual stage changes
+persist. Same payload/processor is skipped by the existing engine; processor upgrades
+can remap the same source observation. Any late fence or SQL failure rolls back
+Shipment/fees/history and source outcome together. No network under locks.
+
+Missing charges preserve rows; complete valid collection reconciles positions;
+complete empty clears; malformed/partial/ambiguous rejects the whole proposal.
+Mapping is injected/versioned and has no shipped Uniship dictionary. Test-only
+registrations establish correctness, not real provider API access/completeness.
+Production capability declarations remain empty. Unknown source status yields a
+fixed SHIPMENT_STATUS_UNMAPPED warning without payload/credentials and maps UNKNOWN,
+not automatic NEEDS_REVIEW. Worker grants are documented in database.md.

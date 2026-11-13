@@ -31,3 +31,14 @@ test("Customer allows single ternaries and explicit branches; unrelated/generate
     assert.notEqual(config?.rules?.["no-nested-ternary"]?.[0], 2);
   }
 });
+
+test("Shipment production enforces explicit nested control flow", async () => {
+  const [result] = await eslint.lintText("export const value=a?b:c?d:e;", {
+    filePath: "apps/api/src/shipment/domain/lint-example.ts",
+  });
+  assert.ok(
+    result.messages.some(
+      (m) => m.ruleId === "no-nested-ternary" && m.severity === 2,
+    ),
+  );
+});
