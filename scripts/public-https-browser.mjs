@@ -20,7 +20,9 @@ import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { createSmokeChecks } from "./smoke-checks.mjs";
-const checks = createSmokeChecks(console.error, "PUBLIC_HTTPS_SMOKE_FAILED");
+const checks = createSmokeChecks(console.error, "PUBLIC_HTTPS_SMOKE_FAILED", {
+  diagnostics: true,
+});
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
 let f;
@@ -386,7 +388,7 @@ try {
       const current = ++id;
       const timer = setTimeout(() => {
         pending.delete(current);
-        reject(Error("CDP timeout"));
+        reject(Object.assign(Error("CDP timeout"), { name: "TimeoutError" }));
       }, 15000);
       pending.set(current, { resolve, reject, timer });
       socket.send(JSON.stringify({ id: current, method, params }));
@@ -403,8 +405,10 @@ try {
     }
     return r.result.value;
   };
+  // Post-login browser conditions: 200 polls of 100 ms (~20 s), matching browser-login-smoke.mjs.
+  const UNTIL_POLLS = 200;
   const until = async (expression) => {
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < UNTIL_POLLS; i++) {
       try {
         if (await evaluate(expression)) return;
       } catch {

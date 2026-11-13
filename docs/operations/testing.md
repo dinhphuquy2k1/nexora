@@ -21,7 +21,7 @@ The authentication runtime smoke now provisions fresh operators through `dist/cl
 
 `NEXORA_COMPOSE_OVERRIDE` also applies to runtime smoke, allowing the same cloud CA build-secret setup as quality. Run with a different loopback WEB_PORT to exercise port derivation without publishing API/database. All destructive expiry/outage/cleanup steps are limited to the disposable project's own data. Source changes and historical CI do not establish that these expanded checks passed; current evidence and gaps remain in NEXORA-009.
 
-Authentication HTTP smoke uses stable diagnostic step IDs with only expected/actual status and sanitized failure categories. The Host-negative check uses `node:http`, because Node 24 fetch rewrites Host and cannot establish that an untrusted Host reached middleware. No response payload, cookie/token, request body or raw assertion/driver exception is printed. `pnpm test:operations`, included in quality, exercises this transport and smoke check diagnostics behavior.
+Authentication HTTP smoke uses stable diagnostic step IDs with only expected/actual status and sanitized failure categories; the public HTTPS harness additionally reports an allowlisted error type (or OTHER) and the failing step's elapsed milliseconds. The Host-negative check uses `node:http`, because Node 24 fetch rewrites Host and cannot establish that an untrusted Host reached middleware. No response payload, cookie/token, request body or raw assertion/driver exception is printed. `pnpm test:operations`, included in quality, exercises this transport and smoke check diagnostics behavior.
 
 The database migration suite runs `pnpm --filter @nexora/database test:migrations` inside canonical quality. It creates only owned UUID-named databases, deploys authentic historical Prisma migrations, injects a failure into a temporary migration/config to verify rollback and Prisma recovery, then checks forward deployment, constraints, preservation, repeatability and drift. Historical provider-schema checks are upgrade fixtures; they do not imply provider login is supported.
 
@@ -760,6 +760,8 @@ scripts/login-readiness-diagnostics.test.mjs. Counters diagnose a failed precond
 they do not prove hydration, identify a cause by themselves or replace actual
 Login/MFA/HTTPS security assertions. The real visibility transition remains the
 readiness requirement with its existing deadline.
+
+Post-login browser conditions in scripts/public-https-browser.mjs poll for up to 20 s (200 × 100 ms), matching scripts/browser-login-smoke.mjs; login-readiness deadlines are unchanged. CDP command timeouts are reported as REQUEST_TIMEOUT. Failure output adds `Error type` (AbortError, AssertionError, Error, RangeError, SyntaxError, TimeoutError, TypeError or OTHER) and `Step elapsed ms`; no message text is printed. A failure close to the 20 s budget indicates runner slowness; a short elapsed time indicates a functional failure.
 
 ## Sync Phase A extension verification — NEXORA-042
 
