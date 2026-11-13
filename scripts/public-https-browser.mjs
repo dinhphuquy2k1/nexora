@@ -293,6 +293,8 @@ try {
   });
   checks.status(plain.status, 308);
   assert.equal(plain.headers["set-cookie"], undefined);
+  // Browser launch and post-login conditions: 200 polls of 100 ms (~20 s), matching browser-login-smoke.mjs.
+  const UNTIL_POLLS = 200;
   checks.step("REAL_HTTPS_BROWSER");
   const executable =
     process.env.CHROME_BIN ||
@@ -317,7 +319,8 @@ try {
     { stdio: "ignore" },
   );
   let debugPort;
-  for (let i = 0; i < 100; i++) {
+  // Cold GitHub runners can initialize Chromium DevTools slowly; keep the launch gate bounded.
+  for (let i = 0; i < UNTIL_POLLS; i++) {
     try {
       debugPort = (
         await readFile(join(profile, "DevToolsActivePort"), "utf8")
@@ -405,8 +408,6 @@ try {
     }
     return r.result.value;
   };
-  // Post-login browser conditions: 200 polls of 100 ms (~20 s), matching browser-login-smoke.mjs.
-  const UNTIL_POLLS = 200;
   const until = async (expression) => {
     for (let i = 0; i < UNTIL_POLLS; i++) {
       try {

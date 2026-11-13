@@ -761,7 +761,7 @@ they do not prove hydration, identify a cause by themselves or replace actual
 Login/MFA/HTTPS security assertions. The real visibility transition remains the
 readiness requirement with its existing deadline.
 
-Post-login browser conditions in scripts/public-https-browser.mjs poll for up to 20 s (200 × 100 ms), matching scripts/browser-login-smoke.mjs; login-readiness deadlines are unchanged. CDP command timeouts are reported as REQUEST_TIMEOUT. Failure output adds `Error type` (AbortError, AssertionError, Error, RangeError, SyntaxError, TimeoutError, TypeError or OTHER) and `Step elapsed ms`; no message text is printed. A failure close to the 20 s budget indicates runner slowness; a short elapsed time indicates a functional failure.
+The Chromium DevTools launch gate and post-login browser conditions in scripts/public-https-browser.mjs poll for up to 20 s (200 × 100 ms), matching the launch gate in scripts/browser-login-smoke.mjs; login-readiness deadlines are unchanged. CDP command timeouts are reported as REQUEST_TIMEOUT. Failure output adds `Error type` (AbortError, AssertionError, Error, RangeError, SyntaxError, TimeoutError, TypeError or OTHER) and `Step elapsed ms`; no message text is printed. A failure close to the 20 s budget indicates runner slowness; a short elapsed time indicates a functional failure.
 
 ## Sync Phase A extension verification — NEXORA-042
 
