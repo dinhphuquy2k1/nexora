@@ -19,3 +19,9 @@ Documentation Impact: NONE
 ### Reason
 
 Planning stub; impact is assessed when the task starts.
+
+## Evidence
+
+| Claim                                                                             | Evidence                                    | Date       | Result |
+| --------------------------------------------------------------------------------- | ------------------------------------------- | ---------- | ------ |
+| Follow-up scope recorded from NEXORA-042 PLAN ISSUE PROVIDER_LENGTH_SINGLE_SOURCE | Created by NEXORA-043 task closure (PR #42) | 2026-11-12 | PASS   |

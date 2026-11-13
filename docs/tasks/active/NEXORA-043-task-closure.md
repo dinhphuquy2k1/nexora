@@ -1,30 +1,31 @@
 # NEXORA-043 — Merged task closure
 
-Status: IN PROGRESS
+Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: NOT VERIFIED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
 Task ID: NEXORA-043
 Classification: BOUNDED
 Plan revision: rev-2026-11-12-task-closure-v1
+Design Snapshot: docs/tasks/design-reviews/NEXORA-043-rev-2026-11-12-task-closure-v1.md
+Design SHA-256: d8cc16a3e0d1cc18d207cd0cbf0d0a8a00771218705833c618dd75e837ad8163
 Reviewed baseline: 010b6ec944f224f829eb0e663c70eca46e186379
 Branch: docs/task-closure
 
 Documentation-only execution of the owner's fixed triage; no reclassification,
 old-task verification reruns, production changes or immutable snapshot edits.
-BOUNDED needs no design snapshot.
 
 | Field                    | Decision                                                                                                                                                                                                               |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Component                | Post-merge task closure policy and task records                                                                                                                                                                        |
 | Existing implementations | docs/ai/TASK_WORKFLOW.md sections 1.1–1.6 and evidence schema; docs/tasks/completed/NEXORA-021-superseded-lazy-recovery.md closure precedent; docs/tasks/active/NEXORA-041-shared-pager-filter-shell.md task structure |
 | Domain owner             | Contributor governance and canonical documentation owners below                                                                                                                                                        |
-| Reuse alternatives       | Reuse task/evidence formats and git mv; no new tooling or lifecycle                                                                                                                                                    |
-| Selected approach        | Add section 1.7, close the owner's 24 tasks, create four planning stubs, update named links                                                                                                                            |
+| Reuse alternatives       | Reuse task/evidence formats and git mv; no new tooling or lifecycle; decouple three preflight tests from the live NEXORA-027 task by reusing the existing integrityFixture temp-root pattern                           |
+| Selected approach        | Add section 1.7, close the owner's 24 tasks, create four planning stubs, update named links; decouple three preflight tests from the live NEXORA-027 task by reusing the existing integrityFixture temp-root pattern   |
 | Rationale                | Preserve immutable plans, historical failures and owner-decided deferrals while making closure explicit                                                                                                                |
-| Risks                    | Broken links or accidental historical edits; unexpected file/SHA/check errors require stopping and reporting                                                                                                           |
+| Risks                    | Broken links or accidental historical edits; unexpected file/SHA/check errors require stopping and reporting; tests coupled to live task files                                                                         |
 | Verification             | Confirm available IDs and merge ancestry; format:check, docs:check, preflight:check, test:docs, test:preflight; fresh hosted Preflight and Foundation on PR HEAD                                                       |
 
 ## Plan
@@ -34,6 +35,9 @@ BOUNDED needs no design snapshot.
 3. Update only task status/verification, requested implementation metadata and appended closure evidence; git mv 24 records to completed.
 4. Update named canonical links and Customer M2 statement; preserve checkboxes, historical Evidence/FAIL rows and snapshots.
 5. Execute requested documentation checks, review the diff, publish a documentation-only PR and wait for hosted gates. Do not merge.
+6. Move three preflight binding tests (#9, #10, #24) to a temporary fixture root copied from the closed NEXORA-027 record; assertions unchanged.
+
+NEXORA-043 is closed under §1.7 together with the next task closure after PR #42 merges.
 
 ## Documentation Impact
 
@@ -43,6 +47,7 @@ Documentation Impact: REQUIRED
 
 Add post-merge task closure procedure (TASK_WORKFLOW section 1.7), close 24 merged
 tasks and create four follow-up planning tasks.
+Preflight binding tests no longer depend on a live active task record.
 
 ### Canonical owners
 
@@ -91,6 +96,14 @@ test:preflight; fresh hosted Preflight and Foundation.
 
 ## Evidence
 
-| Claim                       | Evidence                                                                                                                                                                                                                                                       | Date       | Result |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
-| Baseline and task inventory | Branch docs/task-closure from origin/main 010b6ec944f224f829eb0e663c70eca46e186379; gh pr list --state open and docs/tasks inventory show IDs 043–047 unused; git rev-parse and merge-base --is-ancestor confirm all supplied merges on main, matching PR/date | 2026-11-12 | PASS   |
+| Claim                                                                                      | Evidence                                                                                                                                                                                                                                                                                                                   | Date       | Result |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Baseline and task inventory                                                                | Branch docs/task-closure from origin/main 010b6ec944f224f829eb0e663c70eca46e186379; gh pr list --state open and docs/tasks inventory show IDs 043–047 unused; git rev-parse and merge-base --is-ancestor confirm all supplied merges on main, matching PR/date                                                             | 2026-11-12 | PASS   |
+| Formatting                                                                                 | npx --yes pnpm@10.34.6 format:check; working tree on 4d219f9 (4d219f93a1cd3d5b48366394c1d6778cc848edab), 2026-11-13 UTC; exit 0                                                                                                                                                                                            | 2026-11-13 | PASS   |
+| Documentation validation                                                                   | npx --yes pnpm@10.34.6 docs:check; working tree on 4d219f9 (4d219f93a1cd3d5b48366394c1d6778cc848edab), 2026-11-13 UTC; exit 0                                                                                                                                                                                              | 2026-11-13 | PASS   |
+| Structural governance                                                                      | npx --yes pnpm@10.34.6 preflight:check; working tree on 4d219f9 (4d219f93a1cd3d5b48366394c1d6778cc848edab), 2026-11-13 UTC; exit 0                                                                                                                                                                                         | 2026-11-13 | PASS   |
+| Documentation regressions (10/10)                                                          | npx --yes pnpm@10.34.6 test:docs; working tree on 4d219f9 (4d219f93a1cd3d5b48366394c1d6778cc848edab), 2026-11-13 UTC; exit 0                                                                                                                                                                                               | 2026-11-13 | PASS   |
+| Preflight regressions (24/24)                                                              | npx --yes pnpm@10.34.6 test:preflight; working tree on 4d219f9 (4d219f93a1cd3d5b48366394c1d6778cc848edab), 2026-11-13 UTC; exit 0                                                                                                                                                                                          | 2026-11-13 | PASS   |
+| test:preflight before decoupling: 21 PASS / 3 FAIL (#9, #10, #24)                          | npx --yes pnpm@10.34.6 test:preflight; working tree on 4d219f9; previous executed checkpoint, exit 1; missing active NEXORA-027 record                                                                                                                                                                                     | 2026-11-13 | FAIL   |
+| test:preflight with docs-only fixture: 22 PASS / 2 FAIL (#10, #24 missing repo scan roots) | node --test scripts/preflight-policy-check.test.mjs; working tree on 4d219f9; previous executed checkpoint, exit 1; missing apps/api/src, backend.instructions.md and .github/skills in temporary root                                                                                                                     | 2026-11-13 | FAIL   |
+| Repository-fixture GREEN and preservation                                                  | node --test scripts/preflight-policy-check.test.mjs: 24/24 PASS, exit 0; git status and test diff confirm only seven scoped files (plus pre-existing node_modules symlink), no production/assertion/expected-value/PR-body changes; liveRepoFixture owns real governed directories and copied task/snapshot, excludes .git | 2026-11-13 | PASS   |
