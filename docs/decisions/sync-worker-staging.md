@@ -126,10 +126,15 @@ rewrite historical implementation or authorize live fetching/business transition
 
 ## 2026-11-13 domain-link cleanup direction — ADR-011
 
-[ADR-011](shipment-domain-data-ownership.md) requires domain tables to own their
-`source_identity_id`. The current `sync_source_identities.customer_id/link_origin`
-and unused `created_by_sync_job_id` (including its FK/Prisma created_sync relation)
-will be removed in the next implementation task, with Customer linkage migrated
-to customers. This is planned cleanup, not a schema change here. Preserve engine
-hash/version/order/outcome fields, counters, stored_files and security_audit_events;
-ADR-011 owns the exact migration, binding, worker-grant and test scope.
+[ADR-011](shipment-domain-data-ownership.md) places linkage in its owning domain.
+Shipment keeps its selected one-source model. Current Customer linkage is
+many-source-to-one through a nonunique source-side customer_id. Customer cleanup
+is blocked by ADR-011's OPEN PLAN ISSUE — CUSTOMER_SOURCE_CARDINALITY: the original
+future 1:1 target would narrow that relationship, and a Customer-owned link table
+is an unaccepted alternative pending the owner's decision. The owner explicitly
+left this decision open. No old link/origin/provenance may be removed before an
+authorized lossless transition, including genuine PostgreSQL tests for two sources
+sharing a Customer. Safe-abort checks alone do not settle the business choice.
+Unused created_by_sync_job_id/FK/created_sync cleanup remains planned with
+provenance assessment. Preserve engine hash/version/order/outcome fields,
+counters, stored_files and security_audit_events. This changes no schema or code.

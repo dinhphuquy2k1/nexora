@@ -99,11 +99,20 @@ Phase A's registry and invocation seam do not supply those missing capabilities.
 
 ## Domain-owned source linkage — ADR-011
 
-Do not add business-domain columns to Sync engine tables. Each domain keeps
-`source_identity_id` (UNIQUE, nullable, FK RESTRICT) on its own table; only an
-actual multiple-source merge requirement justifies a domain-owned link table,
-never a polymorphic one. [ADR-011](../decisions/shipment-domain-data-ownership.md)
-defines the designed Shipment ownership and the next-task cleanup of current
-Customer `customer_id/link_origin` and unused `created_by_sync_job_id`.
-The existing Customer binding/schema above remains current until that migration;
-no registration, engine behavior or grant is changed by this design.
+Do not add business-domain columns to Sync engine tables. Domain-owned linkage
+must preserve the domain's actual cardinality. Shipment's selected design keeps
+`source_identity_id` (UNIQUE, nullable, FK RESTRICT) on shipments; that does not
+imply Customer is currently 1:1. The Customer binding writes a nullable nonunique
+source-side FK, allowing multiple source identities per Customer; its immutable
+source-target and owner checks do not impose global Customer uniqueness.
+
+[ADR-011](../decisions/shipment-domain-data-ownership.md#customer-source-cardinality--open-plan-issue)
+records OPEN PLAN ISSUE — CUSTOMER_SOURCE_CARDINALITY. Its original Customer
+1:1 target would intentionally narrow the current relationship. A Customer-owned
+`customer_source_links` table with unique source and nonunique indexed Customer
+is an unaccepted compatibility-preserving alternative, not a polymorphic mapping.
+The owner explicitly deferred the choice. No Customer mapping migration may start
+until the choice and lossless transition are settled; source assessment/safe abort
+alone cannot resolve it. Preserve all links/origins/provenance and test two sources
+sharing a Customer in genuine PostgreSQL migration coverage before removing old
+linkage. The existing binding/schema and production registry remain unchanged.

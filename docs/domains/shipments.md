@@ -155,9 +155,9 @@ full-aggregate save. No fixed per-fee Shipment columns.
 
 ### shipment_stage_history
 
-`id`, `shipment_id FK CASCADE`, `from_stage NULL`, `to_stage`, `provider_status`,
+`id`, `shipment_id UUID NOT NULL FK CASCADE`, `from_stage NULL`, `to_stage`, `provider_status`,
 `provider_changed_at NULL`, `observed_at`, `sync_job_id NULL FK SET NULL`,
-`source_version`, `processor_version`.
+`source_version INTEGER NOT NULL`, `processor_version INTEGER NOT NULL`.
 
 `UNIQUE (shipment_id, source_version, processor_version)` makes transition observations idempotent;
 index `(shipment_id, observed_at)` supports history reads. History is append-only
@@ -166,7 +166,24 @@ local time does not pretend to be provider_changed_at. No mutable history child 
 invented transition event. Reprocessing the same source_version with a new
 processor_version (for example after mapping a previously UNKNOWN provider code)
 can append the transition UNKNOWN → the mapped stage. Repeating the same data
-with the same processor still cannot create duplicate history.
+with the same processor still cannot create duplicate history. A processor change
+alone never inserts history when the stage does not change. Source version tracks
+the observed payload version; processor version tracks processing/mapping semantics,
+so a processor upgrade does not manufacture a new source version. These meanings
+follow the existing Sync version contract.
+
+Future SQL design fragment only (not a migration or schema change in this PR):
+
+```sql
+shipment_id UUID NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
+source_version INTEGER NOT NULL,
+processor_version INTEGER NOT NULL,
+UNIQUE (shipment_id, source_version, processor_version)
+```
+
+All three fields are NOT NULL because PostgreSQL UNIQUE permits repeated NULLs.
+This single history identity supports append-only actual stage changes and
+idempotent retries; there is no second history key scheme.
 
 ### Later tables
 
@@ -197,10 +214,18 @@ The internal claim case is independent of provider_claim_status.
 5. API reads persisted scoped projections, not provider payloads or full aggregates
    for lists. Charges are fetched for detail; history is a separate projection.
 
-Domain tables keep source_identity_id. No new domain columns enter Sync tables.
-The old Customer link columns and unused created_by_sync_job_id are cleaned in
-**the next task**, exactly as [ADR-011](../decisions/shipment-domain-data-ownership.md#next-task-sync-cleanup-not-implemented-here)
-specifies; the current production registry remains empty.
+Source linkage belongs to its domain, not new Sync engine columns. Shipment keeps
+its selected unique nullable source_identity_id; Customer currently permits
+multiple source identities per Customer. Customer cleanup is **blocked** by
+[ADR-011's open cardinality issue](../decisions/shipment-domain-data-ownership.md#customer-source-cardinality--open-plan-issue).
+The original future Customer 1:1 target is an intentional restriction, not current
+behavior. The Customer-owned link-table alternative is not accepted automatically;
+the owner left the choice open. Preserve all mappings/origins/provenance, explicitly
+assess two sources sharing one Customer, and do not remove old linkage until a
+settled, lossless transition passes genuine PostgreSQL migration tests. Safe abort
+alone does not settle that model. Cleanup of unused created_by_sync_job_id remains
+planned subject to provenance validation. No migration or registration is added;
+the production registry remains empty.
 
 ## Planned read API
 
@@ -235,8 +260,10 @@ unregistered. UI fixtures and passing synthetic tests do not supply API rights.
 ## Implementation roadmap
 
 1. This documentation design task (NEXORA-049).
-2. Sync table cleanup under ADR-011: move Customer source linkage and remove
-   unused provenance FK/relation; forward migration, grants, tests and docs.
+2. Settle CUSTOMER_SOURCE_CARDINALITY with the owner before Customer Sync cleanup;
+   then perform the authorized lossless forward migration, grants, two-source
+   PostgreSQL migration tests and docs, including unused provenance-FK cleanup.
+   No implementation while the issue remains open.
 3. Shipment backend core: aggregate, schema, fenced persistence and read API;
    test-first domain and genuine PostgreSQL status/FK/uniqueness/rollback tests.
 4. [NEXORA-045](../tasks/active/NEXORA-045-pager-filter-convergence.md) in parallel;

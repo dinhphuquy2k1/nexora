@@ -50,13 +50,20 @@ provider-owned aggregate operation; append-only history records stage changes.
 ## Source linkage belongs to the domain
 
 Sync engine tables must not contain columns belonging to any business domain.
-Each domain table holds `source_identity_id UUID UNIQUE NULL` with an FK to
-`sync_source_identities` and `ON DELETE RESTRICT`. NULL permits a future record
-without a provider source; uniqueness models the current one-to-one linkage.
-Only a domain that actually permits several sources to merge into one record uses
-a separate, domain-owned link table. Do not introduce a polymorphic link table.
-The current `sync_source_identities.customer_id/link_origin` is the old approach,
-retained in the present schema until the next cleanup task.
+Shipment retains the selected `source_identity_id UUID UNIQUE NULL` on its own
+table, FK to `sync_source_identities` with `ON DELETE RESTRICT`: one source per
+Shipment, with NULL reserved for future records without a provider source. This
+Shipment design does not describe the current Customer relationship.
+
+Current `sync_source_identities.customer_id` is a nullable, **nonunique** FK;
+`Customer.syncSources` is a collection. The nonunique partial index
+`idx_sync_source_identities_customer` and source-scoped Customer binding permit
+multiple source identities to link to one owner-scoped Customer. The original
+Customer 1:1 target below would intentionally restrict that supported cardinality.
+A separate Customer-domain-owned link table is the compatibility-preserving
+alternative for multiple sources. Neither a polymorphic cross-domain link table
+nor adding more domain columns to Sync is allowed. Customer transition remains
+blocked by the open cardinality issue below; no current schema is changed.
 
 ## Adapter configuration and source identity
 
@@ -83,7 +90,12 @@ labels is PROVISIONAL until official original status codes are verified.
 
 ## Next-task Sync cleanup (not implemented here)
 
-The next task must implement and verify this forward migration:
+Customer mapping migration is blocked by **PLAN ISSUE — CUSTOMER_SOURCE_CARDINALITY**.
+The original owner-approved target below is retained as a future intentional
+cardinality restriction, not as the present schema or an unconditionally executable
+migration. On 2026-11-13 the owner explicitly answered: "Chưa quyết định; ghi PLAN ISSUE".
+Only after the choice and a lossless transition are settled may a later task
+implement the corresponding forward migration:
 
 - Remove `sync_source_identities.customer_id`, `link_origin`, their CHECK and
   `idx_sync_source_identities_customer`.
@@ -95,7 +107,8 @@ The next task must implement and verify this forward migration:
   and `customers.link_origin` with CHECK membership
   `CREATED_BY_SYNC | LINKED_EXISTING` and
   `CHECK ((source_identity_id IS NULL) = (link_origin IS NULL))`.
-  The Customer–source relationship is one-to-one.
+  This original target makes Customer–source one-to-one; it is not the current
+  many-source-to-one relationship and remains subject to the open issue below.
 - Preserve engine internal state: `last_*_hash`, `resolved_*`, `applied_*`,
   `observed_source_version`, `last_source_order`, `resolved_version` and
   `applied_version`; preserve `sync_jobs` counters, `stored_files` and
@@ -105,11 +118,59 @@ Implementation scope is a **new migration**, schema.prisma,
 `customer-sync-domain.binding.ts`,
 `packages/database/scripts/provision-runtime.mjs` (worker permissions on customers),
 Sync and migration tests, and synchronized documentation. Do not rewrite historical
-migrations. Assess/backfill actual existing links before dropping the old columns;
-validate owner scope, one-to-one cardinality and paired checks, stopping on
-incompatible data instead of discarding it. Customer creation/address invariants,
+migrations. Assess/backfill actual existing links only under the settled model and
+validate the complete mapping/origin/provenance sets before removing old columns.
+Safe-abort checks protect data; they do not resolve the business-model mismatch. Customer creation/address invariants,
 engine fencing and least-privilege grants still apply; no generic cross-domain
 writer is introduced. This task neither edits that code nor grants worker writes.
+
+## Customer source cardinality — open plan issue
+
+**PLAN ISSUE — CUSTOMER_SOURCE_CARDINALITY: OPEN.** P2-1 is not resolved by green
+CI or a migration preflight. The owner's original 1:1 target conflicts with a
+relationship permitted by the implementation; the owner has not chosen how to
+reconcile them. These are alternatives, not two accepted architectures:
+
+| Alternative requiring owner decision                                                                  | Consequence                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Preserve many-source-to-one Customer linkage in a Customer-domain-owned `customer_source_links` table | `source_identity_id UUID NOT NULL UNIQUE`; `customer_id UUID NOT NULL`, indexed but nonunique; per-link `link_origin` keeps CREATED_BY_SYNC/LINKED_EXISTING membership, appropriate FKs/delete restrictions and source/Customer owner checks. Every existing source link and human decision can be preserved without payload rematching. This table is provisional, not selected or created here. |
+| Retain the original `customers.source_identity_id UUID UNIQUE NULL` target                            | Intentional future 1:1 restriction with paired nullable link_origin and existing membership/NULL-pair CHECKs. It cannot represent several source identities on one Customer. The owner must authorize a lossless operational reconciliation/remediation policy for those mappings before migration; arbitrary dropping, choosing one or duplicating Customers is not authorized.                  |
+
+The required owner decision is whether multiple sources per Customer remain
+supported, and, if restricting to 1:1, how every existing link/provenance record
+will survive an explicitly authorized reconciliation. Until then, retain the
+current relationship and do not implement either alternative. Shipment's selected
+one-source linkage remains distinct and unchanged.
+
+### Required lossless future migration contract
+
+1. Read-only assessment of **all** existing source-to-Customer mappings, including
+   unlinked rows, per-link origin and available provenance. Detect Customers with
+   two or more source identities and verify source/Customer owner consistency.
+   Source inspection here is not an audit of actual production data.
+2. Preserve every link and human LINKED_EXISTING decision beyond payload retention
+   (ADR-010). No silent deletion/overwrite, arbitrary first/canonical source,
+   provider-payload rematching, cross-owner transfer, or duplicate Customer creation
+   without an authorized business decision. Retain historical linking/provenance
+   data until transition validation completes.
+3. After model/remediation approval, use a reviewed consistent transactional or
+   coordinated cutover, backfill, and compare complete before/after mapping,
+   owner, origin and provenance sets. Validate exact FK/cardinality/CHECK behavior.
+   Do not remove the old relationship unless the transition is demonstrably lossless.
+4. Abort/roll back safely while any incompatible mappings remain unresolved.
+   An abort condition prevents damage but is not a business-policy resolution.
+   No data is silently discarded and historical migrations stay immutable.
+5. Genuine PostgreSQL migration tests must include **two distinct sources pointing
+   to the same Customer**. A many-source design preserves both; a 1:1 transition
+   without authorized remediation must refuse/roll back and leave both intact.
+   Also test owner mismatch, NULL links, LINKED_EXISTING durability after retention,
+   FK/delete/index/CHECK behavior, rollback and repeat deployment.
+
+Current integration coverage includes distinct Customer links, retention/processor
+upgrades, immutable source targets and non-APPLIED proposal rollback; migration
+coverage preserves staged rows and index shape. Inspection found no dedicated
+future two-source-to-one-Customer migration regression. Those tests and the actual
+migration belong to a subsequent implementation task after the decision, not this PR.
 
 ## Alternatives rejected and consequences
 

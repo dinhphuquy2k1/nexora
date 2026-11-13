@@ -353,6 +353,12 @@ this correction requires no schema change or migration.
 
 ### Phase A Domain mapping ownership — NEXORA-042
 
+Current `sync_source_identities.customer_id` is a nullable, nonunique FK.
+`Customer.syncSources` is a collection; the partial
+`idx_sync_source_identities_customer` is nonunique. Therefore multiple source
+identities may reference one Customer; neither the source-scoped binding nor the
+current schema establishes Customer 1:1 cardinality.
+
 No schema, migration, CHECK, FK, role or grant changes. Customer's infrastructure
 binding now owns the existing customer_id/link_origin projection, owner lock and
 LINKED_EXISTING mapping update; the generic engine owns only source/version/outcome
@@ -377,5 +383,13 @@ These conventions apply prospectively; no current schema is renamed by this desi
 [Shipment schema draft](../domains/shipments.md#schema-draft--not-a-migration)
 records the designed tables, source linkage, write authority and indexes under
 [ADR-011](../decisions/shipment-domain-data-ownership.md). It is not a migration.
-Current Sync Customer linkage and grants described above remain implemented until
-the next task performs ADR-011's reviewed cleanup; this PR changes no schema.
+Current Customer linkage/grants stay implemented. ADR-011's original future
+Customer 1:1 target is an intentional restriction, not current schema; the owner
+has deferred its reconciliation in
+[PLAN ISSUE — CUSTOMER_SOURCE_CARDINALITY](../decisions/shipment-domain-data-ownership.md#customer-source-cardinality--open-plan-issue).
+A Customer-owned link table is only an alternative pending the decision. Future
+migration must inventory/retain every link, owner, origin and provenance, cover
+two sources sharing a Customer, and prove a lossless transition before removing
+old linkage; otherwise abort safely without loss. Tests/preflight do not decide
+the business policy. Shipment's one-source model stays separate. No schema,
+migration, test or grant changes are made here.
