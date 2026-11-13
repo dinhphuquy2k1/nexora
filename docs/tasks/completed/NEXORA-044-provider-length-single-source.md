@@ -1,8 +1,8 @@
 # NEXORA-044 — Provider length single source
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Origin
 
@@ -201,3 +201,12 @@ Foundation are pending. No workflow rerun. If all pass, PR #43 records the final
 green SHA without a SHA-only task commit; the conditional owner exception for
 observed script-load failures remains exactly as directed above. Status stays
 VERIFICATION PENDING / PARTIALLY VERIFIED. No merge.
+
+## Closure — 2026-11-13
+
+Delivered by PR #43 (plans v1–v4). Provider length single source and PostgreSQL parity are verified by Sync Targeted on every head. Foundation step 8 history: PR #42 240a01c CHECK_FAILED; cadece5 attempt 1 REAL_HTTPS_BROWSER ASSERTION_FAILED, attempt 2 ADMIN_BROWSER_RECOVERY_VERIFY REQUEST_TIMEOUT; d8f2844 Foundation 43362139634 PASS steps 4–10; 9418fad Foundation 43364808396 FAIL ADMIN_BROWSER_INTERACTIVE_LOGIN (scriptLoadFailures 2); 86e0238 PASS: Preflight 43367844174, Sync Targeted 43367843987, Foundation 43367844093 (steps 4–10 and cleanup, attempt 1). Script loading is tracked by issue #44 and NEXORA-048. Closed in the first commit of NEXORA-048 under §1.7.
+
+| Claim                   | Evidence                                                                                                                                                                                                                                                  | Date       | Result |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main          | PR #43, merge a66f548968819cd8b700d82956bdc658ab95d313, 2026-11-13                                                                                                                                                                                        | 2026-11-13 | PASS   |
+| Final-head hosted gates | Final green HEAD: 86e02384149ca18f25fb03002d0af3608348e45a — Preflight 43367844174, Sync Targeted 43367843987, Foundation 43367844093; all PASS, Foundation steps 4–10 and cleanup; [PR #43 description](https://github.com/dinhphuquy2k1/nexora/pull/43) | 2026-11-13 | PASS   |

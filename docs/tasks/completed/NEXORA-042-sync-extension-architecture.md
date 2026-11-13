@@ -471,7 +471,11 @@ Delivered by PR #34. Hosted Preflight, Sync Targeted and full Foundation passed 
 | Merged to main           | PR #34, merge 010b6ec944f224f829eb0e663c70eca46e186379, 2026-11-12                                                                                                                                                                                                                                                                                                                                                 | 2026-11-12 | PASS   |
 | Source-head hosted gates | Preflight [43246873412](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873412), Sync Targeted [43246873613](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873613), Foundation [43246873727](https://github.com/dinhphuquy2k1/nexora/actions/runs/43246873727) on c4caffe33768b14445863ba31d153e441633c8f8 (merge 4682dd9f47d81a55a515be44ebca19a1afb8828d): all PASS, Foundation steps 4–10 | 2026-11-12 | PASS   |
 
-Follow-up: [NEXORA-044](../active/NEXORA-044-provider-length-single-source.md).
+Follow-up: [NEXORA-044](NEXORA-044-provider-length-single-source.md).
 
 PRODUCTION_DOMAIN_WRITE_CONTRACT remains a Phase B/C prerequisite in
 [Sync extensions](../../architecture/sync-extensions.md).
+
+## Post-closure resolution
+
+PLAN ISSUE PROVIDER_LENGTH_SINGLE_SOURCE was resolved by [NEXORA-044](NEXORA-044-provider-length-single-source.md) (PR #43, merge a66f548): `CARRIER_PROVIDER_MAX_LENGTH` in the Carrier domain with a PostgreSQL parity test.

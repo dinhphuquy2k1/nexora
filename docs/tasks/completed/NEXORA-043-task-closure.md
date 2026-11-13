@@ -1,8 +1,8 @@
 # NEXORA-043 — Merged task closure
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -119,3 +119,12 @@ publication requires fresh hosted Preflight and Foundation on its new HEAD; the
 final green SHA and run IDs are recorded in PR #42 after they execute, without
 an additional task-file commit. Status remains VERIFICATION PENDING and
 Verification remains PARTIALLY VERIFIED.
+
+## Closure — 2026-11-13
+
+Delivered by PR #42. Final-head hosted gates passed on 9330daa1668a3f79180bf42a82171de3673557d8 (Preflight 43348159193, Foundation 43348159182, steps 4–10). Closed in the first commit of NEXORA-048 under §1.7.
+
+| Claim                   | Evidence                                                                       | Date       | Result |
+| ----------------------- | ------------------------------------------------------------------------------ | ---------- | ------ |
+| Merged to main          | PR #42, merge f32101e6bda74e1e13dc195fbbad3823974dcdde, 2026-11-13             | 2026-11-13 | PASS   |
+| Final-head hosted gates | Preflight 43348159193, Foundation 43348159182 on 9330daa (steps 4–10, cleanup) | 2026-11-13 | PASS   |

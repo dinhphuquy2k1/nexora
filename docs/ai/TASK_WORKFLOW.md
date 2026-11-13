@@ -57,8 +57,12 @@ PR CI validates exact Task ID, Task Reference, Plan revision, snapshot/digest bi
 
 ### 1.7 Closing a task after merge
 
-A merged task is closed in a dedicated documentation-only PR (or in the task's
-final commit when every gate already passed before merge):
+A merged task is closed by a later PR. Preflight binds every PR to a task in
+`docs/tasks/active/`, so a task cannot close itself and a PR without its own
+task record cannot pass Preflight. Close merged tasks in the first commit of
+the next task's PR. When no other task is in progress, create a dedicated
+BOUNDED closure task; that task is in turn closed by the next task's PR.
+The closure commit applies these steps:
 
 1. Set Status to `COMPLETED` and move the file to `docs/tasks/completed/` with `git mv`.
 2. Add an Evidence row recording the merge SHA, PR and merge date.
