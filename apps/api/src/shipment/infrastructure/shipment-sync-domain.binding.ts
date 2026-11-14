@@ -39,7 +39,11 @@ export function createShipmentSyncBinding(
       const existing = locked.length
         ? await tx.shipment.findUniqueOrThrow({
             where: { id: locked[0].id },
-            include: { charges: { orderBy: { lineNo: "asc" } } },
+            include: {
+              charges: { orderBy: { lineNo: "asc" } },
+              milestones: true,
+              items: { orderBy: { lineNo: "asc" } },
+            },
           })
         : null;
       if (existing && existing.provider !== job.provider)
@@ -97,6 +101,8 @@ export function createShipmentSyncBinding(
           const {
             fields,
             charges,
+            milestones,
+            items,
             stageChanged,
             fromStage,
             providerChangedAt,
@@ -114,6 +120,25 @@ export function createShipmentSyncBinding(
               await tx.$executeRaw`INSERT INTO shipment_charges(shipment_id,line_no,charge_code,amount,currency,provider_label) VALUES(${root.id}::uuid,${line.lineNo},${line.chargeCode},${line.amount}::numeric,${line.currency},${line.providerLabel}) ON CONFLICT(shipment_id,line_no) DO UPDATE SET charge_code=EXCLUDED.charge_code,amount=EXCLUDED.amount,currency=EXCLUDED.currency,provider_label=EXCLUDED.provider_label WHERE (shipment_charges.charge_code,shipment_charges.amount,shipment_charges.currency,shipment_charges.provider_label) IS DISTINCT FROM (EXCLUDED.charge_code,EXCLUDED.amount,EXCLUDED.currency,EXCLUDED.provider_label)`;
             await tx.shipmentCharge.deleteMany({
               where: { shipmentId: root.id, lineNo: { gt: charges.length } },
+            });
+          }
+          if (milestones !== undefined) {
+            for (const entry of milestones)
+              await tx.$executeRaw`INSERT INTO shipment_milestones(shipment_id,milestone_code,occurred_at,location_name,provider_label) VALUES(${root.id}::uuid,${entry.milestoneCode},${entry.occurredAt}::timestamptz,${entry.locationName},${entry.providerLabel}) ON CONFLICT(shipment_id,milestone_code) DO UPDATE SET occurred_at=EXCLUDED.occurred_at,location_name=EXCLUDED.location_name,provider_label=EXCLUDED.provider_label WHERE (shipment_milestones.occurred_at,shipment_milestones.location_name,shipment_milestones.provider_label) IS DISTINCT FROM (EXCLUDED.occurred_at,EXCLUDED.location_name,EXCLUDED.provider_label)`;
+            await tx.shipmentMilestone.deleteMany({
+              where: {
+                shipmentId: root.id,
+                milestoneCode: {
+                  notIn: milestones.map((entry) => entry.milestoneCode),
+                },
+              },
+            });
+          }
+          if (items !== undefined) {
+            for (const line of items)
+              await tx.$executeRaw`INSERT INTO shipment_items(shipment_id,line_no,name,quantity,unit_value,currency) VALUES(${root.id}::uuid,${line.lineNo},${line.name},${line.quantity},${line.unitValue}::numeric,${line.currency}) ON CONFLICT(shipment_id,line_no) DO UPDATE SET name=EXCLUDED.name,quantity=EXCLUDED.quantity,unit_value=EXCLUDED.unit_value,currency=EXCLUDED.currency WHERE (shipment_items.name,shipment_items.quantity,shipment_items.unit_value,shipment_items.currency) IS DISTINCT FROM (EXCLUDED.name,EXCLUDED.quantity,EXCLUDED.unit_value,EXCLUDED.currency)`;
+            await tx.shipmentItem.deleteMany({
+              where: { shipmentId: root.id, lineNo: { gt: items.length } },
             });
           }
           if (stageChanged)

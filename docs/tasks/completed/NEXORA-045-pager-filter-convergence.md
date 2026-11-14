@@ -1,8 +1,8 @@
 # NEXORA-045 — Pager and filter convergence
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Origin
 
@@ -56,8 +56,8 @@ BOUNDED because this reuses existing presentation/operations contracts without c
 - [x] Closed aria-controls absent; open link and stable reopen id verified.
 - [x] Bounded safe Chromium startup diagnostics and capability names.
 - [x] Local targeted/static/browser verification and host quality.
-- [ ] Final-head hosted Preflight/Foundation and uploaded pager-filter-browser-evidence (results maintained in PR description after push).
-- [ ] Owner review and merge decision.
+- [x] Final-head hosted Preflight/Foundation and uploaded pager-filter-browser-evidence (PR #48 final evidence below).
+- [x] Owner review and merge decision (owner merged PR #48).
 
 ## Documentation Impact
 
@@ -154,3 +154,12 @@ Reference-audit expression (exit1/no matches is the expected successful oracle):
 ```sh
 git grep -n -i "m5-\|data-m5\|artifacts/m5\|m5-fixture\|nexora-m5" -- ':!docs/tasks' ':!.prettierignore'
 ```
+
+## Closure — 2026-11-14
+
+Delivered by PR #48. Final-head hosted gates passed on e8b0344268990ae527620e9b2c9fa164afbb076a. Customer selection colour convergence and FU2 Carrier CSS remain deferred to visual approval. Closed in the first commit of NEXORA-051 under §1.7.
+
+| Claim                   | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Date       | Result |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main          | PR #48 https://github.com/dinhphuquy2k1/nexora/pull/48; REST merged=true; merge SHA e8d5821a370ff1d24424eef18ee6579084e7c943; merged_at2026-11-14T07:35:46Z; git log origin/main --merges confirms merge                                                                                                                                                                                                                                                                        | 2026-11-14 | PASS   |
+| Final-head hosted gates | PR #48 Final green HEAD e8b0344268990ae527620e9b2c9fa164afbb076a; Preflight https://github.com/dinhphuquy2k1/nexora/actions/runs/43569886835 PASS at2026-11-14T07:11:24Z; Foundation https://github.com/dinhphuquy2k1/nexora/actions/runs/43569886839 attempt1/job132371749278 PASS steps4–10, completed2026-11-14T07:31:30Z; tested merge7fb462fffad6a7528f5c0364bd4dbb71dbed0adf; pager-filter-browser-evidence artifact14104352842 uploaded; original expected REDs retained | 2026-11-14 | PASS   |

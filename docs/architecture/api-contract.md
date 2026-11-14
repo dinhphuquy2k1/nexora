@@ -205,7 +205,7 @@ List accepts q (literal case-insensitive tracking text, max256), stage (canonica
 LogisticsStage), page/pageSize (shared policy: defaults1/20, maximum100). Results
 sort createdAt DESC/id DESC. pagination.total applies the stage filter; stats.total
 and stats.byStage use owner/q before stage/page. UNKNOWN contributes to All.
-stats.claims is null and claimFilterAvailable is false. claim=open returns503
+stats.claims is null and claimFilterAvailable is false. claim=open returns422
 CLAIM_FILTER_UNAVAILABLE until official claim semantics are verified; no fake zero.
 
 Detail separates provider totals from charges and Nexora customerId/internal fields.
@@ -213,8 +213,25 @@ Decimal amount, weight and rate values are JSON strings; no total recalculation,
 conversion or currency/time fallback. Charges sort by lineNo, allow repeated codes.
 History accepts only page/pageSize, sorts observedAt DESC/id DESC and distinguishes
 nullable providerChangedAt from actual observedAt; source/processor versions are
-separate integers. Shared Shipment kind/stage/charge code leaves are browser-safe;
+separate integers. Shared Shipment kind/stage/charge/milestone code leaves are browser-safe;
 response types come from generated SDK, not handwritten transport unions. API/shared/
 SDK use same-revision deployment. Generated Swagger includes documented error/status,
 nullable fields and exact decimal-string schemas. Real provider registration remains
 empty; these contracts provide no external API authorization.
+
+## Shipment list extensions — NEXORA-051
+
+List and detail include nullable originWarehouse, exact-string weightKg and declaredValue,
+packageCount, itemCount and declaredCurrency. chargeSummary contains unitPrice and
+domesticShipping with state NONE/SINGLE/MULTIPLE; only SINGLE returns exact amount
+and currency. Existence flags cover insurance, counting, wood packing and bubble wrap;
+no monetary aggregation or conversion occurs. milestoneSummary exposes four nullable
+reported times and destWarehouse from DEST_RECEIVED only. itemSummary is firstName
+(lowest lineNo) and lineCount, without product prices.
+
+Detail additionally returns milestones in canonical Shared code order and items in
+lineNo order. Item quantity is nullable; unitValue is an exact nullable decimal string
+and currency nullable, both present or both null. Product unit values are distinct from
+freight UNIT_PRICE and parcel declaredValue; no multiplication, summation or rounding.
+All child projections preserve owner scope and run within the existing FOR UPDATE actor
+transaction. Nonempty lists use three page-ID batch queries; empty lists skip them.

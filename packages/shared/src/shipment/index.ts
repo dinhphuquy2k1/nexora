@@ -22,3 +22,12 @@ export const ShipmentChargeCode = {
 } as const;
 export type ShipmentChargeCodeValue =
   (typeof ShipmentChargeCode)[keyof typeof ShipmentChargeCode];
+
+export const ShipmentMilestoneCode = {
+  ORIGIN_RECEIVED: "ORIGIN_RECEIVED",
+  ORIGIN_DISPATCHED: "ORIGIN_DISPATCHED",
+  DEST_RECEIVED: "DEST_RECEIVED",
+  DEST_DISPATCHED: "DEST_DISPATCHED",
+} as const;
+export type ShipmentMilestoneCodeValue =
+  (typeof ShipmentMilestoneCode)[keyof typeof ShipmentMilestoneCode];

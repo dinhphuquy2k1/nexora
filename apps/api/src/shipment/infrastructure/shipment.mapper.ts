@@ -3,8 +3,11 @@ import { ShipmentAggregate, type ShipmentState } from "../domain/shipment";
 import type {
   LogisticsStageCode,
   ShipmentKindCode,
+  ShipmentMilestoneCodeValue,
 } from "@nexora/shared/shipment";
-type StoredShipment = Prisma.ShipmentGetPayload<{ include: { charges: true } }>;
+type StoredShipment = Prisma.ShipmentGetPayload<{
+  include: { charges: true; milestones: true; items: true };
+}>;
 /** Hydration occurs only after source/root locks, with all current children. */
 export function hydrateShipment(row: StoredShipment): ShipmentAggregate {
   const state: ShipmentState = {
@@ -38,6 +41,21 @@ export function hydrateShipment(row: StoredShipment): ShipmentAggregate {
     lastSyncedAt: row.lastSyncedAt?.toISOString() ?? null,
     createdAt: row.createdAt?.toISOString() ?? null,
     updatedAt: row.updatedAt?.toISOString() ?? null,
+    milestones: row.milestones.map((m) => ({
+      id: m.id,
+      milestoneCode: m.milestoneCode as ShipmentMilestoneCodeValue,
+      occurredAt: m.occurredAt.toISOString(),
+      locationName: m.locationName,
+      providerLabel: m.providerLabel,
+    })),
+    items: row.items.map((i) => ({
+      id: i.id,
+      lineNo: i.lineNo,
+      name: i.name,
+      quantity: i.quantity,
+      unitValue: i.unitValue?.toFixed(2) ?? null,
+      currency: i.currency,
+    })),
     charges: row.charges.map((c) => ({
       id: c.id,
       lineNo: c.lineNo,

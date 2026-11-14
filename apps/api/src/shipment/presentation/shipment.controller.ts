@@ -21,7 +21,7 @@ export class ShipmentController {
   @Get()
   @ApiResponse({ status: 200, type: ShipmentPageDto })
   @ApiResponse({
-    status: 503,
+    status: 422,
     type: ApiErrorDto,
     description:
       "CLAIM_FILTER_UNAVAILABLE: provider claim semantics are not verified",

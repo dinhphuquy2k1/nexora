@@ -210,3 +210,7 @@ persistence exception and verified provider contracts before activation. Benefit
 scoped writes, queryable minimal state and extensibility without a launcher,
 framework, workspace or new service. [ADR-008](tactical-ddd.md) still governs
 aggregate encapsulation, locked hydration and minimal persistence.
+
+## Storage placement rule
+
+A value becomes a shipments column only when every carrier shares the concept, it has one value per shipment and it is filtered or sorted. Carrier-varying catalogues with possibly several rows per shipment use child tables with a closed vocabulary (shipment_charges, shipment_milestones, shipment_items). Values unique to one carrier that are neither filtered nor shown as columns may later use a provider_attributes JSONB, approved but not implemented. Provider milestones are carrier-reported times; they are never derived from stage history.

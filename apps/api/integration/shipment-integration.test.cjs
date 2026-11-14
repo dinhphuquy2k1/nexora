@@ -6,6 +6,7 @@ const { execFileSync } = require("node:child_process");
 const { resolve, join } = require("node:path");
 const { readFile, mkdtemp, rm } = require("node:fs/promises");
 const { tmpdir } = require("node:os");
+const { setImmediate } = require("node:timers");
 const { createDatabase, hashPassword } = require("@nexora/database");
 const {
   SyncRepository,
@@ -220,6 +221,8 @@ test(
           where: { ownerUserId: owner.id, ...(root ? { id: root.id } : {}) },
           include: {
             charges: { orderBy: { lineNo: "asc" } },
+            milestones: { orderBy: { milestoneCode: "asc" } },
+            items: { orderBy: { lineNo: "asc" } },
             history: { orderBy: { observedAt: "asc" } },
           },
         });
@@ -698,7 +701,7 @@ test(
             ["?page=0", tokens[0], 400],
             ["?pageSize=101", tokens[0], 400],
             ["?stage=INVALID", tokens[0], 400],
-            ["?claim=open", tokens[0], 503],
+            ["?claim=open", tokens[0], 422],
             ["/" + root.id, tokens[1], 404],
             ["/" + root.id, tokens[2], 404],
             ["/" + root.id + "/history", tokens[1], 404],
@@ -770,6 +773,452 @@ test(
           assert.ok(history.body.pagination.total >= 3);
           assert.equal(history.body.history[0].providerChangedAt, null);
           assert.ok(history.body.history[0].observedAt);
+        },
+      );
+      await t.test(
+        "milestones and item values reconcile by key without rewriting unchanged rows",
+        async () => {
+          // Reuse the file's real owner/connection and fenced repository setup, with independent identities.
+          const childOwner = await db.user.create({
+            data: {
+              username: "children-" + randomUUID(),
+              role: "OPERATOR",
+              credential: { create: { passwordHash: hash } },
+            },
+          });
+          const childConnection = await db.carrierConnection.create({
+            data: {
+              userId: childOwner.id,
+              provider: "uniship",
+              externalAccountId: "children-" + randomUUID(),
+              displayName: "Independent children fixture",
+              status: "CONNECTED",
+            },
+          });
+          const childRepo = makeRepo(
+            new ShipmentSyncProcessor(
+              1,
+              { at: S.AT_ORIGIN_WAREHOUSE, done: S.DELIVERED },
+              () => {},
+            ),
+          );
+          const childKey = "children-" + randomUUID();
+          const run = async (
+            p,
+            r = childRepo,
+            beforeApply = async () => {},
+          ) => {
+            const j = await r.admit(
+              childOwner.id,
+              childConnection.id,
+              "SHIPMENT",
+              "MANUAL",
+            );
+            const fetching = await r.claim(randomUUID());
+            await r.page(
+              fetching,
+              { records: [record(childKey, p)], done: true },
+              r.capabilities.resolve("uniship", "SHIPMENT").processor.version,
+            );
+            for (let n = 0; n < 10; n++) {
+              const state = await r.job(
+                childOwner.id,
+                childConnection.id,
+                j.id,
+              );
+              if (["SUCCEEDED", "FAILED", "CANCELLED"].includes(state.status))
+                return state;
+              const work = await r.claim(randomUUID());
+              await beforeApply(work);
+              await r.apply(work);
+            }
+            throw Error("independent children job did not settle");
+          };
+          const getRoot = () =>
+            db.shipment.findFirstOrThrow({
+              where: { ownerUserId: childOwner.id },
+              include: {
+                charges: { orderBy: { lineNo: "asc" } },
+                milestones: { orderBy: { milestoneCode: "asc" } },
+                items: { orderBy: { lineNo: "asc" } },
+              },
+            });
+          let root;
+          const patch = (value = "1234567890123456.78") =>
+            payload({
+              milestones: {
+                complete: true,
+                entries: [
+                  {
+                    milestoneCode: "DEST_RECEIVED",
+                    occurredAt: "2026-11-14T00:00:00.000Z",
+                    locationName: "Destination",
+                  },
+                ],
+              },
+              items: {
+                complete: true,
+                lines: [
+                  {
+                    name: "Product",
+                    quantity: 2,
+                    unitValue: value,
+                    currency: value === null ? null : "CNY",
+                  },
+                  { name: "Second" },
+                ],
+              },
+            });
+          assert.equal((await run(patch())).status, "SUCCEEDED");
+          const first = await getRoot();
+          root = first;
+          assert.equal(first.milestones.length, 1);
+          assert.equal(first.items.length, 2);
+          assert.equal(
+            first.items[0].unitValue.toFixed(2),
+            "1234567890123456.78",
+          );
+          const childToken = (
+            await loginWithMfa(
+              identity,
+              childOwner.username,
+              "ShipmentFixturePass123!",
+            )
+          ).token;
+          const detail = await req("/" + first.id, childToken);
+          assert.equal(detail.response.status, 200);
+          assert.equal(
+            detail.body.shipment.items[0].unitValue,
+            "1234567890123456.78",
+          );
+          assert.equal(detail.body.shipment.items[1].unitValue, null);
+          assert.equal(
+            detail.body.shipment.milestoneSummary.destWarehouse,
+            "Destination",
+          );
+          assert.deepEqual(detail.body.shipment.itemSummary, {
+            firstName: "Product",
+            lineCount: 2,
+          });
+          const page = await req("", childToken);
+          assert.equal(page.body.shipments[0].id, first.id);
+          assert.equal(
+            page.body.shipments[0].milestoneSummary.destReceivedAt,
+            "2026-11-14T00:00:00.000Z",
+          );
+          assert.equal(
+            page.body.shipments[0].chargeSummary.unitPrice.state,
+            "NONE",
+          );
+          assert.equal(
+            Object.hasOwn(page.body.shipments[0].itemSummary, "unitValue"),
+            false,
+          );
+          await run({
+            ...patch(),
+            originWarehouse: "Origin",
+            weightKg: "1.234",
+            packageCount: 0,
+            itemCount: 7,
+            declaredValue: "456.78",
+            declaredCurrency: "USD",
+            charges: {
+              complete: true,
+              lines: [
+                line("1.11", "UNIT_PRICE"),
+                { ...line("2.22", "UNIT_PRICE"), currency: "USD" },
+                line("3.33"),
+                ...["INSURANCE", "COUNTING", "WOOD_PACKING", "BUBBLE_WRAP"].map(
+                  (code) => line("0.00", code),
+                ),
+              ],
+            },
+          });
+          const multiple = (await req("", childToken)).body.shipments[0];
+          assert.deepEqual(multiple.chargeSummary.unitPrice, {
+            state: "MULTIPLE",
+            amount: null,
+            currency: null,
+          });
+          assert.deepEqual(multiple.chargeSummary.domesticShipping, {
+            state: "SINGLE",
+            amount: "3.33",
+            currency: "CNY",
+          });
+          for (const flag of [
+            "hasInsurance",
+            "hasCounting",
+            "hasWoodPacking",
+            "hasBubbleWrap",
+          ])
+            assert.equal(multiple.chargeSummary[flag], true);
+          assert.equal(multiple.weightKg, "1.234");
+          assert.equal(multiple.declaredValue, "456.78");
+          assert.equal(multiple.originWarehouse, "Origin");
+          assert.equal(multiple.itemCount, 7);
+          const versions = async () =>
+            db.$queryRawUnsafe(
+              `SELECT id,xmin::text AS version FROM shipment_items WHERE shipment_id=$1::uuid ORDER BY line_no`,
+              root.id,
+            );
+          const before = await versions();
+          await run({ ...patch(), trackingCode: "CHANGED-ROOT" });
+          assert.deepEqual(await versions(), before);
+          await run(patch("1.25"));
+          const changed = await getRoot();
+          assert.equal(changed.items[0].id, first.items[0].id);
+          assert.equal(changed.milestones[0].id, first.milestones[0].id);
+          assert.equal(changed.items[0].unitValue.toFixed(2), "1.25");
+          await run(patch(null));
+          const cleared = await getRoot();
+          assert.equal(cleared.items[0].unitValue, null);
+          assert.equal(cleared.items[0].currency, null);
+          await run(payload({ trackingCode: "OMITTED" }));
+          assert.deepEqual((await getRoot()).items, cleared.items);
+          await run(
+            payload({
+              milestones: { complete: true, entries: [] },
+              items: { complete: true, lines: [] },
+            }),
+          );
+          assert.equal((await getRoot()).items.length, 0);
+          assert.equal((await getRoot()).milestones.length, 0);
+          const empty = await getRoot();
+          await db.$executeRawUnsafe(
+            "CREATE FUNCTION shipment_child_rollback() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic child rollback'; END $$",
+          );
+          await db.$executeRawUnsafe(
+            "CREATE TRIGGER shipment_child_rollback BEFORE INSERT ON shipment_items FOR EACH ROW WHEN (NEW.line_no=2) EXECUTE FUNCTION shipment_child_rollback()",
+          );
+          try {
+            await assert.rejects(
+              run({
+                ...patch(),
+                trackingCode: "must-rollback",
+                charges: { complete: true, lines: [line("9.99")] },
+              }),
+              (e) =>
+                /Code: `P0001`/.test(e.message) &&
+                /synthetic child rollback/.test(e.message),
+            );
+            const job = await db.syncJob.findFirstOrThrow({
+              where: { owner_user_id: childOwner.id },
+              orderBy: { created_at: "desc" },
+            });
+            const item = await db.syncJobItem.findFirstOrThrow({
+              where: { job_id: job.id },
+            });
+            assert.equal(item.processing_outcome, "PENDING");
+            assert.deepEqual(await getRoot(), empty);
+          } finally {
+            await db.$executeRawUnsafe(
+              "DROP TRIGGER shipment_child_rollback ON shipment_items",
+            );
+            await db.$executeRawUnsafe(
+              "DROP FUNCTION shipment_child_rollback()",
+            );
+          }
+
+          await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE owner_user_id=${childOwner.id}::uuid AND status='RUNNING'`;
+          const slowRepo = makeRepo({
+            version: 2,
+            supports: (type) => type === "SHIPMENT",
+            apply: async (source, session) => {
+              await session.propose(source.payload, S.UNKNOWN);
+              await new Promise((resolve) => setTimeout(resolve, 1200));
+              return { outcome: "APPLIED" };
+            },
+          });
+          await assert.rejects(
+            run(
+              {
+                ...patch(),
+                charges: { complete: true, lines: [line("7.77")] },
+              },
+              slowRepo,
+              async (work) => {
+                await db.$executeRaw`UPDATE sync_jobs SET lease_expires_at=clock_timestamp()+interval '800 milliseconds' WHERE id=${work.id}::uuid`;
+              },
+            ),
+            (e) => e.code === "SYNC_STALE",
+          );
+          assert.deepEqual(await getRoot(), empty);
+          const staleJob = await db.syncJob.findFirstOrThrow({
+            where: { owner_user_id: childOwner.id },
+            orderBy: { created_at: "desc" },
+          });
+          assert.equal(
+            (
+              await db.syncJobItem.findFirstOrThrow({
+                where: { job_id: staleJob.id },
+              })
+            ).processing_outcome,
+            "PENDING",
+          );
+        },
+      );
+      await t.test(
+        "real API transaction preserves worker exclusion, concurrent workers and bounded batch query count",
+        async () => {
+          const {
+            ShipmentAdapter,
+          } = require("../dist/shipment/infrastructure/shipment.adapter");
+          const { Prisma } = require("@nexora/database");
+          const actor = await db.user.create({
+            data: { username: "locks-" + randomUUID(), role: "OPERATOR" },
+          });
+          await db.shipment.createMany({
+            data: [
+              { ownerUserId: actor.id, trackingCode: "lock-one" },
+              { ownerUserId: actor.id, trackingCode: "lock-two" },
+            ],
+          });
+          const reader = new ShipmentAdapter(appUrl),
+            worker1 = createDatabase(workerUrl),
+            worker2 = createDatabase(workerUrl);
+          const client = reader.client,
+            original = client.$transaction.bind(client);
+          const gate = () => {
+            let resolve;
+            const promise = new Promise((r) => {
+              resolve = r;
+            });
+            return { promise, resolve };
+          };
+          let readStarted = gate(),
+            readHold = null,
+            calls = [];
+          reader.instance = {
+            $transaction: (fn) =>
+              original(
+                async (tx) => {
+                  const pid = (
+                    await tx.$queryRaw`SELECT pg_backend_pid() AS pid`
+                  )[0].pid;
+                  readStarted.resolve(pid);
+                  const proxy = new Proxy(tx, {
+                    get(target, key) {
+                      if (key === "$queryRaw")
+                        return (first, ...values) => {
+                          const sql =
+                            Array.isArray(first) && Object.hasOwn(first, "raw")
+                              ? Prisma.sql(first, ...values)
+                              : first;
+                          calls.push(sql.sql);
+                          return target.$queryRaw(sql);
+                        };
+                      return Reflect.get(target, key);
+                    },
+                  });
+                  const result = await fn(proxy);
+                  if (readHold) {
+                    readHold.ready.resolve();
+                    await readHold.release.promise;
+                  }
+                  return result;
+                },
+                { timeout: 10000 },
+              ),
+            $disconnect: () => client.$disconnect(),
+          };
+          const pending = [],
+            releases = [];
+          const holdWorker = (worker) => {
+            const ready = gate(),
+              release = gate();
+            releases.push(release);
+            const done = worker.$transaction(
+              async (tx) => {
+                const pid = (
+                  await tx.$queryRaw`SELECT pg_backend_pid() AS pid`
+                )[0].pid;
+                await tx.$queryRaw`SELECT status FROM public.sync_lock_user(${actor.id}::uuid)`;
+                ready.resolve(pid);
+                await release.promise;
+              },
+              { timeout: 10000 },
+            );
+            pending.push(done);
+            return { ready, release, done };
+          };
+          const blocked = async (waiter, holder) => {
+            const deadline = Date.now() + 3000;
+            while (Date.now() < deadline) {
+              const rows =
+                await db.$queryRaw`SELECT ${holder}::int=ANY(pg_blocking_pids(${waiter}::int)) AS blocked`;
+              if (rows[0].blocked) return;
+              await new Promise(setImmediate);
+            }
+            assert.fail("expected bounded PostgreSQL lock wait");
+          };
+          try {
+            const held = holdWorker(worker1);
+            const workerPid = await held.ready.promise;
+            const reading = reader.list(actor.id, { page: 1, pageSize: 1 });
+            pending.push(reading);
+            const readPid = await readStarted.promise;
+            assert.notEqual(readPid, workerPid);
+            await blocked(readPid, workerPid);
+            held.release.resolve();
+            await held.done;
+            await reading;
+            calls = [];
+            readStarted = gate();
+            readHold = { ready: gate(), release: gate() };
+            releases.push(readHold.release);
+            const reading2 = reader.list(actor.id, { page: 1, pageSize: 2 });
+            pending.push(reading2);
+            await readHold.ready.promise;
+            const readPid2 = await readStarted.promise;
+            const workerStarted = gate();
+            const waiting = worker1.$transaction(
+              async (tx) => {
+                workerStarted.resolve(
+                  (await tx.$queryRaw`SELECT pg_backend_pid() AS pid`)[0].pid,
+                );
+                await tx.$queryRaw`SELECT status FROM public.sync_lock_user(${actor.id}::uuid)`;
+              },
+              { timeout: 10000 },
+            );
+            pending.push(waiting);
+            await blocked(await workerStarted.promise, readPid2);
+            readHold.release.resolve();
+            await reading2;
+            await waiting;
+            readHold = null;
+            assert.equal(calls.length, 6);
+            assert.equal(calls.filter((sql) => sql.includes("ANY(")).length, 3);
+            calls = [];
+            await reader.list(actor.id, { page: 1, pageSize: 1 });
+            assert.equal(calls.length, 6);
+            calls = [];
+            await reader.list(actor.id, { page: 99, pageSize: 20 });
+            assert.equal(calls.length, 3);
+            const shared = holdWorker(worker1);
+            await shared.ready.promise;
+            const parallel = worker2.$transaction(async (tx) => {
+              await tx.$executeRaw`SET LOCAL statement_timeout='3000ms'`;
+              return tx.$queryRaw`SELECT status FROM public.sync_lock_user(${actor.id}::uuid)`;
+            });
+            pending.push(parallel);
+            assert.equal((await parallel)[0].status, "ACTIVE");
+            shared.release.resolve();
+            await shared.done;
+            await db.user.update({
+              where: { id: actor.id },
+              data: { status: "DISABLED" },
+            });
+            await assert.rejects(
+              reader.list(actor.id, { page: 1, pageSize: 20 }),
+              (e) => e.code === "UNAUTHORIZED",
+            );
+          } finally {
+            for (const release of releases) release.resolve();
+            await Promise.allSettled(pending);
+            await reader.close();
+            await worker1.$disconnect();
+            await worker2.$disconnect();
+          }
         },
       );
     } finally {

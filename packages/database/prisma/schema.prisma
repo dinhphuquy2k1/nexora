@@ -394,6 +394,8 @@ model Shipment {
  source SyncSourceIdentity? @relation(fields:[sourceIdentityId],references:[id],onDelete:Restrict,onUpdate:NoAction)
  connection CarrierConnection? @relation(fields:[carrierConnectionId],references:[id],onDelete:SetNull,onUpdate:NoAction)
  charges ShipmentCharge[]
+ milestones ShipmentMilestone[]
+ items ShipmentItem[]
  history ShipmentStageHistory[]
  @@index([ownerUserId,logisticsStage,createdAt(sort:Desc),id(sort:Desc)],map:"idx_shipments_owner_stage_created")
  @@index([ownerUserId,createdAt(sort:Desc),id(sort:Desc)],map:"idx_shipments_owner_created")
@@ -429,4 +431,28 @@ model ShipmentStageHistory {
  @@unique([shipmentId,sourceVersion,processorVersion],map:"uq_shipment_history_version")
  @@index([shipmentId,observedAt(sort:Desc),id(sort:Desc)],map:"idx_shipment_history_observed")
  @@map("shipment_stage_history")
+}
+
+model ShipmentMilestone {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ shipmentId String @db.Uuid @map("shipment_id")
+ milestoneCode String @db.VarChar(32) @map("milestone_code")
+ occurredAt DateTime @db.Timestamptz(3) @map("occurred_at")
+ locationName String? @db.VarChar(256) @map("location_name")
+ providerLabel String? @db.VarChar(256) @map("provider_label")
+ shipment Shipment @relation(fields:[shipmentId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+ @@unique([shipmentId,milestoneCode],map:"uq_shipment_milestones_code")
+ @@map("shipment_milestones")
+}
+model ShipmentItem {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ shipmentId String @db.Uuid @map("shipment_id")
+ lineNo Int @db.SmallInt @map("line_no")
+ name String @db.VarChar(512)
+ quantity Int?
+ unitValue Decimal? @db.Decimal(18,2) @map("unit_value")
+ currency String? @db.Char(3)
+ shipment Shipment @relation(fields:[shipmentId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+ @@unique([shipmentId,lineNo],map:"uq_shipment_items_line")
+ @@map("shipment_items")
 }

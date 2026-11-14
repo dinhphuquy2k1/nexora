@@ -862,3 +862,24 @@ compiled outputs stay inside the owned test container. The tooling image supplie
 the pinned installed dependencies (build it from the current lockfile); cached
 application source is not accepted as current-HEAD evidence. Launcher regression
 checks assert these mounts and normal ownership/cleanup behavior.
+
+## Shipment list data verification — NEXORA-051
+
+Build @nexora/shared, @nexora/database (including Prisma generation) and @nexora/api
+before direct unit tests. Shipment Domain tests cover complete/absent/empty snapshots,
+key identity, atomic validation and exact per-item value/currency rules. The schema
+oracle checks exact validated vocabulary/constraint columns and definitions, rejects
+real catalog mutations and invalid writes, and verifies child indexes/FKs/cascades.
+The migration harness stages the previous 14 migrations with existing Shipment,
+charges and history, applies migration 15, checks preservation, repeats deploy and
+checks Prisma drift. Runtime smoke expects 15 completed migrations.
+
+Signed disposable PostgreSQL shipment-sql and shipment-worker suites verify restricted
+worker column grants and API SELECT-only authority, child reconciliation/no-op xmin,
+price add/change/clear, rollback, real authenticated HTTP exact strings and summaries.
+Separate real connections with explicit barriers and bounded pg_blocking_pids polling
+verify both API/worker exclusion directions and parallel worker SHARE locks; no fixed
+sleep is used. Instrumenting the real transaction verifies six list queries for one
+or two rows and three for an empty page. These checks do not change the existing
+actor transaction, Sync privileges or isolation level. Hosted Foundation remains the
+canonical full integration/runtime gate.

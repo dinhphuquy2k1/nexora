@@ -3,8 +3,15 @@ const {
   LogisticsStage,
   ShipmentKind,
   ShipmentChargeCode,
+  ShipmentMilestoneCode,
 } = require("@nexora/shared/shipment");
 const contracts = [
+  [
+    "shipment_milestones",
+    "chk_shipment_milestones_code",
+    "milestone_code",
+    Object.values(ShipmentMilestoneCode),
+  ],
   [
     "shipments",
     "chk_shipments_kind",
@@ -79,11 +86,54 @@ async function assertVocabulary(db) {
     );
   }
 }
+async function assertItemValues(db) {
+  for (const [name, columns, definition] of [
+    [
+      "chk_shipment_items_value_pair",
+      ["currency", "unit_value"],
+      "unit_valueISNULL=currencyISNULL",
+    ],
+    [
+      "chk_shipment_items_value_finite",
+      ["unit_value"],
+      "unit_valueISNULLORunit_value<>'NaN'",
+    ],
+    [
+      "chk_shipment_items_value_nonneg",
+      ["unit_value"],
+      "unit_valueISNULLORunit_value>=0",
+    ],
+    [
+      "chk_shipment_items_currency",
+      ["currency"],
+      "currencyISNULLORcurrency~'^[A-Z]{3}$'",
+    ],
+  ]) {
+    const catalog = await db.$queryRawUnsafe(
+      `SELECT pg_get_constraintdef(c.oid) AS definition,c.convalidated, array_agg(a.attname::text ORDER BY a.attname) AS columns FROM pg_constraint c JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=ANY(c.conkey) WHERE c.conrelid='shipment_items'::regclass AND c.conname=$1 AND c.contype='c' GROUP BY c.oid,c.convalidated`,
+      name,
+    );
+    assert.equal(catalog.length, 1, name);
+    assert.equal(catalog[0].convalidated, true, name);
+    assert.deepEqual(catalog[0].columns, columns, name);
+    assert.equal(
+      catalog[0].definition
+        .replace(/::(?:text|numeric|bpchar)/g, "")
+        .replace(/[()\s]/g, "")
+        .replace(/^CHECK/, ""),
+      definition,
+      name + " exact expression",
+    );
+  }
+}
 module.exports.verifyShipmentSchema = async (db) => {
   await assertVocabulary(db);
   // Real catalog mutations, rolled back by the failing oracle, not list self-comparison.
   for (const mutation of [
     "ALTER TABLE shipments DROP CONSTRAINT chk_shipments_stage; ALTER TABLE shipments ADD CONSTRAINT chk_shipments_stage CHECK(logistics_stage IN ('UNKNOWN') OR true)",
+    "ALTER TABLE shipment_milestones DROP CONSTRAINT chk_shipment_milestones_code; ALTER TABLE shipment_milestones ADD CONSTRAINT chk_shipment_milestones_code CHECK(milestone_code IN ('ORIGIN_RECEIVED') OR true)",
+    "ALTER TABLE shipment_milestones DROP CONSTRAINT chk_shipment_milestones_code; ALTER TABLE shipment_milestones ADD CONSTRAINT chk_shipment_milestones_code CHECK(milestone_code IN ('ORIGIN_RECEIVED','ORIGIN_DISPATCHED','DEST_RECEIVED','DEST_DISPATCHED')) NOT VALID",
+    "ALTER TABLE shipment_milestones DROP CONSTRAINT chk_shipment_milestones_code; ALTER TABLE shipment_milestones ADD CONSTRAINT chk_shipment_milestones_code CHECK(provider_label IN ('ORIGIN_RECEIVED','ORIGIN_DISPATCHED','DEST_RECEIVED','DEST_DISPATCHED'))",
     "ALTER TABLE shipments DROP CONSTRAINT chk_shipments_stage; ALTER TABLE shipments ADD CONSTRAINT chk_shipments_stage CHECK(logistics_stage IN ('TO_ORIGIN_WAREHOUSE','AT_ORIGIN_WAREHOUSE','TO_DEST_WAREHOUSE','AT_DEST_WAREHOUSE','DELIVERED','UNKNOWN')) NOT VALID",
     "ALTER TABLE shipments DROP CONSTRAINT chk_shipments_stage; ALTER TABLE shipments ADD CONSTRAINT chk_shipments_stage CHECK(provider_status IN ('TO_ORIGIN_WAREHOUSE','AT_ORIGIN_WAREHOUSE','TO_DEST_WAREHOUSE','AT_DEST_WAREHOUSE','DELIVERED','UNKNOWN'))",
   ]) {
@@ -96,6 +146,29 @@ module.exports.verifyShipmentSchema = async (db) => {
       (e) => e instanceof assert.AssertionError,
     );
     await assertVocabulary(db);
+  }
+  await assertItemValues(db);
+  for (const name of [
+    "chk_shipment_items_value_pair",
+    "chk_shipment_items_value_finite",
+    "chk_shipment_items_value_nonneg",
+    "chk_shipment_items_currency",
+  ]) {
+    for (const suffix of ["", " NOT VALID"]) {
+      await assert.rejects(
+        db.$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(
+            `ALTER TABLE shipment_items DROP CONSTRAINT ${name}`,
+          );
+          await tx.$executeRawUnsafe(
+            `ALTER TABLE shipment_items ADD CONSTRAINT ${name} CHECK(unit_value IS NULL OR true)${suffix}`,
+          );
+          await assertItemValues(tx);
+        }),
+        (e) => e instanceof assert.AssertionError,
+      );
+      await assertItemValues(db);
+    }
   }
   const u = await db.user.create({
     data: {
@@ -156,6 +229,66 @@ module.exports.verifyShipmentSchema = async (db) => {
         currency,
       ),
     );
+  for (const milestone of Object.values(ShipmentMilestoneCode))
+    await db.$executeRawUnsafe(
+      `INSERT INTO shipment_milestones(shipment_id,milestone_code,occurred_at) VALUES($1::uuid,$2,CURRENT_TIMESTAMP)`,
+      a[0].id,
+      milestone,
+    );
+  await assert.rejects(
+    db.$executeRawUnsafe(
+      `INSERT INTO shipment_milestones(shipment_id,milestone_code,occurred_at) VALUES($1::uuid,'INVALID',CURRENT_TIMESTAMP)`,
+      a[0].id,
+    ),
+  );
+  await assert.rejects(
+    db.$executeRawUnsafe(
+      `INSERT INTO shipment_milestones(shipment_id,milestone_code,occurred_at) VALUES($1::uuid,$2,CURRENT_TIMESTAMP)`,
+      a[0].id,
+      ShipmentMilestoneCode.ORIGIN_RECEIVED,
+    ),
+  );
+  await db.$executeRawUnsafe(
+    `INSERT INTO shipment_items(shipment_id,line_no,name,quantity,unit_value,currency) VALUES($1::uuid,1,'exact',0,1234567890123456.78,'CNY')`,
+    a[0].id,
+  );
+  const invalidItems = [
+    ["unit_value=NULL", "chk_shipment_items_value_pair"],
+    ["currency=NULL", "chk_shipment_items_value_pair"],
+    ["unit_value='NaN'::numeric", "chk_shipment_items_value_finite"],
+    ["unit_value=-1", "chk_shipment_items_value_nonneg"],
+    ["currency='cnY'", "chk_shipment_items_currency"],
+  ];
+  for (const [assignment, constraint] of invalidItems)
+    await assert.rejects(
+      db.$executeRawUnsafe(
+        `UPDATE shipment_items SET ${assignment} WHERE shipment_id=$1::uuid`,
+        a[0].id,
+      ),
+      (e) =>
+        e.meta?.message?.includes(constraint) || e.message.includes(constraint),
+    );
+  for (const assignment of [
+    "line_no=0",
+    "name='  '",
+    "quantity=-1",
+    "unit_value=10000000000000000",
+  ])
+    await assert.rejects(
+      db.$executeRawUnsafe(
+        `UPDATE shipment_items SET ${assignment} WHERE shipment_id=$1::uuid`,
+        a[0].id,
+      ),
+    );
+  assert.equal(
+    (
+      await db.$queryRawUnsafe(
+        `SELECT unit_value::text AS value FROM shipment_items WHERE shipment_id=$1::uuid`,
+        a[0].id,
+      )
+    )[0].value,
+    "1234567890123456.78",
+  );
   const h = (sv, pv, to) =>
     db.$executeRawUnsafe(
       `INSERT INTO shipment_stage_history(shipment_id,source_version,processor_version,to_stage) VALUES($1::uuid,$2,$3,$4)`,
@@ -176,7 +309,7 @@ module.exports.verifyShipmentSchema = async (db) => {
   assert.equal(rows.at(-1).amount, "8.01");
 
   const fks = await db.$queryRawUnsafe(
-    `SELECT t.relname AS table_name,a.attname AS column_name,r.relname AS referenced_table,c.confdeltype::text AS confdeltype FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_class r ON r.oid=c.confrelid JOIN pg_attribute a ON a.attrelid=t.oid AND a.attnum=ANY(c.conkey) WHERE c.contype='f' AND t.relname IN ('shipments','shipment_charges','shipment_stage_history')`,
+    `SELECT t.relname AS table_name,a.attname AS column_name,r.relname AS referenced_table,c.confdeltype::text AS confdeltype FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_class r ON r.oid=c.confrelid JOIN pg_attribute a ON a.attrelid=t.oid AND a.attnum=ANY(c.conkey) WHERE c.contype='f' AND t.relname IN ('shipments','shipment_charges','shipment_stage_history','shipment_milestones','shipment_items')`,
   );
   for (const [table, column, target, action] of [
     ["shipments", "owner_user_id", "users", "r"],
@@ -186,6 +319,8 @@ module.exports.verifyShipmentSchema = async (db) => {
     ["shipments", "assignee_user_id", "users", "n"],
     ["shipments", "updated_by_user_id", "users", "n"],
     ["shipment_charges", "shipment_id", "shipments", "c"],
+    ["shipment_milestones", "shipment_id", "shipments", "c"],
+    ["shipment_items", "shipment_id", "shipments", "c"],
     ["shipment_stage_history", "shipment_id", "shipments", "c"],
     ["shipment_stage_history", "sync_job_id", "sync_jobs", "n"],
   ]) {
@@ -196,9 +331,9 @@ module.exports.verifyShipmentSchema = async (db) => {
     assert.equal(fk.referenced_table, target);
     assert.equal(fk.confdeltype, action);
   }
-  assert.equal(fks.length, 9);
+  assert.equal(fks.length, 11);
   const indexes = await db.$queryRawUnsafe(
-    `SELECT indexname,indexdef FROM pg_indexes WHERE schemaname='public' AND tablename IN ('shipments','shipment_charges','shipment_stage_history')`,
+    `SELECT indexname,indexdef FROM pg_indexes WHERE schemaname='public' AND tablename IN ('shipments','shipment_charges','shipment_stage_history','shipment_milestones','shipment_items')`,
   );
   for (const [name, fragment] of [
     [
@@ -217,6 +352,8 @@ module.exports.verifyShipmentSchema = async (db) => {
     ],
     ["uq_shipments_source", "UNIQUE"],
     ["uq_shipment_charges_line", "(shipment_id, line_no)"],
+    ["uq_shipment_milestones_code", "(shipment_id, milestone_code)"],
+    ["uq_shipment_items_line", "(shipment_id, line_no)"],
     [
       "uq_shipment_history_version",
       "(shipment_id, source_version, processor_version)",
@@ -229,6 +366,14 @@ module.exports.verifyShipmentSchema = async (db) => {
   assert.ok(
     !indexes.some((x) => /claim/i.test(x.indexname)),
     "no unverified claim index",
+  );
+  const childIndexes = indexes.filter((x) =>
+    /shipment_(?:milestones|items)/.test(x.indexdef),
+  );
+  assert.equal(
+    childIndexes.length,
+    4,
+    "children have only PK and unique indexes",
   );
   const source = await db.syncSourceIdentity.create({
     data: {
@@ -325,6 +470,14 @@ module.exports.verifyShipmentSchema = async (db) => {
   );
   assert.equal(
     await db.shipmentStageHistory.count({ where: { shipmentId: a[0].id } }),
+    0,
+  );
+  assert.equal(
+    await db.shipmentMilestone.count({ where: { shipmentId: a[0].id } }),
+    0,
+  );
+  assert.equal(
+    await db.shipmentItem.count({ where: { shipmentId: a[0].id } }),
     0,
   );
   for (const assignment of [

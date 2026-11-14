@@ -172,6 +172,36 @@ lines. Sync replaces the complete charge set in source order within the same
 transaction as one explicit provider-owned aggregate operation, not a generic
 full-aggregate save. No fixed per-fee Shipment columns.
 
+### shipment_milestones and shipment_items — NEXORA-051
+
+The selected forward migration20261114000000_shipment_milestones_items adds two
+provider-owned children without adding columns to shipments. Execution evidence
+belongs to NEXORA-051; this section records the approved storage/API contract.
+
+shipment_milestones has DB UUID id, shipment_id UUID NOT NULL (parent FK CASCADE
+delete/NO ACTION update), milestone_code VARCHAR32 NOT NULL, occurred_at
+TIMESTAMPTZ(3) NOT NULL, nullable location_name/provider_label VARCHAR256, and
+UNIQUE(shipment_id,milestone_code). Its validated closed CHECK uses
+ORIGIN_RECEIVED, ORIGIN_DISPATCHED, DEST_RECEIVED, DEST_DISPATCHED, in the canonical
+Shared declaration/display order. These are carrier-reported times, never stage
+history or observation-time fallbacks.
+
+shipment_items has DB UUID id, the same parent FK, line_no SMALLINT NOT NULL,
+name VARCHAR512 NOT NULL and quantity INTEGER nullable. It has UNIQUE(parent,line),
+CHECK line_no>=1, nonblank btrim(name), and quantity NULL or>=0. Domain bounds
+quantity0..2147483647 and line count32767, deriving lineNo from source order.
+No indexes beyond PK/UNIQUE, which already cover shipment_id queries.
+
+All three provider-owned current collections share the authority rule: absent
+means preserve; explicit complete valid snapshot reconciles by stable key and
+deletes excess rows; complete empty clears; invalid/partial/unknown-key input
+rejects the entire proposal. Fees/items use line_no, milestones use milestone_code.
+Retain existing row IDs, update payload only when IS DISTINCT FROM, never bulk
+delete/reinsert. Milestones permit at most4 unique codes and use the existing
+strict provider date parser; optional labels/location are bounded text256 or NULL.
+Items require nonempty-after-trim text512 names; quantity may be NULL. Provider-only
+root timestamps retain the existing apply behavior for child-only updates.
+
 ### shipment_stage_history
 
 `id`, `shipment_id UUID NOT NULL FK CASCADE`, `from_stage NULL`, `to_stage`, `provider_status`,
@@ -256,10 +286,10 @@ These authenticated routes have generated OpenAPI/SDK contracts:
 
 Every query/count includes the resolved owner and matching search scope; stable
 ordering uses created_at DESC/id DESC. Use indexed bounded projections without
-list N+1, full aggregate hydration or provider requests. q searches literal tracking text; stage uses the closed stage vocabulary; page/pageSize follow shared validation (default 1/20, maximum 100). Counts share owner/q, ignore page/stage and include UNKNOWN. Claim count is null, claimFilterAvailable=false; claim=open returns CLAIM_FILTER_UNAVAILABLE (503). Detail exposes decimal strings and charges ordered by lineNo; history is paginated observedAt DESC/id DESC. Existing authentication/no-store/error envelope applies.
+list N+1, full aggregate hydration or provider requests. q searches literal tracking text; stage uses the closed stage vocabulary; page/pageSize follow shared validation (default 1/20, maximum 100). Counts share owner/q, ignore page/stage and include UNKNOWN. Claim count is null, claimFilterAvailable=false; claim=open returns CLAIM_FILTER_UNAVAILABLE (422). Detail exposes decimal strings and charges ordered by lineNo; history is paginated observedAt DESC/id DESC. Existing authentication/no-store/error envelope applies.
 Nexora business write commands are later work.
 
-## Seven Uniship verifications before an adapter
+## Ten Uniship verifications before an adapter
 
 1. Full original status-code catalog and exact mappings.
 2. Whether claims are a status or an independent flag, including open semantics.
@@ -268,6 +298,10 @@ Nexora business write commands are later work.
 5. Fee detail, currencies, exchange rates and rate timestamps.
 6. Official API access permission and allowed use/storage scope.
 7. Cancellation, return and exceptional flows.
+8. Warehouse milestones and destination warehouse name.
+9. The list of products/items in a parcel, including per-product value and currency when supplied.
+10. Whether the four services are fee rows or separate flags; current API flags
+    provisionally derive only from INSURANCE/COUNTING/WOOD_PACKING/BUBBLE_WRAP rows.
 
 Until verified, mappings remain PROVISIONAL and production capabilities remain
 unregistered. UI fixtures and passing synthetic tests do not supply API rights.
@@ -277,10 +311,10 @@ unregistered. UI fixtures and passing synthetic tests do not supply API rights.
 1. This documentation design task (NEXORA-049), with cardinality resolved by v3.
 2. Shipment backend core: aggregate, schema, fenced persistence and read API;
    test-first domain and genuine PostgreSQL status/FK/uniqueness/rollback tests.
-3. [NEXORA-045](../tasks/active/NEXORA-045-pager-filter-convergence.md) in parallel;
+3. [NEXORA-045](../tasks/completed/NEXORA-045-pager-filter-convergence.md) in parallel;
    complete shared Pager/filter follow-ups before Shipment UI integration.
 4. Connect Retail UI to real read API with exhaustive tab mapping.
-5. Uniship Shipment adapter only after official documentation and the seven verifications.
+5. Uniship Shipment adapter only after official documentation and the ten verifications.
 6. Later: independently authorized provider Customer/Shipment capabilities and
    separately justified storage/unused-field cleanup (not prerequisites to Core);
    multi-employee data-owner access and Nexora business operations,
@@ -331,3 +365,34 @@ NULL in history, never a fallback to source update or local observation time.
 last_synced_at records the last applied provider operation, not every unchanged
 fetch. An unchanged payload with the same processor is skipped by the Sync engine
 and does not rewrite Shipment/charges/history merely to update this timestamp.
+
+## Retail list data contract — NEXORA-051
+
+Shipment API reads lock the owner's users row FOR UPDATE. The Sync worker locks it FOR SHARE through public.sync_lock_user() in shared authorization mode, so reads and worker writes exclude each other while worker jobs may run concurrently. Page, counts and child summaries are read inside that single locked transaction. Future Nexora write commands on shipments or child tables must lock the owner's users row FOR UPDATE. A REPEATABLE READ read snapshot may replace the exclusive read lock only after measured contention, in a separate task.
+
+Each summary adds nullable originWarehouse, exact-string weightKg, packageCount,
+itemCount, exact-string declaredValue and declaredCurrency. chargeSummary contains
+unitPrice/domesticShipping state NONE/SINGLE/MULTIPLE:0 lines means NONE with NULL
+amount/currency;1 means SINGLE with exact amount::text/currency;2+ means MULTIPLE
+with NULL values. Never add amounts or currencies. Four flags indicate existence
+of INSURANCE, COUNTING, WOOD_PACKING and BUBBLE_WRAP rows, provisionally.
+
+milestoneSummary has originReceivedAt, originDispatchedAt, destReceivedAt and
+destDispatchedAt nullable ISO times; destWarehouse is only DEST_RECEIVED.location_name.
+itemSummary has the lowest-line name or NULL and lineCount>=0, not a quantity sum
+or replacement for provider itemCount. No reported time is invented from history.
+
+Keep existing page/count/stats queries, filters and pagination. Nonempty pages add
+exactly3 grouped queries on shipment_id=ANY(page UUIDs) for charges, milestones
+and items/min line/count, within the same transaction; join per-root Maps in TS.
+Empty pages skip child queries. No per-shipment SQL/N+1 or root summary columns.
+Detail inherits all summaries and adds full milestones in canonical code order
+and items ordered by lineNo. CLAIM_FILTER_UNAVAILABLE is422, same code and safe
+envelope; provider claims remain unavailable. UI, advanced server filters, claims,
+provider_attributes/trigram, real adapters and registration remain out of scope.
+
+### Item reported unit value
+
+shipment_items additionally stores nullable unit_value NUMERIC(18,2) and currency CHAR(3), both NULL or both present. CHECKs enforce the pair, reject NaN/negative values and require uppercase three-letter currency. Domain reuses exact DecimalValue/currency policies and rejects number inputs, overscale/overflow and incomplete pairs on input and hydration. Missing/null fields mean NULL in an authoritative item snapshot. Worker may INSERT/UPDATE both payload columns; API remains SELECT-only.
+
+This is the carrier-reported declared value per product unit, distinct from shipment_charges.UNIT_PRICE (freight unit price) and shipments.declared_value (whole-parcel declared value). Never multiply by quantity, sum or reconcile these values. List itemSummary stays firstName/lineCount without prices; detail items include exact decimal-string unitValue and nullable currency.
