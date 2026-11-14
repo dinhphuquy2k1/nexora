@@ -72,7 +72,108 @@ test(
           [owner, "fixture"],
         )
       ).rows[0];
-      assert.match(rootRow.code, /^VD\d{6,}$/);
+      assert.equal(rootRow.code, "SHP000001");
+      const otherOwner = (
+        await db.query(
+          "INSERT INTO users(id,username,role,updated_at) VALUES(gen_random_uuid(),$1,'OPERATOR',CURRENT_TIMESTAMP) RETURNING id",
+          ["shipment-" + randomUUID()],
+        )
+      ).rows[0].id;
+      const allocate = async (client, user, provider) => {
+        const source = (
+          await db.query(
+            "INSERT INTO sync_source_identities(owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key,source_key_hash) VALUES($1,$2,'fixture-account','SHIPMENT','fixture-v1',$3,$4) RETURNING id",
+            [
+              user,
+              provider,
+              randomUUID(),
+              randomUUID().replaceAll("-", "").repeat(2),
+            ],
+          )
+        ).rows[0];
+        return (
+          await client.query(
+            "INSERT INTO shipments(owner_user_id,source_identity_id,provider,tracking_code) VALUES($1,$2,$3,'fixture') RETURNING id,code",
+            [user, source.id, provider],
+          )
+        ).rows[0];
+      };
+      // One global sequence across owners/providers; identical tracking is allowed.
+      assert.equal(
+        (await allocate(worker, owner, "fixture-a")).code,
+        "SHP000002",
+      );
+      assert.equal(
+        (await allocate(worker, otherOwner, "fixture-b")).code,
+        "SHP000003",
+      );
+      const concurrent = Array.from(
+        { length: 8 },
+        () =>
+          new Client({
+            connectionString: runtimeUrl(u.toString(), password, "nexora_sync"),
+          }),
+      );
+      try {
+        await Promise.all(concurrent.map((client) => client.connect()));
+        const rows = await Promise.all(
+          concurrent.map((client, i) =>
+            allocate(client, i % 2 ? owner : otherOwner, "fixture-" + i),
+          ),
+        );
+        const codes = rows.map((row) => row.code).sort();
+        assert.equal(new Set(codes).size, 8);
+        assert.deepEqual(
+          codes,
+          Array.from(
+            { length: 8 },
+            (_, i) => "SHP" + String(i + 4).padStart(6, "0"),
+          ),
+        );
+      } finally {
+        await Promise.all(concurrent.map((client) => client.end()));
+      }
+      await assert.rejects(
+        db.query(
+          "INSERT INTO shipments(owner_user_id,tracking_code,code) VALUES($1,'different',$2)",
+          [owner, rootRow.code],
+        ),
+        (e) => e.code === "23505" && e.constraint === "uq_shipments_code",
+      );
+      assert.equal(
+        (
+          await worker.query(
+            "SELECT count(*)::int AS n FROM shipments WHERE tracking_code='fixture'",
+          )
+        ).rows[0].n,
+        11,
+      );
+      // Only this newly created disposable database's sequence is advanced.
+      await db.query("SELECT setval('public.shipment_code_seq',999999,false)");
+      assert.equal(
+        (await allocate(worker, owner, "fixture-a")).code,
+        "SHP999999",
+      );
+      assert.equal(
+        (await allocate(worker, otherOwner, "fixture-b")).code,
+        "SHP1000000",
+      );
+      const privileges = (
+        await db.query(
+          "SELECT has_function_privilege('nexora_sync','public.next_shipment_code()','EXECUTE') AS worker_function,has_sequence_privilege('nexora_sync','public.shipment_code_seq','USAGE') AS worker_sequence,has_function_privilege('nexora_app','public.next_shipment_code()','EXECUTE') AS app_function,has_sequence_privilege('nexora_app','public.shipment_code_seq','USAGE') AS app_sequence,EXISTS(SELECT 1 FROM pg_proc p CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a WHERE p.oid='public.next_shipment_code()'::regprocedure AND a.grantee=0 AND a.privilege_type='EXECUTE') AS public_function",
+        )
+      ).rows[0];
+      assert.deepEqual(privileges, {
+        worker_function: true,
+        worker_sequence: true,
+        app_function: false,
+        app_sequence: false,
+        public_function: false,
+      });
+      await assert.rejects(
+        app.query("SELECT public.next_shipment_code()"),
+        (e) => e.code === "42501",
+      );
       await worker.query(
         "UPDATE shipments SET total_amount=$1,total_currency=$2 WHERE id=$3",
         ["9999999999999999.99", "CNY", rootRow.id],

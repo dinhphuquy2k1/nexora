@@ -720,6 +720,7 @@ test(
           assert.equal(page.response.status, 200);
           assert.equal(page.body.pagination.total, 2);
           assert.equal(page.body.shipments.length, 1);
+          assert.match(page.body.shipments[0].code, /^SHP\d{6,}$/);
           const nextPage = await req("?pageSize=1&page=2");
           assert.notEqual(
             nextPage.body.shipments[0].id,
@@ -745,6 +746,14 @@ test(
           assert.equal(stage.body.stats.byStage.UNKNOWN, 1);
           assert.equal(stage.body.stats.byStage.DELIVERED, 1);
           const detail = await req("/" + root.id);
+          assert.equal(detail.body.shipment.code, root.code);
+          assert.match(detail.body.shipment.code, /^SHP\d{6,}$/);
+          const listed = await req("?pageSize=100");
+          assert.equal(
+            listed.body.shipments.find((shipment) => shipment.id === root.id)
+              .code,
+            detail.body.shipment.code,
+          );
           assert.equal(detail.body.shipment.totalAmount, "500.00");
           assert.equal(detail.body.shipment.internalNote, "Nexora-owned");
           assert.ok(detail.body.shipment.customerId);

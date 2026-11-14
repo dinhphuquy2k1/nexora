@@ -8,11 +8,11 @@ Verification: PARTIALLY VERIFIED
 
 Task ID: NEXORA-050
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-13-shipment-core-v2
-Reviewed baseline: 055dfccb5f7feae36af41209fd6380916081f711
+Plan revision: rev-2026-11-14-shipment-core-v3
+Reviewed baseline: 919d69df3d5f77f891a7d8223ac178666889f1ca
 Branch: feat/shipment-backend-core
-Design Snapshot: docs/tasks/design-reviews/NEXORA-050-rev-2026-11-13-shipment-core-v2.md
-Design SHA-256: a9efc763f6c85ae1aa0d40aaea405a5c8394532261e0173c604cdc8b2395c0b4
+Design Snapshot: docs/tasks/design-reviews/NEXORA-050-rev-2026-11-14-shipment-core-v3.md
+Design SHA-256: 7af6fa100910a7f028750afebb64208b36353a9a154f92d1b15492c581772078
 
 The immutable snapshot records the complete read-only inspection, eight-field reuse
 audit, twelve-section SIGNIFICANT design, DDD contracts, alternatives, security,
@@ -49,9 +49,9 @@ compatibility and test-first plan. No live provider or production registration.
 - [x] Sync idempotency, version/lease/generation fencing and rollback.
 - [x] Worker SQL permissions and unchanged Nexora-owned fields.
 - [x] Three scoped GET APIs and generated contract parity.
-- [x] Canonical local and Docker verification (local checks plus hosted canonical Docker; local Docker ENOSPC retained below).
-- [x] Independent review: no unresolved blocking P1/P2.
-- [x] Final-head hosted Preflight and Foundation (82d17dc implementation checkpoint; fresh documentation-head gates recorded in PR #47).
+- [ ] Canonical v3 verification (local proofs below; fresh hosted Docker result maintained in PR #47).
+- [x] Independent review: v3 prefix P2 corrected; no unresolved P1/P2/P3 in independent review.
+- [ ] Final-head hosted Preflight and Foundation for v3 (prior green heads remain historical).
 - [ ] Owner review and merge decision.
 
 ## Documentation Impact
@@ -299,10 +299,11 @@ M docs/architecture/reusable-components.md
 M docs/architecture/sync-extensions.md
 M docs/domains/shipments.md
 M docs/operations/testing.md
-A docs/tasks/active/NEXORA-050-shipment-backend-core.md
 R094 docs/tasks/active/NEXORA-049-shipment-domain-design.md docs/tasks/completed/NEXORA-049-shipment-domain-design.md
+A docs/tasks/active/NEXORA-050-shipment-backend-core.md
 A docs/tasks/design-reviews/NEXORA-050-rev-2026-11-13-shipment-core-v1.md
 A docs/tasks/design-reviews/NEXORA-050-rev-2026-11-13-shipment-core-v2.md
+A docs/tasks/design-reviews/NEXORA-050-rev-2026-11-14-shipment-core-v3.md
 M eslint.config.mjs
 A packages/database/prisma/migrations/20261113000000_shipment_core/migration.sql
 M packages/database/prisma/schema.prisma
@@ -368,3 +369,71 @@ checks the original HEAD; both attempt results must be preserved.
 | Hosted corrected-head governance and Sync | Preflight https://github.com/dinhphuquy2k1/nexora/actions/runs/43552959524 completed2026-11-14T03:42:19Z; Sync Targeted https://github.com/dinhphuquy2k1/nexora/actions/runs/43552959499 completed2026-11-14T03:44:16Z; same82d17dc HEAD | 2026-11-14 | PASS |
 
 This final evidence-only commit requires fresh hosted gates on its own HEAD. Their exact SHA, run IDs and conclusions are maintained in PR #47 without another SHA-only documentation commit. Owner review/merge remains pending; no merge or production activation is authorized here.
+
+## Review delta v3 — internal Shipment code prefix
+
+Review https://github.com/dinhphuquy2k1/nexora/pull/47#pullrequestreview-5901710642
+confirmed one P2: the internally consistent VD implementation differs from the
+currently requested SHP000001 convention. V2 explicitly recorded VD as an
+implementation decision, not an owner approval. Preserve that historical statement
+and immutable v1/v2 bytes. V3 supersedes only the prefix; previous final-green
+919d69d and its runs remain historical evidence. No new task/PR or approval claim.
+
+The pre-code impact matrix, exact paths, eight-field reuse audit, migration safety
+gate and RED/GREEN/concurrency/role/HTTP verification matrix are recorded in v3.
+The migration is new/unmerged (PR open; absent from origin/main055dfcc). Only owned
+disposable test databases may apply it or manipulate their sequence. Stop if any
+persistent applied deployment is discovered. No production data or user volumes.
+
+Current plan delta before implementation: add SHP format/hydration regressions and
+real sequence allocation/permission/HTTP assertions; demonstrate RED; change only
+the generator prefix and hydration regex; correct conflicting current shipments.md
+and database.md; execute targeted/canonical tests, independent review, push and
+require fresh final-head hosted gates. Keep sequence/function/default, UNIQUE,
+source matching, fees/history, grants, API/schema/SDK and production registry intact.
+
+Documentation Impact remains REQUIRED. Changed facts for v3: SHP internal codes,
+minimum-six-digit global PostgreSQL allocation with allowed gaps; tracking/source
+identities remain independent. Canonical delta owners: docs/domains/shipments.md
+and docs/architecture/database.md. No ADR011 architectural change.
+
+## V3 verification checkpoint — 2026-11-14
+
+All local rows below execute against working tree on
+919d69df3d5f77f891a7d8223ac178666889f1ca with the recorded v3 prefix correction,
+not the unchanged v2 source. Times are UTC. Host PostgreSQL17.11 Alpine is a
+fast-loop proof, separate from canonical Bookworm Docker. Private synthetic
+credentials/token were supplied only to label/ID-verified owned disposable
+infrastructure; source suites create/migrate/drop their own databases. No user
+volume, shared credential or real deployment was modified. Container/anonymous
+volume and unused task-pulled image were removed after all DB suites completed.
+
+| Claim                                   | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                     | Date       | Result |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Domain prefix RED                       | node --test apps/api/test/shipment/domain.test.cjs before production change; 8 tests,5 PASS/3 FAIL: valid SHP hydration rejected by VD regex; log last-write UTC 2026-11-14T04:51:24.204331+00:00 (original command start not retained)                                                                                                                                                                                                      | 2026-11-14 | FAIL   |
+| Database prefix RED                     | node /tmp/nexora050-sql-run.cjs; native node --test packages/database/test/shipment-sql.mjs before generator change;1 FAIL: actual VD000001, expected SHP000001; log last-write UTC 2026-11-14T04:52:12.846275+00:00 (original command start not retained)                                                                                                                                                                                   | 2026-11-14 | FAIL   |
+| shipment-sql                            | node /tmp/nexora050-sql-run.cjs; 2026-11-14T04:53:12.131556+00:00–2026-11-14T04:53:41.822090+00:00; exit0; Native SQL1/1 PASS; fresh SHP000001, next000002/000003, eight distinct concurrent nexora_sync clients/codes across owners/providers, duplicate tracking allowed, UNIQUE23505,999999/1000000 boundary; worker-only sequence/function and actual42501 business/code denials; repeat grants                                          | 2026-11-14 | PASS   |
+| shipment-worker                         | node /tmp/nexora050-worker-run.cjs; 2026-11-14T04:53:41.825794+00:00–2026-11-14T04:54:12.937393+00:00; exit0; Genuine Sync engine as authenticated nexora_sync plus real Nest HTTP15/15 PASS; list/detail generated SHP equality, owner isolation, source/version/fence/fee/history/rollback intact                                                                                                                                          | 2026-11-14 | PASS   |
+| migrations                              | npx --yes pnpm@10.34.6 --filter @nexora/database test:migrations; 2026-11-14T04:54:12.938698+00:00–2026-11-14T04:55:05.884256+00:00; exit0; Forward deploy/repeat/zero drift and legacy Customer/Sync preservation PASS, unchanged harness                                                                                                                                                                                                   | 2026-11-14 | PASS   |
+| sync-integration                        | npx --yes pnpm@10.34.6 --filter @nexora/api exec node --test integration/sync-integration.test.cjs; 2026-11-14T04:55:05.886861+00:00–2026-11-14T04:57:42.755611+00:00; exit0; Existing genuine Sync53/53 PASS, including six-table provider-length parity and concurrency/lease/retention/HTTP                                                                                                                                               | 2026-11-14 | PASS   |
+| shipment-fast                           | node --test apps/api/test/shipment/binding.test.cjs apps/api/test/shipment/contracts.test.cjs apps/api/test/shipment/domain.test.cjs apps/api/test/shipment/read.test.cjs; 2026-11-14T04:57:42.758568+00:00–2026-11-14T04:57:43.475466+00:00; exit0; Shipment unit/read/contracts/lifecycle12/12 PASS; new Domain8/8 includes full-state hydration, exact code bounds, VD/malformed/whitespace rejection and provider-code mass assignment   | 2026-11-14 | PASS   |
+| contracts-check                         | npx --yes pnpm@10.34.6 contracts:check; 2026-11-14T04:57:43.475869+00:00–2026-11-14T04:57:52.771498+00:00; exit0; Generated OpenAPI/SDK reproducibility PASS; no generated contract change                                                                                                                                                                                                                                                   | 2026-11-14 | PASS   |
+| format:check                            | npx --yes pnpm@10.34.6 format:check; 2026-11-14T04:53:57.974603+00:00–2026-11-14T04:54:24.796665+00:00; exit0                                                                                                                                                                                                                                                                                                                                | 2026-11-14 | PASS   |
+| docs:check                              | npx --yes pnpm@10.34.6 docs:check; 2026-11-14T04:54:24.799214+00:00–2026-11-14T04:54:27.525050+00:00; exit0                                                                                                                                                                                                                                                                                                                                  | 2026-11-14 | PASS   |
+| preflight:check                         | npx --yes pnpm@10.34.6 preflight:check; 2026-11-14T04:54:27.528622+00:00–2026-11-14T04:54:30.783942+00:00; exit0                                                                                                                                                                                                                                                                                                                             | 2026-11-14 | PASS   |
+| lint                                    | npx --yes pnpm@10.34.6 lint; 2026-11-14T04:54:30.788028+00:00–2026-11-14T04:54:54.987455+00:00; exit0                                                                                                                                                                                                                                                                                                                                        | 2026-11-14 | PASS   |
+| test:lint                               | npx --yes pnpm@10.34.6 test:lint; 2026-11-14T04:54:54.990992+00:00–2026-11-14T04:55:07.755456+00:00; exit0                                                                                                                                                                                                                                                                                                                                   | 2026-11-14 | PASS   |
+| test:docs                               | npx --yes pnpm@10.34.6 test:docs; 2026-11-14T04:55:07.756040+00:00–2026-11-14T04:55:11.072016+00:00; exit0                                                                                                                                                                                                                                                                                                                                   | 2026-11-14 | PASS   |
+| test:preflight                          | npx --yes pnpm@10.34.6 test:preflight; 2026-11-14T04:55:11.073244+00:00–2026-11-14T04:55:13.989411+00:00; exit0                                                                                                                                                                                                                                                                                                                              | 2026-11-14 | PASS   |
+| boundaries                              | node scripts/boundaries.mjs; 2026-11-14T04:55:13.992002+00:00–2026-11-14T04:55:15.154393+00:00; exit0                                                                                                                                                                                                                                                                                                                                        | 2026-11-14 | PASS   |
+| Canonical local Docker environment FAIL | COMPOSE_PROJECT_NAME=nexora050-prefix-c40d059c sh scripts/quality-docker.sh; 2026-11-14T04:57:59.329026+00:00–2026-11-14T04:58:44.217953+00:00; exit1: failed to register layer: mkdir /usr/share/perl/5.36.0/ExtUtils/MakeMaker: no space left on device (rootless VFS7.9GB); image extraction failed, application assertions NOT RUN; no retry or timeout/assertion change                                                                 | 2026-11-14 | FAIL   |
+| Independent v3 code review              | Read-only independent agent shipment_prefix_review, observed2026-11-14T04:54:10Z:0 confirmed P1/P2/P3; independently node --test apps/api/test/shipment/domain.test.cjs8/8 PASS and git diff --check PASS; checked only two production literal changes, unmodified schema/grants/API/fences and original snapshot bytes; hosted readiness still pending                                                                                      | 2026-11-14 | PASS   |
+| Snapshot integrity and binding          | sha256sum: v1 632298b8bbc2f3a1a12e9131141e1eb9304137dec485cb95e212115f91f4239e; v2 a9efc763f6c85ae1aa0d40aaea405a5c8394532261e0173c604cdc8b2395c0b4; v3 7af6fa100910a7f028750afebb64208b36353a9a154f92d1b15492c581772078; v3 formatted before raw hashing; validatePrTaskBinding with five v3 fields valid:true, failures:[], observed2026-11-14T05:02:50.603656+00:00                                                                       | 2026-11-14 | PASS   |
+| Host repository quality                 | taskset -c 0 env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality; 2026-11-14T04:59:04.469877+00:00–2026-11-14T05:03:06.848642+00:00; exit0; scripts137/API212/Web266/UI36/Database6 tests PASS (tests executed, no cached tests); typecheck10/10, test pipeline8/8, build4/4, contracts PASS; cached build/typecheck tasks explicitly distinct from executed tests; no repository runner/deadline change | 2026-11-14 | PASS   |
+
+Fresh final-head v3 hosted gates are pending at this pre-push task checkpoint.
+The exact final SHA, checkout merge SHA, workflow IDs/attempts/UTC conclusions
+will be recorded in PR47 after execution, without another SHA-only task commit.
+Unchecked hosted/canonical markers above reflect this checkpoint; the PR's final
+provenance is authoritative for subsequent final-head CI availability. Owner review
+and merge remain pending; no approval, merge, deploy or capability activation.

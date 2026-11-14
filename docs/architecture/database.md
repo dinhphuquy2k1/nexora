@@ -406,7 +406,9 @@ The NEXORA-049 design did not change runtime state; NEXORA-050 adds only Shipmen
 ## Shipment core persistence — NEXORA-050
 
 Shipment, ShipmentCharge and ShipmentStageHistory use mapped snake_case tables,
-Timestamptz(3), scalar VARCHAR plus exact CHECKs, DB UUIDs and VD sequence codes.
+Timestamptz(3), scalar VARCHAR plus exact CHECKs, DB UUIDs and SHP sequence codes (SHP000001, minimum six digits without truncation).
+shipment_code_seq/next_shipment_code() remain global per instance; gaps are allowed
+and allocation never resets per owner/provider/calendar.
 Source FK is unique nullable RESTRICT; connection SET NULL, Customer RESTRICT;
 tracking is nonunique. Charges use unique shipment/line_no, history uses unique
 shipment/source_version/processor_version; history versions are NOT NULL.

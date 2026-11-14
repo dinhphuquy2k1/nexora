@@ -34,7 +34,7 @@ const prepare = (existing, input, stage) => {
   const root = ShipmentAggregate.hydrate({
     ...draft.snapshot(),
     id: "22222222-2222-2222-2222-222222222222",
-    code: "VD000001",
+    code: "SHP000001",
   });
   root.applyProvider(input, stage);
   return root;
@@ -169,7 +169,7 @@ test("actual root and Charge children preserve identity, ownership and hydrated 
   const stored = {
     ...created.snapshot(),
     id: "22222222-2222-2222-2222-222222222222",
-    code: "VD000001",
+    code: "SHP000001",
     customerId: "33333333-3333-3333-3333-333333333333",
     internalNote: "human",
     charges: [
@@ -228,4 +228,53 @@ test("typed normalized provider input keeps explicit complete marker and owns a 
       input({ charges: { complete: false, lines: [] } }),
     ),
   );
+});
+
+test("Shipment hydration requires SHP and at least six digits, preserving the full stored snapshot", () => {
+  const created = ShipmentAggregate.create(
+    scope(ownerId),
+    input({
+      totalAmount: "500.00",
+      totalCurrency: "CNY",
+      charges: { complete: true, lines: [line()] },
+    }),
+    S.UNKNOWN,
+  );
+  const stored = {
+    ...created.snapshot(),
+    id: "22222222-2222-2222-2222-222222222222",
+    customerId: "33333333-3333-3333-3333-333333333333",
+    internalNote: "Nexora-owned",
+    code: "SHP000001",
+  };
+  for (const code of [
+    "SHP000001",
+    "SHP000002",
+    "SHP000123",
+    "SHP999999",
+    "SHP1000000",
+  ]) {
+    const state = { ...stored, code };
+    assert.deepEqual(ShipmentAggregate.hydrate(state).snapshot(), state);
+  }
+  for (const code of [
+    "VD000001",
+    "SHP00001",
+    "SHP000001X",
+    "",
+    "SHP",
+    "shp000001",
+    "SHP-000001",
+    "SHP000 001",
+    " SHP000001",
+    "SHP000001 ",
+    "SHP000001\n",
+    "SHP000001\r",
+    "SHP000001\u2028",
+    "SHP000001\u2029",
+    null,
+    1,
+  ])
+    invalid(() => ShipmentAggregate.hydrate({ ...stored, code }));
+  invalid(() => created.applyProvider(input({ code: "SHP000123" }), S.UNKNOWN));
 });

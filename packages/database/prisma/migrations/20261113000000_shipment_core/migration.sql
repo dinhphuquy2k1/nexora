@@ -2,7 +2,7 @@ BEGIN;
 CREATE SEQUENCE shipment_code_seq AS BIGINT START WITH 1 NO CYCLE;
 CREATE FUNCTION next_shipment_code() RETURNS TEXT LANGUAGE SQL VOLATILE AS $$
  WITH n AS MATERIALIZED (SELECT nextval('public.shipment_code_seq')::text AS value)
- SELECT 'VD' || lpad(value, greatest(6, length(value)), '0') FROM n
+ SELECT 'SHP' || lpad(value, greatest(6, length(value)), '0') FROM n
 $$;
 REVOKE ALL ON FUNCTION next_shipment_code() FROM PUBLIC;
 CREATE TABLE shipments (

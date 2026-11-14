@@ -112,7 +112,7 @@ module.exports.verifyShipmentSchema = async (db) => {
     u.id,
   );
   assert.notEqual(a[0].id, b[0].id);
-  assert.match(a[0].code, /^VD\d{6,}$/);
+  assert.match(a[0].code, /^SHP\d{6,}$/);
   assert.equal(a[0].customer_id, null);
   for (const stage of Object.values(LogisticsStage))
     await db.$executeRawUnsafe(

@@ -396,7 +396,7 @@ export class ShipmentAggregate {
       !isUuid(snapshot.id) ||
       !isUuid(snapshot.ownerUserId) ||
       typeof snapshot.code !== "string" ||
-      !/^VD\d{6,}$/.test(snapshot.code) ||
+      !/^SHP\d{6,}$/.test(snapshot.code) ||
       !Object.values(LogisticsStage).includes(snapshot.logisticsStage) ||
       snapshot.shipmentKind !== ShipmentKind.RETAIL_PARCEL
     )

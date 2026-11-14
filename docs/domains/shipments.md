@@ -125,14 +125,14 @@ string per the API contract. The forward migration 20261113000000_shipment_core 
 
 ### shipments
 
-| Group / authority          | Columns and constraints                                                                                                                                                                                                                             |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Identity/ownership         | id; owner_user_id; code UNIQUE, database-generated using shipment_code_seq/next_shipment_code(), VD plus at least six digits; source_identity_id UUID UNIQUE NULL FK RESTRICT; carrier_connection_id NULL FK SET NULL; provider NULL; shipment_kind |
-| Provider-owned parcel data | tracking_code (not UNIQUE); origin_warehouse; service_level; weight_kg NUMERIC(10,3); package_count; item_count                                                                                                                                     |
-| Provider-owned money       | declared_value + declared_currency; total_amount + total_currency; exchange_rate NUMERIC(18,6) + exchange_rate_at                                                                                                                                   |
-| Provider-owned lifecycle   | provider_status; logistics_stage; provider_claim_status; provider_updated_at; last_synced_at                                                                                                                                                        |
-| Nexora-owned business data | customer_id NULL FK RESTRICT; assignee_user_id NULL; internal_note; updated_by_user_id                                                                                                                                                              |
-| Database metadata          | created_at; updated_at                                                                                                                                                                                                                              |
+| Group / authority          | Columns and constraints                                                                                                                                                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity/ownership         | id; owner_user_id; code UNIQUE, database-generated using shipment_code_seq/next_shipment_code(), SHP plus at least six digits; source_identity_id UUID UNIQUE NULL FK RESTRICT; carrier_connection_id NULL FK SET NULL; provider NULL; shipment_kind |
+| Provider-owned parcel data | tracking_code (not UNIQUE); origin_warehouse; service_level; weight_kg NUMERIC(10,3); package_count; item_count                                                                                                                                      |
+| Provider-owned money       | declared_value + declared_currency; total_amount + total_currency; exchange_rate NUMERIC(18,6) + exchange_rate_at                                                                                                                                    |
+| Provider-owned lifecycle   | provider_status; logistics_stage; provider_claim_status; provider_updated_at; last_synced_at                                                                                                                                                         |
+| Nexora-owned business data | customer_id NULL FK RESTRICT; assignee_user_id NULL; internal_note; updated_by_user_id                                                                                                                                                               |
+| Database metadata          | created_at; updated_at                                                                                                                                                                                                                               |
 
 `provider` uses Carrier's provider contract, including its current length source;
 Shipment vocabulary lives in the new domain shared leaf, not repeated literals.
@@ -308,10 +308,17 @@ aggregate save, bulk delete/reinsert, money conversion or total recomputation.
 Amounts are decimal strings validated against precision/scale before PostgreSQL
 can round. Charge labels do not establish unverified provider meanings.
 
-The recorded core code decision is `VD000001` (at least six sequence digits),
+The current core code convention is `SHP000001` (at least six sequence digits),
 `shipment_code_seq` and `next_shipment_code()`, following the Customer pattern.
-This describes the implementation plan; delivered schema/runtime status above
-is separate from verification evidence in the active task.
+PostgreSQL generates this internal business identifier from one global sequence
+per Nexora instance: 1 → SHP000001, 123 → SHP000123, 999999 → SHP999999 and
+1000000 → SHP1000000. Six digits is a minimum width, not a maximum. Allocation
+never resets per date, owner, carrier or account; rollback/consumption gaps are
+acceptable, so numbering is not gapless. Database UNIQUE protects code identity.
+Provider payloads cannot assign/mutate code. External tracking_code may repeat,
+and Sync matches source_identity_id, never this internal code.
+V3 supersedes v2's historical VD implementation decision; verification evidence
+and immutable historical snapshots remain in the active task.
 
 Provider-only creation takes a separate trusted owner/source/provider/connection
 scope. Root ID/code remain unassigned until DB persistence. Hydration loads the
