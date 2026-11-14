@@ -85,6 +85,7 @@ export function RetailPackageListPage({
   const read = useShipmentList(query, api, !invalid);
   const data = read.data;
   const unavailable = !data;
+  const stats = read.stats;
   const [visibility, setVisibility] = useState<ColumnVisibility>(
       DEFAULT_COLUMN_VISIBILITY,
     ),
@@ -178,10 +179,10 @@ export function RetailPackageListPage({
   const page = data?.pagination.page ?? query.page;
   const counts = Object.fromEntries(
     STATUS_TABS.map((tab) => {
-      if (!data || tab.key === "disputed") return [tab.key, undefined];
-      if (tab.key === "all") return [tab.key, data.stats.total];
+      if (!stats || tab.key === "disputed") return [tab.key, undefined];
+      if (tab.key === "all") return [tab.key, stats.total];
       const stage = tabToStage(tab.key);
-      return [tab.key, stage ? data.stats.byStage[stage] : undefined];
+      return [tab.key, stage ? stats.byStage[stage] : undefined];
     }),
   ) as Record<RetailTabKey, number | undefined>;
   return (
@@ -235,18 +236,19 @@ export function RetailPackageListPage({
             renderTrailing={(item, { active }) => (
               <TabCountBadge
                 value={counts[item.id]}
+                className={styles.tabCount}
                 active={active}
                 title={
                   item.id === "disputed"
                     ? "Chưa hỗ trợ"
-                    : unavailable
+                    : !stats
                       ? "Chưa có dữ liệu"
                       : undefined
                 }
                 srText={
                   item.id === "disputed"
                     ? "Chưa hỗ trợ"
-                    : unavailable
+                    : !stats
                       ? "chưa có dữ liệu"
                       : undefined
                 }
@@ -355,11 +357,6 @@ export function RetailPackageListPage({
         role="tabpanel"
         aria-labelledby={`retail-tab-${query.status}`}
       >
-        {read.loading && (
-          <p className={styles.availabilityNotice} role="status">
-            Đang tải danh sách kiện lẻ…
-          </p>
-        )}
         {read.error && (
           <p className={styles.availabilityNotice} role="alert">
             {read.error.message}{" "}
@@ -385,13 +382,9 @@ export function RetailPackageListPage({
           visibleColumns={visibleColumns(visibility)}
           onDetail={(row) => setDetail(row.id)}
           unavailable={unavailable}
-          emptyMessage={
-            read.loading
-              ? "Đang tải danh sách kiện lẻ…"
-              : data
-                ? "Chưa có kiện nào được đồng bộ."
-                : "—"
-          }
+          loading={read.loading}
+          failed={!!read.error}
+          emptyMessage={data ? "Chưa có kiện nào được đồng bộ." : "—"}
         />
         <RetailPagination
           page={page}

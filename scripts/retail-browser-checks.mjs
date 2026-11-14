@@ -317,6 +317,26 @@ export async function verifyRetailBrowser({
     await until(
       "!!document.querySelector('[data-retail-fixture]')&&document.querySelector('[data-retail-count]').textContent==='30 kiện lẻ'",
     );
+    // Owner-requested v2: inspect actual header stacking before claiming its cause.
+    const trackingHeader = await evaluate(`(()=>{
+      const tracking=document.querySelector('th[data-column="trackingCode"]');
+      const ordinary=document.querySelector('th[data-column="productName"]');
+      const inspect=e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return{shadow:s.boxShadow,border:s.borderBottom,outline:s.outline,position:s.position,zIndex:s.zIndex,background:s.backgroundColor,x:r.x,y:r.y,width:r.width,height:r.height}};
+      return{tracking:inspect(tracking),ordinary:inspect(ordinary)};
+    })()`);
+    console.log(
+      "RETAIL_TRACKING_HEADER_COMPUTED",
+      JSON.stringify(trackingHeader),
+    );
+    assert.equal(
+      trackingHeader.tracking.shadow,
+      "none",
+      "sticky header must not cast an independent bottom shadow",
+    );
+    assert.equal(
+      trackingHeader.tracking.border,
+      trackingHeader.ordinary.border,
+    );
     await snapshot("all");
     checks.step("RETAIL_SEVEN_TABS_AND_HISTORY");
     const expectedIconColors = {

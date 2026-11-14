@@ -8,11 +8,11 @@ Verification: PARTIALLY VERIFIED
 
 Task ID: NEXORA-052
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-14-retail-shipment-ui-v1
-Reviewed baseline: 08da36dc3599c3af7a4656a12630d978fa7c2fb4
+Plan revision: rev-2026-11-14-retail-shipment-ui-v2
+Reviewed baseline: 6a30e82f9ae4deda310901c478d7b0a4fdcb9f8e
 Branch: feat/retail-shipment-ui
-Design Snapshot: docs/tasks/design-reviews/NEXORA-052-rev-2026-11-14-retail-shipment-ui-v1.md
-Design SHA-256: 7d73314ad6ed82d8f17fba460eb05231a91d9ef5d686bf15ce3c135b4c752174
+Design Snapshot: docs/tasks/design-reviews/NEXORA-052-rev-2026-11-14-retail-shipment-ui-v2.md
+Design SHA-256: 543f1fa916c7ad09c9fa4e1d110fffe6cf0e73f46128e78b526fbdc182c06501
 
 ## 2. Requirements and scope
 
@@ -383,3 +383,14 @@ The refined local browser run overwrote the local working capture directory; the
 | hosted-failure-local-throttled | `node /tmp/nexora052-retail-throttled.mjs`; helper working tree on 6655f6a72af95d96874c1b18450b2bd408eac74a; UTC 2026-11-14T14:10:56.375186+00:00–2026-11-14T14:11:39.612310+00:00; exit0                                                | 2026-11-14 | PASS   |
 | browser-refined-ready          | `node /tmp/nexora052-retail-browser-run.mjs`; helper working tree on 6655f6a72af95d96874c1b18450b2bd408eac74a; UTC 2026-11-14T14:15:45.777169+00:00–2026-11-14T14:16:10.522975+00:00; exit0                                              | 2026-11-14 | PASS   |
 | helper-refinement-quality      | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; helper working tree on 6655f6a72af95d96874c1b18450b2bd408eac74a; UTC 2026-11-14T14:16:24.187914+00:00–2026-11-14T14:19:05.467240+00:00; exit0 | 2026-11-14 | PASS   |
+
+## Owner-requested v2 visual refinement
+
+The v2 snapshot supersedes v1 for five-row table/mobile loading skeletons, scope-compatible backend count retention and stable badges, and browser-confirmed tracking-header shadow correction. The v1 snapshot remains byte-identical (SHA-256 7d73314ad6ed82d8f17fba460eb05231a91d9ef5d686bf15ce3c135b4c752174). All earlier evidence and failures remain historical. Verification is pending.
+
+### V2 checkpoint before Chromium root-cause confirmation
+
+Baseline HEAD: 6a30e82f9ae4deda310901c478d7b0a4fdcb9f8e. Working-tree runs on 2026-11-14 UTC:
+Frozen install PASS. Initial SSR/hook and fixture build attempts FAIL because Shared dist was not built; corrected with `npx --yes pnpm@10.34.6 --filter @nexora/shared build` PASS. Re-run RED: three new assertions FAIL (zero skeleton rows, wrong cell count, missing retained statistics); remaining existing assertions PASS. After implementation, targeted Retail Shipment UI/model/API, retail-packages, Customer presentation/read-state and shared TabBar:75/75 PASS. New loading rows/cards are decorative, registry-driven, with one hidden status and reduced-motion CSS. Stats retain only scope-compatible accepted backend values; changing q/API or unsafe/denied/disabled read clears them. Owner changes remount the protected page; workspace session boundary remains unchanged.
+
+Local Chromium attempts FAIL before navigation: native `socket() failed: Operation not permitted` in process_singleton_posix.cc. Both canonical launcher and direct binary fail; no geometry, screenshot review or CSS-root-cause PASS is claimed. Docker executable is unavailable, so canonical Docker quality is NOT RUN locally. The header production CSS remains unchanged at this checkpoint. A real Chromium computed-style regression was added to the existing harness to record header/body comparison and demonstrate the header shadow problem in hosted execution before correcting it. New hosted evidence is pending; this checkpoint is not merge-ready.

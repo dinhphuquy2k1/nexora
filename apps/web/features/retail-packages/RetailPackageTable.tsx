@@ -90,27 +90,39 @@ export function RetailPackageTable({
   onDetail,
   unavailable,
   emptyMessage: message,
+  loading = false,
+  failed = false,
 }: {
   paginated: readonly RetailRow[];
   visibleColumns: readonly ColumnConfig[];
   onDetail: (p: RetailRow) => void;
   unavailable: boolean;
   emptyMessage?: string;
+  loading?: boolean;
+  failed?: boolean;
 }) {
   const emptyMessage =
     message ??
     (unavailable
       ? "Dữ liệu kiện lẻ chưa khả dụng từ máy chủ."
       : "Chưa có kiện nào được đồng bộ.");
+  const skeleton = loading && paginated.length === 0;
   const minTableWidth = visibleColumns.reduce((n, c) => n + c.width, 0);
   return (
     <>
+      {loading && (
+        <span role="status" className={styles.srOnly}>
+          Đang tải danh sách kiện lẻ…
+        </span>
+      )}
       {/* Desktop table */}
       <div className={styles.tableScroll}>
         <table
           style={{ width: "100%", minWidth: minTableWidth }}
           className={styles.table}
           aria-label="Danh sách kiện lẻ TMĐT"
+          aria-busy={loading}
+          data-stale={paginated.length > 0 && (loading || failed)}
         >
           <colgroup>
             {visibleColumns.map((col) => (
@@ -140,7 +152,38 @@ export function RetailPackageTable({
             </tr>
           </thead>
           <tbody>
-            {paginated.length === 0 ? (
+            {skeleton ? (
+              Array.from({ length: 5 }, (_, index) => (
+                <tr
+                  key={index}
+                  className={`${styles.tableRow} ${styles.skeletonRow}`}
+                  data-skeleton="true"
+                  aria-hidden="true"
+                >
+                  {visibleColumns.map((col) => (
+                    <td
+                      key={col.id}
+                      data-column={col.id}
+                      className={
+                        col.id === "trackingCode"
+                          ? styles.stickyTracking
+                          : undefined
+                      }
+                    >
+                      <span
+                        className={styles.skeletonCell}
+                        data-placeholder={col.id}
+                      />
+                      {col.id === "trackingCode" && (
+                        <span
+                          className={`${styles.skeletonCell} ${styles.skeletonMeta}`}
+                        />
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : paginated.length === 0 ? (
               <tr>
                 <td
                   colSpan={visibleColumns.length}
@@ -438,8 +481,56 @@ export function RetailPackageTable({
       <div
         className={styles.mobileCards}
         aria-label="Danh sách kiện lẻ TMĐT (thẻ)"
+        aria-busy={loading}
+        data-stale={paginated.length > 0 && (loading || failed)}
       >
-        {paginated.length === 0 ? (
+        {skeleton ? (
+          Array.from({ length: 5 }, (_, index) => (
+            <div
+              key={index}
+              className={styles.mobileCard}
+              data-skeleton-card="true"
+              aria-hidden="true"
+            >
+              <div className={styles.mobileCardHeader}>
+                <span
+                  className={styles.skeletonCell}
+                  data-placeholder="trackingCode"
+                />
+                <span
+                  className={styles.skeletonCell}
+                  data-placeholder="status"
+                />
+              </div>
+              <p className={styles.mobileCardProduct}>
+                <span
+                  className={styles.skeletonCell}
+                  data-placeholder="productName"
+                />
+              </p>
+              <div className={styles.mobileCardMeta}>
+                <span
+                  className={styles.skeletonCell}
+                  data-placeholder="carrier"
+                />
+                <span
+                  className={styles.skeletonCell}
+                  data-placeholder="weightKg"
+                />
+                <span
+                  className={styles.skeletonCell}
+                  data-placeholder="packageCount"
+                />
+              </div>
+              <div className={styles.mobileCardAmount}>
+                <span
+                  className={styles.skeletonCell}
+                  data-placeholder="totalAmountVND"
+                />
+              </div>
+            </div>
+          ))
+        ) : paginated.length === 0 ? (
           <p
             style={{
               textAlign: "center",

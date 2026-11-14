@@ -251,3 +251,40 @@ for (const deniedFirst of [false, true])
     assert.equal(h.renderDetail("A").error.denied, true);
     h.unmount();
   });
+
+test("Shipment statistics retain across stage/page only, clear on changed scope and unsafe reads", async () => {
+  const requests = [];
+  const api = {
+    list: (query, signal) =>
+      new Promise((resolve, reject) =>
+        requests.push({ query, signal, resolve, reject }),
+      ),
+  };
+  const h = await hookHarness(api);
+  const q = { status: "all", search: "", page: 1, pageSize: 10, filters: [] };
+  const stats = { total: 100, byStage: { DELIVERED: 10 }, claims: null };
+  h.render(q);
+  requests[0].resolve({ shipments: [], stats });
+  await new Promise(setImmediate);
+  h.render(q); // capture the accepted statistics
+  assert.equal(h.render(q).stats.total, 100);
+  const next = { ...q, status: "delivered" };
+  assert.equal(h.render(next).data, undefined);
+  assert.equal(h.render(next).stats.total, 100);
+  assert.equal(h.render({ ...next, page: 2 }).stats.total, 100);
+  assert.equal(h.render({ ...next, search: "other" }).stats, undefined);
+  assert.equal(
+    h.render(q).stats,
+    undefined,
+    "leaving scope must invalidate old snapshots",
+  );
+  requests.at(-1).resolve({ shipments: [], stats: { ...stats, total: 0 } });
+  await new Promise(setImmediate);
+  h.render(q);
+  assert.equal(h.render(q).stats.total, 0, "confirmed zero is authoritative");
+  h.render(next);
+  requests.at(-1).reject(Error("MALFORMED_RESPONSE"));
+  await new Promise(setImmediate);
+  assert.equal(h.render(next).stats, undefined);
+  h.unmount();
+});

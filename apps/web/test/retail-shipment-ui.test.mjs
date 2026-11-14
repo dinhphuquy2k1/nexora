@@ -14,7 +14,7 @@ function loaded(name, state) {
       ),
       {
         exports: {
-          useShipmentList: () => state,
+          useShipmentList: () => ({ stats: state.data?.stats, ...state }),
           useShipmentDetail: () => state,
         },
       },
@@ -173,4 +173,57 @@ test("Retail list mobile card never renders '— kg' when weight is null", () =>
     }),
   );
   assert.doesNotMatch(html, /—\s*kg/);
+});
+
+test("Retail loading uses five semantic visible-column skeleton rows and mobile cards", () => {
+  const { RetailPackageListPage } = loaded("RetailPackageListPage", {
+    status: "loading",
+    loading: true,
+    refresh() {},
+  });
+  const html = render(React.createElement(RetailPackageListPage, { api: {} }));
+  assert.equal((html.match(/<tr[^>]*data-skeleton="true"/g) || []).length, 5);
+  assert.equal((html.match(/data-skeleton-card="true"/g) || []).length, 5);
+  assert.match(html, /<table[^>]*aria-busy="true"/);
+  assert.match(html, /<span role="status" class="[^"]*srOnly/);
+  assert.doesNotMatch(html, /<p[^>]*>Đang tải danh sách kiện lẻ/);
+  assert.doesNotMatch(html, /<td[^>]*>Đang tải/);
+  const rows = html.match(/<tr[^>]*data-skeleton="true"[\s\S]*?<\/tr>/g);
+  for (const row of rows) {
+    assert.match(row, /aria-hidden="true"/);
+    assert.equal((row.match(/<td/g) || []).length, 19);
+    assert.doesNotMatch(row, /data-column="carrier"/);
+  }
+  assert.equal((html.match(/<th /g) || []).length, 19);
+});
+
+test("Retail skeleton follows arbitrary visible-column order; retained rows remain pending", () => {
+  const { RetailPackageTable } = loaded("RetailPackageTable", {});
+  const columns = [
+    { id: "trackingCode", label: "MÃ VẬN ĐƠN", width: 150 },
+    { id: "status", label: "TRẠNG THÁI", width: 150 },
+  ];
+  const props = {
+    visibleColumns: columns,
+    onDetail() {},
+    unavailable: true,
+    loading: true,
+  };
+  const html = render(
+    React.createElement(RetailPackageTable, { ...props, paginated: [] }),
+  );
+  assert.equal((html.match(/<td /g) || []).length, 10);
+  assert.equal((html.match(/<col /g) || []).length, 2);
+  const { RetailPackageListPage } = loaded("RetailPackageListPage", {
+    data,
+    status: "loading",
+    loading: true,
+    refresh() {},
+  });
+  const retained = render(
+    React.createElement(RetailPackageListPage, { api: {} }),
+  );
+  assert.doesNotMatch(retained, /data-skeleton="true"/);
+  assert.match(retained, /data-stale="true"/);
+  assert.match(retained, /data-package-id=/);
 });
