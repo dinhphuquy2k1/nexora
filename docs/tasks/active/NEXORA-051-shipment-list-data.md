@@ -8,17 +8,17 @@ Verification: NOT VERIFIED
 
 Task ID: NEXORA-051
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-14-shipment-list-data-v1
+Plan revision: rev-2026-11-14-shipment-list-data-v2
 Reviewed baseline: e8d5821a370ff1d24424eef18ee6579084e7c943
 Branch: feat/shipment-list-data
-Design Snapshot: docs/tasks/design-reviews/NEXORA-051-rev-2026-11-14-shipment-list-data-v1.md
-Design SHA-256: 433036ffae144d65209201cedde2d8e87fe4a3e9ee00ea81a7f11d9f4278a5c5
+Design Snapshot: docs/tasks/design-reviews/NEXORA-051-rev-2026-11-14-shipment-list-data-v2.md
+Design SHA-256: a0540d2b5f0f486a508554b1b6ed938c1a90ff71fa6447a3d09a459da9b75935
 
 ## 2. Requirements and scope
 
-Deliver D1–D9 of the current owner request: provider-reported warehouse milestones,
+Deliver D1–D5 and D7–D9 of the current owner request (D6 withdrawn): provider-reported warehouse milestones,
 ordered parcel items and bounded Retail read summaries. Shipment remains the
-Aggregate Root, with provider-owned Charge/Milestone/Item children; stage history
+Aggregate Root, with provider-owned Charge/Milestone/Item children (including exact per-product value/currency); stage history
 remains an append-only separate observation. No columns added to shipments. No UI,
 Nexora write commands, provider adapter/registration, claims feature, advanced
 server filters, provider_attributes, trigram index, Customer/Carrier/Sync engine
@@ -48,10 +48,10 @@ is inferred; this task implements the owner's explicit selected storage contract
 | Existing implementations | packages/shared/src/shipment/index.ts; shipment/domain/shipment.ts shipmentRecord/text/date/DecimalValue/ShipmentCharge/create/hydrate/applyProvider; shipment.mapper.ts; shipment-sync-domain.binding.ts upsert/IS DISTINCT/delete-tail; shipment-provider.persistence.ts root timestamps; shipment.adapter.ts page/count/projections and actor lock; shipment DTO/controller/error map; database schema/migration/provision-runtime/native SQL/signed worker harness; genuine Shipment/Sync tests and exact schema oracle; vocabulary lint AST catalog |
 | Domain owner             | Shipment owns root/children/invariants and projection semantics; database package owns SQL/schema/grants; existing Sync engine owns authorization/version/lease transaction; Shared owns approved cross-package milestone codes; transport owns Swagger/SDK                                                                                                                                                                                                                                                                                              |
 | Reuse alternatives       | root columns for carrier-specific catalogues; milestones derived from history; root fee-summary columns; per-root queries/N+1; JSONB for visible columns; new generic child/launcher/validation framework; existing feature-local patterns                                                                                                                                                                                                                                                                                                               |
-| Selected approach        | Two forward child tables only; reuse strict feature parser and immutable child lifecycle, keyed provider upserts in existing fenced tx; FOR SHARE actor reads and unchanged actor FOR UPDATE writers; exactly3 page-id batch queries; common feature projection helpers for list/detail; existing error mapper/generators and signed real-PG harness                                                                                                                                                                                                     |
-| Rationale                | Preserve row identity, authority and exact values; compatible read locks improve concurrent reads while excluding writes; bounded queries avoid N+1; closed vocabulary gives exact physical parity; no speculative infrastructure                                                                                                                                                                                                                                                                                                                        |
-| Risks                    | partial collection writes, lost IDs, stale leases, widening grants, date inference, cross-owner reads, count inconsistency, hidden N+1, nullable/schema/SDK drift, repeat migration and legacy preservation, runtime migration counter                                                                                                                                                                                                                                                                                                                   |
-| Verification             | Six test-first groups: Domain; genuine schema/mutation/upgrade; actual role grants; real Sync child reconciliation/rollback; separate-connection actor-lock barriers with bounded polling; real HTTP/contract/query-count tests. Then pinned static/contracts/quality, independent SIGNIFICANT review and fresh final-head hosted gates                                                                                                                                                                                                                  |
+| Selected approach        | Two forward child tables only; reuse strict feature parser and immutable child lifecycle, keyed provider upserts in existing fenced tx; unchanged FOR UPDATE API actor reads excluding existing FOR SHARE worker locks; exactly3 page-id batch queries; common feature projection helpers for list/detail; existing error mapper/generators and signed real-PG harness                                                                                                                                                                                   |
+| Rationale                | Preserve row identity, authority and exact values; the existing read/write exclusion preserves coherent projections while worker jobs remain concurrent; bounded queries avoid N+1; closed vocabulary gives exact physical parity; no speculative infrastructure                                                                                                                                                                                                                                                                                         |
+| Risks                    | partial collection writes, lost IDs, stale leases, widening grants, date inference, cross-owner reads, count inconsistency if batches escape the locked transaction, accidental worker-concurrency changes, hidden N+1, item money-pair/precision/finite validation, nullable/schema/SDK drift, repeat migration and legacy preservation, runtime migration counter                                                                                                                                                                                      |
+| Verification             | Six test-first groups: Domain; genuine schema/mutation/upgrade; actual role grants; real Sync child reconciliation/rollback; separate-connection existing read/worker exclusion and concurrent-worker characterization with bounded polling; real HTTP/contract/query-count tests. Then pinned static/contracts/quality, independent SIGNIFICANT review and fresh final-head hosted gates                                                                                                                                                                |
 
 ## 5. Alternatives and trade-offs
 
@@ -99,7 +99,7 @@ New migration20261114000000_shipment_milestones_items, BEGIN/COMMIT, adds only:
   uq_shipment_milestones_code(shipment_id,milestone_code); exact validated
   chk_shipment_milestones_code with the4 canonical values.
 - shipment_items: DB UUID PK; same parent FK; line_no SMALLINT NOT NULL;
-  name VARCHAR512 NOT NULL; quantity INTEGER nullable; unique parent/line;
+  name VARCHAR512 NOT NULL; quantity INTEGER nullable; unit_value NUMERIC(18,2) and currency CHAR3 nullable as a validated nonnegative finite pair; unique parent/line;
   checks line_no>=1, length(btrim(name))>0, quantity NULL or>=0.
 
 No indexes beyond PK/UNIQUE, which cover shipment_id lookups. Add camelCase mapped
@@ -110,7 +110,7 @@ applies new migration, checks exact preservation, new children, repeat and drift
 
 API role SELECT only on both tables. Worker SELECT/DELETE plus column INSERT of
 shipment_id/key/payload; UPDATE payload only: milestone occurred_at/location_name/
-provider_label, item name/quantity. No id/parent/key UPDATE, no business-column
+provider_label, item name/quantity/unit_value/currency. No id/parent/key UPDATE, no business-column
 widening. Preserve repeat column ACL revocation/regrant and existing role flags.
 
 Binding reuses same findUniqueOrThrow with all children, and existing outer Sync
@@ -123,19 +123,24 @@ continue updating through unchanged persistShipmentProvider for child-only apply
 
 ## 8. Read locking, security and concurrency
 
-Every application write to shipments or its child tables first locks the owner's
-users row FOR UPDATE (existing Sync engine already does so). Shipment reads take
-FOR SHARE with ACTIVE recheck; preserve actor→source→root/children write ordering,
-owner resolver and ADMIN no-bypass. Replace only ShipmentAdapter transaction lock,
-with the requested shared actor-read comment. No network I/O under locks.
+Shipment API reads lock the owner's users row FOR UPDATE. The Sync worker locks it FOR SHARE through public.sync_lock_user() in shared authorization mode, so reads and worker writes exclude each other while worker jobs may run concurrently. Page, counts and child summaries are read inside that single locked transaction. Future Nexora write commands on shipments or child tables must lock the owner's users row FOR UPDATE. A REPEATABLE READ read snapshot may replace the exclusive read lock only after measured contention, in a separate task.
 
-This protocol stabilizes all page/count/batch statements in one READ COMMITTED
-read transaction while allowing same-owner reads concurrently. Prove with actual
-separate connections: two readers do not block; exclusive writer blocks reader,
-reader blocks exclusive writer; release barriers explicitly. Observe pg_blocking_pids
-with bounded deadline/async polling, never fixed sleeps. Disabled actor is rejected.
-No isolation-level or Customer lock change. Privileged fixture setup/catalog
-mutation is owned disposable test infrastructure, not a production write path.
+D6 is withdrawn. ShipmentAdapter.transaction is preserved byte-for-byte, including
+its ACTIVE recheck and FOR UPDATE query. All3 D7 child batch queries remain inside
+that same transaction with page/count. No Sync engine, function, existing migration,
+worker users privilege, lock upgrade or isolation-level change. No network under
+locks; preserve owner resolver and ADMIN no-bypass.
+
+Characterize the existing correct behavior in genuine PostgreSQL with separate
+connections, explicit barriers and bounded pg_blocking_pids polling, no fixed
+sleeps: (a) held sync_lock_user blocks a list read until commit; (b) held actual
+API read blocks sync_lock_user; (c) two same-user sync_lock_user transactions do
+not block each other; (d) inactive actor is rejected. These lock tests preserve
+existing behavior and should PASS on baseline, not manufacture a RED by changing
+the forbidden transaction function. New summary/HTTP behavior retains RED/GREEN.
+Isolate cases and settle all prior transactions/waiters in finally before the next
+case; lock-queue fairness must not turn a queued API UPDATE lock into a false
+worker-SHARE concurrency failure.
 
 ## 9. API, projection and compatibility matrix
 
@@ -187,11 +192,14 @@ require same-revision contract rollout; no existing route/auth/query shape chang
 4. Genuine Sync creation/reconciliation RED before child persistence, then GREEN
    for changed-only writes/xmin, omitted preserve, complete empty, invalid atomicity,
    child-only root timestamps, SQL failure and expired final lease rollback.
-5. Read/HTTP/lock RED against current exclusive lock, absent summaries and503;
-   implement shared lock and bounded projections/contracts. Real two-connection
-   barriers/lock polling; query counting or exact3-batch structural proof; HTTP
-   NONE/SINGLE/MULTIPLE, flags, null/reported milestones,0/1/many items, detail order,
-   ACTIVE/owner isolation and422. Existing tests remain except deliberate D9 status.
+5. Read/HTTP RED for absent summaries and503, then bounded projections/contracts
+   GREEN. Preserve ShipmentAdapter.transaction exactly. Characterize four genuine
+   existing-lock cases (worker SHARE blocks read UPDATE and reverse; two worker
+   SHARE transactions proceed; inactive user rejected) using distinct connections,
+   bounded waits/lock polling and explicit barriers without fixed sleeps. Keep all
+   three page-id summary queries inside the existing locked page/count transaction.
+   Verify page-size-independent query count, NONE/SINGLE/MULTIPLE, flags, nullable
+   milestones,0/1/many items, detail order, ACTIVE/owner isolation and422.
 6. Run Shipment units, genuine PostgreSQL integration including Shipment/Sync,
    native roles, migration harness; pinned format/lint/typecheck/contracts/docs/
    preflight/test:docs/test:preflight/test:lint, boundaries and quality where resources
@@ -208,14 +216,14 @@ require same-revision contract rollout; no existing route/auth/query shape chang
 ## 11. Plan readiness and Documentation Impact
 
 Read-only audit and this recorded scoped plan precede implementation; current
-owner request settles D1–D9 and storage placement. No invented GitHub approval or
+owner request settles D1–D5, D7–D9 and storage placement, and withdraws D6. No invented GitHub approval or
 new owner attestation is required. Format snapshot with Prettier3.6.2 before raw
 SHA-256; keep its bytes immutable and bind task/PR revision/path/digest. Material
 changes require a superseding plan before affected code, not silent scope growth.
 Execution/CI logs belong in task/PR compact Evidence, not this snapshot.
 
 Update ADR011 exact Storage placement rule; shipments.md two-table schema,
-three-collection authority, read contract,422 and shared/exclusive actor protocol;
+three-collection authority, read contract,422 and preserved exclusive API read/shared worker actor protocol;
 database.md schema/ACL/upgrade; api-contract.md DTO/status/lock changes;
 testing.md genuine/schema/permission/concurrency/query tests. Extend Uniship's7
 checks to10 (warehouse milestones/destination name, item list, services fee-vs-flags).
@@ -224,7 +232,7 @@ No official provider authorization or real code dictionaries are inferred.
 ## 12. PLAN ISSUES and deferred scope
 
 No unresolved architectural ownership issue: current owner request explicitly
-selects both child tables and shared read-lock protocol. Milestones are provider
+selects both child tables and withdraws D6, retaining the existing read/worker lock protocol. Milestones are provider
 reported, never history-derived. UI, Nexora writes, Uniship registration/adapter,
 claims feature, advanced filters, JSONB/trigram and Customer/Carrier/Sync engine
 changes remain excluded. Source Customer cardinality/storage and prior colour/FU2
@@ -245,7 +253,7 @@ facts to record honestly, not permission to weaken tests or touch real deploymen
 - [ ] Two forward child tables/constraints/parity/upgrade, no shipments columns.
 - [ ] Immutable validated children and authoritative collection reconciliation.
 - [ ] Restricted roles and fenced atomic Sync behavior.
-- [ ] Shared actor read locks and bounded consistent list/detail summaries.
+- [ ] Preserved API FOR UPDATE/worker FOR SHARE exclusion and bounded consistent list/detail summaries.
 - [ ] OpenAPI/SDK422 contract and canonical docs synchronized.
 - [ ] Local verification and independent review without blocking P1/P2.
 - [ ] Final-head hosted Preflight/Sync Targeted/Foundation.
@@ -257,7 +265,7 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
-Storage placement, two child tables, authoritative snapshots, scoped grants, shared actor-read locks, Retail summary/detail contracts,422 unavailable claims and verification procedures.
+Storage placement, two child tables, authoritative snapshots, scoped grants, preserved FOR UPDATE API reads/shared worker exclusion, Retail summary/detail contracts,422 unavailable claims and verification procedures.
 
 ### Canonical owners
 
@@ -276,3 +284,89 @@ Pinned format/docs/preflight, contracts generation/check and scoped review.
 | Claim                 | Evidence                                                                                                                                                                                                                                                                                                      | Date       | Result |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Baseline and ID audit | origin/main e8d5821a370ff1d24424eef18ee6579084e7c943; docs/tasks inventory and open PRs have no NEXORA-051; branch feat/shipment-list-data; first commit e6685b0 closes045 and fixes its two inbound links; node scripts/docs-check.mjs exit0; read-only baseline actor lock/timestamp behavior matches D5/D6 | 2026-11-14 | PASS   |
+
+## PLAN ISSUE — SHIPMENT_READ_WRITE_ACTOR_LOCK_MODE
+
+Resolved by owner decision: D6 withdrawn (plan v2).
+
+Historical stop: the baseline mismatch was found before production/test/migration
+changes. The owner now requires preserving API FOR UPDATE and worker FOR SHARE,
+with the consistency characterization cases described above. No Sync engine or
+privilege change is authorized. Historical inspection evidence below remains intact.
+
+The initial audit correctly identified ShipmentAdapter FOR UPDATE and unchanged
+root timestamp behavior, but did not trace restricted-worker authorization locks.
+Correction to that initial audit and immutable v1 section8 assumption:
+
+- apps/api/src/worker/sync-worker.module.ts:64–68 constructs SyncRepository with
+  authorizationLocks="shared" in production.
+- apps/api/src/sync/infrastructure/sync-job.repository.ts:79–85 selects
+  public.sync_lock_user() in that mode, even when connection() requests write mode.
+- Merged migration20261103000000_sync_read_locks/migration.sql:7 implements
+  sync_lock_user as SELECT users FOR SHARE, not FOR UPDATE.
+- The genuine Shipment integration fixture also explicitly selects "shared" at
+  lines155–166, so an exclusive/admin-only test would miss the production path.
+
+Current Shipment reads FOR UPDATE conflict with worker FOR SHARE. The withdrawn
+D6 proposal for API FOR SHARE was rejected because it permits worker writes to
+overlap page/count/child reads and invalidates the promised consistency.
+The requirement that all writers already hold users FOR UPDATE is false on the
+reviewed baseline. Resolving that protocol needs a revised authorized design/scope;
+current scope forbids Sync engine changes; the owner resolved this by withdrawing D6. Do not edit merged migrations, widen
+worker users UPDATE grants or add a late lock upgrade as a workaround.
+
+Immutable v1 bytes/digest remain preserved as the initially recorded plan; its
+incorrect existing-writer assumption is explicitly superseded by this finding,
+not silently rewritten. V1 is not an implementation plan for D6. Superseding v2 records the owner
+resolution before affected implementation; the transaction function remains unchanged.
+
+This is executed read-only source inspection, not a PostgreSQL concurrency test
+or independent approval. Domain/schema/permission/Sync/lock/HTTP RED/GREEN, full
+verification, PR binding and hosted CI are NOT RUN for NEXORA-051. Only baseline
+Shared/Database/API build prerequisites passed. Status remains IN PROGRESS,
+Capability PLANNED, Verification NOT VERIFIED.
+
+| Claim                           | Evidence                                                                                                                                                                                                                                                                                                                                                                                                           | Date       | Result |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Baseline writer-lock assumption | Independent read-only reviewer shipment_list_review and parent nl/rg inspection of the4 paths above; HEAD 69db22ae1ea56f48fd9ef18310c6b72e502c57f1 (production source unchanged from e8d5821a370ff1d24424eef18ee6579084e7c943); observed2026-11-14T08:18:15.498249+00:00 UTC; expected existing writer FOR UPDATE, actual production worker FOR SHARE. Source consistency assumption FAIL; no runtime test claimed | 2026-11-14 | FAIL   |
+| baseline-shared prerequisite    | npx --yes pnpm@10.34.6 --filter @nexora/shared build; HEAD 69db22ae1ea56f48fd9ef18310c6b72e502c57f1; 2026-11-14T08:13:55.177461+00:00–2026-11-14T08:13:58.894003+00:00 UTC; exit0; baseline build only, not feature verification                                                                                                                                                                                   | 2026-11-14 | PASS   |
+| baseline-database prerequisite  | npx --yes pnpm@10.34.6 --filter @nexora/database build; HEAD 69db22ae1ea56f48fd9ef18310c6b72e502c57f1; 2026-11-14T08:13:58.955368+00:00–2026-11-14T08:14:06.305186+00:00 UTC; exit0; baseline build only, not feature verification                                                                                                                                                                                 | 2026-11-14 | PASS   |
+| baseline-api prerequisite       | npx --yes pnpm@10.34.6 --filter @nexora/api build; HEAD 69db22ae1ea56f48fd9ef18310c6b72e502c57f1; 2026-11-14T08:14:06.345600+00:00–2026-11-14T08:14:12.606943+00:00 UTC; exit0; baseline build only, not feature verification                                                                                                                                                                                      | 2026-11-14 | PASS   |
+
+## Owner revision — D6 withdrawn
+
+Owner instruction resolves SHIPMENT_READ_WRITE_ACTOR_LOCK_MODE by preserving the
+existing exclusive API read lock and shared worker lock, retaining all D7 queries
+in that transaction. V2 preparation is underway; v1 bytes/digest remain immutable.
+The owner supplied the complete item-value/currency contract below; v2 includes it before implementation.
+
+### Item value/currency owner contract (v2 delta)
+
+Item unit_value is the carrier-reported declared value of one product unit,
+not shipment_charges.UNIT_PRICE (freight unit price) or shipments.declared_value
+(whole parcel declared value). Never multiply by quantity, sum or reconcile them.
+
+Add shipment_items.unit_value NUMERIC(18,2) NULL and currency CHAR(3) NULL;
+chk_shipment_items_value_pair requires both NULL or both present, \_value_finite
+rejects NaN, \_value_nonneg requires nonnegative, \_currency requires NULL or
+^[A-Z]{3}$. Prisma unitValue Decimal? @db.Decimal(18,2) @map("unit_value") and
+currency String? @db.Char(3). Worker INSERT/UPDATE payload also includes both
+columns, unchanged API SELECT-only and key/id/parent denial.
+
+items.lines allows only name,quantity,unitValue,currency. Missing/null unitValue
+means NULL; present uses existing DecimalValue.parse(18,2), then rejects a leading
+minus in its normalized result as weightKg does. Missing/null currency means NULL;
+present uses existing currency(). Both must be NULL together or present together.
+Reuse this same validation in ShipmentItem.from hydration. Provider upsert includes
+name,quantity,unit_value,currency in SET and IS DISTINCT comparison. No other money
+logic. List itemSummary remains firstName/lineCount without prices. Detail items
+include exact unit_value::text unitValue and nullable currency; DTO/OpenAPI/SDK
+reflect nullable exact strings, with the existing decimal no-arithmetic description.
+
+Additional RED/GREEN cases cover valid/missing/null pairs, lone values, negative,
+number inputs, precision/scale overflow, malformed currency; real SQL4 named
+constraints, actual worker INSERT/UPDATE and API denial; Sync add/change/clear pair
+and unchanged-row no-write; HTTP exact1234567890123456.78 and NULL. Schema fixture
+checks exact table/column/validated CHECK definitions for these4 non-vocabulary
+constraints as well as actual writes/mutation sensitivity. Uniship verification9
+includes per-product value and currency when supplied.

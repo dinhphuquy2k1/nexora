@@ -299,7 +299,7 @@ Nexora business write commands are later work.
 6. Official API access permission and allowed use/storage scope.
 7. Cancellation, return and exceptional flows.
 8. Warehouse milestones and destination warehouse name.
-9. The list of products/items in a parcel.
+9. The list of products/items in a parcel, including per-product value and currency when supplied.
 10. Whether the four services are fee rows or separate flags; current API flags
     provisionally derive only from INSURANCE/COUNTING/WOOD_PACKING/BUBBLE_WRAP rows.
 
@@ -368,13 +368,7 @@ and does not rewrite Shipment/charges/history merely to update this timestamp.
 
 ## Retail list data contract — NEXORA-051
 
-Every write to shipments or its child tables must first lock the owner's users row FOR UPDATE; reads take FOR SHARE.
-
-Shipment reads recheck ACTIVE under the shared actor lock in the same transaction
-as page/count/children. Same-owner readers proceed together; provider writers keep
-the existing exclusive actor lock and serialize with reads. No Customer/Carrier
-lock or Sync engine change. All future Nexora write commands must follow the same
-protocol before touching root/children.
+Shipment API reads lock the owner's users row FOR UPDATE. The Sync worker locks it FOR SHARE through public.sync_lock_user() in shared authorization mode, so reads and worker writes exclude each other while worker jobs may run concurrently. Page, counts and child summaries are read inside that single locked transaction. Future Nexora write commands on shipments or child tables must lock the owner's users row FOR UPDATE. A REPEATABLE READ read snapshot may replace the exclusive read lock only after measured contention, in a separate task.
 
 Each summary adds nullable originWarehouse, exact-string weightKg, packageCount,
 itemCount, exact-string declaredValue and declaredCurrency. chargeSummary contains
@@ -396,3 +390,9 @@ Detail inherits all summaries and adds full milestones in canonical code order
 and items ordered by lineNo. CLAIM_FILTER_UNAVAILABLE is422, same code and safe
 envelope; provider claims remain unavailable. UI, advanced server filters, claims,
 provider_attributes/trigram, real adapters and registration remain out of scope.
+
+### Item reported unit value
+
+shipment_items additionally stores nullable unit_value NUMERIC(18,2) and currency CHAR(3), both NULL or both present. CHECKs enforce the pair, reject NaN/negative values and require uppercase three-letter currency. Domain reuses exact DecimalValue/currency policies and rejects number inputs, overscale/overflow and incomplete pairs on input and hydration. Missing/null fields mean NULL in an authoritative item snapshot. Worker may INSERT/UPDATE both payload columns; API remains SELECT-only.
+
+This is the carrier-reported declared value per product unit, distinct from shipment_charges.UNIT_PRICE (freight unit price) and shipments.declared_value (whole-parcel declared value). Never multiply by quantity, sum or reconcile these values. List itemSummary stays firstName/lineCount without prices; detail items include exact decimal-string unitValue and nullable currency.
