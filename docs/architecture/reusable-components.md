@@ -380,6 +380,10 @@ Decorative separators (`…`) are always `aria-hidden="true"` regardless of
 `Phân trang kiện lẻ`; the feature's outer role-less div no longer owns an
 ARIA label. Both are intentional M5 v3 accessibility corrections.
 
+### Canonical configuration for new screens
+
+New screens omit selectedVariant (default emphasis), keep numberLayout grouped (default), pressEffect scale (default), numberIcon false (default) and pass 14px navigation icons. selectedClassName, unselectedClassName, numberIcon, numberLayout="inline" and pressEffect="none" exist only to preserve the approved appearance of existing screens; new screens must not use them. Converging Customer selection colours and Carrier filter CSS is deferred to the Shipment UI task and requires visual approval.
+
 ## Web FilterPopoverShell (M5)
 
 Owner: `apps/web/components/filter-popover/FilterPopoverShell.tsx` and its CSS.

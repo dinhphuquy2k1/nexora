@@ -80,3 +80,10 @@ Pinned format:check, docs:check, preflight:check; scoped diff, source-reference 
 | Claim                                            | Evidence                                    | Date       | Result |
 | ------------------------------------------------ | ------------------------------------------- | ---------- | ------ |
 | Follow-up scope recorded from NEXORA-041 FU1–FU4 | Created by NEXORA-043 task closure (PR #42) | 2026-11-12 | PASS   |
+
+## Verification checkpoint — fu1-red, fu1-green
+
+| Claim     | Evidence                                                                                                                                                                                                                                                               | Date       | Result |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| fu1-red   | node --test packages/ui/test/pager.test.mjs; working tree on 043aaa7be4e21260f780b8054739377c1f23068f; 2026-11-14T06:56:47.559395+00:00–2026-11-14T06:56:48.361002+00:00 UTC; exit1; expected RED: omitted variant renders primary instead of emphasis (4 PASS/1 FAIL) | 2026-11-14 | FAIL   |
+| fu1-green | node --test packages/ui/test/pager.test.mjs; working tree on 043aaa7be4e21260f780b8054739377c1f23068f; 2026-11-14T06:57:00.334850+00:00–2026-11-14T06:57:00.929574+00:00 UTC; exit0                                                                                    | 2026-11-14 | PASS   |
