@@ -49,9 +49,9 @@ compatibility and test-first plan. No live provider or production registration.
 - [x] Sync idempotency, version/lease/generation fencing and rollback.
 - [x] Worker SQL permissions and unchanged Nexora-owned fields.
 - [x] Three scoped GET APIs and generated contract parity.
-- [ ] Canonical local and Docker verification.
+- [x] Canonical local and Docker verification (local checks plus hosted canonical Docker; local Docker ENOSPC retained below).
 - [x] Independent review: no unresolved blocking P1/P2.
-- [ ] Final-head hosted Preflight and Foundation.
+- [x] Final-head hosted Preflight and Foundation (82d17dc implementation checkpoint; fresh documentation-head gates recorded in PR #47).
 - [ ] Owner review and merge decision.
 
 ## Documentation Impact
@@ -300,7 +300,7 @@ M docs/architecture/sync-extensions.md
 M docs/domains/shipments.md
 M docs/operations/testing.md
 A docs/tasks/active/NEXORA-050-shipment-backend-core.md
-R094 docs/tasks/active/NEXORA-049-shipment-domain-design.md → docs/tasks/completed/NEXORA-049-shipment-domain-design.md
+R094 docs/tasks/active/NEXORA-049-shipment-domain-design.md docs/tasks/completed/NEXORA-049-shipment-domain-design.md
 A docs/tasks/design-reviews/NEXORA-050-rev-2026-11-13-shipment-core-v1.md
 A docs/tasks/design-reviews/NEXORA-050-rev-2026-11-13-shipment-core-v2.md
 M eslint.config.mjs
@@ -319,6 +319,7 @@ M scripts/eslint-rules/no-domain-vocabulary-literals.test.mjs
 M scripts/eslint-rules/no-nested-ternary.test.mjs
 M scripts/provision-cluster-smoke.mjs
 M scripts/provision-cluster-smoke.test.mjs
+M scripts/runtime-smoke.sh
 ```
 
 Production capability declarations, existing migrations, old immutable snapshots,
@@ -346,3 +347,24 @@ of unchanged code. Do not claim later steps were executed on the failed run.
 | Hosted Sync Targeted           | https://github.com/dinhphuquy2k1/nexora/actions/runs/43552008901 attempt1; same HEAD/merge; 53/53 real PostgreSQL tests, explicit provider columns match CARRIER_PROVIDER_MAX_LENGTH PASS, completed2026-11-14T03:33:12Z                                                                                                                                | 2026-11-14 | PASS   |
 | Hosted canonical Docker and M5 | Foundation https://github.com/dinhphuquy2k1/nexora/actions/runs/43552008908 attempt1, job132316380456; same HEAD/merge; steps4–6 PASS (canonical Docker quality/migrated integration, M5 acceptance, stop development), observed2026-11-14T03:37:42Z; no manual screenshot review claimed                                                               | 2026-11-14 | PASS   |
 | Foundation runtime RED         | Same run43552008908 attempt1/head/merge; step7 FAIL at2026-11-14T03:38:44.7469357Z: Migrated schema assertion failed. CLI log reports14 migrations and no pending migrations; smoke asserts13 and stored_files0. Steps8–10 SKIPPED; later missing Retail/Account/Carrier artifacts are consequences, not completed assertions. Historical FAIL retained | 2026-11-14 | FAIL   |
+
+## Bounded same-head M5 startup classification — 2026-11-14
+
+Foundation43552959636 attempt1 on82d17dc783941055c892524d96bacf394b901bcd
+passed canonical Docker step4, then step5 failed at2026-11-14T03:48:08.1138129Z:
+AssertionError [ERR_ASSERTION]: Chromium startup (m5-browser-checks.mjs:121).
+Steps6–10 were SKIPPED. The preceding head a322586 passed this same M5 gate;
+git diff a322586..82d17dc for m5-browser-checks.mjs, packages/ui and apps/web is
+empty. Record one deliberate failed-job rerun on the exact same82d17dc, no code
+change, to classify transient startup. Do not change launcher/assertions/deadlines.
+This evidence remains uncommitted until the bounded result is known so the rerun
+checks the original HEAD; both attempt results must be preserved.
+
+| Claim                          | Evidence                                                                                                                                                                                                                                                            | Date       | Result |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Foundation M5 startup attempt1 | https://github.com/dinhphuquy2k1/nexora/actions/runs/43552959636 attempt1, HEAD82d17dc783941055c892524d96bacf394b901bcd; step4 PASS, step5 Chromium startup ASSERTION_FAILED at2026-11-14T03:48:08.1138129Z, steps6–10 SKIPPED; same M5 source passed previous head | 2026-11-14 | FAIL   |
+
+| Foundation bounded attempt2 | https://github.com/dinhphuquy2k1/nexora/actions/runs/43552959636 attempt2, job132321706101; HEAD82d17dc783941055c892524d96bacf394b901bcd; tested merge15dbd9ccb5dbf34fae002b6ed1a2670f52df37bc; 2026-11-14T03:51:08Z–04:12:22Z UTC; steps4–10 all PASS, including canonical Docker, M5, runtime, public HTTPS, persistence and HMR; one deliberate same-head failed-job rerun, no code change | 2026-11-14 | PASS |
+| Hosted corrected-head governance and Sync | Preflight https://github.com/dinhphuquy2k1/nexora/actions/runs/43552959524 completed2026-11-14T03:42:19Z; Sync Targeted https://github.com/dinhphuquy2k1/nexora/actions/runs/43552959499 completed2026-11-14T03:44:16Z; same82d17dc HEAD | 2026-11-14 | PASS |
+
+This final evidence-only commit requires fresh hosted gates on its own HEAD. Their exact SHA, run IDs and conclusions are maintained in PR #47 without another SHA-only documentation commit. Owner review/merge remains pending; no merge or production activation is authorized here.
