@@ -43,14 +43,14 @@ compatibility and test-first plan. No live provider or production registration.
 
 ## Acceptance criteria
 
-- [ ] Domain invariants, immutable snapshots and provider authority.
-- [ ] Forward schema, constraints/parity, historical data and repeat migrations.
-- [ ] Four fee states, ordered duplicates, exact money and transactional reconciliation.
-- [ ] Sync idempotency, version/lease/generation fencing and rollback.
-- [ ] Worker SQL permissions and unchanged Nexora-owned fields.
-- [ ] Three scoped GET APIs and generated contract parity.
+- [x] Domain invariants, immutable snapshots and provider authority.
+- [x] Forward schema, constraints/parity, historical data and repeat migrations.
+- [x] Four fee states, ordered duplicates, exact money and transactional reconciliation.
+- [x] Sync idempotency, version/lease/generation fencing and rollback.
+- [x] Worker SQL permissions and unchanged Nexora-owned fields.
+- [x] Three scoped GET APIs and generated contract parity.
 - [ ] Canonical local and Docker verification.
-- [ ] Independent review: no unresolved blocking P1/P2.
+- [x] Independent review: no unresolved blocking P1/P2.
 - [ ] Final-head hosted Preflight and Foundation.
 - [ ] Owner review and merge decision.
 
@@ -218,3 +218,111 @@ Workspace pnpm test on42a8bcd stopped in the pre-existing 1s mocked TCP readines
 fixture (136 PASS/1 FAIL before workspace package suites). Launcher alone remains
 8/8 PASS. Preserve the FAIL; resource-isolated host execution will be reported
 separately, without changing deadlines/assertions or repository test configuration.
+
+## Final implementation checkpoint — 2026-11-14
+
+Production source is frozen at 4678aae8e41b618fef14140c9a2544c0a8febcb3.
+The final independent reviews cover a0f250d, current-source orchestration42a8bcd
+and lifecycle4678aae: no P1/P2/P3 findings. Reviewer independently ran 10/10 native
+tests before the lifecycle addition and 8/8 launcher regressions; lifecycle review
+was read-only while the main test suite ran. No existing OpenAPI paths/schemas
+changed semantically against main. No owner approval or merge is claimed.
+
+All final-targeted PostgreSQL execution below used the explicitly separate owned
+PostgreSQL17.11 Alpine fast-loop cluster. Its private resources were label-checked,
+then removed with their own anonymous volume after completion. No user volume was
+reset. Canonical Bookworm Docker quality was attempted in a new unique Compose
+project and failed while extracting an image: VFS no space left on device, before
+application tests. Keep the FAIL. Hosted canonical execution remains required.
+
+The workspace pnpm test command passed with taskset CPU affinity0 after preserving
+two earlier 1s fixture timeouts under parallel scheduling. This changes only the
+execution process affinity, not repository configuration, timeout or assertions.
+Fresh suites: scripts137, API211, Web266, UI36 and Database6; eight Turbo tasks
+succeeded, two cached build tasks (Shared/Web), no cached test results.
+
+| Claim                               | Evidence                                                                                                                                                                                                                                                                                                                                                                                         | Date       | Result |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| contracts-check                     | npx --yes pnpm@10.34.6 contracts:check; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; 2026-11-14T03:24:18.585763+00:00–2026-11-14T03:24:30.351098+00:00; exit0; reproducible committed OpenAPI/SDK                                                                                                                                                                                              | 2026-11-14 | PASS   |
+| shipment-worker                     | node /tmp/nexora050-worker-run.cjs; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; 2026-11-14T03:24:30.352072+00:00–2026-11-14T03:25:09.144512+00:00; exit0; signed owned-cluster wrapper builds Shared/Database/API and executes real SyncRepository as nexora_sync plus real Nest HTTP; 15/15 PASS                                                                                             | 2026-11-14 | PASS   |
+| shipment-sql                        | node /tmp/nexora050-sql-run.cjs; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; 2026-11-14T03:25:09.145432+00:00–2026-11-14T03:25:12.441363+00:00; exit0; actual nexora_sync/nexora_app SQL grant/denial and repeat provisioning; 1/1 PASS                                                                                                                                                       | 2026-11-14 | PASS   |
+| migration                           | npx --yes pnpm@10.34.6 --filter @nexora/database test:migrations; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; 2026-11-14T03:25:12.445500+00:00–2026-11-14T03:25:47.923875+00:00; exit0; real Prisma legacy upgrade, existing Customer/all Sync row preservation, repeat deploy and zero drift                                                                                                 | 2026-11-14 | PASS   |
+| shipment-fast                       | node --test apps/api/test/shipment/binding.test.cjs apps/api/test/shipment/contracts.test.cjs apps/api/test/shipment/domain.test.cjs apps/api/test/shipment/read.test.cjs; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; 2026-11-14T03:25:47.924450+00:00–2026-11-14T03:25:48.706703+00:00; exit0; Domain, typed input, actual Nest lifecycle, service/error and generated contract; 11/11 PASS | 2026-11-14 | PASS   |
+| format:check                        | npx --yes pnpm@10.34.6 format:check; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; start2026-11-14T03:24:30.965558+00:00; exit0; executed canonical command                                                                                                                                                                                                                                     | 2026-11-14 | PASS   |
+| docs:check                          | npx --yes pnpm@10.34.6 docs:check; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; start2026-11-14T03:24:57.888372+00:00; exit0; executed canonical command                                                                                                                                                                                                                                       | 2026-11-14 | PASS   |
+| preflight:check                     | npx --yes pnpm@10.34.6 preflight:check; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; start2026-11-14T03:25:00.191864+00:00; exit0; executed canonical command                                                                                                                                                                                                                                  | 2026-11-14 | PASS   |
+| lint                                | npx --yes pnpm@10.34.6 lint; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; start2026-11-14T03:25:02.009621+00:00; exit0; executed canonical command                                                                                                                                                                                                                                             | 2026-11-14 | PASS   |
+| test:lint                           | npx --yes pnpm@10.34.6 test:lint; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; start2026-11-14T03:25:20.578511+00:00; exit0; 54/54 lint regressions                                                                                                                                                                                                                                            | 2026-11-14 | PASS   |
+| Local canonical Docker              | COMPOSE_PROJECT_NAME=nexora050-93283761 sh scripts/quality-docker.sh; HEAD 4678aae8e41b618fef14140c9a2544c0a8febcb3; 2026-11-14T03:26:00.250133+00:00–2026-11-14T03:26:25.741328+00:00; exit1; failed to register layer, mkdir ossl-modules: no space left on device; application tests NOT RUN                                                                                                  | 2026-11-14 | FAIL   |
+| Workspace tests                     | taskset -c 0 env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 test; HEAD4678aae; 8/8 tasks, script137/API211/Web266/UI36/Database6 PASS, 0 FAIL; two build-cache hits only; 2026-11-13 UTC historical execution (exact start not retained)                                                                                                                        | 2026-11-13 | PASS   |
+| Workspace tests normal scheduling   | API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 test on42a8bcd; scripts136 PASS/1 FAIL at mocked TCP1s deadline before Turbo suites; no timeout/assertion changes                                                                                                                                                                                                    | 2026-11-13 | FAIL   |
+| Root typecheck missing prerequisite | npx --yes pnpm@10.34.6 typecheck: Web build requires API_INTERNAL_URL; exit1 before configured rerun; working tree on a1b11ca                                                                                                                                                                                                                                                                    | 2026-11-13 | FAIL   |
+| Configured root typecheck           | API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 typecheck; working tree on a1b11ca with typed-input delta; 10/10 tasks PASS; 1 cached build; original start UTC not retained                                                                                                                                                                                         | 2026-11-13 | PASS   |
+| Existing genuine Sync regression    | npx --yes pnpm@10.34.6 --filter @nexora/api exec node --test integration/sync-integration.test.cjs; working tree on a1b11ca with typed-input delta; 2026-11-13T16:37:09.596156Z–16:39:52.991866Z; 53/53 PASS including actual six-table provider-length parity, customer mapping, retention, concurrency and fences                                                                              | 2026-11-13 | PASS   |
+| Lifecycle RED                       | Actual Nest context test expected one pool disconnect, observed zero before adding onApplicationShutdown; test on42a8bcd working tree; subsequently 11/11 fast suite PASS on4678aae                                                                                                                                                                                                              | 2026-11-13 | FAIL   |
+| Source mount RED/GREEN              | Launcher regression expected current read-only API source mount: 7 PASS/1 FAIL before change; after worker-only source/compiler mounts 8/8 PASS; independent review also8/8 PASS; source42a8bcd                                                                                                                                                                                                  | 2026-11-13 | FAIL   |
+
+## Changed-file inventory
+
+Full scope relative to main055dfccb5f7feae36af41209fd6380916081f711:
+
+```text
+M apps/api/integration/fixtures/provider-length-contract.cjs
+A apps/api/integration/fixtures/shipment-schema.cjs
+A apps/api/integration/shipment-integration.test.cjs
+M apps/api/openapi/openapi.json
+M apps/api/src/app.module.ts
+M apps/api/src/openapi.ts
+A apps/api/src/shipment/application/shipment-error.ts
+A apps/api/src/shipment/application/shipment-owner.ts
+A apps/api/src/shipment/application/shipment-read.port.ts
+A apps/api/src/shipment/application/shipment-sync.port.ts
+A apps/api/src/shipment/application/shipment-sync.processor.ts
+A apps/api/src/shipment/application/shipment.input.ts
+A apps/api/src/shipment/application/shipment.service.ts
+A apps/api/src/shipment/domain/shipment.ts
+A apps/api/src/shipment/infrastructure/shipment-provider.persistence.ts
+A apps/api/src/shipment/infrastructure/shipment-sync-domain.binding.ts
+A apps/api/src/shipment/infrastructure/shipment.adapter.ts
+A apps/api/src/shipment/infrastructure/shipment.mapper.ts
+A apps/api/src/shipment/presentation/shipment.controller.ts
+A apps/api/src/shipment/presentation/shipment.dto.ts
+A apps/api/test/shipment/binding.test.cjs
+A apps/api/test/shipment/contracts.test.cjs
+A apps/api/test/shipment/domain.test.cjs
+A apps/api/test/shipment/read.test.cjs
+M docs/ai/PROJECT_RULES.md
+M docs/architecture/api-contract.md
+M docs/architecture/backend.md
+M docs/architecture/database.md
+M docs/architecture/reusable-components.md
+M docs/architecture/sync-extensions.md
+M docs/domains/shipments.md
+M docs/operations/testing.md
+A docs/tasks/active/NEXORA-050-shipment-backend-core.md
+R094 docs/tasks/active/NEXORA-049-shipment-domain-design.md → docs/tasks/completed/NEXORA-049-shipment-domain-design.md
+A docs/tasks/design-reviews/NEXORA-050-rev-2026-11-13-shipment-core-v1.md
+A docs/tasks/design-reviews/NEXORA-050-rev-2026-11-13-shipment-core-v2.md
+M eslint.config.mjs
+A packages/database/prisma/migrations/20261113000000_shipment_core/migration.sql
+M packages/database/prisma/schema.prisma
+M packages/database/scripts/provision-runtime.mjs
+M packages/database/test/migration.mjs
+A packages/database/test/shipment-sql.mjs
+A packages/database/test/shipment-worker.mjs
+M packages/sdk/src/generated/api.ts
+M packages/shared/package.json
+A packages/shared/src/shipment/index.ts
+M scripts/boundaries.mjs
+M scripts/eslint-rules/no-domain-vocabulary-literals.mjs
+M scripts/eslint-rules/no-domain-vocabulary-literals.test.mjs
+M scripts/eslint-rules/no-nested-ternary.test.mjs
+M scripts/provision-cluster-smoke.mjs
+M scripts/provision-cluster-smoke.test.mjs
+```
+
+Production capability declarations, existing migrations, old immutable snapshots,
+Customer source mapping storage, provider length implementation, Web/ingress,
+manual creation/linking, real provider transports and production activation are
+unchanged. Official provider authorization/completeness/mapping/claim semantics,
+Retail UI and Nexora business commands remain the documented deferred scope.
