@@ -1,8 +1,8 @@
 # NEXORA-050 — Shipment Backend Core
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -49,10 +49,10 @@ compatibility and test-first plan. No live provider or production registration.
 - [x] Sync idempotency, version/lease/generation fencing and rollback.
 - [x] Worker SQL permissions and unchanged Nexora-owned fields.
 - [x] Three scoped GET APIs and generated contract parity.
-- [ ] Canonical v3 verification (local proofs below; fresh hosted Docker result maintained in PR #47).
+- [x] Canonical v3 verification (host quality and final-head hosted Docker PASS; historical local ENOSPC retained).
 - [x] Independent review: v3 prefix P2 corrected; no unresolved P1/P2/P3 in independent review.
-- [ ] Final-head hosted Preflight and Foundation for v3 (prior green heads remain historical).
-- [ ] Owner review and merge decision.
+- [x] Final-head hosted Preflight and Foundation for v3 (final PR #47 evidence below).
+- [x] Owner review and merge decision (owner merged PR #47).
 
 ## Documentation Impact
 
@@ -437,3 +437,12 @@ will be recorded in PR47 after execution, without another SHA-only task commit.
 Unchecked hosted/canonical markers above reflect this checkpoint; the PR's final
 provenance is authoritative for subsequent final-head CI availability. Owner review
 and merge remain pending; no approval, merge, deploy or capability activation.
+
+## Closure — 2026-11-14
+
+Delivered by PR #47. Final-head hosted gates passed on 6707efb9c599322c7579421149f8c522963b714a. Owner confirmed Customer source cardinality is many-to-one (multiple carriers may share one Customer), as recorded in ADR-011; sync_source_identities.customer_id remains until a separate cleanup task using a Customer-owned link table. Operationally, all carrier connections should use the same company account. Closed in the first commit of NEXORA-045 under §1.7.
+
+| Claim                   | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Date       | Result |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main          | PR #47 https://github.com/dinhphuquy2k1/nexora/pull/47; REST merged=true; merge SHA ad7a7967414f6fe0cb2ccb1a71a4550583c78b05; merged_at2026-11-14T06:48:44Z; git log origin/main --merges confirms merge                                                                                                                                                                                                                                                                           | 2026-11-14 | PASS   |
+| Final-head hosted gates | PR #47 Final green HEAD6707efb9c599322c7579421149f8c522963b714a; Preflight https://github.com/dinhphuquy2k1/nexora/actions/runs/43559745440 PASS; Sync Targeted https://github.com/dinhphuquy2k1/nexora/actions/runs/43559745508 PASS; Foundation https://github.com/dinhphuquy2k1/nexora/actions/runs/43559745438 attempt1/job132340547817 PASS steps4–10, completed2026-11-14T05:21:00Z; tested checkout merge d7626815e54640207b65cf75e06016b20fcad803; original FAILs retained | 2026-11-14 | PASS   |
