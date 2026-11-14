@@ -1,5 +1,5 @@
 import { STATUS_TABS } from "./columns.ts";
-import type { FilterCondition, RetailPackage, RetailQuery } from "./types.ts";
+import type { FilterCondition } from "./types.ts";
 const option = (value: string, label: string) => ({ value, label });
 const equality = [
   option("equals", "Là"),
@@ -25,13 +25,6 @@ export const ORIGIN_WAREHOUSES = [
   "Bằng Tường",
   "Đông Hưng",
 ] as const;
-export function normalizeWarehouse(name: string): string {
-  const lower = name.toLowerCase().trim();
-  if (lower.includes("quảng châu")) return "Quảng Châu";
-  if (lower.includes("bằng tường")) return "Bằng Tường";
-  if (lower.includes("đông hưng")) return "Đông Hưng";
-  return lower;
-}
 export interface FilterField {
   id: string;
   label: string;
@@ -205,61 +198,4 @@ export function addFilter(
   if (!next || filters.some((f) => f.id === next.id) || filters.length >= 12)
     return filters;
   return [...filters, next];
-}
-export function matchesFilter(pkg: RetailPackage, input: unknown): boolean {
-  if (!input || typeof input !== "object") return false;
-  const raw = input as Record<string, unknown>;
-  const cond = makeFilter(raw.field, raw.operator, raw.value);
-  if (!cond) return false;
-  const cfg = FILTER_FIELDS.find((f) => f.id === cond.field)!;
-  const actual =
-    cond.field === "originWarehouse"
-      ? pkg.originWarehouseName
-      : (pkg as unknown as Record<string, unknown>)[cond.field];
-  if (cfg.type === "date") {
-    const a = calendarDay(actual),
-      b = calendarDay(cond.value);
-    if (a === null || b === null) return false;
-    if (cond.operator === "before") return a < b;
-    if (cond.operator === "after") return a > b;
-    return a === b;
-  }
-  if (cfg.type === "number") {
-    if (typeof actual !== "number" || !Number.isFinite(actual)) return false;
-    const b = Number(cond.value);
-    if (cond.operator === "greater_than") return actual > b;
-    if (cond.operator === "less_than") return actual < b;
-    return actual === b;
-  }
-  if (typeof actual !== "string") return false;
-  let equal: boolean;
-  if (cond.field === "originWarehouse") {
-    equal = normalizeWarehouse(actual) === normalizeWarehouse(cond.value);
-  } else {
-    const a = actual.toLocaleLowerCase("vi"),
-      b = cond.value.toLocaleLowerCase("vi");
-    equal = a === b;
-  }
-  if (cond.operator === "equals") return equal;
-  if (cond.operator === "not_equals") return !equal;
-  const a = actual.toLocaleLowerCase("vi"),
-    b = cond.value.toLocaleLowerCase("vi");
-  if (cond.operator === "contains") return a.includes(b);
-  if (cond.operator === "not_contains") return !a.includes(b);
-  return false;
-}
-export function filterPackages(
-  packages: readonly RetailPackage[],
-  query: Pick<RetailQuery, "status" | "search" | "filters">,
-): RetailPackage[] {
-  const search = query.search.trim().toLocaleLowerCase("vi");
-  return packages.filter(
-    (p) =>
-      (query.status === "all" || p.status === query.status) &&
-      (!search ||
-        [p.trackingCode, p.productName, p.carrierName].some((v) =>
-          v.toLocaleLowerCase("vi").includes(search),
-        )) &&
-      query.filters.every((c) => matchesFilter(p, c)),
-  );
 }

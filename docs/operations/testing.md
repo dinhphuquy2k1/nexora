@@ -360,35 +360,41 @@ an active Toast alert. Do not restore obsolete global-alert assumptions.
 
 The existing authenticated CDP Customer smoke uses real server writes with response-stage failure injection (completed PATCH/PUT response loss) to verify a GET-only reconciliation and explicit user recovery; it must never treat synthetic request-stage HTTP 500 as proof that a genuine write committed. The default-address delete negative-path browser fixture requires acknowledgement and a fresh editor before retrying after an ambiguous 500 response. Login browser startup retains the required Chromium/DevTools gate with a bounded 20-second cold-runner startup window; a missing DevTools port remains an explicit failure with safe diagnostic categories, not a skipped test.
 
-## Retail M3 browser verification
+## Retail Shipment browser verification — NEXORA-052
 
-`sh scripts/quality-docker.sh` additionally compiles a test-only Retail browser
-bundle with the pinned Next webpack/CSS loader and TypeScript compiler. Generated
-output is `artifacts/retail-fixture/`; source entry and synthetic data are under
-`apps/web/test/fixtures/`. No fixture production route, public environment bypass,
-mock Shipment API or persistence is introduced. Product build never imports this
-entry. The CSS adapter uses actual CSS Modules, root tokens and the local Inter
-asset, not mocked class names/computed values.
+Canonical Docker quality compiles actual Retail TSX/CSS into
+`artifacts/retail-fixture/`. The test-only entry supplies synthetic SDK-shaped
+list/detail/history DTOs through a fake read API; production never imports it.
+The adapter handles q, stage, page and pageSize, records cancellation and supplies
+UNKNOWN/null/MULTIPLE/many-item/unsafe-integer cases plus error, empty, malformed
+and slow modes. Legacy reference records remain an independent cell-value oracle.
+No test route, auth bypass, persistence or live provider registration is added.
 
-`browser-login-smoke.mjs` extends its existing authenticated Chromium/CDP session
-through `retail-browser-checks.mjs`. First verify protected production route/session,
-wide AppShell, seven tabs/19 default-visible configured columns, explicit unavailable
-counts and disabled writes. Then ADMIN exercises an isolated loopback fixture
-server (allowlisted HTML/bundle/font only) with30 representative records, every tab,
-search, typed advanced filters, chips, columns/presets, sticky tracking, pagination,
-URL direct/reload/history, native dialog Tab/Shift+Tab/Escape/return focus and empty/
-invalid states. The server is closed with owned connections in finally; no new
-Chromium launcher is added. Unknown/unavailable Shipment requests and fixture writes
-fail verification. OPERATOR separately repeats the actual protected route check.
+`browser-login-smoke.mjs` reuses its authenticated Chromium/CDP session through
+`retail-browser-checks.mjs`: ADMIN and OPERATOR first verify the real protected
+route, settled API reads, empty counts, AppShell and disabled writes. Only the three
+Shipment GET endpoints are allowed; claim/filter parameters and writes fail checks.
+ADMIN then exercises the isolated loopback DTO fixture, enabled stage tabs/history,
+search, inert legacy chips, column presets/sticky cells, server pagination, native
+dialog keyboard/focus behavior and truthful read states. Removing legacy filters
+on page2 must preserve page2 and issue no additional list request. Denied-detail
+response ordering is covered separately by hook tests.
 
-Foundation sets `M3_EVIDENCE_DIR=artifacts/m3` and uploads Retail manifests/screens.
-Viewports1440×900/1280×800/1024×768/768×1024/390×844/375×812. Each capture asserts
-no document overflow, shared32px controls, seven tabs and dialog viewport fit;
-manifest records source merge SHA, image hashes and DOM geometry. Missing compiled
-fixture/evidence fails, never skips. Exact six-record ZIP reference-sample is a
-separate isolated test path, not a product query/feature flag. Screenshot comparison
-must disclose canonical AppShell/control/color contracts, unavailable operations and
-synthetic test data differences; build success is not visual acceptance.
+D10 browser deltas are recorded in task052: disabled advanced/Create/disputed,
+provider-only labels, missing-value dashes, UNKNOWN warnings, MULTIPLE fees and
+API-driven drawer/state content. Geometry, CSS values, viewport sizes and tolerances
+remain unchanged. Canonical Column Picker assertions are unchanged. Reload-to-detail checks require
+settled page2/pageSize5 data before focus and a fresh-node click. On timeout,
+state/count/request-method-only diagnostics identify list/detail/native dialog
+state; failure JSON/screenshots are captured only for the isolated fixture,
+separately from acceptance captures and without extending the condition deadline.
+
+Foundation uploads manifests/screens under `M3_EVIDENCE_DIR=artifacts/m3`.
+Viewports1440×900/1280×800/1024×768/768×1024/390×844/375×812 retain overflow,
+32px controls, seven tabs and dialog-fit checks. The six-record reference path
+checks corresponding cell values; missing carrier-account data is never fabricated.
+Local fixture-only browser execution verifies actual components, not authenticated
+full-stack behavior or direct ZIP pixel parity. Canonical hosted evidence is separate.
 
 ### Retail Column Picker M3 v6 computed evidence
 
@@ -883,3 +889,20 @@ sleep is used. Instrumenting the real transaction verifies six list queries for 
 or two rows and three for an empty page. These checks do not change the existing
 actor transaction, Sync privileges or isolation level. Hosted Foundation remains the
 canonical full integration/runtime gate.
+
+### Retail loading and header acceptance — NEXORA-052 v2
+
+Retail UI SSR and actual hook-scheduler tests cover five decorative loading rows,
+visible-column order/count, mobile cards, hidden status/busy/stale semantics, retained
+same-query rows, unavailable versus zero and scope-compatible count retention.
+The existing Chromium harness additionally imports retail-loading-checks.mjs and
+uses test-only held responses in retail-entry.tsx for deterministic initial/tab/back
+geometry measurements at the same six approved viewports. It compares command deck,
+tabs, toolbar, card, header and footer rectangles, tests reduced motion, sticky
+header/body styles at scroll zero/nonzero, known count retention and actual badge
+widths for em dash/0/1/10/100 and an unclipped larger count. Mobile card rectangles and structural heights are compared separately from genuine
+product/meta text wrapping. Overall content height may change with actual result
+count; top anchors and horizontal bounds stay fixed.
+Existing keyboard/overflow and unchanged Column Picker assertions still run.
+Browser assertions, captured screenshots, manual review and hosted CI remain
+separate evidence; local native-socket denial is not browser acceptance.

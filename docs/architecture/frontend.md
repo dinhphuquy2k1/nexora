@@ -268,38 +268,33 @@ The Customer URL query and draft input validation reuse pure `@nexora/shared` pr
 
 Customer Edit admission requires a successful current-scope GET and settled manual Reload; retained rows on a pending/failed GET remain visible but cannot open a writable stale editor. The List page owns optional row navigation and native customer links remain. For a confirmed Customer/Address write, a Drawer stays mounted through its authoritative same-scope GET; the saved/close callback runs only on successful read. Failed/unscheduled GET retains the confirmed-write guard and permits GET-only Retry without repeating a mutation. Unknown write recovery still requires separate explicit user acknowledgement.
 
-## Retail Packages M3 — presentation-only boundary
+## Retail Shipment reads — NEXORA-052
 
-Protected `/shipments/retail` uses the existing authenticated wide AppShell; legacy
-`/logistics/parcels` preserves query via307. Shipment CRUD/quotes/provider APIs are
-not implemented. Production passes explicit `availability="unavailable"`, not an
-empty-array inference: all seven tabs, list headers, filters, column settings and
-pagination remain visible, unknown counts use dashes and Create/export/refresh
-remain disabled. No sample package, quote, carrier/hotline or fake persistence is
-loaded by the route. Known-empty available data is a separate presentation state.
+Protected `/shipments/retail` keeps the authenticated wide AppShell and existing
+20-column registry, presets, widths, cards and dialogs. The route reads current
+Shipment list, detail and stage-history GET APIs through the generated SDK and
+workspace client. Backend pagination, counts and summaries are authoritative;
+Web does not filter, slice, count or aggregate monetary values locally.
 
-Retail owns pure field/operator/date/number filter policy, bounded query parsing
-and native History state. URL fields status/search/page/pageSize/filters restore
-on direct entry, refresh and Back/Forward; SSR receives the same initial search
-string and `useSyncExternalStore` observes client history without a read lane/API.
-Default pageSize10, choices5/10/20/50/100; shared decimal pagination guards are
-reused with that explicit feature default. Queries reject unknown/duplicate keys,
-invalid typed filters and over4096 encoded characters; composed URL budget errors
-are accessible rejections before history mutation. Up to12 deduplicated conditions
-and200 characters per text value. Calendar scalar validates actual days without
-local Date parsing; originWarehouse maps to the package's originWarehouseName,
-not global M4 Shipping Scope. Chips are regenerated from validated policy.
+URL status/search/page/pageSize/filters restore on direct entry, refresh and
+Back/Forward. Existing validated advanced-filter chips remain visible but inert;
+removing them preserves the page and does not issue another effective API query.
+Advanced filtering, Create and export remain disabled. The disputed tab is disabled,
+uncounted and titled Chưa hỗ trợ; UNKNOWN appears only in All with a warning.
+The five physical stage tabs map exhaustively to backend stages.
 
-One column registry owns twenty columns, widths and All/Basic/Default presets;
-trackingCode is always visible and sticky in body/header. Column settings are
-transient, never backend/browser storage persistence. Table/cards and pagination
-are cohesive presentation components; the page owns query and selected dialog.
-Create/Detail reuse neutral controls and native Overlay, with a Retail-only wrapper
-restoring a visible trigger or heading after responsive changes. Submission stays
-disabled and absent finite nonnegative quote data remains “Chưa có báo giá”.
-Synthetic records and browser entry live under `apps/web/test/fixtures/`, outside
-production imports. Fixture runtime/browser evidence is separate from actual
-protected production-route verification and does not implement Shipment business.
+Feature-local strict response guards and abort/generation-fenced read hooks protect
+query/ID changes and denied reads. Same-key refresh may retain accepted data;
+401/403 clears it, including when the sibling detail/history request failed first.
+Loading, failure/retry, known empty and detail404 states are explicit. No production
+synthetic records, provider account suffixes, writes or provider activation exist.
+
+String-only decimal formatting preserves precision without rounding or Number
+conversion; weights keep the existing decimal point. Dates use Asia/Ho_Chi_Minh.
+The drawer shows reported ordered charges, canonical milestone slots, item lines
+and observed stage history; it neither invents future events nor sums money.
+Native dialog/focus behavior and existing shared Pager/filter controls are retained.
+Synthetic SDK DTO adapters and the old reference oracle live only under test fixtures.
 
 ## Account Menu — NEXORA-032
 
@@ -440,7 +435,7 @@ require them; keep Lucide imports and do not copy library icons into SVG files.
 
 Tier A `@nexora/ui` Pager presents explicit feature-owned page windows, navigation
 targets/disabled states and ReactNode summary/page-size slots. Customer keeps
-`derivePaginationModel`, Retail its client calculations/reset-to-page-1 callback,
+`derivePaginationModel`, Retail its server totals and page-size reset callback,
 Carrier its account model, and history its every-page-through-five rule followed
 by `pageWindow`. Counts and availability never move into shared UI. Existing
 outer wrappers, Customer range/total strong elements, Retail data-retail-count
@@ -463,3 +458,26 @@ accessibility change. Features retain filtering models, submit/error lifecycle a
 visual geometry exceptions. Shared behavior and public customization details are
 owned by the [reusable registry](reusable-components.md#web-filterpopovershell-m5).
 No new dependencies, backend contracts, routes or security changes are introduced.
+
+### Retail loading and scoped statistics — NEXORA-052 v2
+
+Retail keeps command deck, header/colgroup and pagination mounted while five
+feature-local decorative skeleton rows follow the visible column registry. Mobile
+uses five card placeholders. One hidden status announces loading; the table/cards
+expose busy/stale state and reduced motion disables skeleton animation. Valid
+same-key rows remain during refresh. The UNKNOWN warning uses scoped statistics
+and lives inside scrolling results below the desktop header (inside cards on mobile),
+so receiving counts does not displace the persistent header. The route has no
+redundant text-only Suspense fallback; the existing session guard remains.
+
+Backend statistics are retained separately across stage/page/page-size changes for
+the same search, workspace session epoch and API identity. Disabled/invalid, denied or unsafe reads clear
+retention; changed search/API invalidates it. The authenticated owner keys the
+page and existing workspace session lifetime bounds component state. Counts never
+come from displayed rows and unavailable remains distinct from confirmed zero.
+Retail-only count styling reserves three digits with consistent weight and allows
+larger values to expand; shared TabBar behavior/styles remain unchanged.
+
+The sticky tracking header neutralizes its independent cell shadow; its shared
+bottom border, dark background, z-index and sticky positioning remain. Body
+tracking cells retain their existing shadow separation.

@@ -1,52 +1,59 @@
-// Browser test entry only: never imported by a production route or feature.
-import type { RetailPackage } from "../../features/retail-packages/types.ts";
+// Actual-component synthetic GET adapter; never imported by production.
 import { createRoot } from "react-dom/client";
 import { ToastProvider } from "@nexora/ui";
 import { RetailPackageListPage } from "../../features/retail-packages/RetailPackageListPage.tsx";
-import { STATUS_LABELS } from "../../features/retail-packages/columns.ts";
-import { SYNTHETIC_PACKAGES } from "./retail-packages.ts";
+import {
+  createRetailFixtureApi,
+  FIXTURE_DETAILS,
+  REFERENCE_DETAILS,
+} from "./retail-packages.ts";
 import "../../styles/globals.css";
-const packages = Array.from({ length: 30 }, (_, i) => ({
-  ...SYNTHETIC_PACKAGES[i % 6],
-  id: `fixture-${i}`,
-  status: (
-    [
-      "to_origin",
-      "at_origin",
-      "in_transit",
-      "at_dest",
-      "delivered",
-      "disputed",
-    ] as const
-  )[i % 6],
-  statusText:
-    STATUS_LABELS[
-      (
-        [
-          "to_origin",
-          "at_origin",
-          "in_transit",
-          "at_dest",
-          "delivered",
-          "disputed",
-        ] as const
-      )[i % 6]
-    ],
-  trackingCode: `FIXTURE${String(i).padStart(4, "0")}`,
-  weightKg: i + 1,
-  originWarehouseDate: String(10 + (i % 10)).padStart(2, "0") + "/02/2026",
-  productName: i === 0 ? "Sản phẩm kiểm thử dài ".repeat(8) : `Sản phẩm ${i}`,
-  totalAmountVND: undefined,
-}));
-const params = new URLSearchParams(location.search);
-let data: readonly RetailPackage[] = packages;
-if (location.pathname === "/reference-sample") data = [...SYNTHETIC_PACKAGES];
-if (params.get("search") === "fixture-empty") data = [];
+const params = new URLSearchParams(location.search),
+  mode = params.get("fixtureMode") ?? "ready";
+params.delete("fixtureMode");
+const search = params.toString();
+history.replaceState(
+  null,
+  "",
+  location.pathname + (search ? "?" + search : ""),
+);
+const events: { method: string; query?: unknown; aborted?: boolean }[] = [];
+let held = mode === "held";
+const releases = new Set<() => void>();
+Object.assign(window, {
+  __retailFixture: {
+    events,
+    mode,
+    hold: () => {
+      held = true;
+    },
+    release: () => {
+      held = false;
+      for (const release of releases) release();
+      releases.clear();
+    },
+  },
+});
+const fixtureApi = createRetailFixtureApi(
+  location.pathname === "/reference-sample"
+    ? REFERENCE_DETAILS
+    : FIXTURE_DETAILS,
+  mode === "held" ? "ready" : mode,
+  events,
+);
+const api = {
+  ...fixtureApi,
+  list: async (...args: Parameters<typeof fixtureApi.list>) => {
+    const response = await fixtureApi.list(...args);
+    if (held) await new Promise<void>((resolve) => releases.add(resolve));
+    return response;
+  },
+};
 createRoot(document.getElementById("fixture-root")!).render(
   <ToastProvider>
-    <div data-retail-fixture>
+    <div data-retail-fixture data-fixture-mode={mode}>
       <p>Môi trường kiểm thử cô lập — dữ liệu tổng hợp, không lưu.</p>
-      <RetailPackageListPage initialPackages={data} availability="available" />
+      <RetailPackageListPage api={api} initialSearch={"?" + search} />
     </div>
   </ToastProvider>,
 );
