@@ -94,3 +94,9 @@ Pinned format:check, docs:check, preflight:check; scoped diff, source-reference 
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | fu4-red   | node --test apps/web/test/m5-sharing.test.mjs; working tree on bcc40024765b34740091a07713f08c3730411d24; 2026-11-14T06:57:42.716355+00:00–2026-11-14T06:57:44.462138+00:00 UTC; exit1; expected RED: closed SSR still exposes aria-controls | 2026-11-14 | FAIL   |
 | fu4-green | node --test packages/ui/test/pager.test.mjs apps/web/test/m5-sharing.test.mjs; working tree on bcc40024765b34740091a07713f08c3730411d24; 2026-11-14T06:58:08.419073+00:00–2026-11-14T06:58:10.844234+00:00 UTC; exit0                       | 2026-11-14 | PASS   |
+
+## Verification checkpoint — startup-diagnostics
+
+| Claim               | Evidence                                                                                                                                                                                         | Date       | Result |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| startup-diagnostics | node --test scripts/browser-startup-diagnostics.test.mjs; working tree on 1758db981c40762d304029fe06f5bc3f65f5533f; 2026-11-14T06:59:11.428121+00:00–2026-11-14T06:59:11.551630+00:00 UTC; exit0 | 2026-11-14 | PASS   |

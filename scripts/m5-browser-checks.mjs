@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { setTimeout, clearTimeout } from "node:timers";
 import { createHash } from "node:crypto";
+import { browserStartupSummary } from "./browser-startup-diagnostics.mjs";
 import {
   terminateChildProcess,
   cleanupBrowserProfile,
@@ -91,8 +92,14 @@ const child = spawn(
     `--user-data-dir=${profile}`,
     "about:blank",
   ],
-  { stdio: "ignore" },
+  { stdio: ["ignore", "ignore", "pipe"] },
 );
+let startupStderr = "";
+let collectingStartup = true;
+child.stderr.on("data", (chunk) => {
+  if (collectingStartup)
+    startupStderr = (startupStderr + chunk.toString("utf8")).slice(-16384);
+});
 let socket;
 const records = [],
   errors = [];
@@ -108,7 +115,8 @@ const bundleHashes = Object.fromEntries(
 );
 try {
   let port;
-  for (let i = 0; i < 150; i++) {
+  // Cold GitHub runners can initialize Chromium DevTools slowly; keep the launch gate bounded.
+  for (let i = 0; i < 200; i++) {
     try {
       port = (
         await readFile(join(profile, "DevToolsActivePort"), "utf8")
@@ -117,7 +125,15 @@ try {
     } catch {
       await delay(100);
     }
+    if (child.exitCode !== null || child.signalCode !== null) break;
   }
+  collectingStartup = false;
+  if (!port)
+    console.error(
+      "BROWSER_STARTUP_DIAGNOSTIC",
+      JSON.stringify(browserStartupSummary(startupStderr, child)),
+    );
+  startupStderr = "";
   assert.ok(port, "Chromium startup");
   const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then((r) =>
     r.json(),
