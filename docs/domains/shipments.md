@@ -277,7 +277,7 @@ unregistered. UI fixtures and passing synthetic tests do not supply API rights.
 1. This documentation design task (NEXORA-049), with cardinality resolved by v3.
 2. Shipment backend core: aggregate, schema, fenced persistence and read API;
    test-first domain and genuine PostgreSQL status/FK/uniqueness/rollback tests.
-3. [NEXORA-045](../tasks/active/NEXORA-045-pager-filter-convergence.md) in parallel;
+3. [NEXORA-045](../tasks/completed/NEXORA-045-pager-filter-convergence.md) in parallel;
    complete shared Pager/filter follow-ups before Shipment UI integration.
 4. Connect Retail UI to real read API with exhaustive tab mapping.
 5. Uniship Shipment adapter only after official documentation and the seven verifications.
