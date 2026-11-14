@@ -1,333 +1,355 @@
-// Test-only exact ZIP INITIAL_PACKAGES; source SHA df671b752b40631bb3635f9708d1f3b8778121793f51591c6e18b6c4d96fe67c.
-import type { RetailPackage } from "../../features/retail-packages/types.ts";
-export const SYNTHETIC_PACKAGES: RetailPackage[] = [
-  {
-    id: "pkg-1",
-    trackingCode: "SF294810293",
-    carrierConnectionId: "uniship",
-    carrierProviderName: "Uniship",
-    accountConnectionId: "acc-uniship-main",
-    accountName: "Tài khoản chính",
-    carrierId: "carrier-sf",
-    carrierCode: "SF",
-    carrierName: "SF Express (Thuận Phong)",
-    carrierService: "Hỏa tốc hàng không",
-    productName: "Áo khoác phao nữ lông vũ phong cách Hàn Quốc",
-    itemCount: 1,
-    packageCount: 1,
-    originWarehouseDate: "12/10/2026",
-    originWarehouseExportDate: undefined,
-    destWarehouseDate: undefined,
-    destWarehouseExportDate: undefined,
-    weightKg: 1.25,
-    unitPriceCNY: 85.0,
-    domesticShipCNY: 0,
-    valueCNY: 85.0,
-    hasInsurance: true,
-    hasInspection: false,
-    hasWoodenCrate: false,
-    hasBubbleWrap: false,
-    status: "to_origin",
-    statusText: "Đang đến kho gửi",
-    originWarehouseName: "Kho TMĐT Quảng Châu (3-4 ngày-Không VAT)",
-    destWarehouseName: "Kho Hà Nội (Tổng kho Mỹ Đình)",
-    totalAmountVND: 38500,
-    timeline: [
+// Synthetic DTO sources and GET adapter only. Production never imports this file.
+import { LogisticsStage, ShipmentChargeCode } from "@nexora/shared/shipment";
+import type {
+  ShipmentSummary,
+  ShipmentDetail,
+  ShipmentHistoryPage,
+  ShipmentPage,
+} from "../../features/retail-packages/types.ts";
+import type { ShipmentApi } from "../../features/retail-packages/api.ts";
+import { ShipmentApiError } from "../../features/retail-packages/errors.ts";
+import {
+  readShipmentPage,
+  readShipment,
+  readShipmentHistory,
+} from "../../features/retail-packages/response.ts";
+import { tabToStage } from "../../features/retail-packages/presentation.ts";
+import { SYNTHETIC_PACKAGES } from "./retail-reference.ts";
+export { SYNTHETIC_PACKAGES } from "./retail-reference.ts";
+const iso = (value: string | undefined) => {
+  if (!value) return null;
+  const [d, m, y] = value.split("/");
+  return `${y}-${m}-${d}T05:00:00.000Z`;
+};
+const id = (n: number) =>
+  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+export const REFERENCE_DETAILS: ShipmentDetail[] = SYNTHETIC_PACKAGES.map(
+  (p, index) => {
+    const rootId = id(index + 1),
+      stage = tabToStage(p.status) ?? LogisticsStage.UNKNOWN;
+    const charges: ShipmentDetail["charges"] = [
       {
-        title: "Người bán phát hàng qua SF Express",
-        time: "11/10/2026 14:20",
-        completed: true,
-        description: "Bưu tá SF Express đã tiếp nhận kiện hàng tại Thâm Quyến.",
+        id: id(1000 + index * 10),
+        lineNo: 1,
+        chargeCode: ShipmentChargeCode.UNIT_PRICE,
+        amount: p.unitPriceCNY.toFixed(1),
+        currency: "CNY",
+        providerLabel: null,
       },
-      {
-        title: "Đang đến kho gửi Quảng Châu (Uniship)",
-        time: "12/10/2026 09:15",
-        completed: true,
-        current: true,
-        description:
-          "Xe luân chuyển đang vận chuyển đến kho tập kết Uniship Quảng Châu.",
+    ];
+    if (p.domesticShipCNY > 0)
+      charges.push({
+        id: id(1001 + index * 10),
+        lineNo: charges.length + 1,
+        chargeCode: ShipmentChargeCode.DOMESTIC_SHIPPING,
+        amount: p.domesticShipCNY.toFixed(1),
+        currency: "CNY",
+        providerLabel: null,
+      });
+    for (const [enabled, code] of [
+      [p.hasInsurance, ShipmentChargeCode.INSURANCE],
+      [p.hasInspection, ShipmentChargeCode.COUNTING],
+      [p.hasWoodenCrate, ShipmentChargeCode.WOOD_PACKING],
+      [p.hasBubbleWrap, ShipmentChargeCode.BUBBLE_WRAP],
+    ] as const)
+      if (enabled)
+        charges.push({
+          id: id(2000 + index * 10 + charges.length),
+          lineNo: charges.length + 1,
+          chargeCode: code,
+          amount: "0.00",
+          currency: "CNY",
+          providerLabel: null,
+        });
+    const milestones: ShipmentDetail["milestones"] = [];
+    for (const [code, date, location] of [
+      ["ORIGIN_RECEIVED", p.originWarehouseDate, p.originWarehouseName],
+      ["ORIGIN_DISPATCHED", p.originWarehouseExportDate, p.originWarehouseName],
+      ["DEST_RECEIVED", p.destWarehouseDate, p.destWarehouseName],
+      ["DEST_DISPATCHED", p.destWarehouseExportDate, p.destWarehouseName],
+    ] as const) {
+      const occurredAt = iso(date);
+      if (occurredAt)
+        milestones.push({
+          id: id(3000 + index * 10 + milestones.length),
+          milestoneCode: code,
+          occurredAt,
+          locationName: location,
+          providerLabel: null,
+        });
+    }
+    const occurred = (code: string) =>
+      milestones.find((m) => m.milestoneCode === code)?.occurredAt ?? null;
+    return {
+      id: rootId,
+      code: `SHP${String(index + 1).padStart(6, "0")}`,
+      trackingCode: p.trackingCode,
+      shipmentKind: "RETAIL_PARCEL",
+      provider:
+        p.carrierProviderName === "Uniship" ? "uniship" : p.carrierProviderName,
+      logisticsStage: stage,
+      providerStatus: null,
+      providerClaimStatus: null,
+      customerId: null,
+      createdAt: new Date(
+        Date.UTC(2026, 10, 14, 0, 0, 6 - index),
+      ).toISOString(),
+      updatedAt: new Date(
+        Date.UTC(2026, 10, 14, 0, 0, 6 - index),
+      ).toISOString(),
+      originWarehouse: p.originWarehouseName,
+      weightKg: p.weightKg.toFixed(2),
+      packageCount: p.packageCount,
+      itemCount: p.itemCount,
+      declaredValue: p.valueCNY.toFixed(1),
+      declaredCurrency: "CNY",
+      totalAmount: p.totalAmountVND?.toString() ?? null,
+      totalCurrency: p.totalAmountVND === undefined ? null : "VND",
+      chargeSummary: {
+        unitPrice: {
+          state: "SINGLE",
+          amount: p.unitPriceCNY.toFixed(1),
+          currency: "CNY",
+        },
+        domesticShipping: {
+          state: p.domesticShipCNY > 0 ? "SINGLE" : "NONE",
+          amount: p.domesticShipCNY > 0 ? p.domesticShipCNY.toFixed(1) : null,
+          currency: p.domesticShipCNY > 0 ? "CNY" : null,
+        },
+        hasInsurance: p.hasInsurance,
+        hasCounting: p.hasInspection,
+        hasWoodPacking: p.hasWoodenCrate,
+        hasBubbleWrap: p.hasBubbleWrap,
       },
-      {
-        title: "Nhập kho TMĐT & Cân đo",
-        time: "Dự kiến 13/10",
-        completed: false,
-        description:
-          "Kiện hàng sẽ được cân đo và kiểm tra ngoại quan tại kho gửi.",
+      milestoneSummary: {
+        originReceivedAt: occurred("ORIGIN_RECEIVED"),
+        originDispatchedAt: occurred("ORIGIN_DISPATCHED"),
+        destReceivedAt: occurred("DEST_RECEIVED"),
+        destDispatchedAt: occurred("DEST_DISPATCHED"),
+        destWarehouse:
+          milestones.find((m) => m.milestoneCode === "DEST_RECEIVED")
+            ?.locationName ?? null,
       },
-      {
-        title: "Vận chuyển về Việt Nam",
-        time: "Dự kiến 14/10",
-        completed: false,
-        description: "Thông quan chính ngạch qua cửa khẩu quốc tế.",
-      },
-      {
-        title: "Giao hàng cho khách",
-        time: "Dự kiến 15/10",
-        completed: false,
-        description: "Giao tận nơi hoặc nhận tại kho Mỹ Đình.",
-      },
-    ],
+      itemSummary: { firstName: p.productName, lineCount: 1 },
+      serviceLevel: null,
+      exchangeRate: null,
+      exchangeRateAt: null,
+      providerUpdatedAt: null,
+      lastSyncedAt: null,
+      assigneeUserId: null,
+      internalNote: null,
+      charges,
+      milestones,
+      items: [
+        {
+          id: id(4000 + index),
+          lineNo: 1,
+          name: p.productName,
+          quantity: p.itemCount,
+          unitValue: null,
+          currency: null,
+        },
+      ],
+    };
   },
-  {
-    id: "pkg-2",
-    trackingCode: "NXR8819201",
-    carrierConnectionId: "uniship",
-    carrierProviderName: "Uniship",
-    accountConnectionId: "acc-uniship-main",
-    accountName: "Tài khoản chính",
-    carrierId: "carrier-nexora",
-    carrierCode: "NEX",
-    carrierName: "NEXORA Linehaul",
-    carrierService: "Chuyên tuyến TQ - VN",
-    productName: "Robot hút bụi lau nhà tự động giặt giẻ Ecovacs",
-    itemCount: 1,
-    packageCount: 1,
-    originWarehouseDate: "10/10/2026",
-    originWarehouseExportDate: "11/10/2026",
-    destWarehouseDate: undefined,
-    destWarehouseExportDate: undefined,
-    weightKg: 5.8,
-    unitPriceCNY: 1250.0,
-    domesticShipCNY: 15.0,
-    valueCNY: 1265.0,
-    hasInsurance: true,
-    hasInspection: true,
-    hasWoodenCrate: true,
-    hasBubbleWrap: true,
-    status: "at_origin",
-    statusText: "Đã về kho gửi",
-    originWarehouseName: "Kho TMĐT Quảng Châu (3-4 ngày-Không VAT)",
-    destWarehouseName: "Kho Hà Nội (Tổng kho Mỹ Đình)",
-    totalAmountVND: 245000,
-    timeline: [
+);
+export function asSummary(detail: ShipmentDetail): ShipmentSummary {
+  const {
+    serviceLevel,
+    exchangeRate,
+    exchangeRateAt,
+    providerUpdatedAt,
+    lastSyncedAt,
+    assigneeUserId,
+    internalNote,
+    charges,
+    milestones,
+    items,
+    ...summary
+  } = detail;
+  void [
+    serviceLevel,
+    exchangeRate,
+    exchangeRateAt,
+    providerUpdatedAt,
+    lastSyncedAt,
+    assigneeUserId,
+    internalNote,
+    charges,
+    milestones,
+    items,
+  ];
+  return summary;
+}
+export const FIXTURE_DETAILS: ShipmentDetail[] = Array.from(
+  { length: 30 },
+  (_, i) => {
+    const d = structuredClone(REFERENCE_DETAILS[i % 6]);
+    d.id = id(100 + i);
+    d.trackingCode = `FIXTURE${String(i).padStart(4, "0")}`;
+    d.logisticsStage = Object.values(LogisticsStage)[i % 6];
+    d.weightKg = (i + 1).toFixed(2);
+    d.createdAt = new Date(Date.UTC(2026, 1, 1, 0, 0, 30 - i)).toISOString();
+    const name = i === 0 ? "Sản phẩm kiểm thử dài ".repeat(8) : `Sản phẩm ${i}`;
+    d.items = [
       {
-        title: "Người bán phát hàng",
-        time: "08/10/2026 10:00",
-        completed: true,
-        description: "Shop bàn giao cho xe trung chuyển.",
+        id: id(5000 + i),
+        lineNo: 1,
+        name,
+        quantity: null,
+        unitValue: i === 0 ? "1234567890123456.78" : null,
+        currency: i === 0 ? "CNY" : null,
       },
-      {
-        title: "Đã về kho gửi Uniship Quảng Châu",
-        time: "10/10/2026 16:45",
-        completed: true,
-        current: true,
-        description:
-          "Kiện hàng đã nhập kho, hoàn thành kiểm đếm và đóng khung gỗ bảo vệ.",
-      },
-      {
-        title: "Xuất kho gửi Linehaul về VN",
-        time: "11/10/2026 21:00",
-        completed: true,
-        description: "Lên xe chuyên dụng container chạy cửa khẩu Hữu Nghị.",
-      },
-      {
-        title: "Đang về kho nhận VN",
-        time: "Dự kiến 13/10",
-        completed: false,
-        description: "Đang thông quan hàng hóa chính ngạch.",
-      },
-      {
-        title: "Giao hàng thành công",
-        time: "Dự kiến 14/10",
-        completed: false,
-        description: "Giao hàng hỏa tốc nội thành.",
-      },
-    ],
+    ];
+    if (i === 0)
+      d.items.push({
+        id: id(6000 + i),
+        lineNo: 2,
+        name: "Sản phẩm bổ sung",
+        quantity: 2,
+        unitValue: null,
+        currency: null,
+      });
+    d.itemSummary = { firstName: name, lineCount: d.items.length };
+    d.totalAmount = null;
+    d.totalCurrency = null;
+    if (i === 0) {
+      d.chargeSummary.unitPrice = {
+        state: "MULTIPLE",
+        amount: null,
+        currency: null,
+      };
+      d.charges.push({
+        id: id(7000 + i),
+        lineNo: d.charges.length + 1,
+        chargeCode: "UNIT_PRICE",
+        amount: "9.99",
+        currency: "USD",
+        providerLabel: null,
+      });
+    }
+    if (i === 1) {
+      d.weightKg = null;
+      d.declaredValue = null;
+      d.declaredCurrency = null;
+    }
+    d.milestoneSummary.originReceivedAt = `2026-02-${String(10 + (i % 10)).padStart(2, "0")}T05:00:00.000Z`;
+    const origin = d.milestones.find(
+      (m) => m.milestoneCode === "ORIGIN_RECEIVED",
+    );
+    if (origin) origin.occurredAt = d.milestoneSummary.originReceivedAt;
+    else
+      d.milestones.unshift({
+        id: id(8000 + i),
+        milestoneCode: "ORIGIN_RECEIVED",
+        occurredAt: d.milestoneSummary.originReceivedAt,
+        locationName: d.originWarehouse,
+        providerLabel: null,
+      });
+    return d;
   },
-  {
-    id: "pkg-3",
-    trackingCode: "JT77381920",
-    carrierConnectionId: "hang-b",
-    carrierProviderName: "Hãng B",
-    accountConnectionId: "acc-hangb-corp",
-    accountName: "Tài khoản công ty",
-    carrierId: "carrier-jt",
-    carrierCode: "J&T",
-    carrierName: "J&T Express",
-    carrierService: "TMĐT Tiêu chuẩn",
-    productName: "Giày thể thao sneaker nam đế khí êm ái",
-    itemCount: 2,
-    packageCount: 1,
-    originWarehouseDate: "09/10/2026",
-    originWarehouseExportDate: "10/10/2026",
-    destWarehouseDate: undefined,
-    destWarehouseExportDate: undefined,
-    weightKg: 1.6,
-    unitPriceCNY: 120.0,
-    domesticShipCNY: 0,
-    valueCNY: 120.0,
-    hasInsurance: false,
-    hasInspection: false,
-    hasWoodenCrate: false,
-    hasBubbleWrap: true,
-    status: "in_transit",
-    statusText: "Đang về kho nhận",
-    originWarehouseName: "Kho Bằng Tường (2-3 ngày)",
-    destWarehouseName: "Kho TP. Hồ Chí Minh (Tân Bình)",
-    totalAmountVND: 54000,
-    timeline: [
-      {
-        title: "Nhập kho Hãng B Bằng Tường",
-        time: "09/10/2026 11:30",
-        completed: true,
-        description: "Đã kiểm tra cân nặng và bọc màng khí.",
-      },
-      {
-        title: "Đang về kho nhận TP.HCM",
-        time: "10/10/2026 19:00",
-        completed: true,
-        current: true,
-        description: "Đang trên cung đường luân chuyển xe tải về miền Nam.",
-      },
-      {
-        title: "Nhập kho nhận Tân Bình",
-        time: "Dự kiến 13/10",
-        completed: false,
-        description: "Chờ giao chặng cuối cho khách hàng.",
-      },
-    ],
-  },
-  {
-    id: "pkg-4",
-    trackingCode: "ZTO66591023",
-    carrierConnectionId: "uniship",
-    carrierProviderName: "Uniship",
-    accountConnectionId: "acc-uniship-branch",
-    accountName: "Tài khoản chi nhánh",
-    carrierId: "carrier-zto",
-    carrierCode: "ZTO",
-    carrierName: "ZTO Express",
-    carrierService: "Tiết kiệm đường bộ",
-    productName: "Balo laptop du lịch chống nước đa ngăn công sở",
-    itemCount: 3,
-    packageCount: 1,
-    originWarehouseDate: "07/10/2026",
-    originWarehouseExportDate: "08/10/2026",
-    destWarehouseDate: "11/10/2026",
-    destWarehouseExportDate: undefined,
-    weightKg: 2.1,
-    unitPriceCNY: 65.0,
-    domesticShipCNY: 0,
-    valueCNY: 195.0,
-    hasInsurance: false,
-    hasInspection: true,
-    hasWoodenCrate: false,
-    hasBubbleWrap: false,
-    status: "at_dest",
-    statusText: "Đã về kho nhận",
-    originWarehouseName: "Kho Đông Hưng (2-3 ngày)",
-    destWarehouseName: "Kho Hà Nội (Tổng kho Mỹ Đình)",
-    totalAmountVND: 67200,
-    timeline: [
-      {
-        title: "Nhập kho Uniship Đông Hưng",
-        time: "07/10/2026 15:00",
-        completed: true,
-        description: "Tiếp nhận kiện hàng từ xưởng.",
-      },
-      {
-        title: "Xuất kho vận chuyển đường bộ",
-        time: "08/10/2026 22:00",
-        completed: true,
-        description: "Xe xuất bến chạy qua cửa khẩu Tân Thanh.",
-      },
-      {
-        title: "Đã về kho nhận Hà Nội",
-        time: "11/10/2026 14:10",
-        completed: true,
-        current: true,
-        description:
-          "Hàng sẵn sàng tại kho Mỹ Đình, quý khách có thể qua lấy hoặc tạo yêu cầu giao.",
-      },
-    ],
-  },
-  {
-    id: "pkg-5",
-    trackingCode: "YT55194018",
-    carrierConnectionId: "uniship",
-    carrierProviderName: "Uniship",
-    accountConnectionId: "acc-uniship-branch",
-    accountName: "Tài khoản chi nhánh",
-    carrierId: "carrier-zto",
-    carrierCode: "YTO",
-    carrierName: "YTO Express",
-    carrierService: "Chuyển phát nhanh",
-    productName: "Mạch điều khiển linh kiện điện tử vi xử lý STM32",
-    itemCount: 10,
-    packageCount: 1,
-    originWarehouseDate: "04/10/2026",
-    originWarehouseExportDate: "05/10/2026",
-    destWarehouseDate: "08/10/2026",
-    destWarehouseExportDate: "09/10/2026",
-    weightKg: 0.6,
-    unitPriceCNY: 35.0,
-    domesticShipCNY: 8.0,
-    valueCNY: 358.0,
-    hasInsurance: true,
-    hasInspection: true,
-    hasWoodenCrate: false,
-    hasBubbleWrap: true,
-    status: "delivered",
-    statusText: "Đã giao hàng",
-    originWarehouseName: "Kho Đông Hưng (2-3 ngày)",
-    destWarehouseName: "Kho Hà Nội (Tổng kho Mỹ Đình)",
-    totalAmountVND: 32000,
-    timeline: [
-      {
-        title: "Giao hàng thành công",
-        time: "09/10/2026 16:30",
-        completed: true,
-        current: true,
-        description:
-          "Khách hàng đã ký nhận kiện hàng đầy đủ nguyên vẹn từ bưu tá.",
-      },
-    ],
-  },
-  {
-    id: "pkg-6",
-    trackingCode: "HGB9920192",
-    carrierConnectionId: "hang-b",
-    carrierProviderName: "Hãng B",
-    accountConnectionId: "acc-hangb-corp",
-    accountName: "Tài khoản công ty",
-    carrierId: "carrier-sf",
-    carrierCode: "HGB",
-    carrierName: "Hãng B Logistics",
-    carrierService: "Vận chuyển sàn TMĐT",
-    productName: "Thùng mô hình đồ chơi lắp ráp Gundam RG 1/144",
-    itemCount: 4,
-    packageCount: 2,
-    originWarehouseDate: "08/10/2026",
-    originWarehouseExportDate: "09/10/2026",
-    destWarehouseDate: undefined,
-    destWarehouseExportDate: undefined,
-    weightKg: 3.4,
-    unitPriceCNY: 240.0,
-    domesticShipCNY: 0,
-    valueCNY: 960.0,
-    hasInsurance: true,
-    hasInspection: false,
-    hasWoodenCrate: true,
-    hasBubbleWrap: true,
-    status: "in_transit",
-    statusText: "Đang về kho nhận",
-    originWarehouseName: "Kho Bằng Tường (2-3 ngày)",
-    destWarehouseName: "Kho Đà Nẵng (Hải Châu)",
-    totalAmountVND: 128000,
-    timeline: [
-      {
-        title: "Xuất kho Hãng B Bằng Tường",
-        time: "09/10/2026 20:15",
-        completed: true,
-        description: "Đã đóng gỗ bảo vệ hộp mô hình.",
-      },
-      {
-        title: "Đang về kho Đà Nẵng",
-        time: "11/10/2026 08:30",
-        completed: true,
-        current: true,
-        description: "Xe vận tải miền Trung đang di chuyển.",
-      },
-    ],
-  },
-];
+);
+export function createRetailFixtureApi(
+  details: readonly ShipmentDetail[] = FIXTURE_DETAILS,
+  mode = "ready",
+  events: { method: string; query?: unknown; aborted?: boolean }[] = [],
+): ShipmentApi {
+  const wait = (signal?: AbortSignal) =>
+    new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new DOMException("Aborted", "AbortError"));
+        return;
+      }
+      const stop = () => {
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", abort);
+      };
+      const abort = () => {
+        stop();
+        events.push({ method: "abort", aborted: true });
+        reject(new DOMException("Aborted", "AbortError"));
+      };
+      const timer = setTimeout(
+        () => {
+          stop();
+          resolve();
+        },
+        mode === "slow" ? 300 : 0,
+      );
+      signal?.addEventListener("abort", abort, { once: true });
+    });
+  return {
+    async list(query, signal) {
+      events.push({ method: "list", query: { ...query } });
+      await wait(signal);
+      if (mode === "error") throw Error("Synthetic network failure");
+      if (mode === "malformed") return readShipmentPage({});
+      const q = (query.q ?? "").toLocaleLowerCase("vi");
+      const searched =
+        mode === "empty" || q === "fixture-empty"
+          ? []
+          : details
+              .filter((d) => d.trackingCode.toLocaleLowerCase("vi").includes(q))
+              .sort(
+                (a, b) =>
+                  b.createdAt.localeCompare(a.createdAt) ||
+                  b.id.localeCompare(a.id),
+              );
+      const byStage = Object.fromEntries(
+        Object.values(LogisticsStage).map((stage) => [
+          stage,
+          searched.filter((d) => d.logisticsStage === stage).length,
+        ]),
+      ) as ShipmentPage["stats"]["byStage"];
+      const filtered = query.stage
+        ? searched.filter((d) => d.logisticsStage === query.stage)
+        : searched;
+      return readShipmentPage({
+        shipments: filtered
+          .slice((query.page - 1) * query.pageSize, query.page * query.pageSize)
+          .map(asSummary),
+        pagination: {
+          page: query.page,
+          pageSize: query.pageSize,
+          total: filtered.length,
+          totalPages: Math.ceil(filtered.length / query.pageSize),
+        },
+        stats: { total: searched.length, byStage, claims: null },
+        claimFilterAvailable: false,
+      });
+    },
+    async get(value, signal) {
+      events.push({ method: "get" });
+      await wait(signal);
+      const detail = details.find((d) => d.id === value);
+      if (!detail || mode === "not-found")
+        throw new ShipmentApiError(404, { code: "NOT_FOUND" });
+      return readShipment({ shipment: structuredClone(detail) });
+    },
+    async history(value, query, signal) {
+      events.push({ method: "history", query });
+      await wait(signal);
+      const detail = details.find((d) => d.id === value);
+      if (!detail) throw new ShipmentApiError(404, { code: "NOT_FOUND" });
+      const history: ShipmentHistoryPage = {
+        history: [
+          {
+            id: id(9000 + details.indexOf(detail)),
+            sourceVersion: 1,
+            processorVersion: 1,
+            fromStage: null,
+            toStage: detail.logisticsStage,
+            providerStatus: null,
+            observedAt: "2026-11-14T00:00:00.000Z",
+            providerChangedAt:
+              details.indexOf(detail) % 2 === 0
+                ? "2026-11-13T23:59:00.000Z"
+                : null,
+          },
+        ],
+        pagination: { ...query, total: 1, totalPages: 1 },
+      };
+      return readShipmentHistory(history);
+    },
+  };
+}

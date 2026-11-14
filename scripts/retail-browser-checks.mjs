@@ -1,3 +1,4 @@
+import { SYNTHETIC_PACKAGES } from "../apps/web/test/fixtures/retail-reference.ts";
 import {
   inspectRetailColumnPicker,
   pickerPointer,
@@ -41,7 +42,12 @@ export async function verifyRetailBrowser({
       const r = m.params.request,
         u = new URL(r.url);
       if (
-        (u.origin === baseUrl && u.pathname.startsWith("/api/shipments")) ||
+        (u.origin === baseUrl &&
+          u.pathname.startsWith("/api/shipments") &&
+          (r.method !== "GET" ||
+            !/^\/api\/shipments(?:\/[^/]+(?:\/history)?)?$/.test(u.pathname) ||
+            u.searchParams.has("claim") ||
+            u.searchParams.has("filters"))) ||
         (fixtureOrigin &&
           u.origin === fixtureOrigin &&
           !["GET", "HEAD"].includes(r.method))
@@ -124,9 +130,13 @@ export async function verifyRetailBrowser({
     );
   }
   async function navigate(url) {
+    const marker = String(Date.now()) + Math.random();
+    await evaluate(
+      `window.__retailNavigationMarker=${JSON.stringify(marker)};true`,
+    );
     await send("Page.navigate", { url });
     await until(
-      "Boolean(document.querySelector('#retail-packages-heading'))&&document.readyState==='complete'",
+      `window.__retailNavigationMarker!==${JSON.stringify(marker)}&&location.pathname===${JSON.stringify(new URL(url).pathname)}&&Boolean(document.querySelector('#retail-packages-heading'))&&document.readyState==='complete'`,
     );
   }
   async function snapshot(phase) {
@@ -185,6 +195,9 @@ export async function verifyRetailBrowser({
         new URL(guest.headers.get("location"), baseUrl).pathname === "/login",
       );
       await navigate(baseUrl + "/shipments/retail");
+      await until(
+        "document.querySelector('[data-read-state]')?.dataset.readState==='ready'",
+      );
       assert.equal(
         await evaluate("document.querySelectorAll('[data-package-id]').length"),
         0,
@@ -193,7 +206,7 @@ export async function verifyRetailBrowser({
         await evaluate(
           "document.querySelector('[data-availability]').dataset.availability",
         ),
-        "unavailable",
+        "available",
       );
       assert.equal(
         await evaluate("document.querySelectorAll('[role=tab]').length"),
@@ -201,10 +214,10 @@ export async function verifyRetailBrowser({
       );
       assert.equal(
         await evaluate(
-          "Array.from(document.querySelectorAll('[role=tab] span[class*=\"badge\"]')).every(b => b.textContent.includes('—') && b.textContent.includes('chưa có dữ liệu'))",
+          "Array.from(document.querySelectorAll('[role=tab]:not(:disabled) span[class*=\"badge\"]')).every(b => b.textContent.trim()==='0') && document.querySelector('#retail-tab-disputed').disabled && document.querySelector('#retail-tab-disputed').title==='Chưa hỗ trợ'",
         ),
         true,
-        "Production unavailable badges present em-dash and honest screen reader text",
+        "Production successful empty read reports server zero counts; disputed stays unsupported",
       );
       assert.equal(
         await evaluate("document.querySelectorAll('colgroup col').length"),
@@ -222,7 +235,7 @@ export async function verifyRetailBrowser({
         ),
         true,
       );
-      await snapshot("production-unavailable");
+      await snapshot("production-empty");
     }
     if (prefix !== "admin" && !fixtureOnly) return;
     checks.step("RETAIL_ISOLATED_FIXTURE");
@@ -331,13 +344,15 @@ export async function verifyRetailBrowser({
       "in_transit",
       "at_dest",
       "delivered",
-      "disputed",
     ]) {
       await evaluate(
         `document.querySelector('#retail-tab-${status}').click();true`,
       );
       await until(
         `document.querySelector('#retail-tab-${status}').getAttribute('aria-selected')==='true'`,
+      );
+      await until(
+        `document.querySelector('[data-read-state]').dataset.readState==='ready'&&document.querySelector('[data-retail-count]').textContent===${JSON.stringify(status === "all" ? "30 kiện lẻ" : "5 kiện lẻ")}`,
       );
       assert.equal(
         await evaluate(
@@ -368,15 +383,15 @@ export async function verifyRetailBrowser({
     await snapshot("status");
     await evaluate("history.back();true");
     await until(
-      "document.querySelector('#retail-tab-delivered').getAttribute('aria-selected')==='true'",
+      "document.querySelector('#retail-tab-at_dest').getAttribute('aria-selected')==='true'",
     );
     await evaluate("history.forward();true");
     await until(
-      "document.querySelector('#retail-tab-disputed').getAttribute('aria-selected')==='true'",
+      "document.querySelector('#retail-tab-delivered').getAttribute('aria-selected')==='true'",
     );
     await send("Page.reload");
     await until(
-      "document.querySelector('#retail-tab-disputed')?.getAttribute('aria-selected')==='true'",
+      "document.querySelector('#retail-tab-delivered')?.getAttribute('aria-selected')==='true'",
     );
     await evaluate("document.querySelector('#retail-tab-all').click();true");
     await until(
@@ -421,44 +436,35 @@ export async function verifyRetailBrowser({
     await until(
       "document.querySelector('[data-retail-count]').textContent==='30 kiện lẻ'",
     );
-    await click("Bộ lọc nâng cao");
-    await snapshot("filter-popover");
-    await select("Trường lọc", "weightKg");
-    await select("Toán tử", "greater_than");
-    await type("Giá trị", "5");
-    await click("Thêm điều kiện");
-    await until(
-      "document.querySelector('[data-retail-count]').textContent==='25 kiện lẻ'",
+    assert.equal(
+      await evaluate(
+        "document.querySelector('button[aria-label=\"Bộ lọc nâng cao\"]').disabled",
+      ),
+      true,
     );
     assert.equal(
-      await evaluate("new URLSearchParams(location.search).get('page')"),
-      "1",
+      await evaluate(
+        "document.querySelector('button[aria-label=\"Bộ lọc nâng cao\"]').title",
+      ),
+      "Đang phát triển",
     );
-    await snapshot("advanced-filter");
-    await click("Bộ lọc nâng cao");
-    await type("Giá trị", "5");
-    await click("Thêm điều kiện");
-    await until(
-      "document.querySelector('[role=alert]')?.textContent.includes('đã tồn tại')",
+    assert.equal(
+      await evaluate("document.querySelector('#retail-tab-disputed').disabled"),
+      true,
     );
-    await key("Escape");
-    await click("Bộ lọc nâng cao");
-    await select("Trường lọc", "weightKg");
-    await select("Toán tử", "less_than");
-    await type("Giá trị", "10");
-    await click("Thêm điều kiện");
-    await until(
-      "document.querySelector('[data-retail-count]').textContent==='4 kiện lẻ'",
+    assert.equal(
+      await evaluate("document.querySelector('#retail-tab-disputed').title"),
+      "Chưa hỗ trợ",
     );
-    await evaluate(
-      `document.querySelector('button[aria-label^="Xóa bộ lọc:"]').click();true`,
+    assert.ok(
+      await evaluate(
+        "document.body.textContent.includes('5 kiện có trạng thái chưa xác định từ hãng.')",
+      ),
     );
-    await until(
-      "document.querySelector('[data-retail-count]').textContent==='9 kiện lẻ'",
-    );
-    await click("Xóa tất cả");
-    await until(
-      "document.querySelector('[data-retail-count]').textContent==='30 kiện lẻ'",
+    assert.ok(
+      await evaluate(
+        "document.querySelector('table').textContent.includes('Nhiều dòng')",
+      ),
     );
     const dateFilter = encodeURIComponent(
       JSON.stringify([
@@ -469,11 +475,42 @@ export async function verifyRetailBrowser({
         },
       ]),
     );
-    await navigate(fixtureOrigin + "/fixture?filters=" + dateFilter);
+    await navigate(fixtureOrigin + "/fixture?page=2&filters=" + dateFilter);
     await until(
-      "document.querySelector('[data-retail-count]').textContent==='15 kiện lẻ'",
+      "document.querySelector('[data-retail-count]').textContent==='30 kiện lẻ'",
     );
+    assert.equal(
+      await evaluate(
+        "document.querySelectorAll('button[aria-label^=\"Xóa bộ lọc:\"]').length",
+      ),
+      1,
+    );
+    assert.equal(
+      await evaluate(
+        "window.__retailFixture.events.filter(e=>e.method==='list').every(e=>!('filters' in e.query)&&!('claim' in e.query))",
+      ),
+      true,
+    );
+    await snapshot("legacy-filter-chips");
     await click("Xóa tất cả");
+    await until(
+      "document.querySelectorAll('button[aria-label^=\"Xóa bộ lọc:\"]').length===0",
+    );
+    await evaluate(
+      "new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true))))",
+    );
+    assert.equal(
+      await evaluate("new URLSearchParams(location.search).get('page')"),
+      "2",
+      "legacy filter removal preserves page",
+    );
+    assert.equal(
+      await evaluate(
+        "window.__retailFixture.events.filter(e=>e.method==='list').length",
+      ),
+      1,
+      "legacy filter removal must not fetch",
+    );
     checks.step("RETAIL_COLUMNS_PRESET_DEFAULT");
     await click("Tùy chỉnh cột hiển thị");
     await snapshot("column-picker");
@@ -798,6 +835,9 @@ export async function verifyRetailBrowser({
     await send("Emulation.clearDeviceMetricsOverride");
     checks.step("RETAIL_PAGINATION");
     await select("Số dòng mỗi trang", "5");
+    await until(
+      "document.querySelector('[data-read-state]').dataset.readState==='ready'&&document.querySelector('select[aria-label=\"Số dòng mỗi trang\"]').value==='5'",
+    );
     await click("Trang sau");
     assert.equal(
       await evaluate("new URLSearchParams(location.search).get('page')"),
@@ -815,7 +855,9 @@ export async function verifyRetailBrowser({
     await evaluate(
       "(()=>{const b=document.querySelector('tbody button[aria-label^=\"Xem\"]');if(!b)throw Error('DETAIL_TRIGGER_MISSING');b.focus();b.click();return true;})()",
     );
-    await until("!!document.querySelector('dialog[open]')");
+    await until(
+      "!!document.querySelector('dialog[open] [data-detail-state=ready]')",
+    );
     assert.equal(
       await evaluate(
         "document.querySelectorAll('dialog[open] [role=dialog]').length",
@@ -841,33 +883,50 @@ export async function verifyRetailBrowser({
       ),
       true,
     );
-    await click("Tạo kiện lẻ mới");
-    await until("!!document.querySelector('dialog[open]')");
     assert.equal(
       await evaluate(
-        "document.querySelector('dialog[open] button[type=submit]').disabled",
+        "document.querySelector('button[aria-label=\"Tạo kiện lẻ mới\"]').disabled",
       ),
       true,
     );
     assert.equal(
       await evaluate(
-        "document.querySelectorAll('dialog[open] [role=dialog]').length",
+        "document.querySelector('button[aria-label=\"Tạo kiện lẻ mới\"]').title",
       ),
-      0,
+      "Chưa hỗ trợ",
     );
     assert.equal(
-      await evaluate(
-        "document.querySelector('dialog[open]').textContent.includes('NEXORA Linehaul')",
-      ),
+      await evaluate("!!document.querySelector('dialog[open]')"),
       false,
     );
-    await snapshot("create");
+    await navigate(fixtureOrigin + "/fixture");
+    await until(
+      "document.querySelector('[data-retail-count]').textContent==='30 kiện lẻ'",
+    );
+    await evaluate(
+      "(()=>{const b=document.querySelector('tbody button[aria-label^=\"Xem\"]');b.focus();b.click();return true;})()",
+    );
+    await until(
+      "!!document.querySelector('dialog[open] [data-detail-state=ready]')",
+    );
+    assert.ok(
+      await evaluate(
+        "document.querySelector('dialog[open]').textContent.includes('¥1,234,567,890,123,456.78')",
+      ),
+    );
+    assert.ok(
+      await evaluate(
+        "document.querySelector('dialog[open]').textContent.includes('Hãng ghi nhận:')",
+      ),
+    );
+    assert.ok(
+      await evaluate(
+        "['Nhập kho gửi','Xuất kho gửi','Nhập kho nhận','Xuất kho nhận','Sản phẩm bổ sung'].every(label=>document.querySelector('dialog[open]').textContent.includes(label))",
+      ),
+    );
+    await snapshot("detail-api-items");
     await key("Escape");
     await until("!document.querySelector('dialog[open]')");
-    assert.equal(
-      await evaluate("document.activeElement.getAttribute('aria-label')"),
-      "Tạo kiện lẻ mới",
-    );
     checks.step("RETAIL_EMPTY_AND_QUERY_VALIDATION");
     await type("Tìm kiếm kiện lẻ", "nothing-matches");
     await until(
@@ -882,10 +941,109 @@ export async function verifyRetailBrowser({
     await until(
       "document.querySelector('[data-retail-count]').textContent==='30 kiện lẻ'",
     );
+    checks.step("RETAIL_API_ERROR_EMPTY_AND_ABORT");
+    await navigate(fixtureOrigin + "/fixture?fixtureMode=error");
+    await until(
+      "document.querySelector('[data-read-state]').dataset.readState==='error'",
+    );
+    assert.ok(
+      await evaluate(
+        "document.querySelector('[role=alert]').textContent.includes('Không thể tải dữ liệu kiện hàng.')",
+      ),
+    );
+    assert.equal(
+      await evaluate("document.querySelectorAll('[data-package-id]').length"),
+      0,
+    );
+    await snapshot("api-error");
+    await click("Thử lại");
+    await until(
+      "window.__retailFixture.events.filter(e=>e.method==='list').length===2&&document.querySelector('[data-read-state]').dataset.readState==='error'",
+    );
+    await navigate(fixtureOrigin + "/fixture?fixtureMode=empty");
+    await until(
+      "document.querySelector('[data-retail-count]').textContent==='0 kiện lẻ'",
+    );
+    assert.ok(
+      await evaluate(
+        "document.querySelector('table').textContent.includes('Chưa có kiện nào được đồng bộ.')",
+      ),
+    );
+    await snapshot("api-empty");
+    await navigate(fixtureOrigin + "/fixture?fixtureMode=malformed");
+    await until(
+      "document.querySelector('[data-read-state]').dataset.readState==='error'",
+    );
+    assert.equal(
+      await evaluate("document.querySelectorAll('[data-package-id]').length"),
+      0,
+    );
+    await navigate(fixtureOrigin + "/fixture?fixtureMode=slow");
+    await until(
+      "document.querySelector('[data-read-state]').dataset.readState==='ready'",
+    );
+    await evaluate(
+      "document.querySelector('#retail-tab-to_origin').click();true",
+    );
+    await until(
+      "window.__retailFixture.events.some(e=>e.query?.stage==='TO_ORIGIN_WAREHOUSE')",
+    );
+    await evaluate(
+      "document.querySelector('#retail-tab-at_origin').click();true",
+    );
+    await until(
+      "document.querySelector('[data-read-state]').dataset.readState==='ready'&&document.querySelector('[data-retail-count]').textContent==='5 kiện lẻ'",
+    );
+    assert.ok(
+      await evaluate("window.__retailFixture.events.some(e=>e.aborted)"),
+    );
+    assert.ok(
+      await evaluate(
+        "document.querySelector('tbody').textContent.includes('FIXTURE0001')",
+      ),
+    );
     await navigate(fixtureOrigin + "/reference-sample");
     await until(
       "document.querySelector('[data-retail-count]').textContent==='6 kiện lẻ'",
     );
+    const referenceCells = await evaluate(
+      `(()=>{const keys=[...document.querySelectorAll('thead th')].map(th=>th.dataset.column);return [...document.querySelectorAll('tbody tr')].map(row=>Object.fromEntries(keys.map((key,i)=>[key,row.cells[i].textContent.trim()])));})()`,
+    );
+    assert.equal(referenceCells.length, SYNTHETIC_PACKAGES.length);
+    for (const [index, source] of SYNTHETIC_PACKAGES.entries()) {
+      const cny = (value) =>
+        `¥${value.toLocaleString("zh-CN", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+      const expected = {
+        productName: source.productName,
+        originWarehouseDate: source.originWarehouseDate ?? "—",
+        originWarehouseExportDate: source.originWarehouseExportDate ?? "—",
+        destWarehouseDate: source.destWarehouseDate ?? "—",
+        destWarehouseExportDate: source.destWarehouseExportDate ?? "—",
+        weightKg: source.weightKg.toFixed(2),
+        unitPriceCNY: cny(source.unitPriceCNY),
+        domesticShipCNY:
+          source.domesticShipCNY > 0 ? cny(source.domesticShipCNY) : "—",
+        valueCNY: cny(source.valueCNY),
+        packageCount: String(source.packageCount),
+        itemCount: String(source.itemCount),
+        hasInsurance: source.hasInsurance ? "✓" : "—",
+        hasInspection: source.hasInspection ? "✓" : "—",
+        hasWoodenCrate: source.hasWoodenCrate ? "✓" : "—",
+        hasBubbleWrap: source.hasBubbleWrap ? "✓" : "—",
+        status:
+          source.status === "disputed" ? "Chưa xác định" : source.statusText,
+        totalAmountVND:
+          source.totalAmountVND === undefined
+            ? "—"
+            : source.totalAmountVND.toLocaleString("vi-VN") + "đ",
+      };
+      for (const [key, value] of Object.entries(expected))
+        assert.equal(
+          referenceCells[index][key],
+          value,
+          `reference source row ${index} ${key}`,
+        );
+    }
     await snapshot("reference-sample");
     assert.equal(errors.length, 0);
     assert.deepEqual(badRequests, []);

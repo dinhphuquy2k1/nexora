@@ -5,8 +5,6 @@ import {
   FILTER_FIELDS,
   makeFilter,
   addFilter,
-  matchesFilter,
-  filterPackages,
   calendarDay,
 } from "../features/retail-packages/filters.ts";
 import {
@@ -19,41 +17,21 @@ import {
   visibleColumns,
   searchColumns,
 } from "../features/retail-packages/columns.ts";
-import { SYNTHETIC_PACKAGES } from "./fixtures/retail-packages.ts";
-test("nine typed fields, strict calendar/number/text policies and no silent invalid match", () => {
+import { shipmentListQuery } from "../features/retail-packages/presentation.ts";
+test("nine typed legacy fields validate strictly without applying client filtering", () => {
   assert.equal(FILTER_FIELDS.length, 9);
   assert.equal(calendarDay("31/02/2026"), null);
   assert.equal(calendarDay("2026-02-29"), null);
   assert.equal(calendarDay("29/02/2024"), calendarDay("2024-02-29"));
   assert.equal(calendarDay("2026-02-28x"), null);
-  const base = {
-    ...SYNTHETIC_PACKAGES[0],
-    weightKg: 7,
-    unitPriceCNY: 85,
-    trackingCode: "AbC123",
-    productName: "Áo khoác",
-    originWarehouseName: "Kho TMĐT Quảng Châu",
-    originWarehouseDate: "15/02/2026",
-  };
-  for (const [field, operator, value, expected] of [
-    ["weightKg", "greater_than", "5", true],
-    ["weightKg", "less_than", "5", false],
-    ["weightKg", "equals", "7", true],
-    ["unitPriceCNY", "equals", "85", true],
-    ["trackingCode", "contains", "bc1", true],
-    ["trackingCode", "not_contains", "bc1", false],
-    ["productName", "not_equals", "khác", true],
-    ["originWarehouse", "equals", "Quảng Châu", true],
-    ["originWarehouse", "not_equals", "Quảng Châu", false],
-    ["originWarehouseDate", "before", "2026-02-16", true],
-    ["originWarehouseDate", "after", "2026-02-14", true],
-    ["originWarehouseDate", "equals", "2026-02-15", true],
+  for (const [field, operator, value] of [
+    ["weightKg", "greater_than", "5"],
+    ["unitPriceCNY", "equals", "85"],
+    ["trackingCode", "contains", "bc1"],
+    ["originWarehouse", "equals", "Quảng Châu"],
+    ["originWarehouseDate", "before", "2026-02-16"],
   ])
-    assert.equal(
-      matchesFilter(base, makeFilter(field, operator, value)),
-      expected,
-      [field, operator, value].join("/"),
-    );
+    assert.ok(makeFilter(field, operator, value));
   for (const [f, o, v] of [
     ["wat", "equals", "1"],
     ["weightKg", "contains", "5"],
@@ -64,24 +42,21 @@ test("nine typed fields, strict calendar/number/text policies and no silent inva
     ["status", "equals", "bogus"],
   ])
     assert.equal(makeFilter(f, o, v), null);
-  assert.equal(
-    matchesFilter(base, { field: "wat", operator: "equals", value: "1" }),
-    false,
-  );
   const a = makeFilter("trackingCode", "contains", "ABC");
   const b = makeFilter("trackingCode", "contains", "abc");
   assert.equal(addFilter([a], b).length, 1);
-  assert.deepEqual(
-    filterPackages([base], {
-      status: "all",
-      search: "abc",
-      filters: [
-        makeFilter("weightKg", "greater_than", "5"),
-        makeFilter("originWarehouseDate", "before", "2026-03-01"),
-      ],
-    }),
-    [base],
-  );
+  const legacy = {
+    status: "all",
+    search: "abc",
+    page: 1,
+    pageSize: 10,
+    filters: [makeFilter("weightKg", "greater_than", "5")],
+  };
+  assert.deepEqual(shipmentListQuery(legacy), {
+    q: "abc",
+    page: 1,
+    pageSize: 10,
+  });
   for (const field of FILTER_FIELDS)
     for (const op of field.operators) {
       const value =

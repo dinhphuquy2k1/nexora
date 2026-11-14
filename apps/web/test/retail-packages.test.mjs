@@ -18,7 +18,41 @@ import {
   PAGE_SIZE,
   PAGE_SIZE_OPTIONS,
 } from "../features/retail-packages/columns.ts";
-import { SYNTHETIC_PACKAGES } from "./fixtures/retail-packages.ts";
+import {
+  SYNTHETIC_PACKAGES,
+  REFERENCE_DETAILS,
+} from "./fixtures/retail-packages.ts";
+import { fileURLToPath } from "node:url";
+function listReadComponent(data) {
+  const cache = new Map([
+    [
+      fileURLToPath(
+        new URL(
+          "../features/retail-packages/useShipmentRead.ts",
+          import.meta.url,
+        ),
+      ),
+      {
+        exports: {
+          useShipmentList: () => ({
+            data,
+            status: data ? "ready" : "loading",
+            loading: !data,
+            refresh() {},
+          }),
+        },
+      },
+    ],
+  ]);
+  return loadComponent(
+    new URL(
+      "../features/retail-packages/RetailPackageListPage.tsx",
+      import.meta.url,
+    ),
+    cache,
+  ).RetailPackageListPage;
+}
+
 import { NAVIGATION_ITEMS } from "../lib/navigation/nav-config.ts";
 import { loadComponent, React, render } from "./helpers/render-component.mjs";
 
@@ -205,17 +239,18 @@ describe("Retail Packages — legacy redirect and server route", () => {
     );
   });
 
-  it("server page at /shipments/retail imports RetailPackageListPage with empty initialPackages", async () => {
+  it("server page at /shipments/retail passes only initialSearch to the API-backed feature", async () => {
     const fs = await import("node:fs/promises");
     const pageContent = await fs.readFile(
       new URL("../app/(workspace)/shipments/retail/page.tsx", import.meta.url),
       "utf8",
     );
-    assert.match(
+    assert.doesNotMatch(
       pageContent,
-      /initialPackages=\{\[\]\}/,
-      "Production page must pass empty initialPackages array",
+      /initialPackages|availability=/,
+      "Production page must not supply static availability or data",
     );
+    assert.match(pageContent, /initialSearch=/);
   });
 });
 
@@ -264,7 +299,7 @@ it("production availability cannot become fake data, while available-empty prese
       availability: "unavailable",
     }),
   );
-  assert.match(unavailable, /Shipment API chưa khả dụng/);
+  assert.match(unavailable, /Đang tải danh sách kiện lẻ/);
   assert.doesNotMatch(unavailable, /data-package-id/);
   assert.equal((unavailable.match(/role="tab"/g) || []).length, 7);
   assert.equal((unavailable.match(/<col(?=[\s/>])/g) || []).length, 19);
@@ -291,10 +326,26 @@ it("production availability cannot become fake data, while available-empty prese
     "Status tabs configure semantic activeIconColor tokens",
   );
   const empty = render(
-    React.createElement(RetailPackageListPage, {
-      initialPackages: [],
-      availability: "available",
-    }),
+    React.createElement(
+      listReadComponent({
+        shipments: [],
+        pagination: { page: 1, pageSize: 10, total: 0, totalPages: 0 },
+        stats: {
+          total: 0,
+          byStage: {
+            TO_ORIGIN_WAREHOUSE: 0,
+            AT_ORIGIN_WAREHOUSE: 0,
+            TO_DEST_WAREHOUSE: 0,
+            AT_DEST_WAREHOUSE: 0,
+            DELIVERED: 0,
+            UNKNOWN: 0,
+          },
+          claims: null,
+        },
+        claimFilterAvailable: false,
+      }),
+      { api: {} },
+    ),
   );
   assert.doesNotMatch(empty, /Shipment API chưa khả dụng\. Chưa/);
   assert.match(empty, /data-retail-count[^>]*>0(?:<!-- -->)? kiện lẻ/);
@@ -319,19 +370,23 @@ it("Create uses one native dialog and no verified-looking carrier or rate; absen
       import.meta.url,
     ),
   );
-  for (const value of [undefined, NaN, Infinity, -1])
-    assert.match(
-      render(
-        React.createElement(PackageFeeSection, {
-          totalAmountVND: value,
-          weightKg: 10,
-        }),
-      ),
-      /Chưa có báo giá/,
-    );
-  assert.doesNotMatch(
-    render(React.createElement(PackageFeeSection, { totalAmountVND: 0 })),
-    /Chưa có báo giá/,
+  const empty = {
+    ...REFERENCE_DETAILS[0],
+    totalAmount: null,
+    totalCurrency: null,
+    charges: [],
+  };
+  assert.match(
+    render(React.createElement(PackageFeeSection, { shipment: empty })),
+    /Chưa có dữ liệu phí/,
+  );
+  assert.match(
+    render(
+      React.createElement(PackageFeeSection, {
+        shipment: { ...empty, totalAmount: "0.00", totalCurrency: "VND" },
+      }),
+    ),
+    /0 đ/,
   );
 });
 
@@ -353,7 +408,7 @@ it("desktop and mobile distinguish unavailable data from an available empty resu
     );
     const message = unavailable
       ? "Dữ liệu kiện lẻ chưa khả dụng từ máy chủ."
-      : "Không tìm thấy kiện lẻ phù hợp với bộ lọc.";
+      : "Chưa có kiện nào được đồng bộ.";
     assert.equal(html.split(message).length - 1, 2);
     if (unavailable) assert.doesNotMatch(html, /Không tìm thấy kiện/);
   }
@@ -672,133 +727,42 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
       );
     });
 
-    it("matchesFilter enforces exact numeric equality semantics", () => {
-      const { matchesFilter } = loadComponent(
-        new URL("../features/retail-packages/filters.ts", import.meta.url),
+    it("legacy numeric filter remains validated URL state without entering API queries", async () => {
+      const { shipmentListQuery } = await import(
+        "../features/retail-packages/presentation.ts"
       );
-
-      const basePkg = {
-        id: "pkg-1",
-        trackingCode: "VN123456",
-        productName: "Áo thun",
-        carrierName: "ZTO Express",
-        status: "to_origin",
-        unitPriceCNY: 100,
-        weightKg: 2.5,
-        originWarehouseName: "Kho TMĐT Quảng Châu",
-      };
-
-      // Exact match on integer/decimal
-      assert.ok(
-        matchesFilter(basePkg, {
-          field: "unitPriceCNY",
-          operator: "equals",
-          value: "100",
-        }),
-        "Exact 100 must match",
+      const { makeFilter } = await import(
+        "../features/retail-packages/filters.ts"
       );
-      assert.ok(
-        matchesFilter(basePkg, {
-          field: "weightKg",
-          operator: "equals",
-          value: "2.5",
-        }),
-        "Exact 2.5 must match",
-      );
-
-      // Inexact values within 0.01 tolerance must NOT match under exact equality
-      const nearPricePkg = { ...basePkg, unitPriceCNY: 100.005 };
-      assert.ok(
-        !matchesFilter(nearPricePkg, {
-          field: "unitPriceCNY",
-          operator: "equals",
-          value: "100",
-        }),
-        "100.005 must NOT match 100 under exact equality",
-      );
-
-      const nearWeightPkg = { ...basePkg, weightKg: 2.508 };
-      assert.ok(
-        !matchesFilter(nearWeightPkg, {
-          field: "weightKg",
-          operator: "equals",
-          value: "2.5",
-        }),
-        "2.508 must NOT match 2.5 under exact equality",
-      );
+      const filter = makeFilter("weightKg", "greater_than", "5");
+      assert.ok(filter);
+      const q = shipmentListQuery({
+        status: "all",
+        search: "",
+        page: 1,
+        pageSize: 10,
+        filters: [filter],
+      });
+      assert.deepEqual(q, { page: 1, pageSize: 10 });
     });
 
-    it("matchesFilter enforces canonical warehouse normalization and exact equality", () => {
-      const { matchesFilter, normalizeWarehouse } = loadComponent(
-        new URL("../features/retail-packages/filters.ts", import.meta.url),
+    it("legacy warehouse filter remains validated URL state without entering API queries", async () => {
+      const { shipmentListQuery } = await import(
+        "../features/retail-packages/presentation.ts"
       );
-
-      // Normalization helper tests
-      assert.strictEqual(
-        normalizeWarehouse("Kho TMĐT Quảng Châu (3-4 ngày-Không VAT)"),
-        "Quảng Châu",
+      const { makeFilter } = await import(
+        "../features/retail-packages/filters.ts"
       );
-      assert.strictEqual(
-        normalizeWarehouse("Kho Bằng Tường (2-3 ngày)"),
-        "Bằng Tường",
-      );
-      assert.strictEqual(
-        normalizeWarehouse("Kho Đông Hưng (2-3 ngày)"),
-        "Đông Hưng",
-      );
-      assert.strictEqual(normalizeWarehouse("Quảng Châu"), "Quảng Châu");
-
-      // Package filtering tests
-      const qcPkg = {
-        id: "pkg-qc",
-        trackingCode: "VN111",
-        productName: "Giày",
-        carrierName: "YTO",
-        status: "to_origin",
-        originWarehouseName: "Kho TMĐT Quảng Châu (3-4 ngày-Không VAT)",
-      };
-      const btPkg = {
-        id: "pkg-bt",
-        trackingCode: "VN222",
-        productName: "Túi",
-        carrierName: "SF",
-        status: "at_origin",
-        originWarehouseName: "Kho Bằng Tường (2-3 ngày)",
-      };
-
-      assert.ok(
-        matchesFilter(qcPkg, {
-          field: "originWarehouse",
-          operator: "equals",
-          value: "Quảng Châu",
-        }),
-        "Quảng Châu package matches Quảng Châu filter",
-      );
-      assert.ok(
-        !matchesFilter(qcPkg, {
-          field: "originWarehouse",
-          operator: "equals",
-          value: "Bằng Tường",
-        }),
-        "Quảng Châu package does NOT match Bằng Tường filter",
-      );
-
-      assert.ok(
-        matchesFilter(btPkg, {
-          field: "originWarehouse",
-          operator: "equals",
-          value: "Bằng Tường",
-        }),
-        "Bằng Tường package matches Bằng Tường filter",
-      );
-      assert.ok(
-        !matchesFilter(btPkg, {
-          field: "originWarehouse",
-          operator: "equals",
-          value: "Quảng Châu",
-        }),
-        "Bằng Tường package does NOT match Quảng Châu filter",
-      );
+      const filter = makeFilter("originWarehouse", "equals", "Quảng Châu");
+      assert.ok(filter);
+      const q = shipmentListQuery({
+        status: "all",
+        search: "",
+        page: 1,
+        pageSize: 10,
+        filters: [filter],
+      });
+      assert.deepEqual(q, { page: 1, pageSize: 10 });
     });
   });
 });
