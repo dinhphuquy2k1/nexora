@@ -756,6 +756,86 @@ try {
     );
   assert.equal(await db.shipment.count(), 0);
 
+  step = "SHIPMENT_CHILDREN_FORWARD";
+  const shipmentOwner = await db.user.findFirstOrThrow();
+  const legacyShipment = await db.shipment.create({
+    data: {
+      ownerUserId: shipmentOwner.id,
+      trackingCode: "before-children",
+      totalAmount: "123.45",
+      totalCurrency: "CNY",
+    },
+  });
+  await db.shipmentCharge.create({
+    data: {
+      shipmentId: legacyShipment.id,
+      lineNo: 1,
+      chargeCode: "OTHER",
+      amount: "2.25",
+      currency: "CNY",
+    },
+  });
+  await db.shipmentStageHistory.create({
+    data: {
+      shipmentId: legacyShipment.id,
+      sourceVersion: 1,
+      processorVersion: 1,
+      toStage: "UNKNOWN",
+    },
+  });
+  const shipmentTables = [
+    "shipments",
+    "shipment_charges",
+    "shipment_stage_history",
+  ];
+  const beforeChildren = {};
+  for (const table of shipmentTables)
+    beforeChildren[table] = await db.$queryRawUnsafe(
+      `SELECT * FROM ${table} ORDER BY id`,
+    );
+  assert.equal(
+    (
+      await db.$queryRawUnsafe(
+        "SELECT to_regclass('public.shipment_items')::text AS name",
+      )
+    )[0].name,
+    null,
+  );
+  const childrenMigration = "20261114000000_shipment_milestones_items";
+  await cp(
+    resolve("prisma/migrations", childrenMigration),
+    join(work, "prisma/migrations", childrenMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  for (const table of shipmentTables)
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY id`),
+      beforeChildren[table],
+    );
+  assert.equal(await db.shipmentMilestone.count(), 0);
+  assert.equal(await db.shipmentItem.count(), 0);
+  await db.shipmentMilestone.create({
+    data: {
+      shipmentId: legacyShipment.id,
+      milestoneCode: "ORIGIN_RECEIVED",
+      occurredAt: new Date("2026-11-14T00:00:00Z"),
+    },
+  });
+  await db.shipmentItem.create({
+    data: {
+      shipmentId: legacyShipment.id,
+      lineNo: 1,
+      name: "preserved item",
+      quantity: 2,
+      unitValue: "1234567890123456.78",
+      currency: "CNY",
+    },
+  });
+  const childRows = {
+    milestones: await db.shipmentMilestone.findMany(),
+    items: await db.shipmentItem.findMany(),
+  };
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },
@@ -776,6 +856,13 @@ try {
     await db.session.findMany({ orderBy: { id: "asc" } }),
     sessionsBeforeRepeat,
   );
+  assert.deepEqual(await db.shipmentMilestone.findMany(), childRows.milestones);
+  assert.deepEqual(await db.shipmentItem.findMany(), childRows.items);
+  for (const table of shipmentTables)
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY id`),
+      beforeChildren[table],
+    );
   command(url.toString(), config, [
     "migrate",
     "diff",

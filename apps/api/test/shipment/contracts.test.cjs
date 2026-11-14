@@ -40,3 +40,25 @@ test("Shipment OpenAPI describes integer pagination, null-only unavailable claim
   );
   assert.match(sdk, /\/api\/shipments/);
 });
+
+test("Shipment child contracts expose exact nullable item values and closed summaries", () => {
+  const s = api.components.schemas;
+  assert.ok(s.ShipmentSummaryDto.properties.chargeSummary);
+  assert.ok(s.ShipmentSummaryDto.properties.milestoneSummary);
+  assert.ok(s.ShipmentSummaryDto.properties.itemSummary);
+  assert.equal(s.ShipmentItemDto.properties.unitValue.type, "string");
+  assert.equal(s.ShipmentItemDto.properties.unitValue.nullable, true);
+  assert.equal(s.ShipmentItemDto.properties.currency.nullable, true);
+  assert.match(
+    s.ShipmentItemDto.properties.unitValue.description,
+    /no monetary arithmetic or rounding/,
+  );
+  assert.deepEqual(s.ShipmentMilestoneDto.properties.milestoneCode.enum, [
+    "ORIGIN_RECEIVED",
+    "ORIGIN_DISPATCHED",
+    "DEST_RECEIVED",
+    "DEST_DISPATCHED",
+  ]);
+  assert.ok(api.paths["/api/shipments"].get.responses["422"]);
+  assert.equal(api.paths["/api/shipments"].get.responses["503"], undefined);
+});

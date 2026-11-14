@@ -4,6 +4,8 @@ import {
   LogisticsStage,
   ShipmentKind,
   ShipmentChargeCode,
+  ShipmentMilestoneCode,
+  type ShipmentMilestoneCodeValue,
   type LogisticsStageCode,
   type ShipmentChargeCodeValue,
 } from "@nexora/shared/shipment";
@@ -57,6 +59,19 @@ export interface ChargeLine {
   currency: string;
   providerLabel: string | null;
 }
+export interface MilestoneEntry {
+  milestoneCode: ShipmentMilestoneCodeValue;
+  occurredAt: string;
+  locationName: string | null;
+  providerLabel: string | null;
+}
+export interface ItemLine {
+  lineNo: number;
+  name: string;
+  quantity: number | null;
+  unitValue: string | null;
+  currency: string | null;
+}
 export interface ProviderFields {
   trackingCode?: string;
   shipmentKind?: typeof ShipmentKind.RETAIL_PARCEL;
@@ -79,6 +94,8 @@ export interface ProviderFields {
 export interface ProviderOperation {
   fields: ProviderFields;
   charges?: ChargeLine[];
+  milestones?: MilestoneEntry[];
+  items?: ItemLine[];
   providerChangedAt?: string | null;
   stageChanged: boolean;
   fromStage: LogisticsStageCode | null;
@@ -108,6 +125,8 @@ const allowed = [
   ...currencyFields,
   ...countFields,
   "charges",
+  "milestones",
+  "items",
 ];
 function text(value: unknown, max: number): string {
   if (
@@ -148,6 +167,74 @@ function date(value: unknown): string {
   }
   return d.toISOString();
 }
+function count(value: unknown): number | null {
+  if (value === null) return null;
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < 0 ||
+    value > 2147483647
+  )
+    invalid();
+  return value;
+}
+function milestonePayload(input: unknown): MilestoneEntry {
+  const row = shipmentRecord(input, [
+    "milestoneCode",
+    "occurredAt",
+    "locationName",
+    "providerLabel",
+  ]);
+  if (
+    !Object.values(ShipmentMilestoneCode).includes(
+      row.milestoneCode as ShipmentMilestoneCodeValue,
+    )
+  )
+    invalid();
+  return {
+    milestoneCode: row.milestoneCode as ShipmentMilestoneCodeValue,
+    occurredAt: date(row.occurredAt),
+    locationName: row.locationName == null ? null : text(row.locationName, 256),
+    providerLabel:
+      row.providerLabel == null ? null : text(row.providerLabel, 256),
+  };
+}
+function itemPayload(input: unknown): Omit<ItemLine, "lineNo"> {
+  const row = shipmentRecord(input, [
+    "name",
+    "quantity",
+    "unitValue",
+    "currency",
+  ]);
+  const name = text(row.name, 512);
+  if (!name.trim().length) invalid();
+  const unitValue =
+    row.unitValue == null ? null : DecimalValue.parse(row.unitValue, 18, 2);
+  const itemCurrency = row.currency == null ? null : currency(row.currency);
+  if (
+    (unitValue === null) !== (itemCurrency === null) ||
+    unitValue?.startsWith("-")
+  )
+    invalid();
+  return {
+    name,
+    quantity: count(row.quantity ?? null),
+    unitValue,
+    currency: itemCurrency,
+  };
+}
+export interface ShipmentMilestoneInput {
+  milestoneCode: ShipmentMilestoneCodeValue;
+  occurredAt: string;
+  locationName?: string | null;
+  providerLabel?: string | null;
+}
+export interface ShipmentItemInput {
+  name: string;
+  quantity?: number | null;
+  unitValue?: string | null;
+  currency?: string | null;
+}
 export type ShipmentChargeInput = Omit<
   ChargeLine,
   "lineNo" | "providerLabel"
@@ -156,11 +243,15 @@ export type ShipmentChargeInput = Omit<
 export interface ShipmentProviderInput
   extends Omit<ProviderFields, "logisticsStage"> {
   charges?: { complete: true; lines: readonly ShipmentChargeInput[] };
+  milestones?: { complete: true; entries: readonly ShipmentMilestoneInput[] };
+  items?: { complete: true; lines: readonly ShipmentItemInput[] };
   providerChangedAt?: string | null;
 }
 interface NormalizedProviderPatch {
   fields: Omit<ProviderFields, "logisticsStage">;
   charges?: ChargeLine[];
+  milestones?: MilestoneEntry[];
+  items?: ItemLine[];
   providerChangedAt?: string | null;
 }
 function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
@@ -194,16 +285,7 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
       out[key] = raw[key] === null ? null : date(raw[key]);
   for (const key of countFields)
     if (Object.hasOwn(raw, key)) {
-      const v = raw[key];
-      if (
-        v !== null &&
-        (typeof v !== "number" ||
-          !Number.isInteger(v) ||
-          v < 0 ||
-          v > 2147483647)
-      )
-        invalid();
-      out[key] = v;
+      out[key] = count(raw[key]);
     }
   let charges: ChargeLine[] | undefined;
   if (Object.hasOwn(raw, "charges")) {
@@ -239,6 +321,39 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
       };
     });
   }
+  let milestones: MilestoneEntry[] | undefined;
+  if (Object.hasOwn(raw, "milestones")) {
+    const snapshot = shipmentRecord(raw.milestones, ["complete", "entries"]);
+    if (
+      snapshot.complete !== true ||
+      !Array.isArray(snapshot.entries) ||
+      snapshot.entries.length > 4
+    )
+      invalid();
+    milestones = Array.from(snapshot.entries, milestonePayload);
+    if (
+      new Set(milestones.map((m) => m.milestoneCode)).size !== milestones.length
+    )
+      invalid();
+    const order = Object.values(ShipmentMilestoneCode);
+    milestones.sort(
+      (a, b) => order.indexOf(a.milestoneCode) - order.indexOf(b.milestoneCode),
+    );
+  }
+  let items: ItemLine[] | undefined;
+  if (Object.hasOwn(raw, "items")) {
+    const snapshot = shipmentRecord(raw.items, ["complete", "lines"]);
+    if (
+      snapshot.complete !== true ||
+      !Array.isArray(snapshot.lines) ||
+      snapshot.lines.length > 32767
+    )
+      invalid();
+    items = Array.from(snapshot.lines, (row, i) => ({
+      lineNo: i + 1,
+      ...itemPayload(row),
+    }));
+  }
   let providerChangedAt: string | null | undefined;
   if (Object.hasOwn(raw, "providerChangedAt"))
     providerChangedAt =
@@ -247,6 +362,8 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
     fields: out as Omit<ProviderFields, "logisticsStage">,
     providerChangedAt,
     charges,
+    milestones,
+    items,
   };
 }
 
@@ -264,6 +381,21 @@ export function parseShipmentProviderInput(
         amount: c.amount,
         currency: c.currency,
         providerLabel: c.providerLabel,
+      })),
+    };
+  if (normalized.milestones !== undefined)
+    result.milestones = {
+      complete: true,
+      entries: normalized.milestones.map((m) => ({ ...m })),
+    };
+  if (normalized.items !== undefined)
+    result.items = {
+      complete: true,
+      lines: normalized.items.map((i) => ({
+        name: i.name,
+        quantity: i.quantity,
+        unitValue: i.unitValue,
+        currency: i.currency,
       })),
     };
   if (normalized.providerChangedAt !== undefined)
@@ -310,6 +442,8 @@ export interface ShipmentState extends ProviderFields {
   createdAt: string | null;
   updatedAt: string | null;
   charges: ShipmentChargeState[];
+  milestones: ShipmentMilestoneState[];
+  items: ShipmentItemState[];
 }
 /** Current ordered child; identity is DB-owned, and is retained for the same position. */
 class ShipmentCharge {
@@ -337,15 +471,75 @@ class ShipmentCharge {
     return { ...this.state };
   }
 }
+export interface ShipmentMilestoneState extends MilestoneEntry {
+  id: string | null;
+}
+export interface ShipmentItemState extends ItemLine {
+  id: string | null;
+}
+class ShipmentMilestone {
+  private constructor(private readonly state: ShipmentMilestoneState) {}
+  static from(state: ShipmentMilestoneState): ShipmentMilestone {
+    if (state.id !== null && !isUuid(state.id)) invalid();
+    const payload = milestonePayload({
+      milestoneCode: state.milestoneCode,
+      occurredAt: state.occurredAt,
+      locationName: state.locationName,
+      providerLabel: state.providerLabel,
+    });
+    return new ShipmentMilestone(Object.freeze({ id: state.id, ...payload }));
+  }
+  snapshot(): ShipmentMilestoneState {
+    return { ...this.state };
+  }
+}
+class ShipmentItem {
+  private constructor(private readonly state: ShipmentItemState) {}
+  static from(state: ShipmentItemState): ShipmentItem {
+    if (state.id !== null && !isUuid(state.id)) invalid();
+    if (
+      !Number.isInteger(state.lineNo) ||
+      state.lineNo < 1 ||
+      state.lineNo > 32767
+    )
+      invalid();
+    const payload = itemPayload({
+      name: state.name,
+      quantity: state.quantity,
+      unitValue: state.unitValue,
+      currency: state.currency,
+    });
+    return new ShipmentItem(
+      Object.freeze({ id: state.id, lineNo: state.lineNo, ...payload }),
+    );
+  }
+  snapshot(): ShipmentItemState {
+    return { ...this.state };
+  }
+}
 /** Encapsulated Shipment root. Persist only its explicit provider operation, never a generic save. */
 export class ShipmentAggregate {
-  private readonly state: Omit<ShipmentState, "charges">;
+  private readonly state: Omit<
+    ShipmentState,
+    "charges" | "milestones" | "items"
+  >;
   private charges: ShipmentCharge[];
+  private milestones: ShipmentMilestone[];
+  private items: ShipmentItem[];
   private proposed?: ProviderOperation;
   private constructor(state: ShipmentState) {
-    const { charges, ...root } = structuredClone(state);
+    const { charges, milestones, items, ...root } = structuredClone(state);
     this.state = root;
     this.charges = charges.map((c) => ShipmentCharge.from(c));
+    const order = Object.values(ShipmentMilestoneCode);
+    this.milestones = milestones
+      .map((m) => ShipmentMilestone.from(m))
+      .sort(
+        (a, b) =>
+          order.indexOf(a.snapshot().milestoneCode) -
+          order.indexOf(b.snapshot().milestoneCode),
+      );
+    this.items = items.map((i) => ShipmentItem.from(i));
   }
   static create(
     scope: ShipmentCreationScope,
@@ -386,6 +580,8 @@ export class ShipmentAggregate {
       shipmentKind: ShipmentKind.RETAIL_PARCEL,
       ...operation.fields,
       charges: (operation.charges ?? []).map((c) => ({ ...c, id: null })),
+      milestones: (operation.milestones ?? []).map((m) => ({ ...m, id: null })),
+      items: (operation.items ?? []).map((i) => ({ ...i, id: null })),
     });
     root.proposed = operation;
     return root;
@@ -426,6 +622,17 @@ export class ShipmentAggregate {
       snapshot.charges.some((c, i) => c.lineNo !== i + 1)
     )
       invalid();
+    if (
+      !Array.isArray(snapshot.milestones) ||
+      snapshot.milestones.length > 4 ||
+      snapshot.milestones.some((m) => !m) ||
+      new Set(snapshot.milestones.map((m) => m.milestoneCode)).size !==
+        snapshot.milestones.length ||
+      !Array.isArray(snapshot.items) ||
+      snapshot.items.length > 32767 ||
+      snapshot.items.some((i, index) => !i || i.lineNo !== index + 1)
+    )
+      invalid();
     return new ShipmentAggregate(snapshot);
   }
   applyProvider(input: unknown, stage: LogisticsStageCode): void {
@@ -443,14 +650,38 @@ export class ShipmentAggregate {
           id: this.charges[i]?.snapshot().id ?? null,
         }),
       );
+    let milestones = this.milestones,
+      items = this.items;
+    if (operation.milestones !== undefined) {
+      const ids = new Map(
+        this.milestones.map((m) => {
+          const row = m.snapshot();
+          return [row.milestoneCode, row.id];
+        }),
+      );
+      milestones = operation.milestones.map((m) =>
+        ShipmentMilestone.from({ ...m, id: ids.get(m.milestoneCode) ?? null }),
+      );
+    }
+    if (operation.items !== undefined)
+      items = operation.items.map((item, i) =>
+        ShipmentItem.from({
+          ...item,
+          id: this.items[i]?.snapshot().id ?? null,
+        }),
+      );
     Object.assign(this.state, operation.fields);
     this.charges = charges;
+    this.milestones = milestones;
+    this.items = items;
     this.proposed = operation;
   }
   snapshot(): ShipmentState {
     return {
       ...structuredClone(this.state),
       charges: this.charges.map((c) => c.snapshot()),
+      milestones: this.milestones.map((m) => m.snapshot()),
+      items: this.items.map((i) => i.snapshot()),
     };
   }
   operation(): ProviderOperation {

@@ -238,6 +238,68 @@ test(
         (e) => e.code === "42501",
       );
       await worker.query(
+        "INSERT INTO shipment_milestones(shipment_id,milestone_code,occurred_at) VALUES($1,'ORIGIN_RECEIVED',CURRENT_TIMESTAMP)",
+        [rootRow.id],
+      );
+      await worker.query(
+        "UPDATE shipment_milestones SET location_name='updated' WHERE shipment_id=$1",
+        [rootRow.id],
+      );
+      await worker.query(
+        "INSERT INTO shipment_items(shipment_id,line_no,name,quantity,unit_value,currency) VALUES($1,1,'item',2,1234567890123456.78,'CNY')",
+        [rootRow.id],
+      );
+      await worker.query(
+        "UPDATE shipment_items SET unit_value=1.25,currency='USD' WHERE shipment_id=$1",
+        [rootRow.id],
+      );
+      for (const table of ["shipment_items", "shipment_milestones"]) {
+        assert.equal(
+          (
+            await app.query(`SELECT * FROM ${table} WHERE shipment_id=$1`, [
+              rootRow.id,
+            ])
+          ).rowCount,
+          1,
+        );
+        for (const sql of [
+          `DELETE FROM ${table}`,
+          `UPDATE ${table} SET shipment_id=$1`,
+        ])
+          await assert.rejects(
+            app.query(sql, sql.includes("$1") ? [rootRow.id] : []),
+            (e) => e.code === "42501",
+          );
+        await assert.rejects(
+          worker.query(`UPDATE ${table} SET shipment_id=$1`, [rootRow.id]),
+          (e) => e.code === "42501",
+        );
+        await assert.rejects(
+          worker.query(`UPDATE ${table} SET id=gen_random_uuid()`),
+          (e) => e.code === "42501",
+        );
+        await assert.rejects(
+          worker.query(
+            table === "shipment_items"
+              ? "UPDATE shipment_items SET line_no=2"
+              : "UPDATE shipment_milestones SET milestone_code='DEST_RECEIVED'",
+          ),
+          (e) => e.code === "42501",
+        );
+        await assert.rejects(
+          app.query(
+            table === "shipment_items"
+              ? "INSERT INTO shipment_items(shipment_id,line_no,name) VALUES($1,2,'forbidden')"
+              : "INSERT INTO shipment_milestones(shipment_id,milestone_code,occurred_at) VALUES($1,'DEST_RECEIVED',CURRENT_TIMESTAMP)",
+            [rootRow.id],
+          ),
+          (e) => e.code === "42501",
+        );
+        await worker.query(`DELETE FROM ${table} WHERE shipment_id=$1`, [
+          rootRow.id,
+        ]);
+      }
+      await worker.query(
         "INSERT INTO shipment_stage_history(shipment_id,source_version,processor_version,to_stage) VALUES($1,1,1,'UNKNOWN')",
         [rootRow.id],
       );

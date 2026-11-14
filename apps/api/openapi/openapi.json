@@ -95,8 +95,8 @@
               }
             }
           },
-          "500": {
-            "description": "",
+          "422": {
+            "description": "CLAIM_FILTER_UNAVAILABLE: provider claim semantics are not verified",
             "content": {
               "application/json": {
                 "schema": {
@@ -105,8 +105,8 @@
               }
             }
           },
-          "503": {
-            "description": "CLAIM_FILTER_UNAVAILABLE: provider claim semantics are not verified",
+          "500": {
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
@@ -2583,9 +2583,159 @@
           "requestId"
         ]
       },
+      "ShipmentAmountSummaryDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "SINGLE",
+              "MULTIPLE"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "state",
+          "amount",
+          "currency"
+        ]
+      },
+      "ShipmentChargeSummaryDto": {
+        "type": "object",
+        "properties": {
+          "unitPrice": {
+            "$ref": "#/components/schemas/ShipmentAmountSummaryDto"
+          },
+          "domesticShipping": {
+            "$ref": "#/components/schemas/ShipmentAmountSummaryDto"
+          },
+          "hasInsurance": {
+            "type": "boolean"
+          },
+          "hasCounting": {
+            "type": "boolean"
+          },
+          "hasWoodPacking": {
+            "type": "boolean"
+          },
+          "hasBubbleWrap": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "unitPrice",
+          "domesticShipping",
+          "hasInsurance",
+          "hasCounting",
+          "hasWoodPacking",
+          "hasBubbleWrap"
+        ]
+      },
+      "ShipmentMilestoneSummaryDto": {
+        "type": "object",
+        "properties": {
+          "originReceivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "originDispatchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "destReceivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "destDispatchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "destWarehouse": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "originReceivedAt",
+          "originDispatchedAt",
+          "destReceivedAt",
+          "destDispatchedAt",
+          "destWarehouse"
+        ]
+      },
+      "ShipmentItemSummaryDto": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lineCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "firstName",
+          "lineCount"
+        ]
+      },
       "ShipmentSummaryDto": {
         "type": "object",
         "properties": {
+          "originWarehouse": {
+            "type": "string",
+            "nullable": true
+          },
+          "weightKg": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "packageCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "declaredValue": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "declaredCurrency": {
+            "type": "string",
+            "nullable": true
+          },
+          "chargeSummary": {
+            "$ref": "#/components/schemas/ShipmentChargeSummaryDto"
+          },
+          "milestoneSummary": {
+            "$ref": "#/components/schemas/ShipmentMilestoneSummaryDto"
+          },
+          "itemSummary": {
+            "$ref": "#/components/schemas/ShipmentItemSummaryDto"
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -2649,6 +2799,15 @@
           }
         },
         "required": [
+          "originWarehouse",
+          "weightKg",
+          "packageCount",
+          "itemCount",
+          "declaredValue",
+          "declaredCurrency",
+          "chargeSummary",
+          "milestoneSummary",
+          "itemSummary",
           "id",
           "code",
           "trackingCode",
@@ -2867,6 +3026,83 @@
           "pagination"
         ]
       },
+      "ShipmentMilestoneDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "milestoneCode": {
+            "type": "string",
+            "enum": [
+              "ORIGIN_RECEIVED",
+              "ORIGIN_DISPATCHED",
+              "DEST_RECEIVED",
+              "DEST_DISPATCHED"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "locationName": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerLabel": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "milestoneCode",
+          "occurredAt",
+          "locationName",
+          "providerLabel"
+        ]
+      },
+      "ShipmentItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lineNo": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32767
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "unitValue": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "lineNo",
+          "name",
+          "quantity",
+          "unitValue",
+          "currency"
+        ]
+      },
       "ShipmentChargeDto": {
         "type": "object",
         "properties": {
@@ -2915,6 +3151,45 @@
       "ShipmentDetailDto": {
         "type": "object",
         "properties": {
+          "originWarehouse": {
+            "type": "string",
+            "nullable": true
+          },
+          "weightKg": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "packageCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "declaredValue": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "declaredCurrency": {
+            "type": "string",
+            "nullable": true
+          },
+          "chargeSummary": {
+            "$ref": "#/components/schemas/ShipmentChargeSummaryDto"
+          },
+          "milestoneSummary": {
+            "$ref": "#/components/schemas/ShipmentMilestoneSummaryDto"
+          },
+          "itemSummary": {
+            "$ref": "#/components/schemas/ShipmentItemSummaryDto"
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -2976,37 +3251,19 @@
             "type": "string",
             "format": "date-time"
           },
-          "originWarehouse": {
-            "type": "string",
-            "nullable": true
+          "milestones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShipmentMilestoneDto"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShipmentItemDto"
+            }
           },
           "serviceLevel": {
-            "type": "string",
-            "nullable": true
-          },
-          "weightKg": {
-            "type": "string",
-            "nullable": true,
-            "description": "Exact decimal string; no monetary arithmetic or rounding"
-          },
-          "packageCount": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 2147483647,
-            "nullable": true
-          },
-          "itemCount": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 2147483647,
-            "nullable": true
-          },
-          "declaredValue": {
-            "type": "string",
-            "nullable": true,
-            "description": "Exact decimal string; no monetary arithmetic or rounding"
-          },
-          "declaredCurrency": {
             "type": "string",
             "nullable": true
           },
@@ -3047,6 +3304,15 @@
           }
         },
         "required": [
+          "originWarehouse",
+          "weightKg",
+          "packageCount",
+          "itemCount",
+          "declaredValue",
+          "declaredCurrency",
+          "chargeSummary",
+          "milestoneSummary",
+          "itemSummary",
           "id",
           "code",
           "trackingCode",
@@ -3060,13 +3326,9 @@
           "totalCurrency",
           "createdAt",
           "updatedAt",
-          "originWarehouse",
+          "milestones",
+          "items",
           "serviceLevel",
-          "weightKg",
-          "packageCount",
-          "itemCount",
-          "declaredValue",
-          "declaredCurrency",
           "exchangeRate",
           "exchangeRateAt",
           "providerUpdatedAt",

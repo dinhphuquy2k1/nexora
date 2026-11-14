@@ -15,7 +15,7 @@ const errors: Record<
   },
   NOT_FOUND: { status: HttpStatus.NOT_FOUND, message: GENERIC_ERROR_MESSAGE },
   CLAIM_FILTER_UNAVAILABLE: {
-    status: HttpStatus.SERVICE_UNAVAILABLE,
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
     message: GENERIC_ERROR_MESSAGE,
   },
 };

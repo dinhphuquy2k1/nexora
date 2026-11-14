@@ -460,7 +460,48 @@ export interface components {
             message: string;
             requestId: string;
         };
+        ShipmentAmountSummaryDto: {
+            /** @enum {string} */
+            state: "NONE" | "SINGLE" | "MULTIPLE";
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            amount: string | null;
+            currency: string | null;
+        };
+        ShipmentChargeSummaryDto: {
+            unitPrice: components["schemas"]["ShipmentAmountSummaryDto"];
+            domesticShipping: components["schemas"]["ShipmentAmountSummaryDto"];
+            hasInsurance: boolean;
+            hasCounting: boolean;
+            hasWoodPacking: boolean;
+            hasBubbleWrap: boolean;
+        };
+        ShipmentMilestoneSummaryDto: {
+            /** Format: date-time */
+            originReceivedAt: string | null;
+            /** Format: date-time */
+            originDispatchedAt: string | null;
+            /** Format: date-time */
+            destReceivedAt: string | null;
+            /** Format: date-time */
+            destDispatchedAt: string | null;
+            destWarehouse: string | null;
+        };
+        ShipmentItemSummaryDto: {
+            firstName: string | null;
+            lineCount: number;
+        };
         ShipmentSummaryDto: {
+            originWarehouse: string | null;
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            weightKg: string | null;
+            packageCount: number | null;
+            itemCount: number | null;
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            declaredValue: string | null;
+            declaredCurrency: string | null;
+            chargeSummary: components["schemas"]["ShipmentChargeSummaryDto"];
+            milestoneSummary: components["schemas"]["ShipmentMilestoneSummaryDto"];
+            itemSummary: components["schemas"]["ShipmentItemSummaryDto"];
             /** Format: uuid */
             id: string;
             code: string;
@@ -528,6 +569,26 @@ export interface components {
             history: components["schemas"]["ShipmentHistoryDto"][];
             pagination: components["schemas"]["ShipmentPaginationDto"];
         };
+        ShipmentMilestoneDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            milestoneCode: "ORIGIN_RECEIVED" | "ORIGIN_DISPATCHED" | "DEST_RECEIVED" | "DEST_DISPATCHED";
+            /** Format: date-time */
+            occurredAt: string;
+            locationName: string | null;
+            providerLabel: string | null;
+        };
+        ShipmentItemDto: {
+            /** Format: uuid */
+            id: string;
+            lineNo: number;
+            name: string;
+            quantity: number | null;
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            unitValue: string | null;
+            currency: string | null;
+        };
         ShipmentChargeDto: {
             /** Format: uuid */
             id: string;
@@ -540,6 +601,17 @@ export interface components {
             providerLabel: string | null;
         };
         ShipmentDetailDto: {
+            originWarehouse: string | null;
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            weightKg: string | null;
+            packageCount: number | null;
+            itemCount: number | null;
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            declaredValue: string | null;
+            declaredCurrency: string | null;
+            chargeSummary: components["schemas"]["ShipmentChargeSummaryDto"];
+            milestoneSummary: components["schemas"]["ShipmentMilestoneSummaryDto"];
+            itemSummary: components["schemas"]["ShipmentItemSummaryDto"];
             /** Format: uuid */
             id: string;
             code: string;
@@ -560,15 +632,9 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
-            originWarehouse: string | null;
+            milestones: components["schemas"]["ShipmentMilestoneDto"][];
+            items: components["schemas"]["ShipmentItemDto"][];
             serviceLevel: string | null;
-            /** @description Exact decimal string; no monetary arithmetic or rounding */
-            weightKg: string | null;
-            packageCount: number | null;
-            itemCount: number | null;
-            /** @description Exact decimal string; no monetary arithmetic or rounding */
-            declaredValue: string | null;
-            declaredCurrency: string | null;
             /** @description Exact decimal string; no monetary arithmetic or rounding */
             exchangeRate: string | null;
             /** Format: date-time */
@@ -1018,7 +1084,8 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorDto"];
                 };
             };
-            500: {
+            /** @description CLAIM_FILTER_UNAVAILABLE: provider claim semantics are not verified */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1026,8 +1093,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorDto"];
                 };
             };
-            /** @description CLAIM_FILTER_UNAVAILABLE: provider claim semantics are not verified */
-            503: {
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };

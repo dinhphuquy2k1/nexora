@@ -1,4 +1,7 @@
-import type { LogisticsStageCode } from "@nexora/shared/shipment";
+import type {
+  LogisticsStageCode,
+  ShipmentMilestoneCodeValue,
+} from "@nexora/shared/shipment";
 export interface ShipmentQuery {
   page: number;
   pageSize: number;
@@ -21,6 +24,15 @@ export interface ShipmentSummary {
   providerStatus: string | null;
   providerClaimStatus: string | null;
   customerId: string | null;
+  originWarehouse: string | null;
+  weightKg: string | null;
+  packageCount: number | null;
+  itemCount: number | null;
+  declaredValue: string | null;
+  declaredCurrency: string | null;
+  chargeSummary: ShipmentChargeSummary;
+  milestoneSummary: ShipmentMilestoneSummary;
+  itemSummary: { firstName: string | null; lineCount: number };
   totalAmount: string | null;
   totalCurrency: string | null;
   createdAt: Date;
@@ -34,14 +46,45 @@ export interface ShipmentChargeView {
   currency: string;
   providerLabel: string | null;
 }
+export interface ShipmentAmountSummary {
+  state: "NONE" | "SINGLE" | "MULTIPLE";
+  amount: string | null;
+  currency: string | null;
+}
+export interface ShipmentChargeSummary {
+  unitPrice: ShipmentAmountSummary;
+  domesticShipping: ShipmentAmountSummary;
+  hasInsurance: boolean;
+  hasCounting: boolean;
+  hasWoodPacking: boolean;
+  hasBubbleWrap: boolean;
+}
+export interface ShipmentMilestoneSummary {
+  originReceivedAt: Date | null;
+  originDispatchedAt: Date | null;
+  destReceivedAt: Date | null;
+  destDispatchedAt: Date | null;
+  destWarehouse: string | null;
+}
+export interface ShipmentMilestoneView {
+  id: string;
+  milestoneCode: ShipmentMilestoneCodeValue;
+  occurredAt: Date;
+  locationName: string | null;
+  providerLabel: string | null;
+}
+export interface ShipmentItemView {
+  id: string;
+  lineNo: number;
+  name: string;
+  quantity: number | null;
+  unitValue: string | null;
+  currency: string | null;
+}
 export interface ShipmentDetail extends ShipmentSummary {
-  originWarehouse: string | null;
   serviceLevel: string | null;
-  weightKg: string | null;
-  packageCount: number | null;
-  itemCount: number | null;
-  declaredValue: string | null;
-  declaredCurrency: string | null;
+  milestones: ShipmentMilestoneView[];
+  items: ShipmentItemView[];
   exchangeRate: string | null;
   exchangeRateAt: Date | null;
   providerUpdatedAt: Date | null;

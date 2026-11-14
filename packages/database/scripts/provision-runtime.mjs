@@ -7,6 +7,8 @@ const SYNC_LOCK_FUNCTIONS =
 export const SYNC_GRANTS = {
   shipments: ["SELECT"],
   shipment_charges: ["SELECT", "DELETE"],
+  shipment_milestones: ["SELECT", "DELETE"],
+  shipment_items: ["SELECT", "DELETE"],
   shipment_stage_history: ["SELECT"],
   sync_configs: ["SELECT", "INSERT", "UPDATE"],
   sync_jobs: ["SELECT", "INSERT", "UPDATE"],
@@ -22,6 +24,8 @@ export const SYNC_GRANTS = {
 export const RUNTIME_GRANTS = {
   shipments: ["SELECT"],
   shipment_charges: ["SELECT"],
+  shipment_milestones: ["SELECT"],
+  shipment_items: ["SELECT"],
   shipment_stage_history: ["SELECT"],
   sync_configs: ["SELECT", "INSERT", "UPDATE"],
   sync_jobs: ["SELECT", "INSERT", "UPDATE"],
@@ -207,6 +211,12 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
         );
         await db.query(
           `GRANT INSERT(shipment_id,line_no,charge_code,amount,currency,provider_label), UPDATE(charge_code,amount,currency,provider_label) ON public.shipment_charges TO ${role}`,
+        );
+        await db.query(
+          `GRANT INSERT(shipment_id,milestone_code,occurred_at,location_name,provider_label), UPDATE(occurred_at,location_name,provider_label) ON public.shipment_milestones TO ${role}`,
+        );
+        await db.query(
+          `GRANT INSERT(shipment_id,line_no,name,quantity,unit_value,currency), UPDATE(name,quantity,unit_value,currency) ON public.shipment_items TO ${role}`,
         );
         await db.query(
           `GRANT INSERT(shipment_id,source_version,processor_version,from_stage,to_stage,provider_status,provider_changed_at,sync_job_id) ON public.shipment_stage_history TO ${role}`,

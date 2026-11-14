@@ -278,3 +278,199 @@ test("Shipment hydration requires SHP and at least six digits, preserving the fu
     invalid(() => ShipmentAggregate.hydrate({ ...stored, code }));
   invalid(() => created.applyProvider(input({ code: "SHP000123" }), S.UNKNOWN));
 });
+
+test("milestone/item snapshots retain keyed identities, exact unit values and immutable state", () => {
+  const m = (milestoneCode, extra = {}) => ({
+    milestoneCode,
+    occurredAt: "2026-11-14T01:02:03Z",
+    ...extra,
+  });
+  const raw = input({
+    milestones: {
+      complete: true,
+      entries: [
+        m("DEST_RECEIVED", { locationName: "Dest" }),
+        m("ORIGIN_RECEIVED"),
+      ],
+    },
+    items: {
+      complete: true,
+      lines: [
+        {
+          name: "Product",
+          quantity: 0,
+          unitValue: "1234567890123456.78",
+          currency: "CNY",
+        },
+        { name: "No value" },
+      ],
+    },
+  });
+  const created = ShipmentAggregate.create(scope(ownerId), raw, S.UNKNOWN);
+  raw.items.lines[0].name = "outside";
+  raw.milestones.entries[0].locationName = "outside";
+  const state = created.snapshot();
+  assert.deepEqual(
+    state.milestones.map((x) => x.milestoneCode),
+    ["ORIGIN_RECEIVED", "DEST_RECEIVED"],
+  );
+  assert.equal(state.milestones[1].occurredAt, "2026-11-14T01:02:03.000Z");
+  assert.equal(state.items[0].name, "Product");
+  assert.equal(state.items[0].unitValue, "1234567890123456.78");
+  assert.equal(state.items[1].unitValue, null);
+  assert.equal(state.items[1].currency, null);
+  const stored = {
+    ...state,
+    id: "22222222-2222-2222-2222-222222222222",
+    code: "SHP000001",
+    milestones: state.milestones.map((x, i) => ({
+      ...x,
+      id: i
+        ? "55555555-5555-5555-5555-555555555555"
+        : "44444444-4444-4444-4444-444444444444",
+    })),
+    items: state.items.map((x) => ({
+      ...x,
+      id: "66666666-6666-6666-6666-666666666666",
+    })),
+  };
+  const root = ShipmentAggregate.hydrate(stored);
+  root.applyProvider(input({ trackingCode: "kept" }), S.UNKNOWN);
+  assert.deepEqual(root.snapshot().milestones, stored.milestones);
+  assert.deepEqual(root.snapshot().items, stored.items);
+  root.applyProvider(
+    input({
+      milestones: {
+        complete: true,
+        entries: [m("DEST_RECEIVED", { locationName: "New" })],
+      },
+      items: {
+        complete: true,
+        lines: [{ name: "Changed", unitValue: "1.2", currency: "JPY" }],
+      },
+    }),
+    S.UNKNOWN,
+  );
+  assert.equal(
+    root.snapshot().milestones[0].id,
+    "55555555-5555-5555-5555-555555555555",
+  );
+  assert.equal(
+    root.snapshot().items[0].id,
+    "66666666-6666-6666-6666-666666666666",
+  );
+  assert.equal(root.snapshot().items[0].unitValue, "1.20");
+  const outside = root.snapshot();
+  outside.items[0].name = "bad";
+  outside.milestones[0].locationName = "bad";
+  const op = root.operation();
+  op.items[0].unitValue = "0.00";
+  assert.equal(root.snapshot().items[0].name, "Changed");
+  assert.equal(root.operation().items[0].unitValue, "1.20");
+  const before = root.snapshot();
+  invalid(() =>
+    root.applyProvider(
+      input({
+        trackingCode: "must-not-write",
+        milestones: { complete: true, entries: [] },
+        items: { complete: true, lines: [{ name: "x", quantity: -1 }] },
+      }),
+      S.UNKNOWN,
+    ),
+  );
+  assert.deepEqual(root.snapshot(), before);
+  root.applyProvider(
+    input({
+      milestones: { complete: true, entries: [] },
+      items: { complete: true, lines: [] },
+    }),
+    S.UNKNOWN,
+  );
+  assert.deepEqual(root.snapshot().milestones, []);
+  assert.deepEqual(root.snapshot().items, []);
+});
+test("milestone/item strict boundaries reject invalid snapshots and money pairs", () => {
+  const milestone = {
+    milestoneCode: "ORIGIN_RECEIVED",
+    occurredAt: "2026-11-14T01:02:03Z",
+  };
+  for (const milestones of [
+    null,
+    { complete: false, entries: [] },
+    { complete: true, entries: [{ ...milestone, milestoneCode: "BAD" }] },
+    { complete: true, entries: [milestone, milestone] },
+    { complete: true, entries: Array(5).fill(milestone) },
+    {
+      complete: true,
+      entries: [{ ...milestone, occurredAt: "2026-02-30T00:00:00Z" }],
+    },
+    { complete: true, entries: [{ ...milestone, occurredAt: null }] },
+    {
+      complete: true,
+      entries: [{ ...milestone, locationName: "x".repeat(257) }],
+    },
+    { complete: true, entries: [{ ...milestone, extra: true }] },
+  ])
+    invalid(() =>
+      ShipmentAggregate.create(
+        scope(ownerId),
+        input({ milestones }),
+        S.UNKNOWN,
+      ),
+    );
+  for (const item of [
+    { name: " " },
+    { name: "x".repeat(513) },
+    { name: "x", quantity: -1 },
+    { name: "x", quantity: 1.1 },
+    { name: "x", quantity: 2147483648 },
+    { name: "x", lineNo: 1 },
+    { name: "x", unitValue: "1.00" },
+    { name: "x", currency: "CNY" },
+    { name: "x", unitValue: "-1.00", currency: "CNY" },
+    { name: "x", unitValue: 1, currency: "CNY" },
+    { name: "x", unitValue: "10000000000000000", currency: "CNY" },
+    { name: "x", unitValue: "1.001", currency: "CNY" },
+    { name: "x", unitValue: "1", currency: "cnY" },
+  ])
+    invalid(() =>
+      ShipmentAggregate.create(
+        scope(ownerId),
+        input({ items: { complete: true, lines: [item] } }),
+        S.UNKNOWN,
+      ),
+    );
+  for (const items of [
+    null,
+    { complete: false, lines: [] },
+    { complete: true, lines: Array(32768).fill({ name: "x" }) },
+    { complete: true, lines: [], extra: true },
+  ])
+    invalid(() =>
+      ShipmentAggregate.create(scope(ownerId), input({ items }), S.UNKNOWN),
+    );
+  const valid = ShipmentAggregate.create(
+    scope(ownerId),
+    input({
+      items: {
+        complete: true,
+        lines: [
+          { name: "x", quantity: 2147483647, unitValue: null, currency: null },
+        ],
+      },
+    }),
+    S.UNKNOWN,
+  );
+  assert.equal(valid.snapshot().items[0].quantity, 2147483647);
+  const state = {
+    ...valid.snapshot(),
+    id: "22222222-2222-2222-2222-222222222222",
+    code: "SHP000001",
+  };
+  invalid(() =>
+    ShipmentAggregate.hydrate({
+      ...state,
+      items: [{ ...state.items[0], unitValue: "1.00", currency: null }],
+    }),
+  );
+});

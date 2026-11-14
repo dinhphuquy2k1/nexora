@@ -192,6 +192,7 @@ test("guard catalog covers every canonical owning-domain value", async () => {
         ShipmentKind: "shipmentKind",
         LogisticsStage: "logisticsStage",
         ShipmentChargeCode: "chargeCode",
+        ShipmentMilestoneCode: "milestoneCode",
       },
     ],
     ["identity/domain/session-assurance.ts", { AuthLevel: "authLevel" }],
@@ -285,5 +286,26 @@ test("Shipment production and history aliases use the canonical vocabulary guard
       ).length,
       1,
     );
+  }
+});
+
+test("Shipment milestone aliases reject literals and accept canonical constants", async () => {
+  const eslint = new ESLint();
+  for (const field of ["milestoneCode", "milestone_code"]) {
+    for (const expression of [
+      '"DEST_RECEIVED"',
+      "ShipmentMilestoneCode.DEST_RECEIVED",
+    ]) {
+      const [result] = await eslint.lintText(
+        `export const data={${field}:${expression}};`,
+        { filePath: resolve("apps/api/src/shipment/domain/lint-example.ts") },
+      );
+      assert.equal(
+        result.messages.filter(
+          (m) => m.ruleId === "nexora/no-domain-vocabulary-literals",
+        ).length,
+        expression.startsWith('"') ? 1 : 0,
+      );
+    }
   }
 });
