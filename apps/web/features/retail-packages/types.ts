@@ -1,28 +1,23 @@
-/**
- * Retail Packages (Kiện lẻ TMĐT) — presentation-only types.
- *
- * These are view/UI types only. There is no persisted shipment domain or
- * backend API for retail packages in the current sprint. All data presented
- * in this module comes from synthetic test fixtures; the production UI will
- * render an honest empty/planned state when no real data is available.
- *
- * Domain ownership: Shipment presentation (UI only).
- * Backend: NOT IMPLEMENTED. No API calls for retail packages.
- */
-
-/** Status values for a retail package — presentation layer only. */
-export type RetailPackageStatus =
+import type { components, paths } from "@nexora/sdk";
+export type ShipmentSummary = components["schemas"]["ShipmentSummaryDto"];
+export type ShipmentDetail = components["schemas"]["ShipmentDetailDto"];
+export type ShipmentPage = components["schemas"]["ShipmentPageDto"];
+export type ShipmentHistoryPage =
+  components["schemas"]["ShipmentHistoryPageDto"];
+export type ShipmentHistory = components["schemas"]["ShipmentHistoryDto"];
+type ApiQuery = NonNullable<
+  paths["/api/shipments"]["get"]["parameters"]["query"]
+>;
+export type ShipmentListQuery = Required<Pick<ApiQuery, "page" | "pageSize">> &
+  Pick<ApiQuery, "q" | "stage">;
+export type RetailTabKey =
+  | "all"
   | "to_origin"
   | "at_origin"
   | "in_transit"
   | "at_dest"
   | "delivered"
   | "disputed";
-
-/** Tab filter keys for the status bar. */
-export type StatusTabKey = "all" | RetailPackageStatus;
-
-/** A single step in the tracking timeline. */
 export interface TrackingStep {
   readonly title: string;
   readonly time: string;
@@ -30,45 +25,31 @@ export interface TrackingStep {
   readonly current?: boolean;
   readonly description: string;
 }
-
-/**
- * A retail package record as displayed in the list.
- * This is a presentation model, not a domain entity.
- * Fields reflect what the reference ZIP presents; no fake business values
- * should be computed from these in production.
- */
-export interface RetailPackage {
+/** Formatted read-only view data; never persisted or used to derive backend totals. */
+export interface RetailRow {
   readonly id: string;
   readonly trackingCode: string;
-  readonly carrierConnectionId: string;
-  readonly carrierProviderName: string;
-  readonly accountConnectionId: string;
-  readonly accountName: string;
-  readonly carrierId: string;
-  readonly carrierCode: string;
-  readonly carrierName: string;
-  readonly carrierService: string;
+  readonly carrierLabel: string;
   readonly productName: string;
-  readonly itemCount: number;
-  readonly packageCount: number;
-  readonly originWarehouseDate: string | undefined;
-  readonly originWarehouseExportDate: string | undefined;
-  readonly destWarehouseDate: string | undefined;
-  readonly destWarehouseExportDate: string | undefined;
-  readonly weightKg: number;
-  readonly unitPriceCNY: number;
-  readonly domesticShipCNY: number;
-  readonly valueCNY: number;
+  readonly itemCount: string;
+  readonly packageCount: string;
+  readonly originWarehouseDate: string;
+  readonly originWarehouseExportDate: string;
+  readonly destWarehouseDate: string;
+  readonly destWarehouseExportDate: string;
+  readonly weightKg: string;
+  readonly unitPriceCNY: string;
+  readonly domesticShipCNY: string;
+  readonly valueCNY: string;
   readonly hasInsurance: boolean;
   readonly hasInspection: boolean;
   readonly hasWoodenCrate: boolean;
   readonly hasBubbleWrap: boolean;
-  readonly status: RetailPackageStatus;
+  readonly status: Exclude<RetailTabKey, "all" | "disputed"> | null;
   readonly statusText: string;
   readonly originWarehouseName: string;
   readonly destWarehouseName: string;
-  readonly totalAmountVND?: number;
-  readonly timeline: readonly TrackingStep[];
+  readonly totalAmountVND: string;
 }
 
 /** Column configuration for the retail packages table. */
@@ -94,9 +75,9 @@ export interface FilterCondition {
   readonly displayLabel: string;
 }
 
-/** Query state for retail packages list — all client-side (no API). */
+/** URL state for Retail; legacy filters are parsed but do not affect API results. */
 export interface RetailQuery {
-  readonly status: StatusTabKey;
+  readonly status: RetailTabKey;
   readonly search: string;
   readonly page: number;
   readonly pageSize: number;

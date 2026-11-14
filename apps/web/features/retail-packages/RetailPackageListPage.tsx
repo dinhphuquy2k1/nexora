@@ -14,6 +14,7 @@ import {
   Warehouse,
   CheckCircle2,
   AlertTriangle,
+  Filter,
 } from "lucide-react";
 import {
   Button,
@@ -23,28 +24,28 @@ import {
   type TabBarItem,
   type CssTokenReference,
 } from "@nexora/ui";
-import type { RetailPackage, ColumnVisibility, StatusTabKey } from "./types.ts";
+import type { ColumnVisibility, RetailTabKey } from "./types.ts";
 import {
   STATUS_TABS,
   DEFAULT_COLUMN_VISIBILITY,
   visibleColumns,
 } from "./columns.ts";
-import { addFilter, filterPackages } from "./filters.ts";
+import { shipmentApi, type ShipmentApi } from "./api.ts";
+import { useShipmentList } from "./useShipmentRead.ts";
+import { toRetailRow } from "./row.ts";
+import { tabToStage } from "./presentation.ts";
 import { useRetailQuery } from "./useRetailQuery.ts";
-import { RetailFilterPopover } from "./RetailFilterPopover.tsx";
 import { RetailColumnPicker } from "./RetailColumnPicker.tsx";
 import { RetailPackageTable } from "./RetailPackageTable.tsx";
 import { RetailPagination } from "./RetailPagination.tsx";
-import { CreatePackageDrawer } from "./CreatePackageDrawer.tsx";
 import { PackageDetailDrawer } from "./PackageDetailDrawer.tsx";
 import styles from "./retail-packages.module.css";
 export interface RetailPackageListPageProps {
-  initialPackages: readonly RetailPackage[];
-  availability: "unavailable" | "available";
+  api?: ShipmentApi;
   initialSearch?: string;
 }
 
-const TAB_ICONS: Record<StatusTabKey, React.ReactNode> = {
+const TAB_ICONS: Record<RetailTabKey, React.ReactNode> = {
   all: <Layers size={16} />,
   to_origin: <Truck size={16} />,
   at_origin: <Building2 size={16} />,
@@ -54,7 +55,7 @@ const TAB_ICONS: Record<StatusTabKey, React.ReactNode> = {
   disputed: <AlertTriangle size={16} />,
 };
 
-const TAB_ACTIVE_ICON_COLORS: Record<StatusTabKey, CssTokenReference> = {
+const TAB_ACTIVE_ICON_COLORS: Record<RetailTabKey, CssTokenReference> = {
   all: "var(--color-retail-tab-all-icon)",
   to_origin: "var(--color-retail-tab-to-origin-icon)",
   at_origin: "var(--color-retail-tab-at-origin-icon)",
@@ -64,28 +65,30 @@ const TAB_ACTIVE_ICON_COLORS: Record<StatusTabKey, CssTokenReference> = {
   disputed: "var(--color-retail-tab-disputed-icon)",
 };
 
-const RETAIL_TAB_ITEMS: readonly TabBarItem<StatusTabKey>[] = STATUS_TABS.map(
+const RETAIL_TAB_ITEMS: readonly TabBarItem<RetailTabKey>[] = STATUS_TABS.map(
   (t) => ({
     id: t.key,
     title: t.label,
     icon: TAB_ICONS[t.key],
     activeIconColor: TAB_ACTIVE_ICON_COLORS[t.key],
+    disabled: t.key === "disputed",
+    tooltip: t.key === "disputed" ? "Chưa hỗ trợ" : undefined,
   }),
 );
 
 export function RetailPackageListPage({
-  initialPackages,
-  availability,
+  api = shipmentApi,
   initialSearch = "",
 }: RetailPackageListPageProps) {
   const { query, invalid, change, navigationError } =
     useRetailQuery(initialSearch);
-  const unavailable = availability === "unavailable";
+  const read = useShipmentList(query, api, !invalid);
+  const data = read.data;
+  const unavailable = !data;
   const [visibility, setVisibility] = useState<ColumnVisibility>(
       DEFAULT_COLUMN_VISIBILITY,
     ),
-    [detail, setDetail] = useState<RetailPackage | null>(null),
-    [create, setCreate] = useState(false);
+    [detail, setDetail] = useState<string | null>(null);
 
   const [searchDraft, setSearchDraft] = useState(query.search);
   const isSearchSessionActive = useRef(false);
@@ -171,41 +174,22 @@ export function RetailPackageListPage({
     commitSearch(searchDraft);
     isSearchSessionActive.current = false;
   };
-  const filtered = useMemo(
-    () =>
-      unavailable || invalid ? [] : filterPackages(initialPackages, query),
-    [initialPackages, query, unavailable, invalid],
-  );
-  const page = Math.min(
-    query.page,
-    Math.max(1, Math.ceil(filtered.length / query.pageSize)),
-  );
-  const rows = filtered.slice(
-    (page - 1) * query.pageSize,
-    page * query.pageSize,
-  );
-  const counts = useMemo<Record<StatusTabKey, number>>(() => {
-    const out: Record<StatusTabKey, number> = {
-      all: initialPackages.length,
-      to_origin: 0,
-      at_origin: 0,
-      in_transit: 0,
-      at_dest: 0,
-      delivered: 0,
-      disputed: 0,
-    };
-    for (const p of initialPackages) {
-      if (p.status in out) {
-        out[p.status as StatusTabKey] += 1;
-      }
-    }
-    return out;
-  }, [initialPackages]);
+  const rows = useMemo(() => data?.shipments.map(toRetailRow) ?? [], [data]);
+  const page = data?.pagination.page ?? query.page;
+  const counts = Object.fromEntries(
+    STATUS_TABS.map((tab) => {
+      if (!data || tab.key === "disputed") return [tab.key, undefined];
+      if (tab.key === "all") return [tab.key, data.stats.total];
+      const stage = tabToStage(tab.key);
+      return [tab.key, stage ? data.stats.byStage[stage] : undefined];
+    }),
+  ) as Record<RetailTabKey, number | undefined>;
   return (
     <div
       className={styles.listPage}
       id="retail-packages-list-page"
-      data-availability={availability}
+      data-availability={unavailable ? "unavailable" : "available"}
+      data-read-state={read.status}
     >
       <section
         className={styles.commandDeck}
@@ -232,10 +216,9 @@ export function RetailPackageListPage({
             </Button>
             <Button
               variant="emphasis"
-              disabled={unavailable}
-              onClick={() => setCreate(true)}
+              disabled
               aria-label="Tạo kiện lẻ mới"
-              title={unavailable ? "Shipment API chưa khả dụng." : undefined}
+              title="Chưa hỗ trợ"
             >
               <Plus size={14} />
               TẠO MỚI KIỆN HÀNG
@@ -251,10 +234,22 @@ export function RetailPackageListPage({
             }}
             renderTrailing={(item, { active }) => (
               <TabCountBadge
-                value={unavailable ? undefined : counts[item.id]}
+                value={counts[item.id]}
                 active={active}
-                title={unavailable ? "Chưa có dữ liệu" : undefined}
-                srText={unavailable ? "chưa có dữ liệu" : undefined}
+                title={
+                  item.id === "disputed"
+                    ? "Chưa hỗ trợ"
+                    : unavailable
+                      ? "Chưa có dữ liệu"
+                      : undefined
+                }
+                srText={
+                  item.id === "disputed"
+                    ? "Chưa hỗ trợ"
+                    : unavailable
+                      ? "chưa có dữ liệu"
+                      : undefined
+                }
               />
             )}
             idPrefix="retail-tab"
@@ -264,12 +259,19 @@ export function RetailPackageListPage({
         </div>
         <div className={styles.toolbar}>
           <div className={styles.searchGroup}>
-            <RetailFilterPopover
-              filters={query.filters}
-              onAdd={(f) =>
-                change({ filters: addFilter(query.filters, f), page: 1 })
-              }
-            />
+            <div className={styles.popoverAnchor}>
+              <Button
+                variant="secondary"
+                disabled
+                aria-label="Bộ lọc nâng cao"
+                title="Đang phát triển"
+              >
+                <Filter size={14} aria-hidden="true" /> Thêm điều kiện lọc{" "}
+                {query.filters.length > 0 && (
+                  <span>{query.filters.length}</span>
+                )}
+              </Button>
+            </div>
 
             <div className={styles.searchWrapper}>
               <Search
@@ -300,7 +302,7 @@ export function RetailPackageListPage({
               variant="secondary"
               disabled
               aria-label="Làm mới dữ liệu (chưa khả dụng)"
-              title="Shipment API chưa khả dụng."
+              title="Chưa hỗ trợ"
             >
               <RefreshCw size={14} />
               <span>Làm mới</span>
@@ -325,7 +327,6 @@ export function RetailPackageListPage({
                       filters: query.filters.filter(
                         (other) => other.id !== f.id,
                       ),
-                      page: 1,
                     })
                   }
                 >
@@ -333,10 +334,7 @@ export function RetailPackageListPage({
                 </Button>
               </span>
             ))}
-            <Button
-              variant="ghost"
-              onClick={() => change({ filters: [], page: 1 })}
-            >
+            <Button variant="ghost" onClick={() => change({ filters: [] })}>
               Xóa tất cả
             </Button>
           </div>
@@ -357,31 +355,60 @@ export function RetailPackageListPage({
         role="tabpanel"
         aria-labelledby={`retail-tab-${query.status}`}
       >
-        {unavailable && (
+        {read.loading && (
           <p className={styles.availabilityNotice} role="status">
-            Shipment API chưa khả dụng. Chưa có dữ liệu kiện lẻ từ máy chủ; tạo
-            kiện, xuất Excel và làm mới đang tạm khóa.
+            Đang tải danh sách kiện lẻ…
+          </p>
+        )}
+        {read.error && (
+          <p className={styles.availabilityNotice} role="alert">
+            {read.error.message}{" "}
+            <Button variant="secondary" onClick={read.refresh}>
+              Thử lại
+            </Button>
+          </p>
+        )}
+        {query.status === "disputed" && (
+          <p className={styles.availabilityNotice} role="status">
+            Khiếu nại: Chưa hỗ trợ.
+          </p>
+        )}
+        {!!data?.stats.byStage.UNKNOWN && (
+          <p className={styles.availabilityNotice} role="status">
+            <AlertTriangle size={14} aria-hidden="true" />{" "}
+            {data.stats.byStage.UNKNOWN} kiện có trạng thái chưa xác định từ
+            hãng.
           </p>
         )}
         <RetailPackageTable
           paginated={rows}
           visibleColumns={visibleColumns(visibility)}
-          onDetail={setDetail}
+          onDetail={(row) => setDetail(row.id)}
           unavailable={unavailable}
+          emptyMessage={
+            read.loading
+              ? "Đang tải danh sách kiện lẻ…"
+              : data
+                ? "Chưa có kiện nào được đồng bộ."
+                : "—"
+          }
         />
         <RetailPagination
           page={page}
-          pageSize={query.pageSize}
-          total={filtered.length}
+          pageSize={data?.pagination.pageSize ?? query.pageSize}
+          total={data?.pagination.total ?? 0}
           unavailable={unavailable}
           onPage={(page) => change({ page })}
           onSize={(pageSize) => change({ pageSize, page: 1 })}
         />
       </section>
       {detail && (
-        <PackageDetailDrawer pkg={detail} onClose={() => setDetail(null)} />
+        <PackageDetailDrawer
+          id={detail}
+          api={api}
+          onClose={() => setDetail(null)}
+        />
       )}{" "}
-      {create && <CreatePackageDrawer onClose={() => setCreate(false)} />}
     </div>
   );
 }

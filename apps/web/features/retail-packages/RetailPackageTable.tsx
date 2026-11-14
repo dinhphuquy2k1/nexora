@@ -1,10 +1,10 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@nexora/ui";
-import { Copy, Check, Eye } from "lucide-react";
-import type { RetailPackage, ColumnConfig } from "./types.ts";
+import { Copy, Check, Eye, AlertTriangle } from "lucide-react";
+import type { RetailRow, ColumnConfig } from "./types.ts";
 import styles from "./retail-packages.module.css";
-function getStatusClass(status: string): string {
+function getStatusClass(status: string | null): string {
   switch (status) {
     case "to_origin":
       return styles.statusToOrigin ?? "";
@@ -21,16 +21,6 @@ function getStatusClass(status: string): string {
     default:
       return styles.statusToOrigin ?? "";
   }
-}
-
-function formatCNY(v: number): string {
-  return `¥${v.toLocaleString("zh-CN", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
-}
-
-function formatVND(v?: number): string {
-  if (typeof v !== "number" || !Number.isFinite(v) || v < 0)
-    return "Chưa có báo giá";
-  return `${v.toLocaleString("vi-VN")}đ`;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -75,10 +65,20 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function StatusBadge({ status, label }: { status: string; label: string }) {
+function StatusBadge({
+  status,
+  label,
+}: {
+  status: string | null;
+  label: string;
+}) {
   return (
     <span className={`${styles.statusBadge} ${getStatusClass(status)}`}>
-      <span className={styles.statusDot} aria-hidden="true" />
+      {status === null ? (
+        <AlertTriangle size={12} aria-hidden="true" />
+      ) : (
+        <span className={styles.statusDot} aria-hidden="true" />
+      )}
       {label}
     </span>
   );
@@ -89,15 +89,19 @@ export function RetailPackageTable({
   visibleColumns,
   onDetail,
   unavailable,
+  emptyMessage: message,
 }: {
-  paginated: readonly RetailPackage[];
+  paginated: readonly RetailRow[];
   visibleColumns: readonly ColumnConfig[];
-  onDetail: (p: RetailPackage) => void;
+  onDetail: (p: RetailRow) => void;
   unavailable: boolean;
+  emptyMessage?: string;
 }) {
-  const emptyMessage = unavailable
-    ? "Dữ liệu kiện lẻ chưa khả dụng từ máy chủ."
-    : "Không tìm thấy kiện lẻ phù hợp với bộ lọc.";
+  const emptyMessage =
+    message ??
+    (unavailable
+      ? "Dữ liệu kiện lẻ chưa khả dụng từ máy chủ."
+      : "Chưa có kiện nào được đồng bộ.");
   const minTableWidth = visibleColumns.reduce((n, c) => n + c.width, 0);
   return (
     <>
@@ -198,7 +202,7 @@ export function RetailPackageTable({
                               <CopyButton text={pkg.trackingCode} />
                             </div>
                             <div className={styles.trackingMeta}>
-                              {pkg.carrierProviderName} · {pkg.accountName}
+                              {pkg.carrierLabel}
                             </div>
                           </td>
                         );
@@ -212,16 +216,14 @@ export function RetailPackageTable({
                                 color: "var(--color-primary)",
                               }}
                             >
-                              {pkg.carrierCode}
+                              {pkg.carrierLabel}
                             </span>{" "}
                             <span
                               style={{
                                 fontSize: "var(--font-size-xs)",
                                 color: "var(--color-text-muted)",
                               }}
-                            >
-                              {pkg.carrierName}
-                            </span>
+                            ></span>
                           </td>
                         );
                       case "productName":
@@ -276,7 +278,7 @@ export function RetailPackageTable({
                             key={col.id}
                             className={`${styles.numericCell} ${styles.alignRight}`}
                           >
-                            {pkg.weightKg.toFixed(2)}
+                            {pkg.weightKg}
                           </td>
                         );
                       case "unitPriceCNY":
@@ -285,7 +287,7 @@ export function RetailPackageTable({
                             key={col.id}
                             className={`${styles.numericCell} ${styles.alignRight}`}
                           >
-                            {formatCNY(pkg.unitPriceCNY)}
+                            {pkg.unitPriceCNY}
                           </td>
                         );
                       case "domesticShipCNY":
@@ -294,9 +296,7 @@ export function RetailPackageTable({
                             key={col.id}
                             className={`${styles.numericCell} ${styles.alignRight}`}
                           >
-                            {pkg.domesticShipCNY > 0
-                              ? formatCNY(pkg.domesticShipCNY)
-                              : "—"}
+                            {pkg.domesticShipCNY}
                           </td>
                         );
                       case "valueCNY":
@@ -305,7 +305,7 @@ export function RetailPackageTable({
                             key={col.id}
                             className={`${styles.numericCell} ${styles.alignRight}`}
                           >
-                            {formatCNY(pkg.valueCNY)}
+                            {pkg.valueCNY}
                           </td>
                         );
                       case "packageCount":
@@ -421,7 +421,7 @@ export function RetailPackageTable({
                             key={col.id}
                             className={`${styles.amountCell} ${styles.alignRight}`}
                           >
-                            {formatVND(pkg.totalAmountVND)}
+                            {pkg.totalAmountVND}
                           </td>
                         );
                       default:
@@ -473,12 +473,12 @@ export function RetailPackageTable({
               </div>
               <p className={styles.mobileCardProduct}>{pkg.productName}</p>
               <div className={styles.mobileCardMeta}>
-                <span>{pkg.carrierName}</span>
+                <span>{pkg.carrierLabel}</span>
                 <span>{pkg.weightKg} kg</span>
                 <span>{pkg.packageCount} kiện</span>
               </div>
               <div className={styles.mobileCardAmount}>
-                {formatVND(pkg.totalAmountVND)}
+                {pkg.totalAmountVND}
               </div>
             </div>
           ))

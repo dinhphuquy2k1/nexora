@@ -1,7 +1,7 @@
 import { parsePagination } from "@nexora/shared/validation";
 import { PAGE_SIZE, PAGE_SIZE_OPTIONS, STATUS_TABS } from "./columns.ts";
 import { makeFilter, addFilter } from "./filters.ts";
-import type { RetailQuery, StatusTabKey, FilterCondition } from "./types.ts";
+import type { RetailQuery, RetailTabKey, FilterCondition } from "./types.ts";
 export const DEFAULT_RETAIL_QUERY: RetailQuery = {
   status: "all",
   search: "",
@@ -54,7 +54,7 @@ export function parseRetailQuery(params: URLSearchParams): RetailQuery {
     }
   }
   return {
-    status: status as StatusTabKey,
+    status: status as RetailTabKey,
     search,
     ...pagination,
     filters,

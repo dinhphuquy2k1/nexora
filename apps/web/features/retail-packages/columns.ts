@@ -6,7 +6,7 @@
  * No persisted domain vocabulary is defined here.
  */
 
-import type { ColumnConfig, StatusTabKey } from "./types.ts";
+import type { ColumnConfig } from "./types.ts";
 
 /** All available columns in the retail packages table. */
 export const RETAIL_PACKAGE_COLUMNS: readonly ColumnConfig[] = [
@@ -179,31 +179,7 @@ export const DEFAULT_COLUMN_VISIBILITY: Record<string, boolean> =
     RETAIL_PACKAGE_COLUMNS.map((col) => [col.id, col.defaultVisible]),
   );
 
-/** Status tab definitions shown above the table. */
-export interface StatusTab {
-  readonly key: StatusTabKey;
-  readonly label: string;
-}
-
-export const STATUS_TABS: readonly StatusTab[] = [
-  { key: "all", label: "Tất cả kiện hàng" },
-  { key: "to_origin", label: "Đang đến kho gửi" },
-  { key: "at_origin", label: "Đã về kho gửi" },
-  { key: "in_transit", label: "Đang về kho nhận" },
-  { key: "at_dest", label: "Đã về kho nhận" },
-  { key: "delivered", label: "Đã giao hàng" },
-  { key: "disputed", label: "Khiếu nại / Xử lý" },
-] as const;
-
-/** Human-readable label for each package status. */
-export const STATUS_LABELS: Record<string, string> = {
-  to_origin: "Đang đến kho gửi",
-  at_origin: "Đã về kho gửi",
-  in_transit: "Đang về kho nhận",
-  at_dest: "Đã về kho nhận",
-  delivered: "Đã giao hàng",
-  disputed: "Khiếu nại",
-};
+export { STATUS_TABS, STATUS_LABELS } from "./presentation.ts";
 
 /** Default page size for the retail packages list (10). */
 export const PAGE_SIZE = 10;

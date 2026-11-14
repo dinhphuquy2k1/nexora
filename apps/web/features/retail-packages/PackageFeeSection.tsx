@@ -1,48 +1,32 @@
 "use client";
-
-/**
- * Package Fee Section — M3 Presentation Component
- *
- * Requirements:
- * - No hard-coded price formulas (e.g., weight * 28000).
- * - No unverified carrier surcharge calculations.
- * - Displays "Chưa có báo giá" when authorized pricing data is absent.
- */
-
+import type { ShipmentDetail } from "./types.ts";
+import { formatMoney } from "./format.ts";
+import { chargeLabel } from "./presentation.ts";
 import styles from "./retail-packages.module.css";
-
-export interface PackageFeeSectionProps {
-  /** Total calculated amount in VND, if available from authorized source */
-  readonly totalAmountVND?: number;
-  /** Currency breakdown values if present */
-  readonly weightKg?: number;
-  readonly unitPriceCNY?: number;
-  readonly domesticShipCNY?: number;
-}
-
-export function PackageFeeSection({ totalAmountVND }: PackageFeeSectionProps) {
-  const hasAuthorizedPricing =
-    typeof totalAmountVND === "number" &&
-    Number.isFinite(totalAmountVND) &&
-    totalAmountVND >= 0;
-
+export function PackageFeeSection({ shipment }: { shipment: ShipmentDetail }) {
   return (
-    <div className={styles.feeSection} aria-label="Báo giá cước phí">
+    <div className={styles.feeSection} aria-label="Chi tiết phí">
       <div className={styles.feeHeader}>
         <span className={styles.feeTitle}>Cước phí dự kiến</span>
-        {hasAuthorizedPricing ? (
-          <span className={styles.feeAmount}>
-            {totalAmountVND.toLocaleString("vi-VN")} đ
-          </span>
-        ) : (
-          <span className={styles.feeUnavailable}>Chưa có báo giá</span>
-        )}
+        <span className={styles.feeAmount}>
+          {formatMoney(shipment.totalAmount, shipment.totalCurrency).replace(
+            /đ$/,
+            " đ",
+          )}
+        </span>
       </div>
-      <p className={styles.feeNotice}>
-        {hasAuthorizedPricing
-          ? "Theo dữ liệu báo giá được cung cấp."
-          : "Biểu phí chính thức cho tuyến này chưa được cấu hình hoặc chưa có kết nối bảng giá từ máy chủ."}
-      </p>
+      {[...shipment.charges]
+        .sort((a, b) => a.lineNo - b.lineNo)
+        .map((line) => (
+          <div className={styles.feeNotice} key={line.id}>
+            <span>{chargeLabel(line.chargeCode, line.providerLabel)}</span>
+            {": "}
+            <span>{formatMoney(line.amount, line.currency)}</span>
+          </div>
+        ))}
+      {shipment.charges.length === 0 && (
+        <p className={styles.feeNotice}>Chưa có dữ liệu phí.</p>
+      )}
     </div>
   );
 }

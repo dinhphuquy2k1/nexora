@@ -1,35 +1,41 @@
 "use client";
-
-/**
- * Package Detail Drawer — M3 Presentation Component
- *
- * Displays detailed route, warehouse locations, and tracking timeline
- * for an inspected package. Reuses @nexora/ui Overlay.
- */
-
 import { Truck, X, Clock } from "lucide-react";
 import { Button } from "@nexora/ui";
-import type { RetailPackage } from "./types.ts";
 import { PackageFeeSection } from "./PackageFeeSection.tsx";
 import { RetailPackageDialog } from "./RetailPackageDialog.tsx";
+import { shipmentApi, type ShipmentApi } from "./api.ts";
+import { useShipmentDetail } from "./useShipmentRead.ts";
+import { toRetailRow } from "./row.ts";
+import { formatDate, formatMoney } from "./format.ts";
+import {
+  stageLabel,
+  MILESTONE_ORDER,
+  MILESTONE_LABELS,
+} from "./presentation.ts";
 import styles from "./retail-packages.module.css";
-
 export interface PackageDetailDrawerProps {
-  readonly pkg: RetailPackage;
+  readonly id: string;
+  readonly api?: ShipmentApi;
   readonly onClose: () => void;
 }
-
 export function PackageDetailDrawer({
-  pkg,
+  id,
+  api = shipmentApi,
   onClose,
 }: PackageDetailDrawerProps) {
+  const read = useShipmentDetail(id, api),
+    data = read.data;
+  const row = data ? toRetailRow(data.shipment) : null;
   return (
     <RetailPackageDialog
-      label={`Chi tiết lộ trình kiện hàng ${pkg.trackingCode}`}
+      label={
+        row
+          ? `Chi tiết lộ trình kiện hàng ${row.trackingCode}`
+          : "Chi tiết kiện hàng"
+      }
       onClose={onClose}
     >
-      <div className={styles.modalContent}>
-        {/* Modal Header */}
+      <div className={styles.modalContent} data-detail-state={read.status}>
         <div className={styles.modalHeader}>
           <div className={styles.modalTitleRow}>
             <div className={styles.modalIconBox} aria-hidden="true">
@@ -37,12 +43,14 @@ export function PackageDetailDrawer({
             </div>
             <div>
               <h2 className={styles.modalHeading}>
-                <span>Lộ trình kiện hàng: {pkg.trackingCode}</span>
+                <span>Lộ trình kiện hàng: {row?.trackingCode ?? "—"}</span>
                 <span className={styles.modalTrackingBadge}>
-                  {pkg.weightKg} kg
+                  {row?.weightKg ?? "—"} kg
                 </span>
               </h2>
-              <p className={styles.modalSubheading}>{pkg.productName}</p>
+              <p className={styles.modalSubheading}>
+                {row?.productName ?? "—"}
+              </p>
             </div>
           </div>
           <Button
@@ -55,117 +63,162 @@ export function PackageDetailDrawer({
             <X size={16} aria-hidden="true" />
           </Button>
         </div>
-
-        {/* Modal Content */}
         <div className={styles.modalBody}>
-          {/* Summary Strip */}
-          <div className={styles.summaryStrip}>
-            <div className={styles.summaryCol}>
-              <span className={styles.summaryLabel}>Trạng thái</span>
-              <span className={styles.summaryVal}>{pkg.statusText}</span>
-            </div>
-            <div className={styles.summaryCol}>
-              <span className={styles.summaryLabel}>Cân nặng</span>
-              <span className={styles.summaryVal}>{pkg.weightKg} kg</span>
-            </div>
-            <div className={styles.summaryCol}>
-              <span className={styles.summaryLabel}>Giá trị hàng</span>
-              <span className={styles.summaryVal}>¥{pkg.valueCNY}</span>
-            </div>
-            <div className={styles.summaryCol}>
-              <span className={styles.summaryLabel}>Tổng cước phí</span>
-              <span
-                className={`${styles.summaryVal} ${styles.summaryValHighlight}`}
-              >
-                {typeof pkg.totalAmountVND === "number" &&
-                Number.isFinite(pkg.totalAmountVND) &&
-                pkg.totalAmountVND >= 0
-                  ? pkg.totalAmountVND.toLocaleString("vi-VN") + " đ"
-                  : "Chưa có báo giá"}
-              </span>
-            </div>
-          </div>
-
-          {/* Warehouses Info */}
-          <div className={styles.warehouseBox}>
-            <div>
-              <strong>Kho gửi TQ:</strong> {pkg.originWarehouseName}
-            </div>
-            <div>
-              <strong>Kho nhận VN:</strong> {pkg.destWarehouseName}
-            </div>
-          </div>
-
-          {/* Carrier Info Card */}
-          <div className={styles.carrierCard}>
-            <div className={styles.carrierLeft}>
-              <div className={styles.carrierBadge} aria-hidden="true">
-                {pkg.carrierCode || "—"}
-              </div>
-              <div>
-                <div className={styles.carrierTitle}>
-                  <span>
-                    {pkg.carrierName || "Chưa có dữ liệu hãng vận chuyển"}
+          {read.loading && <p role="status">Đang tải chi tiết kiện hàng…</p>}
+          {read.error && (
+            <p role="alert">
+              {read.error.message}{" "}
+              <Button variant="secondary" onClick={read.refresh}>
+                Thử lại
+              </Button>
+            </p>
+          )}
+          {data && row && (
+            <>
+              <div className={styles.summaryStrip}>
+                <div className={styles.summaryCol}>
+                  <span className={styles.summaryLabel}>Trạng thái</span>
+                  <span className={styles.summaryVal}>{row.statusText}</span>
+                </div>
+                <div className={styles.summaryCol}>
+                  <span className={styles.summaryLabel}>Cân nặng</span>
+                  <span className={styles.summaryVal}>{row.weightKg} kg</span>
+                </div>
+                <div className={styles.summaryCol}>
+                  <span className={styles.summaryLabel}>Giá trị hàng</span>
+                  <span className={styles.summaryVal}>{row.valueCNY}</span>
+                </div>
+                <div className={styles.summaryCol}>
+                  <span className={styles.summaryLabel}>Tổng cước phí</span>
+                  <span
+                    className={`${styles.summaryVal} ${styles.summaryValHighlight}`}
+                  >
+                    {row.totalAmountVND.replace(/đ$/, " đ")}
                   </span>
                 </div>
-                <div className={styles.carrierSub}>
-                  Gói cước:{" "}
-                  <strong>{pkg.carrierService || "Chưa có dữ liệu"}</strong>
+              </div>
+              <div className={styles.warehouseBox}>
+                <div>
+                  <strong>Kho gửi TQ:</strong> {row.originWarehouseName}
+                </div>
+                <div>
+                  <strong>Kho nhận VN:</strong> {row.destWarehouseName}
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Fee Section */}
-          <PackageFeeSection
-            totalAmountVND={pkg.totalAmountVND}
-            weightKg={pkg.weightKg}
-            unitPriceCNY={pkg.unitPriceCNY}
-            domesticShipCNY={pkg.domesticShipCNY}
-          />
-
-          {/* Progress Timeline */}
-          <div className={styles.timelineSection}>
-            <h3 className={styles.timelineHeading}>
-              <Clock size={14} aria-hidden="true" />
-              <span>Tiến trình vận chuyển</span>
-            </h3>
-
-            <div className={styles.timelineList}>
-              {pkg.timeline.map((step, idx) => (
-                <div key={idx} className={styles.timelineItem}>
-                  <div
-                    className={`${styles.timelineDot} ${
-                      step.completed
-                        ? styles.timelineDotCompleted
-                        : styles.timelineDotPending
-                    }`}
-                    aria-hidden="true"
-                  />
-                  <div className={styles.timelineItemContent}>
-                    <div className={styles.timelineItemHeader}>
-                      <span
-                        className={`${styles.timelineItemTitle} ${
-                          step.current ? styles.timelineItemCurrent : ""
-                        }`}
-                      >
-                        {step.title}
-                      </span>
-                      <span className={styles.timelineItemTime}>
-                        {step.time}
-                      </span>
+              <div className={styles.carrierCard}>
+                <div className={styles.carrierLeft}>
+                  <div className={styles.carrierBadge} aria-hidden="true">
+                    —
+                  </div>
+                  <div>
+                    <div className={styles.carrierTitle}>
+                      <span>{row.carrierLabel}</span>
                     </div>
-                    <p className={styles.timelineItemDesc}>
-                      {step.description}
-                    </p>
+                    <div className={styles.carrierSub}>
+                      Gói cước:{" "}
+                      <strong>{data.shipment.serviceLevel ?? "—"}</strong>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+              <PackageFeeSection shipment={data.shipment} />
+              <section className={styles.timelineSection} aria-label="Mốc kho">
+                <h3 className={styles.timelineHeading}>Mốc kho</h3>
+                <div className={styles.timelineList}>
+                  {MILESTONE_ORDER.map((code) => {
+                    const m = data.shipment.milestones.find(
+                      (m) => m.milestoneCode === code,
+                    );
+                    return (
+                      <div key={code} className={styles.timelineItem}>
+                        <div
+                          className={`${styles.timelineDot} ${m ? styles.timelineDotCompleted : styles.timelineDotPending}`}
+                          aria-hidden="true"
+                        />
+                        <div className={styles.timelineItemContent}>
+                          <div className={styles.timelineItemHeader}>
+                            <span className={styles.timelineItemTitle}>
+                              {MILESTONE_LABELS[code]}
+                            </span>
+                            <span className={styles.timelineItemTime}>
+                              {formatDate(m?.occurredAt ?? null, true)}
+                            </span>
+                          </div>
+                          <p className={styles.timelineItemDesc}>
+                            {m?.locationName ?? "—"}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+              <section className={styles.timelineSection} aria-label="Hàng hóa">
+                <h3 className={styles.timelineHeading}>Hàng hóa</h3>
+                <div className={styles.timelineList}>
+                  {[...data.shipment.items]
+                    .sort((a, b) => a.lineNo - b.lineNo)
+                    .map((item) => (
+                      <div className={styles.timelineItem} key={item.id}>
+                        <div className={styles.timelineItemContent}>
+                          <div className={styles.timelineItemHeader}>
+                            <span className={styles.timelineItemTitle}>
+                              {item.name}
+                            </span>
+                            <span className={styles.timelineItemTime}>
+                              {formatMoney(item.unitValue, item.currency)}
+                            </span>
+                          </div>
+                          <p className={styles.timelineItemDesc}>
+                            Số lượng: {item.quantity ?? "—"}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  {data.shipment.items.length === 0 && (
+                    <p>Chưa có dữ liệu hàng hóa.</p>
+                  )}
+                </div>
+              </section>
+              <div className={styles.timelineSection}>
+                <h3 className={styles.timelineHeading}>
+                  <Clock size={14} aria-hidden="true" />
+                  <span>Tiến trình vận chuyển</span>
+                </h3>
+                <div className={styles.timelineList}>
+                  {data.history.history.map((step, index) => (
+                    <div key={step.id} className={styles.timelineItem}>
+                      <div
+                        className={`${styles.timelineDot} ${styles.timelineDotCompleted}`}
+                        aria-hidden="true"
+                      />
+                      <div className={styles.timelineItemContent}>
+                        <div className={styles.timelineItemHeader}>
+                          <span
+                            className={`${styles.timelineItemTitle} ${index === 0 ? styles.timelineItemCurrent : ""}`}
+                          >
+                            {stageLabel(step.toStage)}
+                          </span>
+                          <span className={styles.timelineItemTime}>
+                            {formatDate(step.observedAt, true)}
+                          </span>
+                        </div>
+                        <p className={styles.timelineItemDesc}>
+                          {step.providerChangedAt
+                            ? `Hãng ghi nhận: ${formatDate(step.providerChangedAt, true)}`
+                            : ""}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {data.history.history.length === 0 && (
+                    <p>Chưa có lịch sử chuyển chặng.</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
-
-        {/* Modal Footer */}
         <div className={styles.modalFooter}>
           <Button variant="secondary" onClick={onClose}>
             Đóng chi tiết
