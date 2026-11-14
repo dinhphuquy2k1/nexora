@@ -436,16 +436,39 @@ try {
     );
     for (const kind of ["retail-filter", "carrier-filter"]) {
       const root = `[data-m5-case="${kind}"]`;
+      assert.equal(
+        await evaluate(
+          `document.querySelector('${root} button[aria-haspopup]').hasAttribute('aria-controls')`,
+        ),
+        false,
+      );
+      await click(root + " button[aria-haspopup]");
       const triggerId = await evaluate(
         `document.querySelector('${root} button[aria-haspopup]').getAttribute('aria-controls')`,
       );
-      await click(root + " button[aria-haspopup]");
+      assert.ok(triggerId);
+      assert.equal(
+        await evaluate(`document.querySelector('${root} [role=dialog]').id`),
+        triggerId,
+      );
       await click(root + " button[aria-haspopup]");
       assert.equal(
         await evaluate(`!document.querySelector('${root} [role=dialog]')`),
         true,
       );
+      assert.equal(
+        await evaluate(
+          `document.querySelector('${root} button[aria-haspopup]').hasAttribute('aria-controls')`,
+        ),
+        false,
+      );
       await click(root + " button[aria-haspopup]");
+      assert.equal(
+        await evaluate(
+          `document.querySelector('${root} button[aria-haspopup]').getAttribute('aria-controls')`,
+        ),
+        triggerId,
+      );
       assert.equal(
         await evaluate(`document.querySelector('${root} [role=dialog]').id`),
         triggerId,

@@ -64,7 +64,7 @@ export function FilterPopoverShell({
         aria-label={triggerLabel}
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-controls={`${id}-panel`}
+        aria-controls={open ? `${id}-panel` : undefined}
         onClick={() => setOpen((value) => !value)}
       >
         {trigger}

@@ -87,3 +87,10 @@ Pinned format:check, docs:check, preflight:check; scoped diff, source-reference 
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | fu1-red   | node --test packages/ui/test/pager.test.mjs; working tree on 043aaa7be4e21260f780b8054739377c1f23068f; 2026-11-14T06:56:47.559395+00:00–2026-11-14T06:56:48.361002+00:00 UTC; exit1; expected RED: omitted variant renders primary instead of emphasis (4 PASS/1 FAIL) | 2026-11-14 | FAIL   |
 | fu1-green | node --test packages/ui/test/pager.test.mjs; working tree on 043aaa7be4e21260f780b8054739377c1f23068f; 2026-11-14T06:57:00.334850+00:00–2026-11-14T06:57:00.929574+00:00 UTC; exit0                                                                                    | 2026-11-14 | PASS   |
+
+## Verification checkpoint — fu4-red, fu4-green
+
+| Claim     | Evidence                                                                                                                                                                                                                                    | Date       | Result |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| fu4-red   | node --test apps/web/test/m5-sharing.test.mjs; working tree on bcc40024765b34740091a07713f08c3730411d24; 2026-11-14T06:57:42.716355+00:00–2026-11-14T06:57:44.462138+00:00 UTC; exit1; expected RED: closed SSR still exposes aria-controls | 2026-11-14 | FAIL   |
+| fu4-green | node --test packages/ui/test/pager.test.mjs apps/web/test/m5-sharing.test.mjs; working tree on bcc40024765b34740091a07713f08c3730411d24; 2026-11-14T06:58:08.419073+00:00–2026-11-14T06:58:10.844234+00:00 UTC; exit0                       | 2026-11-14 | PASS   |

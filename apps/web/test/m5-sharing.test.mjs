@@ -175,7 +175,7 @@ test("both filters preserve accessible names and gain stable trigger/panel ID re
   for (const [path, name, props, label] of cases) {
     const s = html(component(path, name), props);
     assert.match(s, new RegExp(`aria-label="${label}"`));
-    assert.match(s, /aria-controls="[^"]+"/);
+    assert.doesNotMatch(s, /aria-controls=/);
     assert.match(s, /aria-expanded="false"/);
     assert.doesNotMatch(s, /role="dialog"/);
   }
