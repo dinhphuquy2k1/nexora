@@ -326,3 +326,23 @@ Customer source mapping storage, provider length implementation, Web/ingress,
 manual creation/linking, real provider transports and production activation are
 unchanged. Official provider authorization/completeness/mapping/claim semantics,
 Retail UI and Nexora business commands remain the documented deferred scope.
+
+## Hosted checkpoint and runtime migration-count correction — 2026-11-14
+
+HEAD a32258626bd7cb7d2901a94b491615b182bca1dc, tested PR merge
+a783511b6831ec0ba968a45515bf5f98d01af80d on main055dfcc. Foundation step7
+failed because runtime-smoke.sh still expects thirteen migrations; the approved
+Shipment forward migration makes fourteen. Read-only search found this sole
+hardcoded count. Before correction, record this delta: change only13→14 in the
+exact schema assertion; preserve the stored_files zero check, all other assertions
+and all deadlines. This implements the existing v2 forward-migration verification
+plan, without a Domain/schema/API design change or new snapshot. Hosted failure is
+RED evidence; require fresh hosted verification on the corrected HEAD, not a rerun
+of unchanged code. Do not claim later steps were executed on the failed run.
+
+| Claim                          | Evidence                                                                                                                                                                                                                                                                                                                                                | Date       | Result |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Hosted Preflight               | https://github.com/dinhphuquy2k1/nexora/actions/runs/43552008923 attempt1; HEAD a32258626bd7cb7d2901a94b491615b182bca1dc; merge a783511b6831ec0ba968a45515bf5f98d01af80d; governance and24/24 tests PASS at2026-11-14T03:30:57Z                                                                                                                         | 2026-11-14 | PASS   |
+| Hosted Sync Targeted           | https://github.com/dinhphuquy2k1/nexora/actions/runs/43552008901 attempt1; same HEAD/merge; 53/53 real PostgreSQL tests, explicit provider columns match CARRIER_PROVIDER_MAX_LENGTH PASS, completed2026-11-14T03:33:12Z                                                                                                                                | 2026-11-14 | PASS   |
+| Hosted canonical Docker and M5 | Foundation https://github.com/dinhphuquy2k1/nexora/actions/runs/43552008908 attempt1, job132316380456; same HEAD/merge; steps4–6 PASS (canonical Docker quality/migrated integration, M5 acceptance, stop development), observed2026-11-14T03:37:42Z; no manual screenshot review claimed                                                               | 2026-11-14 | PASS   |
+| Foundation runtime RED         | Same run43552008908 attempt1/head/merge; step7 FAIL at2026-11-14T03:38:44.7469357Z: Migrated schema assertion failed. CLI log reports14 migrations and no pending migrations; smoke asserts13 and stored_files0. Steps8–10 SKIPPED; later missing Retail/Account/Carrier artifacts are consequences, not completed assertions. Historical FAIL retained | 2026-11-14 | FAIL   |
