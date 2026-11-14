@@ -426,3 +426,18 @@ Charge keys/IDs cannot be updated, payload columns can; charges can be inserted 
 deleted. History permits SELECT/INSERT only. Worker alone receives Shipment sequence
 USAGE/function EXECUTE. Repeat provisioning clears and reapplies column ACLs.
 Existing Customer/Carrier/Identity/Sync grants and mapping storage remain unchanged.
+
+## Shipment milestone/item persistence — NEXORA-051
+
+Forward migration 20261114000000_shipment_milestones_items adds shipment_milestones
+and shipment_items; existing migrations and shipments columns remain unchanged.
+Both use UUID primary keys and cascading parent foreign keys. Milestones are unique
+by shipment_id/milestone_code, with four canonical codes, reported occurred_at and
+nullable location_name/provider_label. Items are unique by shipment_id/line_no, with
+positive SMALLINT line numbers, nonblank names and nullable nonnegative INTEGER quantity.
+Nullable unit_value NUMERIC(18,2) and currency CHAR(3) are a finite, nonnegative,
+uppercase-currency pair, with four named CHECK constraints. Only PK/UNIQUE indexes
+are added. Worker INSERT includes parent/key/payload; UPDATE excludes identity,
+parent and key. API receives SELECT only. Reconciliation retains IDs and skips
+unchanged payload updates. Reads retain users FOR UPDATE and exclude the worker's
+sync_lock_user FOR SHARE; all page/count/child queries share that transaction.

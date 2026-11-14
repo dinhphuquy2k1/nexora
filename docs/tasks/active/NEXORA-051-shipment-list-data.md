@@ -1,8 +1,8 @@
 # NEXORA-051 — Shipment list data
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -250,12 +250,12 @@ facts to record honestly, not permission to weaken tests or touch real deploymen
 
 ## Acceptance criteria
 
-- [ ] Two forward child tables/constraints/parity/upgrade, no shipments columns.
-- [ ] Immutable validated children and authoritative collection reconciliation.
-- [ ] Restricted roles and fenced atomic Sync behavior.
-- [ ] Preserved API FOR UPDATE/worker FOR SHARE exclusion and bounded consistent list/detail summaries.
-- [ ] OpenAPI/SDK422 contract and canonical docs synchronized.
-- [ ] Local verification and independent review without blocking P1/P2.
+- [x] Two forward child tables/constraints/parity/upgrade, no shipments columns.
+- [x] Immutable validated children and authoritative collection reconciliation.
+- [x] Restricted roles and fenced atomic Sync behavior.
+- [x] Preserved API FOR UPDATE/worker FOR SHARE exclusion and bounded consistent list/detail summaries.
+- [x] OpenAPI/SDK422 contract and canonical docs synchronized.
+- [x] Local verification and independent review without blocking P1/P2.
 - [ ] Final-head hosted Preflight/Sync Targeted/Foundation.
 - [ ] Owner review and merge decision.
 
@@ -337,7 +337,7 @@ Capability PLANNED, Verification NOT VERIFIED.
 
 Owner instruction resolves SHIPMENT_READ_WRITE_ACTOR_LOCK_MODE by preserving the
 existing exclusive API read lock and shared worker lock, retaining all D7 queries
-in that transaction. V2 preparation is underway; v1 bytes/digest remain immutable.
+in that transaction. V2 is recorded and implemented; v1 bytes/digest remain immutable.
 The owner supplied the complete item-value/currency contract below; v2 includes it before implementation.
 
 ### Item value/currency owner contract (v2 delta)
@@ -370,3 +370,206 @@ and unchanged-row no-write; HTTP exact1234567890123456.78 and NULL. Schema fixtu
 checks exact table/column/validated CHECK definitions for these4 non-vocabulary
 constraints as well as actual writes/mutation sensitivity. Uniship verification9
 includes per-product value and currency when supplied.
+
+## Worker permission verification — 2026-11-14
+
+| Claim                                                                                                           | Evidence                                                                                                                                                                                                                    | Date       | Result |
+| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Worker permission RED before child grants: permission denied for shipment_milestones (42501)                    | `node /tmp/nexora051-sql-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T09:29:53.448207+00:00–2026-11-14T09:29:55.891708+00:00 UTC; exit 1; local PostgreSQL 17.11 owned disposable cluster | 2026-11-14 | FAIL   |
+| provision grant referenced non-existent column location (typo for location_name)                                | `node /tmp/nexora051-sql-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T09:30:08.299318+00:00–2026-11-14T09:30:09.985492+00:00 UTC; exit 1; local PostgreSQL 17.11 owned disposable cluster | 2026-11-14 | FAIL   |
+| Grant corrected; worker test still references non-existent location in UPDATE (42703); unexpected FAIL, stopped | `node /tmp/nexora051-sql-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T10:40:03.811956+00:00–2026-11-14T10:40:05.732148+00:00 UTC; exit 1; local PostgreSQL 17.11 owned disposable cluster | 2026-11-14 | FAIL   |
+
+Both new grants were checked column-by-column against the new migration. No GREEN result is claimed. The corrected run passed provisioning and milestone INSERT, then failed at the test UPDATE using `location`; further verification stopped.
+
+## Column-name audit — 2026-11-14
+
+Audited every modified and untracked file using the task column-name search, comparing SQL against the new migration and camelCase fields against Prisma mappings. Corrections (line numbers before formatting):
+
+- packages/database/scripts/provision-runtime.mjs:215: milestone INSERT `location` → `location_name`; milestone UPDATE `location` → `location_name` (previous correction retained).
+- packages/database/test/shipment-sql.mjs:241: milestone UPDATE `location` → `location_name`.
+
+No other column-name mismatch found. Historical 42703 FAIL at shipment-sql.mjs:241 is retained in the Worker permission verification table above. Snapshot v2 is unchanged.
+
+| Claim                                           | Evidence                                                                                                                                                                                                                                                            | Date       | Result |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Worker column authority after column-name audit | `node /tmp/nexora051-sql-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:14:18.601420+00:00–2026-11-14T11:14:20.645542+00:00 UTC; exit 0; real nexora_sync INSERT/UPDATE succeeds, parent UPDATE denied, API UPDATE/DELETE denied | 2026-11-14 | PASS   |
+
+## Schema and Sync test-first evidence — 2026-11-14
+
+| Claim                                                                                                                                                                                     | Evidence                                                                                                                                                                      | Date       | Result |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Schema and existing Shipment integration: 15 PASS / 0 FAIL                                                                                                                                | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:14:37.862002+00:00–2026-11-14T11:15:02.147693+00:00 UTC; exit 0 | 2026-11-14 | PASS   |
+| New child reconciliation RED: missing persisted milestone (0 !== 1); unexpected cascade into existing tests due to new test mutating their shared root; 10 PASS / 6 FAIL including parent | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:15:28.558677+00:00–2026-11-14T11:16:04.618488+00:00 UTC; exit 1 | 2026-11-14 | FAIL   |
+
+Stopped on unexpected failures outside column-name corrections. The new test was placed before the existing same-payload test and changed its shared root; that test then failed before establishing customer/internal-note setup, causing downstream failures. No assertion or production persistence changes were made to address this after the failing run. New test needs independent fixture state or relocation after the dependent existing tests before proceeding.
+
+## Independent Sync child fixture
+
+The new test now runs after the shared fixture group and owns a separate user,
+Carrier connection, source key (children-UUID), repository lane and Shipment.
+It reuses the file's existing owner/connection setup and makeRepo pattern; no
+per-test owner helper exists. Assertions and existing tests are unchanged.
+
+| Claim                                                  | Evidence                                                                                                                                                                                                                                                                      | Date       | Result |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| new sync test shared fixture state with existing group | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a; 2026-11-14T11:15:28.558677+00:00–11:16:04.618488+00:00 UTC; 10 PASS / 6 FAIL including parent; historical failure retained above                                                                               | 2026-11-14 | FAIL   |
+| Valid isolated reconciliation RED                      | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a; 2026-11-14T11:20:32.152840+00:00–11:20:56.043196+00:00 UTC; all 14 existing child tests PASS; only new child test FAIL (milestones length 0 !== 1); aggregate parent also FAIL; total 14 PASS / 2 FAIL; exit 1 | 2026-11-14 | FAIL   |
+
+## Binding GREEN and read-test gate
+
+| Claim                                                                                                                                                                         | Evidence                                                                                                                                                                                    | Date       | Result |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Isolated child reconciliation and all existing Shipment tests: 16/16 PASS; key identity, exact value update/clear, unchanged child xmin and omission/empty semantics verified | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:21:17.947132+00:00–2026-11-14T11:21:45.162212+00:00 UTC; exit 0               | 2026-11-14 | PASS   |
+| Claim status RED expected (503 vs 422); new batch-query fixture fails unexpectedly before query-count assertion: TypeError reading includes on undefined SQL text             | `node --test apps/api/test/shipment/read.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:21:37.730457+00:00–2026-11-14T11:21:38.161070+00:00 UTC; exit 1 | 2026-11-14 | FAIL   |
+
+Stopped at the read-test gate: the new query fixture assumes every $queryRaw call receives a Prisma.Sql object; the unchanged transaction instead uses a tagged template (TemplateStringsArray). Thus sql.sql is undefined. This is not a valid batch-query RED and no production read/error change was made after this failure. The fixture needs to accept both existing query calling forms without changing assertions.
+
+## Read fixture normalization and subsequent verification
+
+The Shipment read test directory had no existing reusable dual-form query fake.
+The new fake now normalizes TemplateStringsArray with Prisma.sql(strings,...values)
+and accepts Prisma.Sql directly; no fake executeRaw exists. Production transaction
+was not changed. Historical failure: new read test fake client handled only Prisma.Sql.
+
+| Claim                                                                                                                                                                                        | Evidence                                                                                                                                                                                                           | Date       | Result |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| new read test fake client handled only Prisma.Sql                                                                                                                                            | `node --test apps/api/test/shipment/read.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:21:37.730457+00:00–2026-11-14T11:21:38.161070+00:00 UTC; exit 1                        | 2026-11-14 | FAIL   |
+| Valid batch RED: 3 !== 6 queries; deliberate D9 service assertion also RED (503 vs 422); unchanged shutdown test PASS                                                                        | `node --test apps/api/test/shipment/read.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:30:43.481657+00:00–2026-11-14T11:30:44.227787+00:00 UTC; exit 1                        | 2026-11-14 | FAIL   |
+| Build D7/D8/D9 implementation                                                                                                                                                                | `npx --yes pnpm@10.34.6 --filter @nexora/api build`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:31:39.866060+00:00–2026-11-14T11:31:47.555559+00:00 UTC; exit 0                       | 2026-11-14 | PASS   |
+| Read tests GREEN 3/3                                                                                                                                                                         | `node --test apps/api/test/shipment/read.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:31:50.814592+00:00–2026-11-14T11:31:51.215285+00:00 UTC; exit 0                        | 2026-11-14 | PASS   |
+| New contract RED: chargeSummary missing; existing contract test PASS                                                                                                                         | `node --test apps/api/test/shipment/contracts.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:32:07.836304+00:00–2026-11-14T11:32:08.028070+00:00 UTC; exit 1                   | 2026-11-14 | FAIL   |
+| Regenerate OpenAPI/SDK                                                                                                                                                                       | `npx --yes pnpm@10.34.6 contracts:generate`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:32:34.237013+00:00–2026-11-14T11:32:42.495656+00:00 UTC; exit 0                               | 2026-11-14 | PASS   |
+| Contract tests GREEN 2/2                                                                                                                                                                     | `node --test apps/api/test/shipment/contracts.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:32:54.491637+00:00–2026-11-14T11:32:54.650579+00:00 UTC; exit 0                   | 2026-11-14 | PASS   |
+| Milestone vocabulary catalog RED: ORIGIN_RECEIVED not enforced; 50 PASS / 1 FAIL                                                                                                             | `node --test scripts/eslint-rules/no-domain-vocabulary-literals.test.mjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:32:59.964416+00:00–2026-11-14T11:33:05.582386+00:00 UTC; exit 1 | 2026-11-14 | FAIL   |
+| Milestone vocabulary catalog GREEN 51/51                                                                                                                                                     | `node --test scripts/eslint-rules/no-domain-vocabulary-literals.test.mjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:34:06.540411+00:00–2026-11-14T11:34:15.434852+00:00 UTC; exit 0 | 2026-11-14 | PASS   |
+| Genuine PostgreSQL/HTTP GREEN 17/17: exact item strings/null, isolated reconciliation, existing errors now 422, both lock directions, worker parallelism, inactive actor, query counts 6/6/3 | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:33:54.103440+00:00–2026-11-14T11:34:23.937726+00:00 UTC; exit 0                                      | 2026-11-14 | PASS   |
+| Forward 14-to-15 migration preservation, repeat and schema drift PASS                                                                                                                        | `node /tmp/nexora051-migration-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:34:39.109763+00:00–2026-11-14T11:35:06.956741+00:00 UTC; exit 0                                   | 2026-11-14 | PASS   |
+| Expanded schema/summary/rollback test: 15 PASS / 2 FAIL including parent; synthetic trigger exception P0001 escaped new rollback assertion                                                   | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:35:49.387013+00:00–2026-11-14T11:36:14.467917+00:00 UTC; exit 1                                      | 2026-11-14 | FAIL   |
+
+Stopped on unexpected rollback-test failure at integration/shipment-integration.test.cjs:847: `Raw query failed. Code: P0001. Message: synthetic child rollback`. The newly added assertion awaits a FAILED status, while the existing repository apply path propagates the SQL exception. No further assertion/production changes or reruns were made after this result. Expanded CHECK mutation oracle and all old tests passed in that run, but child rollback assertions after the exception were not reached. Static/full verification and final independent review remain pending; no completion or hosted PASS is claimed.
+
+## Rollback assertion correction
+
+The initial FAIL `expanded-postgres-green` was a wrong expectation in the new test:
+repository.apply propagates SQL failures rather than returning FAILED. Existing
+shipment-integration.test.cjs:397–453 uses assert.rejects(r.apply(work)), verifies
+root/charges/history unchanged and Sync item processing_outcome PENDING; it does
+not require a particular SQL code or a FAILED job. The new test follows that
+pattern, additionally checking Prisma P2010 with PostgreSQL P0001 and the synthetic
+message, including charges in its complete persisted-root comparison and checking
+PENDING. The rollback payload changes root, charges, milestones and items, so the
+post-error equality covers all four stores. No production behavior was changed.
+
+Rule A correction: rollback-corrected-green FAIL was another new-test assumption about Prisma adapter error metadata (P2010/meta.code). The existing rollback test does not depend on Prisma wrapper metadata. The new predicate now checks the observed PostgreSQL P0001 and synthetic message in the error message; no assertion about unpromised wrapper metadata remains. Persisted-state and PENDING assertions are retained.
+
+Rule A lint correction: first lint run failed on task-added setImmediate (missing explicit node:timers import) and unused destructured \_count. Added the import and mapped only public charge fields explicitly; no contract or transaction change. Historical lint FAIL retained in executed-command evidence.
+
+Rule A environment prerequisite: first root typecheck failed because its Web build dependency requires API_INTERNAL_URL. Exact error: `API_INTERNAL_URL is required. Configure the Web API upstream (e.g. http://api:4000 in Docker).` Subsequent root checks use API_INTERNAL_URL=http://api:4000 and NODE_ENV=production, as the canonical quality command does. No Web/source/config change.
+
+## Current verification state
+
+Implementation commit 17d7cbd contains D1–D5 and D7–D9, generated contracts and tests.
+D6 remains withdrawn; the API transaction function is byte-identical to baseline.
+All earlier STOP/NOT RUN notes above describe their historical execution points,
+not the current final state. Every historical RED/FAIL remains recorded.
+
+Independent review by shipment_list_review (read-only, IMPLEMENTATION_WORKFLOW §8)
+found one P2 in the new rollback test. After correction and executed PostgreSQL
+17/17 PASS, the reviewer confirmed that P2 resolved and no blocking findings.
+Review is source review, not a substitute for executed test or owner approval.
+
+Rule A corrections include test isolation, dual-form Prisma fake, rollback error
+expectations, missing setImmediate import/unused variable, Web build environment,
+and committing generated artifacts before contracts:check. The initial contract
+check's exact error was `Uncommitted contract drift (including untracked files)`;
+its before/after generator hash comparison had passed. No contract checker bypass.
+
+Local genuine PostgreSQL suites used the task-owned disposable PostgreSQL 17.11
+container with synthetic credentials; databases were created/dropped by existing
+signed launchers. Shipment 17/17, Sync 53/53, actual worker/API permissions and
+migration preservation/repeat/drift passed. The owned container and its unshared
+image were removed only after those tests completed, freeing disk for quality.
+No user volumes or shared credentials were modified. Full root test:integration
+with unrelated Identity/Customer fixtures is NOT RUN locally because those require
+/runtime-config credentials unavailable in this host worktree; canonical hosted
+Foundation must provide the complete Docker integration/runtime evidence.
+
+The five-field v2 PR binding simulation returned valid:true. Snapshot v1 SHA remains
+433036ffae144d65209201cedde2d8e87fe4a3e9ee00ea81a7f11d9f4278a5c5; v2 SHA remains
+a0540d2b5f0f486a508554b1b6ed938c1a90ff71fa6447a3d09a459da9b75935.
+Final diff scope is Shipment feature/shared vocabulary, forward schema/grants,
+contracts/tests/tooling, canonical docs/task/snapshots and the prior 045 closure
+with its two necessary inbound-link repairs. No production provider registration.
+
+## Executed command ledger (UTC)
+
+Each row names the committed HEAD plus working-tree changes at execution, not a
+claim that intermediate commits already contained the final implementation. Local
+log paths are ephemeral execution provenance, not hosted evidence. Expected TDD
+RED and unexpected failures are retained; later PASS never deletes them.
+Root typecheck and later root checks use API_INTERNAL_URL=http://api:4000 and
+NODE_ENV=production after the documented environment correction.
+
+| Claim                      | Evidence                                                                                                                                                                                                                                                              | Date       | Result |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| baseline-shared            | `npx --yes pnpm@10.34.6 --filter @nexora/shared build`; working tree on 69db22ae1ea56f48fd9ef18310c6b72e502c57f1; 2026-11-14T08:13:55.177461+00:00–2026-11-14T08:13:58.894003+00:00 UTC; exit 0; local log `/tmp/nexora051-baseline-shared.log`                       | 2026-11-14 | PASS   |
+| baseline-database          | `npx --yes pnpm@10.34.6 --filter @nexora/database build`; working tree on 69db22ae1ea56f48fd9ef18310c6b72e502c57f1; 2026-11-14T08:13:58.955368+00:00–2026-11-14T08:14:06.305186+00:00 UTC; exit 0; local log `/tmp/nexora051-baseline-database.log`                   | 2026-11-14 | PASS   |
+| baseline-api               | `npx --yes pnpm@10.34.6 --filter @nexora/api build`; working tree on 69db22ae1ea56f48fd9ef18310c6b72e502c57f1; 2026-11-14T08:14:06.345600+00:00–2026-11-14T08:14:12.606943+00:00 UTC; exit 0; local log `/tmp/nexora051-baseline-api.log`                             | 2026-11-14 | PASS   |
+| domain-red                 | `node --test apps/api/test/shipment/domain.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T09:22:53.076631+00:00–2026-11-14T09:22:53.287369+00:00 UTC; exit 1; local log `/tmp/nexora051-domain-red.log`                              | 2026-11-14 | FAIL   |
+| domain-build-shared        | `npx --yes pnpm@10.34.6 --filter @nexora/shared build`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T09:24:45.293065+00:00–2026-11-14T09:24:48.944768+00:00 UTC; exit 0; local log `/tmp/nexora051-domain-build-shared.log`                   | 2026-11-14 | PASS   |
+| domain-build-database      | `npx --yes pnpm@10.34.6 --filter @nexora/database build`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T09:24:48.991874+00:00–2026-11-14T09:24:59.583257+00:00 UTC; exit 0; local log `/tmp/nexora051-domain-build-database.log`               | 2026-11-14 | PASS   |
+| domain-build-api           | `npx --yes pnpm@10.34.6 --filter @nexora/api build`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T09:24:59.636212+00:00–2026-11-14T09:25:07.729970+00:00 UTC; exit 0; local log `/tmp/nexora051-domain-build-api.log`                         | 2026-11-14 | PASS   |
+| domain-green               | `node --test apps/api/test/shipment/domain.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T09:25:07.785311+00:00–2026-11-14T09:25:07.966149+00:00 UTC; exit 0; local log `/tmp/nexora051-domain-green.log`                            | 2026-11-14 | PASS   |
+| role-red                   | `node /tmp/nexora051-sql-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T09:29:53.448207+00:00–2026-11-14T09:29:55.891708+00:00 UTC; exit 1; local log `/tmp/nexora051-role-red.log`                                                   | 2026-11-14 | FAIL   |
+| role-green                 | `node /tmp/nexora051-sql-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T09:30:08.299318+00:00–2026-11-14T09:30:09.985492+00:00 UTC; exit 1; local log `/tmp/nexora051-role-green.log`                                                 | 2026-11-14 | FAIL   |
+| role-green-corrected       | `node /tmp/nexora051-sql-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T10:40:03.811956+00:00–2026-11-14T10:40:05.732148+00:00 UTC; exit 1; local log `/tmp/nexora051-role-green-corrected.log`                                       | 2026-11-14 | FAIL   |
+| role-green-column-audit    | `node /tmp/nexora051-sql-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:14:18.601420+00:00–2026-11-14T11:14:20.645542+00:00 UTC; exit 0; local log `/tmp/nexora051-role-green-column-audit.log`                                    | 2026-11-14 | PASS   |
+| schema-worker-baseline     | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:14:37.862002+00:00–2026-11-14T11:15:02.147693+00:00 UTC; exit 0; local log `/tmp/nexora051-schema-worker-baseline.log`                                  | 2026-11-14 | PASS   |
+| sync-children-red          | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:15:28.558677+00:00–2026-11-14T11:16:04.618488+00:00 UTC; exit 1; local log `/tmp/nexora051-sync-children-red.log`                                       | 2026-11-14 | FAIL   |
+| sync-children-isolated-red | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:20:32.152840+00:00–2026-11-14T11:20:56.043196+00:00 UTC; exit 1; local log `/tmp/nexora051-sync-children-isolated-red.log`                              | 2026-11-14 | FAIL   |
+| read-red                   | `node --test apps/api/test/shipment/read.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:21:37.730457+00:00–2026-11-14T11:21:38.161070+00:00 UTC; exit 1; local log `/tmp/nexora051-read-red.log`                                  | 2026-11-14 | FAIL   |
+| sync-children-green        | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:21:17.947132+00:00–2026-11-14T11:21:45.162212+00:00 UTC; exit 0; local log `/tmp/nexora051-sync-children-green.log`                                     | 2026-11-14 | PASS   |
+| read-normalized-red        | `node --test apps/api/test/shipment/read.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:30:43.481657+00:00–2026-11-14T11:30:44.227787+00:00 UTC; exit 1; local log `/tmp/nexora051-read-normalized-red.log`                       | 2026-11-14 | FAIL   |
+| read-build-api             | `npx --yes pnpm@10.34.6 --filter @nexora/api build`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:31:39.866060+00:00–2026-11-14T11:31:47.555559+00:00 UTC; exit 0; local log `/tmp/nexora051-read-build-api.log`                           | 2026-11-14 | PASS   |
+| read-green                 | `node --test apps/api/test/shipment/read.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:31:50.814592+00:00–2026-11-14T11:31:51.215285+00:00 UTC; exit 0; local log `/tmp/nexora051-read-green.log`                                | 2026-11-14 | PASS   |
+| contracts-red              | `node --test apps/api/test/shipment/contracts.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:32:07.836304+00:00–2026-11-14T11:32:08.028070+00:00 UTC; exit 1; local log `/tmp/nexora051-contracts-red.log`                        | 2026-11-14 | FAIL   |
+| contracts-generate         | `npx --yes pnpm@10.34.6 contracts:generate`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:32:34.237013+00:00–2026-11-14T11:32:42.495656+00:00 UTC; exit 0; local log `/tmp/nexora051-contracts-generate.log`                               | 2026-11-14 | PASS   |
+| contracts-green            | `node --test apps/api/test/shipment/contracts.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:32:54.491637+00:00–2026-11-14T11:32:54.650579+00:00 UTC; exit 0; local log `/tmp/nexora051-contracts-green.log`                      | 2026-11-14 | PASS   |
+| lint-catalog-red           | `node --test scripts/eslint-rules/no-domain-vocabulary-literals.test.mjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:32:59.964416+00:00–2026-11-14T11:33:05.582386+00:00 UTC; exit 1; local log `/tmp/nexora051-lint-catalog-red.log`   | 2026-11-14 | FAIL   |
+| lint-catalog-green         | `node --test scripts/eslint-rules/no-domain-vocabulary-literals.test.mjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:34:06.540411+00:00–2026-11-14T11:34:15.434852+00:00 UTC; exit 0; local log `/tmp/nexora051-lint-catalog-green.log` | 2026-11-14 | PASS   |
+| real-read-green            | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:33:54.103440+00:00–2026-11-14T11:34:23.937726+00:00 UTC; exit 0; local log `/tmp/nexora051-real-read-green.log`                                         | 2026-11-14 | PASS   |
+| migration-green            | `node /tmp/nexora051-migration-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:34:39.109763+00:00–2026-11-14T11:35:06.956741+00:00 UTC; exit 0; local log `/tmp/nexora051-migration-green.log`                                      | 2026-11-14 | PASS   |
+| expanded-postgres-green    | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:35:49.387013+00:00–2026-11-14T11:36:14.467917+00:00 UTC; exit 1; local log `/tmp/nexora051-expanded-postgres-green.log`                                 | 2026-11-14 | FAIL   |
+| rollback-corrected-green   | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:39:12.992060+00:00–2026-11-14T11:39:41.446066+00:00 UTC; exit 1; local log `/tmp/nexora051-rollback-corrected-green.log`                                | 2026-11-14 | FAIL   |
+| rollback-observed-green    | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:40:05.422971+00:00–2026-11-14T11:40:30.359990+00:00 UTC; exit 0; local log `/tmp/nexora051-rollback-observed-green.log`                                 | 2026-11-14 | PASS   |
+| role-final                 | `node /tmp/nexora051-sql-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:40:34.016072+00:00–2026-11-14T11:40:35.468900+00:00 UTC; exit 0; local log `/tmp/nexora051-role-final.log`                                                 | 2026-11-14 | PASS   |
+| shipment-unit              | `node --test apps/api/test/shipment/*.test.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:40:35.505219+00:00–2026-11-14T11:40:36.080713+00:00 UTC; exit 0; local log `/tmp/nexora051-shipment-unit.log`                                | 2026-11-14 | PASS   |
+| format                     | `npx --yes pnpm@10.34.6 format:check`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:40:36.120712+00:00–2026-11-14T11:40:53.414092+00:00 UTC; exit 0; local log `/tmp/nexora051-format.log`                                                 | 2026-11-14 | PASS   |
+| lint                       | `npx --yes pnpm@10.34.6 lint`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:40:53.588513+00:00–2026-11-14T11:41:10.391326+00:00 UTC; exit 1; local log `/tmp/nexora051-lint.log`                                                           | 2026-11-14 | FAIL   |
+| lint                       | `npx --yes pnpm@10.34.6 lint`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:41:49.959665+00:00–2026-11-14T11:42:07.145221+00:00 UTC; exit 0; local log `/tmp/nexora051-lint.log`                                                           | 2026-11-14 | PASS   |
+| typecheck                  | `npx --yes pnpm@10.34.6 typecheck`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:42:07.225154+00:00–2026-11-14T11:42:20.943923+00:00 UTC; exit 1; local log `/tmp/nexora051-typecheck.log`                                                 | 2026-11-14 | FAIL   |
+| sync-regression            | `node /tmp/nexora051-sync-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:40:52.370890+00:00–2026-11-14T11:43:34.625616+00:00 UTC; exit 0; local log `/tmp/nexora051-sync-regression.log`                                           | 2026-11-14 | PASS   |
+| typecheck                  | `npx --yes pnpm@10.34.6 typecheck`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:42:41.833537+00:00–2026-11-14T11:43:54.335479+00:00 UTC; exit 0; local log `/tmp/nexora051-typecheck-1794656561833601372.log`                             | 2026-11-14 | PASS   |
+| contracts-check            | `npx --yes pnpm@10.34.6 contracts:check`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:43:54.393495+00:00–2026-11-14T11:44:07.422691+00:00 UTC; exit 1; local log `/tmp/nexora051-contracts-check.log`                                     | 2026-11-14 | FAIL   |
+| postgres-final             | `node /tmp/nexora051-worker-run.cjs`; working tree on a9ebc4a3cd1b5d0286806b80b76c4945fad4d1b5; 2026-11-14T11:43:55.626140+00:00–2026-11-14T11:44:27.193278+00:00 UTC; exit 0; local log `/tmp/nexora051-postgres-final.log`                                          | 2026-11-14 | PASS   |
+| contracts-check            | `npx --yes pnpm@10.34.6 contracts:check`; working tree on 17d7cbdd7f4d37a214a67370a7199d91060b0b84; 2026-11-14T11:45:07.639597+00:00–2026-11-14T11:45:16.559335+00:00 UTC; exit 0; local log `/tmp/nexora051-contracts-check-1794656707639666539.log`                 | 2026-11-14 | PASS   |
+| docs                       | `npx --yes pnpm@10.34.6 docs:check`; working tree on 17d7cbdd7f4d37a214a67370a7199d91060b0b84; 2026-11-14T11:45:16.600581+00:00–2026-11-14T11:45:18.260551+00:00 UTC; exit 0; local log `/tmp/nexora051-docs.log`                                                     | 2026-11-14 | PASS   |
+| preflight                  | `npx --yes pnpm@10.34.6 preflight:check`; working tree on 17d7cbdd7f4d37a214a67370a7199d91060b0b84; 2026-11-14T11:45:18.309848+00:00–2026-11-14T11:45:19.782040+00:00 UTC; exit 0; local log `/tmp/nexora051-preflight.log`                                           | 2026-11-14 | PASS   |
+| test-docs                  | `npx --yes pnpm@10.34.6 test:docs`; working tree on 17d7cbdd7f4d37a214a67370a7199d91060b0b84; 2026-11-14T11:45:19.822236+00:00–2026-11-14T11:45:21.865483+00:00 UTC; exit 0; local log `/tmp/nexora051-test-docs.log`                                                 | 2026-11-14 | PASS   |
+| test-preflight             | `npx --yes pnpm@10.34.6 test:preflight`; working tree on 17d7cbdd7f4d37a214a67370a7199d91060b0b84; 2026-11-14T11:45:21.908240+00:00–2026-11-14T11:45:24.004527+00:00 UTC; exit 0; local log `/tmp/nexora051-test-preflight.log`                                       | 2026-11-14 | PASS   |
+| test-lint                  | `npx --yes pnpm@10.34.6 test:lint`; working tree on 17d7cbdd7f4d37a214a67370a7199d91060b0b84; 2026-11-14T11:45:24.045671+00:00–2026-11-14T11:45:31.377431+00:00 UTC; exit 0; local log `/tmp/nexora051-test-lint.log`                                                 | 2026-11-14 | PASS   |
+| boundaries                 | `node scripts/boundaries.mjs`; working tree on 17d7cbdd7f4d37a214a67370a7199d91060b0b84; 2026-11-14T11:45:31.443286+00:00–2026-11-14T11:45:32.520122+00:00 UTC; exit 0; local log `/tmp/nexora051-boundaries.log`                                                     | 2026-11-14 | PASS   |
+| full-tests                 | `npx --yes pnpm@10.34.6 test`; working tree on 17d7cbdd7f4d37a214a67370a7199d91060b0b84; 2026-11-14T11:45:32.566585+00:00–2026-11-14T11:47:07.017268+00:00 UTC; exit 0; local log `/tmp/nexora051-full-tests.log`                                                     | 2026-11-14 | PASS   |
+| quality                    | `npx --yes pnpm@10.34.6 quality`; working tree on 17d7cbdd7f4d37a214a67370a7199d91060b0b84; 2026-11-14T11:47:19.759665+00:00–2026-11-14T11:49:37.587773+00:00 UTC; exit 0; local log `/tmp/nexora051-quality.log`                                                     | 2026-11-14 | PASS   |
+
+Final local quality PASS: API_INTERNAL_URL=http://api:4000 NODE_ENV=production
+npx --yes pnpm@10.34.6 quality (17d7cbdd7f4d37a214a67370a7199d91060b0b84 plus
+canonical documentation/evidence working tree); includes format/lint/preflight/docs,
+typecheck, complete test graph, contracts reproducibility and full build.
+Final independent read-only review of committed implementation17d7cbdd7f4d37a214a67370a7199d91060b0b84
+confirmed no blockers, including the new lease-loss test and explicit charge projection.
+The full root test command passed scripts138/138 and all package suites (including
+API216/216, Web266/266, UI37/37 and database6/6). Local final-head gate evidence will
+be linked in the PR description after hosted runs; owner review/merge remains open.
+The two remaining task checkboxes await hosted provenance/owner closure; do not infer
+owner approval from local tests or the independent source review.
