@@ -792,19 +792,19 @@ and geometry comparisons. The prior-document marker cannot satisfy readiness;
 navigation errors fail closed. This synchronization does not relax geometry
 assertions, tolerances, timeout budgets or production UI behavior.
 
-## M5 Pager and filter disclosure acceptance
+## Pager and filter disclosure acceptance
 
-Canonical Docker quality also compiles the isolated actual-component M5 fixture
+Canonical Docker quality also compiles the isolated actual-component Pager/filter fixture
 using the existing pinned Next webpack compiler. Foundation runs
-`node scripts/m5-browser-checks.mjs artifacts artifacts/m5 --acceptance` after
+`node scripts/pager-filter-browser-checks.mjs artifacts artifacts/pager-filter --acceptance` after
 Docker quality; it reuses the generated Retail/Carrier screen fixtures and an
 installed Chromium/Chrome (`CHROME_BIN` may select it). No browser npm package is
-required. The M5 artifact has14-day retention.
+required. The pager-filter-browser-evidence artifact has14-day retention.
 
 For local visual comparison, compile components, Retail and Carrier into separate
 `components`, `retail`, `carrier` subdirectories of a scratch bundle root using
-`scripts/build-retail-fixture.mjs` and the M5/Retail/Carrier fixture entries.
-Run `node scripts/m5-browser-checks.mjs <bundle-root> <baseline-output>` before
+`scripts/build-retail-fixture.mjs` and the Pager/filter, Retail and Carrier fixture entries.
+Run `node scripts/pager-filter-browser-checks.mjs <bundle-root> <baseline-output>` before
 production edits, then rerun with candidate bundles and a third `<baseline-output>`
 argument. Comparison checks actual geometry/styles/DOM at desktop/mobile sizes;
 captures and manifests remain ignored/untracked, not committed evidence assets.
@@ -813,10 +813,18 @@ Baseline bundle hashes distinguish retained source bytes from a later re-render.
 Acceptance covers all four page control groups and summaries, unknown/empty/single
 states, page-size reset, history window policy, actual pointer/keyboard focus and
 hover, both filters' field/default/error/duplicate/max behavior, focus restoration,
-outside target focus, stable aria-controls and enabled/disabled environment options.
+outside target focus, aria-controls absent while closed, a matching open trigger/dialog link with a stable id on reopen, and enabled/disabled environment options.
 Isolated component/screens exercise real TSX/CSS but do not certify authenticated
 full-stack runtime, API ownership or backend concurrency; existing Foundation
 runtime/browser suites remain separate mandatory gates.
+
+The Pager/filter harness Chromium launch gate polls200 ×100 ms (up to20 s),
+matching browser-login-smoke.mjs and its cold-runner rationale; it stops early if
+the child exits. A bounded startup stderr tail is drained and summarized only as
+BROWSER_STARTUP_DIAGNOSTIC fixed hints/status via browserStartupSummary, never raw
+stderr or a browser-output artifact. Collection stops after startup while the pipe
+continues draining. All other browser assertions, viewports and tolerances remain
+unchanged except the deliberate open-only aria-controls acceptance contract.
 
 ## Shipment core verification — NEXORA-050
 

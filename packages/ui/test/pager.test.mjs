@@ -127,3 +127,17 @@ test("Pager always hides decorative ellipses in grouped and inline layouts", () 
     );
   }
 });
+
+test("Pager omitted selectedVariant renders exactly like explicit emphasis", () => {
+  const withoutVariant = { ...props };
+  delete withoutVariant.selectedVariant;
+  assert.equal(
+    render(React.createElement(Pager, withoutVariant)),
+    render(
+      React.createElement(Pager, {
+        ...withoutVariant,
+        selectedVariant: "emphasis",
+      }),
+    ),
+  );
+});

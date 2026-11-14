@@ -14,7 +14,7 @@ export interface PagerProps {
   /** Feature-owned Select and reset callback; no page-size policy in Pager. */
   pageSize?: ReactNode;
   summaryClassName?: string;
-  selectedVariant: ButtonVariant;
+  selectedVariant?: ButtonVariant;
   icons: Record<Navigation, ReactNode>;
   labels: Record<Navigation | "navigation", string> & {
     page: (page: number) => string;
@@ -38,7 +38,7 @@ export function Pager({
   summary,
   pageSize,
   summaryClassName,
-  selectedVariant,
+  selectedVariant = "emphasis",
   icons,
   labels,
   currentPageKnown = true,

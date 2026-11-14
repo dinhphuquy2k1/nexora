@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { setTimeout, clearTimeout } from "node:timers";
 import { createHash } from "node:crypto";
+import { browserStartupSummary } from "./browser-startup-diagnostics.mjs";
 import {
   terminateChildProcess,
   cleanupBrowserProfile,
@@ -16,7 +17,7 @@ const [bundleArgument, outputArgument, baselineArgument] =
   process.argv.slice(2);
 assert.ok(
   bundleArgument && outputArgument,
-  "Usage: node scripts/m5-browser-checks.mjs bundles output [baseline-output|--acceptance]",
+  "Usage: node scripts/pager-filter-browser-checks.mjs bundles output [baseline-output|--acceptance]",
 );
 const bundles = resolve(bundleArgument),
   output = resolve(outputArgument);
@@ -29,7 +30,7 @@ const fixturePath = (name, file) =>
     bundles,
     acceptanceOnly
       ? name === "components"
-        ? "m5-fixture"
+        ? "pager-filter-fixture"
         : `${name}-fixture`
       : name,
     file,
@@ -79,7 +80,7 @@ const server = createServer(async (req, res) => {
 });
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const origin = `http://127.0.0.1:${server.address().port}`;
-const profile = await mkdtemp(join(tmpdir(), "nexora-m5-"));
+const profile = await mkdtemp(join(tmpdir(), "nexora-pager-filter-"));
 const child = spawn(
   executable,
   [
@@ -91,8 +92,14 @@ const child = spawn(
     `--user-data-dir=${profile}`,
     "about:blank",
   ],
-  { stdio: "ignore" },
+  { stdio: ["ignore", "ignore", "pipe"] },
 );
+let startupStderr = "";
+let collectingStartup = true;
+child.stderr.on("data", (chunk) => {
+  if (collectingStartup)
+    startupStderr = (startupStderr + chunk.toString("utf8")).slice(-16384);
+});
 let socket;
 const records = [],
   errors = [];
@@ -108,7 +115,8 @@ const bundleHashes = Object.fromEntries(
 );
 try {
   let port;
-  for (let i = 0; i < 150; i++) {
+  // Cold GitHub runners can initialize Chromium DevTools slowly; keep the launch gate bounded.
+  for (let i = 0; i < 200; i++) {
     try {
       port = (
         await readFile(join(profile, "DevToolsActivePort"), "utf8")
@@ -117,7 +125,15 @@ try {
     } catch {
       await delay(100);
     }
+    if (child.exitCode !== null || child.signalCode !== null) break;
   }
+  collectingStartup = false;
+  if (!port)
+    console.error(
+      "BROWSER_STARTUP_DIAGNOSTIC",
+      JSON.stringify(browserStartupSummary(startupStderr, child)),
+    );
+  startupStderr = "";
   assert.ok(port, "Chromium startup");
   const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then((r) =>
     r.json(),
@@ -295,23 +311,29 @@ try {
     });
     await visit("/components");
     await snap(`components-${width}`);
-    await click('[data-m5-case="customer"] button[aria-current]');
+    await click('[data-pager-filter-case="customer"] button[aria-current]');
     await delay(200);
     assert.equal(
       await evaluate(
-        `document.querySelector('[data-m5-case="customer"] button[aria-current]').matches(':hover')`,
+        `document.querySelector('[data-pager-filter-case="customer"] button[aria-current]').matches(':hover')`,
       ),
       true,
     );
-    await snap(`customer-hover-${width}`, '[data-m5-case="customer"]');
+    await snap(
+      `customer-hover-${width}`,
+      '[data-pager-filter-case="customer"]',
+    );
     await key("Tab", 9);
     assert.equal(
       await evaluate(`document.activeElement.matches(':focus-visible')`),
       true,
     );
-    await snap(`customer-keyboard-focus-${width}`, '[data-m5-case="customer"]');
+    await snap(
+      `customer-keyboard-focus-${width}`,
+      '[data-pager-filter-case="customer"]',
+    );
     for (const kind of ["retail-filter", "carrier-filter"]) {
-      const root = `[data-m5-case="${kind}"]`;
+      const root = `[data-pager-filter-case="${kind}"]`;
       await click(root + ' button[aria-haspopup="dialog"]');
       await until(
         `document.activeElement === document.querySelector('${root} [role=dialog] select')`,
@@ -361,7 +383,7 @@ try {
   await visit("/components?unknown");
   assert.equal(
     await evaluate(
-      `['customer','retail','carrier','history'].every(k=>[...document.querySelectorAll('[data-m5-case="'+k+'"] button')].filter(b=>/^Trang/.test(b.getAttribute('aria-label')??'')).every(b=>b.disabled))`,
+      `['customer','retail','carrier','history'].every(k=>[...document.querySelectorAll('[data-pager-filter-case="'+k+'"] button')].filter(b=>/^Trang/.test(b.getAttribute('aria-label')??'')).every(b=>b.disabled))`,
     ),
     true,
   );
@@ -383,7 +405,7 @@ try {
         "Trang đầu lịch sử",
       ],
     ]) {
-      const root = `[data-m5-case="${kind}"]`;
+      const root = `[data-pager-filter-case="${kind}"]`;
       assert.equal(
         await evaluate(`document.querySelectorAll('${root} nav').length`),
         1,
@@ -427,25 +449,48 @@ try {
       );
     }
     await visit("/components");
-    await select('[data-m5-case="retail"] select', "20");
+    await select('[data-pager-filter-case="retail"] select', "20");
     assert.equal(
       await evaluate(
-        `document.querySelector('[data-m5-case="retail"] [aria-current=page]').textContent`,
+        `document.querySelector('[data-pager-filter-case="retail"] [aria-current=page]').textContent`,
       ),
       "1",
     );
     for (const kind of ["retail-filter", "carrier-filter"]) {
-      const root = `[data-m5-case="${kind}"]`;
+      const root = `[data-pager-filter-case="${kind}"]`;
+      assert.equal(
+        await evaluate(
+          `document.querySelector('${root} button[aria-haspopup]').hasAttribute('aria-controls')`,
+        ),
+        false,
+      );
+      await click(root + " button[aria-haspopup]");
       const triggerId = await evaluate(
         `document.querySelector('${root} button[aria-haspopup]').getAttribute('aria-controls')`,
       );
-      await click(root + " button[aria-haspopup]");
+      assert.ok(triggerId);
+      assert.equal(
+        await evaluate(`document.querySelector('${root} [role=dialog]').id`),
+        triggerId,
+      );
       await click(root + " button[aria-haspopup]");
       assert.equal(
         await evaluate(`!document.querySelector('${root} [role=dialog]')`),
         true,
       );
+      assert.equal(
+        await evaluate(
+          `document.querySelector('${root} button[aria-haspopup]').hasAttribute('aria-controls')`,
+        ),
+        false,
+      );
       await click(root + " button[aria-haspopup]");
+      assert.equal(
+        await evaluate(
+          `document.querySelector('${root} button[aria-haspopup]').getAttribute('aria-controls')`,
+        ),
+        triggerId,
+      );
       assert.equal(
         await evaluate(`document.querySelector('${root} [role=dialog]').id`),
         triggerId,
@@ -507,21 +552,23 @@ try {
     await visit("/components?historyTotal=20");
     assert.equal(
       await evaluate(
-        `document.querySelectorAll('[data-m5-case="history"] [aria-label^="Trang lịch sử "]').length`,
+        `document.querySelectorAll('[data-pager-filter-case="history"] [aria-label^="Trang lịch sử "]').length`,
       ),
       5,
     );
     await visit("/components?max");
-    await click('[data-m5-case="retail-filter"] button[aria-haspopup]');
-    await click('[data-m5-case="retail-filter"] button[type=submit]');
+    await click(
+      '[data-pager-filter-case="retail-filter"] button[aria-haspopup]',
+    );
+    await click('[data-pager-filter-case="retail-filter"] button[type=submit]');
     assert.match(
       await evaluate(
-        `document.querySelector('[data-m5-case="retail-filter"] [role=alert]').textContent`,
+        `document.querySelector('[data-pager-filter-case="retail-filter"] [role=alert]').textContent`,
       ),
       /12/,
     );
     await visit("/components?carrierMax");
-    const carrierRoot = '[data-m5-case="carrier-filter"]';
+    const carrierRoot = '[data-pager-filter-case="carrier-filter"]';
     await click(carrierRoot + " button[aria-haspopup]");
     await click(carrierRoot + " button[type=submit]");
     assert.match(
@@ -557,19 +604,19 @@ try {
       await visit("/components?" + state);
       assert.equal(
         await evaluate(
-          `['customer','retail','carrier'].every(k=>[...document.querySelectorAll('[data-m5-case="'+k+'"] button')].filter(b=>/đầu|trước|sau|cuối/.test(b.getAttribute('aria-label')??'')).every(b=>b.disabled))`,
+          `['customer','retail','carrier'].every(k=>[...document.querySelectorAll('[data-pager-filter-case="'+k+'"] button')].filter(b=>/đầu|trước|sau|cuối/.test(b.getAttribute('aria-label')??'')).every(b=>b.disabled))`,
         ),
         true,
       );
     }
     await visit("/components?unknown");
     await evaluate(
-      `document.querySelector('[data-m5-case="customer"] select').focus()`,
+      `document.querySelector('[data-pager-filter-case="customer"] select').focus()`,
     );
     await key("Tab", 9);
     assert.equal(
       await evaluate(
-        `document.activeElement===document.querySelector('[data-m5-case="retail"] select')`,
+        `document.activeElement===document.querySelector('[data-pager-filter-case="retail"] select')`,
       ),
       true,
     );
