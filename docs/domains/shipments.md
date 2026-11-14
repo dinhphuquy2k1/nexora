@@ -2,8 +2,8 @@
 
 ## Status and first scope
 
-**DESIGNED, not implemented**, under [ADR-011](../decisions/shipment-domain-data-ownership.md).
-There is no Shipment schema, migration, production adapter or read API yet.
+**Core implemented by NEXORA-050; provider activation remains deferred**, under [ADR-011](../decisions/shipment-domain-data-ownership.md).
+The schema, fenced Domain binding and three read APIs are implemented; there is no authorized production Shipment adapter or registration.
 Nexora owns the domain; the approved first scope is
 `shipment_kind = RETAIL_PARCEL` (kiện TMĐT/kiện lẻ) from Uniship. Bulk shipments,
 import/export entrustment (Ủy thác XNK), a second carrier, manual entry and Excel
@@ -115,24 +115,24 @@ A provider-specific definition of an open claim must be verified, not invented.
 Counts come from the server's scoped filters, not sums of a page or sums of
 possibly overlapping tabs. Missing/unavailable data is not fabricated as zero.
 
-## Schema draft — not a migration
+## Core schema
 
 [Database conventions](../architecture/database.md#naming-conventions-for-new-tables)
 apply prospectively: singular PascalCase models, mapped plural snake_case tables,
 camelCase mapped fields, scalar VARCHAR plus CHECK and Timestamptz(3). Money is
-NUMERIC, never a floating-point recalculation; future JSON money is a decimal
-string per the API contract. This draft creates no table or grant.
+NUMERIC, never a floating-point recalculation; API JSON money is a decimal
+string per the API contract. The forward migration 20261113000000_shipment_core creates the three tables; runtime provisioning applies scoped grants.
 
 ### shipments
 
-| Group / authority          | Planned columns and constraints                                                                                                                                                                                                                             |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Identity/ownership         | id; owner_user_id; code UNIQUE, database-generated using the Customer sequence/function pattern (no chosen prefix or client counter); source_identity_id UUID UNIQUE NULL FK RESTRICT; carrier_connection_id NULL FK SET NULL; provider NULL; shipment_kind |
-| Provider-owned parcel data | tracking_code (not UNIQUE); origin_warehouse; service_level; weight_kg NUMERIC(10,3); package_count; item_count                                                                                                                                             |
-| Provider-owned money       | declared_value + declared_currency; total_amount + total_currency; exchange_rate NUMERIC(18,6) + exchange_rate_at                                                                                                                                           |
-| Provider-owned lifecycle   | provider_status; logistics_stage; provider_claim_status; provider_updated_at; last_synced_at                                                                                                                                                                |
-| Nexora-owned business data | customer_id NULL FK RESTRICT; assignee_user_id NULL; internal_note; updated_by_user_id                                                                                                                                                                      |
-| Database metadata          | created_at; updated_at                                                                                                                                                                                                                                      |
+| Group / authority          | Columns and constraints                                                                                                                                                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity/ownership         | id; owner_user_id; code UNIQUE, database-generated using shipment_code_seq/next_shipment_code(), SHP plus at least six digits; source_identity_id UUID UNIQUE NULL FK RESTRICT; carrier_connection_id NULL FK SET NULL; provider NULL; shipment_kind |
+| Provider-owned parcel data | tracking_code (not UNIQUE); origin_warehouse; service_level; weight_kg NUMERIC(10,3); package_count; item_count                                                                                                                                      |
+| Provider-owned money       | declared_value + declared_currency; total_amount + total_currency; exchange_rate NUMERIC(18,6) + exchange_rate_at                                                                                                                                    |
+| Provider-owned lifecycle   | provider_status; logistics_stage; provider_claim_status; provider_updated_at; last_synced_at                                                                                                                                                         |
+| Nexora-owned business data | customer_id NULL FK RESTRICT; assignee_user_id NULL; internal_note; updated_by_user_id                                                                                                                                                               |
+| Database metadata          | created_at; updated_at                                                                                                                                                                                                                               |
 
 `provider` uses Carrier's provider contract, including its current length source;
 Shipment vocabulary lives in the new domain shared leaf, not repeated literals.
@@ -191,7 +191,7 @@ the observed payload version; processor version tracks processing/mapping semant
 so a processor upgrade does not manufacture a new source version. These meanings
 follow the existing Sync version contract.
 
-Future SQL design fragment only (not a migration or schema change in this PR):
+The forward migration enforces:
 
 ```sql
 shipment_id UUID NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
@@ -222,7 +222,7 @@ The internal claim case is independent of provider_claim_status.
    do not retain a raw response to reinterpret it on every read.
 3. Processor uses the existing narrow session. Binding finds the Shipment by
    source_identity_id within the immutable source scope, creates it or updates
-   only the provider-owned set, replaces charges and appends history for a stage
+   only the provider-owned set, reconciles explicitly complete charges (preserving omitted collections) and appends history for a stage
    change; an unknown code yields UNKNOWN plus warning.
 4. Binding runs inside Sync's authorization/lease/version-fenced transaction.
    Domain writes, history, source outcome and bookkeeping commit together with the
@@ -244,21 +244,19 @@ Core. Customer physical cleanup is DEFERRED, non-blocking, with no selected
 destination schema. Unused-field cleanup needs its own justified assessment.
 The production capability registry remains empty; this design activates nothing.
 
-## Planned read API
+## Read API
 
-These are design targets, **not registered routes or generated SDK contracts**:
+These authenticated routes have generated OpenAPI/SDK contracts:
 
-| Endpoint                       | Planned contract                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------------------ |
-| GET /api/shipments             | Stage/claim filters, tracking_code search, server-side pagination and counts per tab |
-| GET /api/shipments/:id         | Owner-scoped Shipment detail including charges                                       |
-| GET /api/shipments/:id/history | Owner-scoped append-only stage history                                               |
+| Endpoint                       | Contract                                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| GET /api/shipments             | Stage filter, tracking search, pagination, scoped counts; claim semantics explicitly unavailable |
+| GET /api/shipments/:id         | Owner-scoped Shipment detail including charges                                                   |
+| GET /api/shipments/:id/history | Owner-scoped append-only stage history                                                           |
 
 Every query/count includes the resolved owner and matching search scope; stable
 ordering uses created_at DESC/id DESC. Use indexed bounded projections without
-list N+1, full aggregate hydration or provider requests. Exact transport DTOs,
-filter parameter names/bounds, error mapping and generated SDK changes are a
-separate backend task under the existing authentication/no-store/error contract.
+list N+1, full aggregate hydration or provider requests. q searches literal tracking text; stage uses the closed stage vocabulary; page/pageSize follow shared validation (default 1/20, maximum 100). Counts share owner/q, ignore page/stage and include UNKNOWN. Claim count is null, claimFilterAvailable=false; claim=open returns CLAIM_FILTER_UNAVAILABLE (503). Detail exposes decimal strings and charges ordered by lineNo; history is paginated observedAt DESC/id DESC. Existing authentication/no-store/error envelope applies.
 Nexora business write commands are later work.
 
 ## Seven Uniship verifications before an adapter
@@ -294,3 +292,42 @@ static pairs; any provider-specific coordinated ordering needs its own evaluatio
 No scheduler/worker per type, implicit external Customer matching or flag-only
 activation is introduced. All first-scope mappings remain PROVISIONAL until
 original provider codes and official rights are verified.
+
+## Core implementation contract — NEXORA-050
+
+Before implementation, the normalized provider command distinguishes an absent
+`charges` collection (preserve current lines), an explicit `{complete: true,
+lines: [...]}` valid snapshot (reconcile every ordered position), an explicit
+complete empty snapshot (clear), and partial/malformed/ambiguous data (reject the
+entire source proposal; preserve current state). A later authorized adapter must
+prove completeness from its official API contract; synthetic fixtures do not.
+Reconcile by `line_no`: preserve unchanged row IDs, update changed position values,
+insert new positions and delete absent positions only for complete snapshots.
+Order changes update position contents without moving unique keys. No generic
+aggregate save, bulk delete/reinsert, money conversion or total recomputation.
+Amounts are decimal strings validated against precision/scale before PostgreSQL
+can round. Charge labels do not establish unverified provider meanings.
+
+The current core code convention is `SHP000001` (at least six sequence digits),
+`shipment_code_seq` and `next_shipment_code()`, following the Customer pattern.
+PostgreSQL generates this internal business identifier from one global sequence
+per Nexora instance: 1 → SHP000001, 123 → SHP000123, 999999 → SHP999999 and
+1000000 → SHP1000000. Six digits is a minimum width, not a maximum. Allocation
+never resets per date, owner, carrier or account; rollback/consumption gaps are
+acceptable, so numbering is not gapless. Database UNIQUE protects code identity.
+Provider payloads cannot assign/mutate code. External tracking_code may repeat,
+and Sync matches source_identity_id, never this internal code.
+V3 supersedes v2's historical VD implementation decision; verification evidence
+and immutable historical snapshots remain in the active task.
+
+Provider-only creation takes a separate trusted owner/source/provider/connection
+scope. Root ID/code remain unassigned until DB persistence. Hydration loads the
+actual root and ordered Charge children under locks; provider operations cannot
+set identity or Nexora-owned state. Snapshot copies preserve current omitted fees.
+An explicit normalized providerChangedAt supplies a history-only stage time;
+providerUpdatedAt remains the root source-update time. Omitting stage time means
+NULL in history, never a fallback to source update or local observation time.
+
+last_synced_at records the last applied provider operation, not every unchanged
+fetch. An unchanged payload with the same processor is skipped by the Sync engine
+and does not rewrite Shipment/charges/history merely to update this timestamp.

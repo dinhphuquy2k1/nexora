@@ -25,6 +25,7 @@ module.exports.verifyProviderLengthContract = async ({ t, url }) => {
           [
             "carrier_connections",
             "security_audit_events",
+            "shipments",
             "sync_jobs",
             "sync_provider_budget",
             "sync_source_identities",

@@ -186,6 +186,14 @@ test("guard catalog covers every canonical owning-domain value", async () => {
   const { readFile } = await import("node:fs/promises");
   const eslint = new ESLint();
   for (const [path, objects] of [
+    [
+      "../../../packages/shared/src/shipment/index.ts",
+      {
+        ShipmentKind: "shipmentKind",
+        LogisticsStage: "logisticsStage",
+        ShipmentChargeCode: "chargeCode",
+      },
+    ],
     ["identity/domain/session-assurance.ts", { AuthLevel: "authLevel" }],
     [
       "../../../packages/shared/src/customer-status.ts",
@@ -254,5 +262,28 @@ test("guard catalog covers every canonical owning-domain value", async () => {
       assert.equal(errors.length, 1, `${owner}.${key} must be enforced`);
       assert.ok(errors[0].message.includes(owner + "." + key));
     }
+  }
+});
+
+test("Shipment production and history aliases use the canonical vocabulary guard", async () => {
+  const eslint = new ESLint();
+  for (const field of [
+    "logisticsStage",
+    "logistics_stage",
+    "fromStage",
+    "from_stage",
+    "toStage",
+    "to_stage",
+  ]) {
+    const [result] = await eslint.lintText(
+      `export const data={${field}:"UNKNOWN"};`,
+      { filePath: resolve("apps/api/src/shipment/domain/lint-example.ts") },
+    );
+    assert.equal(
+      result.messages.filter(
+        (m) => m.ruleId === "nexora/no-domain-vocabulary-literals",
+      ).length,
+      1,
+    );
   }
 });

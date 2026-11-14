@@ -91,6 +91,8 @@ export function checkFileImports(p, content) {
         (target && under(target, resolve("packages/database"))))
     )
       throw Error(`Shared browser boundary: ${p}`);
+    if (p === "packages/shared/src/shipment/index.ts")
+      throw Error(`Shipment code leaf purity boundary: ${p}`);
     const apiDomain = /^apps\/api\/src\/[^/]+\/domain\//.test(p);
     const targetLayer =
       target &&
@@ -107,12 +109,14 @@ export function checkFileImports(p, content) {
         (spec.startsWith("@nexora/shared/") &&
           spec !== "@nexora/shared/customer-status" &&
           spec !== "@nexora/shared/sync-status" &&
+          spec !== "@nexora/shared/shipment" &&
           spec !== "@nexora/shared/validation") ||
         spec.includes("customer-status-labels") ||
         (target &&
           under(target, resolve("packages/shared")) &&
           !target.endsWith("/customer-status") &&
-          !target.endsWith("/sync-status")))
+          !target.endsWith("/sync-status") &&
+          !target.endsWith("/shipment/index")))
     )
       throw Error(`Domain purity boundary: ${p}`);
     if (
@@ -133,6 +137,33 @@ export function checkFileImports(p, content) {
 }
 
 export function runNegativeTests() {
+  checkFileImports(
+    "apps/api/src/shipment/domain/example.ts",
+    "import {LogisticsStage} from '@nexora/shared/shipment';",
+  );
+  for (const spec of [
+    "node:crypto",
+    "@nestjs/common",
+    "../customer-status-labels",
+    "./labels",
+  ])
+    assert.throws(
+      () =>
+        checkFileImports(
+          "packages/shared/src/shipment/index.ts",
+          `export * from '${spec}';`,
+        ),
+      /Shared browser boundary|Shipment code leaf purity boundary/,
+    );
+  assert.throws(
+    () =>
+      checkFileImports(
+        "apps/api/src/shipment/domain/example.ts",
+        "import {labels} from '@nexora/shared/shipment/labels';",
+      ),
+    /Domain purity boundary/,
+  );
+
   checkFileImports(
     "apps/web/test.ts",
     "import { CustomerStatus } from '@nexora/shared';",

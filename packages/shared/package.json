@@ -26,6 +26,10 @@
     "./sync-status": {
       "types": "./dist/sync-status.d.ts",
       "default": "./dist/sync-status.js"
+    },
+    "./shipment": {
+      "types": "./dist/shipment/index.d.ts",
+      "default": "./dist/shipment/index.js"
     }
   },
   "typesVersions": {
@@ -38,6 +42,9 @@
       ],
       "sync-status": [
         "dist/sync-status.d.ts"
+      ],
+      "shipment": [
+        "dist/shipment/index.d.ts"
       ]
     }
   }

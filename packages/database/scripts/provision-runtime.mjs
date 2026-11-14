@@ -5,6 +5,9 @@ export const RUNTIME_ROLE = "nexora_app";
 const SYNC_LOCK_FUNCTIONS =
   "public.sync_lock_user(uuid),public.sync_lock_epoch(uuid),public.sync_lock_connection(uuid,uuid),public.sync_lock_customer(uuid,uuid)";
 export const SYNC_GRANTS = {
+  shipments: ["SELECT"],
+  shipment_charges: ["SELECT", "DELETE"],
+  shipment_stage_history: ["SELECT"],
   sync_configs: ["SELECT", "INSERT", "UPDATE"],
   sync_jobs: ["SELECT", "INSERT", "UPDATE"],
   sync_job_items: ["SELECT", "INSERT", "UPDATE"],
@@ -17,6 +20,9 @@ export const SYNC_GRANTS = {
   customers: ["SELECT"],
 };
 export const RUNTIME_GRANTS = {
+  shipments: ["SELECT"],
+  shipment_charges: ["SELECT"],
+  shipment_stage_history: ["SELECT"],
   sync_configs: ["SELECT", "INSERT", "UPDATE"],
   sync_jobs: ["SELECT", "INSERT", "UPDATE"],
   sync_job_items: ["SELECT", "INSERT", "UPDATE"],
@@ -187,6 +193,25 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
         await db.query(
           `GRANT ${grants.join(",")} ON TABLE public.${identifier(table)} TO ${role}`,
         );
+      await db.query(
+        `REVOKE ALL ON FUNCTION public.next_shipment_code() FROM PUBLIC,${role}`,
+      );
+      if (role !== RUNTIME_ROLE) {
+        await db.query(
+          `GRANT USAGE ON SEQUENCE public.shipment_code_seq TO ${role}; GRANT EXECUTE ON FUNCTION public.next_shipment_code() TO ${role}`,
+        );
+        const providerColumns =
+          "tracking_code,shipment_kind,origin_warehouse,service_level,weight_kg,package_count,item_count,declared_value,declared_currency,total_amount,total_currency,exchange_rate,exchange_rate_at,provider_status,logistics_stage,provider_claim_status,provider_updated_at,last_synced_at,updated_at";
+        await db.query(
+          `GRANT INSERT(owner_user_id,source_identity_id,carrier_connection_id,provider,${providerColumns}), UPDATE(${providerColumns}) ON public.shipments TO ${role}`,
+        );
+        await db.query(
+          `GRANT INSERT(shipment_id,line_no,charge_code,amount,currency,provider_label), UPDATE(charge_code,amount,currency,provider_label) ON public.shipment_charges TO ${role}`,
+        );
+        await db.query(
+          `GRANT INSERT(shipment_id,source_version,processor_version,from_stage,to_stage,provider_status,provider_changed_at,sync_job_id) ON public.shipment_stage_history TO ${role}`,
+        );
+      }
       if (role === RUNTIME_ROLE) {
         await db.query(
           `GRANT USAGE ON SEQUENCE public.customer_code_seq TO ${role}; REVOKE ALL ON FUNCTION public.next_customer_code() FROM PUBLIC,${role}; GRANT EXECUTE ON FUNCTION public.next_customer_code() TO ${role}`,

@@ -1,6 +1,288 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/shipments": {
+      "get": {
+        "operationId": "ShipmentController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 2147483647,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          {
+            "name": "stage",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "TO_ORIGIN_WAREHOUSE",
+                "AT_ORIGIN_WAREHOUSE",
+                "TO_DEST_WAREHOUSE",
+                "AT_DEST_WAREHOUSE",
+                "DELIVERED",
+                "UNKNOWN"
+              ]
+            }
+          },
+          {
+            "name": "claim",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShipmentPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "CLAIM_FILTER_UNAVAILABLE: provider claim semantics are not verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/shipments/{id}/history": {
+      "get": {
+        "operationId": "ShipmentController_history",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 2147483647,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShipmentHistoryPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/shipments/{id}": {
+      "get": {
+        "operationId": "ShipmentController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShipmentResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
     "/api/carrier-connections/{id}/sync-jobs": {
       "post": {
         "operationId": "SyncController_admit",
@@ -2299,6 +2581,510 @@
           "code",
           "message",
           "requestId"
+        ]
+      },
+      "ShipmentSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "trackingCode": {
+            "type": "string"
+          },
+          "shipmentKind": {
+            "type": "string",
+            "enum": [
+              "RETAIL_PARCEL"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "logisticsStage": {
+            "type": "string",
+            "enum": [
+              "TO_ORIGIN_WAREHOUSE",
+              "AT_ORIGIN_WAREHOUSE",
+              "TO_DEST_WAREHOUSE",
+              "AT_DEST_WAREHOUSE",
+              "DELIVERED",
+              "UNKNOWN"
+            ]
+          },
+          "providerStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerClaimStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "totalAmount": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "totalCurrency": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "trackingCode",
+          "shipmentKind",
+          "provider",
+          "logisticsStage",
+          "providerStatus",
+          "providerClaimStatus",
+          "customerId",
+          "totalAmount",
+          "totalCurrency",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ShipmentPaginationDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalPages": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "ShipmentStageCountsDto": {
+        "type": "object",
+        "properties": {
+          "TO_ORIGIN_WAREHOUSE": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "AT_ORIGIN_WAREHOUSE": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "TO_DEST_WAREHOUSE": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "AT_DEST_WAREHOUSE": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "DELIVERED": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "UNKNOWN": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "TO_ORIGIN_WAREHOUSE",
+          "AT_ORIGIN_WAREHOUSE",
+          "TO_DEST_WAREHOUSE",
+          "AT_DEST_WAREHOUSE",
+          "DELIVERED",
+          "UNKNOWN"
+        ]
+      },
+      "ShipmentStatsDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "byStage": {
+            "$ref": "#/components/schemas/ShipmentStageCountsDto"
+          },
+          "claims": {
+            "type": "integer",
+            "minimum": 0,
+            "nullable": true,
+            "enum": [
+              null
+            ]
+          }
+        },
+        "required": [
+          "total",
+          "byStage",
+          "claims"
+        ]
+      },
+      "ShipmentPageDto": {
+        "type": "object",
+        "properties": {
+          "shipments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShipmentSummaryDto"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/ShipmentPaginationDto"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/ShipmentStatsDto"
+          },
+          "claimFilterAvailable": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          }
+        },
+        "required": [
+          "shipments",
+          "pagination",
+          "stats",
+          "claimFilterAvailable"
+        ]
+      },
+      "ShipmentHistoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "processorVersion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "fromStage": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "TO_ORIGIN_WAREHOUSE",
+              "AT_ORIGIN_WAREHOUSE",
+              "TO_DEST_WAREHOUSE",
+              "AT_DEST_WAREHOUSE",
+              "DELIVERED",
+              "UNKNOWN"
+            ]
+          },
+          "toStage": {
+            "type": "string",
+            "enum": [
+              "TO_ORIGIN_WAREHOUSE",
+              "AT_ORIGIN_WAREHOUSE",
+              "TO_DEST_WAREHOUSE",
+              "AT_DEST_WAREHOUSE",
+              "DELIVERED",
+              "UNKNOWN"
+            ]
+          },
+          "providerStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerChangedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "sourceVersion",
+          "processorVersion",
+          "fromStage",
+          "toStage",
+          "providerStatus",
+          "providerChangedAt",
+          "observedAt"
+        ]
+      },
+      "ShipmentHistoryPageDto": {
+        "type": "object",
+        "properties": {
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShipmentHistoryDto"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/ShipmentPaginationDto"
+          }
+        },
+        "required": [
+          "history",
+          "pagination"
+        ]
+      },
+      "ShipmentChargeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "lineNo": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32767
+          },
+          "chargeCode": {
+            "type": "string",
+            "enum": [
+              "UNIT_PRICE",
+              "DOMESTIC_SHIPPING",
+              "INSURANCE",
+              "COUNTING",
+              "WOOD_PACKING",
+              "BUBBLE_WRAP",
+              "OTHER"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "providerLabel": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "lineNo",
+          "chargeCode",
+          "amount",
+          "currency",
+          "providerLabel"
+        ]
+      },
+      "ShipmentDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "trackingCode": {
+            "type": "string"
+          },
+          "shipmentKind": {
+            "type": "string",
+            "enum": [
+              "RETAIL_PARCEL"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "logisticsStage": {
+            "type": "string",
+            "enum": [
+              "TO_ORIGIN_WAREHOUSE",
+              "AT_ORIGIN_WAREHOUSE",
+              "TO_DEST_WAREHOUSE",
+              "AT_DEST_WAREHOUSE",
+              "DELIVERED",
+              "UNKNOWN"
+            ]
+          },
+          "providerStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerClaimStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "totalAmount": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "totalCurrency": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "originWarehouse": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "weightKg": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "packageCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "declaredValue": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "declaredCurrency": {
+            "type": "string",
+            "nullable": true
+          },
+          "exchangeRate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact decimal string; no monetary arithmetic or rounding"
+          },
+          "exchangeRateAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "providerUpdatedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastSyncedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "assigneeUserId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "internalNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "charges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShipmentChargeDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "trackingCode",
+          "shipmentKind",
+          "provider",
+          "logisticsStage",
+          "providerStatus",
+          "providerClaimStatus",
+          "customerId",
+          "totalAmount",
+          "totalCurrency",
+          "createdAt",
+          "updatedAt",
+          "originWarehouse",
+          "serviceLevel",
+          "weightKg",
+          "packageCount",
+          "itemCount",
+          "declaredValue",
+          "declaredCurrency",
+          "exchangeRate",
+          "exchangeRateAt",
+          "providerUpdatedAt",
+          "lastSyncedAt",
+          "assigneeUserId",
+          "internalNote",
+          "charges"
+        ]
+      },
+      "ShipmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "shipment": {
+            "$ref": "#/components/schemas/ShipmentDetailDto"
+          }
+        },
+        "required": [
+          "shipment"
         ]
       },
       "CreateSyncJobDto": {

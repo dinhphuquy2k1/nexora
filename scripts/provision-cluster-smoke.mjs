@@ -232,6 +232,12 @@ function suiteFailure(suite, result, exit) {
 }
 async function runSuites(suite) {
   const suites = {
+    "shipment-worker": ["node", "packages/database/test/shipment-worker.mjs"],
+    "shipment-sql": [
+      "node",
+      "--test",
+      "packages/database/test/shipment-sql.mjs",
+    ],
     provision: ["node", "packages/database/test/provision-cluster.mjs"],
     "customer-sql": [
       "node",
@@ -328,6 +334,25 @@ async function runSuites(suite) {
         "-v",
         `${root}/packages/database/${dir}:/workspace/packages/database/${dir}:ro`,
       );
+    if (key === "shipment-worker") {
+      // The tooling image supplies pinned dependencies, never cached application source.
+      for (const path of [
+        "apps/api/src",
+        "apps/api/integration",
+        "apps/api/test",
+        "apps/api/package.json",
+        "apps/api/tsconfig.json",
+        "packages/shared/src",
+        "packages/shared/package.json",
+        "packages/shared/tsconfig.json",
+        "packages/database/src",
+        "packages/database/package.json",
+        "packages/database/tsconfig.json",
+        "packages/database/prisma.config.ts",
+        "tsconfig.base.json",
+      ])
+        args.push("-v", `${resolve(root, path)}:/workspace/${path}:ro`);
+    }
     args.push(
       "--entrypoint",
       "sh",

@@ -1,5 +1,53 @@
 // Generated. Do not edit.
 export interface paths {
+    "/api/shipments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ShipmentController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shipments/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ShipmentController_history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/shipments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ShipmentController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/carrier-connections/{id}/sync-jobs": {
         parameters: {
             query?: never;
@@ -412,6 +460,131 @@ export interface components {
             message: string;
             requestId: string;
         };
+        ShipmentSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            trackingCode: string;
+            /** @enum {string} */
+            shipmentKind: "RETAIL_PARCEL";
+            provider: string | null;
+            /** @enum {string} */
+            logisticsStage: "TO_ORIGIN_WAREHOUSE" | "AT_ORIGIN_WAREHOUSE" | "TO_DEST_WAREHOUSE" | "AT_DEST_WAREHOUSE" | "DELIVERED" | "UNKNOWN";
+            providerStatus: string | null;
+            providerClaimStatus: string | null;
+            /** Format: uuid */
+            customerId: string | null;
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            totalAmount: string | null;
+            totalCurrency: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ShipmentPaginationDto: {
+            page: number;
+            pageSize: number;
+            total: number;
+            totalPages: number;
+        };
+        ShipmentStageCountsDto: {
+            TO_ORIGIN_WAREHOUSE: number;
+            AT_ORIGIN_WAREHOUSE: number;
+            TO_DEST_WAREHOUSE: number;
+            AT_DEST_WAREHOUSE: number;
+            DELIVERED: number;
+            UNKNOWN: number;
+        };
+        ShipmentStatsDto: {
+            total: number;
+            byStage: components["schemas"]["ShipmentStageCountsDto"];
+            /** @enum {integer|null} */
+            claims: null;
+        };
+        ShipmentPageDto: {
+            shipments: components["schemas"]["ShipmentSummaryDto"][];
+            pagination: components["schemas"]["ShipmentPaginationDto"];
+            stats: components["schemas"]["ShipmentStatsDto"];
+            /** @enum {boolean} */
+            claimFilterAvailable: false;
+        };
+        ShipmentHistoryDto: {
+            /** Format: uuid */
+            id: string;
+            sourceVersion: number;
+            processorVersion: number;
+            /** @enum {string|null} */
+            fromStage: "TO_ORIGIN_WAREHOUSE" | "AT_ORIGIN_WAREHOUSE" | "TO_DEST_WAREHOUSE" | "AT_DEST_WAREHOUSE" | "DELIVERED" | "UNKNOWN" | null;
+            /** @enum {string} */
+            toStage: "TO_ORIGIN_WAREHOUSE" | "AT_ORIGIN_WAREHOUSE" | "TO_DEST_WAREHOUSE" | "AT_DEST_WAREHOUSE" | "DELIVERED" | "UNKNOWN";
+            providerStatus: string | null;
+            /** Format: date-time */
+            providerChangedAt: string | null;
+            /** Format: date-time */
+            observedAt: string;
+        };
+        ShipmentHistoryPageDto: {
+            history: components["schemas"]["ShipmentHistoryDto"][];
+            pagination: components["schemas"]["ShipmentPaginationDto"];
+        };
+        ShipmentChargeDto: {
+            /** Format: uuid */
+            id: string;
+            lineNo: number;
+            /** @enum {string} */
+            chargeCode: "UNIT_PRICE" | "DOMESTIC_SHIPPING" | "INSURANCE" | "COUNTING" | "WOOD_PACKING" | "BUBBLE_WRAP" | "OTHER";
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            amount: string;
+            currency: string;
+            providerLabel: string | null;
+        };
+        ShipmentDetailDto: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            trackingCode: string;
+            /** @enum {string} */
+            shipmentKind: "RETAIL_PARCEL";
+            provider: string | null;
+            /** @enum {string} */
+            logisticsStage: "TO_ORIGIN_WAREHOUSE" | "AT_ORIGIN_WAREHOUSE" | "TO_DEST_WAREHOUSE" | "AT_DEST_WAREHOUSE" | "DELIVERED" | "UNKNOWN";
+            providerStatus: string | null;
+            providerClaimStatus: string | null;
+            /** Format: uuid */
+            customerId: string | null;
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            totalAmount: string | null;
+            totalCurrency: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            originWarehouse: string | null;
+            serviceLevel: string | null;
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            weightKg: string | null;
+            packageCount: number | null;
+            itemCount: number | null;
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            declaredValue: string | null;
+            declaredCurrency: string | null;
+            /** @description Exact decimal string; no monetary arithmetic or rounding */
+            exchangeRate: string | null;
+            /** Format: date-time */
+            exchangeRateAt: string | null;
+            /** Format: date-time */
+            providerUpdatedAt: string | null;
+            /** Format: date-time */
+            lastSyncedAt: string | null;
+            /** Format: uuid */
+            assigneeUserId: string | null;
+            internalNote: string | null;
+            charges: components["schemas"]["ShipmentChargeDto"][];
+        };
+        ShipmentResponseDto: {
+            shipment: components["schemas"]["ShipmentDetailDto"];
+        };
         CreateSyncJobDto: {
             /** @enum {string} */
             syncType: "SHIPMENT" | "CUSTOMER";
@@ -806,6 +979,173 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ShipmentController_list: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                q?: string;
+                stage?: "TO_ORIGIN_WAREHOUSE" | "AT_ORIGIN_WAREHOUSE" | "TO_DEST_WAREHOUSE" | "AT_DEST_WAREHOUSE" | "DELIVERED" | "UNKNOWN";
+                claim?: "open";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentPageDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description CLAIM_FILTER_UNAVAILABLE: provider claim semantics are not verified */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    ShipmentController_history: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentHistoryPageDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    ShipmentController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShipmentResponseDto"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
     SyncController_jobs: {
         parameters: {
             query?: {

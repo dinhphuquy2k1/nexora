@@ -2,7 +2,7 @@
 
 ## Current Identity and MFA contract — Logical PR6
 
-Current Logical PR6: OPERATOR authenticates with local password and receives a PASSWORD session; ADMIN receives only a pending challenge after password and must complete TOTP or single-use recovery verification for an MFA session. All admin APIs require database-backed ADMIN+MFA. Uniship is independent of identity. Public activation still requires actual deployment evidence; the explicit profile is implemented by NEXORA-024. Shipment sync remains PLANNED. See the PR6 contract amendment below and NEXORA-022 verification evidence.
+Current Logical PR6: OPERATOR authenticates with local password and receives a PASSWORD session; ADMIN receives only a pending challenge after password and must complete TOTP or single-use recovery verification for an MFA session. All admin APIs require database-backed ADMIN+MFA. Uniship is independent of identity. Public activation still requires actual deployment evidence; the explicit profile is implemented by NEXORA-024. Shipment core reads/binding are implemented; live provider fetching/activation remains PLANNED. See the PR6 contract amendment below and NEXORA-022 verification evidence.
 
 Generated OpenAPI/SDK describe the implemented routes below. Error responses use `{code,message,requestId}`. Every administrative route requires an ACTIVE ADMIN database-backed MFA session; all mutations require a trusted Origin. Missing/revoked/disabled sessions return 401 `UNAUTHORIZED`; OPERATOR callers return 403 `FORBIDDEN`. Origin failures retain 403 `FORBIDDEN`, and shared admission rejection retains 429 `TOO_MANY_REQUESTS` for compatibility.
 
@@ -193,3 +193,28 @@ DTOs expose job status/phase/counters/start/end/creation and closed error code;
 config includes actual capability availability and completion-based times. Current
 production provider/domain capability is unavailable, so no fake successful sync
 or enabled production command is advertised. Generated SDK remains canonical.
+
+## Shipment read contract — NEXORA-050
+
+GET /api/shipments, /api/shipments/:id and /api/shipments/:id/history require the
+existing authenticated SessionGuard and are owner-scoped for every projection/count,
+including ADMIN. All use no-store and {code,message,requestId} failures. Invalid UUID
+or query is 400; missing/foreign records are indistinguishable 404. No write routes.
+
+List accepts q (literal case-insensitive tracking text, max256), stage (canonical
+LogisticsStage), page/pageSize (shared policy: defaults1/20, maximum100). Results
+sort createdAt DESC/id DESC. pagination.total applies the stage filter; stats.total
+and stats.byStage use owner/q before stage/page. UNKNOWN contributes to All.
+stats.claims is null and claimFilterAvailable is false. claim=open returns503
+CLAIM_FILTER_UNAVAILABLE until official claim semantics are verified; no fake zero.
+
+Detail separates provider totals from charges and Nexora customerId/internal fields.
+Decimal amount, weight and rate values are JSON strings; no total recalculation,
+conversion or currency/time fallback. Charges sort by lineNo, allow repeated codes.
+History accepts only page/pageSize, sorts observedAt DESC/id DESC and distinguishes
+nullable providerChangedAt from actual observedAt; source/processor versions are
+separate integers. Shared Shipment kind/stage/charge code leaves are browser-safe;
+response types come from generated SDK, not handwritten transport unions. API/shared/
+SDK use same-revision deployment. Generated Swagger includes documented error/status,
+nullable fields and exact decimal-string schemas. Real provider registration remains
+empty; these contracts provide no external API authorization.

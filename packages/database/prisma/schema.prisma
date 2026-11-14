@@ -16,6 +16,9 @@ model StoredFile {
 }
 
 model User {
+ shipmentsOwned Shipment[] @relation("shipment_owner")
+ shipmentsAssigned Shipment[] @relation("shipment_assignee")
+ shipmentsUpdated Shipment[] @relation("shipment_updater")
   id         String          @id @default(uuid()) @db.Uuid
   username   String          @unique @db.VarChar(50)
   role       String          @db.VarChar(16)
@@ -75,6 +78,7 @@ model Session {
 }
 
 model CarrierConnection {
+ shipments Shipment[]
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId String @map("user_id") @db.Uuid
   provider String @db.VarChar(32)
@@ -168,6 +172,7 @@ model MfaRecoveryCode {
 }
 
 model Customer {
+ shipments Shipment[]
  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
  ownerUserId String @map("owner_user_id") @db.Uuid
  code String @unique(map:"uq_customers_code") @default(dbgenerated("next_customer_code()")) @db.VarChar(32)
@@ -223,6 +228,7 @@ model SyncConfig {
  @@map("sync_configs")
 }
 model SyncJob {
+ shipmentHistory ShipmentStageHistory[]
  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
  carrier_connection_id String? @db.Uuid
  owner_user_id String @db.Uuid
@@ -267,6 +273,7 @@ model SyncJob {
  @@map("sync_jobs")
 }
 model SyncSourceIdentity {
+ shipment Shipment?
  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
  owner_user_id String @db.Uuid
  provider String @db.VarChar(32)
@@ -347,4 +354,79 @@ model SyncProviderBudget {
  failures Int @default(0)
  @@unique([provider,slot])
  @@map("sync_provider_budget")
+}
+
+model Shipment {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ ownerUserId String @db.Uuid @map("owner_user_id")
+ code String @unique(map:"uq_shipments_code") @default(dbgenerated("next_shipment_code()")) @db.VarChar(32)
+ sourceIdentityId String? @unique(map:"uq_shipments_source") @db.Uuid @map("source_identity_id")
+ carrierConnectionId String? @db.Uuid @map("carrier_connection_id")
+ provider String? @db.VarChar(32)
+ shipmentKind String @default("RETAIL_PARCEL") @db.VarChar(32) @map("shipment_kind")
+ trackingCode String @db.VarChar(256) @map("tracking_code")
+ originWarehouse String? @db.VarChar(256) @map("origin_warehouse")
+ serviceLevel String? @db.VarChar(128) @map("service_level")
+ weightKg Decimal? @db.Decimal(10,3) @map("weight_kg")
+ packageCount Int? @map("package_count")
+ itemCount Int? @map("item_count")
+ declaredValue Decimal? @db.Decimal(18,2) @map("declared_value")
+ declaredCurrency String? @db.Char(3) @map("declared_currency")
+ totalAmount Decimal? @db.Decimal(18,2) @map("total_amount")
+ totalCurrency String? @db.Char(3) @map("total_currency")
+ exchangeRate Decimal? @db.Decimal(18,6) @map("exchange_rate")
+ exchangeRateAt DateTime? @db.Timestamptz(3) @map("exchange_rate_at")
+ providerStatus String? @db.VarChar(128) @map("provider_status")
+ logisticsStage String @default("UNKNOWN") @db.VarChar(32) @map("logistics_stage")
+ providerClaimStatus String? @db.VarChar(128) @map("provider_claim_status")
+ providerUpdatedAt DateTime? @db.Timestamptz(3) @map("provider_updated_at")
+ lastSyncedAt DateTime? @db.Timestamptz(3) @map("last_synced_at")
+ customerId String? @db.Uuid @map("customer_id")
+ assigneeUserId String? @db.Uuid @map("assignee_user_id")
+ internalNote String? @db.Text @map("internal_note")
+ updatedByUserId String? @db.Uuid @map("updated_by_user_id")
+ createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
+ updatedAt DateTime @default(now()) @db.Timestamptz(3) @map("updated_at")
+ owner User @relation("shipment_owner",fields:[ownerUserId],references:[id],onDelete:Restrict,onUpdate:NoAction)
+ assignee User? @relation("shipment_assignee",fields:[assigneeUserId],references:[id],onDelete:SetNull,onUpdate:NoAction)
+ updater User? @relation("shipment_updater",fields:[updatedByUserId],references:[id],onDelete:SetNull,onUpdate:NoAction)
+ customer Customer? @relation(fields:[customerId],references:[id],onDelete:Restrict,onUpdate:NoAction)
+ source SyncSourceIdentity? @relation(fields:[sourceIdentityId],references:[id],onDelete:Restrict,onUpdate:NoAction)
+ connection CarrierConnection? @relation(fields:[carrierConnectionId],references:[id],onDelete:SetNull,onUpdate:NoAction)
+ charges ShipmentCharge[]
+ history ShipmentStageHistory[]
+ @@index([ownerUserId,logisticsStage,createdAt(sort:Desc),id(sort:Desc)],map:"idx_shipments_owner_stage_created")
+ @@index([ownerUserId,createdAt(sort:Desc),id(sort:Desc)],map:"idx_shipments_owner_created")
+ @@index([ownerUserId,trackingCode],map:"idx_shipments_owner_tracking")
+ // Partial customer index and CHECK constraints are SQL-owned.
+ @@map("shipments")
+}
+model ShipmentCharge {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ shipmentId String @map("shipment_id") @db.Uuid
+ lineNo Int @map("line_no") @db.SmallInt
+ chargeCode String @map("charge_code") @db.VarChar(32)
+ amount Decimal @db.Decimal(18,2)
+ currency String @db.Char(3)
+ providerLabel String? @map("provider_label") @db.VarChar(256)
+ shipment Shipment @relation(fields:[shipmentId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+ @@unique([shipmentId,lineNo],map:"uq_shipment_charges_line")
+ @@map("shipment_charges")
+}
+model ShipmentStageHistory {
+ id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+ shipmentId String @map("shipment_id") @db.Uuid
+ sourceVersion Int @map("source_version")
+ processorVersion Int @map("processor_version")
+ fromStage String? @map("from_stage") @db.VarChar(32)
+ toStage String @map("to_stage") @db.VarChar(32)
+ providerStatus String? @map("provider_status") @db.VarChar(128)
+ providerChangedAt DateTime? @map("provider_changed_at") @db.Timestamptz(3)
+ observedAt DateTime @default(dbgenerated("clock_timestamp()")) @map("observed_at") @db.Timestamptz(3)
+ syncJobId String? @map("sync_job_id") @db.Uuid
+ shipment Shipment @relation(fields:[shipmentId],references:[id],onDelete:Cascade,onUpdate:NoAction)
+ job SyncJob? @relation(fields:[syncJobId],references:[id],onDelete:SetNull,onUpdate:NoAction)
+ @@unique([shipmentId,sourceVersion,processorVersion],map:"uq_shipment_history_version")
+ @@index([shipmentId,observedAt(sort:Desc),id(sort:Desc)],map:"idx_shipment_history_observed")
+ @@map("shipment_stage_history")
 }
