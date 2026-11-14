@@ -458,3 +458,26 @@ accessibility change. Features retain filtering models, submit/error lifecycle a
 visual geometry exceptions. Shared behavior and public customization details are
 owned by the [reusable registry](reusable-components.md#web-filterpopovershell-m5).
 No new dependencies, backend contracts, routes or security changes are introduced.
+
+### Retail loading and scoped statistics — NEXORA-052 v2
+
+Retail keeps command deck, header/colgroup and pagination mounted while five
+feature-local decorative skeleton rows follow the visible column registry. Mobile
+uses five card placeholders. One hidden status announces loading; the table/cards
+expose busy/stale state and reduced motion disables skeleton animation. Valid
+same-key rows remain during refresh. The UNKNOWN warning uses scoped statistics
+and lives inside scrolling results below the desktop header (inside cards on mobile),
+so receiving counts does not displace the persistent header. The route has no
+redundant text-only Suspense fallback; the existing session guard remains.
+
+Backend statistics are retained separately across stage/page/page-size changes for
+the same search, workspace session epoch and API identity. Disabled/invalid, denied or unsafe reads clear
+retention; changed search/API invalidates it. The authenticated owner keys the
+page and existing workspace session lifetime bounds component state. Counts never
+come from displayed rows and unavailable remains distinct from confirmed zero.
+Retail-only count styling reserves three digits with consistent weight and allows
+larger values to expand; shared TabBar behavior/styles remain unchanged.
+
+The sticky tracking header neutralizes its independent cell shadow; its shared
+bottom border, dark background, z-index and sticky positioning remain. Body
+tracking cells retain their existing shadow separation.

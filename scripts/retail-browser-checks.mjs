@@ -1,3 +1,4 @@
+import { verifyRetailLoading } from "./retail-loading-checks.mjs";
 import { SYNTHETIC_PACKAGES } from "../apps/web/test/fixtures/retail-reference.ts";
 import {
   inspectRetailColumnPicker,
@@ -338,6 +339,15 @@ export async function verifyRetailBrowser({
       trackingHeader.ordinary.border,
     );
     await snapshot("all");
+    await verifyRetailLoading({
+      send,
+      evaluate,
+      navigate,
+      until,
+      origin: fixtureOrigin,
+      snapshot,
+      viewports,
+    });
     checks.step("RETAIL_SEVEN_TABS_AND_HISTORY");
     const expectedIconColors = {
       all: "rgb(23, 43, 77)",

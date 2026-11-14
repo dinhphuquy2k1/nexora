@@ -63,6 +63,7 @@ test("Shipment API only sends bounded read parameters, signal and safe errors", 
 async function hookHarness(api) {
   const filename = new URL("useShipmentRead.ts", root);
   const { loadComponent } = await import("./helpers/render-component.mjs");
+  let sessionEpoch = 1;
   let index = 0,
     slots = [],
     effects = [],
@@ -110,20 +111,25 @@ async function hookHarness(api) {
     module,
     exports: module.exports,
     require: (name) =>
-      name === "react"
-        ? react
-        : name === "./errors.ts"
-          ? errors
-          : name.startsWith(".")
-            ? loadComponent(new URL(name, root))
-            : require(name),
+      name === "../../lib/api/workspace-auth.ts"
+        ? { getCurrentSessionEpoch: () => sessionEpoch }
+        : name === "react"
+          ? react
+          : name === "./errors.ts"
+            ? errors
+            : name.startsWith(".")
+              ? loadComponent(new URL(name, root))
+              : require(name),
     AbortController,
     console,
   });
   return {
-    render(query) {
+    session(epoch) {
+      sessionEpoch = epoch;
+    },
+    render(query, enabled = true, instance = api) {
       index = 0;
-      const result = module.exports.useShipmentList(query, api);
+      const result = module.exports.useShipmentList(query, instance, enabled);
       for (const effect of pending.splice(0)) effect();
       return result;
     },
@@ -286,5 +292,66 @@ test("Shipment statistics retain across stage/page only, clear on changed scope 
   requests.at(-1).reject(Error("MALFORMED_RESPONSE"));
   await new Promise(setImmediate);
   assert.equal(h.render(next).stats, undefined);
+  h.unmount();
+});
+
+test("Shipment statistics clear on denial, disabled read and API identity change", async () => {
+  const requests = [];
+  const api = {
+    list: () =>
+      new Promise((resolve, reject) => requests.push({ resolve, reject })),
+  };
+  const h = await hookHarness(api);
+  const q = { status: "all", search: "", page: 1, pageSize: 10, filters: [] };
+  const result = {
+    shipments: [],
+    stats: { total: 1, byStage: { DELIVERED: 1 }, claims: null },
+  };
+  h.render(q);
+  requests.at(-1).resolve(result);
+  await new Promise(setImmediate);
+  h.render(q);
+  assert.equal(h.render(q).stats.total, 1);
+  assert.equal(h.render(q, false).stats, undefined);
+  assert.equal(h.render(q).stats, undefined);
+  requests.at(-1).resolve(result);
+  await new Promise(setImmediate);
+  h.render(q);
+  assert.equal(h.render(q).stats.total, 1);
+  const replacement = { ...api };
+  const changed = h.render(q, true, replacement);
+  assert.equal(changed.data, undefined);
+  assert.equal(changed.stats, undefined);
+  requests.at(-1).resolve(result);
+  await new Promise(setImmediate);
+  h.render(q, true, replacement);
+  const next = { ...q, status: "delivered" };
+  assert.equal(h.render(next, true, replacement).stats.total, 1);
+  const { ShipmentApiError } = await import(new URL("errors.ts", root));
+  requests.at(-1).reject(new ShipmentApiError(403, { code: "DENIED" }));
+  await new Promise(setImmediate);
+  assert.equal(h.render(next, true, replacement).stats, undefined);
+  h.unmount();
+});
+
+test("Shipment list and counts invalidate across workspace session epochs", async () => {
+  const requests = [];
+  const api = {
+    list: () => new Promise((resolve) => requests.push({ resolve })),
+  };
+  const h = await hookHarness(api),
+    q = { status: "all", search: "", page: 1, pageSize: 10, filters: [] };
+  h.render(q);
+  requests[0].resolve({ shipments: [], stats: { total: 10 } });
+  await new Promise(setImmediate);
+  h.render(q);
+  assert.equal(h.render(q).stats.total, 10);
+  h.session(2);
+  assert.equal(h.render(q).data, undefined);
+  assert.equal(h.render(q).stats, undefined);
+  requests[1].resolve({ shipments: [], stats: { total: 0 } });
+  await new Promise(setImmediate);
+  h.render(q);
+  assert.equal(h.render(q).stats.total, 0);
   h.unmount();
 });

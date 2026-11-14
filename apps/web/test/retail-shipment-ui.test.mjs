@@ -227,3 +227,16 @@ test("Retail skeleton follows arbitrary visible-column order; retained rows rema
   assert.match(retained, /data-stale="true"/);
   assert.match(retained, /data-package-id=/);
 });
+
+test("UNKNOWN warning lives below the persistent header and outside decorative skeletons", () => {
+  const { RetailPackageListPage } = loaded("RetailPackageListPage", {
+    stats: data.stats,
+    status: "loading",
+    loading: true,
+    refresh() {},
+  });
+  const html = render(React.createElement(RetailPackageListPage, { api: {} }));
+  assert.match(html, /<tbody><tr data-read-notice="true"><td colSpan="19"><p/);
+  assert.match(html, /5 kiện có trạng thái chưa xác định từ hãng/);
+  assert.equal((html.match(/<tr[^>]*data-skeleton="true"/g) || []).length, 5);
+});

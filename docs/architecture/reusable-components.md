@@ -424,3 +424,11 @@ Retail Shipment integration uses the existing Pager with server totals; advanced
 filter disclosure remains disabled while its standalone consumer behavior is retained.
 TabBar tooltip passes an optional native button title for unavailable tabs without
 changing default styles or geometry.
+
+### Retail loading composition — NEXORA-052 v2
+
+RetailPackageTable reuses Customer's five-row semantic skeleton behavior as a
+feature-local implementation over Retail visibleColumns; it does not import
+Customer CSS or introduce a shared skeleton framework. Retail owns separate scoped
+backend statistics and local three-digit badge reservation. TabCountBadge and
+TabBar remain unchanged; larger counts may grow rather than clip.

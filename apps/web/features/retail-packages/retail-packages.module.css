@@ -1305,6 +1305,7 @@ button.colPickerDoneBtn:hover:not(:disabled) {
 .tableHead .stickyTracking {
   z-index: 4;
   background: var(--color-primary);
+  box-shadow: none;
 }
 
 .packageOverlay {
@@ -1487,4 +1488,13 @@ button.colPickerDoneBtn:hover:not(:disabled) {
   .skeletonCell {
     animation: none;
   }
+}
+
+.mobileCardProduct .skeletonCell,
+.mobileCardAmount .skeletonCell,
+.mobileCardMeta .skeletonCell {
+  height: 1lh;
+}
+.mobileCardHeader .skeletonCell[data-placeholder="status"] {
+  height: 20px;
 }

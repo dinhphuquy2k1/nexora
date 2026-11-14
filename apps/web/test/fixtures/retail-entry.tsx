@@ -18,14 +18,37 @@ history.replaceState(
   location.pathname + (search ? "?" + search : ""),
 );
 const events: { method: string; query?: unknown; aborted?: boolean }[] = [];
-Object.assign(window, { __retailFixture: { events, mode } });
-const api = createRetailFixtureApi(
+let held = mode === "held";
+const releases = new Set<() => void>();
+Object.assign(window, {
+  __retailFixture: {
+    events,
+    mode,
+    hold: () => {
+      held = true;
+    },
+    release: () => {
+      held = false;
+      for (const release of releases) release();
+      releases.clear();
+    },
+  },
+});
+const fixtureApi = createRetailFixtureApi(
   location.pathname === "/reference-sample"
     ? REFERENCE_DETAILS
     : FIXTURE_DETAILS,
-  mode,
+  mode === "held" ? "ready" : mode,
   events,
 );
+const api = {
+  ...fixtureApi,
+  list: async (...args: Parameters<typeof fixtureApi.list>) => {
+    const response = await fixtureApi.list(...args);
+    if (held) await new Promise<void>((resolve) => releases.add(resolve));
+    return response;
+  },
+};
 createRoot(document.getElementById("fixture-root")!).render(
   <ToastProvider>
     <div data-retail-fixture data-fixture-mode={mode}>

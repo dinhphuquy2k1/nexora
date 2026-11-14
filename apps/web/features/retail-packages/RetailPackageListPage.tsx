@@ -370,18 +370,20 @@ export function RetailPackageListPage({
             Khiếu nại: Chưa hỗ trợ.
           </p>
         )}
-        {!!data?.stats.byStage.UNKNOWN && (
-          <p className={styles.availabilityNotice} role="status">
-            <AlertTriangle size={14} aria-hidden="true" />{" "}
-            {data.stats.byStage.UNKNOWN} kiện có trạng thái chưa xác định từ
-            hãng.
-          </p>
-        )}
         <RetailPackageTable
           paginated={rows}
           visibleColumns={visibleColumns(visibility)}
           onDetail={(row) => setDetail(row.id)}
           unavailable={unavailable}
+          notice={
+            !!stats?.byStage.UNKNOWN && (
+              <p className={styles.availabilityNotice}>
+                <AlertTriangle size={14} aria-hidden="true" />{" "}
+                {stats.byStage.UNKNOWN} kiện có trạng thái chưa xác định từ
+                hãng.
+              </p>
+            )
+          }
           loading={read.loading}
           failed={!!read.error}
           emptyMessage={data ? "Chưa có kiện nào được đồng bộ." : "—"}

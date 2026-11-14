@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getCurrentSessionEpoch } from "../../lib/api/workspace-auth.ts";
 import { shipmentError } from "./errors.ts";
 import { shipmentListQuery } from "./presentation.ts";
 import type { ShipmentPage, RetailQuery } from "./types.ts";
@@ -101,14 +102,16 @@ export function useShipmentList(
   enabled = true,
 ) {
   const request = shipmentListQuery(query);
+  const epoch = getCurrentSessionEpoch();
   const read = useShipmentRead(
-    JSON.stringify(request),
+    JSON.stringify([epoch, request]),
     (signal) => api.list(request!, signal),
     enabled && request !== null,
     api,
   );
   // Counts ignore stage/paging in the API contract; rows remain full-key-bound.
-  const scope = enabled && request ? JSON.stringify([request.q ?? ""]) : null;
+  const scope =
+    enabled && request ? JSON.stringify([epoch, request.q ?? ""]) : null;
   const [statistics, setStatistics] = useState<{
     scope: string;
     api: ShipmentApi;

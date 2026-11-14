@@ -889,3 +889,20 @@ sleep is used. Instrumenting the real transaction verifies six list queries for 
 or two rows and three for an empty page. These checks do not change the existing
 actor transaction, Sync privileges or isolation level. Hosted Foundation remains the
 canonical full integration/runtime gate.
+
+### Retail loading and header acceptance — NEXORA-052 v2
+
+Retail UI SSR and actual hook-scheduler tests cover five decorative loading rows,
+visible-column order/count, mobile cards, hidden status/busy/stale semantics, retained
+same-query rows, unavailable versus zero and scope-compatible count retention.
+The existing Chromium harness additionally imports retail-loading-checks.mjs and
+uses test-only held responses in retail-entry.tsx for deterministic initial/tab/back
+geometry measurements at the same six approved viewports. It compares command deck,
+tabs, toolbar, card, header and footer rectangles, tests reduced motion, sticky
+header/body styles at scroll zero/nonzero, known count retention and actual badge
+widths for em dash/0/1/10/100 and an unclipped larger count. Mobile card rectangles and structural heights are compared separately from genuine
+product/meta text wrapping. Overall content height may change with actual result
+count; top anchors and horizontal bounds stay fixed.
+Existing keyboard/overflow and unchanged Column Picker assertions still run.
+Browser assertions, captured screenshots, manual review and hosted CI remain
+separate evidence; local native-socket denial is not browser acceptance.

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { type ReactNode, useState, useRef, useEffect } from "react";
 import { Button } from "@nexora/ui";
 import { Copy, Check, Eye, AlertTriangle } from "lucide-react";
 import type { RetailRow, ColumnConfig } from "./types.ts";
@@ -92,6 +92,7 @@ export function RetailPackageTable({
   emptyMessage: message,
   loading = false,
   failed = false,
+  notice,
 }: {
   paginated: readonly RetailRow[];
   visibleColumns: readonly ColumnConfig[];
@@ -100,6 +101,7 @@ export function RetailPackageTable({
   emptyMessage?: string;
   loading?: boolean;
   failed?: boolean;
+  notice?: ReactNode;
 }) {
   const emptyMessage =
     message ??
@@ -152,6 +154,11 @@ export function RetailPackageTable({
             </tr>
           </thead>
           <tbody>
+            {notice && (
+              <tr data-read-notice="true">
+                <td colSpan={visibleColumns.length}>{notice}</td>
+              </tr>
+            )}
             {skeleton ? (
               Array.from({ length: 5 }, (_, index) => (
                 <tr
@@ -167,7 +174,9 @@ export function RetailPackageTable({
                       className={
                         col.id === "trackingCode"
                           ? styles.stickyTracking
-                          : undefined
+                          : col.id === "index"
+                            ? `${styles.indexCell} ${styles.alignCenter}`
+                            : undefined
                       }
                     >
                       <span
@@ -484,6 +493,7 @@ export function RetailPackageTable({
         aria-busy={loading}
         data-stale={paginated.length > 0 && (loading || failed)}
       >
+        {notice}
         {skeleton ? (
           Array.from({ length: 5 }, (_, index) => (
             <div
