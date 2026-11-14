@@ -64,6 +64,42 @@ export async function verifyRetailBrowser({
       if (await evaluate(expression)) return;
       await delay(100);
     }
+    const diagnostic = await evaluate(`(()=>({
+      path:location.pathname,readyState:document.readyState,
+      listState:document.querySelector('[data-read-state]')?.dataset.readState??null,
+      detailState:document.querySelector('[data-detail-state]')?.dataset.detailState??null,
+      dialogPresent:!!document.querySelector('dialog'),
+      dialogOpen:!!document.querySelector('dialog[open]'),
+      rowCount:document.querySelectorAll('tbody [data-package-id]').length,
+      alertCount:document.querySelectorAll('[role=alert]').length,
+      activeTag:document.activeElement?.tagName??null,
+      viewport:{width:innerWidth,height:innerHeight},
+      requests:(window.__retailFixture?.events??[]).map(e=>e.method)
+    }))()`);
+    console.log("RETAIL_READ_STATE_DIAGNOSTIC", JSON.stringify(diagnostic));
+    if (fixtureOrigin && evidenceDirectory) {
+      await mkdir(evidenceDirectory, { recursive: true });
+      await writeFile(
+        resolve(evidenceDirectory, `${prefix}-failure.json`),
+        JSON.stringify(
+          {
+            sourceCommit: process.env.GITHUB_SHA ?? null,
+            condition: expression,
+            diagnostic,
+          },
+          null,
+          2,
+        ),
+      );
+      const shot = await send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: false,
+      });
+      await writeFile(
+        resolve(evidenceDirectory, `${prefix}-failure.png`),
+        Buffer.from(shot.data, "base64"),
+      );
+    }
     throw Error("RETAIL_BROWSER_CONDITION");
   }
   async function key(key, shift = false) {
@@ -846,14 +882,20 @@ export async function verifyRetailBrowser({
     await evaluate("window.__pageReloadMarker = 1; true");
     await send("Page.reload");
     await until(
-      "window.__pageReloadMarker !== 1 && document.readyState === 'complete' && document.querySelector('[aria-current=page]')?.textContent === '2'",
+      "window.__pageReloadMarker !== 1 && document.readyState === 'complete' && document.querySelector('[aria-current=page]')?.textContent === '2' && document.querySelector('[data-read-state]')?.dataset.readState === 'ready' && window.__retailFixture.events.some(e=>e.method==='list'&&e.query.page===2&&e.query.pageSize===5)",
     );
     checks.step("RETAIL_DETAIL_AND_CREATE_NATIVE_DIALOG");
     await until(
       "Boolean(document.querySelector('tbody button[aria-label^=\"Xem\"]'))",
     );
     await evaluate(
-      "(()=>{const b=document.querySelector('tbody button[aria-label^=\"Xem\"]');if(!b)throw Error('DETAIL_TRIGGER_MISSING');b.focus();b.click();return true;})()",
+      "(()=>{const b=document.querySelector('tbody button[aria-label^=\"Xem\"]');if(!b||b.disabled)throw Error('DETAIL_TRIGGER_MISSING');b.focus();return true;})()",
+    );
+    await evaluate(
+      "new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))",
+    );
+    await evaluate(
+      "document.querySelector('tbody button[aria-label^=\"Xem\"]').click();true",
     );
     await until(
       "!!document.querySelector('dialog[open] [data-detail-state=ready]')",

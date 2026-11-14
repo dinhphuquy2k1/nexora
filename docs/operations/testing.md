@@ -383,7 +383,11 @@ response ordering is covered separately by hook tests.
 D10 browser deltas are recorded in task052: disabled advanced/Create/disputed,
 provider-only labels, missing-value dashes, UNKNOWN warnings, MULTIPLE fees and
 API-driven drawer/state content. Geometry, CSS values, viewport sizes and tolerances
-remain unchanged. Canonical Column Picker assertions are unchanged.
+remain unchanged. Canonical Column Picker assertions are unchanged. Reload-to-detail checks require
+settled page2/pageSize5 data before focus and a fresh-node click. On timeout,
+state/count/request-method-only diagnostics identify list/detail/native dialog
+state; failure JSON/screenshots are captured only for the isolated fixture,
+separately from acceptance captures and without extending the condition deadline.
 
 Foundation uploads manifests/screens under `M3_EVIDENCE_DIR=artifacts/m3`.
 Viewports1440×900/1280×800/1024×768/768×1024/390×844/375×812 retain overflow,
