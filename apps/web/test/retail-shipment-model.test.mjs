@@ -16,7 +16,7 @@ const summary = () => ({
   createdAt: "2026-11-14T00:00:00Z",
   updatedAt: "2026-11-14T00:00:00Z",
   originWarehouse: null,
-  weightKg: "1.25",
+  weightKg: "1.250",
   packageCount: 0,
   itemCount: null,
   declaredValue: null,
@@ -39,21 +39,22 @@ const summary = () => ({
   itemSummary: { firstName: "Product", lineCount: 3 },
 });
 test("Retail exact string format preserves decimals and existing currency presentation", async () => {
-  const { formatDecimal, formatMoney, formatDate } = await feature("format");
-  assert.equal(
-    formatDecimal("1234567890123456.7800"),
-    "1.234.567.890.123.456.7800",
-  );
-  assert.equal(formatDecimal("5.80"), "5.80");
-  assert.equal(formatDecimal("0"), "0");
-  assert.equal(formatDecimal(null), "—");
+  const { formatWeight, formatMoney, formatDate } = await feature("format");
+  assert.equal(formatWeight("1.250"), "1.25");
+  assert.equal(formatWeight("5.800"), "5.80");
+  assert.equal(formatWeight("1234.500"), "1234.50");
+  assert.equal(formatWeight("1.234"), "1.234");
+  assert.equal(formatWeight("0.000"), "0.00");
+  assert.equal(formatWeight("0"), "0.00");
+  assert.equal(formatWeight("12345678.123"), "12345678.123");
+  assert.equal(formatWeight(null), "—");
   assert.equal(formatMoney("38500.00", "VND"), "38.500đ");
   assert.equal(formatMoney("1250.00", "CNY"), "¥1,250.0");
   assert.equal(formatMoney("1.2345", "CNY"), "¥1.2345");
   assert.equal(formatMoney("0", "CNY"), "¥0.0");
   assert.equal(
     formatMoney("1234567890123456.78", "USD"),
-    "1.234.567.890.123.456.78 USD",
+    "1,234,567,890,123,456.78 USD",
   );
   assert.equal(formatMoney(null, null), "—");
   assert.equal(formatDate("2026-11-13T18:30:00Z"), "14/11/2026");

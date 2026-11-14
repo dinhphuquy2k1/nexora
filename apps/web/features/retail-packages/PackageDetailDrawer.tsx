@@ -45,7 +45,9 @@ export function PackageDetailDrawer({
               <h2 className={styles.modalHeading}>
                 <span>Lộ trình kiện hàng: {row?.trackingCode ?? "—"}</span>
                 <span className={styles.modalTrackingBadge}>
-                  {row?.weightKg ?? "—"} kg
+                  {row?.weightKg && row.weightKg !== "—"
+                    ? `${row.weightKg} kg`
+                    : "—"}
                 </span>
               </h2>
               <p className={styles.modalSubheading}>
@@ -82,7 +84,9 @@ export function PackageDetailDrawer({
                 </div>
                 <div className={styles.summaryCol}>
                   <span className={styles.summaryLabel}>Cân nặng</span>
-                  <span className={styles.summaryVal}>{row.weightKg} kg</span>
+                  <span className={styles.summaryVal}>
+                    {row.weightKg !== "—" ? `${row.weightKg} kg` : "—"}
+                  </span>
                 </div>
                 <div className={styles.summaryCol}>
                   <span className={styles.summaryLabel}>Giá trị hàng</span>

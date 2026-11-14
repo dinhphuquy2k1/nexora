@@ -32,7 +32,7 @@ export const REFERENCE_DETAILS: ShipmentDetail[] = SYNTHETIC_PACKAGES.map(
         id: id(1000 + index * 10),
         lineNo: 1,
         chargeCode: ShipmentChargeCode.UNIT_PRICE,
-        amount: p.unitPriceCNY.toFixed(1),
+        amount: p.unitPriceCNY.toFixed(2),
         currency: "CNY",
         providerLabel: null,
       },
@@ -42,7 +42,7 @@ export const REFERENCE_DETAILS: ShipmentDetail[] = SYNTHETIC_PACKAGES.map(
         id: id(1001 + index * 10),
         lineNo: charges.length + 1,
         chargeCode: ShipmentChargeCode.DOMESTIC_SHIPPING,
-        amount: p.domesticShipCNY.toFixed(1),
+        amount: p.domesticShipCNY.toFixed(2),
         currency: "CNY",
         providerLabel: null,
       });
@@ -98,22 +98,23 @@ export const REFERENCE_DETAILS: ShipmentDetail[] = SYNTHETIC_PACKAGES.map(
         Date.UTC(2026, 10, 14, 0, 0, 6 - index),
       ).toISOString(),
       originWarehouse: p.originWarehouseName,
-      weightKg: p.weightKg.toFixed(2),
+      weightKg: p.weightKg.toFixed(3),
       packageCount: p.packageCount,
       itemCount: p.itemCount,
-      declaredValue: p.valueCNY.toFixed(1),
+      declaredValue: p.valueCNY.toFixed(2),
       declaredCurrency: "CNY",
-      totalAmount: p.totalAmountVND?.toString() ?? null,
+      totalAmount:
+        p.totalAmountVND !== undefined ? p.totalAmountVND.toFixed(2) : null,
       totalCurrency: p.totalAmountVND === undefined ? null : "VND",
       chargeSummary: {
         unitPrice: {
           state: "SINGLE",
-          amount: p.unitPriceCNY.toFixed(1),
+          amount: p.unitPriceCNY.toFixed(2),
           currency: "CNY",
         },
         domesticShipping: {
           state: p.domesticShipCNY > 0 ? "SINGLE" : "NONE",
-          amount: p.domesticShipCNY > 0 ? p.domesticShipCNY.toFixed(1) : null,
+          amount: p.domesticShipCNY > 0 ? p.domesticShipCNY.toFixed(2) : null,
           currency: p.domesticShipCNY > 0 ? "CNY" : null,
         },
         hasInsurance: p.hasInsurance,
@@ -188,7 +189,7 @@ export const FIXTURE_DETAILS: ShipmentDetail[] = Array.from(
     d.id = id(100 + i);
     d.trackingCode = `FIXTURE${String(i).padStart(4, "0")}`;
     d.logisticsStage = Object.values(LogisticsStage)[i % 6];
-    d.weightKg = (i + 1).toFixed(2);
+    d.weightKg = (i + 1).toFixed(3);
     d.createdAt = new Date(Date.UTC(2026, 1, 1, 0, 0, 30 - i)).toISOString();
     const name = i === 0 ? "Sản phẩm kiểm thử dài ".repeat(8) : `Sản phẩm ${i}`;
     d.items = [

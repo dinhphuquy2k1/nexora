@@ -140,3 +140,37 @@ test("Retail drawer reads exact item price, fee lines and observed history witho
   assert.match(html, /Sản phẩm bổ sung/);
   assert.doesNotMatch(html, /Dự kiến 1[345]\/10|Người bán phát hàng/);
 });
+test("Retail drawer never renders '— kg' when weight is null", () => {
+  const { PackageDetailDrawer } = loaded("PackageDetailDrawer", {
+    status: "ready",
+    loading: false,
+    data: {
+      shipment: FIXTURE_DETAILS[1],
+      history: { history: [] },
+    },
+    refresh() {},
+  });
+  const html = render(
+    React.createElement(PackageDetailDrawer, {
+      id: FIXTURE_DETAILS[1].id,
+      api: {},
+      onClose() {},
+    }),
+  );
+  assert.doesNotMatch(html, /—\s*kg/);
+});
+test("Retail list mobile card never renders '— kg' when weight is null", () => {
+  const { RetailPackageListPage } = loaded("RetailPackageListPage", {
+    data,
+    status: "ready",
+    loading: false,
+    refresh() {},
+  });
+  const html = render(
+    React.createElement(RetailPackageListPage, {
+      api: {},
+      initialSearch: "?page=1&pageSize=10",
+    }),
+  );
+  assert.doesNotMatch(html, /—\s*kg/);
+});

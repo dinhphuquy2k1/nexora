@@ -6,12 +6,12 @@ function parts(value: string) {
 }
 const grouped = (integer: string, separator: string) =>
   integer.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
-export function formatDecimal(value: string | null): string {
+export function formatWeight(value: string | null): string {
   if (value === null) return "—";
   const p = parts(value);
-  return (
-    p.sign + grouped(p.integer, ".") + (p.fraction ? "." + p.fraction : "")
-  );
+  let fraction = p.fraction.replace(/0+$/, "");
+  while (fraction.length < 2) fraction += "0";
+  return p.sign + p.integer + "." + fraction;
 }
 export function formatMoney(
   value: string | null,
@@ -28,7 +28,8 @@ export function formatMoney(
     return (
       p.sign + grouped(p.integer, ".") + (fraction ? "," + fraction : "") + "đ"
     );
-  return formatDecimal(value) + " " + currency;
+  if (!fraction) fraction = "0";
+  return p.sign + grouped(p.integer, ",") + "." + fraction + " " + currency;
 }
 export function formatDate(value: string | null, withTime = false): string {
   if (value === null) return "—";

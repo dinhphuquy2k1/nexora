@@ -1,6 +1,6 @@
 import type { ShipmentSummary, RetailRow } from "./types.ts";
 import { providerLabel, stageLabel, stageToTab } from "./presentation.ts";
-import { formatDecimal, formatMoney, formatDate } from "./format.ts";
+import { formatWeight, formatMoney, formatDate } from "./format.ts";
 function fee(group: ShipmentSummary["chargeSummary"]["unitPrice"]): string {
   if (group.state === "MULTIPLE") return "Nhiều dòng";
   if (group.state === "SINGLE")
@@ -27,7 +27,7 @@ export function toRetailRow(s: ShipmentSummary): RetailRow {
     ),
     destWarehouseDate: formatDate(s.milestoneSummary.destReceivedAt),
     destWarehouseExportDate: formatDate(s.milestoneSummary.destDispatchedAt),
-    weightKg: formatDecimal(s.weightKg),
+    weightKg: formatWeight(s.weightKg),
     unitPriceCNY: fee(s.chargeSummary.unitPrice),
     domesticShipCNY: fee(s.chargeSummary.domesticShipping),
     valueCNY: formatMoney(s.declaredValue, s.declaredCurrency),
