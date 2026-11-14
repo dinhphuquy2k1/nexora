@@ -315,6 +315,7 @@ unregistered. UI fixtures and passing synthetic tests do not supply API rights.
    complete shared Pager/filter follow-ups before Shipment UI integration.
 4. Connect Retail UI to real read API with exhaustive tab mapping.
 5. Uniship Shipment adapter only after official documentation and the ten verifications.
+   Before registering any Shipment sync capability, resolve [child snapshot bounds and batch writes (issue #50)](https://github.com/dinhphuquy2k1/nexora/issues/50), including real SyncRepository timeout measurements.
 6. Later: independently authorized provider Customer/Shipment capabilities and
    separately justified storage/unused-field cleanup (not prerequisites to Core);
    multi-employee data-owner access and Nexora business operations,
