@@ -268,7 +268,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Styling: `packages/ui/src/TabBar.module.css`
   - Barrel: `packages/ui/src/index.tsx`
 - **Exported Contract**:
-  - `export interface TabBarItem<T extends string> { id: T; title: string; icon?: ReactNode; activeIconColor?: string; disabled?: boolean; }`
+  - `export interface TabBarItem<T extends string> { id: T; title: string; icon?: ReactNode; activeIconColor?: string; disabled?: boolean; tooltip?: string; }`
   - `export interface TabBarProps<T extends string> { items: readonly TabBarItem<T>[]; value: T; onValueChange: (value: T) => void; renderTrailing?: (item: TabBarItem<T>, state: { active: boolean }) => ReactNode; idPrefix: string; panelId: string; ariaLabel: string; }`
   - `export function TabBar<T extends string>(props: TabBarProps<T>): JSX.Element`
   - `export interface TabCountBadgeProps extends ComponentPropsWithoutRef<"span"> { value?: number; active?: boolean; ariaLabel?: string; className?: string; }`
@@ -382,7 +382,7 @@ ARIA label. Both are intentional M5 v3 accessibility corrections.
 
 ### Canonical configuration for new screens
 
-New screens omit selectedVariant (default emphasis), keep numberLayout grouped (default), pressEffect scale (default), numberIcon false (default) and pass 14px navigation icons. selectedClassName, unselectedClassName, numberIcon, numberLayout="inline" and pressEffect="none" exist only to preserve the approved appearance of existing screens; new screens must not use them. Converging Customer selection colours and Carrier filter CSS is deferred to the Shipment UI task and requires visual approval.
+New screens omit selectedVariant (default emphasis), keep numberLayout grouped (default), pressEffect scale (default), numberIcon false (default) and pass 14px navigation icons. selectedClassName, unselectedClassName, numberIcon, numberLayout="inline" and pressEffect="none" exist only to preserve the approved appearance of existing screens; new screens must not use them. Converging Customer selection colours and Carrier filter CSS remains deferred to a separate visually approved task; NEXORA-052 does not change either.
 
 ## Web FilterPopoverShell
 
@@ -419,3 +419,8 @@ Shipment Domain owns DecimalValue and strict provider commands; other domains do
 not import these business policies. Common isUuid and shared parsePagination remain
 the neutral primitives, not duplicated in Shipment. Extend vocabulary lint with new
 stored code contexts; migrations keep explicit SQL CHECK values and real PG parity.
+
+Retail Shipment integration uses the existing Pager with server totals; advanced
+filter disclosure remains disabled while its standalone consumer behavior is retained.
+TabBar tooltip passes an optional native button title for unavailable tabs without
+changing default styles or geometry.

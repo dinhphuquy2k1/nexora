@@ -1,8 +1,8 @@
 # NEXORA-052 — Retail Shipment API integration
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -216,11 +216,11 @@ separate work. This task integrates existing read contracts only.
 
 ## Acceptance criteria
 
-- [ ] API/guard/hooks and read model use current SDK, no claim/client filters or static product data.
-- [ ] Original columns/layout/presets/style retained with only D10 deltas.
-- [ ] Drawer displays real detail/history/charges/milestones/items with exact values.
-- [ ] Synthetic DTO fixture and browser checks cover new states; Pager/filter regression PASS.
-- [ ] Local checks, canonical documentation and independent review without blockers.
+- [x] API/guard/hooks and read model use current SDK, no claim/client filters or static product data.
+- [x] Original columns/layout/presets/style retained with only D10 deltas.
+- [x] Drawer displays real detail/history/charges/milestones/items with exact values.
+- [x] Synthetic DTO fixture and browser checks cover new states; Pager/filter regression PASS.
+- [x] Local checks, canonical documentation and independent review without blockers.
 - [ ] Final-head hosted Preflight, optional Sync Targeted and Foundation4–10.
 - [ ] Owner review and merge decision.
 
@@ -258,3 +258,107 @@ string-safe exact formatting and DTO fixture/browser acceptance.
 | Frozen dependencies                  | npx --yes pnpm@10.34.6 install --frozen-lockfile; exit0; lockfile current,427 packages reused, no dependency/lockfile change                                                                   | 2026-11-14 | PASS   |
 
 | Initial plan structural check | node scripts/preflight-policy-check.mjs; closure HEAD76e93c0 plus plan working tree; SIGNIFICANT tasks must document domain invariants or Tactical DDD boundaries; task added explicit read-only boundary rationale already selected by snapshot, no snapshot change | 2026-11-14 | FAIL |
+
+Rule A test-double correction: first api-hook-green run passed the real API client test but denied-data assertion failed because the VM test loader created a second ShipmentApiError constructor. The actual hook and test now share the real imported errors module, preserving instanceof identity. No production behavior/assertion change was needed. Historical FAIL retained in command ledger.
+
+Rule A UI correction: ui-green exposed a leftover CreatePackageDrawer render expression after removing the disabled Create state/import. Removed the stale reference as required by D8; no Create drawer is rendered. No design or assertion change.
+
+Implementation details within D5/D7: the shared TabBar already supported disabled tabs but not a native tooltip; a concrete optional tooltip string is passed through to its native button for disputed title Chưa hỗ trợ. Existing callers/defaults/markup classes/geometry are unchanged; no network API/DTO/SDK contract changes. A feature consumption RED/GREEN covers the title. Removed obsolete matchesFilter/filterPackages/normalizeWarehouse only; makeFilter/calendarDay/field/operator/popover policies remain. Legacy matching tests are updated to verify validated URL filters remain inert at the API boundary instead of retaining a dead client evaluator.
+
+Rule A fixture correction: the initial new UI test expected an UNKNOWN row but its two-row sample contained only the first two known stages. The sample now explicitly includes UNKNOWN; the assertion is retained.
+
+Rule A existing test adaptation within changed Retail suite: targeted run58 PASS/1 FAIL still required the old production initialPackages=[] prop. D8 explicitly removes that prop; the assertion now checks initialSearch and absence of static data/availability. All other targeted assertions passed, including unchanged Pager/filter regression.
+
+Rule A new test-double correction: expanded detail-hook test compared VM-created query objects with deepStrictEqual across realms, causing the fake history method to throw before recording calls. Compare serialized query values instead; requests and cancellation assertions stay unchanged.
+
+Rule A type correction: fast Web tsc found that isSummary narrowing erased the additional unknown detail keys before their guards. Keep the candidate as an explicit unknown record while separately validating the summary, then validate every detail field before asserting the SDK detail type. No guard semantics or API changes.
+
+Rule A browser-helper readiness: retail-browser-initial FAIL at retail-column-picker-checks.mjs:83 observed focused input background rgb(248,250,252) while expected rgb(255,255,255). RetailColumnPicker focuses search in requestAnimationFrame, while inspection previously collected animations before that focus could commit. Wait two real frames before collecting/awaiting actual CSS animations. Exact colour assertions, dimensions, viewports and tolerances remain unchanged; no production CSS change.
+
+Browser diagnosis correction: waiting two frames did not resolve the same focused-colour mismatch. The local adapter omitted Page.bringToFront, unlike scripts/browser-login-smoke.mjs:284. Restore that existing session activation step in the ignored local adapter; revert the speculative change to retail-column-picker-checks.mjs. The canonical picker assertions/helper therefore remain unchanged in the final production diff. No CSS/expected colour/tolerance changes.
+
+Independent review checkpoint: two P2 findings (detail Promise.all first-error hides later denial; inert filter removal resets page) are being addressed with new regression RED/GREEN. No plan/API/SDK/schema change required.
+
+Independent P2 corrections with test-first evidence: denial-order-red reproduced retained detail after a transient sibling error followed by403. Detail now settles the two ordinary results together while racing any401/403 denial, so denial immediately clears data in either response order; authoritative404 also clears deleted detail. denial-order-green verifies both orders and existing cancellation/error cases. legacy-filter-page-red reproduced page1 instead of2 after removing an inert chip; both removal handlers now change filters only, preserving effective request/page. Browser regression checks page2 and a single list request. No API/SDK/schema/frozen snapshot changes.
+
+## Browser assertion delta ledger (D10)
+
+- Protected production checks now await settled Shipment GET data and assert known-empty zero counts instead of static unavailable dashes. Three GET paths are allowed; writes and claim/filter parameters remain forbidden.
+- Stage/history checks cover the six enabled tabs. Disputed is separately disabled, uncounted and titled Chưa hỗ trợ; Back/Forward uses enabled physical stages.
+- Advanced-filter interaction checks become disabled/title checks. Legacy chips remain inert; removal on page2 preserves page2 and the single effective list request.
+- Create-dialog interaction checks become disabled/no-rendered-dialog checks. Native detail Tab/Shift+Tab/Escape and return-focus assertions remain.
+- Added UNKNOWN warning/chip, MULTIPLE fee, missing-value dashes, exact unsafe-sized item prices, ordered API milestone/item/history and error/retry/empty/malformed/slow-abort checks.
+- Reference-sample compares corresponding old cell strings against the independent test-only reference source. Carrier account suffix is intentionally absent. No direct supplied-ZIP pixel parity claim.
+- Navigation waits for the new document and API readiness; page-size changes await server results. All existing column presets, widths, sticky cells, geometry, CSS values, viewports and tolerance assertions remain. retail-column-picker-checks.mjs has no final diff.
+
+## Review and execution notes
+
+Independent read-only review resolved both P2 findings with RED/GREEN regression checks; final follow-up reported no new blockers and verified the frozen SHA. Reviewer did not execute tests; execution evidence belongs to the primary agent.
+
+Rule A closure command correction: the initial staging command included the old moved task path and failed; the unpublished rename-only closure commit was amended to include the complete closure and roadmap. No published history rewritten.
+
+Rule A browser diagnosis: the speculative two-frame wait failed and was reverted; Page.bringToFront in the ignored local driver matches the canonical browser-login session. Full Retail and unchanged Column Picker browser acceptance then PASS.
+
+Local fixture-only acceptance does not attest authentication/runtime/Docker services. Hosted Foundation must separately verify the full production sequence; owner review/merge checkbox remains open.
+
+Rule A lint correction: first full quality passed formatting/boundaries but failed ESLint on unused RETAIL_ROWS and undeclared test globals. Removed the unused projection and explicitly sourced AbortController/Response from globalThis and setImmediate from node:timers. No production behavior or assertion change.
+
+## Executed local command ledger
+
+All rows below describe the implementation working tree on the exact HEAD shown, not committed feature proof. UTC intervals and exit codes are captured by the local runner. Logs and images remain ignored/ephemeral, not Git evidence media. Historical FAIL rows are retained.
+
+| Claim                         | Evidence                                                                                                                                                                                                                                                           | Date       | Result |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| model-red                     | `node --test apps/web/test/retail-shipment-model.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:08:44.312763+00:00–2026-11-14T13:08:44.510390+00:00; exit 1                                                                | 2026-11-14 | FAIL   |
+| build-read-prerequisites      | `npx --yes pnpm@10.34.6 --filter @nexora/shared --filter @nexora/sdk build`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:10:10.339705+00:00–2026-11-14T13:10:14.061301+00:00; exit 0                                               | 2026-11-14 | PASS   |
+| model-green                   | `node --test apps/web/test/retail-shipment-model.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:11:08.017999+00:00–2026-11-14T13:11:08.383626+00:00; exit 0                                                                | 2026-11-14 | PASS   |
+| api-hook-red                  | `node --test apps/web/test/retail-shipment-api.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:12:24.786492+00:00–2026-11-14T13:12:25.634021+00:00; exit 1                                                                  | 2026-11-14 | FAIL   |
+| api-hook-green                | `node --test apps/web/test/retail-shipment-api.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:13:19.082959+00:00–2026-11-14T13:13:21.156606+00:00; exit 1                                                                  | 2026-11-14 | FAIL   |
+| api-hook-corrected-green      | `node --test apps/web/test/retail-shipment-api.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:13:38.885842+00:00–2026-11-14T13:13:39.835181+00:00; exit 0                                                                  | 2026-11-14 | PASS   |
+| ui-red                        | `node --test apps/web/test/retail-shipment-ui.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:17:22.085055+00:00–2026-11-14T13:17:24.058735+00:00; exit 1                                                                   | 2026-11-14 | FAIL   |
+| ui-green                      | `node --test apps/web/test/retail-shipment-ui.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:20:48.030270+00:00–2026-11-14T13:20:50.370376+00:00; exit 1                                                                   | 2026-11-14 | FAIL   |
+| ui-corrected-green            | `node --test apps/web/test/retail-shipment-ui.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:21:38.071220+00:00–2026-11-14T13:21:41.057928+00:00; exit 1                                                                   | 2026-11-14 | FAIL   |
+| ui-fixture-green              | `node --test apps/web/test/retail-shipment-ui.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:22:28.248954+00:00–2026-11-14T13:22:31.280356+00:00; exit 0                                                                   | 2026-11-14 | PASS   |
+| disputed-title-red            | `node --test apps/web/test/retail-shipment-ui.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:22:44.316234+00:00–2026-11-14T13:22:48.091080+00:00; exit 1                                                                   | 2026-11-14 | FAIL   |
+| disputed-title-green          | `node --test apps/web/test/retail-shipment-ui.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:23:42.528893+00:00–2026-11-14T13:23:45.470376+00:00; exit 0                                                                   | 2026-11-14 | PASS   |
+| retail-targeted               | `node --test apps/web/test/retail-*.test.mjs apps/web/test/pager-filter-sharing.test.mjs packages/ui/test/pager.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:24:26.407481+00:00–2026-11-14T13:24:35.896946+00:00; exit 1 | 2026-11-14 | FAIL   |
+| retail-targeted-corrected     | `node --test apps/web/test/retail-*.test.mjs apps/web/test/pager-filter-sharing.test.mjs packages/ui/test/pager.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:25:51.764424+00:00–2026-11-14T13:26:02.745731+00:00; exit 1 | 2026-11-14 | FAIL   |
+| retail-targeted-green         | `node --test apps/web/test/retail-*.test.mjs apps/web/test/pager-filter-sharing.test.mjs packages/ui/test/pager.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:26:03.793572+00:00–2026-11-14T13:26:12.929901+00:00; exit 0 | 2026-11-14 | PASS   |
+| web-types-fast                | `npx --yes pnpm@10.34.6 --filter @nexora/web exec tsc --noEmit`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:26:34.556928+00:00–2026-11-14T13:26:44.539232+00:00; exit 1                                                           | 2026-11-14 | FAIL   |
+| api-hook-expanded             | `node --test apps/web/test/retail-shipment-api.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:27:06.414960+00:00–2026-11-14T13:27:07.422555+00:00; exit 1                                                                  | 2026-11-14 | FAIL   |
+| api-hook-expanded-green       | `node --test apps/web/test/retail-shipment-api.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:27:24.151760+00:00–2026-11-14T13:27:25.106820+00:00; exit 0                                                                  | 2026-11-14 | PASS   |
+| web-types-corrected           | `npx --yes pnpm@10.34.6 --filter @nexora/web exec tsc --noEmit`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:27:25.149157+00:00–2026-11-14T13:27:34.277901+00:00; exit 0                                                           | 2026-11-14 | PASS   |
+| build-retail-fixture          | `node scripts/build-retail-fixture.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:30:29.278121+00:00–2026-11-14T13:30:33.431144+00:00; exit 0                                                                                   | 2026-11-14 | PASS   |
+| build-retail-fixture-coherent | `node scripts/build-retail-fixture.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:32:25.895527+00:00–2026-11-14T13:32:29.879406+00:00; exit 0                                                                                   | 2026-11-14 | PASS   |
+| build-retail-fixture-final    | `node scripts/build-retail-fixture.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:34:27.501547+00:00–2026-11-14T13:34:31.372603+00:00; exit 0                                                                                   | 2026-11-14 | PASS   |
+| retail-browser-initial        | `node /tmp/nexora052-retail-browser-run.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:35:48.329518+00:00–2026-11-14T13:35:56.324068+00:00; exit 1                                                                              | 2026-11-14 | FAIL   |
+| retail-browser-focus-ready    | `node /tmp/nexora052-retail-browser-run.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:38:37.702512+00:00–2026-11-14T13:38:45.122943+00:00; exit 1                                                                              | 2026-11-14 | FAIL   |
+| denial-order-red              | `node --test apps/web/test/retail-shipment-api.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:42:27.923134+00:00–2026-11-14T13:42:29.169213+00:00; exit 1                                                                  | 2026-11-14 | FAIL   |
+| legacy-filter-page-red        | `node /tmp/nexora052-retail-browser-run.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:42:36.393973+00:00–2026-11-14T13:42:43.332359+00:00; exit 1                                                                              | 2026-11-14 | FAIL   |
+| denial-order-green            | `node --test apps/web/test/retail-shipment-api.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:43:18.449721+00:00–2026-11-14T13:43:19.612981+00:00; exit 0                                                                  | 2026-11-14 | PASS   |
+| rebuild-browser-p2            | `node scripts/build-retail-fixture.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:43:35.184273+00:00–2026-11-14T13:43:39.231414+00:00; exit 0                                                                                   | 2026-11-14 | PASS   |
+| retail-browser-p2-green       | `node /tmp/nexora052-retail-browser-run.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:45:08.437309+00:00–2026-11-14T13:45:33.032315+00:00; exit 0                                                                              | 2026-11-14 | PASS   |
+| build-carrier                 | `node scripts/build-retail-fixture.mjs artifacts/carrier-fixture apps/web/test/fixtures/carrier-entry.tsx`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:49:09.496504+00:00–2026-11-14T13:49:17.162875+00:00; exit 0                | 2026-11-14 | PASS   |
+| build-pager-filter            | `node scripts/build-retail-fixture.mjs artifacts/pager-filter-fixture apps/web/test/fixtures/pager-filter-entry.tsx`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:49:21.588163+00:00–2026-11-14T13:49:27.699992+00:00; exit 0      | 2026-11-14 | PASS   |
+| final-quality                 | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:49:07.953182+00:00–2026-11-14T13:49:50.397005+00:00; exit 1                                 | 2026-11-14 | FAIL   |
+| targeted-final                | `node --test apps/web/test/retail-*.test.mjs apps/web/test/pager-filter-sharing.test.mjs packages/ui/test/pager.test.mjs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:49:39.365705+00:00–2026-11-14T13:49:56.156855+00:00; exit 0 | 2026-11-14 | PASS   |
+| pager-filter-acceptance       | `node scripts/pager-filter-browser-checks.mjs artifacts artifacts/nexora052-pager-filter --acceptance`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:49:37.590537+00:00–2026-11-14T13:50:22.256732+00:00; exit 0                    | 2026-11-14 | PASS   |
+| standalone-docs-check         | `npx --yes pnpm@10.34.6 docs:check`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:51:06.489076+00:00–2026-11-14T13:51:10.034956+00:00; exit 0                                                                                       | 2026-11-14 | PASS   |
+| standalone-preflight-check    | `npx --yes pnpm@10.34.6 preflight:check`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:51:10.093128+00:00–2026-11-14T13:51:12.360065+00:00; exit 0                                                                                  | 2026-11-14 | PASS   |
+| standalone-test-docs          | `npx --yes pnpm@10.34.6 test:docs`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:51:12.433199+00:00–2026-11-14T13:51:16.748154+00:00; exit 0                                                                                        | 2026-11-14 | PASS   |
+| standalone-test-preflight     | `npx --yes pnpm@10.34.6 test:preflight`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:51:16.960120+00:00–2026-11-14T13:51:25.629114+00:00; exit 0                                                                                   | 2026-11-14 | PASS   |
+| standalone-typecheck          | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 typecheck`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:51:51.066573+00:00–2026-11-14T13:52:00.063339+00:00; exit 1                               | 2026-11-14 | FAIL   |
+| quality-corrected             | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; working tree on cf264d9a1551184eaa5c58b691492654715b67dd; UTC 2026-11-14T13:50:40.366681+00:00–2026-11-14T13:54:16.523757+00:00; exit 0                                 | 2026-11-14 | PASS   |
+| sequential-format-check       | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 format:check`; working tree on de0ee6ba1e9523008d9e96e29b1e293d2b4b5a1b; UTC 2026-11-14T13:54:24.518323+00:00–2026-11-14T13:54:43.499231+00:00; exit 0                            | 2026-11-14 | PASS   |
+| sequential-lint               | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 lint`; working tree on de0ee6ba1e9523008d9e96e29b1e293d2b4b5a1b; UTC 2026-11-14T13:54:43.558571+00:00–2026-11-14T13:54:55.546151+00:00; exit 0                                    | 2026-11-14 | PASS   |
+| sequential-typecheck          | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 typecheck`; working tree on de0ee6ba1e9523008d9e96e29b1e293d2b4b5a1b; UTC 2026-11-14T13:54:55.589675+00:00–2026-11-14T13:55:04.086538+00:00; exit 0                               | 2026-11-14 | PASS   |
+| sequential-contracts-check    | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 contracts:check`; working tree on de0ee6ba1e9523008d9e96e29b1e293d2b4b5a1b; UTC 2026-11-14T13:55:04.141309+00:00–2026-11-14T13:55:12.228291+00:00; exit 0                         | 2026-11-14 | PASS   |
+| sequential-test-lint          | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 test:lint`; working tree on de0ee6ba1e9523008d9e96e29b1e293d2b4b5a1b; UTC 2026-11-14T13:55:12.269955+00:00–2026-11-14T13:55:19.351332+00:00; exit 0                               | 2026-11-14 | PASS   |
+
+Additional provenance: simulated validatePrTaskBinding with the five frozen v1 metadata lines returned valid:true and no failures on the implementation working tree. Raw snapshot SHA remains 7d73314ad6ed82d8f17fba460eb05231a91d9ef5d686bf15ce3c135b4c752174. Production vocabulary grep finds legacy identifiers only in fixtures/tests and the test-only reference oracle import in the browser script; no production static-data fallback.
+
+Browser assertions executed: full isolated Retail/Column Picker PASS and Pager/filter acceptance PASS. Screenshots captured/retained locally: 108 Retail records and16 Pager/filter records under ignored artifacts. Manually reviewed admin-reference-sample-1440x900.png, admin-reference-sample-390x844.png and admin-detail-api-items-1280x800.png. No direct ZIP comparison or full-stack local claim. Retail manifest SHA-256 8414184f710b40544f7b866e17483010cc91e0d55bbff2b0e327c64dad4b6189; Pager/filter manifest SHA-256 06448e66bf0f1e4952a211ccb6e014411cc864a38899be60a565c5c57714d443. Retail manifest sourceCommit is null because the local fixture driver does not set GITHUB_SHA; runner provenance identifies its working tree accurately.
+
+Rule A environment correction: a redundant standalone typecheck was started while quality was still building Web and failed with “Another next build process is already running.” The redundant process was stopped; primary quality continued. Rerun standalone checks sequentially after quality; retain this FAIL and never interpret it as a source regression.
+
+Verification summary: corrected quality exit0 (2026-11-14T13:50:40–13:54:16Z) includes scripts138/138, Web278/278, API216/216, UI37/37 and database6/6, exact contracts and production build. Standalone pinned format/lint/typecheck/contracts checks and test:lint55/55 subsequently PASS. Final hosted gates remain pending at this documentation commit; exact final-head provenance will be added to the PR description without a documentation-only SHA loop.
