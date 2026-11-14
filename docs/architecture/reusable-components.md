@@ -356,7 +356,7 @@ alias for compatibility; the existing algorithm and tests are unchanged. This
 helper owns only bounded page-number presentation, not feature page-size defaults,
 API pagination authority, query validation or read/mutation lifecycle.
 
-## Shared Pager (M5)
+## Shared Pager
 
 Owner: `packages/ui/src/Pager.tsx` and `Pager.module.css`, exported by `@nexora/ui`.
 A controlled presentation primitive: features supply page/window, explicit
@@ -384,7 +384,7 @@ ARIA label. Both are intentional M5 v3 accessibility corrections.
 
 New screens omit selectedVariant (default emphasis), keep numberLayout grouped (default), pressEffect scale (default), numberIcon false (default) and pass 14px navigation icons. selectedClassName, unselectedClassName, numberIcon, numberLayout="inline" and pressEffect="none" exist only to preserve the approved appearance of existing screens; new screens must not use them. Converging Customer selection colours and Carrier filter CSS is deferred to the Shipment UI task and requires visual approval.
 
-## Web FilterPopoverShell (M5)
+## Web FilterPopoverShell
 
 Owner: `apps/web/components/filter-popover/FilterPopoverShell.tsx` and its CSS.
 Tier B Web component, consumed by RetailFilterPopover and CarrierFilterPopover;
@@ -399,8 +399,8 @@ allows Carrier to clear its existing transient error; trigger toggling preserves
 drafts/errors as before. Retail/Carrier retain fields, operators, values,
 provider/environment availability, validation, duplicate/max-12 policy and onAdd.
 The shell imports no feature model. Existing trigger/dialog accessible names and
-press effects remain; stable `aria-controls` is an intentional accessibility
-improvement. Low-specificity surface/header/form defaults allow class hooks for
+press effects remain; `aria-controls` is present only while open, references the
+rendered dialog and uses the same stable id after close/reopen. Low-specificity surface/header/form defaults allow class hooks for
 existing feature geometry, typography and mobile positioning, not control-state
 redesign. Retail retains its compact surface; Carrier retains its wider padded
 surface and heading/field/footer spacing.

@@ -1,8 +1,8 @@
 # NEXORA-045 — Pager and filter convergence
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Origin
 
@@ -52,10 +52,11 @@ BOUNDED because this reuses existing presentation/operations contracts without c
 
 ## Acceptance criteria
 
-- [ ] Existing Pager consumers and visual contracts unchanged; omitted selectedVariant equals emphasis.
-- [ ] Closed aria-controls absent; open link and stable reopen id verified.
-- [ ] Bounded safe Chromium startup diagnostics and capability names.
-- [ ] Local targeted/static/browser verification and final-head hosted gates.
+- [x] Existing Pager consumers and visual contracts unchanged; omitted selectedVariant equals emphasis.
+- [x] Closed aria-controls absent; open link and stable reopen id verified.
+- [x] Bounded safe Chromium startup diagnostics and capability names.
+- [x] Local targeted/static/browser verification and host quality.
+- [ ] Final-head hosted Preflight/Foundation and uploaded pager-filter-browser-evidence (results maintained in PR description after push).
 - [ ] Owner review and merge decision.
 
 ## Documentation Impact
@@ -100,3 +101,56 @@ Pinned format:check, docs:check, preflight:check; scoped diff, source-reference 
 | Claim               | Evidence                                                                                                                                                                                         | Date       | Result |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
 | startup-diagnostics | node --test scripts/browser-startup-diagnostics.test.mjs; working tree on 1758db981c40762d304029fe06f5bc3f65f5533f; 2026-11-14T06:59:11.428121+00:00–2026-11-14T06:59:11.551630+00:00 UTC; exit0 | 2026-11-14 | PASS   |
+
+## Verification checkpoint — targeted, format, lint, typecheck, docs, preflight, test-docs, test-preflight, fixture-retail, fixture-carrier, fixture-pager-filter, browser-acceptance, quality
+
+| Claim                | Evidence                                                                                                                                                                                                                                                                     | Date       | Result |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| targeted             | node --test packages/ui/test/pager.test.mjs apps/web/test/pager-filter-sharing.test.mjs scripts/browser-startup-diagnostics.test.mjs; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T06:59:57.819729+00:00–2026-11-14T07:00:00.355993+00:00 UTC; exit0 | 2026-11-14 | PASS   |
+| format               | npx --yes pnpm@10.34.6 format:check; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:00:48.565435+00:00–2026-11-14T07:01:04.390917+00:00 UTC; exit0                                                                                                  | 2026-11-14 | PASS   |
+| lint                 | npx --yes pnpm@10.34.6 lint; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:01:04.429397+00:00–2026-11-14T07:01:14.642964+00:00 UTC; exit0                                                                                                          | 2026-11-14 | PASS   |
+| typecheck            | env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 typecheck; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:01:14.682778+00:00–2026-11-14T07:02:03.063726+00:00 UTC; exit0                                            | 2026-11-14 | PASS   |
+| docs                 | npx --yes pnpm@10.34.6 docs:check; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:02:03.108234+00:00–2026-11-14T07:02:04.624728+00:00 UTC; exit0                                                                                                    | 2026-11-14 | PASS   |
+| preflight            | npx --yes pnpm@10.34.6 preflight:check; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:02:04.662793+00:00–2026-11-14T07:02:06.101707+00:00 UTC; exit0                                                                                               | 2026-11-14 | PASS   |
+| test-docs            | npx --yes pnpm@10.34.6 test:docs; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:02:06.140568+00:00–2026-11-14T07:02:07.966872+00:00 UTC; exit0                                                                                                     | 2026-11-14 | PASS   |
+| test-preflight       | npx --yes pnpm@10.34.6 test:preflight; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:02:08.003664+00:00–2026-11-14T07:02:09.926261+00:00 UTC; exit0                                                                                                | 2026-11-14 | PASS   |
+| fixture-retail       | node scripts/build-retail-fixture.mjs; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:02:09.970390+00:00–2026-11-14T07:02:12.866161+00:00 UTC; exit0                                                                                                | 2026-11-14 | PASS   |
+| fixture-carrier      | node scripts/build-retail-fixture.mjs artifacts/carrier-fixture apps/web/test/fixtures/carrier-entry.tsx; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:02:12.904396+00:00–2026-11-14T07:02:15.912851+00:00 UTC; exit0                             | 2026-11-14 | PASS   |
+| fixture-pager-filter | node scripts/build-retail-fixture.mjs artifacts/pager-filter-fixture apps/web/test/fixtures/pager-filter-entry.tsx; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:02:15.949633+00:00–2026-11-14T07:02:18.765424+00:00 UTC; exit0                   | 2026-11-14 | PASS   |
+| browser-acceptance   | node scripts/pager-filter-browser-checks.mjs artifacts artifacts/pager-filter --acceptance; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:02:18.803576+00:00–2026-11-14T07:02:55.626545+00:00 UTC; exit0                                           | 2026-11-14 | PASS   |
+| quality              | taskset -c 0 env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality; working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; 2026-11-14T07:04:12.071504+00:00–2026-11-14T07:07:09.960696+00:00 UTC; exit0                                 | 2026-11-14 | PASS   |
+
+## Scope and evidence availability
+
+BOUNDED scoped self-review follows implementation-code-review; it is not independent
+approval. The four explicit consumer files, all CSS, DB/API/SDK/business code,
+existing browser visual assertions/viewports/tolerances, prior snapshots and
+.prettierignore are unchanged. Renames are restricted to the three specified files
+and their authorized references. The completed050 file changed only in commit1.
+Expected REDs above remain FAIL history; all subsequent verification commands PASS.
+
+Local Chromium acceptance executed actual assertions and retained16 captures plus
+manifest under ignored artifacts/pager-filter; baseline=null (acceptance-only),
+not a before/after screenshot comparison or manual visual approval. Images were
+not manually reviewed. No generated artifacts/logs enter Git. Host quality executed
+scripts137/API212/Web266/UI37/Database6 tests (no cached tests); typecheck10/10,
+test pipeline8/8 and build4/4 PASS; cached build/typecheck tasks are distinct.
+Frozen pnpm install and @nexora/shared build prerequisites completed exit0; their
+original UTC starts were not retained. No new dependency or lockfile change.
+
+The final commit requires fresh hosted gates. Record exact final HEAD/checkout
+merge/workflow attempts/UTC/results and pager-filter-browser-evidence upload in
+the PR description after execution, without a SHA-only task commit. Owner merge
+remains pending. Customer selection colours and FU2 Carrier CSS require the later
+Shipment UI visual approval; no approval is requested or invented here.
+
+| Claim                      | Evidence                                                                                                                                                                                                                                                                                                       | Date       | Result |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Capability reference audit | git grep with the requested five-pattern expression, excluding docs/tasks and .prettierignore: no results (git grep exit1 as expected); working tree on b2e814c45bc84dec4e22a51b582287b4956a9969; observed2026-11-14T07:08:29.571660+00:00 UTC; scoped diff13 files; four consumer/CSS/backend/SDK diffs empty | 2026-11-14 | PASS   |
+| Snapshot integrity         | sha256sum docs/tasks/design-reviews/NEXORA-045-rev-2026-11-14-pager-filter-convergence-v1.md = 21ad99210aa250580d259facc0bc7cfd60ad4906934f06aa382236ab20c852c8; observed2026-11-14T07:08:29.571660+00:00 UTC; formatted before hashing, bytes unchanged thereafter                                            | 2026-11-14 | PASS   |
+
+Reference-audit expression (exit1/no matches is the expected successful oracle):
+
+```sh
+git grep -n -i "m5-\|data-m5\|artifacts/m5\|m5-fixture\|nexora-m5" -- ':!docs/tasks' ':!.prettierignore'
+```

@@ -74,7 +74,7 @@ function Fixture() {
   };
   return (
     <main>
-      <section data-m5-case="customer">
+      <section data-pager-filter-case="customer">
         <h2>Customer</h2>
         <CustomerPagination
           query={customer}
@@ -93,7 +93,7 @@ function Fixture() {
           onQuery={(q) => setCustomer((v) => ({ ...v, ...q }))}
         />
       </section>
-      <section data-m5-case="retail">
+      <section data-pager-filter-case="retail">
         <h2>Retail</h2>
         <RetailPagination
           {...retail}
@@ -103,7 +103,7 @@ function Fixture() {
           onSize={(pageSize) => setRetail({ page: 1, pageSize })}
         />
       </section>
-      <section data-m5-case="carrier">
+      <section data-pager-filter-case="carrier">
         <h2>Carrier account</h2>
         <CarrierConnectionPagination
           model={{
@@ -118,7 +118,7 @@ function Fixture() {
           onChange={(q) => setCarrier((v) => ({ ...v, ...q }))}
         />
       </section>
-      <section data-m5-case="history">
+      <section data-pager-filter-case="history">
         <SyncHistoryPanel
           data={unknown ? undefined : data}
           query={history}
@@ -127,7 +127,7 @@ function Fixture() {
         />
       </section>
       <section
-        data-m5-case="retail-filter"
+        data-pager-filter-case="retail-filter"
         style={{ position: "relative", minHeight: 440 }}
       >
         <h2>Retail filter</h2>
@@ -142,7 +142,7 @@ function Fixture() {
         <output>{filters.length}</output>
       </section>
       <section
-        data-m5-case="carrier-filter"
+        data-pager-filter-case="carrier-filter"
         style={{ position: "relative", minHeight: 440 }}
       >
         <h2>Carrier filter</h2>
