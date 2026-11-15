@@ -20,6 +20,7 @@ export interface TabBarItem<T extends string> {
   icon?: ReactNode;
   activeIconColor?: CssTokenReference;
   disabled?: boolean;
+  tooltip?: string;
 }
 
 export interface TabBarProps<T extends string> {
@@ -296,6 +297,7 @@ export function TabBar<T extends string>({
                 aria-selected={isActive}
                 aria-disabled={item.disabled ? "true" : undefined}
                 disabled={item.disabled}
+                title={item.tooltip}
                 tabIndex={isRovingFocused ? 0 : -1}
                 className={`${styles.tabItem} ${isActive ? styles.tabItemActive : ""}`}
                 onClick={() => {

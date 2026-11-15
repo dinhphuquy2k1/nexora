@@ -315,6 +315,7 @@ unregistered. UI fixtures and passing synthetic tests do not supply API rights.
    complete shared Pager/filter follow-ups before Shipment UI integration.
 4. Connect Retail UI to real read API with exhaustive tab mapping.
 5. Uniship Shipment adapter only after official documentation and the ten verifications.
+   Before registering any Shipment sync capability, resolve [child snapshot bounds and batch writes (issue #50)](https://github.com/dinhphuquy2k1/nexora/issues/50), including real SyncRepository timeout measurements.
 6. Later: independently authorized provider Customer/Shipment capabilities and
    separately justified storage/unused-field cleanup (not prerequisites to Core);
    multi-employee data-owner access and Nexora business operations,
@@ -388,7 +389,8 @@ and items/min line/count, within the same transaction; join per-root Maps in TS.
 Empty pages skip child queries. No per-shipment SQL/N+1 or root summary columns.
 Detail inherits all summaries and adds full milestones in canonical code order
 and items ordered by lineNo. CLAIM_FILTER_UNAVAILABLE is422, same code and safe
-envelope; provider claims remain unavailable. UI, advanced server filters, claims,
+envelope; provider claims remain unavailable. In the NEXORA-051 backend scope, UI,
+advanced server filters, claims,
 provider_attributes/trigram, real adapters and registration remain out of scope.
 
 ### Item reported unit value
@@ -396,3 +398,13 @@ provider_attributes/trigram, real adapters and registration remain out of scope.
 shipment_items additionally stores nullable unit_value NUMERIC(18,2) and currency CHAR(3), both NULL or both present. CHECKs enforce the pair, reject NaN/negative values and require uppercase three-letter currency. Domain reuses exact DecimalValue/currency policies and rejects number inputs, overscale/overflow and incomplete pairs on input and hydration. Missing/null fields mean NULL in an authoritative item snapshot. Worker may INSERT/UPDATE both payload columns; API remains SELECT-only.
 
 This is the carrier-reported declared value per product unit, distinct from shipment_charges.UNIT_PRICE (freight unit price) and shipments.declared_value (whole-parcel declared value). Never multiply by quantity, sum or reconcile these values. List itemSummary stays firstName/lineCount without prices; detail items include exact decimal-string unitValue and nullable currency.
+
+## Retail read integration — NEXORA-052
+
+The protected Retail screen consumes the existing list/detail/history APIs with
+server pagination and counts. Five physical stage tabs map exhaustively; UNKNOWN
+is shown in All with a warning, while the claim tab remains disabled and uncounted.
+Legacy advanced filters remain inert. Create/export stay disabled. Reported decimal
+strings retain exact precision; no client money aggregation is performed. Detail
+shows ordered charges/items, canonical milestones and observed stage history.
+This Web integration changes no backend contract and enables no Sync provider.

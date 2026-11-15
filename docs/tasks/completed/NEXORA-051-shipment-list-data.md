@@ -1,8 +1,8 @@
 # NEXORA-051 — Shipment list data
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -256,8 +256,8 @@ facts to record honestly, not permission to weaken tests or touch real deploymen
 - [x] Preserved API FOR UPDATE/worker FOR SHARE exclusion and bounded consistent list/detail summaries.
 - [x] OpenAPI/SDK422 contract and canonical docs synchronized.
 - [x] Local verification and independent review without blocking P1/P2.
-- [ ] Final-head hosted Preflight/Sync Targeted/Foundation.
-- [ ] Owner review and merge decision.
+- [x] Final-head hosted Preflight/Sync Targeted/Foundation.
+- [x] Owner review and merge decision.
 
 ## Documentation Impact
 
@@ -573,3 +573,15 @@ API216/216, Web266/266, UI37/37 and database6/6). Local final-head gate evidence
 be linked in the PR description after hosted runs; owner review/merge remains open.
 The two remaining task checkboxes await hosted provenance/owner closure; do not infer
 owner approval from local tests or the independent source review.
+
+## Closure — NEXORA-052 §1.7
+
+Delivered by PR #49. Final-head hosted gates passed on 3d7fc7866e497747084e5cfc54647983f5113ce8. Child snapshot size versus Sync transaction timeout is tracked by issue #50 and must be resolved before registering any Shipment sync capability. Closed in the first commit of NEXORA-052 under §1.7.
+
+Follow-up: [Bound Shipment child snapshots and batch child writes](https://github.com/dinhphuquy2k1/nexora/issues/50). No production capability was registered. Historical FAIL rows and immutable snapshots remain unchanged.
+
+| Claim                         | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Date       | Result |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main                | PR #49; merge 08da36dc3599c3af7a4656a12630d978fa7c2fb4; merged 2026-11-14T12:52:21Z; GitHub API state MERGED and origin/main merge log verified                                                                                                                                                                                                                                                                                                                                                                                    | 2026-11-14 | PASS   |
+| Final-head hosted gates       | HEAD 3d7fc7866e497747084e5cfc54647983f5113ce8; tested merge 5c935c3606091c8f80c5591bf2687f8cf1cc8be6; [Preflight 43591973565](https://github.com/dinhphuquy2k1/nexora/actions/runs/43591973565), 11:51:11–11:51:25Z; [Sync Targeted 43591973474](https://github.com/dinhphuquy2k1/nexora/actions/runs/43591973474), 11:51:11–11:53:39Z; [Foundation 43591973558](https://github.com/dinhphuquy2k1/nexora/actions/runs/43591973558), 11:51:11–12:09:28Z, all steps 4–10 PASS; attempt 1, no rerun; final-green description verified | 2026-11-14 | PASS   |
+| Child-size follow-up recorded | Issue #50 created from PR #49 review; realistic limits/batch writes/real Sync timeout measurement required before Shipment capability registration                                                                                                                                                                                                                                                                                                                                                                                 | 2026-11-14 | PASS   |
