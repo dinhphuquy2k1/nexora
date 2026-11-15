@@ -55,3 +55,25 @@ it used that size. The warehouse envelope's large rowsPerPage and null summary a
 observed metadata, not a Nexora request-size policy. No additional raw capture for
 each filtered status tab is retained here; those mappings are owner-confirmed
 observations documented in the integration contract, and derived cases are tests.
+
+## Public metadata publication scope
+
+These are partially redacted captures, not fully anonymized records. The real
+provider record ID and original CreatedDate/ModifiedDate timestamps remain
+unchanged, along with other non-redacted wire metadata. They must not be described
+as synthetic or anonymized merely because account/contact values were removed.
+
+The owner's2026-11-15 NEXORA-054 request required committing these captures and
+creating a PR in the existing public dinhphuquy2k1/nexora repository. The subsequent
+upload instruction explicitly required the two supplied JSON files verbatim,
+keeping all fields/order/types with only UID, Username, CreatedBy and
+TransactionCode substituted as listed above. This recorded publication scope
+therefore includes the remaining record ID and timestamps; it is not an invented
+new approval or a claim of broader provider permission to publish other data.
+Captured JSON bytes and their hashes are unchanged by the review correction.
+
+The captured FakeCustomerName, FakeCustomerAddress and FakeCustomerPhone fields
+are retained only as null. The scanner now rejects any non-null value in these
+fields and rejects credential-bearing JSON properties even when null or empty.
+Those property-name rules apply to parsed JSON; ordinary explanatory prose about
+credential names is allowed. Existing raw marker and contact checks still apply.

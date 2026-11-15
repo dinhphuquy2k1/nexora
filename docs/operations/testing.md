@@ -964,3 +964,23 @@ provider credentials and live network access are excluded.
 unknown mappings. ADR007 records the owner authorization amendment; the production
 external-request hard-close and empty Shipment capability registry remain intact.
 Fixture PASS does not certify live API conformance or open an activation gate.
+
+NEXORA-054 review correction strengthens that same scanner with explicit
+credential-property names after case and underscore/hyphen/whitespace normalization.
+Access/refresh tokens, password/client secret/API key, authorization/cookie and
+common session/authentication secret keys are forbidden even when null or empty;
+no captured fixture requires an exception. Preserved FakeCustomerName/Address/Phone
+wire fields accept null only. Exact contact keys remain forbidden. These are
+JSON-property-aware rules, not blanket README word bans or a replacement for the
+unchanged raw marker checks. Ordinary tokenCount, passwordPolicy, pagination-token
+and status metadata do not match the explicit credential names.
+
+Regression cases A–E use generated temporary nested JSON trees, never captured
+JSON mutation: access token; cookie/auth headers; nested refresh token; grouped and
+isolated personal fields; allowed null-only fields. Further cases cover key casing/
+separators, null/empty credential values, nested arrays/decoded keys and legacy
+markers. Rejected-data diagnostics contain only a relative fixture path, category
+and canonical known field identifier; tests verify injected values are absent.
+Temporary trees are removed through native test cleanup even after a failure.
+The fixture README distinguishes authorized unchanged public record metadata from
+redacted personal values; the scanner does not anonymize IDs or timestamps.

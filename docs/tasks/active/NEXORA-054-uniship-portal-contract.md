@@ -153,3 +153,69 @@ Final local metadata simulation: validatePrTaskBinding returned valid:true and
 failures:[] for the exact five planned PR metadata lines. Complete staged allowlist
 contains14 files, only docs/**, apps/api/test/fixtures/uniship/** and the scanner.
 Both captured source hashes and the frozen snapshot hash remain unchanged.
+
+## Review delta — remaining P2 scanner and P3 metadata (2026-11-15)
+
+BOUNDED correction under the frozen v1 plan, reviewed/current remote HEAD
+bb1fd329a7c4f689714b273988cd3301190358a3. Fetch and PR API confirm no newer commits
+and a clean working tree. Read root/routed rules, task/snapshot/contract/provenance,
+scanner and API native discovery. Apply pre-implementation-review and
+implementation-code-review skills; no new snapshot or production change.
+
+| Field                    | Review correction decision                                                                                                                                                                                                                          |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Existing recursive Uniship fixture hygiene scanner and provenance                                                                                                                                                                                   |
+| Existing implementations | apps/api/test/uniship-fixtures.test.cjs raw/decoded checks and hash guards; fixture README redactions; API test/\*_/_.test.cjs discovery; testing.md                                                                                                |
+| Domain owner             | Test-only fixture safety and source-provenance documentation                                                                                                                                                                                        |
+| Reuse alternatives       | Reuse current walker/raw checks/JSON recursion as one callable function in the same suite; reject a parallel scanner/framework or runtime changes                                                                                                   |
+| Selected approach        | JSON-key-aware explicit credential-name set, case/separator normalization, null-only approved FakeCustomer fields, safe canonical diagnostics; test-owned temporary trees for regressions                                                           |
+| Rationale                | Reject credential properties even null/empty, reject populated preserved personal fields, retain ordinary README text and legitimate wire fields                                                                                                    |
+| Risks                    | Broad key false positives, encoded/nested secrets, unsafe failure output, regression recursion/cleanup and accidentally rewriting captured metadata                                                                                                 |
+| Verification             | RED A/B/C and isolated FakeCustomer fields against old policy; GREEN A–E plus key variants/null/empty, nested arrays/decoded keys, legacy raw/contact checks and explanatory-text positives; required pinned checks, hashes/scope and exact-head CI |
+
+P3 authorization check: the original2026-11-15 owner request explicitly directed
+committing these response fixtures and creating the PR in the existing Nexora
+repository; the follow-up upload instruction said to use the two JSON files
+verbatim, retaining all fields/order/types and changing only UID, Username,
+CreatedBy and TransactionCode. The existing origin was verified public and owned
+by the authenticated repository owner. That publication scope includes the
+unchanged record ID and timestamps. Record this precise provenance in the fixture
+README; do not call the remaining metadata anonymized or claim a broader provider
+publication authorization. No new owner approval is invented or required here.
+
+Documentation Impact remains REQUIRED: update this task, fixture README and the
+existing testing owner for credential-property versus null-only personal-field
+policy. Four intended files only; preserve both captured JSON bytes, derived data,
+snapshot/digest, all old raw-text controls and production hard-close. Rule A/B and
+no-merge policy remain. Record actual RED/GREEN and hosted chronology below.
+
+### Review delta RED/GREEN and scope evidence
+
+All local runs below use the working tree based on reviewed HEAD
+bb1fd329a7c4f689714b273988cd3301190358a3, UTC2026-11-15. Logs stay only in ignored
+artifacts/054-review; test inputs exist only in generated temporary directories,
+cleaned through t.after even on failure. Captured source files are never mutated.
+
+| Claim                           | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                           | Date       | Result |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| P2 previous-policy RED          | `node --test apps/api/test/uniship-fixtures.test.cjs` with behavior-preserving extraction of the existing scanner and added regressions:7 PASS/9 FAIL. A/B/C, isolated FakeCustomerName/Address/Phone, credential null/empty/key variants and decoded nested credential keys were missed. Combined D was already caught by the old phone marker, so individual-field cases prove the actual gap. E/null and old raw checks passed.                 | 2026-11-15 | FAIL   |
+| P2 stronger-policy GREEN        | Same command after key-aware policy:16/16 PASS. Credential properties fail regardless of populated/null/empty value; preserved FakeCustomer fields accept only null. A–E, per-field cases, casing/separators, nested arrays/decoded keys, existing raw/contact checks and README/noncredential positives all execute. Diagnostic values are excluded and messages remain one safe line.                                                            | 2026-11-15 | PASS   |
+| Sensitive-output audit          | Red/green test logs contain none of the injected synthetic credential/contact values; assertions retain only relative filename/category/canonical field identifier. No actual personal data or credentials used in regression payloads.                                                                                                                                                                                                            | 2026-11-15 | PASS   |
+| P3 provenance and authorization | Original owner request explicitly required committing owner-redacted response fixtures and creating the PR in the existing public Nexora repo; subsequent upload instruction required the two files verbatim with only four listed substitutions. This includes remaining real record ID/timestamps. README now explicitly calls the result partially redacted, not anonymized; no new provider publication permission or owner approval invented. | 2026-11-15 | PASS   |
+| Immutable source/snapshot       | transition-page SHA-256 b328f42ea39a2870623a7a1c28bc29b98ca6ae90f4690d9f06ba1cd6f4473a2c; china-stores8fd8c076a0598b8c195eefcea8747cc463b10ec5fce0731043b1350ee59cccdf; snapshot90eabacd419af8be3b8b3de554e100ea95ec42d2fabcb2324a5587b21905d44f unchanged. Derived JSON also untouched.                                                                                                                                                           | 2026-11-15 | PASS   |
+| Discovery and test lint         | Native API discovery37 suites unchanged; all new regressions stay in the existing discovered file. Targeted pinned ESLint PASS. No new dependencies/framework/helper module/package-script change.                                                                                                                                                                                                                                                 | 2026-11-15 | PASS   |
+| Review pinned format:check      | `npx --yes pnpm@10.34.6 format:check`; UTC2026-11-15T05:07:47.138283+00:00–2026-11-15T05:07:59.469031+00:00; exit0.                                                                                                                                                                                                                                                                                                                                | 2026-11-15 | PASS   |
+| Review pinned docs:check        | `npx --yes pnpm@10.34.6 docs:check`; UTC2026-11-15T05:07:59.469300+00:00–2026-11-15T05:08:00.631333+00:00; exit0.                                                                                                                                                                                                                                                                                                                                  | 2026-11-15 | PASS   |
+| Review pinned preflight:check   | `npx --yes pnpm@10.34.6 preflight:check`; UTC2026-11-15T05:08:00.631649+00:00–2026-11-15T05:08:01.794558+00:00; exit0.                                                                                                                                                                                                                                                                                                                             | 2026-11-15 | PASS   |
+| Review pinned test:docs         | `npx --yes pnpm@10.34.6 test:docs`; UTC2026-11-15T05:08:01.794792+00:00–2026-11-15T05:08:03.202684+00:00; exit0.                                                                                                                                                                                                                                                                                                                                   | 2026-11-15 | PASS   |
+| Review pinned test:preflight    | `npx --yes pnpm@10.34.6 test:preflight`; UTC2026-11-15T05:08:03.203084+00:00–2026-11-15T05:08:04.822445+00:00; exit0.                                                                                                                                                                                                                                                                                                                              | 2026-11-15 | PASS   |
+| Review pinned test:lint         | `npx --yes pnpm@10.34.6 test:lint`; UTC2026-11-15T05:08:04.822646+00:00–2026-11-15T05:08:09.717672+00:00; exit0.                                                                                                                                                                                                                                                                                                                                   | 2026-11-15 | PASS   |
+
+Review correction self-review: four authorized files only (scanner, fixture README,
+testing.md and this task); complete raw/decoded traversal and old marker gates
+remain, property classification is explicit rather than a broad substring rule,
+no capture/digest/production/schema/SDK/API/Carrier/auth/live/capability changes.
+The existing independent findings are addressed, but this self-review does not
+claim independent reviewer approval. Recommendation remains pending exact-head
+checks, then READY FOR INDEPENDENT REVIEW. Preserve prior CI/evidence as historical;
+new-head result will be recorded in existing PR53 description without a SHA loop.
