@@ -238,6 +238,58 @@ test(
         (e) => e.code === "42501",
       );
       await worker.query(
+        "INSERT INTO shipment_services(shipment_id,service_code,enabled) VALUES($1,'INSURANCE',false)",
+        [rootRow.id],
+      );
+      await worker.query(
+        "UPDATE shipment_services SET enabled=true WHERE shipment_id=$1",
+        [rootRow.id],
+      );
+      assert.equal(
+        (
+          await app.query(
+            "SELECT enabled FROM shipment_services WHERE shipment_id=$1",
+            [rootRow.id],
+          )
+        ).rows[0].enabled,
+        true,
+      );
+      for (const column of ["id", "shipment_id", "service_code"]) {
+        const value =
+          column === "service_code"
+            ? "'FOAM'"
+            : column === "id"
+              ? "gen_random_uuid()"
+              : "$1";
+        await assert.rejects(
+          worker.query(
+            `UPDATE shipment_services SET ${column}=${value}`,
+            column === "shipment_id" ? [rootRow.id] : [],
+          ),
+          (e) => e.code === "42501",
+        );
+      }
+      for (const sql of [
+        "INSERT INTO shipment_services(shipment_id,service_code,enabled) VALUES($1,'COUNTING',false)",
+        "UPDATE shipment_services SET enabled=false WHERE shipment_id=$1",
+        "DELETE FROM shipment_services WHERE shipment_id=$1",
+      ]) {
+        await assert.rejects(
+          app.query(sql, [rootRow.id]),
+          (e) => e.code === "42501",
+        );
+      }
+      await assert.rejects(
+        worker.query(
+          "INSERT INTO shipment_services(id,shipment_id,service_code,enabled) VALUES(gen_random_uuid(),$1,'COUNTING',true)",
+          [rootRow.id],
+        ),
+        (e) => e.code === "42501",
+      );
+      await worker.query("DELETE FROM shipment_services WHERE shipment_id=$1", [
+        rootRow.id,
+      ]);
+      await worker.query(
         "INSERT INTO shipment_milestones(shipment_id,milestone_code,occurred_at) VALUES($1,'ORIGIN_RECEIVED',CURRENT_TIMESTAMP)",
         [rootRow.id],
       );

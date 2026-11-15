@@ -784,3 +784,31 @@ it("column search clear retains shared Button state ownership", async () => {
     /\b(color|background(?:-color)?|border(?:-color)?|height|width)\s*:/,
   );
 });
+
+it("Retail accessible service state distinguishes unknown from explicit disabled without fee inference", () => {
+  const { RetailPackageTable } = loadComponent(
+    new URL(
+      "../features/retail-packages/RetailPackageTable.tsx",
+      import.meta.url,
+    ),
+  );
+  const pkg = {
+    ...SYNTHETIC_PACKAGES[0],
+    hasInsurance: null,
+    hasInspection: false,
+    hasWoodenCrate: null,
+    hasBubbleWrap: null,
+  };
+  const html = render(
+    React.createElement(RetailPackageTable, {
+      paginated: [pkg],
+      visibleColumns: RETAIL_PACKAGE_COLUMNS,
+      onDetail() {},
+    }),
+  );
+  assert.match(html, /aria-label="Chưa xác định bảo hiểm"/);
+  assert.match(html, /aria-label="Không kiểm đếm"/);
+  assert.match(html, /aria-label="Chưa xác định đóng gỗ"/);
+  assert.match(html, /aria-label="Chưa xác định bọt khí"/);
+  assert.doesNotMatch(html, /aria-label="Có bảo hiểm"/);
+});

@@ -1,5 +1,9 @@
 // Synthetic DTO sources and GET adapter only. Production never imports this file.
-import { LogisticsStage, ShipmentChargeCode } from "@nexora/shared/shipment";
+import {
+  LogisticsStage,
+  ShipmentChargeCode,
+  ShipmentServiceCode,
+} from "@nexora/shared/shipment";
 import type {
   ShipmentSummary,
   ShipmentDetail,
@@ -106,6 +110,12 @@ export const REFERENCE_DETAILS: ShipmentDetail[] = SYNTHETIC_PACKAGES.map(
       totalAmount:
         p.totalAmountVND !== undefined ? p.totalAmountVND.toFixed(2) : null,
       totalCurrency: p.totalAmountVND === undefined ? null : "VND",
+      serviceSummary: {
+        insurance: p.hasInsurance,
+        counting: p.hasInspection,
+        fragileGoods: null,
+        foam: null,
+      },
       chargeSummary: {
         unitPrice: {
           state: "SINGLE",
@@ -139,6 +149,18 @@ export const REFERENCE_DETAILS: ShipmentDetail[] = SYNTHETIC_PACKAGES.map(
       lastSyncedAt: null,
       assigneeUserId: null,
       internalNote: null,
+      services: [
+        {
+          id: id(5000 + index * 2),
+          serviceCode: ShipmentServiceCode.INSURANCE,
+          enabled: p.hasInsurance,
+        },
+        {
+          id: id(5001 + index * 2),
+          serviceCode: ShipmentServiceCode.COUNTING,
+          enabled: p.hasInspection,
+        },
+      ],
       charges,
       milestones,
       items: [
@@ -163,6 +185,7 @@ export function asSummary(detail: ShipmentDetail): ShipmentSummary {
     lastSyncedAt,
     assigneeUserId,
     internalNote,
+    services,
     charges,
     milestones,
     items,
@@ -176,6 +199,7 @@ export function asSummary(detail: ShipmentDetail): ShipmentSummary {
     lastSyncedAt,
     assigneeUserId,
     internalNote,
+    services,
     charges,
     milestones,
     items,

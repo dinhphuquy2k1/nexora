@@ -381,7 +381,14 @@ export function RetailPackageTable({
                       case "hasInsurance":
                         return (
                           <td key={col.id} className={styles.alignCenter}>
-                            {pkg.hasInsurance ? (
+                            {pkg.hasInsurance === null ? (
+                              <span
+                                className={styles.boolFalse}
+                                aria-label="Chưa xác định bảo hiểm"
+                              >
+                                —
+                              </span>
+                            ) : pkg.hasInsurance ? (
                               <span
                                 className={styles.boolTrue}
                                 aria-label="Có bảo hiểm"
@@ -401,7 +408,14 @@ export function RetailPackageTable({
                       case "hasInspection":
                         return (
                           <td key={col.id} className={styles.alignCenter}>
-                            {pkg.hasInspection ? (
+                            {pkg.hasInspection === null ? (
+                              <span
+                                className={styles.boolFalse}
+                                aria-label="Chưa xác định kiểm đếm"
+                              >
+                                —
+                              </span>
+                            ) : pkg.hasInspection ? (
                               <span
                                 className={styles.boolTrue}
                                 aria-label="Có kiểm đếm"
@@ -421,7 +435,14 @@ export function RetailPackageTable({
                       case "hasWoodenCrate":
                         return (
                           <td key={col.id} className={styles.alignCenter}>
-                            {pkg.hasWoodenCrate ? (
+                            {pkg.hasWoodenCrate === null ? (
+                              <span
+                                className={styles.boolFalse}
+                                aria-label="Chưa xác định đóng gỗ"
+                              >
+                                —
+                              </span>
+                            ) : pkg.hasWoodenCrate ? (
                               <span
                                 className={styles.boolTrue}
                                 aria-label="Đóng gỗ"
@@ -441,7 +462,14 @@ export function RetailPackageTable({
                       case "hasBubbleWrap":
                         return (
                           <td key={col.id} className={styles.alignCenter}>
-                            {pkg.hasBubbleWrap ? (
+                            {pkg.hasBubbleWrap === null ? (
+                              <span
+                                className={styles.boolFalse}
+                                aria-label="Chưa xác định bọt khí"
+                              >
+                                —
+                              </span>
+                            ) : pkg.hasBubbleWrap ? (
                               <span
                                 className={styles.boolTrue}
                                 aria-label="Bọt khí"

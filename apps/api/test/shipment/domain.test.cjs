@@ -557,3 +557,176 @@ test("provider child limits accept exact bounds and reject one extra without res
     }),
   );
 });
+
+test("Shipment services are authoritative immutable child facts independent of fees", () => {
+  const raw = input({
+    charges: { complete: true, lines: [line()] },
+    services: {
+      complete: true,
+      entries: [
+        { serviceCode: "FOAM", enabled: false },
+        { serviceCode: "INSURANCE", enabled: true },
+      ],
+    },
+  });
+  const draft = ShipmentAggregate.create(scope(ownerId), raw, S.UNKNOWN);
+  raw.services.entries[1].enabled = false;
+  assert.deepEqual(
+    draft.snapshot().services.map((x) => [x.serviceCode, x.enabled, x.id]),
+    [
+      ["INSURANCE", true, null],
+      ["FOAM", false, null],
+    ],
+  );
+  const state = {
+    ...draft.snapshot(),
+    id: "22222222-2222-2222-2222-222222222222",
+    code: "SHP000001",
+  };
+  state.services[0].id = "33333333-3333-3333-3333-333333333333";
+  state.services[1].id = "44444444-4444-4444-4444-444444444444";
+  const root = ShipmentAggregate.hydrate(state);
+  root.applyProvider(
+    {
+      services: {
+        complete: true,
+        entries: [
+          { serviceCode: "FOAM", enabled: true },
+          { serviceCode: "INSURANCE", enabled: false },
+        ],
+      },
+    },
+    S.UNKNOWN,
+  );
+  assert.equal(root.operation().stageChanged, false);
+  assert.deepEqual(root.snapshot().charges, state.charges);
+  assert.deepEqual(
+    root.snapshot().services.map((x) => x.id),
+    state.services.map((x) => x.id),
+  );
+  assert.equal(root.snapshot().services[0].enabled, false);
+  const outside = root.snapshot();
+  outside.services[0].enabled = true;
+  outside.services.pop();
+  const operation = root.operation();
+  operation.services[0].enabled = true;
+  assert.equal(root.snapshot().services[0].enabled, false);
+  assert.equal(root.operation().services[0].enabled, false);
+  const services = root.snapshot().services;
+  root.applyProvider({ charges: { complete: true, lines: [] } }, S.UNKNOWN);
+  assert.deepEqual(root.snapshot().services, services);
+  assert.equal(root.operation().services, undefined);
+  root.applyProvider({ services: { complete: true, entries: [] } }, S.UNKNOWN);
+  assert.deepEqual(root.snapshot().services, []);
+  assert.deepEqual(root.snapshot().charges, []);
+  const legacy = ShipmentAggregate.create(
+    scope(ownerId),
+    input({ charges: { complete: true, lines: [line()] } }),
+    S.UNKNOWN,
+  );
+  assert.deepEqual(legacy.snapshot().services, []);
+  assert.deepEqual(
+    ShipmentAggregate.hydrate({
+      ...legacy.snapshot(),
+      id: state.id,
+      code: state.code,
+    }).snapshot().services,
+    [],
+  );
+});
+
+test("Shipment services enforce the closed catalogue and strict complete snapshot contract", () => {
+  const { ShipmentServiceCode } = require("@nexora/shared/shipment");
+  assert.deepEqual(Object.values(ShipmentServiceCode), [
+    "INSURANCE",
+    "COUNTING",
+    "FRAGILE_GOODS",
+    "FOAM",
+  ]);
+  const {
+    parseShipmentProviderInput,
+  } = require("../../dist/shipment/domain/shipment");
+  const valid = {
+    complete: true,
+    entries: Object.values(ShipmentServiceCode).map((serviceCode) => ({
+      serviceCode,
+      enabled: false,
+    })),
+  };
+  assert.deepEqual(
+    parseShipmentProviderInput({ services: valid }).services,
+    valid,
+  );
+  assert.equal(
+    Object.hasOwn(parseShipmentProviderInput({}), "services"),
+    false,
+  );
+  const badEntries = [
+    [{ serviceCode: "WOOD_PACKING", enabled: true }],
+    [{ serviceCode: "BUBBLE_WRAP", enabled: true }],
+    [{ serviceCode: "INSURANCE", enabled: true, id: ownerId }],
+    [
+      { serviceCode: "INSURANCE", enabled: true },
+      { serviceCode: "INSURANCE", enabled: false },
+    ],
+    [...valid.entries, valid.entries[0]],
+  ];
+  for (const enabled of [null, undefined, "true", "false", 0, 1, [], {}])
+    badEntries.push([{ serviceCode: "INSURANCE", enabled }]);
+  for (const entries of badEntries)
+    invalid(() =>
+      parseShipmentProviderInput({ services: { complete: true, entries } }),
+    );
+  for (const services of [
+    null,
+    undefined,
+    {},
+    [],
+    { complete: false, entries: [] },
+    { entries: [] },
+    { complete: true },
+    { complete: true, entries: "bad" },
+    { complete: true, entries: [], extra: true },
+  ])
+    invalid(() => parseShipmentProviderInput({ services }));
+  const draft = ShipmentAggregate.create(
+    scope(ownerId),
+    input({ services: valid }),
+    S.UNKNOWN,
+  );
+  const state = {
+    ...draft.snapshot(),
+    id: "22222222-2222-2222-2222-222222222222",
+    code: "SHP000001",
+  };
+  invalid(() =>
+    ShipmentAggregate.hydrate({
+      ...state,
+      services: [{ ...state.services[0], enabled: null }],
+    }),
+  );
+  invalid(() =>
+    ShipmentAggregate.hydrate({
+      ...state,
+      services: [state.services[0], state.services[0]],
+    }),
+  );
+  invalid(() =>
+    ShipmentAggregate.hydrate({
+      ...state,
+      services: [{ ...state.services[0], id: "bad" }],
+    }),
+  );
+  const root = ShipmentAggregate.hydrate(state);
+  const before = root.snapshot();
+  invalid(() =>
+    root.applyProvider(
+      {
+        trackingCode: "must-rollback",
+        services: { complete: true, entries: badEntries[0] },
+      },
+      S.DELIVERED,
+    ),
+  );
+  assert.deepEqual(root.snapshot(), before);
+});

@@ -5,6 +5,7 @@ import {
   ShipmentKind,
   ShipmentChargeCode,
   ShipmentMilestoneCode,
+  ShipmentServiceCode,
 } from "@nexora/shared/shipment";
 export class ShipmentQueryDto {
   @ApiPropertyOptional({
@@ -65,10 +66,52 @@ export class ShipmentChargeSummaryDto {
   unitPrice!: ShipmentAmountSummaryDto;
   @ApiProperty({ type: () => ShipmentAmountSummaryDto })
   domesticShipping!: ShipmentAmountSummaryDto;
-  @ApiProperty({ type: Boolean }) hasInsurance!: boolean;
-  @ApiProperty({ type: Boolean }) hasCounting!: boolean;
-  @ApiProperty({ type: Boolean }) hasWoodPacking!: boolean;
-  @ApiProperty({ type: Boolean }) hasBubbleWrap!: boolean;
+  @ApiProperty({
+    type: Boolean,
+    deprecated: true,
+    description:
+      "Legacy fee-presence indicator only; serviceSummary is authoritative for service state.",
+  })
+  hasInsurance!: boolean;
+  @ApiProperty({
+    type: Boolean,
+    deprecated: true,
+    description:
+      "Legacy fee-presence indicator only; serviceSummary is authoritative for service state.",
+  })
+  hasCounting!: boolean;
+  @ApiProperty({
+    type: Boolean,
+    deprecated: true,
+    description:
+      "Legacy fee-presence indicator only; serviceSummary is authoritative for service state.",
+  })
+  hasWoodPacking!: boolean;
+  @ApiProperty({
+    type: Boolean,
+    deprecated: true,
+    description:
+      "Legacy fee-presence indicator only; serviceSummary is authoritative for service state.",
+  })
+  hasBubbleWrap!: boolean;
+}
+export class ShipmentServiceSummaryDto {
+  @ApiProperty({
+    type: Boolean,
+    nullable: true,
+    description:
+      "Known enabled/disabled; null means unknown. Independent of fee lines.",
+  })
+  insurance!: boolean | null;
+  @ApiProperty({ type: Boolean, nullable: true }) counting!: boolean | null;
+  @ApiProperty({ type: Boolean, nullable: true }) fragileGoods!: boolean | null;
+  @ApiProperty({ type: Boolean, nullable: true }) foam!: boolean | null;
+}
+export class ShipmentServiceDto {
+  @ApiProperty({ type: String, format: "uuid" }) id!: string;
+  @ApiProperty({ type: String, enum: Object.values(ShipmentServiceCode) })
+  serviceCode!: string;
+  @ApiProperty({ type: Boolean }) enabled!: boolean;
 }
 export class ShipmentMilestoneSummaryDto {
   @ApiProperty({ type: String, format: "date-time", nullable: true })
@@ -147,6 +190,8 @@ export class ShipmentSummaryDto {
     | null;
   @ApiProperty({ type: () => ShipmentChargeSummaryDto })
   chargeSummary!: ShipmentChargeSummaryDto;
+  @ApiProperty({ type: () => ShipmentServiceSummaryDto })
+  serviceSummary!: ShipmentServiceSummaryDto;
   @ApiProperty({ type: () => ShipmentMilestoneSummaryDto })
   milestoneSummary!: ShipmentMilestoneSummaryDto;
   @ApiProperty({ type: () => ShipmentItemSummaryDto })
@@ -191,6 +236,8 @@ export class ShipmentChargeDto {
   @ApiProperty({ type: String, nullable: true }) providerLabel!: string | null;
 }
 export class ShipmentDetailDto extends ShipmentSummaryDto {
+  @ApiProperty({ type: () => ShipmentServiceDto, isArray: true })
+  services!: ShipmentServiceDto[];
   @ApiProperty({ type: () => ShipmentMilestoneDto, isArray: true })
   milestones!: ShipmentMilestoneDto[];
   @ApiProperty({ type: () => ShipmentItemDto, isArray: true })

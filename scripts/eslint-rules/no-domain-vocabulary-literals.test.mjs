@@ -193,6 +193,7 @@ test("guard catalog covers every canonical owning-domain value", async () => {
         LogisticsStage: "logisticsStage",
         ShipmentChargeCode: "chargeCode",
         ShipmentMilestoneCode: "milestoneCode",
+        ShipmentServiceCode: "serviceCode",
       },
     ],
     ["identity/domain/session-assurance.ts", { AuthLevel: "authLevel" }],
@@ -308,4 +309,21 @@ test("Shipment milestone aliases reject literals and accept canonical constants"
       );
     }
   }
+});
+
+test("Shipment service aliases reject literals and accept separate canonical constants", async () => {
+  const eslint = new ESLint();
+  for (const field of ["serviceCode", "service_code"])
+    for (const expression of ['"FOAM"', "ShipmentServiceCode.FOAM"]) {
+      const [result] = await eslint.lintText(
+        `export const data={${field}:${expression}};`,
+        { filePath: resolve("apps/api/src/shipment/domain/lint-example.ts") },
+      );
+      assert.equal(
+        result.messages.filter(
+          (m) => m.ruleId === "nexora/no-domain-vocabulary-literals",
+        ).length,
+        expression.startsWith('"') ? 1 : 0,
+      );
+    }
 });

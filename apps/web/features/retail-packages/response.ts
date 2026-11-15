@@ -3,6 +3,7 @@ import {
   ShipmentKind,
   ShipmentChargeCode,
   ShipmentMilestoneCode,
+  ShipmentServiceCode,
 } from "@nexora/shared/shipment";
 import type {
   ShipmentSummary,
@@ -75,8 +76,15 @@ function isSummary(x: unknown): x is ShipmentSummary {
     return false;
   const c = x.chargeSummary,
     m = x.milestoneSummary,
-    i = x.itemSummary;
+    i = x.itemSummary,
+    service = x.serviceSummary;
   return (
+    record(service) &&
+    fields(
+      service,
+      ["insurance", "counting", "fragileGoods", "foam"],
+      (value) => value === null || typeof value === "boolean",
+    ) &&
     record(c) &&
     amount(c.unitPrice) &&
     amount(c.domesticShipping) &&
@@ -141,6 +149,20 @@ function isDetail(value: unknown): value is ShipmentDetail {
   )
     return false;
   return (
+    Array.isArray(x.services) &&
+    x.services.length <= Object.values(ShipmentServiceCode).length &&
+    new Set(
+      x.services.map((service) =>
+        record(service) ? service.serviceCode : undefined,
+      ),
+    ).size === x.services.length &&
+    x.services.every(
+      (service) =>
+        record(service) &&
+        text(service.id) &&
+        member(service.serviceCode, Object.values(ShipmentServiceCode)) &&
+        typeof service.enabled === "boolean",
+    ) &&
     Array.isArray(x.charges) &&
     x.charges.every(
       (c) =>

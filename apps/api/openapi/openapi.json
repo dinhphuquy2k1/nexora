@@ -2620,16 +2620,24 @@
             "$ref": "#/components/schemas/ShipmentAmountSummaryDto"
           },
           "hasInsurance": {
-            "type": "boolean"
+            "type": "boolean",
+            "deprecated": true,
+            "description": "Legacy fee-presence indicator only; serviceSummary is authoritative for service state."
           },
           "hasCounting": {
-            "type": "boolean"
+            "type": "boolean",
+            "deprecated": true,
+            "description": "Legacy fee-presence indicator only; serviceSummary is authoritative for service state."
           },
           "hasWoodPacking": {
-            "type": "boolean"
+            "type": "boolean",
+            "deprecated": true,
+            "description": "Legacy fee-presence indicator only; serviceSummary is authoritative for service state."
           },
           "hasBubbleWrap": {
-            "type": "boolean"
+            "type": "boolean",
+            "deprecated": true,
+            "description": "Legacy fee-presence indicator only; serviceSummary is authoritative for service state."
           }
         },
         "required": [
@@ -2639,6 +2647,34 @@
           "hasCounting",
           "hasWoodPacking",
           "hasBubbleWrap"
+        ]
+      },
+      "ShipmentServiceSummaryDto": {
+        "type": "object",
+        "properties": {
+          "insurance": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Known enabled/disabled; null means unknown. Independent of fee lines."
+          },
+          "counting": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "fragileGoods": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "foam": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "required": [
+          "insurance",
+          "counting",
+          "fragileGoods",
+          "foam"
         ]
       },
       "ShipmentMilestoneSummaryDto": {
@@ -2730,6 +2766,9 @@
           "chargeSummary": {
             "$ref": "#/components/schemas/ShipmentChargeSummaryDto"
           },
+          "serviceSummary": {
+            "$ref": "#/components/schemas/ShipmentServiceSummaryDto"
+          },
           "milestoneSummary": {
             "$ref": "#/components/schemas/ShipmentMilestoneSummaryDto"
           },
@@ -2806,6 +2845,7 @@
           "declaredValue",
           "declaredCurrency",
           "chargeSummary",
+          "serviceSummary",
           "milestoneSummary",
           "itemSummary",
           "id",
@@ -3026,6 +3066,32 @@
           "pagination"
         ]
       },
+      "ShipmentServiceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "serviceCode": {
+            "type": "string",
+            "enum": [
+              "INSURANCE",
+              "COUNTING",
+              "FRAGILE_GOODS",
+              "FOAM"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "serviceCode",
+          "enabled"
+        ]
+      },
       "ShipmentMilestoneDto": {
         "type": "object",
         "properties": {
@@ -3184,6 +3250,9 @@
           "chargeSummary": {
             "$ref": "#/components/schemas/ShipmentChargeSummaryDto"
           },
+          "serviceSummary": {
+            "$ref": "#/components/schemas/ShipmentServiceSummaryDto"
+          },
           "milestoneSummary": {
             "$ref": "#/components/schemas/ShipmentMilestoneSummaryDto"
           },
@@ -3251,6 +3320,12 @@
             "type": "string",
             "format": "date-time"
           },
+          "services": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShipmentServiceDto"
+            }
+          },
           "milestones": {
             "type": "array",
             "items": {
@@ -3311,6 +3386,7 @@
           "declaredValue",
           "declaredCurrency",
           "chargeSummary",
+          "serviceSummary",
           "milestoneSummary",
           "itemSummary",
           "id",
@@ -3326,6 +3402,7 @@
           "totalCurrency",
           "createdAt",
           "updatedAt",
+          "services",
           "milestones",
           "items",
           "serviceLevel",

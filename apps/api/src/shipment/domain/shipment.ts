@@ -5,6 +5,8 @@ import {
   ShipmentKind,
   ShipmentChargeCode,
   ShipmentMilestoneCode,
+  ShipmentServiceCode,
+  type ShipmentServiceCodeValue,
   type ShipmentMilestoneCodeValue,
   type LogisticsStageCode,
   type ShipmentChargeCodeValue,
@@ -12,6 +14,7 @@ import {
 export const SHIPMENT_MAX_CHARGE_LINES = 50;
 export const SHIPMENT_MAX_ITEM_LINES = 500;
 export const SHIPMENT_MAX_MILESTONES = 4;
+export const SHIPMENT_MAX_SERVICES = Object.values(ShipmentServiceCode).length;
 
 export class ShipmentError extends Error {
   constructor(
@@ -76,6 +79,10 @@ export interface ItemLine {
   unitValue: string | null;
   currency: string | null;
 }
+export interface ServiceEntry {
+  serviceCode: ShipmentServiceCodeValue;
+  enabled: boolean;
+}
 export interface ProviderFields {
   trackingCode?: string;
   shipmentKind?: typeof ShipmentKind.RETAIL_PARCEL;
@@ -100,6 +107,7 @@ export interface ProviderOperation {
   charges?: ChargeLine[];
   milestones?: MilestoneEntry[];
   items?: ItemLine[];
+  services?: ServiceEntry[];
   providerChangedAt?: string | null;
   stageChanged: boolean;
   fromStage: LogisticsStageCode | null;
@@ -131,6 +139,7 @@ const allowed = [
   "charges",
   "milestones",
   "items",
+  "services",
 ];
 function text(value: unknown, max: number): string {
   if (
@@ -227,6 +236,20 @@ function itemPayload(input: unknown): Omit<ItemLine, "lineNo"> {
     currency: itemCurrency,
   };
 }
+function servicePayload(input: unknown): ServiceEntry {
+  const row = shipmentRecord(input, ["serviceCode", "enabled"]);
+  if (
+    !Object.values(ShipmentServiceCode).includes(
+      row.serviceCode as ShipmentServiceCodeValue,
+    ) ||
+    typeof row.enabled !== "boolean"
+  )
+    invalid();
+  return {
+    serviceCode: row.serviceCode as ShipmentServiceCodeValue,
+    enabled: row.enabled,
+  };
+}
 export interface ShipmentMilestoneInput {
   milestoneCode: ShipmentMilestoneCodeValue;
   occurredAt: string;
@@ -249,6 +272,7 @@ export interface ShipmentProviderInput
   charges?: { complete: true; lines: readonly ShipmentChargeInput[] };
   milestones?: { complete: true; entries: readonly ShipmentMilestoneInput[] };
   items?: { complete: true; lines: readonly ShipmentItemInput[] };
+  services?: { complete: true; entries: readonly ServiceEntry[] };
   providerChangedAt?: string | null;
 }
 interface NormalizedProviderPatch {
@@ -256,6 +280,7 @@ interface NormalizedProviderPatch {
   charges?: ChargeLine[];
   milestones?: MilestoneEntry[];
   items?: ItemLine[];
+  services?: ServiceEntry[];
   providerChangedAt?: string | null;
 }
 function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
@@ -358,6 +383,23 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
       ...itemPayload(row),
     }));
   }
+  let services: ServiceEntry[] | undefined;
+  if (Object.hasOwn(raw, "services")) {
+    const snapshot = shipmentRecord(raw.services, ["complete", "entries"]);
+    if (
+      snapshot.complete !== true ||
+      !Array.isArray(snapshot.entries) ||
+      snapshot.entries.length > SHIPMENT_MAX_SERVICES
+    )
+      invalid();
+    services = Array.from(snapshot.entries, servicePayload);
+    if (new Set(services.map((s) => s.serviceCode)).size !== services.length)
+      invalid();
+    const order = Object.values(ShipmentServiceCode);
+    services.sort(
+      (a, b) => order.indexOf(a.serviceCode) - order.indexOf(b.serviceCode),
+    );
+  }
   let providerChangedAt: string | null | undefined;
   if (Object.hasOwn(raw, "providerChangedAt"))
     providerChangedAt =
@@ -368,6 +410,7 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
     charges,
     milestones,
     items,
+    services,
   };
 }
 
@@ -401,6 +444,11 @@ export function parseShipmentProviderInput(
         unitValue: i.unitValue,
         currency: i.currency,
       })),
+    };
+  if (normalized.services !== undefined)
+    result.services = {
+      complete: true,
+      entries: normalized.services.map((s) => ({ ...s })),
     };
   if (normalized.providerChangedAt !== undefined)
     result.providerChangedAt = normalized.providerChangedAt;
@@ -448,6 +496,7 @@ export interface ShipmentState extends ProviderFields {
   charges: ShipmentChargeState[];
   milestones: ShipmentMilestoneState[];
   items: ShipmentItemState[];
+  services: ShipmentServiceState[];
 }
 /** Current ordered child; identity is DB-owned, and is retained for the same position. */
 class ShipmentCharge {
@@ -521,18 +570,40 @@ class ShipmentItem {
     return { ...this.state };
   }
 }
+export interface ShipmentServiceState extends ServiceEntry {
+  id: string | null;
+}
+class ShipmentService {
+  private constructor(private readonly state: ShipmentServiceState) {}
+  static from(input: ShipmentServiceState): ShipmentService {
+    const state = shipmentRecord(input, ["id", "serviceCode", "enabled"]);
+    if (state.id !== null && !isUuid(state.id)) invalid();
+    const payload = servicePayload({
+      serviceCode: state.serviceCode,
+      enabled: state.enabled,
+    });
+    return new ShipmentService(
+      Object.freeze({ id: state.id as string | null, ...payload }),
+    );
+  }
+  snapshot(): ShipmentServiceState {
+    return { ...this.state };
+  }
+}
 /** Encapsulated Shipment root. Persist only its explicit provider operation, never a generic save. */
 export class ShipmentAggregate {
   private readonly state: Omit<
     ShipmentState,
-    "charges" | "milestones" | "items"
+    "charges" | "milestones" | "items" | "services"
   >;
   private charges: ShipmentCharge[];
   private milestones: ShipmentMilestone[];
   private items: ShipmentItem[];
+  private services: ShipmentService[];
   private proposed?: ProviderOperation;
   private constructor(state: ShipmentState) {
-    const { charges, milestones, items, ...root } = structuredClone(state);
+    const { charges, milestones, items, services, ...root } =
+      structuredClone(state);
     this.state = root;
     this.charges = charges.map((c) => ShipmentCharge.from(c));
     const order = Object.values(ShipmentMilestoneCode);
@@ -544,6 +615,14 @@ export class ShipmentAggregate {
           order.indexOf(b.snapshot().milestoneCode),
       );
     this.items = items.map((i) => ShipmentItem.from(i));
+    const serviceOrder = Object.values(ShipmentServiceCode);
+    this.services = services
+      .map((s) => ShipmentService.from(s))
+      .sort(
+        (a, b) =>
+          serviceOrder.indexOf(a.snapshot().serviceCode) -
+          serviceOrder.indexOf(b.snapshot().serviceCode),
+      );
   }
   static create(
     scope: ShipmentCreationScope,
@@ -586,6 +665,7 @@ export class ShipmentAggregate {
       charges: (operation.charges ?? []).map((c) => ({ ...c, id: null })),
       milestones: (operation.milestones ?? []).map((m) => ({ ...m, id: null })),
       items: (operation.items ?? []).map((i) => ({ ...i, id: null })),
+      services: (operation.services ?? []).map((s) => ({ ...s, id: null })),
     });
     root.proposed = operation;
     return root;
@@ -637,6 +717,14 @@ export class ShipmentAggregate {
       snapshot.items.some((i, index) => !i || i.lineNo !== index + 1)
     )
       invalid();
+    if (
+      !Array.isArray(snapshot.services) ||
+      snapshot.services.length > SHIPMENT_MAX_SERVICES ||
+      snapshot.services.some((s) => !s) ||
+      new Set(snapshot.services.map((s) => s.serviceCode)).size !==
+        snapshot.services.length
+    )
+      invalid();
     return new ShipmentAggregate(snapshot);
   }
   applyProvider(input: unknown, stage: LogisticsStageCode): void {
@@ -674,10 +762,23 @@ export class ShipmentAggregate {
           id: this.items[i]?.snapshot().id ?? null,
         }),
       );
+    let services = this.services;
+    if (operation.services !== undefined) {
+      const ids = new Map(
+        this.services.map((s) => {
+          const row = s.snapshot();
+          return [row.serviceCode, row.id];
+        }),
+      );
+      services = operation.services.map((s) =>
+        ShipmentService.from({ ...s, id: ids.get(s.serviceCode) ?? null }),
+      );
+    }
     Object.assign(this.state, operation.fields);
     this.charges = charges;
     this.milestones = milestones;
     this.items = items;
+    this.services = services;
     this.proposed = operation;
   }
   snapshot(): ShipmentState {
@@ -686,6 +787,7 @@ export class ShipmentAggregate {
       charges: this.charges.map((c) => c.snapshot()),
       milestones: this.milestones.map((m) => m.snapshot()),
       items: this.items.map((i) => i.snapshot()),
+      services: this.services.map((s) => s.snapshot()),
     };
   }
   operation(): ProviderOperation {

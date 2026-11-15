@@ -470,10 +470,33 @@ export interface components {
         ShipmentChargeSummaryDto: {
             unitPrice: components["schemas"]["ShipmentAmountSummaryDto"];
             domesticShipping: components["schemas"]["ShipmentAmountSummaryDto"];
+            /**
+             * @deprecated
+             * @description Legacy fee-presence indicator only; serviceSummary is authoritative for service state.
+             */
             hasInsurance: boolean;
+            /**
+             * @deprecated
+             * @description Legacy fee-presence indicator only; serviceSummary is authoritative for service state.
+             */
             hasCounting: boolean;
+            /**
+             * @deprecated
+             * @description Legacy fee-presence indicator only; serviceSummary is authoritative for service state.
+             */
             hasWoodPacking: boolean;
+            /**
+             * @deprecated
+             * @description Legacy fee-presence indicator only; serviceSummary is authoritative for service state.
+             */
             hasBubbleWrap: boolean;
+        };
+        ShipmentServiceSummaryDto: {
+            /** @description Known enabled/disabled; null means unknown. Independent of fee lines. */
+            insurance: boolean | null;
+            counting: boolean | null;
+            fragileGoods: boolean | null;
+            foam: boolean | null;
         };
         ShipmentMilestoneSummaryDto: {
             /** Format: date-time */
@@ -500,6 +523,7 @@ export interface components {
             declaredValue: string | null;
             declaredCurrency: string | null;
             chargeSummary: components["schemas"]["ShipmentChargeSummaryDto"];
+            serviceSummary: components["schemas"]["ShipmentServiceSummaryDto"];
             milestoneSummary: components["schemas"]["ShipmentMilestoneSummaryDto"];
             itemSummary: components["schemas"]["ShipmentItemSummaryDto"];
             /** Format: uuid */
@@ -569,6 +593,13 @@ export interface components {
             history: components["schemas"]["ShipmentHistoryDto"][];
             pagination: components["schemas"]["ShipmentPaginationDto"];
         };
+        ShipmentServiceDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            serviceCode: "INSURANCE" | "COUNTING" | "FRAGILE_GOODS" | "FOAM";
+            enabled: boolean;
+        };
         ShipmentMilestoneDto: {
             /** Format: uuid */
             id: string;
@@ -610,6 +641,7 @@ export interface components {
             declaredValue: string | null;
             declaredCurrency: string | null;
             chargeSummary: components["schemas"]["ShipmentChargeSummaryDto"];
+            serviceSummary: components["schemas"]["ShipmentServiceSummaryDto"];
             milestoneSummary: components["schemas"]["ShipmentMilestoneSummaryDto"];
             itemSummary: components["schemas"]["ShipmentItemSummaryDto"];
             /** Format: uuid */
@@ -632,6 +664,7 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            services: components["schemas"]["ShipmentServiceDto"][];
             milestones: components["schemas"]["ShipmentMilestoneDto"][];
             items: components["schemas"]["ShipmentItemDto"][];
             serviceLevel: string | null;

@@ -4,9 +4,10 @@ import type {
   LogisticsStageCode,
   ShipmentKindCode,
   ShipmentMilestoneCodeValue,
+  ShipmentServiceCodeValue,
 } from "@nexora/shared/shipment";
 type StoredShipment = Prisma.ShipmentGetPayload<{
-  include: { charges: true; milestones: true; items: true };
+  include: { charges: true; milestones: true; items: true; services: true };
 }>;
 /** Hydration occurs only after source/root locks, with all current children. */
 export function hydrateShipment(row: StoredShipment): ShipmentAggregate {
@@ -41,6 +42,11 @@ export function hydrateShipment(row: StoredShipment): ShipmentAggregate {
     lastSyncedAt: row.lastSyncedAt?.toISOString() ?? null,
     createdAt: row.createdAt?.toISOString() ?? null,
     updatedAt: row.updatedAt?.toISOString() ?? null,
+    services: row.services.map((service) => ({
+      id: service.id,
+      serviceCode: service.serviceCode as ShipmentServiceCodeValue,
+      enabled: service.enabled,
+    })),
     milestones: row.milestones.map((m) => ({
       id: m.id,
       milestoneCode: m.milestoneCode as ShipmentMilestoneCodeValue,
