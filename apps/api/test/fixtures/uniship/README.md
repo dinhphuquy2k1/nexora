@@ -77,3 +77,20 @@ are retained only as null. The scanner now rejects any non-null value in these
 fields and rejects credential-bearing JSON properties even when null or empty.
 Those property-name rules apply to parsed JSON; ordinary explanatory prose about
 credential names is allowed. Existing raw marker and contact checks still apply.
+
+## Bounded scanner coverage
+
+The explicit credential-name set also rejects auth_header_value (including
+case/separator variants and decoded JSON keys), even when null or empty. This is
+an authorization-header-value alias, not a rule matching every key containing a
+credential-related word. tokenCount, nextPageToken, passwordPolicy,
+authorizationStatus and sessionStatus remain legitimate metadata names when their
+values pass the existing raw-marker checks.
+
+Scanning is a bounded safeguard, not proof that arbitrary content is secret-free
+or anonymized. It recognizes the documented explicit property names and known raw
+patterns; novel aliases, opaque/encoded values and personal data under unfamiliar
+fields require manual review. It does not decrypt content or recursively interpret
+JSON embedded inside string values as another document. New captures still need
+owner-scoped redaction and provenance review. This does not authorize publishing
+additional fields or rewriting the preserved source captures.

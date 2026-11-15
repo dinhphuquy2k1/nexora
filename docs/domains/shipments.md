@@ -92,8 +92,14 @@ adapter/registration or live activation.
 Uniship uses Status13 in place of a physical stage to express a claim. Set
 provider_claim_status="13"; use mapped OldStatus when it is1..5, otherwise retain
 the previously stored Nexora logistics_stage, otherwise UNKNOWN for a new shipment.
-Status other than13 clears provider_claim_status to null. OldStatus and claim-end
-semantics still need a real claim example. Existing claim=open/count availability
+Under this selected future policy, Status other than13 clears provider_claim_status
+to null; that is not evidence of how Uniship actually completes a claim. Known
+OldStatus takes precedence even over a conflicting stored stage. OldStatus meaning,
+chronology and claim completion remain unverified. Before production reliance,
+require real redacted opening/update/return-to-normal captures and corresponding
+adapter tests, including clearly derived null/unknown/conflicting-stage cases;
+see [claim verification prerequisites](../integrations/uniship-portal-api.md#claim-policy-examples-and-verification-prerequisites).
+Existing claim=open/count availability
 and Retail disabled disputed tab remain unchanged by this documentation task.
 
 Uniship service flags IsGuarantee, IsCheck, IsFragileGoods and IsFoam are independent
@@ -309,7 +315,9 @@ and synthetic cases have separate provenance; no live activation is implied.
    status filters; Status0 meaning, unfamiliar/cancelled/returned codes unresolved.
 2. **Partly answered:** Status13 replaces the physical stage and signals a claim;
    preserve stage under the ordered OldStatus/prior-stage rule. OldStatus meaning
-   and claim completion still need a real claim shipment.
+   and claim completion require real redacted lifecycle captures (open/update/return
+   to normal) and corresponding future adapter tests before production reliance;
+   derived null/unknown/contradictory-stage cases establish policy only.
 3. **Observed form answered:** numeric ID is the source-key candidate under
    uniship-parcel-v1; stability/uniqueness through resync and scope remain assumed.
 4. **FULL only:** page starts1; owner tested rowsPerPage50 and100, select100 for

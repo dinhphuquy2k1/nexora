@@ -219,3 +219,94 @@ The existing independent findings are addressed, but this self-review does not
 claim independent reviewer approval. Recommendation remains pending exact-head
 checks, then READY FOR INDEPENDENT REVIEW. Preserve prior CI/evidence as historical;
 new-head result will be recorded in existing PR53 description without a SHA loop.
+
+## Remaining PR53 findings — bounded review correction on ab2d409
+
+Read-only inspection refreshed origin/docs/uniship-portal-contract to
+ab2d409dc48212fe78971460818a9bd40936c943, matching the actual PR53 head.
+Preflight43680076710 is PASS; Foundation43680076776 is IN PROGRESS at inspection.
+Earlier green bb1fd329a7c4f689714b273988cd3301190358a3 is historical, not proof of
+this head. Existing16 scanner regressions PASS. Captured source and frozen v1
+snapshot hashes match the existing record; all specified redactions and null-only
+personal fields remain intact. No new personal value or capture contradiction found.
+
+Classification remains BOUNDED: narrow test-only alias coverage and documentation
+clarification within the existing explicit-key scanner and selected future claim
+policy. No material security architecture, runtime, normalization contract or plan
+revision change. The frozen snapshot is not an execution log and remains untouched.
+Documentation Impact remains REQUIRED for the fixture README, testing owner,
+portal contract and Shipment verification ledger.
+
+| Field                    | Remaining review correction decision                                                                                                                                                                                                                                   |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Existing fixture scanner and claim/provenance contract documentation                                                                                                                                                                                                   |
+| Existing implementations | uniship-fixtures.test.cjs credentialKeys/canonicalKey/scanFixtureDirectory/rejectPayload/temporaryFixture; fixture README; portal status rule; shipments checklist2; testing.md Uniship section                                                                        |
+| Domain owner             | Test-only fixture security; Carrier/Shipment future mapping contract stays with current canonical owners                                                                                                                                                               |
+| Reuse alternatives       | Reuse explicit-key lookup, recursive JSON walk, raw checks and temporary-tree regressions; reject substring matching, a second detector or production mapper                                                                                                           |
+| Selected approach        | RED for auth_header_value and spelling/decoded/nested variants, then add only canonical authheadervalue; retain legitimate tokenCount/nextPageToken/passwordPolicy/authorizationStatus/sessionStatus; document detection limits and real claim lifecycle prerequisites |
+| Rationale                | Existing policy forbids credential-bearing properties regardless of value; the demonstrated authorization-header-value alias falls outside its explicit set. Selected OldStatus-first order is already documented but future verification cases are underspecified     |
+| Risks                    | False positives, secret-bearing diagnostics, overclaiming anonymization/provider lifecycle evidence or mutating preserved source bytes                                                                                                                                 |
+| Verification             | Baseline16/16; RED/GREEN alias regression with safe output and t.after cleanup; existing positive metadata/null/contact/raw regressions; pinned checks and lint/contracts review; byte/snapshot/scope audit; independent review and exact-head hosted results          |
+
+Execution plan: (1) add the failing alias regression without changing scanner;
+(2) smallest explicit alias addition and GREEN; (3) clarify six claim handling
+cases as selected future policy, require real redacted lifecycle captures plus
+adapter tests before relying on unknown semantics, preserve mapping/order/current
+production behavior; (4) document bounded scanner limits without expanding capture
+publication; (5) required pinned checks, implementation review and allowlist/hash
+verification; (6) commit/push only owned files to PR53, retain historical failures,
+record final-head hosted results in PR description to avoid a SHA loop. Never merge
+or close054 here.
+
+### Remaining findings: results and local provenance
+
+A/P2 confirmed: canonicalKey(auth_header_value) is authheadervalue, absent from the
+explicit set; raw-marker checks do not identify a generic synthetic header value.
+The new nested/decoded/spelling/value regression produced16 PASS/1 FAIL before the
+single alias addition, then17/17 PASS. All prior16 tests and the five legitimate
+metadata key examples remain GREEN. Diagnostics omit injected values and all
+nexora-uniship-scan temporary directories were cleaned after RED and GREEN.
+
+B/P3 clarified: owner-reported Status labels are distinct from selected Nexora
+OldStatus-first priority and unknown chronology/completion. Six policy cases and
+real redacted claim lifecycle capture plus corresponding future-adapter-test
+prerequisites are explicit; no mapper/test is misrepresented as real provider
+behavior. Existing priority, claim availability and production behavior stay fixed.
+
+C/P3 investigation found no additional privacy/provenance defect: README already
+states partial redaction and retained real IDs/timestamps/publication scope. Both
+captured files and derived JSON are byte-identical to ab2d409; required substituted
+identity fields and null-only personal fields are intact. No new sensitive source
+value was found or published; no additional redaction or hash change is warranted.
+README adds scanner limitations, not publication authorization.
+
+Independent read-only implementation-code-review reported no P1/P2/P3 findings in
+the six-file correction, verified immutable bytes and policy order, and correctly
+left verification pending. Reviewer performed no tests/edits/provider calls; all
+execution below is primary-agent evidence. Skill contracts:check and full lint are
+included. Production hard-close UNISHIP_LIVE_CONTRACT_VERIFIED=false is unchanged;
+no apps/api/src, API/SDK/schema, adapter/live registry or dependency changes.
+
+All rows below are execution against the review working tree on the exact base
+HEAD stated, not claims that unchanged ab2d409 already includes the correction.
+Timestamps are UTC; detailed logs remain outside Git. Original FAIL rows above
+are preserved. Final exact-head hosted evidence will be added to existing PR53
+without an evidence-only commit loop. Task stays active, VERIFICATION PENDING /
+IMPLEMENTED / PARTIALLY VERIFIED.
+
+| Claim                                         | Evidence                                                                                                                                                                                                                        | Date       | Result |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Remaining review alias-red                    | `node --test apps/api/test/uniship-fixtures.test.cjs`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:26:19.198792+00:00–2026-11-15T05:26:19.487161+00:00; exit1                            | 2026-11-15 | FAIL   |
+| Remaining review alias-green                  | `node --test apps/api/test/uniship-fixtures.test.cjs`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:26:26.410937+00:00–2026-11-15T05:26:26.640332+00:00; exit0                            | 2026-11-15 | PASS   |
+| Remaining review install                      | `npx --yes pnpm@10.34.6 install --frozen-lockfile`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:26:26.684278+00:00–2026-11-15T05:26:31.243577+00:00; exit0                               | 2026-11-15 | PASS   |
+| Remaining review fixture-final                | `node --test apps/api/test/uniship-fixtures.test.cjs`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:28:35.959178+00:00–2026-11-15T05:28:36.276777+00:00; exit0                            | 2026-11-15 | PASS   |
+| Remaining review discovery                    | `node scripts/check-test-discovery.mjs apps/api/test/**/*.test.cjs`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:28:36.317619+00:00–2026-11-15T05:28:36.374131+00:00; exit0              | 2026-11-15 | PASS   |
+| Remaining review build-contract-prerequisites | `npx --yes pnpm@10.34.6 --filter @nexora/shared --filter @nexora/database build`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:28:37.390325+00:00–2026-11-15T05:28:52.686313+00:00; exit0 | 2026-11-15 | PASS   |
+| Remaining review format-check                 | `npx --yes pnpm@10.34.6 format:check`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:28:36.416057+00:00–2026-11-15T05:28:59.744019+00:00; exit0                                            | 2026-11-15 | PASS   |
+| Remaining review docs-check                   | `npx --yes pnpm@10.34.6 docs:check`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:28:59.842300+00:00–2026-11-15T05:29:01.784219+00:00; exit0                                              | 2026-11-15 | PASS   |
+| Remaining review preflight-check              | `npx --yes pnpm@10.34.6 preflight:check`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:29:01.834921+00:00–2026-11-15T05:29:03.535868+00:00; exit0                                         | 2026-11-15 | PASS   |
+| Remaining review test-docs                    | `npx --yes pnpm@10.34.6 test:docs`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:29:03.587026+00:00–2026-11-15T05:29:06.048569+00:00; exit0                                               | 2026-11-15 | PASS   |
+| Remaining review test-preflight               | `npx --yes pnpm@10.34.6 test:preflight`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:29:06.091950+00:00–2026-11-15T05:29:08.509137+00:00; exit0                                          | 2026-11-15 | PASS   |
+| Remaining review test-lint                    | `npx --yes pnpm@10.34.6 test:lint`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:29:08.558636+00:00–2026-11-15T05:29:17.674189+00:00; exit0                                               | 2026-11-15 | PASS   |
+| Remaining review lint                         | `npx --yes pnpm@10.34.6 lint`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:29:17.736424+00:00–2026-11-15T05:29:30.676713+00:00; exit0                                                    | 2026-11-15 | PASS   |
+| Remaining review contracts-check              | `npx --yes pnpm@10.34.6 contracts:check`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:29:33.225904+00:00–2026-11-15T05:29:42.120116+00:00; exit0                                         | 2026-11-15 | PASS   |

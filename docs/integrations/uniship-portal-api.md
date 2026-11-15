@@ -144,11 +144,41 @@ physical stage in this order:
 3. For a new shipment without that previous stage, use UNKNOWN.
 
 For Status other than13, provider_claim_status is null. The derived13/OldStatus4
-case therefore expects AT_DEST_WAREHOUSE. OldStatus's actual business semantics
-and how a claim ends are not verified; obtain a real claim shipment before
-asserting a provider lifecycle. Unknown status must warn, not fabricate a physical
+case therefore expects AT_DEST_WAREHOUSE under the selected Nexora policy.
+The Status1–5/13 labels are owner-reported observations; the OldStatus-first
+priority is a Nexora handling choice, not confirmation of OldStatus chronology
+or claim completion. OldStatus's actual business semantics and how a claim ends
+remain unverified. Unknown status must warn, not fabricate a physical
 stage. Widespread unknown codes additionally trigger capability disablement.
 Current Nexora claim filtering/count availability is unchanged in this task.
+
+### Claim policy examples and verification prerequisites
+
+These examples describe the selected future adapter policy, not additional real
+captures, an implemented mapper or executed lifecycle tests. Keep the order above:
+a recognized newly reported OldStatus wins over the stored Nexora stage even
+when they differ. It is not proven to be newer, monotonic or the last physical
+stage before a claim.
+
+| Case                                                       | Selected future Nexora handling                                        | Evidence boundary                                                                           |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Status13, OldStatus4                                       | Claim string13 and AT_DEST_WAREHOUSE                                   | Existing derived case only; not a captured claim                                            |
+| Status13, OldStatus null                                   | Keep stored stage; UNKNOWN if none                                     | Fallback policy, not a verified provider null meaning                                       |
+| Status13, unrecognized OldStatus                           | Keep stored stage; UNKNOWN if none                                     | No invented stage from an unfamiliar value                                                  |
+| Claim opened on an existing shipment                       | Apply known OldStatus first, else preserve that shipment's stage       | Actual opening sequence/OldStatus behavior needs captures                                   |
+| Provider returns to Status1–5 after a claim                | Map the returned physical code and clear provider_claim_status to null | Selected policy; not proof this sequence means claim resolution                             |
+| Stored DELIVERED versus newly reported Status13/OldStatus4 | AT_DEST_WAREHOUSE wins under the existing priority                     | Possible regression illustrates the unverified chronology; do not silently reverse priority |
+
+Before production relies on OldStatus/claim-end semantics, obtain owner-redacted
+real lifecycle captures for claim opening, subsequent claim updates and return to
+normal status, preserving sequence/context under the existing privacy policy.
+Verify what OldStatus means and whether/how claim completion is represented.
+The future adapter must add corresponding fixture-backed tests for those captures,
+plus explicitly derived policy tests for recognized/null/unknown OldStatus,
+new/existing shipments and conflicting prior stages. Mark derived edge cases as
+synthetic; they cannot establish provider behavior. Missing lifecycle evidence
+remains an activation prerequisite, not an assumption converted into PASS.
+Current claim filtering/counts and the production hard-close remain unchanged.
 
 ## Parcel-to-Nexora field mapping
 
@@ -160,7 +190,7 @@ unit or meaning. Assumptions are not permission to populate misleading values.
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | ID                                                | Source-key scheme uniship-parcel-v1 with the provider ID; never tracking-code identity                 | XÁC NHẬN numeric form; GIẢ ĐỊNH stability/uniqueness across resync/account scope                                |
 | TransactionCode                                   | tracking_code                                                                                          | XÁC NHẬN owner mapping and string form                                                                          |
-| Status / OldStatus                                | provider_status, logistics_stage, provider_claim_status under the ordered rule above                   | XÁC NHẬN selected mapping; OldStatus/claim-completion semantics CHƯA BIẾT                                       |
+| Status / OldStatus                                | provider_status, logistics_stage, provider_claim_status under the ordered rule above                   | Status labels XÁC NHẬN; OldStatus handling is Nexora policy; lifecycle CHƯA BIẾT                                |
 | Weight                                            | weight_kg using the raw JSON numeric lexeme and Domain decimal validation                              | XÁC NHẬN numeric wire type; no floating-point calculation                                                       |
 | RealNumberOfPack                                  | package_count; NumberOfPack is a separate unresolved field                                             | GIẢ ĐỊNH business meaning; numeric1 observed                                                                    |
 | ProductNumber                                     | item_count; do not infer per-item quantity from an aggregate count                                     | GIẢ ĐỊNH; captured value null                                                                                   |

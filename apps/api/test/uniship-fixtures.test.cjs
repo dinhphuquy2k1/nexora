@@ -53,6 +53,7 @@ const credentialKeys = new Set([
   "accesskeyid",
   "privatekey",
   "authorization",
+  "authheadervalue",
   "proxyauthorization",
   "cookie",
   "setcookie",
@@ -362,4 +363,20 @@ test("explanatory README text and ordinary non-credential JSON keys remain allow
     }),
   );
   scanFixtureDirectory(fixture.directory);
+});
+
+test("scanner rejects the explicit auth-header-value credential alias", (t) => {
+  const fixture = temporaryFixture(t);
+  for (const key of [
+    "auth_header_value",
+    "authHeaderValue",
+    "AUTH-HEADER-VALUE",
+    "Auth Header Value",
+  ])
+    for (const value of ["synthetic-sensitive-value", null, ""])
+      rejectPayload(fixture, { data: [{ auth: { [key]: value } }] });
+  rejectPayload(
+    fixture,
+    '{"data":[{"auth\\u005fheader_value":"synthetic-encoded-value"}]}',
+  );
 });

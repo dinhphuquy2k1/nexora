@@ -984,3 +984,12 @@ and canonical known field identifier; tests verify injected values are absent.
 Temporary trees are removed through native test cleanup even after a failure.
 The fixture README distinguishes authorized unchanged public record metadata from
 redacted personal values; the scanner does not anonymize IDs or timestamps.
+
+The explicit auth_header_value credential alias is covered by a test-first
+regression for populated/null/empty values, case/separator spellings and nested/
+decoded JSON keys. Existing tokenCount, nextPageToken, passwordPolicy,
+authorizationStatus and sessionStatus positive cases remain. The scanner does not
+claim general secret/PII detection: unknown aliases, opaque encodings and embedded
+JSON strings still require manual provenance/redaction review. No raw source JSON
+is rewritten. Claim lifecycle captures and future adapter verification are separate
+from these offline fixture hygiene assertions.
