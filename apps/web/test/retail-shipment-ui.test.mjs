@@ -240,3 +240,40 @@ test("UNKNOWN warning lives below the persistent header and outside decorative s
   assert.match(html, /5 kiện có trạng thái chưa xác định từ hãng/);
   assert.equal((html.match(/<tr[^>]*data-skeleton="true"/g) || []).length, 5);
 });
+
+test("Retail missing values never acquire units, including mobile cards and pagination", () => {
+  for (const state of [
+    { data, status: "ready", loading: false },
+    { status: "loading", loading: true },
+  ]) {
+    const { RetailPackageListPage } = loaded("RetailPackageListPage", {
+      ...state,
+      refresh() {},
+    });
+    const html = render(
+      React.createElement(RetailPackageListPage, { api: {} }),
+    );
+    assert.doesNotMatch(html, /—(?:\s|<!--.*?-->)*(?:kiện|kg|sản phẩm|¥|đ)/);
+  }
+});
+
+test("Retail refresh error explains retained rows; denied errors remove rows and stale notice", () => {
+  const sentence = "Đang hiển thị dữ liệu của lần tải trước.";
+  for (const denied of [false, true]) {
+    const { RetailPackageListPage } = loaded("RetailPackageListPage", {
+      data: denied ? undefined : data,
+      status: "error",
+      loading: false,
+      error: { message: "Không thể tải dữ liệu kiện hàng.", denied },
+      refresh() {},
+    });
+    const html = render(
+      React.createElement(RetailPackageListPage, { api: {} }),
+    );
+    const alert = html.match(/<p[^>]*role="alert"[^>]*>[\s\S]*?<\/p>/)?.[0];
+    assert.ok(alert);
+    assert.equal(alert.includes(sentence), !denied);
+    assert.equal(html.includes('data-stale="true"'), !denied);
+    assert.equal(html.includes("data-package-id="), !denied);
+  }
+});

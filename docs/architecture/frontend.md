@@ -286,6 +286,9 @@ The five physical stage tabs map exhaustively to backend stages.
 Feature-local strict response guards and abort/generation-fenced read hooks protect
 query/ID changes and denied reads. Same-key refresh may retain accepted data;
 401/403 clears it, including when the sibling detail/history request failed first.
+A failed list reload with retained rows adds “Đang hiển thị dữ liệu của lần tải trước.”
+to the existing error alert; denied reads have neither rows nor that notice. Missing
+values remain a bare em dash without weight, package-count or pagination unit suffixes.
 Loading, failure/retry, known empty and detail404 states are explicit. No production
 synthetic records, provider account suffixes, writes or provider activation exist.
 

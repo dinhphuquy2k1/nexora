@@ -576,7 +576,9 @@ export function RetailPackageTable({
               <div className={styles.mobileCardMeta}>
                 <span>{pkg.carrierLabel}</span>
                 <span>{pkg.weightKg !== "—" ? `${pkg.weightKg} kg` : "—"}</span>
-                <span>{pkg.packageCount} kiện</span>
+                <span>
+                  {pkg.packageCount !== "—" ? `${pkg.packageCount} kiện` : "—"}
+                </span>
               </div>
               <div className={styles.mobileCardAmount}>
                 {pkg.totalAmountVND}

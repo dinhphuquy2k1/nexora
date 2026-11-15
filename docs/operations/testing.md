@@ -906,3 +906,10 @@ count; top anchors and horizontal bounds stay fixed.
 Existing keyboard/overflow and unchanged Column Picker assertions still run.
 Browser assertions, captured screenshots, manual review and hosted CI remain
 separate evidence; local native-socket denial is not browser acceptance.
+
+Retail fixture compilation uses webpack resourcePath as TypeScript fileName to
+distinguish .ts generic arrows from .tsx JSX and rejects error diagnostics. Nested
+scripts/fixtures/retail/typescript-loader.test.mjs is discovered by the existing
+root `scripts/**/*.test.mjs` glob and pnpm test; it covers callable generic arrows,
+JSX emission and filename-bearing syntax diagnostics. Retail UI tests additionally
+cover bare missing values and same-query failed reload versus denied-read notices.

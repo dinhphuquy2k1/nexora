@@ -176,6 +176,75 @@ test("Shipment list hook aborts old requests, ignores late results and clears de
   h.unmount();
 });
 
+test("Same-query reload failure retains rendered rows and notice; denied reload clears both", async () => {
+  const { loadComponent, React, render } = await import(
+    "./helpers/render-component.mjs"
+  );
+  const { fileURLToPath } = await import("node:url");
+  const { FIXTURE_DETAILS, asSummary } = await import(
+    "./fixtures/retail-packages.ts"
+  );
+  const { ShipmentApiError } = await import(new URL("errors.ts", root));
+  const requests = [];
+  const api = {
+    list: () =>
+      new Promise((resolve, reject) => requests.push({ resolve, reject })),
+  };
+  const h = await hookHarness(api);
+  const q = { status: "all", search: "", page: 1, pageSize: 10, filters: [] };
+  const data = {
+    shipments: [asSummary(FIXTURE_DETAILS[0])],
+    pagination: { page: 1, pageSize: 10, total: 1, totalPages: 1 },
+    stats: { total: 1, byStage: {}, claims: null },
+    claimFilterAvailable: false,
+  };
+  function page(state) {
+    const cache = new Map([
+      [
+        fileURLToPath(new URL("useShipmentRead.ts", root)),
+        {
+          exports: { useShipmentList: () => state },
+        },
+      ],
+    ]);
+    const { RetailPackageListPage } = loadComponent(
+      new URL("RetailPackageListPage.tsx", root),
+      cache,
+    );
+    return render(React.createElement(RetailPackageListPage, { api }));
+  }
+  h.render(q);
+  requests[0].resolve(data);
+  await new Promise(setImmediate);
+  assert.match(page(h.render(q)), /data-package-id=/);
+  h.render(q).refresh();
+  h.render(q);
+  requests[1].reject(Error("transient"));
+  await new Promise(setImmediate);
+  const stale = h.render(q);
+  assert.equal(stale.data, data);
+  const html = page(stale);
+  assert.match(html, /data-stale="true"/);
+  assert.match(html, /data-package-id=/);
+  assert.match(
+    html,
+    /role="alert"[^>]*>[\s\S]*?Đang hiển thị dữ liệu của lần tải trước\./,
+  );
+  stale.refresh();
+  h.render(q);
+  requests[2].reject(new ShipmentApiError(403, { code: "DENIED" }));
+  await new Promise(setImmediate);
+  const denied = h.render(q);
+  assert.equal(denied.data, undefined);
+  const cleared = page(denied);
+  assert.match(cleared, /role="alert"/);
+  assert.doesNotMatch(
+    cleared,
+    /data-package-id=|data-stale="true"|Đang hiển thị dữ liệu của lần tải trước\./,
+  );
+  h.unmount();
+});
+
 test("Shipment detail hook fences both reads by ID and handles 404/malformed errors", async () => {
   const requests = [];
   const pending = (method, id, signal) =>

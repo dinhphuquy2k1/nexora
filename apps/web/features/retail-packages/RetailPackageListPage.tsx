@@ -360,6 +360,7 @@ export function RetailPackageListPage({
         {read.error && (
           <p className={styles.availabilityNotice} role="alert">
             {read.error.message}{" "}
+            {rows.length > 0 && "Đang hiển thị dữ liệu của lần tải trước. "}
             <Button variant="secondary" onClick={read.refresh}>
               Thử lại
             </Button>

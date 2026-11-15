@@ -63,7 +63,9 @@ export function RetailPagination({
               <span>Hiển thị</span>{" "}
               <strong className={styles.paginationRange}>{rangeDisplay}</strong>{" "}
               <span>/</span>{" "}
-              <span data-retail-count>{unavailable ? "—" : total} kiện lẻ</span>
+              <span data-retail-count>
+                {unavailable ? "—" : `${total} kiện lẻ`}
+              </span>
             </div>
           </>
         }

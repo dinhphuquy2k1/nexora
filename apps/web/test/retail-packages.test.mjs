@@ -539,7 +539,7 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
       }),
     );
     assert.match(unavailHtml, /paginationRange[^>]*>—<\/strong>/);
-    assert.match(unavailHtml, /data-retail-count[^>]*>—(?:<!-- -->)? kiện lẻ/);
+    assert.match(unavailHtml, /data-retail-count[^>]*>—<\/span>/);
   });
 
   describe("Retail Packages — Visual Parity & Architecture (M3 v5)", () => {

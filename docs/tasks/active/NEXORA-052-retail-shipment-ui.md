@@ -434,3 +434,66 @@ Foundation [43608870112](https://github.com/dinhphuquy2k1/nexora/actions/runs/43
 Correct only `.tableHead .stickyTracking` with `box-shadow: none`; keep the common border, body shadow, background, widths, sticky header/column, layering and focus indicators. The final browser helper now checks initial/tab/back loading/loaded states at all approved viewports and both horizontal offsets. This is the third owner-approved visual delta. Final GREEN acceptance is pending a new exact-head run.
 
 Full host quality also PASS on the v2 working tree: `API_INTERNAL_URL=http://127.0.0.1:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality` (scripts138, Web286, API216, UI37, database6; deterministic contracts and production build). This host run is separate from canonical hosted Docker quality. It does not substitute for the pending final-head Chromium run.
+
+## Review delta — owner-authorized v2 bug fixes (2026-11-15)
+
+BOUNDED correction within the existing v2 plan, baseline
+3efd3e45024e6356fea5ed9184da3210f96977e0, PR51/feat/retail-shipment-ui.
+Owner Rule B decision explicitly permits editing the fixture compiler in this PR.
+No new snapshot or plan revision; preserve both frozen snapshot digests and all
+historical failures. Rules A/B continue for everything else. If new-head Foundation
+step7 fails, retain RETAIL_READ_STATE_DIAGNOSTIC, do not rerun, and stop. No merge.
+
+Read-only inventory: webpack in scripts/build-retail-fixture.mjs invokes the normal
+loader context (resourcePath available); root `scripts/**/*.test.mjs` already covers
+nested compiler tests. Searched every `retail-packages/*.tsx` for unit/currency
+suffixes, read.error and data-stale. Mobile packageCount and unavailable pagination
+append units to an em dash; weight guards and currency formatters already handle
+missing values. Keep the formatWeight correction from baseline commit6a30e82
+(null stays em dash, never “— kg”; dot decimal, ungrouped integer, at least
+two fractional digits, trim only excess trailing zeroes, never round or coerce
+through Number) and the generic arrow in useShipmentRead.ts.
+
+| Field                    | Decision                                                                                                                                                                                        |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Fixture compiler, Retail suffix rendering and existing read-error alert                                                                                                                         |
+| Existing implementations | scripts/fixtures/retail/typescript-loader.cjs; RetailPackageTable.tsx; RetailPagination.tsx; RetailPackageListPage.tsx; retail-shipment-ui/api tests and existing hook scheduler                |
+| Domain owner             | Test tooling and Web Tier C Retail presentation                                                                                                                                                 |
+| Reuse alternatives       | Reuse pinned TypeScript, webpack resourcePath, existing render/hook helpers; no new formatter/framework or hook retention changes                                                               |
+| Selected approach        | Supply fileName, reject error diagnostics; guard remaining unit suffixes; add stale sentence inside existing alert only when rows remain                                                        |
+| Rationale                | Correct TS/TSX parsing and truthful missing/stale presentation with minimal changes                                                                                                             |
+| Risks                    | JSX compilation, diagnostic propagation, denied-data disclosure, zero-value suppression                                                                                                         |
+| Verification             | RED/GREEN loader generic/JSX/syntax tests and UI suffix/stale/denied tests; existing hook retention tests; requested pinned checks, fixture bundle watch inspection and exact-head hosted gates |
+
+Documentation Impact remains REQUIRED for the task; update frontend/testing owners
+for these corrected presentation and fixture facts. No API/SDK/DB/dependency,
+authorization or concurrency contract changes. Implementation-code-review skill
+will audit the final bounded diff; self-review is not independent approval.
+
+### Review delta RED/GREEN evidence
+
+All runs below use the working tree based on3efd3e45024e6356fea5ed9184da3210f96977e0;
+UTC2026-11-15, with generated logs retained only in ignored artifacts/review-delta.
+
+| Claim                              | Evidence                                                                                                                                                                                                                                                                                                                            | Date       | Result |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Compiler and UI test-first RED     | `node --test scripts/fixtures/retail/typescript-loader.test.mjs apps/web/test/retail-shipment-ui.test.mjs`, finished02:13:20Z:9 PASS/4 FAIL. Generic .ts emitted JSX/react runtime import; syntax error did not throw; missing-value suffix and stale-alert assertions failed. JSX baseline passed.                                 | 2026-11-15 | FAIL   |
+| Authorized suffix assertion update | First expanded Retail run finished02:14:18Z:67 PASS/1 FAIL. Existing retail-packages pagination assertion required “— kiện lẻ”; Rule A adaptation now requires a bare em dash per P2a, preserving all range/zero/known-count tests.                                                                                                 | 2026-11-15 | FAIL   |
+| Loader and all Retail GREEN        | `node --test scripts/fixtures/retail/typescript-loader.test.mjs "apps/web/test/retail-*.test.mjs"`, finished02:14:55Z:68/68 PASS. Includes runtime generic return42, real React JSX element, filename/TS1109 syntax diagnostic, suffixes, actual same-query hook refresh failure retaining rows+notice and403 denial clearing both. | 2026-11-15 | PASS   |
+| Fixture build and emitted watch    | `node scripts/build-retail-fixture.mjs`, finished02:14:21Z PASS; AST/runtime verification02:15:15Z:bundle parses as JS with zero JSX nodes, watch is an arrow, resolves42 and propagates/reports denied rejection; detail call retains enabled=id!==null and api arguments. No source generic rewrite.                              | 2026-11-15 | PASS   |
+| Test discovery                     | `node scripts/check-test-discovery.mjs "scripts/**/*.test.mjs"`:18 suites, baseline17 plus nested loader suite; root pnpm test uses this same pattern.                                                                                                                                                                              | 2026-11-15 | PASS   |
+
+Review-delta self-review applied implementation-code-review checklist: production
+diff is limited to loader options/diagnostics, two suffix guards and one existing
+alert sentence; no hook/API/SDK/DB/shared-component/CSS/timeout/assertion tolerance
+changes. Both snapshot bytes remain unchanged. No independent approval claimed.
+Hosted exact-head verification remains pending until the implementation commit is
+pushed; final result is recorded in PR metadata without another evidence-only SHA loop.
+
+| Claim                              | Evidence                                                                                                                                                                                                                                                                                                                                                                                           | Date       | Result |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Review delta pinned quality checks | `npx --yes pnpm@10.34.6` format:check02:15:15–02:15:27Z, lint02:15:27–02:15:35Z, typecheck02:15:35–02:16:20Z (10 workspace build/typecheck tasks), docs:check02:16:20–02:16:22Z, preflight:check02:16:22–02:16:23Z, test:docs02:16:23–02:16:24Z and test:preflight02:16:24–02:16:26Z all exit0. API_INTERNAL_URL=http://127.0.0.1:4000 and NODE_ENV=production for documented build prerequisites. | 2026-11-15 | PASS   |
+
+| Claim                                 | Evidence                                                                                                                                                                                                                                                                                 | Date       | Result |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Root pnpm test includes nested loader | `API_INTERNAL_URL=http://127.0.0.1:4000 NODE_ENV=production npx --yes pnpm@10.34.6 test`, UTC02:16:26–02:17:36Z exit0:discovery18 suites; scripts141/141 (including all3 compiler cases), Web289/289, API216/216, UI37/37, database6/6; Turbo8/8 successful (3 prerequisite cache hits). | 2026-11-15 | PASS   |
