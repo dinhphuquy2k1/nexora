@@ -937,3 +937,59 @@ physical child writes; a changed root with identical children separately forces
 the conditional upsert path and proves unchanged IDs/xmin. This synthetic capacity
 test never enables provider capabilities. Retain failed measurements and machine
 provenance; do not increase timeouts or weaken the acceptance bound.
+
+## Uniship customer-portal contract fixtures — NEXORA-054
+
+apps/api/test/fixtures/uniship contains owner-redacted DevTools captures from
+2026-11-15, not live test calls. transition-page.json and china-stores.json are
+byte-preserved owner uploads; README records endpoints, capture time, redactions,
+warehouse-field minimization and SHA-256. Captured numbers stay JSON numbers with
+raw0.0 spellings; nulls, key order, envelopes and warehouse-name whitespace remain.
+A local formatter override preserves four-space indentation only for those two
+captured files. transition-statuses.json is explicitly synthetic, derived for
+1/2/3/4/5/13(OldStatus4)/0/99 with separately derived summary metadata.
+
+`node --test apps/api/test/uniship-fixtures.test.cjs` joins existing native
+`test/**/*.test.cjs` discovery and pnpm test. It recursively checks every fixture
+file (including README/configuration) for credential/analytics/old-account markers,
+phone-shaped digits and exact private contact keys; no raw offending value is
+printed on failure. It checks source byte hashes and derived-case field/type
+preservation. UNISHIP_FIXTURE_DIRECTORY can select an isolated temporary copy for
+negative verification: append the documented test auth marker there, require a
+nonzero exit, then delete the copy and rerun clean fixtures. Original captures
+never change for this negative test. Tokens/cookies, owner personal endpoints,
+provider credentials and live network access are excluded.
+
+[Portal API contract](../integrations/uniship-portal-api.md) owns confirmed/assumed/
+unknown mappings. ADR007 records the owner authorization amendment; the production
+external-request hard-close and empty Shipment capability registry remain intact.
+Fixture PASS does not certify live API conformance or open an activation gate.
+
+NEXORA-054 review correction strengthens that same scanner with explicit
+credential-property names after case and underscore/hyphen/whitespace normalization.
+Access/refresh tokens, password/client secret/API key, authorization/cookie and
+common session/authentication secret keys are forbidden even when null or empty;
+no captured fixture requires an exception. Preserved FakeCustomerName/Address/Phone
+wire fields accept null only. Exact contact keys remain forbidden. These are
+JSON-property-aware rules, not blanket README word bans or a replacement for the
+unchanged raw marker checks. Ordinary tokenCount, passwordPolicy, pagination-token
+and status metadata do not match the explicit credential names.
+
+Regression cases A–E use generated temporary nested JSON trees, never captured
+JSON mutation: access token; cookie/auth headers; nested refresh token; grouped and
+isolated personal fields; allowed null-only fields. Further cases cover key casing/
+separators, null/empty credential values, nested arrays/decoded keys and legacy
+markers. Rejected-data diagnostics contain only a relative fixture path, category
+and canonical known field identifier; tests verify injected values are absent.
+Temporary trees are removed through native test cleanup even after a failure.
+The fixture README distinguishes authorized unchanged public record metadata from
+redacted personal values; the scanner does not anonymize IDs or timestamps.
+
+The explicit auth_header_value credential alias is covered by a test-first
+regression for populated/null/empty values, case/separator spellings and nested/
+decoded JSON keys. Existing tokenCount, nextPageToken, passwordPolicy,
+authorizationStatus and sessionStatus positive cases remain. The scanner does not
+claim general secret/PII detection: unknown aliases, opaque encodings and embedded
+JSON strings still require manual provenance/redaction review. No raw source JSON
+is rewritten. Claim lifecycle captures and future adapter verification are separate
+from these offline fixture hygiene assertions.

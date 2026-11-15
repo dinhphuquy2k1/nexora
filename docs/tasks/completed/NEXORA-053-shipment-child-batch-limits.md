@@ -1,8 +1,8 @@
 # NEXORA-053 — Shipment child snapshot bounds and batched writes
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -208,3 +208,22 @@ contract/engine/registration drift. No concrete remaining P1/P2 in self-review.
 Independent reviewer unavailable in this thread; self-review is not independent
 approval and owner review remains. Exact-head hosted results will be recorded in
 PR description via gh api without an evidence-only commit/CI SHA loop. No merge.
+
+## Closure under §1.7 — NEXORA-054
+
+Delivered by PR #52. Final-head hosted gates passed on
+d0257e5e5a60fec63fb1344cf9ee15c3aed315e0. Closed in the first commit of
+NEXORA-054 under §1.7. Selected incoming limits50 charges/500 items/4 milestones;
+issue #50 closed by the merge. Snapshot and all RED/FAIL history remain intact.
+
+| Claim                       | Evidence                                                                                                                                                                                                                                                                                                                                                                                                               | Date       | Result |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main              | PR #52 merged2026-11-15T03:47:39Z; merge2fe0016b63c1c2c3028d806882dec8541735fa9f; issue #50 CLOSED2026-11-15T03:47:41Z.                                                                                                                                                                                                                                                                                                | 2026-11-15 | PASS   |
+| Final-head hosted gates     | HEADd0257e5e5a60fec63fb1344cf9ee15c3aed315e0, checkout merge6997cb912108d2a84f66fffb958a11404f77e419; Preflight43670798556/job132680156787 attempt1 PASS; Sync Targeted43670798507/job132680155671 attempt1 PASS (26 unit/56 PostgreSQL tests); Foundation43670798533 attempt2/job132683707319 PASS03:20:54–03:37:47Z, steps4–10 all PASS. https://github.com/dinhphuquy2k1/nexora/actions/runs/43670798533/attempts/2 | 2026-11-15 | PASS   |
+| Final full-page capacity    | 100 shipments ×50/500/4, PostgreSQL17.11. Local first/changed/identical2037.342/2611.487/7.414ms; Sync Targeted1458.087/1897.146/3.366ms; final Foundation restricted-worker1408.596/1752.114/2.935ms (4 Intel Xeon6975P-C CPUs).600/600/0 child writes, no item-limit fallback.                                                                                                                                       | 2026-11-15 | PASS   |
+| Retained Foundation failure | Foundation43670798533 attempt1/job132680155707 steps4–7 PASS;8 FAIL at03:19:39Z:PUBLIC_HTTPS_SMOKE_FAILED / ADMIN_BROWSER_PENDING_MFA / REQUEST_TIMEOUT;9–10 skipped. One owner-authorized Rule A failed-job retry subsequently passed without code changes. No root-cause/flake claim.                                                                                                                                | 2026-11-15 | FAIL   |
+
+Documentation, contracts, requested local checks and full host quality passed;
+PR description retains exact-head CI chronology and all three Foundation capacity
+samples. No independent review approval or live capability activation is claimed.
+Owner-controlled merge has now occurred; no implementation changes are made here.
