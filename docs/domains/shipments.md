@@ -79,18 +79,27 @@ warning for mapping work. Do not use NEEDS_REVIEW merely for an unknown code;
 that outcome requires a human business decision. No invented status, cancellation
 or return mapping, money, exchange rate or provider timestamp fallback.
 
-### Uniship mapping — PROVISIONAL
+### Uniship mapping — confirmed customer-portal contract
 
-This is based on the interface labels only. **Original codes are not verified**;
-the table does not establish an authorized adapter or a source code dictionary.
+The [confirmed portal status table](../integrations/uniship-portal-api.md#confirmed-uniship-status-mapping)
+supersedes the earlier UI-label-only PROVISIONAL dictionary for codes1–5 and13.
+Evidence is the owner's status-filter observations captured/reported2026-11-15;
+retained real JSON has Status1, while additional status fixtures are explicitly
+derived. Status0 remains UNKNOWN with unverified meaning; other codes map UNKNOWN
+with a fixed safe warning. This is a documented future mapping, not a production
+adapter/registration or live activation.
 
-| Observed UI label | Planned logistics_stage |
-| ----------------- | ----------------------- |
-| Đang đến kho gửi  | TO_ORIGIN_WAREHOUSE     |
-| Đã về kho gửi     | AT_ORIGIN_WAREHOUSE     |
-| Đang về kho nhận  | TO_DEST_WAREHOUSE       |
-| Đã về kho nhận    | AT_DEST_WAREHOUSE       |
-| Đã giao hàng      | DELIVERED               |
+Uniship uses Status13 in place of a physical stage to express a claim. Set
+provider_claim_status="13"; use mapped OldStatus when it is1..5, otherwise retain
+the previously stored Nexora logistics_stage, otherwise UNKNOWN for a new shipment.
+Status other than13 clears provider_claim_status to null. OldStatus and claim-end
+semantics still need a real claim example. Existing claim=open/count availability
+and Retail disabled disputed tab remain unchanged by this documentation task.
+
+Uniship service flags IsGuarantee, IsCheck, IsFragileGoods and IsFoam are independent
+of fees. Current Nexora flags remain provisionally fee-derived; a following task
+will replace that representation with shipment_services. No schema or read contract
+change occurs here; fragile→wood-packing meaning and fee currencies remain assumptions.
 
 ### Retail tabs are presentation state
 
@@ -292,21 +301,41 @@ Nexora business write commands are later work.
 
 ## Ten Uniship verifications before an adapter
 
-1. Full original status-code catalog and exact mappings.
-2. Whether claims are a status or an independent flag, including open semantics.
-3. Stable source identity key and its uniqueness scope.
-4. Incremental sync support (updated_at/cursor) and ordering contract.
-5. Fee detail, currencies, exchange rates and rate timestamps.
-6. Official API access permission and allowed use/storage scope.
-7. Cancellation, return and exceptional flows.
-8. Warehouse milestones and destination warehouse name.
-9. The list of products/items in a parcel, including per-product value/currency
-   when supplied and the actual maximum charge/item line counts per parcel.
-10. Whether the four services are fee rows or separate flags; current API flags
-    provisionally derive only from INSURANCE/COUNTING/WOOD_PACKING/BUBBLE_WRAP rows.
+The [portal contract and evidence ledger](../integrations/uniship-portal-api.md)
+distinguishes confirmed observations, assumptions and unknowns. Retained captures
+and synthetic cases have separate provenance; no live activation is implied.
 
-Until verified, mappings remain PROVISIONAL and production capabilities remain
-unregistered. UI fixtures and passing synthetic tests do not supply API rights.
+1. **Answered for1–5 and13:** original codes and tab mappings owner-confirmed by
+   status filters; Status0 meaning, unfamiliar/cancelled/returned codes unresolved.
+2. **Partly answered:** Status13 replaces the physical stage and signals a claim;
+   preserve stage under the ordered OldStatus/prior-stage rule. OldStatus meaning
+   and claim completion still need a real claim shipment.
+3. **Observed form answered:** numeric ID is the source-key candidate under
+   uniship-parcel-v1; stability/uniqueness through resync and scope remain assumed.
+4. **FULL only:** page starts1; owner tested rowsPerPage50 and100, select100 for
+   future sync. Captured page uses15. Non-equal filters, incremental ordering and
+   update/watermark semantics remain unverified.
+5. **Unresolved:** exact unit-price/value candidates, currencies of each fee/total,
+   exchange-rate effective time and unsupported/null fee semantics.
+6. **Owner-authorized read scope answered:** ADR007 dated NEXORA-054 amendment
+   records own-account portal access and automatic encrypted-password login;
+   hard-close and remaining auth/live gates stay unchanged.
+7. **Unresolved:** cancellation, return and exceptional flows.
+8. **Partly answered:** ChinaStoreID resolves origin name via chinaStores;
+   ReceivePlaceName supplies destination directly, not a ReceivePlaceID join.
+   StoreCNExDate versus StoreCNExportDate and timezone remain unresolved.
+9. **Product shape answered:** ProductName is a scalar string (one item line when
+   nonempty), not an observed product array. Quantity/per-item value mapping and
+   actual maximum charge/item rows per parcel remain unverified; ProductNumber,
+   NumberOfPack versus RealNumberOfPack meanings need confirmation.
+10. **Separate flags answered:** services use IsGuarantee/IsCheck/IsFragileGoods/IsFoam,
+    not fee presence. Fragile means wood packing is still an assumption; the future
+    shipment_services task must preserve this distinction. Current API flags still
+    derive from INSURANCE/COUNTING/WOOD_PACKING/BUBBLE_WRAP fees until then.
+
+Confirmed status codes and owner authorization do not settle the remaining
+[unknowns and guessing risks](../integrations/uniship-portal-api.md#unknowns-and-the-consequence-of-guessing).
+Production capabilities remain unregistered and Carrier live traffic remains closed.
 
 ## Implementation roadmap
 
@@ -329,8 +358,9 @@ Customer Sync is not a prerequisite to Uniship Shipment Sync or Shipment Core.
 Future providers may support CUSTOMER, SHIPMENT or both through independent
 static pairs; any provider-specific coordinated ordering needs its own evaluation.
 No scheduler/worker per type, implicit external Customer matching or flag-only
-activation is introduced. All first-scope mappings remain PROVISIONAL until
-original provider codes and official rights are verified.
+activation is introduced. The NEXORA-054 portal contract confirms the owner-reported status dictionary and
+read-access scope; unresolved field semantics and remaining live gates still block
+activation. No production mapper or adapter is added by that documentation task.
 
 ## Core implementation contract — NEXORA-050
 

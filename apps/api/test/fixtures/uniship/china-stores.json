@@ -1,0 +1,178 @@
+{
+    "status": 200,
+    "message": "Success",
+    "data": [
+        {
+            "ID": 15,
+            "Name": "Kho Hà Nội",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 0.0
+        },
+        {
+            "ID": 16,
+            "Name": "Kho Hồ Chí Minh",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 0.0
+        },
+        {
+            "ID": 6,
+            "Name": "Kho Thư tín HCM",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 5,
+            "Name": "Kho Lô Đông Hưng 2",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 3,
+            "Name": "Kho Đông Hưng (cũ)",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 18,
+            "Name": "Kho Tiểu Ngạch Đông Hưng",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 19,
+            "Name": "Kho TMĐT (3-4 ngày-Không VAT)",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 0.0
+        },
+        {
+            "ID": 24,
+            "Name": "Kho Đông Hưng 2",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 2,
+            "Name": "Kho Hà Nội (Nhanh)",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 20,
+            "Name": "Chính ngạch đường bộ (Có VAT)",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 0.0
+        },
+        {
+            "ID": 1,
+            "Name": "Kho Thư tín HN",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 13,
+            "Name": "Kho Tiểu Ngạch Bằng Tường",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 0.0
+        },
+        {
+            "ID": 9,
+            "Name": "Kho Hà Nội (Tiết kiệm)",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 10,
+            "Name": "Kho trung chuyển Quảng Châu",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 11,
+            "Name": "Kho Hồ Chí Minh (Tiết kiệm)",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 12,
+            "Name": "Kho Kuaidi Đông Hưng",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 14,
+            "Name": "Kho Hồ Chí Minh (Nhanh)",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 17,
+            "Name": "Kho Đông Hưng Nhanh",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 21,
+            "Name": "Kho Hải Phòng",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 22,
+            "Name": "",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 23,
+            "Name": "",
+            "StoreType": 2,
+            "CountryCode": "V",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 25,
+            "Name": "Kho chính ngạch Quảng Châu ",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 26,
+            "Name": "Kho chính ngạch Bằng Tường 2",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": 1.0
+        },
+        {
+            "ID": 27,
+            "Name": "Chính ngạch đường biển (Có VAT)",
+            "StoreType": 1,
+            "CountryCode": "C",
+            "IsHidden": null
+        }
+    ],
+    "total": 24,
+    "offset": 0,
+    "rowsPerPage": 10000000,
+    "summary": null
+}

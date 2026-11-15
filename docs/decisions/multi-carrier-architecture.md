@@ -66,7 +66,7 @@ Nexora is actively under development and has **zero real production users or leg
      3. Exact error codes and HTTP status for expired or invalid tokens.
      4. Semantics of `is_verified` and any account verification flags.
      5. Token time-to-live (TTL) and confirmation of whether a token refresh endpoint exists (do NOT assume token refresh exists; if absent, automated re-login via encrypted password is used).
-     6. Rate limits, concurrency limits, and terms for automated re-login using persisted credentials.
+     6. Rate limits, concurrency limits, and terms for automated re-login using persisted credentials. **ĐÃ XÁC NHẬN / CONFIRMED2026-11-15** for the owner-scoped portal authorization and Nexora local policy in the [NEXORA-054 amendment](#owner-authorization-for-uniship-customer-portal-access--2026-11-15-nexora-054). This does not open the live gate; points1–5 retain their existing status.
      - _Mock Adapter Rule_: PR 4 development and automated CI tests proceed using a local mock adapter until the live merge gate criteria are fulfilled.
 
 7. **ADMIN TOTP Multi-Factor Authentication (PR 6)**:
@@ -255,3 +255,44 @@ Enrollment and verification lock users before children, use current clock/window
 For NEXORA-024, the owner approved a single maintained Linux VPS/host with Docker Compose, standard Nginx TLS/rate limiting and separate Certbot HTTP-01 issuance/renewal under host operator control. Only ingress80/443 are public; Web/API/PostgreSQL remain unpublished on separated ingress/internal backend networks. Trust is limited to explicit proxy addresses; ingress overwrites client forwarding metadata. No Docker socket or public dashboard. A different load balancer/CDN/topology requires a fresh trust review. This clarification does not authorize exposing the current workspace or invent a domain.
 
 The owner has no selected domain/DNS or actual deployment host yet. Their DNS/certificate/renewal/firewall/host NTP/backup gates remain NOT VERIFIED. Disposable HTTPS integration is separate evidence, never production activation. Existing LOCAL default remains compatible. Public profile requires canonical HTTPS origin and explicit Host/Origin/proxy configuration, Secure cookies, actual mandatory global ADMIN+MFA enforcement and read-only runtime-role verification that all ACTIVE ADMIN users have local credentials, enrollment and readable Identity ciphertext. No toggle can disable MFA; startup failure does not modify credentials/sessions. Future admin Public handlers remain behind the global boundary. Existing cookie paths, separate logout/cancel and all approved custody contracts remain unchanged. See canonical [Deployment](../operations/deployment.md), [Configuration](../operations/configuration.md) and NEXORA-024 for exact operations/evidence.
+
+## Owner authorization for Uniship customer-portal access — 2026-11-15 (NEXORA-054)
+
+The owner confirms Uniship has permitted automated access using the owner's own
+account through the kh.uniship.vn customer-portal APIs, including automatic password
+login using the encrypted password retained in carrier_connection_secrets. This
+records the owner's authorization statement, not a provider contract independently
+fetched or signed by this task. It supersedes the earlier NEXORA-018 UNVERIFIED
+permission status only within this bounded account/read scope; historical text and
+implementation evidence above remain preserved.
+
+Authorized endpoints are POST /client/api-token-auth/, POST /client/api-token-verify/,
+GET /client/api/transition/ (retail/e-commerce parcels), and GET /client/api/chinaStores/.
+Do not use /client/api/customers/{id}: account-owner personal data is unnecessary
+for Shipment. No writes, other accounts, endpoints or broader scraping are authorized.
+The observed contract, confidence ledger and owner-redacted fixture provenance are
+owned by [Uniship portal API](../integrations/uniship-portal-api.md).
+
+Uniship has not communicated numerical request/concurrency limits. Nexora's agreed
+local policy for the future activated adapter is at most1 request per second per
+connection, default sync interval not below60 minutes, and backoff on429/5xx.
+These are self-imposed safeguards, not a provider-published quota or SLA; existing
+production budgets/configuration are not changed by this documentation task.
+A Uniship stop request or contract drift (invalid envelope or widespread unfamiliar
+status codes) requires disabling the capability and review.
+
+Realistic Uniship Live Merge Gate point6 is **ĐÃ XÁC NHẬN** under these owner-set
+terms. Points1–5 retain their existing status and any dated clarifications above;
+this authorization does not promote them or independently verify token TTL/error
+semantics. The production external-request hard-close remains in force, including
+with runtime opt-in. No Carrier live flag, adapter/Sync capability registration,
+real HTTP request or production source change occurs in NEXORA-054. Open the gate
+only in a separate real-environment activation task after fixture-backed adapter
+verification and the remaining gates; passing fixture tests alone cannot do so.
+
+Security custody: any token or cookie that appeared outside the system during
+DevTools capture must be invalidated by changing the Uniship account password.
+Never retain these credentials in Git or CI output. This task stores only the
+owner-redacted response bodies and does not perform or claim completion of password
+rotation. Carrier encryption/audit-before-decrypt/identity coherence and independent
+Nexora sessions remain unchanged.

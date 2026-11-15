@@ -937,3 +937,30 @@ physical child writes; a changed root with identical children separately forces
 the conditional upsert path and proves unchanged IDs/xmin. This synthetic capacity
 test never enables provider capabilities. Retain failed measurements and machine
 provenance; do not increase timeouts or weaken the acceptance bound.
+
+## Uniship customer-portal contract fixtures — NEXORA-054
+
+apps/api/test/fixtures/uniship contains owner-redacted DevTools captures from
+2026-11-15, not live test calls. transition-page.json and china-stores.json are
+byte-preserved owner uploads; README records endpoints, capture time, redactions,
+warehouse-field minimization and SHA-256. Captured numbers stay JSON numbers with
+raw0.0 spellings; nulls, key order, envelopes and warehouse-name whitespace remain.
+A local formatter override preserves four-space indentation only for those two
+captured files. transition-statuses.json is explicitly synthetic, derived for
+1/2/3/4/5/13(OldStatus4)/0/99 with separately derived summary metadata.
+
+`node --test apps/api/test/uniship-fixtures.test.cjs` joins existing native
+`test/**/*.test.cjs` discovery and pnpm test. It recursively checks every fixture
+file (including README/configuration) for credential/analytics/old-account markers,
+phone-shaped digits and exact private contact keys; no raw offending value is
+printed on failure. It checks source byte hashes and derived-case field/type
+preservation. UNISHIP_FIXTURE_DIRECTORY can select an isolated temporary copy for
+negative verification: append the documented test auth marker there, require a
+nonzero exit, then delete the copy and rerun clean fixtures. Original captures
+never change for this negative test. Tokens/cookies, owner personal endpoints,
+provider credentials and live network access are excluded.
+
+[Portal API contract](../integrations/uniship-portal-api.md) owns confirmed/assumed/
+unknown mappings. ADR007 records the owner authorization amendment; the production
+external-request hard-close and empty Shipment capability registry remain intact.
+Fixture PASS does not certify live API conformance or open an activation gate.

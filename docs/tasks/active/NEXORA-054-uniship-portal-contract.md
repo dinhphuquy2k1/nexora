@@ -1,8 +1,8 @@
 # NEXORA-054 — Uniship customer-portal contract and redacted fixtures
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -114,7 +114,42 @@ mapping, confidence/unknown ledger and fixture provenance/hygiene.
 
 ## Evidence
 
-| Claim                                    | Evidence                                                                                                                                                                                                                  | Date       | Result |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
-| Initial task structure                   | docs:check FAIL because NOT VERIFIED task lacked the required canonical Evidence table. Rule A adds this table in the mutable task; frozen snapshot unchanged.                                                            | 2026-11-15 | FAIL   |
-| Read-only source and boundary inspection | Main baseline2fe0016b63c1c2c3028d806882dec8541735fa9f; task054 vacant; PR52 merged and issue50 closed; owner-supplied JSON/README captured2026-11-15, preliminary forbidden-marker scan clean; live hard-close unchanged. | 2026-11-15 | PASS   |
+| Claim                                    | Evidence                                                                                                                                                                                                                                                                                                                                                | Date       | Result |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Initial task structure                   | docs:check FAIL because NOT VERIFIED task lacked the required canonical Evidence table. Rule A adds this table in the mutable task; frozen snapshot unchanged.                                                                                                                                                                                          | 2026-11-15 | FAIL   |
+| Read-only source and boundary inspection | Main baseline2fe0016b63c1c2c3028d806882dec8541735fa9f; task054 vacant; PR52 merged and issue50 closed; owner-supplied JSON/README captured2026-11-15, preliminary forbidden-marker scan clean; live hard-close unchanged.                                                                                                                               | 2026-11-15 | PASS   |
+| Owner source received and byte-preserved | Owner supplied transition-page.json, china-stores.json and README captured2026-11-15 03:49–04:07UTC. cmp against both original uploads PASS; transition SHA-256 b328f42ea39a2870623a7a1c28bc29b98ca6ae90f4690d9f06ba1cd6f4473a2c; stores SHA-256 8fd8c076a0598b8c195eefcea8747cc463b10ec5fce0731043b1350ee59cccdf. No raw credentials included.         | 2026-11-15 | PASS   |
+| Intentional fixture RED                  | Temporary copy only: appended the required auth marker to copied README; `UNISHIP_FIXTURE_DIRECTORY=/workspace/work/054-fixture-negative node --test apps/api/test/uniship-fixtures.test.cjs` returned exit1,2 PASS/1 FAIL at the hygiene assertion (authorization marker). The original JSON files were not edited and the temporary copy was deleted. | 2026-11-15 | FAIL   |
+| Fixture GREEN after negative cleanup     | `node --test apps/api/test/uniship-fixtures.test.cjs`:3/3 PASS. Recursive whole-directory raw/decoded hygiene checks, source hashes/envelopes and eight derived-status cases with all non-overridden fields/types preserved. No provider request.                                                                                                       | 2026-11-15 | PASS   |
+| Discovery                                | `node scripts/check-test-discovery.mjs "apps/api/test/**/*.test.cjs"`:37 suites, baseline36 plus the new scanner; existing pnpm test API discovery unchanged.                                                                                                                                                                                           | 2026-11-15 | PASS   |
+| Exact-number mechanism                   | Native Node24 reviver verification retains Weight0.0 and ExchangeRate3980 source text;9007199254740993.01 survives context.source and existing DecimalValue.parse(18,2) exactly. No floating-point reconstruction or production parser added.                                                                                                           | 2026-11-15 | PASS   |
+| Field inventory and scope                | All113 parcel keys inventoried:38 mapped/reviewed and75 explicitly unused, disjoint and complete. ADR007 live-gate points1–5 byte-identical to baseline. Production/packages/scripts/root formatter untouched. Scope only docs, Uniship fixture directory and scanner.                                                                                  | 2026-11-15 | PASS   |
+| Scanner lint                             | Pinned ESLint executed for apps/api/test/uniship-fixtures.test.cjs, exit0.                                                                                                                                                                                                                                                                              | 2026-11-15 | PASS   |
+| Pinned format:check                      | `npx --yes pnpm@10.34.6 format:check`; UTC2026-11-15T04:25:11.418130+00:00–2026-11-15T04:25:23.531826+00:00; exit0.                                                                                                                                                                                                                                     | 2026-11-15 | PASS   |
+| Pinned docs:check                        | `npx --yes pnpm@10.34.6 docs:check`; UTC2026-11-15T04:25:23.532091+00:00–2026-11-15T04:25:24.747675+00:00; exit0.                                                                                                                                                                                                                                       | 2026-11-15 | PASS   |
+| Pinned preflight:check                   | `npx --yes pnpm@10.34.6 preflight:check`; UTC2026-11-15T04:25:24.748488+00:00–2026-11-15T04:25:25.917682+00:00; exit0.                                                                                                                                                                                                                                  | 2026-11-15 | PASS   |
+| Pinned test:docs                         | `npx --yes pnpm@10.34.6 test:docs`; UTC2026-11-15T04:25:25.918096+00:00–2026-11-15T04:25:27.359984+00:00; exit0.                                                                                                                                                                                                                                        | 2026-11-15 | PASS   |
+| Pinned test:preflight                    | `npx --yes pnpm@10.34.6 test:preflight`; UTC2026-11-15T04:25:27.360312+00:00–2026-11-15T04:25:28.964213+00:00; exit0.                                                                                                                                                                                                                                   | 2026-11-15 | PASS   |
+| Pinned test:lint                         | `npx --yes pnpm@10.34.6 test:lint`; UTC2026-11-15T04:25:28.964522+00:00–2026-11-15T04:25:34.171750+00:00; exit0.                                                                                                                                                                                                                                        | 2026-11-15 | PASS   |
+
+Verification working tree is based on plan commit4d14bfc/main2fe0016b63c1c2c3028d806882dec8541735fa9f.
+Closure commit97f313b closes053 first. The frozen054 snapshot remains raw SHA-256
+90eabacd419af8be3b8b3de554e100ea95ec42d2fabcb2324a5587b21905d44f.
+The fixture-local formatting override preserves both captured byte streams;
+no root ignore/configuration exception is introduced. The supplied README forms
+the provenance base; derived rows never masquerade as captured observations.
+
+Bounded implementation-code-review checklist applied: ADR authorization scope is
+owner-confirmed only; hard-close/remaining gates unchanged, all requested field
+confidence and unused-field groups present, identity/claim/services/warehouse
+namespaces and future-vs-current behavior distinct. Test error output contains
+only relative filename/category, not offending data. No concrete remaining P1/P2
+in self-review; no independent approval claimed. This task neither calls Uniship
+nor performs account password rotation. Final exact-head hosted chronology will
+be recorded in PR description via gh api without an evidence-only SHA loop.
+Never merge. Fixture PASS is not live provider conformance or activation.
+
+Final local metadata simulation: validatePrTaskBinding returned valid:true and
+failures:[] for the exact five planned PR metadata lines. Complete staged allowlist
+contains14 files, only docs/**, apps/api/test/fixtures/uniship/** and the scanner.
+Both captured source hashes and the frozen snapshot hash remain unchanged.
