@@ -168,6 +168,9 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
+Owner-confirmed IsFragileGoods = Đóng gỗ and IsFoam = Bọt khí (2026-11-15),
+Retail packing-service projections and service/charge/UI correspondence table.
+
 Independent child schema/codes/grants/authoritative snapshots, additive tri-state
 reads and deprecated fee projections, minimal Retail truthfulness, genuine service
 verification/capacity and future adapter/UI prerequisites.
@@ -350,3 +353,67 @@ upgrade and existing actor exclusion/concurrent-worker behavior all passed.
 | docs-before-commit       | `npx --yes pnpm@10.34.6 docs:check`; working tree on 881633e19c0a0a6894a46d42983e6fd681a60102; 2026-11-15T08:28:27.173276+00:00; exit 0                                                                            | 2026-11-15 | PASS   |
 | preflight-before-commit  | `npx --yes pnpm@10.34.6 preflight:check`; working tree on 881633e19c0a0a6894a46d42983e6fd681a60102; 2026-11-15T08:28:29.360173+00:00; exit 0                                                                       | 2026-11-15 | PASS   |
 | sync-services-serialized | `python3 /tmp/nexora055-db-env.py npx --yes pnpm@10.34.6 exec node packages/database/test/shipment-worker.mjs`; working tree on 881633e19c0a0a6894a46d42983e6fd681a60102; 2026-11-15T08:28:06.310531+00:00; exit 0 | 2026-11-15 | PASS   |
+
+## Review delta — owner-confirmed packing labels (2026-11-15)
+
+Review delta: owner confirmed IsFragileGoods = Đóng gỗ and IsFoam = Bọt khí; Retail columns now read serviceSummary.fragileGoods/foam; docs mapping table added.
+
+BOUNDED evidence update within plan rev-2026-11-15-shipment-services-v1;
+no new snapshot. Owner directly checked the Uniship page on 2026-11-15.
+This confirmation supersedes the earlier no-equivalence assumptions in sections
+4/8 and historical browser evidence above; historical results remain unchanged.
+Documentation Impact: REQUIRED (existing canonical section applies).
+
+Pre-code inspection searched hasWoodenCrate/hasBubbleWrap, serviceSummary,
+IsFragileGoods/IsFoam and unknown labels in row.ts, Retail tests/fixtures,
+retail-browser-checks.mjs and the integration/domain/frontend docs.
+
+| Field                    | Decision                                                                                                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Retail packing-service projections and evidence                                                                                                                                                |
+| Existing implementations | apps/web/features/retail-packages/row.ts; RetailPackageTable.tsx nullable rendering; apps/web/test/retail-shipment-model.test.mjs; retail-packages.test.mjs; scripts/retail-browser-checks.mjs |
+| Domain owner             | Web owns labels/projection; existing Shipment service facts remain authoritative                                                                                                               |
+| Reuse alternatives       | Reuse existing nullable rendering and serviceSummary; reject fee fallback and code renames                                                                                                     |
+| Selected approach        | Map fragileGoods/foam directly to existing packing columns; synchronize synthetic services, browser oracle and canonical docs                                                                  |
+| Rationale                | Owner-confirmed meaning with unchanged interfaces and layout                                                                                                                                   |
+| Risks                    | Converting null to false or deriving service state from fees; preserve all three states and opposing fee flags in tests                                                                        |
+| Verification             | RED/GREEN Retail tests; format/lint/typecheck/docs/preflight; fixture build and Chromium; final-head hosted workflows                                                                          |
+
+Plan: adapt regression tests first (RED), apply the two projections (GREEN),
+update fixtures/browser assertions and canonical docs, run requested checks,
+review allowlisted diff, commit/push and await Preflight/Sync Targeted/Foundation.
+No service-code/schema/migration/grant/API/DTO/SDK or snapshot changes.
+
+### Review delta verification (2026-11-15)
+
+Commands below ran on baseline HEAD c162f489d40e8a16a2b81345c1537cce4415cc65
+plus the owner-mapping working delta, UTC 09:08–09:13. Final committed HEAD and
+hosted run provenance will be recorded in PR #54, avoiding an evidence-only SHA loop.
+
+| Claim                      | Evidence                                                                                                                                                                                                                                                                                                                                                           | Date       | Result |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| packing-mapping-RED        | `node --test apps/web/test/retail-shipment-model.test.mjs apps/web/test/retail-packages.test.mjs`; 44 PASS/1 FAIL: confirmed packing projection expected true, actual null before row.ts change                                                                                                                                                                    | 2026-11-15 | FAIL   |
+| packing-mapping-GREEN      | `node --test apps/web/test/retail-*.test.mjs`; 68/68 PASS; nine combinations of fragileGoods/foam true/false/null with opposing fee flags, rendered tick/disabled/unknown labels                                                                                                                                                                                   | 2026-11-15 | PASS   |
+| delta-format-lint          | `npx --yes pnpm@10.34.6 format:check` and `npx --yes pnpm@10.34.6 lint`; formatting and boundaries/ESLint PASS                                                                                                                                                                                                                                                     | 2026-11-15 | PASS   |
+| typecheck-missing-config   | `npx --yes pnpm@10.34.6 typecheck`; Web build prerequisite rejected missing API_INTERNAL_URL; no product change made to bypass configuration                                                                                                                                                                                                                       | 2026-11-15 | FAIL   |
+| delta-typecheck            | `API_INTERNAL_URL=http://api:4000 npx --yes pnpm@10.34.6 typecheck`; all 10 tasks PASS including actual Web/API builds                                                                                                                                                                                                                                             | 2026-11-15 | PASS   |
+| delta-docs-preflight       | `npx --yes pnpm@10.34.6 docs:check` and `npx --yes pnpm@10.34.6 preflight:check`; PASS; agent behavioral evaluation NOT RUN by static mode                                                                                                                                                                                                                         | 2026-11-15 | PASS   |
+| delta-contracts-scope      | `npx --yes pnpm@10.34.6 contracts:check` PASS; `git diff --quiet HEAD -- apps/api packages/database packages/sdk packages/shared docs/tasks/design-reviews` exit0; snapshot SHA remains a524cc5842a4a59831be7322aac0ba580968a998c3f70d4bbd387fdfae75e1a4                                                                                                           | 2026-11-15 | PASS   |
+| delta-fixture-build        | `node scripts/build-retail-fixture.mjs`; actual TSX/CSS bundle built successfully                                                                                                                                                                                                                                                                                  | 2026-11-15 | PASS   |
+| local-browser-runner-focus | Two runs of scratch CDP harness invoking unchanged `verifyRetailBrowser` with fixtureOnly=true under Chromium156.0.8078.79 failed column-picker search focus/background assertion before packing oracle; adding transition wait alone did not fix it. Scratch runner omitted canonical `Page.bringToFront`; failures retained, no production CSS/assertion changes | 2026-11-15 | FAIL   |
+
+Post-implementation self-review against the bounded delta found no out-of-scope
+code, new algorithm, fee fallback or contract drift; no independent approval is
+claimed. Owner review remains required. Layout, CSS, service codes and all DB/API
+contracts remain unchanged; provider wire semantics outside the two confirmed
+labels retain their existing prerequisites.
+
+| Claim                | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Date       | Result |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| delta-Chromium-GREEN | `node /workspace/work/pr54-retail-browser.mjs`; scratch CDP runner invokes repository `verifyRetailBrowser({fixtureOnly:true})`, Chromium156.0.8078.79, UTC09:12–09:13; PASS through reference-sample packing cell values and enabled/disabled accessible-label counts, six viewports, detail/native dialog and error states. Canonical Page.bringToFront restored; scratch runner also waits250ms before visual inspection. No repository assertion/CSS weakened | 2026-11-15 | PASS   |
+
+Browser screenshots and manifest were captured in ignored
+artifacts/pr54-owner-mapping; assertions executed, images were not manually
+reviewed. Production authenticated flows are deferred to final-head Foundation;
+this local browser run used only isolated synthetic fixtures. Previous browser
+failures remain retained above.

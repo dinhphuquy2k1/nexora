@@ -104,8 +104,19 @@ and Retail disabled disputed tab remain unchanged by this documentation task.
 
 Uniship service flags IsGuarantee, IsCheck, IsFragileGoods and IsFoam are independent
 of fees. Nexora stores provider-neutral service facts in shipment_services; only a
-future authorized adapter may map verified source semantics into them. Neither
-fragile goods → wood packing nor foam → bubble wrap is an approved equivalence.
+future authorized adapter may map verified source semantics into them.
+Owner confirmed IsFragileGoods = Đóng gỗ and IsFoam = Bọt khí directly on
+Uniship on 2026-11-15. The service/charge/UI correspondence is:
+
+| Uniship        | Mã dịch vụ    | Mã phí       | Cột UI   |
+| -------------- | ------------- | ------------ | -------- |
+| IsGuarantee    | INSURANCE     | INSURANCE    | Bảo hiểm |
+| IsCheck        | COUNTING      | COUNTING     | Kiểm đếm |
+| IsFragileGoods | FRAGILE_GOODS | WOOD_PACKING | Đóng gỗ  |
+| IsFoam         | FOAM          | BUBBLE_WRAP  | Bọt khí  |
+
+Service codes keep the provider names; charge codes keep the earlier Nexora names. Both refer to the same service; no rename is planned.
+
 Fee currencies and null/false wire semantics remain separate verification gates.
 
 ### Retail tabs are presentation state
@@ -338,9 +349,10 @@ and synthetic cases have separate provenance; no live activation is implied.
    actual maximum charge/item rows per parcel remain unverified; ProductNumber,
    NumberOfPack versus RealNumberOfPack meanings need confirmation.
 10. **Separate flags answered:** services use IsGuarantee/IsCheck/IsFragileGoods/IsFoam,
-    not fee presence. Fragile means wood packing is still an assumption; the future
-    shipment_services task must preserve this distinction. Current API flags still
-    derive from INSURANCE/COUNTING/WOOD_PACKING/BUBBLE_WRAP fees until then.
+    not fee presence. Owner confirmed IsFragileGoods = Đóng gỗ and IsFoam = Bọt khí
+    directly on Uniship on 2026-11-15 (mapping table above). Retail uses independent
+    serviceSummary facts; deprecated chargeSummary flags retain fee-presence semantics.
+    Source null/missing/false semantics and fee currencies remain verification gates.
 
 Confirmed status codes and owner authorization do not settle the remaining
 [unknowns and guessing risks](../integrations/uniship-portal-api.md#unknowns-and-the-consequence-of-guessing).
@@ -503,8 +515,8 @@ chargeSummary.hasInsurance/hasCounting/hasWoodPacking/hasBubbleWrap remain depre
 fee-presence booleans with their original meaning. Neither representation falls
 back to the other. Four page-scoped child queries share the existing locked actor
 transaction; empty pages query no children, detail authorizes its owner first.
-Retail insurance/counting use serviceSummary, with unknown distinct from false in
-accessible labels. Existing wood-packing/bubble-wrap columns show unknown because
-no approved equivalent exists. RETAIL_SERVICE_CATALOG_PRESENTATION remains NOT
+Retail insurance/counting and the owner-confirmed Đóng gỗ/Bọt khí columns use
+serviceSummary.insurance/counting/fragileGoods/foam, with unknown distinct from
+false in accessible labels. RETAIL_SERVICE_CATALOG_PRESENTATION remains NOT
 VERIFIED for a separate owner-approved column/label/detail presentation task; this
 foundation does not claim that UI redesign or any live provider integration.

@@ -113,8 +113,8 @@ export const REFERENCE_DETAILS: ShipmentDetail[] = SYNTHETIC_PACKAGES.map(
       serviceSummary: {
         insurance: p.hasInsurance,
         counting: p.hasInspection,
-        fragileGoods: null,
-        foam: null,
+        fragileGoods: p.hasWoodenCrate,
+        foam: p.hasBubbleWrap,
       },
       chargeSummary: {
         unitPrice: {
@@ -151,14 +151,24 @@ export const REFERENCE_DETAILS: ShipmentDetail[] = SYNTHETIC_PACKAGES.map(
       internalNote: null,
       services: [
         {
-          id: id(5000 + index * 2),
+          id: id(5000 + index * 4),
           serviceCode: ShipmentServiceCode.INSURANCE,
           enabled: p.hasInsurance,
         },
         {
-          id: id(5001 + index * 2),
+          id: id(5001 + index * 4),
           serviceCode: ShipmentServiceCode.COUNTING,
           enabled: p.hasInspection,
+        },
+        {
+          id: id(5002 + index * 4),
+          serviceCode: ShipmentServiceCode.FRAGILE_GOODS,
+          enabled: p.hasWoodenCrate,
+        },
+        {
+          id: id(5003 + index * 4),
+          serviceCode: ShipmentServiceCode.FOAM,
+          enabled: p.hasBubbleWrap,
         },
       ],
       charges,

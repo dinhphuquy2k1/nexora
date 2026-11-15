@@ -1100,9 +1100,8 @@ export async function verifyRetailBrowser({
         itemCount: String(source.itemCount),
         hasInsurance: source.hasInsurance ? "✓" : "—",
         hasInspection: source.hasInspection ? "✓" : "—",
-        // No approved service equivalent exists for these legacy fee-era columns.
-        hasWoodenCrate: "—",
-        hasBubbleWrap: "—",
+        hasWoodenCrate: source.hasWoodenCrate ? "✓" : "—",
+        hasBubbleWrap: source.hasBubbleWrap ? "✓" : "—",
         status:
           source.status === "disputed" ? "Chưa xác định" : source.statusText,
         totalAmountVND:
@@ -1117,18 +1116,23 @@ export async function verifyRetailBrowser({
           `reference source row ${index} ${key}`,
         );
     }
-    assert.equal(
-      await evaluate(
-        "document.querySelectorAll('tbody [aria-label=\"Chưa xác định đóng gỗ\"]').length",
-      ),
-      SYNTHETIC_PACKAGES.length,
-    );
-    assert.equal(
-      await evaluate(
-        "document.querySelectorAll('tbody [aria-label=\"Chưa xác định bọt khí\"]').length",
-      ),
-      SYNTHETIC_PACKAGES.length,
-    );
+    for (const [label, field] of [
+      ["Đóng gỗ", "hasWoodenCrate"],
+      ["Bọt khí", "hasBubbleWrap"],
+    ]) {
+      assert.equal(
+        await evaluate(
+          `document.querySelectorAll('tbody [aria-label="${label}"]').length`,
+        ),
+        SYNTHETIC_PACKAGES.filter((p) => p[field]).length,
+      );
+      assert.equal(
+        await evaluate(
+          `document.querySelectorAll('tbody [aria-label="Không ${label.toLowerCase()}"]').length`,
+        ),
+        SYNTHETIC_PACKAGES.filter((p) => !p[field]).length,
+      );
+    }
     await snapshot("reference-sample");
     assert.equal(errors.length, 0);
     assert.deepEqual(badRequests, []);

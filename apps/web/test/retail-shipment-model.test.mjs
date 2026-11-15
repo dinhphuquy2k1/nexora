@@ -255,18 +255,24 @@ test("Retail response guards reject malformed nested DTOs and unavailable-claim 
   );
 });
 
-test("Retail never infers service truth from charges or unknown service codes", async () => {
+test("Retail maps confirmed packing services without inferring truth from charges", async () => {
   const { toRetailRow } = await feature("row");
-  const s = summary();
-  s.serviceSummary = {
-    insurance: null,
-    counting: null,
-    fragileGoods: true,
-    foam: true,
-  };
-  const row = toRetailRow(s);
-  assert.equal(row.hasInsurance, null);
-  assert.equal(row.hasInspection, null);
-  assert.equal(row.hasWoodenCrate, null);
-  assert.equal(row.hasBubbleWrap, null);
+  for (const fragileGoods of [true, false, null]) {
+    for (const foam of [true, false, null]) {
+      const s = summary();
+      s.serviceSummary = {
+        insurance: null,
+        counting: null,
+        fragileGoods,
+        foam,
+      };
+      s.chargeSummary.hasWoodPacking = fragileGoods !== true;
+      s.chargeSummary.hasBubbleWrap = foam !== true;
+      const row = toRetailRow(s);
+      assert.equal(row.hasInsurance, null);
+      assert.equal(row.hasInspection, null);
+      assert.equal(row.hasWoodenCrate, fragileGoods);
+      assert.equal(row.hasBubbleWrap, foam);
+    }
+  }
 });

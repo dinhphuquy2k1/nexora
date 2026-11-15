@@ -487,10 +487,11 @@ tracking cells retain their existing shadow separation.
 
 ## Retail authoritative service reads — NEXORA-055
 
-Retail uses generated SDK serviceSummary for insurance/counting, never deprecated
+Retail uses generated SDK serviceSummary for insurance/counting and the
+owner-confirmed Đóng gỗ/Bọt khí labels (fragileGoods/foam; 2026-11-15), never deprecated
 fee-presence flags. Unknown remains nullable and has a distinct accessible label
-from explicit false. Wood-packing and bubble-wrap columns retain their layout but
-show unknown: FRAGILE_GOODS and FOAM have no approved equivalence to those labels.
+from explicit false. Wood-packing and bubble-wrap columns retain their layout and
+render true/false/null from the corresponding independent service facts.
 Strict response guards validate nullable summary booleans and detail service codes,
 booleans and uniqueness. RETAIL_SERVICE_CATALOG_PRESENTATION is a named NOT VERIFIED
 follow-up for owner-approved catalogue labels/columns/detail presentation; no page

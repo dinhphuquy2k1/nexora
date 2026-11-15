@@ -33,9 +33,8 @@ export function toRetailRow(s: ShipmentSummary): RetailRow {
     valueCNY: formatMoney(s.declaredValue, s.declaredCurrency),
     hasInsurance: s.serviceSummary.insurance,
     hasInspection: s.serviceSummary.counting,
-    // These legacy columns have no approved equivalent in the service catalogue.
-    hasWoodenCrate: null,
-    hasBubbleWrap: null,
+    hasWoodenCrate: s.serviceSummary.fragileGoods,
+    hasBubbleWrap: s.serviceSummary.foam,
     status: stageToTab(s.logisticsStage),
     statusText: stageLabel(s.logisticsStage),
     originWarehouseName: s.originWarehouse ?? "—",
