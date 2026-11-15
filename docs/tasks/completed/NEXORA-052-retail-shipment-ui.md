@@ -1,8 +1,8 @@
 # NEXORA-052 — Retail Shipment API integration
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -497,3 +497,32 @@ pushed; final result is recorded in PR metadata without another evidence-only SH
 | Claim                                 | Evidence                                                                                                                                                                                                                                                                                 | Date       | Result |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Root pnpm test includes nested loader | `API_INTERNAL_URL=http://127.0.0.1:4000 NODE_ENV=production npx --yes pnpm@10.34.6 test`, UTC02:16:26–02:17:36Z exit0:discovery18 suites; scripts141/141 (including all3 compiler cases), Web289/289, API216/216, UI37/37, database6/6; Turbo8/8 successful (3 prerequisite cache hits). | 2026-11-15 | PASS   |
+
+## Closure under §1.7 — NEXORA-053
+
+Delivered by PR #51. Final-head hosted gates passed on
+c5152a6b7c02bb1e4a1970a494b62cc0730ba817. Closed in the first commit of
+NEXORA-053 under §1.7. Historical FAIL rows and immutable snapshots remain intact.
+
+### Review delta completion
+
+Commit6a30e82 uses formatWeight with an ungrouped integer, dot decimal separator,
+at least two fractional digits and no loss of significant data/rounding. Currencies
+other than CNY/VND use CNY numeric punctuation followed by their currency code.
+Units appear only with available values; synthetic fixtures match database scale.
+Commitc5152a6 supplies TypeScript fileName in the fixture loader so generic arrows
+in .ts are not parsed as JSX, guards mobile/pagination unit suffixes, and adds
+“Đang hiển thị dữ liệu của lần tải trước.” to reload errors with retained rows.
+The earlier Review delta retains RED/GREEN and the complete implementation audit.
+
+| Claim                   | Evidence                                                                                                                                                                                                                                                                                                                                                                                   | Date       | Result |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Merged to main          | PR #51 merged2026-11-15; merge SHA a18b19b5e9ea6ed528381293c8d9b53403304e69.                                                                                                                                                                                                                                                                                                               | 2026-11-15 | PASS   |
+| Final-head hosted gates | Final green HEAD c5152a6b7c02bb1e4a1970a494b62cc0730ba817; Preflight43667163214/job132668997894 PASS02:18:35–02:18:45Z; Foundation43667162582/job132668995517 PASS02:18:35–02:35:02Z, attempt1, steps4–10 including step7 RETAIL_DETAIL_AND_CREATE_NATIVE_DIALOG. Checkout merge439a83850b097be0a3ba35c00c05981e1d872c94. https://github.com/dinhphuquy2k1/nexora/actions/runs/43667162582 | 2026-11-15 | PASS   |
+
+Final exact-head Retail evidence artifact14143266848 has verified ZIP SHA-256
+282b79ee0ad0d1ec7284f2740db1aba507763c06aeae8912201b6d31cf9730dd;
+admin manifest132 captures, all six detail viewport dialog/fits/no-overflow checks
+PASS. Desktop1440 and mobile390 detail images manually reviewed separately.
+No supplied-reference pixel parity or owner-approval claim. Issue50 now belongs to
+NEXORA-053 and remains required before any Shipment capability registration.

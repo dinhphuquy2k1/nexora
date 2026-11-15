@@ -152,6 +152,9 @@ test(
           await worker.$disconnect();
         }
       }
+      await require("./fixtures/shipment-child-batch.cjs").verifyShipmentChildBatch(
+        { t, db, url: workerUrl },
+      );
       const makeRepo = (processor) => {
         const r = new SyncRepository(
           workerUrl,

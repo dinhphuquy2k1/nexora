@@ -2320,6 +2320,9 @@ test(
           }
         },
       );
+      await require("./fixtures/shipment-child-batch.cjs").verifyShipmentChildBatch(
+        { t, db, url: url.toString(), isolated: true },
+      );
     } finally {
       await Promise.allSettled([
         repo?.close(),

@@ -474,3 +474,86 @@ test("milestone/item strict boundaries reject invalid snapshots and money pairs"
     }),
   );
 });
+
+test("provider child limits accept exact bounds and reject one extra without restricting legacy hydration", () => {
+  const {
+    SHIPMENT_MAX_CHARGE_LINES: charges,
+    SHIPMENT_MAX_ITEM_LINES: items,
+    SHIPMENT_MAX_MILESTONES: milestones,
+  } = require("../../dist/shipment/domain/shipment");
+  assert.equal(charges, 50);
+  assert.ok([500, 250, 100].includes(items));
+  assert.equal(milestones, 4);
+  const codes = [
+    "ORIGIN_RECEIVED",
+    "ORIGIN_DISPATCHED",
+    "DEST_RECEIVED",
+    "DEST_DISPATCHED",
+  ];
+  const snapshots = {
+    charges: {
+      complete: true,
+      lines: Array.from({ length: charges }, () => line()),
+    },
+    items: {
+      complete: true,
+      lines: Array.from({ length: items }, () => ({ name: "x" })),
+    },
+    milestones: {
+      complete: true,
+      entries: codes.map((milestoneCode) => ({
+        milestoneCode,
+        occurredAt: "2026-11-15T00:00:00Z",
+      })),
+    },
+  };
+  const created = ShipmentAggregate.create(
+    scope(ownerId),
+    input(snapshots),
+    S.UNKNOWN,
+  );
+  for (const [key, snapshot] of Object.entries(snapshots)) {
+    const field = key === "milestones" ? "entries" : "lines";
+    assert.equal(created.snapshot()[key].length, snapshot[field].length);
+    invalid(() =>
+      ShipmentAggregate.create(
+        scope(ownerId),
+        input({
+          [key]: {
+            complete: true,
+            [field]: [...snapshot[field], snapshot[field][0]],
+          },
+        }),
+        S.UNKNOWN,
+      ),
+    );
+  }
+  const stored = {
+    ...created.snapshot(),
+    id: "22222222-2222-2222-2222-222222222222",
+    code: "SHP000001",
+  };
+  stored.charges = Array.from({ length: charges + 1 }, (_, i) => ({
+    ...stored.charges[0],
+    lineNo: i + 1,
+  }));
+  stored.items = Array.from({ length: items + 1 }, (_, i) => ({
+    ...stored.items[0],
+    lineNo: i + 1,
+  }));
+  const hydrated = ShipmentAggregate.hydrate(stored).snapshot();
+  assert.equal(hydrated.charges.at(-1).lineNo, charges + 1);
+  assert.equal(hydrated.items.at(-1).lineNo, items + 1);
+  invalid(() =>
+    ShipmentAggregate.hydrate({
+      ...stored,
+      items: [{ ...stored.items[0], lineNo: 32768 }],
+    }),
+  );
+  invalid(() =>
+    ShipmentAggregate.hydrate({
+      ...stored,
+      charges: [{ ...stored.charges[0], lineNo: 32768 }],
+    }),
+  );
+});
