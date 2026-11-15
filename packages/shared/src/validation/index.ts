@@ -5,3 +5,4 @@ export {
 } from "./pagination";
 export { normalizeBoundedText, normalizeRawBoundedText } from "./text";
 export { CustomerInputLimits } from "./customer-limits";
+export { isUuid } from "./uuid";

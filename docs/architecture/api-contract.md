@@ -234,4 +234,27 @@ lineNo order. Item quantity is nullable; unitValue is an exact nullable decimal 
 and currency nullable, both present or both null. Product unit values are distinct from
 freight UNIT_PRICE and parcel declaredValue; no multiplication, summation or rounding.
 All child projections preserve owner scope and run within the existing FOR UPDATE actor
-transaction. Nonempty lists use three page-ID batch queries; empty lists skip them.
+transaction. Nonempty lists use four page-ID batch queries; empty lists skip them.
+
+## Shipment service contract — NEXORA-055
+
+List/detail add required serviceSummary: insurance, counting, fragileGoods, foam,
+each boolean|null. Null is unknown; false requires an explicit persisted disabled
+fact. Detail adds ordered services entries {id,serviceCode,enabled}, using Shared
+ShipmentServiceCode in catalogue order INSURANCE, COUNTING, FRAGILE_GOODS, FOAM.
+No wire-specific Uniship keys appear in public DTOs. Legacy chargeSummary.has\*
+booleans keep their fee-presence meaning and are marked deprecated in OpenAPI.
+No fallback or monetary derivation connects the two projections. Existing clients
+retain additive compatibility; Retail's strict SDK response guards require the
+new service fields and use serviceSummary for authoritative service state.
+The detail guard requires UUID service IDs, strictly increasing catalogue order
+(any subset, including empty), and exact equality between all four summary values
+and the service collection projection. A missing entry projects null; an entry
+projects its boolean enabled value. Contradictory details fail MALFORMED_RESPONSE.
+List guards remain independent because list rows do not include service entries.
+
+The fourth child query is page-ID scoped and runs with page/count/other children
+in the same FOR UPDATE actor transaction. Empty pages skip it; detail fetches it
+only after owner-scoped authorization. HTTP error/auth/claim behavior is unchanged.
+OpenAPI and SDK are generated together; service booleans are strict and summary
+nullability is explicit. No live provider registration is added.

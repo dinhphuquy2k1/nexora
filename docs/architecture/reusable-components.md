@@ -6,9 +6,9 @@ This registry catalogues canonical, reusable technical components and shared voc
 
 ## 1. UUID Validator
 
-- **Owner Path**: `apps/api/src/common/validation/uuid.ts`
+- **Owner Path**: `packages/shared/src/validation/uuid.ts`, exported through `@nexora/shared/validation`; API callers retain the compatible `apps/api/src/common/validation/uuid.ts` re-export.
 - **Exported Contract**: `export function isUuid(value: unknown): value is string;`
-- **Intended Consumers**: All API domain modules, application input validation boundaries, controller parameters, and service layers (e.g. Customer, Carrier, Identity, future Shipments).
+- **Intended Consumers**: All API domain modules, application input validation boundaries, controller parameters, and service layers (e.g. Customer, Carrier, Identity, Shipments), plus browser response guards requiring UUID transport identifiers.
 - **Supported Behavior**:
   - Validates 8-4-4-4-12 hexadecimal groups.
   - Case-insensitive acceptance (matches both lowercase and uppercase hex characters).
@@ -19,7 +19,7 @@ This registry catalogues canonical, reusable technical components and shared voc
   - Does not generate UUIDs (UUID generation remains owned by PostgreSQL `gen_random_uuid()` or `node:crypto`).
   - Does not enforce domain-specific error mapping or lowercase normalization (callers perform their own domain error handling and `.toLowerCase()` where required).
 - **Dependency Restrictions**: Strictly zero external dependencies. Pure TypeScript.
-- **When to Reuse**: Whenever an API module needs to validate whether an unknown value or string conforms to the standard 8-4-4-4-12 UUID format.
+- **When to Reuse**: Whenever an API module or browser response guard needs to validate whether an unknown value or string conforms to the standard 8-4-4-4-12 UUID format.
 - **When NOT to Reuse**: Do not use for non-standard IDs (e.g. ULID, NanoID, sequential integers).
 
 ---

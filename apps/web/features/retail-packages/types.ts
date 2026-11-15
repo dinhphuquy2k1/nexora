@@ -41,10 +41,10 @@ export interface RetailRow {
   readonly unitPriceCNY: string;
   readonly domesticShipCNY: string;
   readonly valueCNY: string;
-  readonly hasInsurance: boolean;
-  readonly hasInspection: boolean;
-  readonly hasWoodenCrate: boolean;
-  readonly hasBubbleWrap: boolean;
+  readonly hasInsurance: boolean | null;
+  readonly hasInspection: boolean | null;
+  readonly hasWoodenCrate: boolean | null;
+  readonly hasBubbleWrap: boolean | null;
   readonly status: Exclude<RetailTabKey, "all" | "disputed"> | null;
   readonly statusText: string;
   readonly originWarehouseName: string;

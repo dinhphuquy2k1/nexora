@@ -62,3 +62,31 @@ test("Shipment child contracts expose exact nullable item values and closed summ
   assert.ok(api.paths["/api/shipments"].get.responses["422"]);
   assert.equal(api.paths["/api/shipments"].get.responses["503"], undefined);
 });
+
+test("Shipment service contract is additive, nullable and separate from legacy fees", () => {
+  const s = api.components.schemas;
+  for (const name of ["ShipmentSummaryDto", "ShipmentDetailDto"])
+    assert.ok(s[name].required.includes("serviceSummary"));
+  for (const key of ["insurance", "counting", "fragileGoods", "foam"]) {
+    assert.equal(s.ShipmentServiceSummaryDto.properties[key].type, "boolean");
+    assert.equal(s.ShipmentServiceSummaryDto.properties[key].nullable, true);
+  }
+  assert.deepEqual(s.ShipmentServiceDto.properties.serviceCode.enum, [
+    "INSURANCE",
+    "COUNTING",
+    "FRAGILE_GOODS",
+    "FOAM",
+  ]);
+  assert.equal(s.ShipmentServiceDto.properties.enabled.type, "boolean");
+  assert.notEqual(s.ShipmentServiceDto.properties.enabled.nullable, true);
+  assert.ok(s.ShipmentDetailDto.required.includes("services"));
+  for (const key of [
+    "hasInsurance",
+    "hasCounting",
+    "hasWoodPacking",
+    "hasBubbleWrap",
+  ]) {
+    assert.equal(s.ShipmentChargeSummaryDto.properties[key].deprecated, true);
+    assert.equal(s.ShipmentChargeSummaryDto.properties[key].type, "boolean");
+  }
+});

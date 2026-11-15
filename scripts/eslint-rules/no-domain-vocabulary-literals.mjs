@@ -1,5 +1,11 @@
 // Tooling vocabulary catalog; canonical runtime definitions stay with their domain/shared owners.
 const fields = {
+  serviceCode: {
+    INSURANCE: "ShipmentServiceCode.INSURANCE",
+    COUNTING: "ShipmentServiceCode.COUNTING",
+    FRAGILE_GOODS: "ShipmentServiceCode.FRAGILE_GOODS",
+    FOAM: "ShipmentServiceCode.FOAM",
+  },
   milestoneCode: {
     ORIGIN_RECEIVED: "ShipmentMilestoneCode.ORIGIN_RECEIVED",
     ORIGIN_DISPATCHED: "ShipmentMilestoneCode.ORIGIN_DISPATCHED",
@@ -97,6 +103,7 @@ function normalize(value) {
   )
     return "logisticsStage";
   if (value === "shipment_kind") return "shipmentKind";
+  if (value === "service_code") return "serviceCode";
   if (value === "milestone_code") return "milestoneCode";
   if (value === "charge_code") return "chargeCode";
   if (value === "auth_level") return "authLevel";

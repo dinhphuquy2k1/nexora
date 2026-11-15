@@ -31,3 +31,13 @@ export const ShipmentMilestoneCode = {
 } as const;
 export type ShipmentMilestoneCodeValue =
   (typeof ShipmentMilestoneCode)[keyof typeof ShipmentMilestoneCode];
+
+/** Independent optional-service facts; never inferred from monetary charges. */
+export const ShipmentServiceCode = {
+  INSURANCE: "INSURANCE",
+  COUNTING: "COUNTING",
+  FRAGILE_GOODS: "FRAGILE_GOODS",
+  FOAM: "FOAM",
+} as const;
+export type ShipmentServiceCodeValue =
+  (typeof ShipmentServiceCode)[keyof typeof ShipmentServiceCode];

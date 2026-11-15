@@ -1116,6 +1116,23 @@ export async function verifyRetailBrowser({
           `reference source row ${index} ${key}`,
         );
     }
+    for (const [label, field] of [
+      ["Đóng gỗ", "hasWoodenCrate"],
+      ["Bọt khí", "hasBubbleWrap"],
+    ]) {
+      assert.equal(
+        await evaluate(
+          `document.querySelectorAll('tbody [aria-label="${label}"]').length`,
+        ),
+        SYNTHETIC_PACKAGES.filter((p) => p[field]).length,
+      );
+      assert.equal(
+        await evaluate(
+          `document.querySelectorAll('tbody [aria-label="Không ${label.toLowerCase()}"]').length`,
+        ),
+        SYNTHETIC_PACKAGES.filter((p) => !p[field]).length,
+      );
+    }
     await snapshot("reference-sample");
     assert.equal(errors.length, 0);
     assert.deepEqual(badRequests, []);

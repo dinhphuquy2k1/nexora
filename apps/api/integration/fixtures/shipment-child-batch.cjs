@@ -19,7 +19,10 @@ const {
   loadSyncConfig,
   sourceKey,
 } = require("../../dist/sync/domain/sync-policy");
-const { LogisticsStage: S } = require("@nexora/shared/shipment");
+const {
+  ShipmentServiceCode,
+  LogisticsStage: S,
+} = require("@nexora/shared/shipment");
 const limits = require("../../dist/shipment/domain/shipment");
 const chargeLimit = limits.SHIPMENT_MAX_CHARGE_LINES ?? 50;
 const itemLimit = limits.SHIPMENT_MAX_ITEM_LINES ?? 500;
@@ -29,11 +32,17 @@ const codes = [
   "DEST_RECEIVED",
   "DEST_DISPATCHED",
 ];
-const tables = ["shipment_charges", "shipment_milestones", "shipment_items"];
+const tables = [
+  "shipment_charges",
+  "shipment_milestones",
+  "shipment_items",
+  "shipment_services",
+];
 const delegates = {
   shipmentCharge: tables[0],
   shipmentMilestone: tables[1],
   shipmentItem: tables[2],
+  shipmentService: tables[3],
 };
 async function verifyChildContext({ t, db, url, timing }) {
   const owner = await db.user.create({
@@ -129,6 +138,13 @@ async function verifyChildContext({ t, db, url, timing }) {
         providerLabel: phase ? "b" : "a",
       })),
     },
+    services: {
+      complete: true,
+      entries: Object.values(ShipmentServiceCode).map((serviceCode) => ({
+        serviceCode,
+        enabled: Boolean(phase),
+      })),
+    },
     items: {
       complete: true,
       lines: Array.from({ length: count }, () => ({
@@ -209,6 +225,7 @@ async function verifyChildContext({ t, db, url, timing }) {
           checkWrites(await apply([record("shape", forced)]), 2);
           assert.deepEqual(await versions(), before);
           const middle = globalThis.structuredClone(forced);
+          middle.services.entries[2].enabled = true;
           middle.charges.lines[2].amount = "3.00";
           middle.items.lines[2].name = "changed-middle";
           middle.milestones.entries[2].occurredAt = "2026-11-15T02:00:00Z";
@@ -238,12 +255,124 @@ async function verifyChildContext({ t, db, url, timing }) {
                 charges: { complete: true, lines: [] },
                 milestones: { complete: true, entries: [] },
                 items: { complete: true, lines: [] },
+                services: { complete: true, entries: [] },
               }),
             ]),
             1,
           );
           for (const rows of Object.values(await versions()))
             assert.equal(rows.length, 0);
+        },
+      );
+    if (!timing)
+      await t.test(
+        "service snapshots on legacy roots, disabled facts, mixed rejection and service-write rollback",
+        async () => {
+          await apply([
+            record("service-legacy", { trackingCode: "legacy-service" }),
+          ]);
+          const root = await db.shipment.findFirstOrThrow({
+            where: { ownerUserId: owner.id, trackingCode: "legacy-service" },
+          });
+          assert.equal(
+            await db.shipmentService.count({ where: { shipmentId: root.id } }),
+            0,
+          );
+          await apply([
+            record("service-legacy", {
+              services: {
+                complete: true,
+                entries: [
+                  { serviceCode: ShipmentServiceCode.INSURANCE, enabled: true },
+                ],
+              },
+            }),
+          ]);
+          const enabled = await db.shipmentService.findFirstOrThrow({
+            where: { shipmentId: root.id },
+          });
+          await apply([
+            record("service-legacy", {
+              services: {
+                complete: true,
+                entries: [
+                  {
+                    serviceCode: ShipmentServiceCode.INSURANCE,
+                    enabled: false,
+                  },
+                ],
+              },
+            }),
+          ]);
+          const disabled = await db.shipmentService.findFirstOrThrow({
+            where: { shipmentId: root.id },
+          });
+          assert.equal(disabled.id, enabled.id);
+          assert.equal(disabled.enabled, false);
+          const result = await apply([
+            record("service-invalid", {
+              trackingCode: "must-not-exist",
+              services: {
+                complete: true,
+                entries: [
+                  { serviceCode: ShipmentServiceCode.FOAM, enabled: "false" },
+                ],
+              },
+            }),
+            record("service-valid", {
+              trackingCode: "service-valid",
+              services: {
+                complete: true,
+                entries: [
+                  { serviceCode: ShipmentServiceCode.FOAM, enabled: true },
+                ],
+              },
+            }),
+          ]);
+          assert.equal(result.state.rejected_count, 1);
+          assert.equal(result.state.applied_count, 1);
+          assert.equal(
+            await db.shipment.count({
+              where: { ownerUserId: owner.id, trackingCode: "must-not-exist" },
+            }),
+            0,
+          );
+          const before = await versions();
+          const beforeRoot = await db.shipment.findUniqueOrThrow({
+            where: { id: root.id },
+          });
+          await db.$executeRawUnsafe(
+            "CREATE FUNCTION shipment_service_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic service rollback'; END $$",
+          );
+          await db.$executeRawUnsafe(
+            "CREATE TRIGGER shipment_service_failure BEFORE INSERT OR UPDATE ON shipment_services FOR EACH ROW EXECUTE FUNCTION shipment_service_failure()",
+          );
+          try {
+            await assert.rejects(
+              apply([
+                record("service-legacy", {
+                  ...payload(1, 1, 1),
+                  trackingCode: "must-rollback-service",
+                }),
+              ]),
+              (e) =>
+                /P0001/.test(e.message) &&
+                /synthetic service rollback/.test(e.message),
+            );
+            assert.deepEqual(await versions(), before);
+            assert.deepEqual(
+              await db.shipment.findUniqueOrThrow({ where: { id: root.id } }),
+              beforeRoot,
+            );
+          } finally {
+            await db.$executeRawUnsafe(
+              "DROP TRIGGER shipment_service_failure ON shipment_services",
+            );
+            await db.$executeRawUnsafe(
+              "DROP FUNCTION shipment_service_failure()",
+            );
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE owner_user_id=${owner.id}::uuid AND status='RUNNING'`;
+          }
         },
       );
     if (!timing)
@@ -290,7 +419,7 @@ async function verifyChildContext({ t, db, url, timing }) {
               100 *
                 (table === tables[0]
                   ? chargeLimit
-                  : table === tables[1]
+                  : table === tables[1] || table === tables[3]
                     ? 4
                     : itemLimit),
             );
@@ -300,7 +429,7 @@ async function verifyChildContext({ t, db, url, timing }) {
               100 *
                 (table === tables[0]
                   ? chargeLimit
-                  : table === tables[1]
+                  : table === tables[1] || table === tables[3]
                     ? 4
                     : itemLimit),
             );
@@ -317,6 +446,7 @@ async function verifyChildContext({ t, db, url, timing }) {
               charges: chargeLimit,
               items: itemLimit,
               milestones: 4,
+              services: 4,
               firstMs: +first.ms.toFixed(3),
               changedMs: +changed.ms.toFixed(3),
               identicalMs: +identical.ms.toFixed(3),
@@ -341,8 +471,8 @@ async function verifyChildContext({ t, db, url, timing }) {
             }),
             0,
           );
-          assert.equal(first.writes.length, 600);
-          assert.equal(changed.writes.length, 600);
+          assert.equal(first.writes.length, 800);
+          assert.equal(changed.writes.length, 800);
           assert.ok(
             first.ms <= 7500,
             `first apply ${first.ms.toFixed(3)}ms exceeds7500ms`,

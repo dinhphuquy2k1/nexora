@@ -3,6 +3,7 @@ import {
   LogisticsStage,
   ShipmentChargeCode as C,
   ShipmentMilestoneCode as M,
+  ShipmentServiceCode as S,
   type LogisticsStageCode,
 } from "@nexora/shared/shipment";
 import { UserStatus } from "../../identity/domain/user-policy";
@@ -16,13 +17,15 @@ import {
   type ShipmentHistoryView,
   type ShipmentMilestoneView,
   type ShipmentItemView,
+  type ShipmentServiceView,
+  type ShipmentServiceSummary,
   type ShipmentChargeSummary,
   type ShipmentMilestoneSummary,
   type Pagination,
 } from "../application/shipment-read.port";
 type RootSummary = Omit<
   ShipmentSummary,
-  "chargeSummary" | "milestoneSummary" | "itemSummary"
+  "chargeSummary" | "milestoneSummary" | "itemSummary" | "serviceSummary"
 >;
 type ChargeGroup = {
   shipmentId: string;
@@ -61,6 +64,18 @@ function chargeSummary(
     hasCounting: has(C.COUNTING),
     hasWoodPacking: has(C.WOOD_PACKING),
     hasBubbleWrap: has(C.BUBBLE_WRAP),
+  };
+}
+function serviceSummary(
+  rows: Pick<ShipmentServiceView, "serviceCode" | "enabled">[],
+): ShipmentServiceSummary {
+  const value = (code: string) =>
+    rows.find((row) => row.serviceCode === code)?.enabled ?? null;
+  return {
+    insurance: value(S.INSURANCE),
+    counting: value(S.COUNTING),
+    fragileGoods: value(S.FRAGILE_GOODS),
+    foam: value(S.FOAM),
   };
 }
 function milestoneSummary(
@@ -137,6 +152,7 @@ export class ShipmentAdapter extends ShipmentReadPort {
       >(
         Prisma.sql`SELECT s.logistics_stage AS stage,count(*)::int AS count FROM shipments s WHERE ${base} GROUP BY s.logistics_stage`,
       );
+      let serviceRows: (ShipmentServiceView & { shipmentId: string })[] = [];
       let chargeRows: ChargeGroup[] = [],
         milestoneRows: MilestoneGroup[] = [];
       let itemRows: {
@@ -146,6 +162,9 @@ export class ShipmentAdapter extends ShipmentReadPort {
       }[] = [];
       if (shipments.length) {
         const ids = shipments.map((row) => row.id);
+        serviceRows = await tx.$queryRaw<
+          typeof serviceRows
+        >`SELECT shipment_id AS "shipmentId",service_code AS "serviceCode",enabled FROM shipment_services WHERE shipment_id=ANY(${ids}::uuid[])`;
         chargeRows = await tx.$queryRaw<
           ChargeGroup[]
         >`SELECT shipment_id AS "shipmentId",charge_code AS "chargeCode",count(*)::int AS count,CASE WHEN count(*)=1 THEN max(amount)::text ELSE NULL END AS amount,CASE WHEN count(*)=1 THEN min(currency::text) ELSE NULL END AS currency FROM shipment_charges WHERE shipment_id=ANY(${ids}::uuid[]) GROUP BY shipment_id,charge_code`;
@@ -156,6 +175,7 @@ export class ShipmentAdapter extends ShipmentReadPort {
           typeof itemRows
         >`WITH grouped AS (SELECT shipment_id,min(line_no) AS first_line,count(*)::int AS "lineCount" FROM shipment_items WHERE shipment_id=ANY(${ids}::uuid[]) GROUP BY shipment_id) SELECT g.shipment_id AS "shipmentId",i.name AS "firstName",g."lineCount" FROM grouped g JOIN shipment_items i ON i.shipment_id=g.shipment_id AND i.line_no=g.first_line`;
       }
+      const servicesById = groupByShipment(serviceRows);
       const chargesById = groupByShipment(chargeRows),
         milestonesById = groupByShipment(milestoneRows);
       const itemsById = new Map(
@@ -166,6 +186,7 @@ export class ShipmentAdapter extends ShipmentReadPort {
       );
       const projected = shipments.map((row) => ({
         ...row,
+        serviceSummary: serviceSummary(servicesById.get(row.id) ?? []),
         chargeSummary: chargeSummary(chargesById.get(row.id) ?? []),
         milestoneSummary: milestoneSummary(milestonesById.get(row.id) ?? []),
         itemSummary: itemsById.get(row.id) ?? { firstName: null, lineCount: 0 },
@@ -191,6 +212,8 @@ export class ShipmentAdapter extends ShipmentReadPort {
       const rows = await tx.$queryRaw<
         Omit<
           ShipmentDetail,
+          | "services"
+          | "serviceSummary"
           | "charges"
           | "milestones"
           | "items"
@@ -202,6 +225,15 @@ export class ShipmentAdapter extends ShipmentReadPort {
         Prisma.sql`SELECT ${detail} FROM shipments s WHERE s.id=${id}::uuid AND s.owner_user_id=${owner}::uuid`,
       );
       if (!rows.length) throw new ShipmentError("NOT_FOUND");
+      const services = await tx.$queryRaw<
+        ShipmentServiceView[]
+      >`SELECT id,service_code AS "serviceCode",enabled FROM shipment_services WHERE shipment_id=${id}::uuid`;
+      const serviceOrder = Object.values(S);
+      services.sort(
+        (a, b) =>
+          serviceOrder.indexOf(a.serviceCode) -
+          serviceOrder.indexOf(b.serviceCode),
+      );
       const charges = await tx.$queryRaw<
         (ShipmentChargeView & { count: number })[]
       >`SELECT id,line_no AS "lineNo",charge_code AS "chargeCode",amount::text,currency,provider_label AS "providerLabel",count(*) OVER(PARTITION BY charge_code)::int AS count FROM shipment_charges WHERE shipment_id=${id}::uuid ORDER BY line_no`;
@@ -218,6 +250,8 @@ export class ShipmentAdapter extends ShipmentReadPort {
       >`SELECT id,line_no AS "lineNo",name,quantity,unit_value::text AS "unitValue",currency FROM shipment_items WHERE shipment_id=${id}::uuid ORDER BY line_no`;
       return {
         ...rows[0],
+        services,
+        serviceSummary: serviceSummary(services),
         charges: charges.map(
           ({ id, lineNo, chargeCode, amount, currency, providerLabel }) => ({
             id,

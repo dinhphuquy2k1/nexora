@@ -1,6 +1,7 @@
 import type {
   LogisticsStageCode,
   ShipmentMilestoneCodeValue,
+  ShipmentServiceCodeValue,
 } from "@nexora/shared/shipment";
 export interface ShipmentQuery {
   page: number;
@@ -30,6 +31,7 @@ export interface ShipmentSummary {
   itemCount: number | null;
   declaredValue: string | null;
   declaredCurrency: string | null;
+  serviceSummary: ShipmentServiceSummary;
   chargeSummary: ShipmentChargeSummary;
   milestoneSummary: ShipmentMilestoneSummary;
   itemSummary: { firstName: string | null; lineCount: number };
@@ -37,6 +39,17 @@ export interface ShipmentSummary {
   totalCurrency: string | null;
   createdAt: Date;
   updatedAt: Date;
+}
+export interface ShipmentServiceSummary {
+  insurance: boolean | null;
+  counting: boolean | null;
+  fragileGoods: boolean | null;
+  foam: boolean | null;
+}
+export interface ShipmentServiceView {
+  id: string;
+  serviceCode: ShipmentServiceCodeValue;
+  enabled: boolean;
 }
 export interface ShipmentChargeView {
   id: string;
@@ -92,6 +105,7 @@ export interface ShipmentDetail extends ShipmentSummary {
   assigneeUserId: string | null;
   internalNote: string | null;
   charges: ShipmentChargeView[];
+  services: ShipmentServiceView[];
 }
 export interface ShipmentHistoryView {
   id: string;

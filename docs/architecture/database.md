@@ -441,3 +441,18 @@ are added. Worker INSERT includes parent/key/payload; UPDATE excludes identity,
 parent and key. API receives SELECT only. Reconciliation retains IDs and skips
 unchanged payload updates. Reads retain users FOR UPDATE and exclude the worker's
 sync_lock_user FOR SHARE; all page/count/child queries share that transaction.
+
+## Shipment service persistence — NEXORA-055
+
+Forward migration 20261115000000_shipment_services adds only shipment_services
+and mapped ShipmentService/Shipment.services. See [Shipment service facts](../domains/shipments.md#independent-service-facts--nexora-055)
+for canonical columns and unknown semantics. Database-generated UUID PK,
+NOT NULL parent/code/enabled, fk_shipment_services_shipment (CASCADE delete,
+NO ACTION update), uq_shipment_services_code(parent,code), validated exact
+chk_shipment_services_code and no redundant index/default enabled/backfill.
+Existing Shipment/Charge/Milestone/Item data and historical migrations are untouched.
+API receives SELECT only. Worker receives SELECT/DELETE, column INSERT on
+shipment_id/service_code/enabled and UPDATE(enabled), never id/code/parent mutation.
+The migration harness verifies historical upgrade, preserved rows, zero initial
+service facts, repeat deployment and drift; the real schema oracle mutates CHECK
+constraints to ensure exact validated vocabulary enforcement.

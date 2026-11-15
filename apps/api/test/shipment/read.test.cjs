@@ -113,6 +113,7 @@ test("Shipment list batches all child summaries within its locked transaction", 
                 locationName: "Warehouse",
               },
             ];
+          if (text.includes("shipment_services")) return [];
           if (text.includes("shipment_items"))
             return [
               { shipmentId: root.id, firstName: "Product", lineCount: 2 },
@@ -125,8 +126,8 @@ test("Shipment list batches all child summaries within its locked transaction", 
     page: 1,
     pageSize: 20,
   });
-  assert.equal(calls.length, 6);
-  assert.equal(calls.filter((sql) => sql.includes("ANY(")).length, 3);
+  assert.equal(calls.length, 7);
+  assert.equal(calls.filter((sql) => sql.includes("ANY(")).length, 4);
   assert.equal(
     result.shipments[0].chargeSummary.unitPrice.amount,
     "1234567890123456.78",

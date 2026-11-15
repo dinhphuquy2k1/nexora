@@ -4,8 +4,15 @@ const {
   ShipmentKind,
   ShipmentChargeCode,
   ShipmentMilestoneCode,
+  ShipmentServiceCode,
 } = require("@nexora/shared/shipment");
 const contracts = [
+  [
+    "shipment_services",
+    "chk_shipment_services_code",
+    "service_code",
+    Object.values(ShipmentServiceCode),
+  ],
   [
     "shipment_milestones",
     "chk_shipment_milestones_code",
@@ -130,6 +137,8 @@ module.exports.verifyShipmentSchema = async (db) => {
   await assertVocabulary(db);
   // Real catalog mutations, rolled back by the failing oracle, not list self-comparison.
   for (const mutation of [
+    "ALTER TABLE shipment_services DROP CONSTRAINT chk_shipment_services_code; ALTER TABLE shipment_services ADD CONSTRAINT chk_shipment_services_code CHECK(service_code IN ('INSURANCE') OR true)",
+    "ALTER TABLE shipment_services DROP CONSTRAINT chk_shipment_services_code; ALTER TABLE shipment_services ADD CONSTRAINT chk_shipment_services_code CHECK(service_code IN ('INSURANCE','COUNTING','FRAGILE_GOODS','FOAM')) NOT VALID",
     "ALTER TABLE shipments DROP CONSTRAINT chk_shipments_stage; ALTER TABLE shipments ADD CONSTRAINT chk_shipments_stage CHECK(logistics_stage IN ('UNKNOWN') OR true)",
     "ALTER TABLE shipment_milestones DROP CONSTRAINT chk_shipment_milestones_code; ALTER TABLE shipment_milestones ADD CONSTRAINT chk_shipment_milestones_code CHECK(milestone_code IN ('ORIGIN_RECEIVED') OR true)",
     "ALTER TABLE shipment_milestones DROP CONSTRAINT chk_shipment_milestones_code; ALTER TABLE shipment_milestones ADD CONSTRAINT chk_shipment_milestones_code CHECK(milestone_code IN ('ORIGIN_RECEIVED','ORIGIN_DISPATCHED','DEST_RECEIVED','DEST_DISPATCHED')) NOT VALID",
@@ -289,6 +298,60 @@ module.exports.verifyShipmentSchema = async (db) => {
     )[0].value,
     "1234567890123456.78",
   );
+  for (const [index, serviceCode] of Object.values(
+    ShipmentServiceCode,
+  ).entries()) {
+    await db.$executeRawUnsafe(
+      `INSERT INTO shipment_services(shipment_id,service_code,enabled) VALUES($1::uuid,$2,$3)`,
+      a[0].id,
+      serviceCode,
+      index % 2 === 0,
+    );
+  }
+  const serviceRows = await db.$queryRawUnsafe(
+    `SELECT id,enabled FROM shipment_services WHERE shipment_id=$1::uuid`,
+    a[0].id,
+  );
+  assert.equal(serviceRows.length, 4);
+  assert.ok(serviceRows.some((row) => row.enabled === false));
+  for (const values of [
+    "'INVALID',true",
+    "'WOOD_PACKING',true",
+    "'BUBBLE_WRAP',true",
+    "'INSURANCE',false",
+    "NULL,true",
+    "'FOAM',NULL",
+  ]) {
+    await assert.rejects(
+      db.$executeRawUnsafe(
+        `INSERT INTO shipment_services(shipment_id,service_code,enabled) VALUES($1::uuid,${values})`,
+        a[0].id,
+      ),
+    );
+  }
+  await assert.rejects(
+    db.$executeRawUnsafe(
+      `INSERT INTO shipment_services(shipment_id,service_code,enabled) VALUES(gen_random_uuid(),'INSURANCE',true)`,
+    ),
+  );
+  await assert.rejects(
+    db.$executeRawUnsafe(
+      `UPDATE shipment_services SET enabled='not-a-boolean' WHERE shipment_id=$1::uuid`,
+      a[0].id,
+    ),
+  );
+  const serviceColumns = await db.$queryRawUnsafe(
+    `SELECT column_name,data_type,is_nullable,column_default,character_maximum_length FROM information_schema.columns WHERE table_schema='public' AND table_name='shipment_services' ORDER BY ordinal_position`,
+  );
+  assert.deepEqual(
+    serviceColumns.map((c) => c.column_name),
+    ["id", "shipment_id", "service_code", "enabled"],
+  );
+  assert.ok(serviceColumns.every((c) => c.is_nullable === "NO"));
+  assert.equal(serviceColumns[2].character_maximum_length, 32);
+  assert.equal(serviceColumns[3].data_type, "boolean");
+  assert.equal(serviceColumns[3].column_default, null);
+  assert.match(serviceColumns[0].column_default, /gen_random_uuid/);
   const h = (sv, pv, to) =>
     db.$executeRawUnsafe(
       `INSERT INTO shipment_stage_history(shipment_id,source_version,processor_version,to_stage) VALUES($1::uuid,$2,$3,$4)`,
@@ -309,7 +372,7 @@ module.exports.verifyShipmentSchema = async (db) => {
   assert.equal(rows.at(-1).amount, "8.01");
 
   const fks = await db.$queryRawUnsafe(
-    `SELECT t.relname AS table_name,a.attname AS column_name,r.relname AS referenced_table,c.confdeltype::text AS confdeltype FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_class r ON r.oid=c.confrelid JOIN pg_attribute a ON a.attrelid=t.oid AND a.attnum=ANY(c.conkey) WHERE c.contype='f' AND t.relname IN ('shipments','shipment_charges','shipment_stage_history','shipment_milestones','shipment_items')`,
+    `SELECT t.relname AS table_name,a.attname AS column_name,r.relname AS referenced_table,c.confdeltype::text AS confdeltype,c.confupdtype::text AS confupdtype FROM pg_constraint c JOIN pg_class t ON t.oid=c.conrelid JOIN pg_class r ON r.oid=c.confrelid JOIN pg_attribute a ON a.attrelid=t.oid AND a.attnum=ANY(c.conkey) WHERE c.contype='f' AND t.relname IN ('shipments','shipment_charges','shipment_stage_history','shipment_milestones','shipment_items','shipment_services')`,
   );
   for (const [table, column, target, action] of [
     ["shipments", "owner_user_id", "users", "r"],
@@ -321,6 +384,7 @@ module.exports.verifyShipmentSchema = async (db) => {
     ["shipment_charges", "shipment_id", "shipments", "c"],
     ["shipment_milestones", "shipment_id", "shipments", "c"],
     ["shipment_items", "shipment_id", "shipments", "c"],
+    ["shipment_services", "shipment_id", "shipments", "c"],
     ["shipment_stage_history", "shipment_id", "shipments", "c"],
     ["shipment_stage_history", "sync_job_id", "sync_jobs", "n"],
   ]) {
@@ -330,10 +394,11 @@ module.exports.verifyShipmentSchema = async (db) => {
     assert.ok(fk);
     assert.equal(fk.referenced_table, target);
     assert.equal(fk.confdeltype, action);
+    if (table === "shipment_services") assert.equal(fk.confupdtype, "a");
   }
-  assert.equal(fks.length, 11);
+  assert.equal(fks.length, 12);
   const indexes = await db.$queryRawUnsafe(
-    `SELECT indexname,indexdef FROM pg_indexes WHERE schemaname='public' AND tablename IN ('shipments','shipment_charges','shipment_stage_history','shipment_milestones','shipment_items')`,
+    `SELECT indexname,indexdef FROM pg_indexes WHERE schemaname='public' AND tablename IN ('shipments','shipment_charges','shipment_stage_history','shipment_milestones','shipment_items','shipment_services')`,
   );
   for (const [name, fragment] of [
     [
@@ -354,6 +419,7 @@ module.exports.verifyShipmentSchema = async (db) => {
     ["uq_shipment_charges_line", "(shipment_id, line_no)"],
     ["uq_shipment_milestones_code", "(shipment_id, milestone_code)"],
     ["uq_shipment_items_line", "(shipment_id, line_no)"],
+    ["uq_shipment_services_code", "(shipment_id, service_code)"],
     [
       "uq_shipment_history_version",
       "(shipment_id, source_version, processor_version)",
@@ -368,11 +434,11 @@ module.exports.verifyShipmentSchema = async (db) => {
     "no unverified claim index",
   );
   const childIndexes = indexes.filter((x) =>
-    /shipment_(?:milestones|items)/.test(x.indexdef),
+    /shipment_(?:milestones|items|services)/.test(x.indexdef),
   );
   assert.equal(
     childIndexes.length,
-    4,
+    6,
     "children have only PK and unique indexes",
   );
   const source = await db.syncSourceIdentity.create({
@@ -478,6 +544,10 @@ module.exports.verifyShipmentSchema = async (db) => {
   );
   assert.equal(
     await db.shipmentItem.count({ where: { shipmentId: a[0].id } }),
+    0,
+  );
+  assert.equal(
+    await db.shipmentService.count({ where: { shipmentId: a[0].id } }),
     0,
   );
   for (const assignment of [

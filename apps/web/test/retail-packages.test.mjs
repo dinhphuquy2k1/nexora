@@ -784,3 +784,67 @@ it("column search clear retains shared Button state ownership", async () => {
     /\b(color|background(?:-color)?|border(?:-color)?|height|width)\s*:/,
   );
 });
+
+it("Retail accessible service state distinguishes unknown from explicit disabled without fee inference", () => {
+  const { RetailPackageTable } = loadComponent(
+    new URL(
+      "../features/retail-packages/RetailPackageTable.tsx",
+      import.meta.url,
+    ),
+  );
+  const pkg = {
+    ...SYNTHETIC_PACKAGES[0],
+    hasInsurance: null,
+    hasInspection: false,
+    hasWoodenCrate: null,
+    hasBubbleWrap: null,
+  };
+  const html = render(
+    React.createElement(RetailPackageTable, {
+      paginated: [pkg],
+      visibleColumns: RETAIL_PACKAGE_COLUMNS,
+      onDetail() {},
+    }),
+  );
+  assert.match(html, /aria-label="Chưa xác định bảo hiểm"/);
+  assert.match(html, /aria-label="Không kiểm đếm"/);
+  assert.match(html, /aria-label="Chưa xác định đóng gỗ"/);
+  assert.match(html, /aria-label="Chưa xác định bọt khí"/);
+  assert.doesNotMatch(html, /aria-label="Có bảo hiểm"/);
+});
+
+it("Retail packing columns render enabled, disabled and unknown service facts", () => {
+  const { RetailPackageTable } = loadComponent(
+    new URL(
+      "../features/retail-packages/RetailPackageTable.tsx",
+      import.meta.url,
+    ),
+  );
+  for (const value of [true, false, null]) {
+    const html = render(
+      React.createElement(RetailPackageTable, {
+        paginated: [
+          {
+            ...SYNTHETIC_PACKAGES[0],
+            hasWoodenCrate: value,
+            hasBubbleWrap: value,
+          },
+        ],
+        visibleColumns: RETAIL_PACKAGE_COLUMNS,
+        onDetail() {},
+      }),
+    );
+    for (const [enabled, disabled, unknown] of [
+      ["Đóng gỗ", "Không đóng gỗ", "Chưa xác định đóng gỗ"],
+      ["Bọt khí", "Không bọt khí", "Chưa xác định bọt khí"],
+    ]) {
+      const label = value === null ? unknown : value ? enabled : disabled;
+      assert.ok(html.includes(`aria-label="${label}"`));
+      const cell = html.match(
+        new RegExp(`<span[^>]*aria-label="${label}"[^>]*>([\\s\\S]*?)</span>`),
+      );
+      assert.ok(cell);
+      assert.equal(cell[1].trim(), value === true ? "✓" : "—");
+    }
+  }
+});

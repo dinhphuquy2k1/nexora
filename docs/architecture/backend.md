@@ -10,7 +10,7 @@ Customer is the code reference: domain/customer.aggregate.ts owns profile/addres
 
 In accordance with [ADR-009](../decisions/mandatory-pre-code-design-review.md), domain-agnostic technical validation and value objects used across multiple domains live in `apps/api/src/common/`:
 
-- `validation/uuid.ts`: Canonical `isUuid(value: unknown): value is string` predicate enforcing standard 8-4-4-4-12 hexadecimal groups without case sensitivity, version/variant restrictions, or implicit trimming.
+- `validation/uuid.ts`: Compatible API facade re-exporting the browser-safe predicate from `@nexora/shared/validation` (one implementation in `packages/shared/src/validation/uuid.ts`). Canonical `isUuid(value: unknown): value is string` predicate enforcing standard 8-4-4-4-12 hexadecimal groups without case sensitivity, version/variant restrictions, or implicit trimming.
 - `validation/hex.ts`: Canonical `isLowercaseHex64(value: unknown): value is string` predicate validating exact 64-character lowercase hexadecimal format (e.g. SHA-256 tokens, digests, hashes).
 - `value-objects/phone-number.ts`: Domain-neutral `PhoneNumber` Value Object encapsulating immutable E.164 normalization via pinned `libphonenumber-js/max`, telephone validity, extension rejection, value equality, and an explicit country context parameter. Throws `InvalidPhoneNumberError`.
 - `value-objects/country-code.ts`: Domain-neutral `CountryCode` Value Object encapsulating ISO 3166-1 alpha-2 validation via `i18n-iso-countries`, trim/uppercase normalization, XK exclusion, and value equality. Throws `InvalidCountryCodeError`.
@@ -230,3 +230,14 @@ the same exclusive ACTIVE actor lock as Customer, yielding consistent scoped pag
 and counts against worker actor locks. Root lists use bounded projections; detail
 fetches ordered fees, history is a separate bounded projection. No generic repository,
 Unit of Work, new worker or cross-domain writer is introduced.
+
+## Shipment service children — NEXORA-055
+
+ShipmentAggregate owns immutable Service children with separate Shared codes,
+strict authoritative complete snapshots and stable IDs by code. Services hydrate
+under existing root/source locks with charges/milestones/items. Binding reuses
+parameterized unnest batch upsert/delete within the fenced Sync transaction;
+unchanged enabled values retain xmin and service-only changes do not invent stage
+history. Read projections use one additional page-scoped query in the existing
+actor transaction. Domain imports no Prisma/Nest/HTTP; service facts never derive
+from fees. No new worker, queue, adapter or production capability is introduced.

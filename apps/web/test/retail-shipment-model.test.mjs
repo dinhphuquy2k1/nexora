@@ -21,6 +21,12 @@ const summary = () => ({
   itemCount: null,
   declaredValue: null,
   declaredCurrency: null,
+  serviceSummary: {
+    insurance: true,
+    counting: false,
+    fragileGoods: true,
+    foam: null,
+  },
   chargeSummary: {
     unitPrice: { state: "NONE", amount: null, currency: null },
     domesticShipping: { state: "MULTIPLE", amount: null, currency: null },
@@ -114,8 +120,8 @@ test("Retail row uses reported summaries without inventing missing account, fees
   assert.equal(x.destWarehouseDate, "14/11/2026");
   assert.equal(x.packageCount, "0");
   assert.equal(x.itemCount, "—");
-  assert.equal(x.hasInspection, true);
-  assert.equal(x.hasBubbleWrap, true);
+  assert.equal(x.hasInspection, false);
+  assert.equal(x.hasBubbleWrap, null);
   assert.equal(Object.hasOwn(x, "accountName"), false);
 });
 test("Retail response guards reject malformed nested DTOs and unavailable-claim lies", async () => {
@@ -140,6 +146,12 @@ test("Retail response guards reject malformed nested DTOs and unavailable-claim 
   });
   assert.deepEqual(readShipmentPage(page()), page());
   for (const mutate of [
+    (x) => {
+      delete x.shipments[0].serviceSummary;
+    },
+    (x) => {
+      x.shipments[0].serviceSummary.insurance = "false";
+    },
     (x) => {
       x.claimFilterAvailable = true;
     },
@@ -181,6 +193,13 @@ test("Retail response guards reject malformed nested DTOs and unavailable-claim 
     lastSyncedAt: null,
     assigneeUserId: null,
     internalNote: null,
+    serviceSummary: {
+      insurance: null,
+      counting: null,
+      fragileGoods: null,
+      foam: null,
+    },
+    services: [],
     charges: [],
     milestones: [],
     items: [
@@ -202,6 +221,20 @@ test("Retail response guards reject malformed nested DTOs and unavailable-claim 
       }),
     /MALFORMED_RESPONSE/,
   );
+  for (const services of [
+    null,
+    [{ id: "service", serviceCode: "WOOD_PACKING", enabled: true }],
+    [{ id: "service", serviceCode: "FOAM", enabled: null }],
+    [
+      { id: "service", serviceCode: "FOAM", enabled: false },
+      { id: "another", serviceCode: "FOAM", enabled: true },
+    ],
+  ]) {
+    assert.throws(
+      () => readShipment({ shipment: { ...detail, services } }),
+      /MALFORMED_RESPONSE/,
+    );
+  }
   const history = {
     history: [
       {
@@ -226,4 +259,26 @@ test("Retail response guards reject malformed nested DTOs and unavailable-claim 
       }),
     /MALFORMED_RESPONSE/,
   );
+});
+
+test("Retail maps confirmed packing services without inferring truth from charges", async () => {
+  const { toRetailRow } = await feature("row");
+  for (const fragileGoods of [true, false, null]) {
+    for (const foam of [true, false, null]) {
+      const s = summary();
+      s.serviceSummary = {
+        insurance: null,
+        counting: null,
+        fragileGoods,
+        foam,
+      };
+      s.chargeSummary.hasWoodPacking = fragileGoods !== true;
+      s.chargeSummary.hasBubbleWrap = foam !== true;
+      const row = toRetailRow(s);
+      assert.equal(row.hasInsurance, null);
+      assert.equal(row.hasInspection, null);
+      assert.equal(row.hasWoodenCrate, fragileGoods);
+      assert.equal(row.hasBubbleWrap, foam);
+    }
+  }
 });

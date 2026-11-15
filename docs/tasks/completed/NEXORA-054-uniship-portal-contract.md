@@ -1,8 +1,8 @@
 # NEXORA-054 — Uniship customer-portal contract and redacted fixtures
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -310,3 +310,29 @@ IMPLEMENTED / PARTIALLY VERIFIED.
 | Remaining review test-lint                    | `npx --yes pnpm@10.34.6 test:lint`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:29:08.558636+00:00–2026-11-15T05:29:17.674189+00:00; exit0                                               | 2026-11-15 | PASS   |
 | Remaining review lint                         | `npx --yes pnpm@10.34.6 lint`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:29:17.736424+00:00–2026-11-15T05:29:30.676713+00:00; exit0                                                    | 2026-11-15 | PASS   |
 | Remaining review contracts-check              | `npx --yes pnpm@10.34.6 contracts:check`; review working tree on ab2d409dc48212fe78971460818a9bd40936c943; UTC 2026-11-15T05:29:33.225904+00:00–2026-11-15T05:29:42.120116+00:00; exit0                                         | 2026-11-15 | PASS   |
+
+## Closure under §1.7 — NEXORA-055
+
+PR53 merged2026-11-15T07:18:59Z as64758b93b64261f866ea3cee810f305ef21682ed.
+This closes the documentation/fixture-verification deliverable only, not provider
+activation or external semantic verification. Historical FAIL evidence and frozen
+snapshot90eabacd419af8be3b8b3de554e100ea95ec42d2fabcb2324a5587b21905d44f
+remain unchanged.
+
+Named future prerequisites remain NOT VERIFIED:
+
+- UNISHIP_LIVE_ACTIVATION: remaining authorization/auth/error/custody gates and
+  explicit production enablement in [ADR007](../../decisions/multi-carrier-architecture.md#owner-authorization-for-uniship-customer-portal-access--2026-11-15-nexora-054).
+- UNISHIP_CLAIM_LIFECYCLE_CAPTURE: real claim lifecycle captures and adapter tests in
+  [claim prerequisites](../../integrations/uniship-portal-api.md#claim-policy-examples-and-verification-prerequisites).
+- UNISHIP_FIELD_SEMANTICS_VERIFICATION: currencies, timestamps, service-field
+  semantics and other [contract unknowns](../../integrations/uniship-portal-api.md#unknowns-and-the-consequence-of-guessing).
+
+These are named canonical prerequisites for a future adapter/activation task,
+not current production PASS claims. NEXORA-055 establishes provider-neutral service
+storage only and cannot satisfy those external gates.
+
+| Claim                             | Evidence                                                                                                                                                                                                                                                                                                                                                                                          | Date       | Result |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged documentation/fixture task | PR53 https://github.com/dinhphuquy2k1/nexora/pull/53; merge64758b93b64261f866ea3cee810f305ef21682ed at2026-11-15T07:18:59Z; final source ec68564e4f010302fa0cda56949d81620ac0799e                                                                                                                                                                                                                 | 2026-11-15 | PASS   |
+| Final-head hosted provenance      | Preflight43681500090 UTC2026-11-15T05:32:15Z–05:32:27Z PASS https://github.com/dinhphuquy2k1/nexora/actions/runs/43681500090; Foundation43681500117 job132712902652 UTC05:32:15Z–05:49:05Z PASS steps4–10 https://github.com/dinhphuquy2k1/nexora/actions/runs/43681500117; source ec68564e4f010302fa0cda56949d81620ac0799e, checkout83db742e5c441149fbb5d4d8e3cba79e52f9b174; attempt1, no rerun | 2026-11-15 | PASS   |

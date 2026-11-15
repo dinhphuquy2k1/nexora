@@ -3,7 +3,9 @@ import {
   ShipmentKind,
   ShipmentChargeCode,
   ShipmentMilestoneCode,
+  ShipmentServiceCode,
 } from "@nexora/shared/shipment";
+import { isUuid } from "@nexora/shared/validation";
 import type {
   ShipmentSummary,
   ShipmentDetail,
@@ -75,8 +77,15 @@ function isSummary(x: unknown): x is ShipmentSummary {
     return false;
   const c = x.chargeSummary,
     m = x.milestoneSummary,
-    i = x.itemSummary;
+    i = x.itemSummary,
+    service = x.serviceSummary;
   return (
+    record(service) &&
+    fields(
+      service,
+      ["insurance", "counting", "fragileGoods", "foam"],
+      (value) => value === null || typeof value === "boolean",
+    ) &&
     record(c) &&
     amount(c.unitPrice) &&
     amount(c.domesticShipping) &&
@@ -122,6 +131,49 @@ export function readShipmentPage(x: unknown): ShipmentPage {
     throw Error("MALFORMED_RESPONSE");
   return x as ShipmentPage;
 }
+const serviceSummaryFields = {
+  [ShipmentServiceCode.INSURANCE]: "insurance",
+  [ShipmentServiceCode.COUNTING]: "counting",
+  [ShipmentServiceCode.FRAGILE_GOODS]: "fragileGoods",
+  [ShipmentServiceCode.FOAM]: "foam",
+} as const satisfies Record<
+  (typeof ShipmentServiceCode)[keyof typeof ShipmentServiceCode],
+  keyof ShipmentSummary["serviceSummary"]
+>;
+const serviceCodes = Object.values(ShipmentServiceCode);
+function servicesMatchSummary(
+  services: unknown,
+  summary: ShipmentSummary["serviceSummary"],
+): boolean {
+  if (!Array.isArray(services) || services.length > serviceCodes.length)
+    return false;
+  const expected: ShipmentSummary["serviceSummary"] = {
+    insurance: null,
+    counting: null,
+    fragileGoods: null,
+    foam: null,
+  };
+  let previous = -1;
+  for (const service of services) {
+    if (
+      !record(service) ||
+      !isUuid(service.id) ||
+      !member(service.serviceCode, serviceCodes) ||
+      typeof service.enabled !== "boolean"
+    )
+      return false;
+    const code = service.serviceCode as (typeof serviceCodes)[number];
+    const index = serviceCodes.indexOf(code);
+    // Strict increase rejects duplicates and out-of-order entries, while allowing subsets.
+    if (index <= previous) return false;
+    previous = index;
+    expected[serviceSummaryFields[code]] = service.enabled;
+  }
+  return serviceCodes.every((code) => {
+    const field = serviceSummaryFields[code];
+    return expected[field] === summary[field];
+  });
+}
 function isDetail(value: unknown): value is ShipmentDetail {
   if (!record(value)) return false;
   const x: Record<string, unknown> = value;
@@ -141,6 +193,7 @@ function isDetail(value: unknown): value is ShipmentDetail {
   )
     return false;
   return (
+    servicesMatchSummary(x.services, value.serviceSummary) &&
     Array.isArray(x.charges) &&
     x.charges.every(
       (c) =>

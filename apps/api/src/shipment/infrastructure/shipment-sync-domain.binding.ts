@@ -42,6 +42,7 @@ export function createShipmentSyncBinding(
             include: {
               charges: { orderBy: { lineNo: "asc" } },
               milestones: true,
+              services: true,
               items: { orderBy: { lineNo: "asc" } },
             },
           })
@@ -103,6 +104,7 @@ export function createShipmentSyncBinding(
             charges,
             milestones,
             items,
+            services,
             stageChanged,
             fromStage,
             providerChangedAt,
@@ -130,6 +132,18 @@ export function createShipmentSyncBinding(
                 shipmentId: root.id,
                 milestoneCode: {
                   notIn: milestones.map((entry) => entry.milestoneCode),
+                },
+              },
+            });
+          }
+          if (services !== undefined) {
+            if (services.length)
+              await tx.$executeRaw`INSERT INTO shipment_services(shipment_id,service_code,enabled) SELECT ${root.id}::uuid,x.service_code,x.enabled FROM unnest(${services.map((entry) => entry.serviceCode)}::text[],${services.map((entry) => entry.enabled)}::boolean[]) AS x(service_code,enabled) ON CONFLICT(shipment_id,service_code) DO UPDATE SET enabled=EXCLUDED.enabled WHERE shipment_services.enabled IS DISTINCT FROM EXCLUDED.enabled`;
+            await tx.shipmentService.deleteMany({
+              where: {
+                shipmentId: root.id,
+                serviceCode: {
+                  notIn: services.map((entry) => entry.serviceCode),
                 },
               },
             });

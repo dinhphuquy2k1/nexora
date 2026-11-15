@@ -836,6 +836,34 @@ try {
     milestones: await db.shipmentMilestone.findMany(),
     items: await db.shipmentItem.findMany(),
   };
+  step = "SHIPMENT_SERVICES_FORWARD";
+  const servicesTables = [
+    ...shipmentTables,
+    "shipment_milestones",
+    "shipment_items",
+  ];
+  const beforeServices = {};
+  for (const table of servicesTables)
+    beforeServices[table] = await db.$queryRawUnsafe(
+      `SELECT * FROM ${table} ORDER BY id`,
+    );
+  const servicesMigration = "20261115000000_shipment_services";
+  await cp(
+    resolve("prisma/migrations", servicesMigration),
+    join(work, "prisma/migrations", servicesMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  for (const table of servicesTables)
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY id`),
+      beforeServices[table],
+    );
+  assert.equal(
+    await db.shipmentService.count(),
+    0,
+    "No backfill from existing fee lines",
+  );
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },

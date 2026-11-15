@@ -843,12 +843,20 @@ test(
               include: {
                 charges: { orderBy: { lineNo: "asc" } },
                 milestones: { orderBy: { milestoneCode: "asc" } },
+                services: { orderBy: { serviceCode: "asc" } },
                 items: { orderBy: { lineNo: "asc" } },
               },
             });
           let root;
           const patch = (value = "1234567890123456.78") =>
             payload({
+              services: {
+                complete: true,
+                entries: [
+                  { serviceCode: "INSURANCE", enabled: false },
+                  { serviceCode: "FOAM", enabled: true },
+                ],
+              },
               milestones: {
                 complete: true,
                 entries: [
@@ -875,6 +883,7 @@ test(
           assert.equal((await run(patch())).status, "SUCCEEDED");
           const first = await getRoot();
           root = first;
+          assert.equal(first.services.length, 2);
           assert.equal(first.milestones.length, 1);
           assert.equal(first.items.length, 2);
           assert.equal(
@@ -890,6 +899,30 @@ test(
           ).token;
           const detail = await req("/" + first.id, childToken);
           assert.equal(detail.response.status, 200);
+          assert.deepEqual(detail.body.shipment.serviceSummary, {
+            insurance: false,
+            counting: null,
+            fragileGoods: null,
+            foam: true,
+          });
+          assert.deepEqual(
+            detail.body.shipment.services.map((s) => [
+              s.serviceCode,
+              s.enabled,
+            ]),
+            [
+              ["INSURANCE", false],
+              ["FOAM", true],
+            ],
+          );
+          assert.deepEqual(
+            pageService(detail.body.shipment),
+            pageService((await req("", childToken)).body.shipments[0]),
+          );
+          function pageService(row) {
+            return row.serviceSummary;
+          }
+
           assert.equal(
             detail.body.shipment.items[0].unitValue,
             "1234567890123456.78",
@@ -955,6 +988,37 @@ test(
             "hasBubbleWrap",
           ])
             assert.equal(multiple.chargeSummary[flag], true);
+          assert.equal(multiple.serviceSummary.insurance, false);
+          assert.equal(multiple.serviceSummary.counting, null);
+          assert.equal(multiple.serviceSummary.foam, true);
+          const feeSnapshot = (await getRoot()).charges;
+          const serviceHistory = await db.shipmentStageHistory.count({
+            where: { shipmentId: first.id },
+          });
+          await run({
+            services: {
+              complete: true,
+              entries: [{ serviceCode: "COUNTING", enabled: true }],
+            },
+          });
+          assert.deepEqual((await getRoot()).charges, feeSnapshot);
+          assert.equal(
+            await db.shipmentStageHistory.count({
+              where: { shipmentId: first.id },
+            }),
+            serviceHistory,
+          );
+          const authoritative = (await getRoot()).services;
+          const rejected = await run({
+            trackingCode: "must-not-apply",
+            services: {
+              complete: true,
+              entries: [{ serviceCode: "INSURANCE", enabled: "false" }],
+            },
+          });
+          assert.equal(rejected.rejected_count, 1);
+          assert.deepEqual((await getRoot()).services, authoritative);
+          assert.notEqual((await getRoot()).trackingCode, "must-not-apply");
           assert.equal(multiple.weightKg, "1.234");
           assert.equal(multiple.declaredValue, "456.78");
           assert.equal(multiple.originWarehouse, "Origin");
@@ -982,8 +1046,10 @@ test(
             payload({
               milestones: { complete: true, entries: [] },
               items: { complete: true, lines: [] },
+              services: { complete: true, entries: [] },
             }),
           );
+          assert.equal((await getRoot()).services.length, 0);
           assert.equal((await getRoot()).items.length, 0);
           assert.equal((await getRoot()).milestones.length, 0);
           const empty = await getRoot();
@@ -1189,11 +1255,11 @@ test(
             await reading2;
             await waiting;
             readHold = null;
-            assert.equal(calls.length, 6);
-            assert.equal(calls.filter((sql) => sql.includes("ANY(")).length, 3);
+            assert.equal(calls.length, 7);
+            assert.equal(calls.filter((sql) => sql.includes("ANY(")).length, 4);
             calls = [];
             await reader.list(actor.id, { page: 1, pageSize: 1 });
-            assert.equal(calls.length, 6);
+            assert.equal(calls.length, 7);
             calls = [];
             await reader.list(actor.id, { page: 99, pageSize: 20 });
             assert.equal(calls.length, 3);
