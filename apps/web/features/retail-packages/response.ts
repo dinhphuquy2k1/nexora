@@ -5,6 +5,7 @@ import {
   ShipmentMilestoneCode,
   ShipmentServiceCode,
 } from "@nexora/shared/shipment";
+import { isUuid } from "@nexora/shared/validation";
 import type {
   ShipmentSummary,
   ShipmentDetail,
@@ -130,6 +131,49 @@ export function readShipmentPage(x: unknown): ShipmentPage {
     throw Error("MALFORMED_RESPONSE");
   return x as ShipmentPage;
 }
+const serviceSummaryFields = {
+  [ShipmentServiceCode.INSURANCE]: "insurance",
+  [ShipmentServiceCode.COUNTING]: "counting",
+  [ShipmentServiceCode.FRAGILE_GOODS]: "fragileGoods",
+  [ShipmentServiceCode.FOAM]: "foam",
+} as const satisfies Record<
+  (typeof ShipmentServiceCode)[keyof typeof ShipmentServiceCode],
+  keyof ShipmentSummary["serviceSummary"]
+>;
+const serviceCodes = Object.values(ShipmentServiceCode);
+function servicesMatchSummary(
+  services: unknown,
+  summary: ShipmentSummary["serviceSummary"],
+): boolean {
+  if (!Array.isArray(services) || services.length > serviceCodes.length)
+    return false;
+  const expected: ShipmentSummary["serviceSummary"] = {
+    insurance: null,
+    counting: null,
+    fragileGoods: null,
+    foam: null,
+  };
+  let previous = -1;
+  for (const service of services) {
+    if (
+      !record(service) ||
+      !isUuid(service.id) ||
+      !member(service.serviceCode, serviceCodes) ||
+      typeof service.enabled !== "boolean"
+    )
+      return false;
+    const code = service.serviceCode as (typeof serviceCodes)[number];
+    const index = serviceCodes.indexOf(code);
+    // Strict increase rejects duplicates and out-of-order entries, while allowing subsets.
+    if (index <= previous) return false;
+    previous = index;
+    expected[serviceSummaryFields[code]] = service.enabled;
+  }
+  return serviceCodes.every((code) => {
+    const field = serviceSummaryFields[code];
+    return expected[field] === summary[field];
+  });
+}
 function isDetail(value: unknown): value is ShipmentDetail {
   if (!record(value)) return false;
   const x: Record<string, unknown> = value;
@@ -149,20 +193,7 @@ function isDetail(value: unknown): value is ShipmentDetail {
   )
     return false;
   return (
-    Array.isArray(x.services) &&
-    x.services.length <= Object.values(ShipmentServiceCode).length &&
-    new Set(
-      x.services.map((service) =>
-        record(service) ? service.serviceCode : undefined,
-      ),
-    ).size === x.services.length &&
-    x.services.every(
-      (service) =>
-        record(service) &&
-        text(service.id) &&
-        member(service.serviceCode, Object.values(ShipmentServiceCode)) &&
-        typeof service.enabled === "boolean",
-    ) &&
+    servicesMatchSummary(x.services, value.serviceSummary) &&
     Array.isArray(x.charges) &&
     x.charges.every(
       (c) =>

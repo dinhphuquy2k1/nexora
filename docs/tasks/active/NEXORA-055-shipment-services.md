@@ -168,6 +168,11 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
+Detail response guard now enforces the existing summary/collection consistency,
+service UUID and catalogue-order contracts. The unchanged pure UUID predicate is
+shared with browser consumers; API common retains its compatible import facade.
+Canonical reuse/policy/API/frontend/testing docs record this implementation fact.
+
 Owner-confirmed IsFragileGoods = Đóng gỗ and IsFoam = Bọt khí (2026-11-15),
 Retail packing-service projections and service/charge/UI correspondence table.
 
@@ -417,3 +422,92 @@ artifacts/pr54-owner-mapping; assertions executed, images were not manually
 reviewed. Production authenticated flows are deferred to final-head Foundation;
 this local browser run used only isolated synthetic fixtures. Previous browser
 failures remain retained above.
+
+## Review remediation delta — detail service contracts (2026-11-15)
+
+BOUNDED within existing v1 plan; starting branch feat/shipment-services, HEAD
+b23abf18b6dc60e374cac75a13a415b9b957d674, clean tree and open/unmerged PR54.
+Documentation Impact: REQUIRED; API contract/frontend/testing/reuse documentation
+will clarify enforcement of the existing contract, not change its wire shape.
+Frozen snapshot/digest and historical evidence remain unchanged.
+
+Pre-code investigation: response.ts validates services and summary separately and
+accepts string-only IDs/unordered collections. api-contract.md Shipment service
+contract and snapshot section7 require catalogue order and summary facts from
+stored services (missing=null, explicit false=false). Adapter serviceSummary/get
+implement exactly this invariant. No legitimate detail exception was found.
+List responses carry no collection and must keep their independent shape guard.
+Existing model-test detail fixture has services=[] with nonnull summary and must
+be corrected to represent genuine accepted data, without weakening its assertions.
+
+| Field                    | Decision                                                                                                                                                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Detail service collection/summary guard and browser-safe UUID reuse                                                                                                                                                                            |
+| Existing implementations | response.ts isSummary/isDetail/readShipment; ShipmentAdapter serviceSummary/get; shared ShipmentServiceCode; apps/api/src/common/validation/uuid.ts; packages/shared/src/validation; API common-validation.test.cjs; Retail model/DTO fixtures |
+| Domain owner             | API owns existing transport contract; Web validates it; Shared owns pure cross-package validation; API common retains its compatible import facade                                                                                             |
+| Reuse alternatives       | Direct Web import of API is forbidden; duplicate UUID regex violates canonical reuse; new dependency unnecessary; move unchanged pure UUID implementation to Shared and re-export through API common                                           |
+| Selected approach        | Validate service UUIDs and strictly increasing canonical indices; construct expected nullable summary solely from validated service entries and compare all four fields strictly                                                               |
+| Rationale                | Reject malformed/contradictory DTOs without changing false/null semantics, list behavior, server contracts or unrelated IDs                                                                                                                    |
+| Risks                    | Rejecting legitimate subsets/empty/uppercase UUIDs, setup-only REDs, fixture contradictions; test actual readShipment parser plus API UUID compatibility                                                                                       |
+| Verification             | Separate P2-A/P2-B RED/GREEN, neighboring Retail/API tests, contracts/quality, isolated real PostgreSQL Sync, canonical Docker attempt, fixture/browser and final-head hosted workflows                                                        |
+
+Plan before code/tests: add focused parser scenarios using complete realistic
+Shipment DTOs; capture RED separately for consistency and ID/order; centralize the
+unchanged UUID predicate, implement minimal Web guard and correct inconsistent test
+data; synchronize docs and execute requested gates. Review final allowlisted diff,
+commit/push only existing branch and inspect exact-head CI. No auto-approval, merge
+or task closure. Any final source/CI evidence goes in PR metadata without a SHA loop.
+
+P3 migration-count decision: DEFERRED (non-blocking). runtime-smoke.sh intentionally
+asserts a fresh disposable installation's successful migration count and empty file
+catalog after repeat migrate. Genuine migration.mjs separately checks authentic
+upgrade/rollback/recovery/repeatability and final Prisma drift. A stronger replacement
+needs exact identity-set and incomplete/failed-row coverage plus packaged migration
+path decisions, beyond these response-guard fixes. Keep the explicit16 assertion
+and all historical SQL unchanged; no count-only dynamic replacement is introduced.
+
+### Remediation evidence and final read-only review
+
+Executed on starting HEAD b23abf18b6dc60e374cac75a13a415b9b957d674 plus this
+bounded working delta, 2026-11-15 UTC09:48–09:58, host Node24.22.1 and pinned
+pnpm10.34.6. Final committed HEAD/merge checkout and hosted evidence will be recorded
+in PR54 metadata. No historical row below or above is overwritten.
+
+| Claim                   | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Date       | Result |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| parser-test-setup       | Initial new-suite import referenced nonexistent fixturePage export, 1 suite FAIL before execution; corrected to existing asSummary plus a complete list envelope before behavioral RED                                                                                                                                                                                                                                                                                                               | 2026-11-15 | FAIL   |
+| P2-A-RED                | `node --test --test-name-pattern=P2-A apps/web/test/retail-service-response.test.mjs`; 42 tests,14 PASS/28 FAIL, Missing expected exception on contradictory facts; valid DTO cases passed                                                                                                                                                                                                                                                                                                           | 2026-11-15 | FAIL   |
+| P2-B-RED                | `node --test --test-name-pattern=P2-B apps/web/test/retail-service-response.test.mjs`; 30 tests,22 PASS/8 FAIL, Missing expected exception on malformed string UUIDs and unordered collections                                                                                                                                                                                                                                                                                                       | 2026-11-15 | FAIL   |
+| P2-A-GREEN              | Same P2-A command;42/42 PASS. Four-code correspondence, explicit true/false versus unknown/missing, mixed matching facts and one-field contradictions, list independence; actual readShipment/readShipmentPage                                                                                                                                                                                                                                                                                       | 2026-11-15 | PASS   |
+| P2-B-GREEN              | Same P2-B command;30/30 PASS. UUID shape/case/no-trimming/nonstrings, all16 canonical subsets including empty/disabled, duplicate/invalid codes and unordered full/partial rejection                                                                                                                                                                                                                                                                                                                 | 2026-11-15 | PASS   |
+| retail-regressions      | `node --test apps/web/test/retail-*.test.mjs`;140/140 PASS including72 new parser cases. Existing incomplete detail test data corrected to services=[] with all-null summary, assertions preserved                                                                                                                                                                                                                                                                                                   | 2026-11-15 | PASS   |
+| api-uuid-shipment       | `node --test apps/api/test/common-validation.test.cjs apps/api/test/shipment/*.test.cjs`;29/29 PASS. Pure UUID implementation byte-identical to old API source via git show/cmp; corrected createRequire probe confirms API facade and Shared export reference the same function. An initial relative-path probe failed package resolution, not validator behavior                                                                                                                                   | 2026-11-15 | PASS   |
+| initial-quality-lint    | First production-env pinned quality stopped at new test's no-undef structuredClone; corrected to globalThis.structuredClone without changing production behavior                                                                                                                                                                                                                                                                                                                                     | 2026-11-15 | FAIL   |
+| quality-storage-failure | Second production-env pinned quality passed format/lint/preflight/docs/typecheck and all788 tests, then contracts generation failed while Docker VFS filled the filesystem. Only that interrupted generator's deleted owned OpenAPI output was restored; subsequent contract reproduction verifies no drift                                                                                                                                                                                          | 2026-11-15 | FAIL   |
+| complete-quality        | `API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; exit0 after task-created build cache cleanup. format:check, lint/boundaries, preflight:check, docs:check, typecheck, test, contracts:check, build PASS. Counts: tooling142, API239, Web364, UI37, database6;788 total,0 FAIL                                                                                                                                                                                  | 2026-11-15 | PASS   |
+| test-discovery          | `node scripts/check-test-discovery.mjs 'apps/web/test/**/*.test.mjs'`;42 suites including the new ordinary Retail test; no package discovery list changes                                                                                                                                                                                                                                                                                                                                            | 2026-11-15 | PASS   |
+| docker-quality-attempts | Owned-project `sh scripts/quality-docker.sh` wrapper: first rejected POSTGRES_PORT binding shape (corrected0); second failed npm SELF_SIGNED_CERT_IN_CHAIN; third used existing build_ca with environment proxy CA, then failed ENOSPC in rootless VFS migrate image preparation. Three failures retained; stopped local Docker builds and reassessed verification via host quality, isolated Docker PostgreSQL and mandatory final-head hosted Foundation. No Dockerfile/workflow/acceptance change | 2026-11-15 | FAIL   |
+| postgres-first-run      | Owned Docker17.11 cluster; `node --test --test-concurrency=1 integration/sync-integration.test.cjs integration/shipment-integration.test.cjs` from apps/api;59 tests58 PASS/1 FAIL. Sync's entire57-test suite PASS; Shipment stopped after schema probe because runner lacked SHIPMENT_TEST_RUNTIME_PASSWORD_FILE. No behavioral assertion was weakened                                                                                                                                             | 2026-11-15 | FAIL   |
+| shipment-postgres-GREEN | Same owned cluster, real runtime-password file and signed disposable-cluster marker; `node --test integration/shipment-integration.test.cjs`;21/21 PASS, including actual worker grants, service-write rollback, locked owner reads and unchanged100-shipment capacity                                                                                                                                                                                                                               | 2026-11-15 | PASS   |
+| postgres-capacity       | Shipment timing:100 shipments x50 charges/500 items/4 milestones/4 services, first2240.889ms/changed2875.160ms/identical7.736ms;800/800/0 child writes. PostgreSQL17.11 Docker Debian x64,3 visible CPUs AMD EPYC9V74. Acceptance7500ms and transaction15000ms unchanged                                                                                                                                                                                                                             | 2026-11-15 | PASS   |
+| retail-fixture-browser  | `node scripts/build-retail-fixture.mjs` and `node /workspace/work/pr54-remediation-browser.mjs`; actual TSX/CSS bundle and Chromium156.0.8078.79 verifyRetailBrowser fixtureOnly PASS, including native detail/create and owner-confirmed packing oracle. Existing canonical Page.bringToFront,250ms pre-visual wait; no product assertion/CSS change                                                                                                                                                | 2026-11-15 | PASS   |
+| immutable-scope         | git diff exit0 versus b23abf1 for DB/schema/migrations/grants, SDK/OpenAPI, Shipment/Sync server code, Shared service catalogue, runtime-smoke.sh, snapshots, Retail row/table; frozen SHA still a524cc5842a4a59831be7322aac0ba580968a998c3f70d4bbd387fdfae75e1a4                                                                                                                                                                                                                                    | 2026-11-15 | PASS   |
+
+Screenshots/manifest captured only in ignored artifacts/pr54-remediation, not
+manually image-reviewed. Docker Compose cleanup removed only this wrapper's owned
+project; cache cleanup selected only reclaimable IDs created during this task's
+build attempts, never user volumes. The independent owned PostgreSQL container is
+stopped after its tests. Local Docker quality remains FAIL; its required canonical
+assertions must pass in exact-final-head hosted Foundation, not be inferred from
+local host/native/browser results.
+
+Final read-only self-review against current base64758b9 and the bounded remediation
+found no additional confirmed P1/P2: all16 subsets accepted, strict false/null,
+code-derived exhaustive mapping, unchanged list guard and unrelated ID validation,
+no fee coupling, stable server semantics and no generated drift. UUID extraction
+reuses the existing pure Shared validation boundary and preserves all API import
+sites/behavior; no app-to-app import or new dependency. The new tests exercise
+complete transport DTOs through public parsers, not the internal helper. No
+independent agent approval is claimed; leave final acceptance to owner review.
+P2-A FIXED; P2-B FIXED; P3 DEFERRED non-blocking (rationale above). Task remains active
+VERIFICATION PENDING/PARTIALLY VERIFIED; no owner-approval or completion status change.

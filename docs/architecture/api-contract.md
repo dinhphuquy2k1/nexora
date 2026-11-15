@@ -247,6 +247,11 @@ booleans keep their fee-presence meaning and are marked deprecated in OpenAPI.
 No fallback or monetary derivation connects the two projections. Existing clients
 retain additive compatibility; Retail's strict SDK response guards require the
 new service fields and use serviceSummary for authoritative service state.
+The detail guard requires UUID service IDs, strictly increasing catalogue order
+(any subset, including empty), and exact equality between all four summary values
+and the service collection projection. A missing entry projects null; an entry
+projects its boolean enabled value. Contradictory details fail MALFORMED_RESPONSE.
+List guards remain independent because list rows do not include service entries.
 
 The fourth child query is page-ID scoped and runs with page/count/other children
 in the same FOR UPDATE actor transaction. Empty pages skip it; detail fetches it

@@ -54,7 +54,7 @@ Nexora adopts Modular Monolith, Clean Architecture, Ports & Adapters and Tactica
 ### Neutral API Common validation and reuse ownership
 
 - Shared technical validation and value objects used across multiple API domains live in neutral common modules (`apps/api/src/common/`):
-  - `validation/uuid.ts`: Canonical `isUuid` predicate (8-4-4-4-12 hex groups, case-insensitive, no variant/version restrictions, no implicit trimming).
+  - `validation/uuid.ts`: Compatible API facade for canonical `isUuid` from `@nexora/shared/validation` (one pure implementation in `packages/shared/src/validation/uuid.ts`); predicate (8-4-4-4-12 hex groups, case-insensitive, no variant/version restrictions, no implicit trimming).
   - `validation/hex.ts`: Canonical `isLowercaseHex64` format predicate.
   - `value-objects/phone-number.ts`: Domain-neutral `PhoneNumber` VO (immutable E.164 normalization via pinned `libphonenumber-js/max`, extension rejection, explicit country context).
   - `value-objects/country-code.ts`: Domain-neutral `CountryCode` VO (immutable ISO 3166-1 alpha-2 validation via `i18n-iso-countries`, XK exclusion).

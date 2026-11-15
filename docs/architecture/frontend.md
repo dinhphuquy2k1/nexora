@@ -492,7 +492,12 @@ owner-confirmed Đóng gỗ/Bọt khí labels (fragileGoods/foam; 2026-11-15), n
 fee-presence flags. Unknown remains nullable and has a distinct accessible label
 from explicit false. Wood-packing and bubble-wrap columns retain their layout and
 render true/false/null from the corresponding independent service facts.
-Strict response guards validate nullable summary booleans and detail service codes,
-booleans and uniqueness. RETAIL_SERVICE_CATALOG_PRESENTATION is a named NOT VERIFIED
+Strict response guards validate nullable summary booleans and detail service UUIDs,
+booleans and strictly increasing canonical code order (including partial/empty
+collections). Detail serviceSummary must equal the service collection projection,
+with missing rows null; contradictory facts reject MALFORMED_RESPONSE. List rows
+validate their summaries independently because they do not carry service entries.
+UUID validation reuses the pure @nexora/shared/validation predicate without changing
+validation of unrelated DTO identifiers. RETAIL_SERVICE_CATALOG_PRESENTATION is a named NOT VERIFIED
 follow-up for owner-approved catalogue labels/columns/detail presentation; no page
 redesign or provider-specific interpretation is claimed here.

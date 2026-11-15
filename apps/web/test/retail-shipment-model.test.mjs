@@ -193,6 +193,12 @@ test("Retail response guards reject malformed nested DTOs and unavailable-claim 
     lastSyncedAt: null,
     assigneeUserId: null,
     internalNote: null,
+    serviceSummary: {
+      insurance: null,
+      counting: null,
+      fragileGoods: null,
+      foam: null,
+    },
     services: [],
     charges: [],
     milestones: [],

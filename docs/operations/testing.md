@@ -1013,3 +1013,16 @@ child queries, zero on empty pages, inside the actor lock. OpenAPI/SDK tests and
 Retail guards verify tri-state facts and independent legacy fee flags. Canonical
 Docker quality and exact-head hosted gates remain required; native PostgreSQL
 results are recorded separately and never presented as Docker acceptance.
+
+### Detail service response contract regressions — NEXORA-055
+
+`node --test apps/web/test/retail-service-response.test.mjs` executes actual
+readShipment/readShipmentPage against complete synthetic Shipment DTO fixtures.
+Coverage includes all four service/summary correspondences, true/false/null and
+missing-row contradictions, fee independence, matching mixed/empty facts, UUID
+format/uppercase/no-trimming, every canonical subset, duplicates/unknown codes and
+unordered full/partial collections. API common-validation.test.cjs retains the
+existing UUID predicate contract through its compatible common facade. The Shared
+implementation is browser-safe and has no API/framework dependency. Existing
+Retail tests/fixture build/CDP and real API/Sync PostgreSQL gates remain required;
+parser tests are not server transaction or runtime acceptance evidence.
