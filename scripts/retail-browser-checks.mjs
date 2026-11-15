@@ -1100,8 +1100,9 @@ export async function verifyRetailBrowser({
         itemCount: String(source.itemCount),
         hasInsurance: source.hasInsurance ? "✓" : "—",
         hasInspection: source.hasInspection ? "✓" : "—",
-        hasWoodenCrate: source.hasWoodenCrate ? "✓" : "—",
-        hasBubbleWrap: source.hasBubbleWrap ? "✓" : "—",
+        // No approved service equivalent exists for these legacy fee-era columns.
+        hasWoodenCrate: "—",
+        hasBubbleWrap: "—",
         status:
           source.status === "disputed" ? "Chưa xác định" : source.statusText,
         totalAmountVND:
@@ -1116,6 +1117,18 @@ export async function verifyRetailBrowser({
           `reference source row ${index} ${key}`,
         );
     }
+    assert.equal(
+      await evaluate(
+        "document.querySelectorAll('tbody [aria-label=\"Chưa xác định đóng gỗ\"]').length",
+      ),
+      SYNTHETIC_PACKAGES.length,
+    );
+    assert.equal(
+      await evaluate(
+        "document.querySelectorAll('tbody [aria-label=\"Chưa xác định bọt khí\"]').length",
+      ),
+      SYNTHETIC_PACKAGES.length,
+    );
     await snapshot("reference-sample");
     assert.equal(errors.length, 0);
     assert.deepEqual(badRequests, []);
