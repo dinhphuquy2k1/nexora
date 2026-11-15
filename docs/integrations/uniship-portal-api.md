@@ -213,11 +213,14 @@ unit or meaning. Assumptions are not permission to populate misleading values.
 | TotalAmount                                       | total_amount, VND                                                                                      | GIẢ ĐỊNH currency/meaning; TotalPaidAmount/TotalRemainAmount unused                                             |
 | ModifiedDate                                      | provider_updated_at after explicit timezone conversion                                                 | XÁC NHẬN timestamp string shape; timezone and update-order semantics unverified                                 |
 
-The provider's service flags are separate from fees. Current Nexora flags still
-provisionally derive from fee codes; a following task will introduce the selected
-shipment_services representation. No table, flag policy, DTO or UI change happens
-here. A null fee does not prove a service is disabled, and a fee row must not be
-invented from a flag. Reported totals/rates are not recalculated or converted.
+The provider's service flags are separate from fees. Nexora's independent
+shipment_services foundation accepts only canonical normalized boolean facts from
+a future authorized adapter. Source null/missing/false semantics must be verified
+before claiming a complete snapshot; they are never automatically false. No mapping
+from IsFragileGoods to WOOD_PACKING or IsFoam to BUBBLE_WRAP is approved. Legacy
+chargeSummary flags remain fee-presence indicators, not service evidence. A null
+fee does not prove disabled service; a flag never creates a fee. Reported totals
+and rates are not recalculated or converted. No live adapter/capability is enabled.
 
 ### Unused captured fields — exhaustive inventory
 

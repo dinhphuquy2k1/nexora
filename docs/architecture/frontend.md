@@ -484,3 +484,14 @@ larger values to expand; shared TabBar behavior/styles remain unchanged.
 The sticky tracking header neutralizes its independent cell shadow; its shared
 bottom border, dark background, z-index and sticky positioning remain. Body
 tracking cells retain their existing shadow separation.
+
+## Retail authoritative service reads — NEXORA-055
+
+Retail uses generated SDK serviceSummary for insurance/counting, never deprecated
+fee-presence flags. Unknown remains nullable and has a distinct accessible label
+from explicit false. Wood-packing and bubble-wrap columns retain their layout but
+show unknown: FRAGILE_GOODS and FOAM have no approved equivalence to those labels.
+Strict response guards validate nullable summary booleans and detail service codes,
+booleans and uniqueness. RETAIL_SERVICE_CATALOG_PRESENTATION is a named NOT VERIFIED
+follow-up for owner-approved catalogue labels/columns/detail presentation; no page
+redesign or provider-specific interpretation is claimed here.

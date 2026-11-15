@@ -230,3 +230,14 @@ the same exclusive ACTIVE actor lock as Customer, yielding consistent scoped pag
 and counts against worker actor locks. Root lists use bounded projections; detail
 fetches ordered fees, history is a separate bounded projection. No generic repository,
 Unit of Work, new worker or cross-domain writer is introduced.
+
+## Shipment service children — NEXORA-055
+
+ShipmentAggregate owns immutable Service children with separate Shared codes,
+strict authoritative complete snapshots and stable IDs by code. Services hydrate
+under existing root/source locks with charges/milestones/items. Binding reuses
+parameterized unnest batch upsert/delete within the fenced Sync transaction;
+unchanged enabled values retain xmin and service-only changes do not invent stage
+history. Read projections use one additional page-scoped query in the existing
+actor transaction. Domain imports no Prisma/Nest/HTTP; service facts never derive
+from fees. No new worker, queue, adapter or production capability is introduced.

@@ -993,3 +993,23 @@ claim general secret/PII detection: unknown aliases, opaque encodings and embedd
 JSON strings still require manual provenance/redaction review. No raw source JSON
 is rewritten. Claim lifecycle captures and future adapter verification are separate
 from these offline fixture hygiene assertions.
+
+## Shipment service foundation verification — NEXORA-055
+
+Domain service tests cover strict complete snapshots, unknown versus false,
+immutability, IDs and fee independence. Real PostgreSQL shipment-schema checks
+validated vocabulary (including rollback-only catalog mutations), nullability,
+uniqueness, FK/cascade and indexes. The migration harness upgrades existing
+root/charge/milestone/item rows without backfill and checks repeat/drift. Signed
+disposable-cluster shipment-sql tests exact worker column grants and API SELECT-only
+permissions; shipment-worker runs genuine fenced Sync and authenticated HTTP reads.
+No shared/user volumes are reset. Service failures and stale leases must roll back
+all children/root rather than become REJECTED_SOURCE.
+
+Child batch acceptance includes 100 shipments × 50 charges / 500 items / 4 milestones
+and 4 services. First apply remains <=7500 ms with unchanged 15000 ms transaction
+and LIMIT100; unchanged rows retain IDs/xmin. Read tests require four page-scoped
+child queries, zero on empty pages, inside the actor lock. OpenAPI/SDK tests and
+Retail guards verify tri-state facts and independent legacy fee flags. Canonical
+Docker quality and exact-head hosted gates remain required; native PostgreSQL
+results are recorded separately and never presented as Docker acceptance.
