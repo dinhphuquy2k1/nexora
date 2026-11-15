@@ -9,6 +9,10 @@ import {
   type LogisticsStageCode,
   type ShipmentChargeCodeValue,
 } from "@nexora/shared/shipment";
+export const SHIPMENT_MAX_CHARGE_LINES = 50;
+export const SHIPMENT_MAX_ITEM_LINES = 500;
+export const SHIPMENT_MAX_MILESTONES = 4;
+
 export class ShipmentError extends Error {
   constructor(
     readonly code:
@@ -293,7 +297,7 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
     if (
       snapshot.complete !== true ||
       !Array.isArray(snapshot.lines) ||
-      snapshot.lines.length > 32767
+      snapshot.lines.length > SHIPMENT_MAX_CHARGE_LINES
     )
       invalid();
     charges = Array.from(snapshot.lines, (value, index) => {
@@ -327,7 +331,7 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
     if (
       snapshot.complete !== true ||
       !Array.isArray(snapshot.entries) ||
-      snapshot.entries.length > 4
+      snapshot.entries.length > SHIPMENT_MAX_MILESTONES
     )
       invalid();
     milestones = Array.from(snapshot.entries, milestonePayload);
@@ -346,7 +350,7 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
     if (
       snapshot.complete !== true ||
       !Array.isArray(snapshot.lines) ||
-      snapshot.lines.length > 32767
+      snapshot.lines.length > SHIPMENT_MAX_ITEM_LINES
     )
       invalid();
     items = Array.from(snapshot.lines, (row, i) => ({

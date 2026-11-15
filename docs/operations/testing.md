@@ -913,3 +913,27 @@ scripts/fixtures/retail/typescript-loader.test.mjs is discovered by the existing
 root `scripts/**/*.test.mjs` glob and pnpm test; it covers callable generic arrows,
 JSX emission and filename-bearing syntax diagnostics. Retail UI tests additionally
 cover bare missing values and same-query failed reload versus denied-read notices.
+
+## Shipment child batching and capacity — NEXORA-053
+
+Shipment domain tests cover exact incoming50-charge/500-item/4-milestone bounds,
+one-over rejection and legacy persisted line numbers above incoming limits.
+The test-only integration/fixtures/shipment-child-batch.cjs is reused by genuine
+Shipment and Sync PostgreSQL suites, including Sync Targeted and Foundation.
+It forwards actual binding writes to PostgreSQL while counting upsert/delete calls
+per child table, compares IDs and xmin for unchanged/one-middle-row updates,
+checks nullable parallel-array fields, empty/absent semantics and mixed valid/
+oversized page outcomes. Existing forced SQL/final-fence rollback tests still run.
+
+The separately named “full page at child limits applies within half of the
+transaction timeout” subtest owns an independent synthetic owner/connection/source
+namespace and applies100 shipments at exact50/500/4 bounds through real
+SyncRepository.apply. Only apply() is timed; staging, snapshots and final evidence
+queries are outside the timer. It logs one SHIPMENT_CHILD_BATCH_TIMING JSON line
+with first/changed/identical milliseconds, row limits, child write counts,
+PostgreSQL version and machine CPU/platform. First creation must be≤7500ms of the
+unchanged15000ms transaction timeout. Identical payloads create no job items or
+physical child writes; a changed root with identical children separately forces
+the conditional upsert path and proves unchanged IDs/xmin. This synthetic capacity
+test never enables provider capabilities. Retain failed measurements and machine
+provenance; do not increase timeouts or weaken the acceptance bound.

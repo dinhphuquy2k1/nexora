@@ -116,15 +116,15 @@ export function createShipmentSyncBinding(
           );
           if (charges !== undefined) {
             // Position is the stable current-snapshot key. Never bulk-reinsert children.
-            for (const line of charges)
-              await tx.$executeRaw`INSERT INTO shipment_charges(shipment_id,line_no,charge_code,amount,currency,provider_label) VALUES(${root.id}::uuid,${line.lineNo},${line.chargeCode},${line.amount}::numeric,${line.currency},${line.providerLabel}) ON CONFLICT(shipment_id,line_no) DO UPDATE SET charge_code=EXCLUDED.charge_code,amount=EXCLUDED.amount,currency=EXCLUDED.currency,provider_label=EXCLUDED.provider_label WHERE (shipment_charges.charge_code,shipment_charges.amount,shipment_charges.currency,shipment_charges.provider_label) IS DISTINCT FROM (EXCLUDED.charge_code,EXCLUDED.amount,EXCLUDED.currency,EXCLUDED.provider_label)`;
+            if (charges.length)
+              await tx.$executeRaw`INSERT INTO shipment_charges(shipment_id,line_no,charge_code,amount,currency,provider_label) SELECT ${root.id}::uuid,x.line_no,x.charge_code,x.amount::numeric,x.currency,x.provider_label FROM unnest(${charges.map((line) => line.lineNo)}::int[],${charges.map((line) => line.chargeCode)}::text[],${charges.map((line) => line.amount)}::text[],${charges.map((line) => line.currency)}::text[],${charges.map((line) => line.providerLabel)}::text[]) AS x(line_no,charge_code,amount,currency,provider_label) ON CONFLICT(shipment_id,line_no) DO UPDATE SET charge_code=EXCLUDED.charge_code,amount=EXCLUDED.amount,currency=EXCLUDED.currency,provider_label=EXCLUDED.provider_label WHERE (shipment_charges.charge_code,shipment_charges.amount,shipment_charges.currency,shipment_charges.provider_label) IS DISTINCT FROM (EXCLUDED.charge_code,EXCLUDED.amount,EXCLUDED.currency,EXCLUDED.provider_label)`;
             await tx.shipmentCharge.deleteMany({
               where: { shipmentId: root.id, lineNo: { gt: charges.length } },
             });
           }
           if (milestones !== undefined) {
-            for (const entry of milestones)
-              await tx.$executeRaw`INSERT INTO shipment_milestones(shipment_id,milestone_code,occurred_at,location_name,provider_label) VALUES(${root.id}::uuid,${entry.milestoneCode},${entry.occurredAt}::timestamptz,${entry.locationName},${entry.providerLabel}) ON CONFLICT(shipment_id,milestone_code) DO UPDATE SET occurred_at=EXCLUDED.occurred_at,location_name=EXCLUDED.location_name,provider_label=EXCLUDED.provider_label WHERE (shipment_milestones.occurred_at,shipment_milestones.location_name,shipment_milestones.provider_label) IS DISTINCT FROM (EXCLUDED.occurred_at,EXCLUDED.location_name,EXCLUDED.provider_label)`;
+            if (milestones.length)
+              await tx.$executeRaw`INSERT INTO shipment_milestones(shipment_id,milestone_code,occurred_at,location_name,provider_label) SELECT ${root.id}::uuid,x.milestone_code,x.occurred_at::timestamptz,x.location_name,x.provider_label FROM unnest(${milestones.map((entry) => entry.milestoneCode)}::text[],${milestones.map((entry) => entry.occurredAt)}::text[],${milestones.map((entry) => entry.locationName)}::text[],${milestones.map((entry) => entry.providerLabel)}::text[]) AS x(milestone_code,occurred_at,location_name,provider_label) ON CONFLICT(shipment_id,milestone_code) DO UPDATE SET occurred_at=EXCLUDED.occurred_at,location_name=EXCLUDED.location_name,provider_label=EXCLUDED.provider_label WHERE (shipment_milestones.occurred_at,shipment_milestones.location_name,shipment_milestones.provider_label) IS DISTINCT FROM (EXCLUDED.occurred_at,EXCLUDED.location_name,EXCLUDED.provider_label)`;
             await tx.shipmentMilestone.deleteMany({
               where: {
                 shipmentId: root.id,
@@ -135,8 +135,8 @@ export function createShipmentSyncBinding(
             });
           }
           if (items !== undefined) {
-            for (const line of items)
-              await tx.$executeRaw`INSERT INTO shipment_items(shipment_id,line_no,name,quantity,unit_value,currency) VALUES(${root.id}::uuid,${line.lineNo},${line.name},${line.quantity},${line.unitValue}::numeric,${line.currency}) ON CONFLICT(shipment_id,line_no) DO UPDATE SET name=EXCLUDED.name,quantity=EXCLUDED.quantity,unit_value=EXCLUDED.unit_value,currency=EXCLUDED.currency WHERE (shipment_items.name,shipment_items.quantity,shipment_items.unit_value,shipment_items.currency) IS DISTINCT FROM (EXCLUDED.name,EXCLUDED.quantity,EXCLUDED.unit_value,EXCLUDED.currency)`;
+            if (items.length)
+              await tx.$executeRaw`INSERT INTO shipment_items(shipment_id,line_no,name,quantity,unit_value,currency) SELECT ${root.id}::uuid,x.line_no,x.name,x.quantity,x.unit_value::numeric,x.currency FROM unnest(${items.map((line) => line.lineNo)}::int[],${items.map((line) => line.name)}::text[],${items.map((line) => line.quantity)}::int[],${items.map((line) => line.unitValue)}::text[],${items.map((line) => line.currency)}::text[]) AS x(line_no,name,quantity,unit_value,currency) ON CONFLICT(shipment_id,line_no) DO UPDATE SET name=EXCLUDED.name,quantity=EXCLUDED.quantity,unit_value=EXCLUDED.unit_value,currency=EXCLUDED.currency WHERE (shipment_items.name,shipment_items.quantity,shipment_items.unit_value,shipment_items.currency) IS DISTINCT FROM (EXCLUDED.name,EXCLUDED.quantity,EXCLUDED.unit_value,EXCLUDED.currency)`;
             await tx.shipmentItem.deleteMany({
               where: { shipmentId: root.id, lineNo: { gt: items.length } },
             });

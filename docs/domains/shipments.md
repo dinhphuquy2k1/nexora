@@ -189,7 +189,8 @@ history or observation-time fallbacks.
 shipment_items has DB UUID id, the same parent FK, line_no SMALLINT NOT NULL,
 name VARCHAR512 NOT NULL and quantity INTEGER nullable. It has UNIQUE(parent,line),
 CHECK line_no>=1, nonblank btrim(name), and quantity NULL or>=0. Domain bounds
-quantity0..2147483647 and line count32767, deriving lineNo from source order.
+quantity0..2147483647, deriving lineNo from source order. Provider input accepts
+at most500 items; persisted SMALLINT line numbers through32767 remain hydratable.
 No indexes beyond PK/UNIQUE, which already cover shipment_id queries.
 
 All three provider-owned current collections share the authority rule: absent
@@ -299,7 +300,8 @@ Nexora business write commands are later work.
 6. Official API access permission and allowed use/storage scope.
 7. Cancellation, return and exceptional flows.
 8. Warehouse milestones and destination warehouse name.
-9. The list of products/items in a parcel, including per-product value and currency when supplied.
+9. The list of products/items in a parcel, including per-product value/currency
+   when supplied and the actual maximum charge/item line counts per parcel.
 10. Whether the four services are fee rows or separate flags; current API flags
     provisionally derive only from INSURANCE/COUNTING/WOOD_PACKING/BUBBLE_WRAP rows.
 
@@ -315,7 +317,9 @@ unregistered. UI fixtures and passing synthetic tests do not supply API rights.
    complete shared Pager/filter follow-ups before Shipment UI integration.
 4. Connect Retail UI to real read API with exhaustive tab mapping.
 5. Uniship Shipment adapter only after official documentation and the ten verifications.
-   Before registering any Shipment sync capability, resolve [child snapshot bounds and batch writes (issue #50)](https://github.com/dinhphuquy2k1/nexora/issues/50), including real SyncRepository timeout measurements.
+   The [child snapshot bounds and batch writes prerequisite (issue #50)](https://github.com/dinhphuquy2k1/nexora/issues/50)
+   is resolved by NEXORA-053, with real SyncRepository timeout measurements.
+   All other authorization/adapter/capacity prerequisites remain.
 6. Later: independently authorized provider Customer/Shipment capabilities and
    separately justified storage/unused-field cleanup (not prerequisites to Core);
    multi-employee data-owner access and Nexora business operations,
@@ -408,3 +412,28 @@ Legacy advanced filters remain inert. Create/export stay disabled. Reported deci
 strings retain exact precision; no client money aggregation is performed. Detail
 shows ordered charges/items, canonical milestones and observed stage history.
 This Web integration changes no backend contract and enables no Sync provider.
+
+## Bounded provider child snapshots — NEXORA-053
+
+Provider normalization accepts at most50 charge lines,500 item lines and4 unique
+milestones per shipment. Exceeding a bound raises VALIDATION_ERROR and the existing
+processor resolves that shipment as REJECTED_SOURCE; valid siblings on the same
+page still apply. These incoming limits are distinct from persisted SMALLINT
+lineNo representation (1..32767); legacy stored snapshots still hydrate. Existing
+64KiB Sync payload bounds remain independent. No API/DTO/SDK/schema change.
+
+Each present nonempty collection uses one parameterized INSERT SELECT FROM unnest
+with typed parallel arrays and the existing conditional ON CONFLICT update,
+followed by excess-row deletion: at most2 child write statements per table,
+independent of row count. Empty collections delete all; absent collections perform
+no child writes. Stable keys/IDs and IS DISTINCT FROM preserve unchanged row xmin;
+nullable quantities, values/currencies, labels and locations stay null. All child
+writes remain within the existing root/history/source/outcome transaction and final
+lease fence. Sync retains LIMIT100,15000ms timeout and retry/lease/version policy.
+
+The capacity target is first apply≤7500ms for100 shipments each carrying50 charges,
+500 items and4 milestones, leaving half the transaction timeout. Test evidence also
+records changed and identical payloads; identical source payloads skip binding
+writes. The approved500→250→100 item fallback was not needed locally. Synthetic
+capacity evidence does not register or authorize a Shipment capability or Uniship
+adapter; verify actual provider maxima in checklist point9 before activation.
