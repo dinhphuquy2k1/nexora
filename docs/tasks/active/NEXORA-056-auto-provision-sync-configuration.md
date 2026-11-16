@@ -610,3 +610,52 @@ or edits were delegated. Test logs remain temporary, not committed artifacts.
 | https-diag-terminal-age-red                     | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:15:27.417092+00:00; exit 1                                                                            | 2026-11-16 | FAIL   |
 | https-diag-terminal-age-green                   | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:15:27.862488+00:00; exit 0                                                                            | 2026-11-16 | PASS   |
 | https-diag-checks                               | `node --test scripts/public-https-diagnostics.test.mjs scripts/login-readiness-diagnostics.test.mjs scripts/smoke-checks.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:16:51.197854+00:00; exit 0 | 2026-11-16 | PASS   |
+
+#### Instrumented hosted observation and next diagnostic experiment
+
+Foundation [43848285718](https://github.com/dinhphuquy2k1/nexora/actions/runs/43848285718),
+HEAD d4890e3f7918416e4f9f00b7861dfad444c88e62, attempt 1, 2026-11-16 UTC:
+steps 4–7 PASS; step 8 FAIL; steps 9–10 SKIPPED. Exact failure:
+
+```text
+Step: ADMIN_BROWSER_INTERACTIVE_LOGIN
+Category: REQUEST_TIMEOUT
+Error type: TimeoutError
+Step elapsed ms: 10296
+```
+
+The readiness diagnostic reports 5 script loading failures (OTHER), no HTTP
+script errors/certificate errors, and no dispatched LOGIN. Chrome/157.0.8103.50;
+all eight proxy environment presence flags false. The ingress POST LOGIN 308
+without TLS belongs to the earlier explicit HTTP redirect assertion, not a
+browser login or proof of API arrival. This differs from the original hydrated
+pending-MFA failure; root cause remains UNKNOWN. Preflight 43848285749 and Sync
+Targeted 43848285752 PASS on the same HEAD.
+
+Bounded diagnostic plan adjustment before code: reuse the existing auth lifecycle
+collector and its allowlists to observe up to 16 same-origin Next static script
+request IDs privately and retain at most 4 failed-script summaries. Emit only
+fixed error/CORS/block categories, elapsed time and same-origin/static-script
+classification; never script URLs, identifiers, bodies, headers or arbitrary error
+text. This tests whether hydration and login share a transport boundary. No
+functional fix or timing/security assertion change; frozen snapshot unchanged.
+
+| Claim                                | Evidence                                                                                                                                                                                                                                      | Date       | Result |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Hosted Preflight diagnostic HEAD     | Workflow Preflight Policy & Design Governance; d4890e3f7918416e4f9f00b7861dfad444c88e62; [43848285749](https://github.com/dinhphuquy2k1/nexora/actions/runs/43848285749), 2026-11-16 UTC                                                      | 2026-11-16 | PASS   |
+| Hosted Sync Targeted diagnostic HEAD | Workflow Sync V1 Targeted PostgreSQL verification; d4890e3f7918416e4f9f00b7861dfad444c88e62; [43848285752](https://github.com/dinhphuquy2k1/nexora/actions/runs/43848285752), 2026-11-16 UTC                                                  | 2026-11-16 | PASS   |
+| Hosted Foundation diagnostic HEAD    | Workflow Nexora foundation; d4890e3f7918416e4f9f00b7861dfad444c88e62; [43848285718](https://github.com/dinhphuquy2k1/nexora/actions/runs/43848285718), attempt1, failure 10:36:31 UTC; steps4–7 PASS,8 FAIL,9–10 SKIPPED; exact failure above | 2026-11-16 | FAIL   |
+| Script transport diagnostics RED     | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on d4890e3; 10:38:10 UTC; 4PASS/1FAIL, missing scriptFailures                                                                                                           | 2026-11-16 | FAIL   |
+| Script transport diagnostics GREEN   | `node --test scripts/public-https-diagnostics.test.mjs scripts/login-readiness-diagnostics.test.mjs scripts/smoke-checks.test.mjs`; working tree on d4890e3; 10:38:29 UTC; 15/15PASS including no-secret/bounds test                          | 2026-11-16 | PASS   |
+
+Hosted provenance for the three d4890e3 rows: source HEAD
+`d4890e3f7918416e4f9f00b7861dfad444c88e62`, checkout merge
+`2e32a3b6d074b8b7f029d285005a4a3bbf503281` (Foundation checkout log,
+2026-11-16T10:22:55Z); Foundation job133233968221, run started10:22:43Z,
+completed10:36:52Z. Full safe extracted diagnostics retained in PR description;
+raw local log is temporary and not a durable artifact. No functional fix claimed.
+Independent read-only review of script diagnostic delta: 0P1/0P2/0P3.
+
+| Claim                                      | Evidence                                                                                                                                                                                                                                          | Date       | Result |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Full quality after script diagnostic delta | `API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; working tree on d4890e3f7918416e4f9f00b7861dfad444c88e62; 2026-11-16T10:38:53Z–10:41:41Z, exit0; format/docs/preflight/lint/tests/contracts/build included | 2026-11-16 | PASS   |

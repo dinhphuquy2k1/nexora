@@ -186,3 +186,51 @@ test("pending login age advances without CDP replies while terminal durations st
   assert.equal(row.corsError, "InsecurePrivateNetwork");
   assert.equal(JSON.stringify(row).includes(secret), false);
 });
+
+test("same-origin Next script failures retain bounded transport categories without URLs", () => {
+  const trace = createPublicAuthRequestDiagnostics(origin);
+  for (let i = 0; i < 20; i++) {
+    const event = dispatch(
+      secret + i,
+      origin + "/_next/static/" + secret + i + ".js",
+    );
+    event.params.type = "Script";
+    trace.observe(event);
+    trace.observe({
+      method: "Network.loadingFailed",
+      params: {
+        requestId: secret + i,
+        errorText: i === 0 ? "net::ERR_FAILED" : secret,
+        corsErrorStatus: {
+          corsError: "PrivateNetworkAccessPermissionDenied",
+          failedParameter: secret,
+        },
+        blockedReason: secret,
+        canceled: false,
+      },
+    });
+  }
+  assert.equal(trace.snapshot().scriptFailures.length, 4);
+  assert.equal(
+    trace.snapshot().scriptFailures[0].networkError,
+    "net::ERR_FAILED",
+  );
+  assert.equal(
+    trace.snapshot().scriptFailures[0].corsError,
+    "PrivateNetworkAccessPermissionDenied",
+  );
+  assert.equal(trace.snapshot().scriptFailures[1].networkError, "OTHER");
+  assert.equal(JSON.stringify(trace.snapshot()).includes(secret), false);
+  const foreign = createPublicAuthRequestDiagnostics(origin);
+  const event = dispatch(
+    secret,
+    "https://foreign.example/_next/static/private.js",
+  );
+  event.params.type = "Script";
+  foreign.observe(event);
+  foreign.observe({
+    method: "Network.loadingFailed",
+    params: { requestId: secret, errorText: "net::ERR_FAILED" },
+  });
+  assert.deepEqual(foreign.snapshot().scriptFailures, []);
+});

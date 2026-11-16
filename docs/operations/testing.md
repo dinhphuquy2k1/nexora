@@ -1086,3 +1086,10 @@ establish the failing layer or a transient root cause. Capture actual per-reques
 lifecycle evidence before selecting a functional fix. No raw auth/network dump or
 general TLS/proxy bypass is introduced; strict CA/name and disposable leaf-SPKI
 assertions and the original login/MFA/Origin/cookie checks remain mandatory.
+
+If hydration fails before LOGIN dispatch, the same disposable diagnostic also
+retains up to four failed same-origin Next static-script transport summaries
+(from at most sixteen privately tracked requests). These contain only elapsed
+time and fixed network/CORS/block categories, never script URLs or payloads.
+An earlier HTTP login redirect probe is not evidence of browser HTTPS login
+arrival; distinguish its HTTP/308 ingress row from the browser request lifecycle.

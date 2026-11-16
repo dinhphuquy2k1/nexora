@@ -72,6 +72,8 @@ export function createPublicAuthRequestDiagnostics(
   )
     throw Error("Invalid diagnostic origin");
   const requests = new Map();
+  const scripts = new Map();
+  const scriptFailures = [];
   let dropped = 0;
   return {
     observe({ method, params = {} }) {
@@ -80,6 +82,15 @@ export function createPublicAuthRequestDiagnostics(
         try {
           url = new URL(params.request?.url);
         } catch {
+          return;
+        }
+        if (
+          url.origin === expected.origin &&
+          params.type === "Script" &&
+          url.pathname.startsWith("/_next/static/")
+        ) {
+          if (scripts.size < 16 && !scripts.has(params.requestId))
+            scripts.set(params.requestId, { started: now(), terminal: false });
           return;
         }
         if (
@@ -123,6 +134,34 @@ export function createPublicAuthRequestDiagnostics(
           },
         });
         return;
+      }
+      const script = scripts.get(params.requestId);
+      if (script && !script.terminal && method === "Network.loadingFinished")
+        script.terminal = true;
+      if (script && !script.terminal && method === "Network.loadingFailed") {
+        script.terminal = true;
+        if (scriptFailures.length < 4)
+          scriptFailures.push({
+            category: "SAME_ORIGIN_NEXT_SCRIPT",
+            elapsedMs: Math.min(
+              60000,
+              Math.max(0, Math.round(now() - script.started)),
+            ),
+            networkError: errors.has(params.errorText)
+              ? params.errorText
+              : "OTHER",
+            blockedReason: params.blockedReason
+              ? blocked.has(params.blockedReason)
+                ? params.blockedReason
+                : "OTHER"
+              : null,
+            corsError: params.corsErrorStatus?.corsError
+              ? corsErrors.has(params.corsErrorStatus.corsError)
+                ? params.corsErrorStatus.corsError
+                : "OTHER"
+              : null,
+            canceled: params.canceled === true,
+          });
       }
       const entry = requests.get(params.requestId);
       if (!entry || entry.row.finished || entry.row.failed) return;
@@ -183,6 +222,7 @@ export function createPublicAuthRequestDiagnostics(
       }
     },
     snapshot: () => ({
+      scriptFailures: scriptFailures.map((row) => ({ ...row })),
       requests: [...requests.values()].map(({ row, started }) => ({
         ...row,
         elapsedMs:
