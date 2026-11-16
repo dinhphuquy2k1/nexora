@@ -6,17 +6,25 @@ export interface DefaultSyncPolicy {
   readonly enabled: boolean;
   readonly intervalMinutes: number;
 }
-const unishipDefaults: readonly DefaultSyncPolicy[] = Object.freeze([
-  Object.freeze({
-    syncType: SyncType.SHIPMENT,
-    enabled: true,
-    intervalMinutes: 60,
-  }),
-]);
-const noDefaults: readonly DefaultSyncPolicy[] = Object.freeze([]);
+const EMPTY_POLICIES: readonly DefaultSyncPolicy[] = Object.freeze([]);
+const DEFAULT_POLICIES = Object.freeze({
+  [CarrierProvider.UNISHIP]: Object.freeze([
+    Object.freeze({
+      syncType: SyncType.SHIPMENT,
+      enabled: true,
+      intervalMinutes: 60,
+    }),
+  ]),
+}) satisfies Readonly<
+  Partial<Record<CarrierProvider, readonly DefaultSyncPolicy[]>>
+>;
 /** Onboarding defaults are persisted intent, never executable capability registration. */
 export function getDefaultSyncPolicies(
   provider: string,
 ): readonly DefaultSyncPolicy[] {
-  return provider === CarrierProvider.UNISHIP ? unishipDefaults : noDefaults;
+  if (!Object.hasOwn(DEFAULT_POLICIES, provider)) return EMPTY_POLICIES;
+  return (
+    DEFAULT_POLICIES[provider as keyof typeof DEFAULT_POLICIES] ??
+    EMPTY_POLICIES
+  );
 }

@@ -12,8 +12,19 @@ test("Uniship onboarding defaults are exactly one enabled SHIPMENT at60 minutes"
   assert.equal(new Set(defaults.map((d) => d.syncType)).size, defaults.length);
 });
 test("onboarding policy never assigns Uniship defaults to another provider", () => {
-  for (const provider of ["", "future-provider", "UNISHIP", "toString"])
-    assert.deepEqual(policy()(provider), []);
+  for (const provider of [
+    "",
+    "future-provider",
+    "UNISHIP",
+    " uniship",
+    "constructor",
+    "toString",
+    "__proto__",
+  ]) {
+    const defaults = policy()(provider);
+    assert.deepEqual(defaults, []);
+    assert.equal(Object.isFrozen(defaults), true);
+  }
 });
 test("onboarding defaults are immutable across callers", () => {
   const resolve = policy();
@@ -24,6 +35,10 @@ test("onboarding defaults are immutable across callers", () => {
     defaults.push({ syncType: "CUSTOMER", enabled: true, intervalMinutes: 15 }),
   );
   defaults[0].enabled = false;
-  assert.equal(resolve(CarrierProvider.UNISHIP)[0].enabled, true);
+  defaults[0].intervalMinutes = 1;
+  defaults[0].syncType = "CUSTOMER";
+  assert.deepEqual(resolve(CarrierProvider.UNISHIP), [
+    { syncType: "SHIPMENT", enabled: true, intervalMinutes: 60 },
+  ]);
   assert.throws(() => resolve("other").push(defaults[0]));
 });

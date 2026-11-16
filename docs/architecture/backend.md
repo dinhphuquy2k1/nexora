@@ -244,9 +244,12 @@ from fees. No new worker, queue, adapter or production capability is introduced.
 
 ## Provider default schedules — NEXORA-056
 
-carrier/domain/default-sync-policy.ts is a small immutable onboarding policy using
-CarrierProvider and the code-only Shared SyncType. Unknown provider strings return
-no defaults. CarrierLifecycleAdapter.create passes connection.provider, persists
+carrier/domain/default-sync-policy.ts is a static, deeply frozen onboarding policy
+registry keyed by CarrierProvider and checked against readonly policy arrays using
+TypeScript satisfies. Policies use the code-only Shared SyncType. Own-property
+lookup returns a frozen empty array for unknown strings, including Object prototype
+keys. Registry entries describe onboarding intent, never runtime authorization.
+CarrierLifecycleAdapter.create passes connection.provider, persists
 one config per policy after sealed credentials and before success audit, all under
 its existing ACTIVE/generation transaction. Uniship's sole policy is enabled
 SHIPMENT/60minutes. Database-created TIMESTAMPTZ(3) metadata supplies createdAt;

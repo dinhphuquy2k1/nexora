@@ -1029,8 +1029,9 @@ parser tests are not server transaction or runtime acceptance evidence.
 
 ## Default Sync schedules and global control — NEXORA-056
 
-carrier-default-sync.test.cjs validates immutable provider defaults, no unknown/
-CUSTOMER default and unique types. Carrier lifecycle's genuine migrated PostgreSQL/
+carrier-default-sync.test.cjs validates deeply immutable provider defaults, frozen
+empty fallback for unknown/empty/invalid and `constructor`/`toString`/`__proto__` keys,
+no CUSTOMER default and unique types. Carrier lifecycle's genuine migrated PostgreSQL/
 local mock HTTP suite verifies one default, exact SQL created_at+60minute equality,
 NULL history/no job, scoped GET availability, duplicate/reconnect independence and
 cascade. Separate config-insert and late success-audit triggers prove atomic

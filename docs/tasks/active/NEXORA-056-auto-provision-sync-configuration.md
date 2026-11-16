@@ -279,3 +279,60 @@ No additional architectural scope was implemented. Test-only password-file fallb
 is documented; canonical Docker default reads and assertions are unchanged. All
 setup/fixture failures above remain history, not hidden by rerunning CI. New exact-
 head hosted results and final recommendation remain pending until actual execution.
+
+### Review delta — static provider policy registry (2026-11-16)
+
+BOUNDED refactor within plan v1; baseline
+`b94645076fc61ac2aef6fed70df9b93942375e76`. No new snapshot or task.
+Pre-code inspection: searched `getDefaultSyncPolicies` across apps/api, inspected
+CarrierProvider, existing default tests, lifecycle create transaction and reusable
+components registry (`registry|policy`). The sole production caller is
+carrier/infrastructure/carrier-lifecycle.adapter.ts.
+
+| Field                    | Decision / evidence                                                                                                                                               |
+| :----------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Default onboarding policy lookup                                                                                                                                  |
+| Existing implementations | apps/api/src/carrier/domain/default-sync-policy.ts; apps/api/test/carrier-default-sync.test.cjs; apps/api/src/carrier/infrastructure/carrier-lifecycle.adapter.ts |
+| Domain owner             | Carrier domain; persisted onboarding intent only                                                                                                                  |
+| Reuse alternatives       | Keep conditional; use static object; extract common registry/framework                                                                                            |
+| Selected approach        | Reuse interface/caller; one frozen object keyed by canonical CarrierProvider, satisfies readonly partial Record; own-property guarded lookup                      |
+| Rationale                | Data-only extension without provider conditions or speculative abstraction                                                                                        |
+| Risks                    | Prototype keys and shared mutation; guard before controlled keyof assertion and freeze registry, arrays, entries and fallback                                     |
+| Verification             | Expand characterization tests before implementation; build and targeted unit/Sync tests, real Carrier PostgreSQL regression, full quality, exact-head hosted CI   |
+
+Documentation Impact for this delta: REQUIRED; update backend registry description
+and testing coverage in existing canonical owners. Transaction, timing, reconnect,
+audit, capability registry, global switch, HTTP gates, contracts and schema are
+out of scope. Plan: tests first, static lookup refactor, execute checks, review
+complete delta and publish same PR without merging. Existing behavior already
+handles prototype names; pre-refactor GREEN is characterization, not a fabricated
+behavioral RED. Snapshot bytes/digest stay unchanged.
+
+#### Registry delta verification
+
+Executed 2026-11-16 (UTC), baseline b946450 with the five-file registry delta:
+
+| Claim                                 | Evidence                                                                                                                                                                                                                    | Date       | Result |
+| :------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Pre-refactor characterization         | `node --test apps/api/test/carrier-default-sync.test.cjs`: 3/3 with expanded prototype-key/freeze assertions, before policy implementation changed                                                                          | 2026-11-16 | PASS   |
+| Registry behavior and Sync invariants | `pnpm --filter @nexora/api... build` then `node --test apps/api/test/carrier-default-sync.test.cjs apps/api/test/sync/*.test.cjs`: 30/30                                                                                    | 2026-11-16 | PASS   |
+| Auto-provision regression             | Owned disposable Docker PostgreSQL17.11; `node --test integration/carrier-lifecycle-integration.test.cjs`: 22/22, including defaults/timing/reconnect/atomic rollback; container, volume and test secrets removed afterward | 2026-11-16 | PASS   |
+| Vocabulary lint regression            | `pnpm test:lint`: 56/56                                                                                                                                                                                                     | 2026-11-16 | PASS   |
+
+Additional executed verification at 07:41 UTC: full
+`API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`
+PASS (format, lint/boundaries, preflight, docs, typecheck, 792 tests, contract drift
+check and production build). `pnpm test:docs` 10/10 and `pnpm test:preflight` 24/24
+PASS. Tooling uses pinned pnpm10.34.6. Final hosted results will be appended to
+PR metadata against the committed source HEAD, without rewriting prior evidence.
+
+Review of complete delta found no confirmed P1/P2: only resolver/tests and canonical
+backend/testing/task docs changed. The keyof assertion is guarded by Object.hasOwn
+on a frozen private registry. No framework, fake provider, runtime capability,
+transaction or contract changes. Interface and defaults unchanged. This is
+self-review, not independent approval. Existing independent-review limitation
+remains. Frozen v1 snapshot SHA-256 still
+fe0f4f6089d34805ba893cebca1d4bfae152e660c322bd41ef018e41ecd07908.
+Local full Docker quality/runtime is NOT RUN for this delta due to the existing
+small-disk constraint; hosted Foundation must supply final-head canonical evidence.
+No screenshots were captured or manually reviewed for this backend-only delta.
