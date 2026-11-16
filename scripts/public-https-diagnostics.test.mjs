@@ -234,3 +234,62 @@ test("same-origin Next script failures retain bounded transport categories witho
   });
   assert.deepEqual(foreign.snapshot().scriptFailures, []);
 });
+
+test("an absent observed Origin is unknown rather than a mismatch", () => {
+  for (const headers of [{ Authorization: secret }, undefined, null]) {
+    const trace = createPublicAuthRequestDiagnostics(origin);
+    const event = dispatch("absent-origin");
+    event.params.request.headers = headers;
+    event.params.arbitrary = secret;
+    trace.observe(event);
+    assert.equal(trace.snapshot().requests[0].originHeaderMatches, null);
+    assert.equal(JSON.stringify(trace.snapshot()).includes(secret), false);
+  }
+});
+
+test("observed string Origins compare exactly with case-insensitive header names", () => {
+  for (const key of ["origin", "Origin", "ORIGIN"]) {
+    for (const value of [
+      origin,
+      "https://" + secret + ".invalid",
+      origin + "/",
+      origin + " ",
+      origin.toUpperCase(),
+      "",
+    ]) {
+      const trace = createPublicAuthRequestDiagnostics(origin);
+      const event = dispatch("observed-origin");
+      event.params.request.headers = {
+        [key]: value,
+        Authorization: secret,
+        Cookie: secret,
+      };
+      event.params.arbitrary = secret;
+      trace.observe(event);
+      assert.equal(
+        trace.snapshot().requests[0].originHeaderMatches,
+        value === origin,
+      );
+      assert.equal(JSON.stringify(trace.snapshot()).includes(secret), false);
+    }
+  }
+});
+
+test("unusable observed Origin values remain unknown without exposing CDP payloads", () => {
+  for (const value of [
+    undefined,
+    null,
+    123,
+    false,
+    [origin],
+    { private: secret },
+  ]) {
+    const trace = createPublicAuthRequestDiagnostics(origin);
+    const event = dispatch("unusable-origin");
+    event.params.request.headers.Origin = value;
+    event.params.arbitrary = secret;
+    trace.observe(event);
+    assert.equal(trace.snapshot().requests[0].originHeaderMatches, null);
+    assert.equal(JSON.stringify(trace.snapshot()).includes(secret), false);
+  }
+});

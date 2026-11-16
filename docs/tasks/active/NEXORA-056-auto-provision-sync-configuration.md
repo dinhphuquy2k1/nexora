@@ -659,3 +659,69 @@ Independent read-only review of script diagnostic delta: 0P1/0P2/0P3.
 | Claim                                      | Evidence                                                                                                                                                                                                                                          | Date       | Result |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Full quality after script diagnostic delta | `API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; working tree on d4890e3f7918416e4f9f00b7861dfad444c88e62; 2026-11-16T10:38:53Z–10:41:41Z, exit0; format/docs/preflight/lint/tests/contracts/build included | 2026-11-16 | PASS   |
+
+### BOUNDED review delta — accurate observed Origin state (2026-11-16)
+
+Baseline ef229d7aab2fb7218d2f4a1f126cf9f7e49bb5a6, branch
+feat/auto-provision-sync-configuration, PR55 open/unmerged and worktree clean.
+This is a local P3 diagnostic correction within the existing SIGNIFICANT task;
+plan revision and frozen v1 snapshot/digest remain unchanged. Documentation Impact:
+REQUIRED; canonical owner docs/operations/testing.md documents the observed state.
+
+| Field                    | Origin diagnostic correction                                                                                                                                                                                                                        |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | createPublicAuthRequestDiagnostics observed Origin state                                                                                                                                                                                            |
+| Existing implementations | scripts/public-https-diagnostics.mjs case-insensitive header lookup and bounded row; scripts/public-https-diagnostics.test.mjs dispatch fixture, lifecycle/bounds/privacy coverage; login-readiness-diagnostics.mjs observation-only precedent      |
+| Domain owner             | Disposable test diagnostics only; API authorization remains separate                                                                                                                                                                                |
+| Reuse alternatives       | Searched originHeaderMatches, typeof origin and Origin lookup in scripts and API/Web tests; reuse existing lookup/fixture; no suitable additional utility, no helper/extraction/duplicate state field                                               |
+| Selected approach        | A string Origin compares exactly (true/false); absent or non-string observation produces null, using one local variable and existing row field                                                                                                      |
+| Rationale                | Partial CDP headers do not prove actual HTTP header absence or mismatch; explicit string mismatches remain strict, without normalization                                                                                                            |
+| Risks                    | Misleading authorization inference or leaked raw headers; new missing/unusable/casing/exactness/privacy tests, preserve existing lifecycle assertions                                                                                               |
+| Verification             | Genuine targeted RED before implementation, GREEN plus related diagnostic/readiness/smoke suite; pinned format/docs/preflight/lint/quality, complete diff and independent review, final-head Preflight/Sync Targeted/Foundation all mandatory steps |
+
+Plan recorded before code/tests: append focused regression cases using the existing
+dispatch fixture, execute RED, minimally guard the observed value with typeof,
+execute GREEN and project checks, update testing docs/evidence, review independently,
+commit/push to PR55 and inspect exact-head CI. Authorized files only:
+scripts/public-https-diagnostics.mjs, scripts/public-https-diagnostics.test.mjs,
+docs/operations/testing.md and this task record. No production authentication,
+Origin/MFA/TLS/SPKI, ingress, retry/deadline, database, Sync, live authorization or
+runtime-password naming changes. No new architecture, task, issue or PR.
+
+The historical pending-MFA and interactive-login failures remain UNKNOWN. Successful
+ef229d7 Foundation attempts1/2 verify execution, not a causal fix. The reassessment
+point has been reached: do not continue causal retries without a genuine recurrence
+captured by existing bounded diagnostics, or a separately planned targeted reproducer
+with a concrete hypothesis and observable discriminant. This P3 correction does not
+resolve that investigation or owner acceptance; Status stays VERIFICATION PENDING.
+
+#### Origin-state regression and verification evidence
+
+All local rows below used Node24.19.0/pnpm10.34.6 in the working tree based on
+`ef229d7aab2fb7218d2f4a1f126cf9f7e49bb5a6`; no CI merge ref applies locally.
+Actual RED: 6PASS/2FAIL (absent and non-string Origin, false !== null).
+Actual GREEN: 8/8 collector and 18/18 related tests. Existing lifecycle, bounds,
+CORS/block/peer/status/timing/privacy assertions and fixtures are unchanged.
+Independent read-only implementation-code-review: 0P1/0P2/0P3; no tests or edits
+performed by the reviewer. Full diff contains exactly the four authorized files;
+snapshot digest remains fe0f4f6089d34805ba893cebca1d4bfae152e660c322bd41ef018e41ecd07908.
+No raw observed Origin is retained. Production authorization and all security/
+retry/deadline behavior are unchanged. No screenshots or visual acceptance claimed.
+
+| Claim                        | Evidence                                                                                                                                                                                                                                                                    | Date       | Result |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| origin-state-red             | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on ef229d7aab2fb7218d2f4a1f126cf9f7e49bb5a6; UTC 2026-11-16T14:45:04.915818+00:00–2026-11-16T14:45:06.014256+00:00; exit 1                                                                            | 2026-11-16 | FAIL   |
+| origin-state-green           | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on ef229d7aab2fb7218d2f4a1f126cf9f7e49bb5a6; UTC 2026-11-16T14:45:23.140090+00:00–2026-11-16T14:45:23.334754+00:00; exit 0                                                                            | 2026-11-16 | PASS   |
+| origin-state-related         | `node --test scripts/public-https-diagnostics.test.mjs scripts/login-readiness-diagnostics.test.mjs scripts/smoke-checks.test.mjs`; working tree on ef229d7aab2fb7218d2f4a1f126cf9f7e49bb5a6; UTC 2026-11-16T14:45:23.375866+00:00–2026-11-16T14:45:23.770903+00:00; exit 0 | 2026-11-16 | PASS   |
+| origin-state-preflight-check | `npx --yes pnpm@10.34.6 preflight:check`; working tree on ef229d7aab2fb7218d2f4a1f126cf9f7e49bb5a6; UTC 2026-11-16T14:45:32.659761+00:00–2026-11-16T14:45:39.994827+00:00; exit 0                                                                                           | 2026-11-16 | PASS   |
+| origin-state-docs-check      | `npx --yes pnpm@10.34.6 docs:check`; working tree on ef229d7aab2fb7218d2f4a1f126cf9f7e49bb5a6; UTC 2026-11-16T14:45:32.621020+00:00–2026-11-16T14:45:40.190310+00:00; exit 0                                                                                                | 2026-11-16 | PASS   |
+| origin-state-lint            | `npx --yes pnpm@10.34.6 lint`; working tree on ef229d7aab2fb7218d2f4a1f126cf9f7e49bb5a6; UTC 2026-11-16T14:45:32.593036+00:00–2026-11-16T14:46:04.865282+00:00; exit 0                                                                                                      | 2026-11-16 | PASS   |
+| origin-state-format-check    | `npx --yes pnpm@10.34.6 format:check`; working tree on ef229d7aab2fb7218d2f4a1f126cf9f7e49bb5a6; UTC 2026-11-16T14:45:32.713687+00:00–2026-11-16T14:46:12.874218+00:00; exit 0                                                                                              | 2026-11-16 | PASS   |
+| origin-state-quality         | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; working tree on ef229d7aab2fb7218d2f4a1f126cf9f7e49bb5a6; UTC 2026-11-16T14:46:13.244412+00:00–2026-11-16T14:49:05.150208+00:00; exit 0                                          | 2026-11-16 | PASS   |
+
+Final-head hosted evidence is recorded in PR55 after push, avoiding an additional
+evidence-only commit/HEAD. Historical ef229d7 Foundation43851359080 attempts1/2
+PASS all4–10, Preflight43851359090 PASS and SyncTargeted43851359140 PASS are
+successful controls, not substitutes for the next HEAD or explanations of earlier
+failures. Owner acceptance/remaining task criteria remain separate from completion
+of this P3 diagnostic correction. No further causal retries are selected here.

@@ -107,6 +107,8 @@ export function createPublicAuthRequestDiagnostics(
         const origin = Object.entries(params.request.headers ?? {}).find(
           ([key]) => key.toLowerCase() === "origin",
         )?.[1];
+        const originHeaderMatches =
+          typeof origin === "string" ? origin === expected.origin : null;
         requests.set(params.requestId, {
           started,
           row: {
@@ -116,7 +118,7 @@ export function createPublicAuthRequestDiagnostics(
             method: ["POST", "GET", "OPTIONS"].includes(params.request.method)
               ? params.request.method
               : "OTHER",
-            originHeaderMatches: origin === expected.origin,
+            originHeaderMatches,
             startedUTC: new Date(started).toISOString(),
             elapsedMs: 0,
             responseReceived: false,

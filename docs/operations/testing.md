@@ -1075,6 +1075,16 @@ never emitted or retained in diagnostic summaries. Browser product and proxy-env
 compare execution environments. Summaries appear on success and failure; they do
 not retry authentication, alter deadlines, or replace any acceptance assertion.
 
+`originHeaderMatches` reports only the Origin available in the observed CDP event:
+`true` means an observed string matched the expected origin exactly; `false` means
+an observed string mismatched; `null` means no usable string Origin was available.
+Header names are case-insensitive, but observed values are never normalized or
+emitted. `null` is not evidence that the browser omitted the actual HTTP Origin
+header. This observation does not replace API Origin enforcement or establish the
+cause of historical intermittent HTTPS/MFA failures. Resume causal investigation
+only on a genuine recurrence captured by bounded diagnostics, or a separately
+planned targeted reproducer with a concrete hypothesis and observable discriminant.
+
 The existing private Public HTTPS Compose overlay mounts a temporary copy of the
 Nginx template with conditional POST-login-only fixed-field access metadata
 (status/upstream status, timing, protocol/TLS and generated ingress request ID).
