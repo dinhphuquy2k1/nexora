@@ -1,8 +1,8 @@
 # NEXORA-057 — Uniship HTTP Adapter
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -234,13 +234,13 @@ owner-captured fixture bytes/provenance and frozen snapshots.
 
 ## 11. Acceptance and remaining issues
 
-- [ ] Mandatory plan/snapshot/digest recorded before implementation.
-- [ ] Safe FULL mock HTTP pagination/identity/envelope/abort/status contracts.
-- [ ] Minimal exact numeric normalizer with preserved fixture provenance/no PII.
-- [ ] Status1..5/13/unknown and trusted old-stage preservation/history verified.
-- [ ] Missing/partial collections cannot delete existing child facts.
-- [ ] Actual PostgreSQL integration and existing fences/capacity regressions PASS.
-- [ ] Empty production registry/live hard-close, auth/grants/contracts unchanged.
+- [x] Mandatory plan/snapshot/digest recorded before implementation.
+- [x] Safe FULL mock HTTP pagination/identity/envelope/abort/status contracts.
+- [x] Minimal exact numeric normalizer with preserved fixture provenance/no PII.
+- [x] Status1..5/13/unknown and trusted old-stage preservation/history verified.
+- [x] Missing/partial collections cannot delete existing child facts.
+- [x] Actual PostgreSQL integration and existing fences/capacity regressions PASS.
+- [x] Empty production registry/live hard-close, auth/grants/contracts unchanged.
 - [ ] Canonical docs, independent review, local quality and exact-head CI PASS.
 
 PLAN ISSUE A/B resolved by the selected narrow session/composition and omission
@@ -258,3 +258,143 @@ External evidence gaps remain activation prerequisites for058, never synthetic P
 | Frozen dependency install     | npx --yes pnpm@10.34.6 install --frozen-lockfile;2026-11-16T15:33:54Z–15:34:03Z, exit0; dependency bytes unchanged; execution recorded temporary local closure d4e0cbef842d88fbe5ec8d452583ae5ed4d8ddfc before closure staging was corrected/amended to fa28b49, not hosted evidence | 2026-11-16 | PASS   |
 
 | Initial plan docs validation | node scripts/docs-check.mjs; fa28b4997358c32a6e7862d57f2577229d21a7bd working tree;2026-11-16T15:37:45Z; exit1, task Documentation Impact lacked required Changed facts/Documentation verification subsections; corrected task structure only, snapshot unchanged | 2026-11-16 | FAIL |
+
+## Verification re-evaluation — new PostgreSQL fixture (2026-11-16)
+
+Initial pipeline invocation used the wrong patch cwd and ran only the earlier
+stage test (2PASS); this is not full pipeline evidence. First actual expanded run
+failed in new fixture relation names (Shipment.source, ProviderSourceRecord.identity),
+retry column (SyncJob.available_at), an overlong synthetic username and cascading
+unfinished fixture jobs. Corrected only new fixtures and per-case cleanup. Next
+run:8PASS/3FAIL (nested parent counts), only rollback predicate failed: Prisma7
+emits P0001 in its message, not meta.code. Another patch failed before writing,
+so a redundant run retained the same failure; keep its FAIL label even though it
+was named green. No production change was justified by these test faults.
+
+Re-plan after consecutive failed attempts under Implementation Workflow§7: inspect
+the exact current file/schema and existing rollback test before another mutation.
+Reference shipment-integration.test.cjs:1063–1070 and shipment-child-batch.cjs:355–360:
+assert code P0001 and synthetic exception message, then unchanged persisted state.
+Apply that same predicate to the new test, retaining all rollback/data assertions;
+add the already-planned actual same-ID/different-owner-account case. Re-run once
+with confirmed applied patch. Snapshot/design unchanged; no engine alteration.
+
+## Implementation and executed verification delta
+
+Carrier HTTP security/auth remains single-source: narrow GET shares the existing
+URL/live gate, timeout/redirect policy, stream reader and Retry-After parsing;
+auth bound64KiB unchanged, GET8MiB. No separate authentication system. New Uniship
+normalizer/provider/processor and one readonly locked session stage implement the
+frozen plan; production registrations remain byte-identical/empty. Captured fixture
+hashes unchanged. Public API/SDK/schema/migrations/grants/security are unchanged.
+Canonical integration/sync-extension/testing docs updated; external semantics and
+real claim lifecycle remain NOT VERIFIED prerequisites in058, never synthetic PASS.
+
+Genuine PostgreSQL17.11 owned-cluster tests: session-stage RED undefined!=DELIVERED
+then GREEN; complete adapter pipeline12/12 PASS with actual encrypted Carrier vault/
+audit/lifecycle, scoped credentials,101-record HTTP pagination/retry, status/claim/
+history, child IDs/xmin, rejected siblings/no-progress, rollback and all fences.
+Synthetic claim/complete collection inputs are not real provider captures.
+
+First native full integration command:174PASS/4FAIL of178, no skip. Three old tests
+require a migrated parent DATABASE_URL (confirmed parent lacked migration history/
+stored_files/users); identity-concurrency also requires STORAGE_ROOT. Native helper
+had provided only own cluster credentials. Applied existing migrations to that owned
+parent DB and created private storage, then unchanged failed subset4/4 PASS. Do not
+claim the initial full command passed. All other old suites passed in that run,
+including real Sync10000-source/retry/reservation/fence tests and Shipment100x50fees/
+500items/4milestones/4services capacity. Sync capacity first5078.664ms,
+changed5328.651ms, identical10.383ms (below7500ms apply guard); source timing log
+is temporary, compact counts retained here. Canonical full Docker remains hosted.
+
+Local Docker: NOT RUN. Actual driver vfs; only nginx:1.30.6-alpine cached and about
+610MiB free on7.9GiB overlay; matching application/dev images absent. Prior owned
+image attempts in056 exhausted VFS space. Do not prune shared images/volumes or
+pretend native PG proves Docker. Required exact-head hosted Foundation must execute
+canonical quality/integration and all smoke4–10 before readiness.
+
+Independent read-only implementation review:0P1/0P2/0P3 against frozen plan and
+all tracked/untracked files; no tests, edits or provider calls by reviewer. Final
+docs/quality/CI are separate executed gates. No screenshots or visual acceptance
+claimed. Logs are temporary/ignored, not committed raw provider/artifact data.
+
+### Command evidence (working tree based on plan commit)
+
+All following rows use the working tree on exact
+94f9931d092aaaf5e253982c407a7e97e49fb3b0 unless noted by their HEAD, Node24.19.0,
+pnpm10.34.6, owned native PostgreSQL17.11. Local commands have no CI merge ref;
+final-head hosted provenance will be recorded on the PR without evidence-only commits.
+Rows preserve test/setup/environment failures; labels containing green do not imply
+PASS when the exit code is nonzero. The early pipeline-first run only executed the
+stage case due its patch cwd error; it is not evidence of the expanded pipeline.
+
+| Claim                                 | Evidence                                                                                                                                                                                                                                                                                                                                                        | Date       | Result |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| task057-prerequisite-build            | `npx --yes pnpm@10.34.6 --filter @nexora/api... build`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:38:13.301836+00:00–2026-11-16T15:38:32.514192+00:00; exit 0                                                                                                                                                               | 2026-11-16 | PASS   |
+| task057-normalizer-red                | `node --test apps/api/test/uniship/normalizer.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:39:49.057080+00:00–2026-11-16T15:39:49.276141+00:00; exit 1                                                                                                                                                              | 2026-11-16 | FAIL   |
+| task057-http-red                      | `node --test apps/api/test/uniship/provider.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:40:52.859433+00:00–2026-11-16T15:40:54.112302+00:00; exit 1                                                                                                                                                                | 2026-11-16 | FAIL   |
+| task057-pg-start                      | `python3 /tmp/nexora057-pg.py`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:42:28.926732+00:00–2026-11-16T15:42:31.450123+00:00; exit 0                                                                                                                                                                                       | 2026-11-16 | PASS   |
+| task057-stage-pg-red                  | `python3 /tmp/nexora057-pg-run.py node --test integration/uniship-shipment-integration.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:42:37.116831+00:00–2026-11-16T15:42:41.954367+00:00; exit 1                                                                                                                     | 2026-11-16 | FAIL   |
+| task057-api-build-green               | `npx --yes pnpm@10.34.6 --filter @nexora/api build`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:46:01.125130+00:00–2026-11-16T15:46:12.513860+00:00; exit 0                                                                                                                                                                  | 2026-11-16 | PASS   |
+| task057-unit-green                    | `node --test apps/api/test/uniship/normalizer.test.cjs apps/api/test/uniship/provider.test.cjs apps/api/test/carrier-uniship.test.cjs apps/api/test/uniship-verify.test.cjs apps/api/test/shipment/binding.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:46:26.794625+00:00–2026-11-16T15:46:34.309513+00:00; exit 0 | 2026-11-16 | PASS   |
+| task057-stage-pg-green                | `python3 /tmp/nexora057-pg-run.py node --test integration/uniship-shipment-integration.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:46:26.771668+00:00–2026-11-16T15:46:36.347096+00:00; exit 0                                                                                                                     | 2026-11-16 | PASS   |
+| task057-pipeline-pg-first             | `python3 /tmp/nexora057-pg-run.py node --test integration/uniship-shipment-integration.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:50:29.556660+00:00–2026-11-16T15:50:34.777218+00:00; exit 0                                                                                                                     | 2026-11-16 | PASS   |
+| task057-pipeline-pg                   | `python3 /tmp/nexora057-pg-run.py node --test integration/uniship-shipment-integration.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:50:45.786365+00:00–2026-11-16T15:50:55.290566+00:00; exit 1                                                                                                                     | 2026-11-16 | FAIL   |
+| task057-pipeline-pg-fixture-corrected | `python3 /tmp/nexora057-pg-run.py node --test integration/uniship-shipment-integration.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:51:59.734574+00:00–2026-11-16T15:52:26.760362+00:00; exit 1                                                                                                                     | 2026-11-16 | FAIL   |
+| task057-pipeline-pg-green             | `python3 /tmp/nexora057-pg-run.py node --test integration/uniship-shipment-integration.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:53:36.127498+00:00–2026-11-16T15:53:47.390232+00:00; exit 1                                                                                                                     | 2026-11-16 | FAIL   |
+| task057-pipeline-pg-confirmed-green   | `python3 /tmp/nexora057-pg-run.py node --test integration/uniship-shipment-integration.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:54:34.655903+00:00–2026-11-16T15:54:50.221554+00:00; exit 0                                                                                                                     | 2026-11-16 | PASS   |
+| task057-lint                          | `npx --yes pnpm@10.34.6 lint`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:56:12.712498+00:00–2026-11-16T15:56:47.050050+00:00; exit 1                                                                                                                                                                                        | 2026-11-16 | FAIL   |
+| task057-lint-green                    | `npx --yes pnpm@10.34.6 lint`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:58:38.116404+00:00–2026-11-16T15:59:00.951652+00:00; exit 0                                                                                                                                                                                        | 2026-11-16 | PASS   |
+| task057-parent-migrations             | `python3 /tmp/nexora057-pg-run.py npx --yes pnpm@10.34.6 --filter @nexora/database exec prisma migrate deploy --config prisma.config.ts`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:59:50.491971+00:00–2026-11-16T15:59:55.513345+00:00; exit 0                                                                             | 2026-11-16 | PASS   |
+| task057-test-lint                     | `npx --yes pnpm@10.34.6 test:lint`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T16:00:26.673528+00:00–2026-11-16T16:00:41.192422+00:00; exit 0                                                                                                                                                                                   | 2026-11-16 | PASS   |
+| task057-full-pg-integration           | `python3 /tmp/nexora057-pg-run.py node --test integration/**/*.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T15:56:11.194685+00:00–2026-11-16T16:01:42.066876+00:00; exit 1                                                                                                                                             | 2026-11-16 | FAIL   |
+| task057-parent-prerequisites-green    | `python3 /tmp/nexora057-pg-run.py node --test integration/identity-concurrency.test.cjs integration/integration.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T16:02:22.853636+00:00–2026-11-16T16:02:39.278869+00:00; exit 0                                                                                            | 2026-11-16 | PASS   |
+| task057-migration-regression          | `python3 /tmp/nexora057-pg-run.py node test/migration.mjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T16:02:24.590542+00:00–2026-11-16T16:03:14.646196+00:00; exit 0                                                                                                                                                           | 2026-11-16 | PASS   |
+
+### Full native regression confirmation and final source review
+
+After the documented owned-parent migrations/private STORAGE_ROOT prerequisite,
+repeated the complete unchanged integration glob:178/178PASS,0FAIL/0SKIP,
+2026-11-16T16:06:54Z–16:11:36Z. This is a genuine full-suite native PASS, separate
+from the retained initial174PASS/4FAIL and targeted4/4 recovery. The extra cross-page
+same-ID observation also resolves to one existing source/Shipment; no seen cache or
+snapshot-isolation claim. Warehouse duplicate test now holds metadata consistent to
+exercise duplicate-ID rejection itself. GET positive tests reuse the client's real
+5000ms default; the explicit30ms timeout/abort regression remains. No production
+source changed after the earlier source review.
+
+Final independent read-only review of docs/tests/diff:0P1/0P2/0P3; frozen snapshot
+hash matches, external semantics/claim/custody/rate/stop gates remain in058. No
+independent execution/merge approval is invented. Full quality/hosted gates remain
+separate from source review. Final source CI evidence belongs on the PR.
+
+| Claim                               | Evidence                                                                                                                                                                                                                                                                                                                                                        | Date       | Result |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| task057-closure-docs                | `node scripts/docs-check.mjs`; HEAD a19aa0d2532b41135a90c6e48e3b6876471ad343 working tree; UTC 2026-11-16T15:33:42.657064+00:00–2026-11-16T15:33:43.914519+00:00; exit 0                                                                                                                                                                                        | 2026-11-16 | PASS   |
+| task057-install                     | `npx --yes pnpm@10.34.6 install --frozen-lockfile`; HEAD d4e0cbef842d88fbe5ec8d452583ae5ed4d8ddfc working tree; UTC 2026-11-16T15:33:54.036219+00:00–2026-11-16T15:34:03.254049+00:00; exit 0                                                                                                                                                                   | 2026-11-16 | PASS   |
+| task057-plan-docs                   | `node scripts/docs-check.mjs`; HEAD fa28b4997358c32a6e7862d57f2577229d21a7bd working tree; UTC 2026-11-16T15:37:45.525712+00:00–2026-11-16T15:37:45.976935+00:00; exit 1                                                                                                                                                                                        | 2026-11-16 | FAIL   |
+| task057-plan-preflight              | `node scripts/preflight-policy-check.mjs`; HEAD fa28b4997358c32a6e7862d57f2577229d21a7bd working tree; UTC 2026-11-16T15:37:46.026647+00:00–2026-11-16T15:37:46.172826+00:00; exit 0                                                                                                                                                                            | 2026-11-16 | PASS   |
+| task057-plan-docs-green             | `node scripts/docs-check.mjs`; HEAD fa28b4997358c32a6e7862d57f2577229d21a7bd working tree; UTC 2026-11-16T15:38:01.441108+00:00–2026-11-16T15:38:01.652642+00:00; exit 0                                                                                                                                                                                        | 2026-11-16 | PASS   |
+| task057-docs-check                  | `npx --yes pnpm@10.34.6 docs:check`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T16:04:15.387761+00:00–2026-11-16T16:04:19.973640+00:00; exit 0                                                                                                                                                                                  | 2026-11-16 | PASS   |
+| task057-preflight-check             | `npx --yes pnpm@10.34.6 preflight:check`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T16:04:20.076791+00:00–2026-11-16T16:04:23.600829+00:00; exit 0                                                                                                                                                                             | 2026-11-16 | PASS   |
+| task057-final-targeted              | `node --test apps/api/test/uniship/normalizer.test.cjs apps/api/test/uniship/provider.test.cjs apps/api/test/carrier-uniship.test.cjs apps/api/test/uniship-verify.test.cjs apps/api/test/shipment/binding.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T16:06:13.246680+00:00–2026-11-16T16:06:19.021567+00:00; exit 0 | 2026-11-16 | PASS   |
+| task057-pipeline-duplicate-pg-green | `python3 /tmp/nexora057-pg-run.py node --test integration/uniship-shipment-integration.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T16:06:12.037498+00:00–2026-11-16T16:06:25.411059+00:00; exit 0                                                                                                                     | 2026-11-16 | PASS   |
+| task057-full-pg-integration-green   | `python3 /tmp/nexora057-pg-run.py node --test integration/**/*.test.cjs`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T16:06:54.969248+00:00–2026-11-16T16:11:36.594378+00:00; exit 0                                                                                                                                             | 2026-11-16 | PASS   |
+
+### Final local quality and handoff to hosted verification
+
+Full quality PASS2026-11-16T16:12:19Z–16:15:47Z with
+API_INTERNAL_URL=http://api:4000 NODE_ENV=production and pinned pnpm10.34.6.
+This executed formatting, boundaries/ESLint, preflight/docs, typecheck, complete
+unit/tooling tests, deterministic OpenAPI/SDK contract check and builds. No API/
+SDK drift. Separate test:lint56/56, native full integration178/178, migration/drift
+regression and targeted16/16/adapterPG12/12 PASS. All historical failures remain.
+
+| Claim           | Evidence                                                                                                                                                                                                                             | Date       | Result |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| task057-quality | `env API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; HEAD 94f9931d092aaaf5e253982c407a7e97e49fb3b0 working tree; UTC 2026-11-16T16:12:19.430301+00:00–2026-11-16T16:15:47.265127+00:00; exit 0 | 2026-11-16 | PASS   |
+
+Final hosted verification/owner review remain on the PR after push; Status stays
+VERIFICATION PENDING, Verification PARTIALLY VERIFIED, external field/claim/live
+prerequisites stay NOT VERIFIED in058. No final-head gate is inferred from a
+previous HEAD. No evidence-only commit is needed after hosted results arrive.

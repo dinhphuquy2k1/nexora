@@ -46,3 +46,18 @@ No new workflow retry or live request is authorized by this bookkeeping entry.
 | Claim                    | Evidence                                                                                                                                                                                                                                      | Date       | Result |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Follow-up scope retained | Transferred at NEXORA-056 closure by NEXORA-057; [completed056](../completed/NEXORA-056-auto-provision-sync-configuration.md) retains original FAIL/NOT RUN and final source CI provenance; external/causal verification remains NOT VERIFIED | 2026-11-16 | PASS   |
+
+## Adapter prerequisites retained by NEXORA-057
+
+Fixture-backed implementation does not establish external
+UNISHIP_FIELD_SEMANTICS_VERIFICATION or UNISHIP_CLAIM_LIFECYCLE_CAPTURE. Require
+new owner-scoped redacted claim-opening/update/ending evidence, actual OldStatus
+meaning, provider ID resync stability, cross-page consistency, service null/false
+and complete snapshot semantics, monetary alternatives/currencies/units, quantities,
+counts, timestamp timezone/export precedence and actual child maxima. Do not infer
+these from synthetic tests. Current adapter emits no services/charges/items/
+milestones and has no destinationWarehouse schema target; add only separately
+verified/necessary normalized contracts, never reuse serviceLevel as a destination.
+Before activation also implement/verify agreed per-connection1request/s and provider
+stop/drift disablement controls and remaining ADR007/live/host/custody gates.
+Production registration and external live hard-close remain unchanged in057.

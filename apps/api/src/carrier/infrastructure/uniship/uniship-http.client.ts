@@ -1,5 +1,13 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { LifecycleCode, LifecycleFailure } from "../../domain/lifecycle";
+
+export class UnishipResponseError extends Error {
+  constructor() {
+    super("UNISHIP_ENVELOPE_INVALID");
+    this.name = "UnishipResponseError";
+  }
+}
 
 export interface UnishipLoginResult {
   externalAccountId: string;
@@ -194,12 +202,105 @@ export class UnishipHttpClient {
     );
   }
 
-  private async post(
-    path: string,
-    body: Record<string, unknown>,
-    token?: string,
-    cancellation?: AbortSignal,
-  ): Promise<UnishipLoginResult> {
+  private retryAfter(response: Response): number {
+    const raw = response.headers.get("retry-after");
+    const seconds =
+      raw && /^\d+$/.test(raw)
+        ? Number(raw) * 1000
+        : Date.parse(raw ?? "") - Date.now();
+    return Number.isFinite(seconds) && seconds > 0
+      ? Math.min(seconds, 300000)
+      : 1000;
+  }
+
+  private async readText(
+    response: Response,
+    signal: AbortSignal,
+    maxBytes: number,
+  ): Promise<string> {
+    const reader = response.body?.getReader();
+    if (!reader) throw new UnishipResponseError();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      while (true) {
+        signal.throwIfAborted();
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        size += chunk.value.length;
+        if (size > maxBytes) throw new UnishipResponseError();
+        chunks.push(chunk.value);
+      }
+      return Buffer.concat(chunks).toString("utf8");
+    } finally {
+      await reader.cancel().catch(() => undefined);
+      reader.releaseLock();
+    }
+  }
+
+  /** Narrow data read; the same hard-close and token lifecycle still own access. */
+  async getShipment(
+    path: "/client/api/transition/" | "/client/api/chinaStores/",
+    token: string,
+    cancellation: AbortSignal,
+    query = new URLSearchParams(),
+  ): Promise<string> {
+    if (
+      !["/client/api/transition/", "/client/api/chinaStores/"].includes(path) ||
+      unsafeToken(token)
+    )
+      throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+    let target: URL;
+    try {
+      target = this.target(path);
+    } catch (error) {
+      if (error instanceof HttpException)
+        throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+      throw error;
+    }
+    target.search = query.toString();
+    const signal = AbortSignal.any([
+      cancellation,
+      AbortSignal.timeout(this.timeoutMs),
+    ]);
+    let response: Response;
+    try {
+      response = await fetch(target, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        signal,
+        redirect: "error",
+      });
+    } catch {
+      throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+    }
+    if (response.status !== 200) {
+      await response.body?.cancel();
+      if (response.status === 401 || response.status === 403)
+        throw new LifecycleFailure(LifecycleCode.TOKEN_REJECTED);
+      if (response.status === 429)
+        throw new LifecycleFailure(
+          LifecycleCode.RATE_LIMITED,
+          this.retryAfter(response),
+        );
+      if (response.status >= 500)
+        throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+      throw new UnishipResponseError();
+    }
+    try {
+      return await this.readText(response, signal, 8 * 1024 * 1024);
+    } catch (error) {
+      if (error instanceof UnishipResponseError) throw error;
+      if (signal.aborted || error instanceof TypeError)
+        throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+      throw error;
+    }
+  }
+
+  private target(path: string): URL {
     if (!this.apiUrl) {
       throw new HttpException(
         {
@@ -267,6 +368,17 @@ export class UnishipHttpClient {
       );
     }
 
+    return targetUrl;
+  }
+
+  private async post(
+    path: string,
+    body: Record<string, unknown>,
+    token?: string,
+    cancellation?: AbortSignal,
+  ): Promise<UnishipLoginResult> {
+    const targetUrl = this.target(path);
+
     let response: Response;
     const timeout = AbortSignal.timeout(this.timeoutMs);
     const signal = cancellation
@@ -296,20 +408,12 @@ export class UnishipHttpClient {
     }
 
     if (response.status === 429) {
-      const raw = response.headers.get("retry-after");
-      const seconds =
-        raw && /^\d+$/.test(raw)
-          ? Number(raw) * 1000
-          : Date.parse(raw ?? "") - Date.now();
       await response.body?.cancel();
       throw new HttpException(
         {
           code: "RATE_LIMITED",
           message: "Vui lòng thử lại sau.",
-          retryAfterMs:
-            Number.isFinite(seconds) && seconds > 0
-              ? Math.min(seconds, 300000)
-              : 1000,
+          retryAfterMs: this.retryAfter(response),
         },
         HttpStatus.TOO_MANY_REQUESTS,
       );
@@ -341,24 +445,7 @@ export class UnishipHttpClient {
 
     let payload: unknown;
     try {
-      const reader = response.body?.getReader();
-      if (!reader) throw this.unavailable();
-      const chunks: Uint8Array[] = [];
-      let size = 0;
-      try {
-        while (true) {
-          signal.throwIfAborted();
-          const chunk = await reader.read();
-          if (chunk.done) break;
-          size += chunk.value.length;
-          if (size > 65536) throw this.unavailable();
-          chunks.push(chunk.value);
-        }
-        payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-      } finally {
-        await reader.cancel().catch(() => undefined);
-        reader.releaseLock();
-      }
+      payload = JSON.parse(await this.readText(response, signal, 65536));
     } catch {
       throw new HttpException(
         {

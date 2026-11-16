@@ -1103,3 +1103,32 @@ retains up to four failed same-origin Next static-script transport summaries
 time and fixed network/CORS/block categories, never script URLs or payloads.
 An earlier HTTP login redirect probe is not evidence of browser HTTPS login
 arrival; distinguish its HTTP/308 ingress row from the browser request lifecycle.
+
+### Fixture-backed Uniship Shipment adapter — NEXORA-057
+
+After frozen install, build emitted-JS dependencies with
+`npx --yes pnpm@10.34.6 --filter @nexora/api... build`. Run
+`node --test apps/api/test/uniship/*.test.cjs` plus existing Carrier/Shipment/Sync
+units. New tests preserve both captured JSON SHA-256 values, exercise exact numeric
+lexemes/ID, known/unknown/claim mappings, incomplete collection omission, namespace
+separation, FULL pages/envelopes/duplicates, mock GET/token/URL/live/redirect/byte/
+abort/status contracts and bounded safe warning codes. Test-derived100-row metadata
+is never presented as an owner capture; actual captured rowsPerPage remains15.
+
+`apps/api/integration/uniship-shipment-integration.test.cjs` uses an owned UUID
+PostgreSQL database and loopback HTTP fixture with actual encrypted Carrier vault,
+lifecycle/audit and Sync→Shipment transactions. It verifies immutable previous-stage
+projection, synthetic claim/history, identity/hash/source versions, repeat/changed
+payload, complete true/false/empty children versus omitted collections and stable
+IDs/xmin, malformed sibling rejection/page no-progress,101-record retry, SQL rollback,
+owner/account scope, generation/cancel/lease/processor fences and real audited token
+recovery invalidating old job versions. No external provider calls or user-volume
+reset. Existing Shipment/Sync/capacity/fencing/Carrier suites remain mandatory.
+
+Canonical Docker quality discovers this new integration test through the existing
+integration glob. Host genuine PostgreSQL can use the existing
+API_TEST_RUNTIME_PASSWORD_FILE fallback; a signed owned-cluster token additionally
+allows restricted nexora_sync provisioning under the existing fixture pattern.
+Native PostgreSQL and hosted Docker outcomes are recorded separately. No assertion
+or acceptance gate is skipped; an unavailable local Docker run is NOT RUN.
+Fixture/mock PASS never verifies live Uniship semantics or production activation.

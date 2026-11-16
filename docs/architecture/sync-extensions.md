@@ -152,7 +152,8 @@ needed, is separately evaluated, never assumed globally.
 
 ## Shipment normalized binding — NEXORA-050
 
-ShipmentSyncSession carries frozen scope, existingProviderStatus and propose(input,
+ShipmentSyncSession carries frozen scope, existingProviderStatus, readonly
+existingLogisticsStage from locked root hydration, and propose(input,
 stage); no raw SQL, Prisma or transaction handle crosses the boundary. Binding uses
 the engine-supplied source/version/final-lease transaction, locks source then root
 by canonical source identity/owner, rejects stale processor versions and APPLIED
@@ -164,7 +165,8 @@ Shipment/fees/history and source outcome together. No network under locks.
 
 Missing charges preserve rows; complete valid collection reconciles positions;
 complete empty clears; malformed/partial/ambiguous rejects the whole proposal.
-Mapping is injected/versioned and has no shipped Uniship dictionary. Test-only
+Mapping is injected/versioned; the generic processor has no Uniship dictionary.
+The NEXORA-057 fixture-backed composition is described below. Test-only
 registrations establish correctness, not real provider API access/completeness.
 Production capability declarations remain empty. Unknown source status yields a
 fixed SHIPMENT_STATUS_UNMAPPED warning without payload/credentials and maps UNKNOWN,
@@ -194,3 +196,36 @@ active-lane checks, completion-based timing and keyset continuation. API and wor
 use the same production declarations, still empty. Removing per-type flags never
 opens live HTTP or bypasses owner/lifecycle/processor/lease fences. Manual admission
 continues independently of whether an automatic schedule is enabled/due.
+
+## Fixture-backed Uniship Shipment composition — NEXORA-057
+
+The provider implements only FULL(uniship,SHIPMENT), reads one validated100-row
+page after the complete China warehouse lookup and returns existing NormalizedSource/
+SyncPage. Existing Carrier lifecycle/credential vault supplies authenticated token
+callbacks; the existing HTTP client owns HTTPS/live/redirect/timeout/byte bounds.
+No network inside Sync's transaction and no duplicate auth client or plaintext cache.
+
+The normalized payload is a strict integration-owned wrapper: a minimal validated
+Shipment patch plus canonical OldStatus string/null, or a fixed invalid marker for
+stable-ID rejection. Numeric primitives use Node24 source lexemes; existing sourceKey,
+canonicalPayload/payloadHash and versioned staging remain authoritative. Bad identity/
+envelope fails the page; bad valid-ID source rejects deterministically; DB/program
+errors retain failure/rollback semantics. Provider-specific safe warnings contain
+only fixed codes. See the Uniship contract for the exact implemented/omitted fields.
+
+UnishipShipmentProcessor(version1) composes ShipmentSyncProcessor. It resolves13's
+stage using recognized OldStatus first, otherwise readonly existingLogisticsStage,
+otherwise UNKNOWN, and keeps provider-specific facts outside the generic aggregate.
+The new session field is obtained from existing locked/hydrated data, not a query
+from the processor, arbitrary callback or external fetch. Existing generic processors
+and immutable sessions remain compatible; engine source/processor/final fences and
+actual-stage-only history behavior are unchanged.
+
+This adapter omits all four child collections until actual upstream completeness/
+semantics are verified. Existing complete:true normalized collections still reconcile;
+missing preserves, complete empty clears, explicit false is known rather than unknown.
+No partial-service deletion, fee inference, unknown currency/timezone conversion,
+Customer matching or destination-schema addition. Production registrations remain
+empty and external HTTP hard-closed; SYNC_ENABLED alone cannot activate this code.
+Only tests compose a static capability. NEXORA-058 owns activation after external
+contract/claim evidence and operational safeguards are satisfied.
