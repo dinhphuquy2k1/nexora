@@ -840,7 +840,7 @@ pnpm --filter @nexora/api test:integration includes shipment-integration.test.cj
 which creates/migrates/drops only its own database, exercises actual SyncRepository
 transactions/final fence and real authenticated Nest HTTP reads. Canonical Docker
 provides /runtime-config/postgres_app_password; host-owned development clusters may
-set SHIPMENT_TEST_RUNTIME_PASSWORD_FILE to a private synthetic password file.
+set API_TEST_RUNTIME_PASSWORD_FILE to a private synthetic password file.
 Never use that fixture against a user/production cluster or rotate shared credentials.
 
 node scripts/provision-cluster-smoke.mjs --suite=shipment-sql reuses the signed owned
@@ -1045,9 +1045,9 @@ retry/fence/concurrency and Shipment capacity suites remain mandatory.
 
 For supported host-driven integration tooling, API_TEST_RUNTIME_PASSWORD_FILE may
 point to a task-owned0600 synthetic runtime password file for Carrier lifecycle,
-Carrier foundation, Customer and MFA integration tests; otherwise their canonical
-Docker /runtime-config/postgres_app_password mount is unchanged. Shipment retains
-its existing SHIPMENT_TEST_RUNTIME_PASSWORD_FILE override. These are test-only
+Carrier foundation, Customer, MFA and Shipment integration tests and the Shipment
+worker test launcher; otherwise the canonical Docker
+/runtime-config/postgres_app_password mount is unchanged. These are test-only
 fixture paths, never new runtime flags or production credentials. Use only an
 isolated owned PostgreSQL cluster; canonical Docker quality and final-head hosted
 runtime/HTTPS/persistence/development evidence remain required.

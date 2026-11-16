@@ -419,3 +419,87 @@ Test-owned container/volume, runtime password file and storage removed after the
 full run. No user volumes modified. Final exact-head hosted outcomes will be
 appended to PR55 metadata; earlier green heads remain historical. Task status
 remains VERIFICATION PENDING; no merge or independent-review claim.
+
+### Review delta — integration runtime password override (2026-11-16)
+
+BOUNDED naming-only follow-up within PR55/v1; baseline
+b3562d4953b80bc0a6d107723b6caaf5bab22ef8, clean worktree and latest PR head verified.
+Read repository governance/review skills, testing guide, existing task/snapshot and
+five integration readers. Repository-wide search found one active legacy reader
+(Shipment), one active setter (packages/database/test/shipment-worker.mjs), two
+current testing-guide references and one immutable completed055 historical FAIL.
+The four other integration readers already use the canonical name and stay intact.
+
+| Field                    | Decision / evidence                                                                                                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Test-only runtime-password-file override                                                                                                                                           |
+| Existing implementations | Five apps/api/integration readers; packages/database/test/shipment-worker.mjs launcher; docs/operations/testing.md                                                                 |
+| Domain owner             | Integration-test tooling only; no application/domain credential policy                                                                                                             |
+| Reuse alternatives       | Reuse existing canonical override; legacy alias or helper unnecessary                                                                                                              |
+| Selected approach        | Rename Shipment reader and tracked launcher setter to API_TEST_RUNTIME_PASSWORD_FILE; retain exact Docker fallback/read/validation/assertions                                      |
+| Rationale                | Consistent five-suite configuration and a working existing launcher with minimal diff                                                                                              |
+| Risks                    | Launcher/reader mismatch or accidental runtime-secret change; audit every tracked reference and preserve historical evidence                                                       |
+| Verification             | Full reference search; format/docs/preflight/quality; genuine isolated PG with canonical override; unset Docker fallback via exact-new-head Foundation; all mandatory hosted gates |
+
+No documented external compatibility consumer was found. The in-repository
+launcher is migrated together; no second alias, new helper/dependency, production
+Compose/.env setting, migration, grant or credential-management change is needed.
+Documentation Impact: REQUIRED for current override guidance in testing.md and this
+change note/evidence. Preserve all historical evidence and v1 snapshot/digest.
+Plan: migrate the two active references and guide, execute defined checks, inspect
+the complete delta, commit/push this existing branch, record new exact-head hosted
+evidence in PR55 and keep it open/unmerged. This is verification-first test tooling;
+no new test or changed assertion is needed for a variable-name replacement.
+
+#### Password override delta — executed verification
+
+Host verification uses pinned Node24.19.0/pnpm10.34.6 and genuine PostgreSQL17.11
+in a fresh task-owned native cluster (SCRAM/TCP, ownership marker, random private
+credentials); it is not Docker evidence. The override file is mode0600, the legacy
+variable is unset, and no /runtime-config mount exists on this host. Therefore
+passing suites actually exercise the supplied override. Default/unset Docker-path
+execution locally: NOT RUN; exact-new-head Foundation must execute the canonical
+five-suite integration matrix with no test-only variable added to Compose/env.
+
+The first local matrix failed because bootstrap used postgres without the
+canonical administrator role nexora: existing privilege assertions expect42501
+for SET ROLE nexora, not undefined-role. Only this owned cluster's bootstrap was
+corrected to the canonical administrator; no test/assertion or provisioning source
+changed. A subsequent invocation used repository root instead of apps/api and
+failed file discovery before execution; corrected only the command cwd. Both
+failures remain below. The corrected unchanged five-suite command PASSed92/92,
+0 skipped. Canonical Docker fallback/read/validation and all fixtures remain exact.
+
+| Claim                               | Evidence                                                                                                                                                                                                                                                                                                                                                                                              | Date       | Result |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| install                             | `npx --yes pnpm@10.34.6 install --frozen-lockfile`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:01:26.960329+00:00; exit 0                                                                                                                                                                                                                                            | 2026-11-16 | PASS   |
+| native-pg                           | `python3 /tmp/nexora056-password-pg.py`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:01:58.863374+00:00; exit 0                                                                                                                                                                                                                                                       | 2026-11-16 | PASS   |
+| api-build                           | `npx --yes pnpm@10.34.6 --filter @nexora/api... build`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:02:01.423346+00:00; exit 0                                                                                                                                                                                                                                        | 2026-11-16 | PASS   |
+| five-suite-override                 | `python3 /tmp/nexora056-password-env.py node --test --test-concurrency=1 integration/carrier-foundation.test.cjs integration/carrier-lifecycle-integration.test.cjs integration/customer-integration.test.cjs integration/mfa-integration.test.cjs integration/shipment-integration.test.cjs`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:02:51.494227+00:00; exit 1 | 2026-11-16 | FAIL   |
+| canonical-admin                     | `node /tmp/nexora056-password-canonical-admin.cjs`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:04:36.938410+00:00; exit 0                                                                                                                                                                                                                                            | 2026-11-16 | PASS   |
+| five-suite-override-canonical-admin | `python3 /tmp/nexora056-password-env.py node --test --test-concurrency=1 integration/carrier-foundation.test.cjs integration/carrier-lifecycle-integration.test.cjs integration/customer-integration.test.cjs integration/mfa-integration.test.cjs integration/shipment-integration.test.cjs`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:04:37.226782+00:00; exit 1 | 2026-11-16 | FAIL   |
+| five-suite-override-green           | `python3 /tmp/nexora056-password-env.py node --test --test-concurrency=1 integration/carrier-foundation.test.cjs integration/carrier-lifecycle-integration.test.cjs integration/customer-integration.test.cjs integration/mfa-integration.test.cjs integration/shipment-integration.test.cjs`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:04:48.165541+00:00; exit 0 | 2026-11-16 | PASS   |
+
+| Claim           | Evidence                                                                                                                                                                                                                                                           | Date       | Result |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| format-check    | `npx --yes pnpm@10.34.6 format:check`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:06:11.240885+00:00; exit 0                                                                                                                      | 2026-11-16 | PASS   |
+| docs-check      | `npx --yes pnpm@10.34.6 docs:check`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:07:03.359917+00:00; exit 0                                                                                                                        | 2026-11-16 | PASS   |
+| preflight-check | `npx --yes pnpm@10.34.6 preflight:check`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:07:06.833838+00:00; exit 0                                                                                                                   | 2026-11-16 | PASS   |
+| launcher-green  | `python3 /tmp/nexora056-password-env.py env -u API_TEST_RUNTIME_PASSWORD_FILE npx --yes pnpm@10.34.6 exec node packages/database/test/shipment-worker.mjs`; working tree on b3562d4953b80bc0a6d107723b6caaf5bab22ef8; UTC 2026-11-16T09:06:09.728275+00:00; exit 0 | 2026-11-16 | PASS   |
+
+Launcher verification PASS21/21 with parent API_TEST_RUNTIME_PASSWORD_FILE removed:
+its existing private-file setup must supply the canonical child variable itself.
+No default mount exists on this host. Full matrix PASS92/92 and launcher PASS21/21
+retain original assertions/fixtures. Repository search: six executable canonical
+references (five readers, one setter), zero executable legacy references; one
+completed055 historical FAIL retains the legacy name. Exact diff inspection found
+only two token replacements in executable code; four pre-existing canonical
+readers, all production config/Compose/env, provisioning, migrations, application
+services and frozen v1 digest are unchanged. Self-review found no scoped P1/P2;
+this does not claim independent approval of the earlier SIGNIFICANT task.
+
+Commit/final quality/hosted evidence will be recorded on PR55 without an
+additional evidence-only commit. Until exact-head Foundation completes, the unset
+Docker fallback is NOT VERIFIED for this delta. Status stays VERIFICATION PENDING;
+no merge, new task/PR or snapshot revision. Logs are temporary runtime files, not
+Git artifacts; no screenshots captured or manually reviewed for this naming delta.

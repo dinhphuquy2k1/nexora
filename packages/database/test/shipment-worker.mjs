@@ -37,7 +37,7 @@ try {
       env: {
         ...process.env,
         DATABASE_URL: url,
-        SHIPMENT_TEST_RUNTIME_PASSWORD_FILE: passwordFile,
+        API_TEST_RUNTIME_PASSWORD_FILE: passwordFile,
         STORAGE_ROOT: join(dir, "storage"),
       },
     },

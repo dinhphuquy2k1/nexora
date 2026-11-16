@@ -118,7 +118,7 @@ test(
       );
       const runtimePassword = (
         await readFile(
-          process.env.SHIPMENT_TEST_RUNTIME_PASSWORD_FILE ??
+          process.env.API_TEST_RUNTIME_PASSWORD_FILE ??
             "/runtime-config/postgres_app_password",
           "utf8",
         )
