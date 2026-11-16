@@ -503,3 +503,110 @@ additional evidence-only commit. Until exact-head Foundation completes, the unse
 Docker fallback is NOT VERIFIED for this delta. Status stays VERIFICATION PENDING;
 no merge, new task/PR or snapshot revision. Logs are temporary runtime files, not
 Git artifacts; no screenshots captured or manually reviewed for this naming delta.
+
+### Investigation delta — repeated Public HTTPS/MFA timeout (2026-11-16)
+
+Baseline7b58a46e53783490a7857114619259134eb26223, PR55 open/unmerged and worktree
+clean. Owner authorizes investigation/minimal owning-layer fix in this same task.
+Read governance/review routes and relevant testing/configuration/runtime/API
+contracts; inspected public HTTPS shell/browser/restart/smoke checks, Compose,
+Nginx, LoginForm/SDK same-origin transport, Next rewrites and API Origin/login.
+Direct b3562d4..7b58a46 diff confirms two test-variable substitutions and two docs;
+login/MFA/browser/ingress/production paths were not changed. This excludes no
+possible environmental cause and does not establish a transient root cause.
+
+Original run43838009175 attempts1/2 both failed ADMIN_BROWSER_PENDING_MFA,
+REQUEST_TIMEOUT/TimeoutError,20267/20334ms. Login dispatched, no MFA dispatched,
+/login with alert/networkFailure and no MFA input. No observed LOGIN HTTP status
+was printed. UI networkFailure covers both thrown fetch and non401/429 failure
+responses, so it alone is not proof of a transport defect. Existing CDP diagnostics
+omit per-login loadingFailed/loadingFinished; Nginx access_log is off, error level
+crit, and API logs retain request IDs/status but no path. Healthy containers do
+not prove browser login transport. Failure location/root cause remains UNKNOWN.
+
+| Field                    | Investigation/diagnostic decision                                                                                                                                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Component                | Disposable Public HTTPS login request observability, before a functional fix                                                                                                                                                   |
+| Existing implementations | public-https-browser.mjs CDP listener/status labels; login-readiness-diagnostics.mjs safe counters; public-https-smoke.sh private template/cleanup; Nginx template; browser test fixtures                                      |
+| Domain owner             | Test harness only; production authentication/Origin/TLS/Sync remain unchanged                                                                                                                                                  |
+| Reuse alternatives       | Reuse current CDP listener and private ingress overlay; reject raw network dumps, global logging/proxy/TLS bypass or timeout increases                                                                                         |
+| Selected approach        | Bounded login-only lifecycle summary for dispatch/headers/status/net error/finish and safe metadata; disposable ingress POST-login-only fixed-field access log via private template                                            |
+| Rationale                | Distinguishes browser-before-ingress, ingress/upstream and response paths without credentials/bodies/cookies/arbitrary headers/URLs                                                                                            |
+| Risks                    | Diagnostic secret leakage and falsely inferred causes; allowlisted fields, bounded records, redaction/injected-secret tests and real transport reproducer before any fix                                                       |
+| Verification             | Diagnostic contract tests RED/GREEN, no-secret tests, inspect original logs; targeted actual Chromium reproduction; instrumented canonical HTTPS where runnable; hypothesis-driven hosted evidence if local Docker unavailable |
+
+Plan: add only bounded diagnostics first and test them; reproduce with actual
+Chromium/local disposable TLS where possible; use actual request errors and
+cross-layer observations to classify cause before implementing a functional fix.
+No new architecture/schema/API/security contract is selected, so existing v1
+snapshot/digest stays frozen. A material discovery requires a new reviewed plan
+before scope expansion. Preserve naming fix and all previous failures. Do not
+retry login or raise20s deadlines, skip acceptance, weaken TLS/SPKI/Origin/MFA,
+modify Sync or enable Uniship. No new task/PR or merge. Documentation Impact:
+REQUIRED for testing diagnostic procedure and this investigation/evidence.
+
+#### Local diagnostic probe re-evaluation
+
+Diagnostic contract RED (module absent) executed; initial GREEN attempt2/3 failed
+because a new privacy assertion accidentally scanned the unchanged production
+redirect's request_uri, not just the added logging block. Restricted the new test
+to the diagnostic block while retaining byte-identical original-template assertion;
+13/13 diagnostics/readiness/smoke tests then PASS. This is observability testing,
+not the still-unproven failure-mechanism RED/GREEN.
+
+Three scratch transport-probe attempts caused a required re-evaluation: first
+Node lookup omitted options.all handling (bootstrap failure), then two identical
+Chromium document-navigation failures. Added bounded document error observation
+on the third attempt: ERR_TUNNEL_CONNECTION_FAILED; HTTP_PROXY/HTTPS_PROXY present,
+while strict Node CA/name probe succeeds. This confirms a host-only proxy route
+problem before the fixture document, not the CI failure (CI reached hydrated Login).
+Re-plan local probe with proxy bypass limited to nexora.example.test in its own
+Chromium invocation, retaining exact leaf pin and strict Node TLS verification.
+Do not apply a proxy functional fix to CI without its actual lifecycle evidence.
+Full local canonical HTTPS: NOT RUN, no matching built images and929MB/7.9GB VFS;
+prior repeated Docker image ENOSPC remains evidence, not a security-bypass reason.
+
+Independent read-only diagnostic review found0P1/0P2 and a P3 stale pending age.
+Fake-clock test RED0!=20 then GREEN after snapshot ages pending requests. Recheck
+found terminal age could change after late ExtraInfo; genuine RED100!=20 then
+GREEN after ignoring unrelated/terminal-late events. Four diagnostic tests PASS.
+Privacy fuzz covers response/body/header/URL/error secrets and fixed CORS reasons;
+no raw CORS failedParameter is retained. Metadata says loopback rule configured,
+not proof of actual routing; observed peer fields remain separate.
+
+Local probe with narrowly scoped hostname proxy-bypass argument still failed
+ERR_TUNNEL_CONNECTION_FAILED before document. Stop local browser attempts rather
+than disable TLS/proxy globally. Strict Node CA/name succeeded, Chrome acceptance
+and actual CI cause remain NOT VERIFIED/UNKNOWN locally. Rootless VFS has929MB
+and no canonical application images, so full local public HTTPS is NOT RUN.
+The selected next experiment is a diagnostic-only commit and one new-head hosted
+run with the new CDP/ingress evidence, not a same-head retry or a claimed fix.
+All historical failures remain, including scratch lookup/navigation blockers and
+new-test lint no-regex-spaces (fixed only its marker regex). No auth/login retry,
+deadline, Origin, MFA, TLS/SPKI, production config or Sync source change.
+
+#### Diagnostic-stage command evidence
+
+All rows below execute on the working tree based on exact7b58a46. No source merge
+ref applies locally. This stage supplies observability, not a root-cause fix.
+Independent final read-only review reports0P1/0P2/0P3 after both P3 fixes; no tests
+or edits were delegated. Test logs remain temporary, not committed artifacts.
+
+| Claim                                           | Evidence                                                                                                                                                                                                                                   | Date       | Result |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| https-diag-red                                  | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:02:40.212983+00:00; exit 1                                                                            | 2026-11-16 | FAIL   |
+| https-diag-green                                | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:03:33.043697+00:00; exit 1                                                                            | 2026-11-16 | FAIL   |
+| https-diag-green-scoped                         | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:04:11.070656+00:00; exit 0                                                                            | 2026-11-16 | PASS   |
+| https-diag-targeted                             | `node --test scripts/public-https-diagnostics.test.mjs scripts/login-readiness-diagnostics.test.mjs scripts/smoke-checks.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:05:48.488089+00:00; exit 0 | 2026-11-16 | PASS   |
+| https-real-transport-probe                      | `node /tmp/nexora056-https-probe.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:06:45.769842+00:00; exit 1                                                                                              | 2026-11-16 | FAIL   |
+| https-real-transport-probe-correct-lookup       | `node /tmp/nexora056-https-probe.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:06:55.663218+00:00; exit 1                                                                                              | 2026-11-16 | FAIL   |
+| https-real-transport-probe-document-diagnostics | `node /tmp/nexora056-https-probe.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:08:23.659879+00:00; exit 1                                                                                              | 2026-11-16 | FAIL   |
+| https-real-transport-probe-scoped-host-bypass   | `node /tmp/nexora056-https-probe.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:10:10.412240+00:00; exit 1                                                                                              | 2026-11-16 | FAIL   |
+| https-diag-pending-age-red                      | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:12:16.684995+00:00; exit 1                                                                            | 2026-11-16 | FAIL   |
+| https-diag-pending-age-green                    | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:12:33.312425+00:00; exit 0                                                                            | 2026-11-16 | PASS   |
+| https-diag-lint                                 | `npx --yes pnpm@10.34.6 lint`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:12:37.242141+00:00; exit 1                                                                                                      | 2026-11-16 | FAIL   |
+| https-diag-final-targeted                       | `node --test scripts/public-https-diagnostics.test.mjs scripts/login-readiness-diagnostics.test.mjs scripts/smoke-checks.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:13:45.837754+00:00; exit 0 | 2026-11-16 | PASS   |
+| https-diag-lint-green                           | `npx --yes pnpm@10.34.6 lint`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:14:03.810390+00:00; exit 0                                                                                                      | 2026-11-16 | PASS   |
+| https-diag-terminal-age-red                     | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:15:27.417092+00:00; exit 1                                                                            | 2026-11-16 | FAIL   |
+| https-diag-terminal-age-green                   | `node --test scripts/public-https-diagnostics.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:15:27.862488+00:00; exit 0                                                                            | 2026-11-16 | PASS   |
+| https-diag-checks                               | `node --test scripts/public-https-diagnostics.test.mjs scripts/login-readiness-diagnostics.test.mjs scripts/smoke-checks.test.mjs`; working tree on 7b58a46e53783490a7857114619259134eb26223; UTC 2026-11-16T10:16:51.197854+00:00; exit 0 | 2026-11-16 | PASS   |

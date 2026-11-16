@@ -1062,3 +1062,27 @@ retry exhaustion, authorization/capability rejection, scheduler keyset/bounded
 failures, active-lane uniqueness and completion-based timing remain mandatory.
 Whitespace-only SQL refactors retain predicates, parameter order, clock_timestamp
 calls and partial-index conflict inference; they do not authorize new capabilities.
+
+### Public HTTPS login request lifecycle diagnostics
+
+The disposable HTTPS browser harness records at most four same-origin
+/api/auth/login requests using existing CDP events: dispatch, response headers/
+status, protocol, loopback/fixture-port match, validated API request ID, loading
+failure/cancellation/block reason and finish. Network errors and block reasons
+use closed allowlists; unknown strings become OTHER. Opaque CDP IDs, raw URLs
+with query/fragment, request/response bodies, cookies and arbitrary headers are
+never emitted or retained in diagnostic summaries. Browser product and proxy-environment presence (not values) help
+compare execution environments. Summaries appear on success and failure; they do
+not retry authentication, alter deadlines, or replace any acceptance assertion.
+
+The existing private Public HTTPS Compose overlay mounts a temporary copy of the
+Nginx template with conditional POST-login-only fixed-field access metadata
+(status/upstream status, timing, protocol/TLS and generated ingress request ID).
+Production template/access logging is unchanged. Existing API request IDs can be
+matched to safe browser response IDs; ingress timing/status distinguishes arrival
+and upstream forwarding when those observations exist. Container health, absence
+of an access log, a UI network-error label or a previous green HEAD alone does not
+establish the failing layer or a transient root cause. Capture actual per-request
+lifecycle evidence before selecting a functional fix. No raw auth/network dump or
+general TLS/proxy bypass is introduced; strict CA/name and disposable leaf-SPKI
+assertions and the original login/MFA/Origin/cookie checks remain mandatory.

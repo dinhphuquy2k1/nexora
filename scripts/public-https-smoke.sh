@@ -54,12 +54,19 @@ openssl x509 -req -in "$work/leaf.csr" -CA "$work/ca.crt" -CAkey "$work/ca.key" 
 cat "$work/leaf.crt" "$work/ca.crt" > "$work/tls/live/$PUBLIC_FQDN/fullchain.pem"
 # Chromium exception is scoped to this disposable leaf SPKI only; Node verifies the real CA/name normally.
 spki=$(openssl x509 -in "$work/leaf.crt" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl base64 -A)
+# Safe login-only access metadata lives only in this disposable overlay.
+node --input-type=module - "$work/nginx.conf.template" <<'JS'
+import {readFile,writeFile} from 'node:fs/promises';
+import {publicAuthIngressTemplate} from './scripts/public-https-diagnostics.mjs';
+await writeFile(process.argv[2],publicAuthIngressTemplate(await readFile('docker/public/nginx.conf.template','utf8')),{mode:0o600});
+JS
 cat > "$work/https.yml" <<YAML
 services:
   ingress:
     ports: !override ["127.0.0.1:$https_port:443", "127.0.0.1:$http_port:80"]
     volumes:
       - $work/tls:/etc/letsencrypt:ro
+      - $work/nginx.conf.template:/nexora/nginx.conf.template:ro
 YAML
 # Local CLI bootstrap is private. Same named volumes then upgrade to public profile.
 local_compose up --no-build -d --wait --wait-timeout 180
