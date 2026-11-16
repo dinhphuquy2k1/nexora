@@ -336,3 +336,86 @@ fe0f4f6089d34805ba893cebca1d4bfae152e660c322bd41ef018e41ecd07908.
 Local full Docker quality/runtime is NOT RUN for this delta due to the existing
 small-disk constraint; hosted Foundation must supply final-head canonical evidence.
 No screenshots were captured or manually reviewed for this backend-only delta.
+
+### Review delta — SyncRepository SQL readability (2026-11-16)
+
+BOUNDED behavior-preserving amendment within v1, baseline
+3fee4b36e1162a7159a1097f199bf1eab1b1900c; PR55 open and worktree clean.
+No new task/snapshot. Read-only audit inspected repository instructions, both
+review skills, backend/database/Sync extension architecture, ADR-009/010, testing
+guide, SyncRepository call sites and genuine PostgreSQL suite. Search scope:
+`claim|schedule|SKIP LOCKED|lease|fenc` in repository, integration suite and docs;
+reusable-components registry has no replacement for this Sync-owned locking SQL.
+
+| Field                    | Decision / evidence                                                                                                                                                    |
+| :----------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | SyncRepository SQL readability                                                                                                                                         |
+| Existing implementations | apps/api/src/sync/infrastructure/sync-job.repository.ts; apps/api/integration/sync-integration.test.cjs; apps/api/integration/fixtures/sync-status-contract.cjs        |
+| Domain owner             | Sync infrastructure, existing Prisma/PostgreSQL transactions                                                                                                           |
+| Reuse alternatives       | Format in place; private query helpers; tuple-pair predicate                                                                                                           |
+| Selected approach        | Format existing SQL in claim/schedule/admit/configure and closely related authorization/lease/retry paths; no new helper or abstraction                                |
+| Rationale                | Exposes lock/predicate/time boundaries directly; retains existing query tokens and parameter order                                                                     |
+| Risks                    | Accidental precedence, placeholder, literal or transaction drift; compare SQL/TS tokens to baseline and run real PostgreSQL regressions                                |
+| Verification             | Add explicit due/future/live/expired/concurrent/SKIP LOCKED tests before refactor; baseline and final Sync PG, unit tests, full integration and quality; exact-head CI |
+
+Tuple comparison evaluated and deferred: existing registry filters exact actual
+DB provider/type pairs before parameterized ANY lookup; replacing representation
+is unnecessary for readability and would require additional equivalence/query-plan
+work. No dynamic SQL, ORM change, status/flag change or fake capability is planned.
+Keep literal partial-index predicate, clock_timestamp calls, parameter sequence,
+statement/lock order and transaction boundaries byte-equivalent apart from SQL
+whitespace. No helpers: SQL remains beside its owning transaction.
+
+Documentation Impact for this delta: REQUIRED for regression coverage in
+docs/operations/testing.md and this task evidence. No architecture/business
+contract changes. Plan: characterization tests and baseline PG first, format small
+method groups with targeted checks after each, final PG/full integration/quality,
+diff/implementation review, push same branch and inspect final-head CI.
+
+#### SQL refactor baseline and equivalence evidence
+
+| Claim                                                | Evidence                                                                                                                                                                                                           | Date       | Result |
+| :--------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Disposable PG bootstrap first attempt                | Scratch launcher accepted temporary init socket readiness; COMMENT failed because init server was shutting down. No baseline test executed; corrected launcher readiness to TCP without repository runtime changes | 2026-11-16 | FAIL   |
+| Pre-refactor baseline with new regression assertions | Owned isolated migrated PostgreSQL17.11; `node --test integration/sync-integration.test.cjs` 61/61, including explicit deadlines, concurrent workers and held-row SKIP LOCKED                                      | 2026-11-16 | PASS   |
+| Incremental build/units                              | After each of three method groups: pinned pnpm API dependency build then `node --test apps/api/test/sync/*.test.cjs`, 27/27 each                                                                                   | 2026-11-16 | PASS   |
+| Source equivalence against 3fee4b3                   | TypeScript AST inspection of all59 tagged templates: identical SQL lexical tokens and string literals, parameter expressions/order; all non-whitespace source characters identical                                 | 2026-11-16 | PASS   |
+
+SQL predicate structure did not change; tuple optimization/query-plan alteration
+was deliberately omitted. No new helper, status set, SQL abstraction or dependency
+was needed. Existing raw Prisma SQL retains SKIP LOCKED, row locks, conditional
+updates, RETURNING and partial-index inference in place. Unselected read/staging/
+application/retention SQL is outside this bounded readability delta.
+
+Post-refactor targeted PostgreSQL execution: `node --test
+integration/sync-integration.test.cjs` PASS61/61 (151.3s, 2026-11-16 UTC).
+This includes real concurrent workers, held-row SKIP LOCKED, due/future timestamps,
+live/expired leases, global/unsupported pair rejection, retry exhaustion and
+scheduler keyset, bounded transient failures, no catch-up and active-lane exclusion.
+Existing multiple-provider/type extension regressions remain green. This is a
+behavior-preserving refactor: baseline and final assertions both GREEN.
+
+Implementation-code-review of the entire four-file delta: no confirmed P1/P2.
+No SQL token or TS logic change, unsafe interpolation, added round trip, lock/
+transaction reordering, ORM/schema/API/SDK/grant change, retired type flag, runtime
+capability or live provider request. Static ON CONFLICT inference and SQL clock
+functions are unchanged. Snapshot digest remains unchanged. This is self-review,
+not independent approval; independent review remains unavailable in this session.
+Local full Docker quality/runtime NOT RUN: approximately755MB free on the small
+workspace overlay after builds/PG; prior canonical image build exhausted disk even
+with more capacity. Do not repeat a disk-filling attempt or clear unrelated data;
+final-head hosted Foundation is the canonical gate. No screenshots captured or
+manually reviewed locally for this backend-only refactor.
+
+Final local SQL-delta verification (2026-11-16 UTC):
+
+| Claim                            | Evidence                                                                                                                                                                              | Date       | Result |
+| :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------- | :----- |
+| Full quality                     | `API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`: format/lint/boundaries/preflight/docs/typecheck,792tests, contracts:check and production build | 2026-11-16 | PASS   |
+| Entire genuine PostgreSQL matrix | Owned disposable PG17.11, root migration deploy then pinned `pnpm test:integration`: 166/166 across10files,180.4s; no skipped tests                                                   | 2026-11-16 | PASS   |
+| Governance regressions           | Pinned `pnpm test:lint`56/56, `pnpm test:docs`10/10, `pnpm test:preflight`24/24                                                                                                       | 2026-11-16 | PASS   |
+
+Test-owned container/volume, runtime password file and storage removed after the
+full run. No user volumes modified. Final exact-head hosted outcomes will be
+appended to PR55 metadata; earlier green heads remain historical. Task status
+remains VERIFICATION PENDING; no merge or independent-review claim.

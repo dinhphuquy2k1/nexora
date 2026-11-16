@@ -316,6 +316,139 @@ test(
           }
         },
       );
+      await t.test(
+        "claim preserves due QUEUED/WAITING and live/expired RUNNING deadlines",
+        async () => {
+          const lane = await connection();
+          try {
+            for (const status of ["QUEUED", "WAITING"]) {
+              const job = await repo.admit(
+                owner.id,
+                lane.id,
+                "SHIPMENT",
+                "MANUAL",
+              );
+              await db.$executeRaw`UPDATE sync_jobs SET status=${status},available_at=clock_timestamp()+interval '1 day' WHERE id=${job.id}::uuid`;
+              assert.equal(await repo.claim(randomUUID()), null);
+              await db.$executeRaw`UPDATE sync_jobs SET available_at=clock_timestamp() WHERE id=${job.id}::uuid`;
+              const claimed = await repo.claim(randomUUID());
+              assert.equal(claimed.id, job.id);
+              assert.equal(claimed.status, "RUNNING");
+              assert.equal(claimed.attempt_count, job.attempt_count);
+              assert.equal(claimed.lease_version, job.lease_version + 1);
+              assert.equal(
+                await repo.claim(randomUUID()),
+                null,
+                "live lease cannot be reclaimed",
+              );
+              await db.$executeRaw`UPDATE sync_jobs SET lease_expires_at=clock_timestamp() WHERE id=${job.id}::uuid`;
+              const reclaimed = await repo.claim(randomUUID());
+              assert.equal(reclaimed.id, job.id);
+              assert.equal(reclaimed.attempt_count, claimed.attempt_count + 1);
+              assert.equal(reclaimed.lease_version, claimed.lease_version + 1);
+              await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE id=${job.id}::uuid`;
+            }
+          } finally {
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE carrier_connection_id=${lane.id}::uuid`;
+          }
+        },
+      );
+      await t.test(
+        "two PostgreSQL workers claim one valid job only once",
+        async () => {
+          const lane = await connection();
+          const contender = testRepository(
+            url.toString(),
+            cfg,
+            provider,
+            processor,
+            "shared",
+          );
+          try {
+            const job = await repo.admit(
+              owner.id,
+              lane.id,
+              "SHIPMENT",
+              "MANUAL",
+            );
+            const workers = [randomUUID(), randomUUID()];
+            const results = await Promise.all([
+              repo.claim(workers[0]),
+              contender.claim(workers[1]),
+            ]);
+            const claimed = results.filter(Boolean);
+            assert.equal(claimed.length, 1);
+            assert.equal(claimed[0].id, job.id);
+            assert.ok(workers.includes(claimed[0].worker_id));
+            const stored = await db.syncJob.findUnique({
+              where: { id: job.id },
+            });
+            assert.equal(stored.worker_id, claimed[0].worker_id);
+            assert.equal(stored.lease_version, job.lease_version + 1);
+          } finally {
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE carrier_connection_id=${lane.id}::uuid`;
+            await contender.close();
+          }
+        },
+      );
+      await t.test(
+        "SKIP LOCKED claims the next job while the oldest row is held by another transaction",
+        async () => {
+          const lanes = [await connection(), await connection()];
+          let unlock;
+          let holding;
+          try {
+            const first = await repo.admit(
+              owner.id,
+              lanes[0].id,
+              "SHIPMENT",
+              "MANUAL",
+            );
+            const second = await repo.admit(
+              owner.id,
+              lanes[1].id,
+              "SHIPMENT",
+              "MANUAL",
+            );
+            await db.$executeRaw`UPDATE sync_jobs SET available_at='1990-01-01' WHERE id=${first.id}::uuid`;
+            await db.$executeRaw`UPDATE sync_jobs SET available_at='2000-01-01' WHERE id=${second.id}::uuid`;
+            let locked;
+            const acquired = new Promise((resolve) => {
+              locked = resolve;
+            });
+            const barrier = new Promise((resolve) => {
+              unlock = resolve;
+            });
+            holding = db.$transaction(
+              async (tx) => {
+                await tx.$queryRaw`SELECT id FROM sync_jobs WHERE id=${first.id}::uuid FOR UPDATE`;
+                locked();
+                await barrier;
+              },
+              { timeout: 10000 },
+            );
+            await Promise.race([
+              acquired,
+              holding.then(() => {
+                throw Error("lock transaction ended before acquiring row");
+              }),
+            ]);
+            const claimed = await repo.claim(randomUUID());
+            assert.equal(claimed.id, second.id);
+            assert.equal(
+              (await db.syncJob.findUnique({ where: { id: first.id } })).status,
+              "QUEUED",
+            );
+            unlock();
+            await holding;
+            assert.equal((await repo.claim(randomUUID())).id, first.id);
+          } finally {
+            unlock?.();
+            await holding;
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE carrier_connection_id=ANY(${lanes.map((lane) => lane.id)}::uuid[])`;
+          }
+        },
+      );
       await require("./fixtures/sync-status-contract.cjs").verifySyncStatusContracts(
         { t, url: url.toString(), db, owner, repo },
       );

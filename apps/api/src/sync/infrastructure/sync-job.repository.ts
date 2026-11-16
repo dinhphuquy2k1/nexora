@@ -113,9 +113,11 @@ export class SyncRepository implements SyncQueue {
       job.carrier_connection_id,
       true,
     );
-    const rows = await tx.$queryRaw<
-      SyncJob[]
-    >`SELECT * FROM sync_jobs WHERE id=${job.id}::uuid FOR UPDATE`;
+    const rows = await tx.$queryRaw<SyncJob[]>`
+      SELECT *
+      FROM sync_jobs
+      WHERE id = ${job.id}::uuid FOR UPDATE
+    `;
     const current = rows[0];
     if (
       !this.available(c.provider, job.sync_type) ||
@@ -140,14 +142,30 @@ export class SyncRepository implements SyncQueue {
     return current;
   }
   private async assertLease(tx: Tx, job: SyncJob) {
-    const rows = await tx.$queryRaw<
-      { id: string }[]
-    >`SELECT id FROM sync_jobs WHERE id=${job.id}::uuid AND lease_version=${job.lease_version} AND status=${J.RUNNING} AND worker_id=${job.worker_id}::uuid AND lease_expires_at>clock_timestamp()`;
+    const rows = await tx.$queryRaw<{ id: string }[]>`
+      SELECT id
+      FROM sync_jobs
+      WHERE id = ${job.id}::uuid
+        AND lease_version = ${job.lease_version}
+        AND status = ${J.RUNNING}
+        AND worker_id = ${job.worker_id}::uuid
+        AND lease_expires_at > clock_timestamp()
+    `;
     if (rows.length !== 1) throw new SyncError(E.SYNC_STALE);
   }
   private async release(tx: Tx, job: SyncJob) {
     await this.assertLease(tx, job);
-    await tx.$executeRaw`UPDATE sync_jobs SET status=${J.WAITING},available_at=clock_timestamp(),worker_id=NULL,lease_expires_at=NULL,updated_at=clock_timestamp() WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+    await tx.$executeRaw`
+      UPDATE sync_jobs
+      SET
+        status = ${J.WAITING},
+        available_at = clock_timestamp(),
+        worker_id = NULL,
+        lease_expires_at = NULL,
+        updated_at = clock_timestamp()
+      WHERE id = ${job.id}::uuid
+        AND lease_version = ${job.lease_version}
+    `;
   }
   async admit(
     userId: string,
@@ -161,15 +179,61 @@ export class SyncRepository implements SyncQueue {
       if (!capability) throw new SyncError(E.SYNC_UNAVAILABLE);
       // Static predicate preserves PostgreSQL partial-index inference; covered by
       // integration/fixtures/sync-status-contract.cjs prepared/admit contract.
-      const rows = await tx.$queryRaw<
-        SyncJob[]
-      >`INSERT INTO sync_jobs(carrier_connection_id,owner_user_id,provider,external_account_id,sync_type,trigger_source,generation,lifecycle_version,fetch_strategy,target_watermark)
-   VALUES(${id}::uuid,${userId}::uuid,${c.provider},${c.external_account_id},${type},${trigger},${c.generation},${c.lifecycle_version},${capability.strategy},coalesce((SELECT last_completed_watermark FROM sync_configs WHERE carrier_connection_id=${id}::uuid AND sync_type=${type}),(SELECT target_watermark FROM sync_jobs WHERE carrier_connection_id=${id}::uuid AND owner_user_id=${userId}::uuid AND sync_type=${type} AND status=${J.SUCCEEDED} ORDER BY finished_at DESC,id DESC LIMIT 1)))
-   ON CONFLICT(carrier_connection_id,sync_type) WHERE status IN ('QUEUED','RUNNING','WAITING') DO NOTHING RETURNING *`;
+      const rows = await tx.$queryRaw<SyncJob[]>`
+        INSERT INTO sync_jobs (
+          carrier_connection_id,
+          owner_user_id,
+          provider,
+          external_account_id,
+          sync_type,
+          trigger_source,
+          generation,
+          lifecycle_version,
+          fetch_strategy,
+          target_watermark
+        )
+        VALUES (
+          ${id}::uuid,
+          ${userId}::uuid,
+          ${c.provider},
+          ${c.external_account_id},
+          ${type},
+          ${trigger},
+          ${c.generation},
+          ${c.lifecycle_version},
+          ${capability.strategy},
+          coalesce(
+            (
+              SELECT last_completed_watermark
+              FROM sync_configs
+              WHERE carrier_connection_id = ${id}::uuid
+                AND sync_type = ${type}
+            ),
+            (
+              SELECT target_watermark
+              FROM sync_jobs
+              WHERE carrier_connection_id = ${id}::uuid
+                AND owner_user_id = ${userId}::uuid
+                AND sync_type = ${type}
+                AND status = ${J.SUCCEEDED}
+              ORDER BY finished_at DESC, id DESC
+              LIMIT 1
+            )
+          )
+        )
+        ON CONFLICT (carrier_connection_id, sync_type)
+          WHERE status IN ('QUEUED', 'RUNNING', 'WAITING')
+        DO NOTHING
+        RETURNING *
+      `;
       if (rows[0]) return rows[0];
-      const active = await tx.$queryRaw<
-        SyncJob[]
-      >`SELECT * FROM sync_jobs WHERE carrier_connection_id=${id}::uuid AND sync_type=${type} AND status=ANY(${ACTIVE_SYNC_JOBS}::text[])`;
+      const active = await tx.$queryRaw<SyncJob[]>`
+        SELECT *
+        FROM sync_jobs
+        WHERE carrier_connection_id = ${id}::uuid
+          AND sync_type = ${type}
+          AND status = ANY(${ACTIVE_SYNC_JOBS}::text[])
+      `;
       if (!active[0]) throw new SyncError(E.SYNC_STALE);
       return active[0];
     });
@@ -285,9 +349,32 @@ export class SyncRepository implements SyncQueue {
       const c = await this.connection(tx, userId, id);
       if (enabled && !this.available(c.provider, type))
         throw new SyncError(E.SYNC_UNAVAILABLE);
-      const rows = await tx.$queryRaw<
-        SyncSchedule[]
-      >`INSERT INTO sync_configs(carrier_connection_id,sync_type,enabled,interval_minutes,next_run_at) VALUES(${id}::uuid,${type},${enabled},${interval},CASE WHEN ${enabled} THEN clock_timestamp()+${interval}*interval '1 minute' ELSE NULL END) ON CONFLICT(carrier_connection_id,sync_type) DO UPDATE SET enabled=excluded.enabled,interval_minutes=excluded.interval_minutes,next_run_at=excluded.next_run_at,updated_at=clock_timestamp() RETURNING *`;
+      const rows = await tx.$queryRaw<SyncSchedule[]>`
+        INSERT INTO sync_configs (
+          carrier_connection_id,
+          sync_type,
+          enabled,
+          interval_minutes,
+          next_run_at
+        )
+        VALUES (
+          ${id}::uuid,
+          ${type},
+          ${enabled},
+          ${interval},
+          CASE WHEN ${enabled}
+            THEN clock_timestamp() + ${interval} * interval '1 minute'
+            ELSE NULL
+          END
+        )
+        ON CONFLICT (carrier_connection_id, sync_type)
+        DO UPDATE SET
+          enabled = excluded.enabled,
+          interval_minutes = excluded.interval_minutes,
+          next_run_at = excluded.next_run_at,
+          updated_at = clock_timestamp()
+        RETURNING *
+      `;
       return { ...rows[0], available: this.available(c.provider, type) };
     });
   }
@@ -296,23 +383,52 @@ export class SyncRepository implements SyncQueue {
     const selected = await this.client.$transaction(async (tx) => {
       const pairs = await tx.$queryRaw<
         { provider: string; sync_type: SyncType }[]
-      >`SELECT DISTINCT provider,sync_type FROM sync_jobs WHERE status=ANY(${ACTIVE_SYNC_JOBS}::text[])`;
+      >`
+        SELECT DISTINCT provider, sync_type
+        FROM sync_jobs
+        WHERE status = ANY(${ACTIVE_SYNC_JOBS}::text[])
+      `;
       const eligible = pairs
         .filter((p) => this.available(p.provider, p.sync_type))
         .map((p) => p.provider + ":" + p.sync_type);
       if (!eligible.length) return null;
-      const rows = await tx.$queryRaw<
-        SyncJob[]
-      >`SELECT j.* FROM sync_jobs j WHERE (provider||':'||sync_type)=ANY(${eligible}::text[]) AND ((status=ANY(${[J.QUEUED, J.WAITING]}::text[]) AND available_at<=clock_timestamp()) OR (status=${J.RUNNING} AND lease_expires_at<=clock_timestamp())) ORDER BY available_at,id FOR UPDATE SKIP LOCKED LIMIT 1`;
+      const rows = await tx.$queryRaw<SyncJob[]>`
+        SELECT j.*
+        FROM sync_jobs j
+        WHERE (provider || ':' || sync_type) = ANY(${eligible}::text[])
+          AND (
+            (
+              status = ANY(${[J.QUEUED, J.WAITING]}::text[])
+              AND available_at <= clock_timestamp()
+            )
+            OR (
+              status = ${J.RUNNING}
+              AND lease_expires_at <= clock_timestamp()
+            )
+          )
+        ORDER BY available_at, id
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1
+      `;
       const job = rows[0];
       if (!job || !this.available(job.provider, job.sync_type)) return null;
       const reclaimed = job.status === J.RUNNING;
       const attempts = job.attempt_count + (reclaimed ? 1 : 0);
       if (reclaimed && attempts >= this.config.maxAttempts)
         return { job, exhausted: true };
-      const claimed = await tx.$queryRaw<
-        SyncJob[]
-      >`UPDATE sync_jobs SET status=${J.RUNNING},attempt_count=${attempts},worker_id=${workerId}::uuid,lease_version=lease_version+1,lease_expires_at=clock_timestamp()+${this.config.leaseSeconds}*interval '1 second',started_at=coalesce(started_at,clock_timestamp()),updated_at=clock_timestamp() WHERE id=${job.id}::uuid RETURNING *`;
+      const claimed = await tx.$queryRaw<SyncJob[]>`
+        UPDATE sync_jobs
+        SET
+          status = ${J.RUNNING},
+          attempt_count = ${attempts},
+          worker_id = ${workerId}::uuid,
+          lease_version = lease_version + 1,
+          lease_expires_at = clock_timestamp() + ${this.config.leaseSeconds} * interval '1 second',
+          started_at = coalesce(started_at, clock_timestamp()),
+          updated_at = clock_timestamp()
+        WHERE id = ${job.id}::uuid
+        RETURNING *
+      `;
       return { job: claimed[0], exhausted: false };
     });
     if (!selected) return null;
@@ -334,16 +450,44 @@ export class SyncRepository implements SyncQueue {
             !this.available(connection.provider, candidate.sync_type)
           )
             throw new SyncError(E.SYNC_STALE);
-          const rows = await tx.$queryRaw<
-            SyncJob[]
-          >`SELECT * FROM sync_jobs WHERE id=${candidate.id}::uuid AND lease_version=${candidate.lease_version} AND status=${J.RUNNING} AND lease_expires_at<=clock_timestamp() FOR UPDATE`;
+          const rows = await tx.$queryRaw<SyncJob[]>`
+            SELECT *
+            FROM sync_jobs
+            WHERE id = ${candidate.id}::uuid
+              AND lease_version = ${candidate.lease_version}
+              AND status = ${J.RUNNING}
+              AND lease_expires_at <= clock_timestamp()
+              FOR UPDATE
+          `;
           const current = rows[0];
           if (!current || current.attempt_count + 1 < this.config.maxAttempts)
             return null;
-          const [failed] = await tx.$queryRaw<
-            { finished_at: Date }[]
-          >`UPDATE sync_jobs SET status=${J.FAILED},attempt_count=attempt_count+1,last_error_code=${E.INTERNAL_ERROR},lease_version=lease_version+1,worker_id=NULL,lease_expires_at=NULL,finished_at=clock_timestamp(),updated_at=clock_timestamp() WHERE id=${current.id}::uuid AND lease_version=${current.lease_version} RETURNING finished_at`;
-          await tx.$executeRaw`UPDATE sync_configs SET last_completed_at=${failed.finished_at},next_run_at=CASE WHEN enabled THEN ${failed.finished_at}::timestamptz+interval_minutes*interval '1 minute' ELSE NULL END WHERE carrier_connection_id=${current.carrier_connection_id}::uuid AND sync_type=${current.sync_type}`;
+          const [failed] = await tx.$queryRaw<{ finished_at: Date }[]>`
+            UPDATE sync_jobs
+            SET
+              status = ${J.FAILED},
+              attempt_count = attempt_count + 1,
+              last_error_code = ${E.INTERNAL_ERROR},
+              lease_version = lease_version + 1,
+              worker_id = NULL,
+              lease_expires_at = NULL,
+              finished_at = clock_timestamp(),
+              updated_at = clock_timestamp()
+            WHERE id = ${current.id}::uuid
+              AND lease_version = ${current.lease_version}
+            RETURNING finished_at
+          `;
+          await tx.$executeRaw`
+            UPDATE sync_configs
+            SET
+              last_completed_at = ${failed.finished_at},
+              next_run_at = CASE WHEN enabled
+                THEN ${failed.finished_at}::timestamptz + interval_minutes * interval '1 minute'
+                ELSE NULL
+              END
+            WHERE carrier_connection_id = ${current.carrier_connection_id}::uuid
+              AND sync_type = ${current.sync_type}
+          `;
           return null;
         });
       }
@@ -359,7 +503,20 @@ export class SyncRepository implements SyncQueue {
             candidate.owner_user_id,
             candidate.carrier_connection_id,
           );
-          await tx.$executeRaw`UPDATE sync_jobs SET status=${J.CANCELLED},last_error_code=${E.SYNC_STALE},lease_version=lease_version+1,worker_id=NULL,lease_expires_at=NULL,finished_at=clock_timestamp() WHERE id=${candidate.id}::uuid AND lease_version=${candidate.lease_version} AND worker_id=${candidate.worker_id}::uuid AND status=${J.RUNNING}`;
+          await tx.$executeRaw`
+            UPDATE sync_jobs
+            SET
+              status = ${J.CANCELLED},
+              last_error_code = ${E.SYNC_STALE},
+              lease_version = lease_version + 1,
+              worker_id = NULL,
+              lease_expires_at = NULL,
+              finished_at = clock_timestamp()
+            WHERE id = ${candidate.id}::uuid
+              AND lease_version = ${candidate.lease_version}
+              AND worker_id = ${candidate.worker_id}::uuid
+              AND status = ${J.RUNNING}
+          `;
         });
       } else if (error.code !== E.UNAUTHORIZED && error.code !== E.NOT_FOUND)
         throw error;
@@ -369,7 +526,13 @@ export class SyncRepository implements SyncQueue {
   async heartbeat(job: SyncJob) {
     await this.client.$transaction(async (tx) => {
       await this.fence(tx, job);
-      await tx.$executeRaw`UPDATE sync_jobs SET lease_expires_at=clock_timestamp()+${this.config.leaseSeconds}*interval '1 second' WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+      await tx.$executeRaw`
+        UPDATE sync_jobs
+        SET
+          lease_expires_at = clock_timestamp() + ${this.config.leaseSeconds} * interval '1 second'
+        WHERE id = ${job.id}::uuid
+          AND lease_version = ${job.lease_version}
+      `;
     });
   }
   async page(job: SyncJob, page: SyncPage, processorVersion: number) {
@@ -627,9 +790,35 @@ export class SyncRepository implements SyncQueue {
           code === E.PROCESSOR_UNAVAILABLE ||
           code === E.SYNC_UNAVAILABLE;
         await this.assertLease(tx, job);
-        await tx.$executeRaw`UPDATE sync_jobs SET status=${failed ? J.FAILED : J.WAITING},last_error_code=${code},attempt_count=attempt_count+1,available_at=clock_timestamp()+${retryAfterMs}*interval '1 millisecond',finished_at=CASE WHEN ${failed} THEN clock_timestamp() ELSE NULL END,worker_id=NULL,lease_expires_at=NULL,updated_at=clock_timestamp() WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+        await tx.$executeRaw`
+          UPDATE sync_jobs
+          SET
+            status = ${failed ? J.FAILED : J.WAITING},
+            last_error_code = ${code},
+            attempt_count = attempt_count + 1,
+            available_at = clock_timestamp() + ${retryAfterMs} * interval '1 millisecond',
+            finished_at = CASE WHEN ${failed}
+              THEN clock_timestamp()
+              ELSE NULL
+            END,
+            worker_id = NULL,
+            lease_expires_at = NULL,
+            updated_at = clock_timestamp()
+          WHERE id = ${job.id}::uuid
+            AND lease_version = ${job.lease_version}
+        `;
         if (failed)
-          await tx.$executeRaw`UPDATE sync_configs SET last_completed_at=clock_timestamp(),next_run_at=CASE WHEN enabled THEN clock_timestamp()+interval_minutes*interval '1 minute' ELSE NULL END WHERE carrier_connection_id=${job.carrier_connection_id}::uuid AND sync_type=${job.sync_type}`;
+          await tx.$executeRaw`
+            UPDATE sync_configs
+            SET
+              last_completed_at = clock_timestamp(),
+              next_run_at = CASE WHEN enabled
+                THEN clock_timestamp() + interval_minutes * interval '1 minute'
+                ELSE NULL
+              END
+            WHERE carrier_connection_id = ${job.carrier_connection_id}::uuid
+              AND sync_type = ${job.sync_type}
+          `;
       });
     } catch (error) {
       if (
@@ -647,7 +836,13 @@ export class SyncRepository implements SyncQueue {
     if (!this.config.enabled) return;
     const pairs = await this.client.$queryRaw<
       { provider: string; sync_type: SyncType }[]
-    >`SELECT DISTINCT c.provider,s.sync_type FROM sync_configs s JOIN carrier_connections c ON c.id=s.carrier_connection_id WHERE s.enabled`;
+    >`
+      SELECT DISTINCT c.provider, s.sync_type
+      FROM sync_configs s
+      JOIN carrier_connections c
+        ON c.id = s.carrier_connection_id
+      WHERE s.enabled
+    `;
     const eligible = pairs
       .filter((p) => this.available(p.provider, p.sync_type))
       .map((p) => p.provider + ":" + p.sync_type);
@@ -668,7 +863,41 @@ export class SyncRepository implements SyncQueue {
           config_id: string;
           cursor_at: string;
         }[]
-      >`SELECT c.user_id,c.id,s.sync_type,c.provider,s.id AS config_id,s.next_run_at::text AS cursor_at FROM sync_configs s JOIN carrier_connections c ON c.id=s.carrier_connection_id JOIN users u ON u.id=c.user_id WHERE s.enabled AND s.next_run_at<=clock_timestamp() AND u.status=${UserStatus.ACTIVE} AND c.status=${ConnectionStatus.CONNECTED} AND (c.provider||':'||s.sync_type)=ANY(${eligible}::text[]) AND (${after?.at ?? null}::timestamptz IS NULL OR (s.next_run_at,s.id)>(${after?.at ?? null}::timestamptz,${after?.id ?? null}::uuid)) AND NOT EXISTS(SELECT 1 FROM sync_jobs j WHERE j.carrier_connection_id=c.id AND j.sync_type=s.sync_type AND j.status=ANY(${ACTIVE_SYNC_JOBS}::text[])) ORDER BY s.next_run_at,s.id LIMIT 100`;
+      >`
+        SELECT
+          c.user_id,
+          c.id,
+          s.sync_type,
+          c.provider,
+          s.id AS config_id,
+          s.next_run_at::text AS cursor_at
+        FROM sync_configs s
+        JOIN carrier_connections c
+          ON c.id = s.carrier_connection_id
+        JOIN users u
+          ON u.id = c.user_id
+        WHERE s.enabled
+          AND s.next_run_at <= clock_timestamp()
+          AND u.status = ${UserStatus.ACTIVE}
+          AND c.status = ${ConnectionStatus.CONNECTED}
+          AND (c.provider || ':' || s.sync_type) = ANY(${eligible}::text[])
+          AND (
+            ${after?.at ?? null}::timestamptz IS NULL
+            OR (s.next_run_at, s.id) > (
+              ${after?.at ?? null}::timestamptz,
+              ${after?.id ?? null}::uuid
+            )
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM sync_jobs j
+            WHERE j.carrier_connection_id = c.id
+              AND j.sync_type = s.sync_type
+              AND j.status = ANY(${ACTIVE_SYNC_JOBS}::text[])
+          )
+        ORDER BY s.next_run_at, s.id
+        LIMIT 100
+      `;
       if (!due.length) {
         this.scheduledAfter = undefined;
         return;

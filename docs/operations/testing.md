@@ -1051,3 +1051,14 @@ its existing SHIPMENT_TEST_RUNTIME_PASSWORD_FILE override. These are test-only
 fixture paths, never new runtime flags or production credentials. Use only an
 isolated owned PostgreSQL cluster; canonical Docker quality and final-head hosted
 runtime/HTTPS/persistence/development evidence remain required.
+
+### Sync SQL readability regression — NEXORA-056
+
+The existing migrated PostgreSQL Sync suite explicitly checks due/future QUEUED
+and WAITING jobs, live/expired RUNNING leases, two concurrent worker claims and
+SKIP LOCKED selection while another transaction holds the oldest row. Fixtures
+use actual repository transactions and row-lock barriers, not mocked SQL. Existing
+retry exhaustion, authorization/capability rejection, scheduler keyset/bounded
+failures, active-lane uniqueness and completion-based timing remain mandatory.
+Whitespace-only SQL refactors retain predicates, parameter order, clock_timestamp
+calls and partial-index conflict inference; they do not authorize new capabilities.
