@@ -4,6 +4,10 @@ on:
     paths:
       - "apps/api/src/sync/**"
       - "apps/api/src/worker/**"
+      - "apps/api/src/shipment/application/shipment-sync.port.ts"
+      - "apps/api/src/shipment/infrastructure/shipment-sync-domain.binding.ts"
+      - "apps/api/src/shipment/infrastructure/uniship/**"
+      - "apps/api/src/carrier/infrastructure/uniship/uniship-http.client.ts"
       - "apps/api/src/customer/application/customer-sync.port.ts"
       - "apps/api/src/customer/infrastructure/customer-sync-domain.binding.ts"
       - "apps/api/integration/sync-integration.test.cjs"

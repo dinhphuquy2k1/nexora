@@ -398,3 +398,31 @@ Final hosted verification/owner review remain on the PR after push; Status stays
 VERIFICATION PENDING, Verification PARTIALLY VERIFIED, external field/claim/live
 prerequisites stay NOT VERIFIED in058. No final-head gate is inferred from a
 previous HEAD. No evidence-only commit is needed after hosted results arrive.
+
+## BOUNDED verification-routing delta — 2026-11-16
+
+Source ab800ba0705a49aa1686093172fd6230067594f0 was pushed as PR56. Actual
+Sync Targeted pull_request paths cover engine/Customer/schema but not the new
+Shipment extension or existing Carrier HTTP client. It has no workflow_dispatch;
+no separate Sync run exists on ab800ba and none is claimed PASS. Preflight43906212098
+PASS, Foundation43906212048 started on that superseded source.
+
+Before CI edit, inspect .github/workflows/sync-targeted.yml: selected correction is
+only adding the exact Shipment Sync port/binding, Uniship adapter subtree and
+Carrier HTTP client path filters to the existing workflow. This makes the frozen
+plan's final-head Sync regression gate execute for this extension and future relevant
+source changes. No workflow job, command, service, permissions, timeout or security
+policy changes; no new workflow, rerun/skip, runtime flag or production registration.
+This is execution routing for the already-selected verification strategy, not a
+material architecture/contract revision; frozen v1 snapshot/digest stays unchanged.
+
+| Field                    | Verification routing                                                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Component                | Existing Sync Targeted changed-file routing                                                                                                      |
+| Existing implementations | .github/workflows/sync-targeted.yml pull_request.paths and unchanged sync-postgres job; Foundation already runs full API unit/integration globs  |
+| Domain owner             | Repository CI verification only                                                                                                                  |
+| Reuse alternatives       | Extend existing path list; reject dummy engine edits, fabricated checks, previous-head substitution or a new workflow/dispatch mechanism         |
+| Selected approach        | Four exact source path additions for actual Sync extension components; job remains byte-identical                                                |
+| Rationale                | Run the selected engine compatibility gate on the final extension source without unrelated production edits                                      |
+| Risks                    | Unexpected extra CI or hidden job changes; inspect YAML diff and final-head run/jobs; superseded run cancellation, if used, is recorded honestly |
+| Verification             | Diff limited to path list; pinned format/docs/preflight, independent read-only recheck and all three exact-head hosted gates                     |
