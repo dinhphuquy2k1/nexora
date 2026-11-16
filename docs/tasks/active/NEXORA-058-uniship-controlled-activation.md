@@ -30,3 +30,19 @@ Follow-up scope bookkeeping only; assess implementation impact when this task st
 | Claim              | Evidence                                                                                               | Date       | Result |
 | ------------------ | ------------------------------------------------------------------------------------------------------ | ---------- | ------ |
 | follow-up-recorded | Named prerequisite transferred during NEXORA-055 closure in NEXORA-056; execution remains NOT VERIFIED | 2026-11-16 | PASS   |
+
+## Additional prerequisites transferred from NEXORA-056 closure
+
+PR55 merge a19aa0d2532b41135a90c6e48e3b6876471ad343 on2026-11-16 closes the
+implementation under §1.7. Historical HTTPS/MFA runs43838009175 attempts1/2 and
+43848285718 remain FAIL; cause UNKNOWN. Later source3f8aef9 Foundation43889980798
+PASS4–10 is current execution evidence, not a causal fix. Before relying on live
+activation, retain canonical HTTPS/MFA/runtime gates and actual host/key/certificate/
+NTP/custody evidence; no production readiness is inferred from fixture CI. Causal
+investigation resumes only on recurrence with bounded diagnostics or a separately
+planned targeted reproducer with a concrete hypothesis and observable discriminant.
+No new workflow retry or live request is authorized by this bookkeeping entry.
+
+| Claim                    | Evidence                                                                                                                                                                                                                                      | Date       | Result |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Follow-up scope retained | Transferred at NEXORA-056 closure by NEXORA-057; [completed056](../completed/NEXORA-056-auto-provision-sync-configuration.md) retains original FAIL/NOT RUN and final source CI provenance; external/causal verification remains NOT VERIFIED | 2026-11-16 | PASS   |

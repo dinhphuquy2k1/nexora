@@ -1,6 +1,6 @@
 # NEXORA-056 — Auto Provision Sync Configuration & Simplify Sync Runtime Flags
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
 Verification: PARTIALLY VERIFIED
 
@@ -185,7 +185,7 @@ and failures in task/PR. No unexecuted assertion is PASS.
 - [x] Due scheduling/no catch-up duplication and unsupported claim verified; manual
       remains independent of schedule; original fences/leases/capacity preserved.
 - [x] No migration/backfill/grant/contract/frontend/live-gate/production-registry drift.
-- [ ] Documentation, meaningful regressions and full quality passed locally; exact-head CI/owner review remain pending in PR metadata.
+- [x] Documentation, meaningful regressions, full quality and final-head CI verified; owner merged PR55. See dated closure below; historical HTTPS cause remains UNKNOWN and is transferred to NEXORA-058.
 
 ## 12. Plan issues and governance
 
@@ -725,3 +725,31 @@ PASS all4–10, Preflight43851359090 PASS and SyncTargeted43851359140 PASS are
 successful controls, not substitutes for the next HEAD or explanations of earlier
 failures. Owner acceptance/remaining task criteria remain separate from completion
 of this P3 diagnostic correction. No further causal retries are selected here.
+
+## Closure by NEXORA-057 — 2026-11-16
+
+PR55 merged at2026-11-16T15:14:41Z, merge
+`a19aa0d2532b41135a90c6e48e3b6876471ad343`, independently confirmed via GitHub
+and fetched main. Its tree equals verified source
+`3f8aef9e9e4e5f7886f4b8e25d0972c5db92d4e0`. Final-head Preflight43889980809,
+SyncTargeted43889980848 and Foundation43889980798 attempt1 PASS; Foundation
+job133378236616 checkout merge2aaa9117c3d8d82ef32252c51bdf5773fb96e542,
+2026-11-16T14:50:24Z–15:10:06Z, all mandatory steps4–10 PASS. Owner merge is
+recorded as executed, not invented independent approval of historical changes.
+
+Historical failures, local NOT RUN limitations and frozen snapshots remain intact.
+Original intermittent HTTPS/MFA root cause remains UNKNOWN, not repaired by the
+Origin diagnostic correction. Transfer its operational follow-up/recurrence
+condition and remaining real-environment custody/activation gates to
+[NEXORA-058](../active/NEXORA-058-uniship-controlled-activation.md). Resume causal
+investigation only on actual recurrence with bounded diagnostics or a separately
+planned reproducer with a concrete hypothesis/discriminant; no blind retries.
+Adapter field semantics and claim captures remain
+[NEXORA-057](../active/NEXORA-057-uniship-http-adapter.md) prerequisites, not claims
+of live provider verification. Verification remains PARTIALLY VERIFIED to preserve
+those external/causal limits; completed implementation/closure does not mark them PASS.
+
+| Claim                            | Evidence                                                                                                                                                                                                                                                                                                                                        | Date       | Result |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged task closure              | GitHub [PR55](https://github.com/dinhphuquy2k1/nexora/pull/55) merged2026-11-16T15:14:41Z; merge a19aa0d2532b41135a90c6e48e3b6876471ad343; tree matches source3f8aef9e9e4e5f7886f4b8e25d0972c5db92d4e0                                                                                                                                          | 2026-11-16 | PASS   |
+| Final source hosted verification | [Preflight43889980809](https://github.com/dinhphuquy2k1/nexora/actions/runs/43889980809), [SyncTargeted43889980848](https://github.com/dinhphuquy2k1/nexora/actions/runs/43889980848), [Foundation43889980798](https://github.com/dinhphuquy2k1/nexora/actions/runs/43889980798); source/merge/job/timestamp provenance above; all4–10 executed | 2026-11-16 | PASS   |
