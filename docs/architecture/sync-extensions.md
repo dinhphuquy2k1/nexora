@@ -19,7 +19,7 @@ Registration rejects provider names longer than `CARRIER_PROVIDER_MAX_LENGTH` (C
 API and worker both call `createSyncRuntimeCapabilities()` from the same
 `sync-runtime-capabilities.ts` declaration source. They have independent instances,
 not shared memory, credentials or clients. Repository availability also requires
-the existing global/type flags. Executor uses its queue's resolver and cannot
+only the global SYNC_ENABLED switch in addition to the registry. Executor uses its queue's resolver and cannot
 receive an unrelated fetcher/processor pair; repository resolves the matching
 Domain binding again inside its fenced transaction.
 
@@ -176,3 +176,21 @@ complete empty are distinct. The Domain parser validates generic Sync JSON into 
 copied typed value, retaining the complete marker; Aggregate commands reuse the
 same validator and do not rely on TypeScript alone. Logistics stage is supplied by
 the injected mapper, never accepted as a provider payload field.
+
+## Onboarding intent and runtime eligibility — NEXORA-056
+
+Carrier's pure default-sync-policy uses canonical Carrier provider and Shared
+SyncType codes without importing Sync application/infrastructure. The existing
+Carrier create transaction inserts the policy for the actual created provider.
+This persisted schedule is intent only; it neither registers a capability nor
+creates a job. Uniship defaults to enabled SHIPMENT/60minutes at DB-created time
+plus60minutes. No CUSTOMER default, legacy backfill or reconnect reset occurs.
+
+Runtime configuration carries no ENV-derived type list. Repository admission,
+claim, schedule and execution fences share global enabled plus exact registry
+resolution. claim retains its registry-filtered DB provider/type eligibility before
+SKIP LOCKED selection; scheduler retains its same enabled/due/authorization and
+active-lane checks, completion-based timing and keyset continuation. API and worker
+use the same production declarations, still empty. Removing per-type flags never
+opens live HTTP or bypasses owner/lifecycle/processor/lease fences. Manual admission
+continues independently of whether an automatic schedule is enabled/due.

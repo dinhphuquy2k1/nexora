@@ -48,8 +48,6 @@ test(
       b2;
     const cfg = loadSyncConfig({
         SYNC_ENABLED: "true",
-        SYNC_SHIPMENT_ENABLED: "true",
-        SYNC_CUSTOMER_ENABLED: "true",
         SYNC_RESOLVED_RETENTION_DAYS: "1",
       }),
       provider = {
@@ -124,6 +122,333 @@ test(
         }
         return state;
       };
+      await t.test(
+        "global-only config uses exact capabilities for due scheduling, manual admission and worker claim",
+        async () => {
+          const {
+            SyncRepository,
+          } = require("../dist/sync/infrastructure/sync-job.repository");
+          const {
+            SyncCapabilityRegistry,
+          } = require("../dist/sync/infrastructure/sync-capability.registry");
+          const {
+            createCustomerSyncBinding,
+          } = require("../dist/customer/infrastructure/customer-sync-domain.binding");
+          const actor = await db.user.create({
+            data: { username: "global-only-" + randomUUID(), role: "OPERATOR" },
+          });
+          const registry = new SyncCapabilityRegistry([
+            {
+              providerName: "uniship",
+              type: "SHIPMENT",
+              provider,
+              domain: createCustomerSyncBinding(processor),
+            },
+          ]);
+          const global = loadSyncConfig({ SYNC_ENABLED: "true" });
+          const queue = new SyncRepository(
+            url.toString(),
+            global,
+            registry,
+            "shared",
+          );
+          const disabled = new SyncRepository(
+            url.toString(),
+            loadSyncConfig({ SYNC_ENABLED: "false" }),
+            registry,
+            "shared",
+          );
+          const unavailable = new SyncRepository(
+            url.toString(),
+            global,
+            new SyncCapabilityRegistry([]),
+            "shared",
+          );
+          try {
+            const lane = await db.carrierConnection.create({
+              data: {
+                userId: actor.id,
+                provider: "uniship",
+                externalAccountId: "global-only",
+                displayName: "Global only",
+                status: "CONNECTED",
+              },
+            });
+            const config = await db.syncConfig.create({
+              data: {
+                carrier_connection_id: lane.id,
+                sync_type: "SHIPMENT",
+                enabled: true,
+                interval_minutes: 60,
+                next_run_at: new Date(Date.now() + 3600000),
+              },
+            });
+            assert.equal(
+              queue.available("uniship", "SHIPMENT"),
+              true,
+              "global enabled plus registered pair needs no additional type flag",
+            );
+            assert.equal(queue.available("uniship", "CUSTOMER"), false);
+            assert.equal(queue.available("unsupported", "SHIPMENT"), false);
+            await queue.schedule();
+            assert.equal(
+              await db.syncJob.count({ where: { owner_user_id: actor.id } }),
+              0,
+              "future config is not due",
+            );
+            await db.syncConfig.update({
+              where: { id: config.id },
+              data: { next_run_at: new Date("2000-01-01T00:00:00Z") },
+            });
+            for (const blocked of [disabled, unavailable]) {
+              assert.equal(blocked.available("uniship", "SHIPMENT"), false);
+              await assert.rejects(
+                blocked.admit(actor.id, lane.id, "SHIPMENT", "MANUAL"),
+                (e) => e.code === "SYNC_UNAVAILABLE",
+              );
+              await blocked.schedule();
+              assert.equal(await blocked.claim(randomUUID()), null);
+            }
+            assert.equal(
+              await db.syncJob.count({ where: { owner_user_id: actor.id } }),
+              0,
+            );
+            const badLanes = [];
+            for (const [providerName, type] of [["uniship", "CUSTOMER"]]) {
+              const bad = await db.carrierConnection.create({
+                data: {
+                  userId: actor.id,
+                  provider: providerName,
+                  externalAccountId: "global-only-" + type,
+                  displayName: "Unsupported pair",
+                  status: "CONNECTED",
+                },
+              });
+              badLanes.push(bad);
+              await db.syncConfig.create({
+                data: {
+                  carrier_connection_id: bad.id,
+                  sync_type: type,
+                  enabled: true,
+                  interval_minutes: 60,
+                  next_run_at: new Date("2000-01-01T00:00:00Z"),
+                },
+              });
+            }
+            await Promise.all([queue.schedule(), queue.schedule()]);
+            const jobs = await db.syncJob.findMany({
+              where: { owner_user_id: actor.id },
+            });
+            assert.equal(
+              jobs.length,
+              1,
+              "many overdue intervals and concurrent scheduling create one job only",
+            );
+            assert.equal(jobs[0].trigger_source, "AUTO");
+            assert.equal(jobs[0].carrier_connection_id, lane.id);
+            for (let i = 0; i < badLanes.length; i++) {
+              const bad = badLanes[i];
+              await db.syncJob.create({
+                data: {
+                  carrier_connection_id: bad.id,
+                  owner_user_id: actor.id,
+                  provider: bad.provider,
+                  external_account_id: bad.externalAccountId,
+                  sync_type: "CUSTOMER",
+                  trigger_source: "MANUAL",
+                  generation: 0,
+                  lifecycle_version: bad.lifecycleVersion,
+                  fetch_strategy: "FULL",
+                  available_at: new Date("1999-01-01T00:00:00Z"),
+                },
+              });
+            }
+            // Jobs may survive detached from a deleted connection; the queue provider
+            // column supports historical providers even though current Carrier CHECK is closed.
+            await db.syncJob.create({
+              data: {
+                carrier_connection_id: null,
+                owner_user_id: actor.id,
+                provider: "unsupported",
+                external_account_id: "historical-provider",
+                sync_type: "SHIPMENT",
+                trigger_source: "MANUAL",
+                generation: 0,
+                lifecycle_version: 1,
+                fetch_strategy: "FULL",
+                available_at: new Date("1998-01-01T00:00:00Z"),
+              },
+            });
+            assert.equal(await disabled.claim(randomUUID()), null);
+            assert.equal(await unavailable.claim(randomUUID()), null);
+            const claimed = await queue.claim(randomUUID());
+            assert.equal(
+              claimed.id,
+              jobs[0].id,
+              "unsupported older jobs are excluded before SKIP LOCKED selection",
+            );
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL,finished_at=clock_timestamp() WHERE id=${claimed.id}::uuid`;
+            await db.syncConfig.update({
+              where: { id: config.id },
+              data: { enabled: false, next_run_at: null },
+            });
+            const manual = await queue.admit(
+              actor.id,
+              lane.id,
+              "SHIPMENT",
+              "MANUAL",
+            );
+            assert.equal(manual.trigger_source, "MANUAL");
+            assert.equal(
+              manual.status,
+              "QUEUED",
+              "manual does not require enabled/due schedule",
+            );
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL,finished_at=clock_timestamp() WHERE id=${manual.id}::uuid`;
+          } finally {
+            await Promise.all([
+              queue.close(),
+              disabled.close(),
+              unavailable.close(),
+            ]);
+            await db.syncJob.deleteMany({ where: { owner_user_id: actor.id } });
+            await db.user.delete({ where: { id: actor.id } });
+          }
+        },
+      );
+      await t.test(
+        "claim preserves due QUEUED/WAITING and live/expired RUNNING deadlines",
+        async () => {
+          const lane = await connection();
+          try {
+            for (const status of ["QUEUED", "WAITING"]) {
+              const job = await repo.admit(
+                owner.id,
+                lane.id,
+                "SHIPMENT",
+                "MANUAL",
+              );
+              await db.$executeRaw`UPDATE sync_jobs SET status=${status},available_at=clock_timestamp()+interval '1 day' WHERE id=${job.id}::uuid`;
+              assert.equal(await repo.claim(randomUUID()), null);
+              await db.$executeRaw`UPDATE sync_jobs SET available_at=clock_timestamp() WHERE id=${job.id}::uuid`;
+              const claimed = await repo.claim(randomUUID());
+              assert.equal(claimed.id, job.id);
+              assert.equal(claimed.status, "RUNNING");
+              assert.equal(claimed.attempt_count, job.attempt_count);
+              assert.equal(claimed.lease_version, job.lease_version + 1);
+              assert.equal(
+                await repo.claim(randomUUID()),
+                null,
+                "live lease cannot be reclaimed",
+              );
+              await db.$executeRaw`UPDATE sync_jobs SET lease_expires_at=clock_timestamp() WHERE id=${job.id}::uuid`;
+              const reclaimed = await repo.claim(randomUUID());
+              assert.equal(reclaimed.id, job.id);
+              assert.equal(reclaimed.attempt_count, claimed.attempt_count + 1);
+              assert.equal(reclaimed.lease_version, claimed.lease_version + 1);
+              await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE id=${job.id}::uuid`;
+            }
+          } finally {
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE carrier_connection_id=${lane.id}::uuid`;
+          }
+        },
+      );
+      await t.test(
+        "two PostgreSQL workers claim one valid job only once",
+        async () => {
+          const lane = await connection();
+          const contender = testRepository(
+            url.toString(),
+            cfg,
+            provider,
+            processor,
+            "shared",
+          );
+          try {
+            const job = await repo.admit(
+              owner.id,
+              lane.id,
+              "SHIPMENT",
+              "MANUAL",
+            );
+            const workers = [randomUUID(), randomUUID()];
+            const results = await Promise.all([
+              repo.claim(workers[0]),
+              contender.claim(workers[1]),
+            ]);
+            const claimed = results.filter(Boolean);
+            assert.equal(claimed.length, 1);
+            assert.equal(claimed[0].id, job.id);
+            assert.ok(workers.includes(claimed[0].worker_id));
+            const stored = await db.syncJob.findUnique({
+              where: { id: job.id },
+            });
+            assert.equal(stored.worker_id, claimed[0].worker_id);
+            assert.equal(stored.lease_version, job.lease_version + 1);
+          } finally {
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE carrier_connection_id=${lane.id}::uuid`;
+            await contender.close();
+          }
+        },
+      );
+      await t.test(
+        "SKIP LOCKED claims the next job while the oldest row is held by another transaction",
+        async () => {
+          const lanes = [await connection(), await connection()];
+          let unlock;
+          let holding;
+          try {
+            const first = await repo.admit(
+              owner.id,
+              lanes[0].id,
+              "SHIPMENT",
+              "MANUAL",
+            );
+            const second = await repo.admit(
+              owner.id,
+              lanes[1].id,
+              "SHIPMENT",
+              "MANUAL",
+            );
+            await db.$executeRaw`UPDATE sync_jobs SET available_at='1990-01-01' WHERE id=${first.id}::uuid`;
+            await db.$executeRaw`UPDATE sync_jobs SET available_at='2000-01-01' WHERE id=${second.id}::uuid`;
+            let locked;
+            const acquired = new Promise((resolve) => {
+              locked = resolve;
+            });
+            const barrier = new Promise((resolve) => {
+              unlock = resolve;
+            });
+            holding = db.$transaction(
+              async (tx) => {
+                await tx.$queryRaw`SELECT id FROM sync_jobs WHERE id=${first.id}::uuid FOR UPDATE`;
+                locked();
+                await barrier;
+              },
+              { timeout: 10000 },
+            );
+            await Promise.race([
+              acquired,
+              holding.then(() => {
+                throw Error("lock transaction ended before acquiring row");
+              }),
+            ]);
+            const claimed = await repo.claim(randomUUID());
+            assert.equal(claimed.id, second.id);
+            assert.equal(
+              (await db.syncJob.findUnique({ where: { id: first.id } })).status,
+              "QUEUED",
+            );
+            unlock();
+            await holding;
+            assert.equal((await repo.claim(randomUUID())).id, first.id);
+          } finally {
+            unlock?.();
+            await holding;
+            await db.$executeRaw`UPDATE sync_jobs SET status='CANCELLED',worker_id=NULL,lease_expires_at=NULL WHERE carrier_connection_id=ANY(${lanes.map((lane) => lane.id)}::uuid[])`;
+          }
+        },
+      );
       await require("./fixtures/sync-status-contract.cjs").verifySyncStatusContracts(
         { t, url: url.toString(), db, owner, repo },
       );
@@ -2137,8 +2462,6 @@ test(
             process.env.ALLOWED_ORIGINS = "http://localhost:3001";
             process.env.NEXORA_DEPLOYMENT_PROFILE = "LOCAL";
             process.env.SYNC_ENABLED = "false";
-            process.env.SYNC_SHIPMENT_ENABLED = "false";
-            process.env.SYNC_CUSTOMER_ENABLED = "false";
             const { NestFactory } = require("@nestjs/core"),
               { AppModule } = require("../dist/app.module"),
               { configure } = require("../dist/http");

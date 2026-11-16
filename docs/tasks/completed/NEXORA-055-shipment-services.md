@@ -1,6 +1,6 @@
 # NEXORA-055 — Shipment Services foundation
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
 Verification: PARTIALLY VERIFIED
 
@@ -209,9 +209,9 @@ Task055 stays active until a later PR closes it under§1.7; no automatic merge.
 - [x] Migration, exact PG oracle/upgrade/data preservation and least privileges.
 - [x] Fenced Sync reconciliation, error/rollback/isolation and bounded capacity.
 - [x] Additive read API/SDK and strict/minimal compatible consumers.
-- [ ] Canonical docs, required local/Docker checks and independent review.
-- [ ] Exact final-head Preflight, Sync Targeted and Foundation4–10.
-- [ ] Owner review/merge decision.
+- [x] Canonical docs and required checks; hosted canonical Docker evidence below. Independent approval is not claimed; follow-up review scope is recorded in NEXORA-057.
+- [x] Exact final-head Preflight, Sync Targeted and Foundation4–10 (final PR HEAD f314380).
+- [x] Owner merge decision, PR54 merged58223828a733f706d4ef058fac64b193556bde70.
 
 ## Evidence
 
@@ -511,3 +511,28 @@ complete transport DTOs through public parsers, not the internal helper. No
 independent agent approval is claimed; leave final acceptance to owner review.
 P2-A FIXED; P2-B FIXED; P3 DEFERRED non-blocking (rationale above). Task remains active
 VERIFICATION PENDING/PARTIALLY VERIFIED; no owner-approval or completion status change.
+
+## Closure in NEXORA-056 (2026-11-16)
+
+PR54 merged2026-11-15T16:52:13Z, SHA58223828a733f706d4ef058fac64b193556bde70,
+final PR HEAD f31438058bdf536223f146a29c1bdba40949ed80. API metadata rechecked
+2026-11-16: merged=true, closed. Final-head Preflight43701952202, Sync43701952681
+and Foundation43701952197 PASS on attempt1, checkout19b13009da966589ea3896dd06a66b5b1598d227.
+Foundation job/step details remain in PR54 description; steps4–10 PASS. These are
+PR-head/synthetic-merge checks, not a claim that a later run checked the owner merge
+SHA itself. NEXORA-056's final CI will include that actual ancestor. Original local
+FAILs, PARTIALLY VERIFIED status and independent/self-review distinctions remain.
+No GitHub review objects were returned; merge proves the owner decision only.
+
+External prerequisites are not promoted to PASS: [NEXORA-057](../active/NEXORA-057-uniship-http-adapter.md)
+PLANNED owns fixture-backed field/claim semantics and independent adapter/service
+contract review; [NEXORA-058](../active/NEXORA-058-uniship-controlled-activation.md)
+PLANNED owns UNISHIP_LIVE_ACTIVATION and remaining operational gates.
+[NEXORA-047](../active/NEXORA-047-frontend-reference-acceptance.md) PLANNED owns
+manual visual acceptance and RETAIL_SERVICE_CATALOG_PRESENTATION. The optional
+runtime migration-identity P3 remains deferred maintenance, not a shipped-service
+acceptance claim. No live network or future UI redesign was implemented.
+
+| Claim                   | Evidence                                                                                                                                                                                                                                                              | Date       | Result |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| owner-merge-and-closure | GitHub PR54 merged=true at2026-11-15T16:52:13Z, merge58223828a733f706d4ef058fac64b193556bde70; git origin/main confirms merge; final PR-head workflows43701952202/43701952681/43701952197 PASS; future non-CI prerequisites transferred without claiming verification | 2026-11-16 | PASS   |

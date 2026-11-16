@@ -34,3 +34,26 @@ test("Sync retry honors a valid long Retry-After and rejects non-finite scheduli
   assert.equal(retryDelay(30, NaN), 60000);
   assert.equal(retryDelay(0, Infinity), 1000);
 });
+
+test("runtime configuration has only a global feature switch and unchanged technical tuning", () => {
+  const config = loadSyncConfig({ SYNC_ENABLED: "true" });
+  assert.equal(config.enabled, true);
+  assert.equal(Object.hasOwn(config, "types"), false);
+  assert.deepEqual(config, {
+    enabled: true,
+    leaseSeconds: 60,
+    pollMs: 1000,
+    maxAttempts: 5,
+    retentionDays: null,
+  });
+  assert.equal(loadSyncConfig({ SYNC_ENABLED: "false" }).enabled, false);
+  for (const value of ["", "TRUE", "1", "yes", " false"])
+    assert.throws(() => loadSyncConfig({ SYNC_ENABLED: value }));
+  for (const input of [
+    { SYNC_POLL_MS: "0" },
+    { SYNC_LEASE_SECONDS: "301" },
+    { SYNC_MAX_ATTEMPTS: "21" },
+    { SYNC_RESOLVED_RETENTION_DAYS: "0" },
+  ])
+    assert.throws(() => loadSyncConfig(input));
+});

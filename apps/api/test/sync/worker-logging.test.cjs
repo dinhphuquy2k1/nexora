@@ -131,7 +131,6 @@ test("actual compiled worker cycle emits safe database diagnostics then shuts do
         DATABASE_URL:
           "postgresql://user:" + secret + "@127.0.0.1:" + port + "/test",
         SYNC_ENABLED: "true",
-        SYNC_SHIPMENT_ENABLED: "true",
         SYNC_POLL_MS: "100",
       },
       stdio: ["ignore", "pipe", "pipe"],

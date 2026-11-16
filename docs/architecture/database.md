@@ -456,3 +456,16 @@ shipment_id/service_code/enabled and UPDATE(enabled), never id/code/parent mutat
 The migration harness verifies historical upgrade, preserved rows, zero initial
 service facts, repeat deployment and drift; the real schema oracle mutates CHECK
 constraints to ensure exact validated vocabulary enforcement.
+
+## Carrier creation schedule transaction — NEXORA-056
+
+Existing sync_configs storage/unique(connection,type)/cascade and runtime grants
+already support onboarding defaults. New Uniship connection, sealed secrets, one
+enabled SHIPMENT config(interval_minutes60, next_run_at=DB connection.created_at+
+60minutes) and CONNECT SUCCESS audit share one existing PostgreSQL transaction.
+History/watermark remain NULL and no job is inserted. Both timestamp columns retain
+TIMESTAMPTZ(3) precision; infrastructure uses the returned DB createdAt metadata,
+verified against SQL interval arithmetic. No schema migration, backfill or privilege
+change. Insert failure and later success-audit failure roll back all four records;
+reconnect preserves schedule state, and hard delete retains FK cascade behavior.
+Stored enabled is not an executable-capability or external authorization grant.

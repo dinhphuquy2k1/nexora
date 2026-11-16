@@ -150,3 +150,22 @@ No flag-only activation, global type ordering or worker per type. Confirmed
 Customer source mappings remain durable across restart/resync/payload/retention;
 LINKED_EXISTING and immutable owner-scoped targets are preserved. No code, schema,
 grants, production handlers, live integration or migration changes occur here.
+
+## 2026-11-16 default schedules and global runtime control — NEXORA-056
+
+The owner replaces per-Sync-Type environment feature switches with the existing
+global SYNC_ENABLED kill switch plus exact static Capability Registry resolution.
+API and worker retain one declaration source, currently empty. Existing claim
+provider/type eligibility, SKIP LOCKED, authorization/lease/version fencing,
+retry/cancellation, keyset scheduling and completion-based next-run updates stay.
+MANUAL admission remains independent of enabled/due schedule; AUTO uses the
+existing enabled/due scheduler and active-lane admission, without hourly catch-up.
+
+New Carrier connections persist provider-specific defaults inside the existing
+connection/secrets/success-audit transaction. Uniship defaults to one enabled
+SHIPMENT/60minute config, first due DB connection.created_at+60minutes, with NULL
+history/watermark and no job on connect. Reconnect does not reset it; deletion
+uses existing cascade. No backfill/schema/grant change, activation state, extra
+queue/worker or production capability is introduced. This amendment records current
+control policy without rewriting historical flag-era implementation decisions or
+authorizing live provider requests.

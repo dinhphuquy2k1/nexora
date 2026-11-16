@@ -22,8 +22,6 @@ const {
 const cfg = () =>
   loadSyncConfig({
     SYNC_ENABLED: "true",
-    SYNC_SHIPMENT_ENABLED: "true",
-    SYNC_CUSTOMER_ENABLED: "true",
   });
 function registration(providerName, type, version = 1) {
   return {
@@ -108,7 +106,7 @@ test("provider/processor support and captured version must all agree", () => {
   assert.equal(registry.resolve("fixture-a", "SHIPMENT"), null);
 });
 
-test("global/type flags cannot create a production capability; API/worker share empty declarations", async () => {
+test("global switch cannot create a production capability; API/worker share empty declarations", async () => {
   const api = createSyncRuntimeCapabilities(),
     worker = createSyncRuntimeCapabilities();
   assert.notEqual(api, worker);
@@ -121,10 +119,7 @@ test("global/type flags cannot create a production capability; API/worker share 
   ]);
   const queue = new SyncRepository("unused-unit-url", cfg(), registry);
   assert.equal(queue.available("fixture-a", "SHIPMENT"), true);
-  for (const config of [
-    { ...cfg(), enabled: false },
-    { ...cfg(), types: [] },
-  ])
+  for (const config of [{ ...cfg(), enabled: false }])
     assert.equal(
       new SyncRepository("unused-unit-url", config, registry).available(
         "fixture-a",
@@ -312,20 +307,13 @@ test("actual API and worker composition factories share fail-closed capabilities
   const { AppModule } = require("../../dist/app.module");
   const { SyncWorkerModule } = require("../../dist/worker/sync-worker.module");
   const { SyncPort } = require("../../dist/sync/application/sync.port");
-  const keys = [
-    "DATABASE_URL",
-    "SYNC_ENABLED",
-    "SYNC_SHIPMENT_ENABLED",
-    "SYNC_CUSTOMER_ENABLED",
-  ];
+  const keys = ["DATABASE_URL", "SYNC_ENABLED"];
   const before = new Map(keys.map((key) => [key, process.env[key]]));
   const queues = [];
   try {
     Object.assign(process.env, {
       DATABASE_URL: "unused-unit-url",
       SYNC_ENABLED: "true",
-      SYNC_SHIPMENT_ENABLED: "true",
-      SYNC_CUSTOMER_ENABLED: "true",
     });
     const apiFactory = Reflect.getMetadata("providers", AppModule).find(
       (p) => p.provide === SyncPort,
@@ -466,7 +454,13 @@ test("Customer binding commits mapping only; Sync owns applied job provenance", 
 });
 
 test("admit resolves once and persists the strategy captured by that resolution", async () => {
-  for (const mode of ["available", "missing", "disabled", "type-disabled"]) {
+  for (const mode of [
+    "available",
+    "missing",
+    "disabled",
+    "unsupported-type",
+    "unsupported-provider",
+  ]) {
     let strategies = 0,
       resolutions = 0,
       inserts = 0;
@@ -484,11 +478,10 @@ test("admit resolves once and persists the strategy captured by that resolution"
     const config = {
       ...cfg(),
       enabled: mode !== "disabled",
-      types: mode === "type-disabled" ? [] : cfg().types,
     };
     const queue = new SyncRepository("unused-unit-url", config, registry);
     const connection = {
-      provider: "fixture-a",
+      provider: mode === "unsupported-provider" ? "fixture-b" : "fixture-a",
       external_account_id: "fixture-account",
       generation: 1,
       lifecycle_version: 1,
@@ -521,11 +514,16 @@ test("admit resolves once and persists the strategy captured by that resolution"
       assert.equal(inserts, 1);
     } else {
       await assert.rejects(
-        queue.admit("owner", "connection", "SHIPMENT", "MANUAL"),
+        queue.admit(
+          "owner",
+          "connection",
+          mode === "unsupported-type" ? "CUSTOMER" : "SHIPMENT",
+          "MANUAL",
+        ),
         (e) => e.code === "SYNC_UNAVAILABLE",
       );
       assert.equal(inserts, 0);
-      assert.equal(resolutions, mode === "missing" ? 1 : 0);
+      assert.equal(resolutions, mode === "disabled" ? 0 : 1);
     }
   }
 });

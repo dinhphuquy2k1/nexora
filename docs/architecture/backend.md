@@ -241,3 +241,24 @@ unchanged enabled values retain xmin and service-only changes do not invent stag
 history. Read projections use one additional page-scoped query in the existing
 actor transaction. Domain imports no Prisma/Nest/HTTP; service facts never derive
 from fees. No new worker, queue, adapter or production capability is introduced.
+
+## Provider default schedules — NEXORA-056
+
+carrier/domain/default-sync-policy.ts is a static, deeply frozen onboarding policy
+registry keyed by CarrierProvider and checked against readonly policy arrays using
+TypeScript satisfies. Policies use the code-only Shared SyncType. Own-property
+lookup returns a frozen empty array for unknown strings, including Object prototype
+keys. Registry entries describe onboarding intent, never runtime authorization.
+CarrierLifecycleAdapter.create passes connection.provider, persists
+one config per policy after sealed credentials and before success audit, all under
+its existing ACTIVE/generation transaction. Uniship's sole policy is enabled
+SHIPMENT/60minutes. Database-created TIMESTAMPTZ(3) metadata supplies createdAt;
+adding exact UTC milliseconds gives the first due time with no application clock,
+frontend timestamp, network or crypto under locks. Config failure or later success
+audit failure rolls the whole transaction back. Reconnect does not call this path.
+
+Sync runtime config has one feature switch SYNC_ENABLED plus unchanged technical
+tuning. SyncRepository availability/admission/fences/claim/schedule retain exact
+registered pair resolution without a second ENV-derived enabled-type list. Static
+production declarations and external HTTP hard gates remain closed. No application/
+domain Prisma dependency or Carrier/Sync circular import is introduced.

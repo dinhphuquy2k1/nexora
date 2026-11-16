@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { SyncErrorCode, SyncType, type SyncCode } from "./sync.constants";
+import { SyncErrorCode, type SyncCode } from "./sync.constants";
 export class SyncConfigurationError extends Error {
   constructor(message = "Invalid Sync configuration") {
     super(message);
@@ -15,7 +15,6 @@ export class SyncError extends Error {
 }
 export interface SyncConfig {
   readonly enabled: boolean;
-  readonly types: readonly SyncType[];
   readonly leaseSeconds: number;
   readonly pollMs: number;
   readonly maxAttempts: number;
@@ -39,9 +38,6 @@ export function loadSyncConfig(env: NodeJS.ProcessEnv): SyncConfig {
   };
   return {
     enabled: flag("SYNC_ENABLED"),
-    types: Object.values(SyncType).filter((t) =>
-      flag("SYNC_" + t + "_ENABLED"),
-    ),
     leaseSeconds: positive("SYNC_LEASE_SECONDS", 60, 300),
     pollMs: positive("SYNC_POLL_MS", 1000, 60000),
     maxAttempts: positive("SYNC_MAX_ATTEMPTS", 5, 20),

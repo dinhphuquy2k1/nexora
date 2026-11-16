@@ -92,7 +92,11 @@ test(
         "../../../packages/database/test/runtime-privilege-assertions.mjs"
       );
       const runtimePassword = (
-        await readFile("/runtime-config/postgres_app_password", "utf8")
+        await readFile(
+          process.env.API_TEST_RUNTIME_PASSWORD_FILE ??
+            "/runtime-config/postgres_app_password",
+          "utf8",
+        )
       ).trim();
       const applicationUrl = runtimeUrl(url.toString(), runtimePassword);
 

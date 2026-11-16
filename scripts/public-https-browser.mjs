@@ -1,3 +1,4 @@
+import { createPublicAuthRequestDiagnostics } from "./public-https-diagnostics.mjs";
 import {
   createLoginReadinessDiagnostics,
   loginReadinessObserver,
@@ -111,6 +112,30 @@ function totp(key) {
     "0",
   );
 }
+const authRequests = createPublicAuthRequestDiagnostics(origin);
+let browserProduct = "UNAVAILABLE";
+const proxyEnvPresent = Object.fromEntries(
+  [
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "no_proxy",
+  ].map((name) => [name, Boolean(process.env[name])]),
+);
+const printAuthTransport = () =>
+  console.error(
+    "PUBLIC_AUTH_TRANSPORT_DIAGNOSTIC",
+    JSON.stringify({
+      browserProduct,
+      proxyEnvPresent,
+      fixtureHostLoopbackRuleConfigured: true,
+      ...authRequests.snapshot(),
+    }),
+  );
 const profile = await mkdtemp(join(tmpdir(), "nexora-https-browser-"));
 let chrome, socket;
 let loginDiagnostics = createLoginReadinessDiagnostics();
@@ -348,6 +373,7 @@ try {
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
     loginDiagnostics.observe(message);
+    authRequests.observe(message);
     if (message.id) {
       const op = pending.get(message.id);
       if (op) {
@@ -436,6 +462,16 @@ try {
       "Native input must reach the focused field",
     );
   };
+  try {
+    const version = await send("Browser.getVersion");
+    browserProduct = /^(?:Chrome|Chromium|HeadlessChrome)\/[0-9.]{1,40}$/.test(
+      version.product,
+    )
+      ? version.product
+      : "OTHER";
+  } catch {
+    /* Diagnostic metadata never changes browser acceptance. */
+  }
   await send("Runtime.enable");
   await send("Network.enable");
   await send("Page.enable");
@@ -861,11 +897,13 @@ try {
     );
   }
   checks.status((await request("/api/health/ready")).status, 200);
+  printAuthTransport();
   console.log(
     "Strict CA/name HTTPS, isolated Chromium leaf pin, Secure MFA/session cookies, real remote setup/replay/privacy, Host/Origin/forwarding and ingress429 PASS",
   );
 } catch (error) {
   checks.failure(error);
+  printAuthTransport();
   console.error(
     "PUBLIC_AUTH_REQUEST_DIAGNOSTIC",
     JSON.stringify({

@@ -840,7 +840,7 @@ pnpm --filter @nexora/api test:integration includes shipment-integration.test.cj
 which creates/migrates/drops only its own database, exercises actual SyncRepository
 transactions/final fence and real authenticated Nest HTTP reads. Canonical Docker
 provides /runtime-config/postgres_app_password; host-owned development clusters may
-set SHIPMENT_TEST_RUNTIME_PASSWORD_FILE to a private synthetic password file.
+set API_TEST_RUNTIME_PASSWORD_FILE to a private synthetic password file.
 Never use that fixture against a user/production cluster or rotate shared credentials.
 
 node scripts/provision-cluster-smoke.mjs --suite=shipment-sql reuses the signed owned
@@ -1026,3 +1026,80 @@ existing UUID predicate contract through its compatible common facade. The Share
 implementation is browser-safe and has no API/framework dependency. Existing
 Retail tests/fixture build/CDP and real API/Sync PostgreSQL gates remain required;
 parser tests are not server transaction or runtime acceptance evidence.
+
+## Default Sync schedules and global control — NEXORA-056
+
+carrier-default-sync.test.cjs validates deeply immutable provider defaults, frozen
+empty fallback for unknown/empty/invalid and `constructor`/`toString`/`__proto__` keys,
+no CUSTOMER default and unique types. Carrier lifecycle's genuine migrated PostgreSQL/
+local mock HTTP suite verifies one default, exact SQL created_at+60minute equality,
+NULL history/no job, scoped GET availability, duplicate/reconnect independence and
+cascade. Separate config-insert and late success-audit triggers prove atomic
+rollback and the existing safe503 error envelope. No live Uniship request is used.
+
+Sync policy/capability unit tests require only global SYNC_ENABLED plus exact static
+registration. The real Sync PostgreSQL suite covers future/due/overdue schedules,
+global/registry rejection, concurrent single-lane admission, manual with a disabled
+schedule and older unsupported jobs excluded before claim. Existing source, lease,
+retry/fence/concurrency and Shipment capacity suites remain mandatory.
+
+For supported host-driven integration tooling, API_TEST_RUNTIME_PASSWORD_FILE may
+point to a task-owned0600 synthetic runtime password file for Carrier lifecycle,
+Carrier foundation, Customer, MFA and Shipment integration tests and the Shipment
+worker test launcher; otherwise the canonical Docker
+/runtime-config/postgres_app_password mount is unchanged. These are test-only
+fixture paths, never new runtime flags or production credentials. Use only an
+isolated owned PostgreSQL cluster; canonical Docker quality and final-head hosted
+runtime/HTTPS/persistence/development evidence remain required.
+
+### Sync SQL readability regression — NEXORA-056
+
+The existing migrated PostgreSQL Sync suite explicitly checks due/future QUEUED
+and WAITING jobs, live/expired RUNNING leases, two concurrent worker claims and
+SKIP LOCKED selection while another transaction holds the oldest row. Fixtures
+use actual repository transactions and row-lock barriers, not mocked SQL. Existing
+retry exhaustion, authorization/capability rejection, scheduler keyset/bounded
+failures, active-lane uniqueness and completion-based timing remain mandatory.
+Whitespace-only SQL refactors retain predicates, parameter order, clock_timestamp
+calls and partial-index conflict inference; they do not authorize new capabilities.
+
+### Public HTTPS login request lifecycle diagnostics
+
+The disposable HTTPS browser harness records at most four same-origin
+/api/auth/login requests using existing CDP events: dispatch, response headers/
+status, protocol, loopback/fixture-port match, validated API request ID, loading
+failure/cancellation/block reason and finish. Network errors and block reasons
+use closed allowlists; unknown strings become OTHER. Opaque CDP IDs, raw URLs
+with query/fragment, request/response bodies, cookies and arbitrary headers are
+never emitted or retained in diagnostic summaries. Browser product and proxy-environment presence (not values) help
+compare execution environments. Summaries appear on success and failure; they do
+not retry authentication, alter deadlines, or replace any acceptance assertion.
+
+`originHeaderMatches` reports only the Origin available in the observed CDP event:
+`true` means an observed string matched the expected origin exactly; `false` means
+an observed string mismatched; `null` means no usable string Origin was available.
+Header names are case-insensitive, but observed values are never normalized or
+emitted. `null` is not evidence that the browser omitted the actual HTTP Origin
+header. This observation does not replace API Origin enforcement or establish the
+cause of historical intermittent HTTPS/MFA failures. Resume causal investigation
+only on a genuine recurrence captured by bounded diagnostics, or a separately
+planned targeted reproducer with a concrete hypothesis and observable discriminant.
+
+The existing private Public HTTPS Compose overlay mounts a temporary copy of the
+Nginx template with conditional POST-login-only fixed-field access metadata
+(status/upstream status, timing, protocol/TLS and generated ingress request ID).
+Production template/access logging is unchanged. Existing API request IDs can be
+matched to safe browser response IDs; ingress timing/status distinguishes arrival
+and upstream forwarding when those observations exist. Container health, absence
+of an access log, a UI network-error label or a previous green HEAD alone does not
+establish the failing layer or a transient root cause. Capture actual per-request
+lifecycle evidence before selecting a functional fix. No raw auth/network dump or
+general TLS/proxy bypass is introduced; strict CA/name and disposable leaf-SPKI
+assertions and the original login/MFA/Origin/cookie checks remain mandatory.
+
+If hydration fails before LOGIN dispatch, the same disposable diagnostic also
+retains up to four failed same-origin Next static-script transport summaries
+(from at most sixteen privately tracked requests). These contain only elapsed
+time and fixed network/CORS/block categories, never script URLs or payloads.
+An earlier HTTP login redirect probe is not evidence of browser HTTPS login
+arrival; distinguish its HTTP/308 ingress row from the browser request lifecycle.
