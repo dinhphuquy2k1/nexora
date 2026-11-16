@@ -101,7 +101,7 @@ async function verifyChildContext({ t, db, url, timing }) {
   };
   const repo = new SyncRepository(
     url,
-    loadSyncConfig({ SYNC_ENABLED: "true", SYNC_SHIPMENT_ENABLED: "true" }),
+    loadSyncConfig({ SYNC_ENABLED: "true" }),
     new SyncCapabilityRegistry([
       {
         providerName: "uniship",

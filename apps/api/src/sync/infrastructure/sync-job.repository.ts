@@ -64,7 +64,7 @@ export class SyncRepository implements SyncQueue {
     provider: string,
     type: SyncType,
   ): BoundSyncCapability | null {
-    if (!this.config.enabled || !this.config.types.includes(type)) return null;
+    if (!this.config.enabled) return null;
     return this.capabilities.resolve(provider, type);
   }
   private async connection(
@@ -292,7 +292,7 @@ export class SyncRepository implements SyncQueue {
     });
   }
   async claim(workerId: string) {
-    if (!this.config.enabled || !this.config.types.length) return null;
+    if (!this.config.enabled) return null;
     const selected = await this.client.$transaction(async (tx) => {
       const pairs = await tx.$queryRaw<
         { provider: string; sync_type: SyncType }[]
@@ -303,7 +303,7 @@ export class SyncRepository implements SyncQueue {
       if (!eligible.length) return null;
       const rows = await tx.$queryRaw<
         SyncJob[]
-      >`SELECT j.* FROM sync_jobs j WHERE sync_type=ANY(${[...this.config.types]}::text[]) AND (provider||':'||sync_type)=ANY(${eligible}::text[]) AND ((status=ANY(${[J.QUEUED, J.WAITING]}::text[]) AND available_at<=clock_timestamp()) OR (status=${J.RUNNING} AND lease_expires_at<=clock_timestamp())) ORDER BY available_at,id FOR UPDATE SKIP LOCKED LIMIT 1`;
+      >`SELECT j.* FROM sync_jobs j WHERE (provider||':'||sync_type)=ANY(${eligible}::text[]) AND ((status=ANY(${[J.QUEUED, J.WAITING]}::text[]) AND available_at<=clock_timestamp()) OR (status=${J.RUNNING} AND lease_expires_at<=clock_timestamp())) ORDER BY available_at,id FOR UPDATE SKIP LOCKED LIMIT 1`;
       const job = rows[0];
       if (!job || !this.available(job.provider, job.sync_type)) return null;
       const reclaimed = job.status === J.RUNNING;
@@ -644,7 +644,7 @@ export class SyncRepository implements SyncQueue {
     }
   }
   async schedule() {
-    if (!this.config.enabled || !this.config.types.length) return;
+    if (!this.config.enabled) return;
     const pairs = await this.client.$queryRaw<
       { provider: string; sync_type: SyncType }[]
     >`SELECT DISTINCT c.provider,s.sync_type FROM sync_configs s JOIN carrier_connections c ON c.id=s.carrier_connection_id WHERE s.enabled`;

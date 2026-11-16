@@ -1026,3 +1026,27 @@ existing UUID predicate contract through its compatible common facade. The Share
 implementation is browser-safe and has no API/framework dependency. Existing
 Retail tests/fixture build/CDP and real API/Sync PostgreSQL gates remain required;
 parser tests are not server transaction or runtime acceptance evidence.
+
+## Default Sync schedules and global control — NEXORA-056
+
+carrier-default-sync.test.cjs validates immutable provider defaults, no unknown/
+CUSTOMER default and unique types. Carrier lifecycle's genuine migrated PostgreSQL/
+local mock HTTP suite verifies one default, exact SQL created_at+60minute equality,
+NULL history/no job, scoped GET availability, duplicate/reconnect independence and
+cascade. Separate config-insert and late success-audit triggers prove atomic
+rollback and the existing safe503 error envelope. No live Uniship request is used.
+
+Sync policy/capability unit tests require only global SYNC_ENABLED plus exact static
+registration. The real Sync PostgreSQL suite covers future/due/overdue schedules,
+global/registry rejection, concurrent single-lane admission, manual with a disabled
+schedule and older unsupported jobs excluded before claim. Existing source, lease,
+retry/fence/concurrency and Shipment capacity suites remain mandatory.
+
+For supported host-driven integration tooling, API_TEST_RUNTIME_PASSWORD_FILE may
+point to a task-owned0600 synthetic runtime password file for Carrier lifecycle,
+Carrier foundation, Customer and MFA integration tests; otherwise their canonical
+Docker /runtime-config/postgres_app_password mount is unchanged. Shipment retains
+its existing SHIPMENT_TEST_RUNTIME_PASSWORD_FILE override. These are test-only
+fixture paths, never new runtime flags or production credentials. Use only an
+isolated owned PostgreSQL cluster; canonical Docker quality and final-head hosted
+runtime/HTTPS/persistence/development evidence remain required.

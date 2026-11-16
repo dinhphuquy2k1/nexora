@@ -105,7 +105,6 @@ test(
       });
       const cfg = loadSyncConfig({
         SYNC_ENABLED: "true",
-        SYNC_SHIPMENT_ENABLED: "true",
       });
       const provider = {
         strategy: () => "FULL",

@@ -16,6 +16,7 @@ import {
   ConnectionStatus,
   SecretType,
 } from "../domain/carrier";
+import { getDefaultSyncPolicies } from "../domain/default-sync-policy";
 import { LifecycleCode, LifecycleFailure } from "../domain/lifecycle";
 import {
   CarrierAuditType,
@@ -194,6 +195,21 @@ export class CarrierLifecycleAdapter
           select: metadata,
         });
         await this.secrets(tx, id, candidate);
+        for (const policy of getDefaultSyncPolicies(connection.provider)) {
+          await tx.syncConfig.create({
+            data: {
+              carrier_connection_id: connection.id,
+              sync_type: policy.syncType,
+              enabled: policy.enabled,
+              interval_minutes: policy.intervalMinutes,
+              // DB-created TIMESTAMPTZ(3) and JS Date both retain exact milliseconds.
+              next_run_at: new Date(
+                connection.createdAt.getTime() +
+                  policy.intervalMinutes * 60_000,
+              ),
+            },
+          });
+        }
         await PostgresSecurityAudit.insert(tx, {
           eventType: CarrierAuditType.CONNECT,
           outcome: CarrierAuditOutcome.SUCCESS,

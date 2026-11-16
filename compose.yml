@@ -97,8 +97,6 @@ services:
     environment:
       NODE_ENV: production
       SYNC_ENABLED: "${SYNC_ENABLED:-false}"
-      SYNC_SHIPMENT_ENABLED: "${SYNC_SHIPMENT_ENABLED:-false}"
-      SYNC_CUSTOMER_ENABLED: "${SYNC_CUSTOMER_ENABLED:-false}"
       SYNC_RESOLVED_RETENTION_DAYS: "${SYNC_RESOLVED_RETENTION_DAYS:-}"
     volumes:
       - sync_credentials:/sync-config:ro
@@ -124,8 +122,6 @@ services:
     environment:
       NODE_ENV: production
       SYNC_ENABLED: "${SYNC_ENABLED:-false}"
-      SYNC_SHIPMENT_ENABLED: "${SYNC_SHIPMENT_ENABLED:-false}"
-      SYNC_CUSTOMER_ENABLED: "${SYNC_CUSTOMER_ENABLED:-false}"
       STORAGE_ROOT: /data/uploads
       API_DOCS_ENABLED: "false"
       WEB_PORT: "${WEB_PORT:-127.0.0.1:3001}"

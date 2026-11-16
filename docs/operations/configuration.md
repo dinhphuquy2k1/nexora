@@ -91,9 +91,11 @@ Nginx normalizes operator FQDN/origin case and removes explicit default443 befor
 
 ## Sync V1 flags and custody — NEXORA-034
 
-SYNC_ENABLED, SYNC_SHIPMENT_ENABLED and SYNC_CUSTOMER_ENABLED default false and
-accept exactly true/false. Flags never substitute for provider authorization or a
-supported domain handler. SYNC_LEASE_SECONDS(default60,max300), SYNC_POLL_MS
+SYNC_ENABLED is the sole Sync feature switch, defaults false and accepts exactly
+true/false. Availability requires this global switch and a compatible registered
+provider/type capability, shared by API and worker. Per-type environment feature
+switches are retired; no list of enabled types is built from ENV. A stored enabled
+schedule is not provider authorization or executable capability registration. SYNC_LEASE_SECONDS(default60,max300), SYNC_POLL_MS
 (default1000,max60000), SYNC_MAX_ATTEMPTS(default5,max20) are positive bounded
 integers. Optional SYNC_RESOLVED_RETENTION_DAYS has no default and accepts1..36500;
 without an approved configured retention duration no payload cleanup runs.
@@ -106,3 +108,20 @@ db-runtime and sync-worker mount it; worker constructs nexora_sync DATABASE_URL
 in memory and has no administrator fallback. API retains its independent runtime
 file and no worker password. Worker currently needs no Carrier or Identity key
 because no authorized production fetch/domain handler is bound.
+
+## Carrier onboarding schedules — NEXORA-056
+
+A newly created Uniship connection receives one enabled SHIPMENT schedule at60
+minutes, first due exactly its database created_at+60minutes. Connection, encrypted
+secrets, schedule and success audit commit together. No job is created on connect;
+no legacy backfill occurs. Reconnect preserves schedules and watermark history.
+Unknown providers receive no Uniship default. GET sync-configs returns persisted
+intent independently of runtime available; the production registry stays empty.
+
+AUTO scheduling requires enabled/due configuration, ACTIVE/CONNECTED ownership,
+global Sync enabled and exact capability, with no active lane. Missed intervals
+coalesce into one job and existing completion-based scheduling remains. MANUAL
+admission does not require enabled/due schedule. Existing PATCH intervals
+15/30/60/120/240 remain unchanged; default60 is not a new global minimum. Future
+provider-specific activation limits require their own reviewed verification.
+Technical tuning and all credential mounts/privileges above remain unchanged.

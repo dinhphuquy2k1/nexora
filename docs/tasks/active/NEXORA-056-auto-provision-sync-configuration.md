@@ -1,8 +1,8 @@
 # NEXORA-056 — Auto Provision Sync Configuration & Simplify Sync Runtime Flags
 
-Status: PLANNED
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -174,18 +174,18 @@ and failures in task/PR. No unexecuted assertion is PASS.
 
 ## 11. Acceptance
 
-- [ ] Exactly one enabled SHIPMENT/60 config on new Uniship connection, first due
+- [x] Exactly one enabled SHIPMENT/60 config on new Uniship connection, first due
       DB created_at+60minutes, all history NULL; no job and no request fields added.
-- [ ] Resolver uses actual provider, unknown provider empty, immutable/unique defaults.
-- [ ] Config/secrets/connection/success audit atomic, real rollback tests PASS.
-- [ ] Duplicate/owner/generation/audit boundaries preserved; reconnect unchanged;
+- [x] Resolver uses actual provider, unknown provider empty, immutable/unique defaults.
+- [x] Config/secrets/connection/success audit atomic, real rollback tests PASS.
+- [x] Duplicate/owner/generation/audit boundaries preserved; reconnect unchanged;
       hard-delete cascade and independent schedules verified.
-- [ ] Type flags/types removed from current source/config/tests; technical tuning
+- [x] Type flags/types removed from current source/config/tests; technical tuning
       unchanged; global false and exact-pair capability fail closed in both processes.
-- [ ] Due scheduling/no catch-up duplication and unsupported claim verified; manual
+- [x] Due scheduling/no catch-up duplication and unsupported claim verified; manual
       remains independent of schedule; original fences/leases/capacity preserved.
-- [ ] No migration/backfill/grant/contract/frontend/live-gate/production-registry drift.
-- [ ] Documentation, meaningful regressions, full quality and exact-head CI evidence.
+- [x] No migration/backfill/grant/contract/frontend/live-gate/production-registry drift.
+- [ ] Documentation, meaningful regressions and full quality passed locally; exact-head CI/owner review remain pending in PR metadata.
 
 ## 12. Plan issues and governance
 
@@ -200,3 +200,82 @@ immutable. Owner approval is not a pre-code gate; no live activation is authoriz
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | baseline-and-reconnaissance | GitHub PR54 merged=true, merge58223828a733f706d4ef058fac64b193556bde70 on2026-11-15; origin/main confirmed; clean new worktree and scoped inspection recorded before code/tests | 2026-11-16 | PASS   |
 | frozen-install              | npx --yes pnpm@10.34.6 install --frozen-lockfile; exit0, unchanged dependency graph                                                                                             | 2026-11-16 | PASS   |
+
+### Test-environment delta before PostgreSQL regressions
+
+The host has no sudo and /runtime-config is absent; the canonical Carrier/MFA/
+Customer integration suites hardcode that Docker mount. Reuse Shipment's existing
+env-file fallback pattern for these test-only password reads via
+API_TEST_RUNTIME_PASSWORD_FILE, preserving the canonical /runtime-config default
+and every assertion. This enables genuine host-driven isolated Docker PostgreSQL
+verification without privileged host writes or a new launcher framework. No
+production credential/configuration policy or frozen design decision changes.
+
+### PostgreSQL fixture reassessment
+
+After three setup/fixture checkpoints, paused further test edits and inspected the
+actual schema and failure traces. Carrier provider CHECK permits only uniship,
+while persisted Sync jobs can retain unsupported providers after detachment.
+Keep the Carrier constraint intact: use a valid Uniship/CUSTOMER due configuration
+for unsupported-type scheduling and a detached historical unsupported-provider job
+for claim eligibility. Unit coverage separately verifies unknown provider policy/
+registry rejection. This replaces an impossible fixture, not an execution assertion
+or migration. Initial fixture errors (overlong username, omitted status) and an
+accidentally removed same-line loadSyncConfig argument are retained as failed
+verification history; none is represented as behavioral RED or a production defect.
+
+## Verification checkpoint — 2026-11-16
+
+Host Node24.22.1/pnpm10.34.6; actual starting implementation HEAD cc5b071 plus
+working delta, main baseline58223828. Main execution window UTC06:29–07:02.
+Final committed HEAD, PR binding, CI checkout SHA/attempt/run URLs go in PR metadata
+without an evidence-only SHA loop. No full local Docker build PASS is claimed.
+
+| Claim                      | Evidence                                                                                                                                                                                                                                                                                                                                                                                        | Date       | Result |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| plan-docs-initial          | Initial docs:check rejected missing exact Documentation verification subsection; corrected the task heading before plan commitcc5b071. Snapshot bytes/digest subsequently unchanged                                                                                                                                                                                                             | 2026-11-16 | FAIL   |
+| pre-code-plan              | cc5b071 committed significant plan/snapshot after read-only inspection, reuse/DDD/security/compatibility review and docs/preflight PASS; snapshot SHAfe0f4f6089d34805ba893cebca1d4bfae152e660c322bd41ef018e41ecd07908                                                                                                                                                                           | 2026-11-16 | PASS   |
+| unit-RED                   | node --test apps/api/test/carrier-default-sync.test.cjs apps/api/test/sync/policy.test.cjs apps/api/test/sync/capability.test.cjs;21 tests15 PASS/6 FAIL before implementation:3 missing new-policy module, runtime types still present, global-only availability/admission denied                                                                                                              | 2026-11-16 | FAIL   |
+| carrier-RED                | Genuine PostgreSQL Carrier test before implementation: config-insert trigger still returned201 instead of established safe503 because no config was inserted. First companion scenario was blocked by overlong fixture username; initial500 expectation corrected to existing503 SERVICE_UNAVAILABLE before implementation. Not all initial failures are behavioral RED                         | 2026-11-16 | FAIL   |
+| initial-PG-fixtures        | Initial Sync regression failed missing required connection status, not the intended runtime behavior. First combined targeted run101 tests88 PASS/13 FAIL: overlong username/missing status plus inadvertently deleted same-line loadSyncConfig constructor argument during flag cleanup. Restored global-only argument; no assertion removed or grants changed                                 | 2026-11-16 | FAIL   |
+| fixture-reassessment       | Second combined run101 tests99 PASS/2 FAIL: impossible unsupported Carrier provider violated existing CHECK. Paused/reviewed schema; replaced with valid unsupported-type config and detached historical provider job. Following Sync run56 PASS/2 FAIL used nonexistent fixture queue.cancel; replaced only fixture terminal cleanup with existing scoped SQL pattern, not a production method | 2026-11-16 | FAIL   |
+| unit-GREEN                 | Same targeted unit command21/21 PASS; broader node --test apps/api/test/carrier-default-sync.test.cjs apps/api/test/sync/\*.test.cjs30/30 PASS, including actual compiled worker startup/cycle diagnostics and API/worker capability factories                                                                                                                                                  | 2026-11-16 | PASS   |
+| Carrier-and-Shipment-GREEN | Genuine isolated Docker PostgreSQL17.11 targeted suites: Carrier22/22 and Shipment21/21 PASS, exact SQL created_at+60minute equality, persisted GET/foreign404, no job, config/late-audit rollback, duplicate/reconnect/cascade and original worker/owner/fence/capacity assertions                                                                                                             | 2026-11-16 | PASS   |
+| Sync-GREEN                 | node --test --test-reporter=tap integration/sync-integration.test.cjs from apps/api;58/58 PASS, including global-only due/future/disabled/unavailable/concurrent scheduling and older unsupported job exclusion/manual disabled-schedule admission; original sources/retries/fences/cancellation retained                                                                                       | 2026-11-16 | PASS   |
+| full-integration-initial   | First npx --yes pnpm@10.34.6 test:integration on private cluster:163 tests159 PASS/4 FAIL because launcher omitted root DB migrations and STORAGE_ROOT for original suites. Fixed private launcher prerequisites, not application assertions/schema                                                                                                                                             | 2026-11-16 | FAIL   |
+| full-integration-GREEN     | Private root DB authentic migrate:deploy plus owned storage/runtime-secret fixture, then npx --yes pnpm@10.34.6 test:integration from apps/api;163/163 PASS across all10 discovered integration files,0 skipped. All provider transports local mocks; no live Uniship                                                                                                                           | 2026-11-16 | PASS   |
+| quality-initial            | First production-env pinned quality stopped at lint: unused loadSyncConfig exposed the accidentally removed same-line fixture argument; argument restored as SYNC_ENABLED-only. No production behavior/assertion workaround                                                                                                                                                                     | 2026-11-16 | FAIL   |
+| full-quality-GREEN         | API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality;exit0. format/lint/boundaries/preflight/docs/typecheck/test/contracts/build PASS;792 tests:tooling142/API243/Web364/UI37/database6                                                                                                                                                                          | 2026-11-16 | PASS   |
+| explicit-checks            | Pinned test:lint56/56, test:docs10/10, test:preflight24/24 PASS; final lint/docs:check/preflight:check PASS; API unit discovery39 suites includes new ordinary default-policy suite without filename-list edits                                                                                                                                                                                 | 2026-11-16 | PASS   |
+| capacity                   | Full integration100 shipments x50charges/500items/4milestones/4services; first2273.977/2209.126ms, changed3074.705/2864.943ms, identical5.695/8.301ms;800/800/0 writes. Docker PG17.11 Debian x64,3 visible AMD EPYC9V74 CPUs;7500ms bound/15000ms transaction/LIMIT100 unchanged                                                                                                               | 2026-11-16 | PASS   |
+| runtime-configuration      | docker compose -f compose.yml -f compose.dev.yml config --quiet exit0. Current source/Compose/env/tests/canonical operations/architecture contain no retired type-variable names or config.types dependency; historical completed tasks/frozen snapshots remain unchanged                                                                                                                       | 2026-11-16 | PASS   |
+| scope-and-hard-gates       | git diff --name-only versus58223828 empty for packages/database, SDK/OpenAPI, Web, sync-runtime-capabilities.ts and uniship-http.client.ts. No schema/backfill/grant/front-end/production registration/network-gate change; policy call uses actual connection.provider                                                                                                                         | 2026-11-16 | PASS   |
+
+### Local Docker availability and retained limitations
+
+Docker29.9.2/rootless VFS is available and genuine owned PostgreSQL17.11 executed
+above. Full local sh scripts/quality-docker.sh and local runtime/HTTPS/HMR smokes:
+NOT RUN in this task. Available overlay was769–777MB out of7.9GB after builds;
+the prior055 canonical build had already demonstrated VFS ENOSPC with more free
+space. No repeated disk-filling build, storage-driver change or broad cleanup was
+attempted. Docker Compose syntax/PG success is not canonical runtime acceptance;
+exact-final-head hosted Foundation must execute those gates. Images/screenshots
+were not captured or manually reviewed locally. No old-head CI is proof for056.
+
+### Final code-review checkpoint
+
+Read-only implementation-code-review against the recorded plan and full diff:
+no confirmed P1/P2 or new duplicate policy, circular import, application/domain
+Prisma, network-in-transaction, API/schema/grant drift or unlocked post-commit
+provisioning. Current Carrier still permits only Uniship; resolver fallback is
+unit-tested without inventing another production provider. Claim retains registry
+eligible-pair filtering before SKIP LOCKED and fence/processor checks; no new manual
+schedule requirement. Defaults are persisted intent, never runtime authorization.
+Existing technical tuning, generic PATCH intervals and all hard gates are preserved.
+
+This is self-review, not independent approval. An independent reviewer was not
+invoked in this session; owner review remains an explicit readiness limitation.
+No additional architectural scope was implemented. Test-only password-file fallback
+is documented; canonical Docker default reads and assertions are unchanged. All
+setup/fixture failures above remain history, not hidden by rerunning CI. New exact-
+head hosted results and final recommendation remain pending until actual execution.

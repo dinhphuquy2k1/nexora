@@ -179,7 +179,11 @@ test(
         "../../../packages/database/test/runtime-privilege-assertions.mjs"
       );
       const runtimePassword = (
-        await readFile("/runtime-config/postgres_app_password", "utf8")
+        await readFile(
+          process.env.API_TEST_RUNTIME_PASSWORD_FILE ??
+            "/runtime-config/postgres_app_password",
+          "utf8",
+        )
       ).trim();
       await provisionRuntime(url.toString(), runtimePassword);
       await assertRuntimePrivileges(url.toString(), runtimePassword);
@@ -258,6 +262,215 @@ test(
       });
       const connect = (user, id, s = makeService()) =>
         s.connect(user.id, input(id));
+      await t.test(
+        "new connections atomically provision provider defaults; exact DB clock, GET, reconnect and cascade",
+        async () => {
+          const owner = await db.user.create({
+            data: {
+              username: "defaults-" + randomUUID(),
+              role: "OPERATOR",
+              credential: { create: { passwordHash: hash } },
+            },
+          });
+          const secondOwner = await db.user.create({
+            data: {
+              username: "def2-" + randomUUID(),
+              role: "OPERATOR",
+            },
+          });
+          const first = await connect(owner, "560701");
+          const schedules = () =>
+            db.syncConfig.findMany({
+              where: { carrier_connection_id: first.id },
+            });
+          const [schedule] = await schedules();
+          assert.equal(
+            (await schedules()).length,
+            1,
+            "connect must persist one default schedule",
+          );
+          assert.equal(schedule.sync_type, "SHIPMENT");
+          assert.equal(schedule.enabled, true);
+          assert.equal(schedule.interval_minutes, 60);
+          assert.equal(
+            schedule.next_run_at.getTime(),
+            first.createdAt.getTime() + 60 * 60000,
+          );
+          assert.equal(schedule.last_success_at, null);
+          assert.equal(schedule.last_completed_at, null);
+          assert.equal(schedule.last_completed_watermark, null);
+          const [precision] =
+            await db.$queryRaw`SELECT s.next_run_at=c.created_at+interval '60 minutes' AS exact FROM sync_configs s JOIN carrier_connections c ON c.id=s.carrier_connection_id WHERE c.id=${first.id}::uuid`;
+          assert.equal(precision.exact, true);
+          assert.equal(
+            await db.syncJob.count({
+              where: { carrier_connection_id: first.id },
+            }),
+            0,
+          );
+          const session = await loginWithMfa(
+            identity,
+            owner.username,
+            "SyntheticLocalPassword!",
+          );
+          const result = await fetch(
+            base + `/api/carrier-connections/${first.id}/sync-configs`,
+            { headers: { cookie: `nexora_session=${session.token}` } },
+          );
+          assert.equal(result.status, 200);
+          const foreign = await fetch(
+            base + `/api/carrier-connections/${first.id}/sync-configs`,
+            { headers: { cookie: `nexora_session=${sessions[0]}` } },
+          );
+          assert.equal(
+            foreign.status,
+            404,
+            "another actor cannot read the provisioned schedule",
+          );
+          const body = await result.json();
+          const configs = body.configs;
+          const visible = configs.find((s) => s.syncType === "SHIPMENT");
+          assert.equal(visible.enabled, true);
+          assert.equal(visible.intervalMinutes, 60);
+          assert.equal(
+            visible.available,
+            false,
+            "saved schedule is not a production capability",
+          );
+          assert.equal(
+            new Date(visible.nextRunAt).getTime(),
+            schedule.next_run_at.getTime(),
+          );
+          const second = await connect(secondOwner, "560702");
+          assert.equal(
+            await db.syncConfig.count({
+              where: { carrier_connection_id: second.id },
+            }),
+            1,
+          );
+          const secondBefore = await db.syncConfig.findMany({
+            where: { carrier_connection_id: second.id },
+          });
+          await db.syncConfig.update({
+            where: { id: schedule.id },
+            data: {
+              enabled: false,
+              interval_minutes: 120,
+              next_run_at: new Date("2026-11-15T00:00:00Z"),
+              last_success_at: new Date("2026-11-14T00:00:00Z"),
+              last_completed_at: new Date("2026-11-14T00:00:00Z"),
+              last_completed_watermark: "retained-watermark",
+            },
+          });
+          const before = await schedules();
+          await makeService().reconnect(
+            owner.id,
+            first.id,
+            "synthetic-password",
+          );
+          assert.deepEqual(
+            await schedules(),
+            before,
+            "reconnect must preserve every schedule field",
+          );
+          await assert.rejects(connect(secondOwner, "560701"), {
+            code: "DUPLICATE",
+          });
+          assert.deepEqual(await schedules(), before);
+          assert.deepEqual(
+            await db.syncConfig.findMany({
+              where: { carrier_connection_id: second.id },
+            }),
+            secondBefore,
+          );
+          const {
+            CarrierPort,
+          } = require("../dist/carrier/application/carrier.port");
+          await app.get(CarrierPort).remove(owner.id, first.id);
+          assert.equal(
+            (await schedules()).length,
+            0,
+            "FK cascade removes only the deleted connection's config",
+          );
+          assert.deepEqual(
+            await db.syncConfig.findMany({
+              where: { carrier_connection_id: second.id },
+            }),
+            secondBefore,
+          );
+        },
+      );
+      for (const failure of ["config", "success-audit"])
+        await t.test(
+          `default provisioning rolls back connection/secrets/config/success audit on ${failure} failure`,
+          async () => {
+            const owner = await db.user.create({
+              data: {
+                username: "rollback-" + randomUUID(),
+                role: "OPERATOR",
+                credential: { create: { passwordHash: hash } },
+              },
+            });
+            const session = await loginWithMfa(
+              identity,
+              owner.username,
+              "SyntheticLocalPassword!",
+            );
+            const counts = async () => [
+              await db.carrierConnection.count(),
+              await db.carrierConnectionSecret.count(),
+              await db.syncConfig.count(),
+              await db.securityAuditEvent.count({
+                where: { eventType: "CONNECT", outcome: "SUCCESS" },
+              }),
+            ];
+            const before = await counts();
+            const table =
+              failure === "config" ? "sync_configs" : "security_audit_events";
+            const guard =
+              failure === "success-audit"
+                ? "IF NEW.event_type <> 'CONNECT' OR NEW.outcome <> 'SUCCESS' THEN RETURN NEW; END IF;"
+                : "";
+            await db.$executeRawUnsafe(
+              `CREATE FUNCTION nexora056_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN ${guard} RAISE EXCEPTION 'synthetic provisioning rollback'; END $$`,
+            );
+            await db.$executeRawUnsafe(
+              `CREATE TRIGGER nexora056_failure BEFORE INSERT ON ${table} FOR EACH ROW EXECUTE FUNCTION nexora056_failure()`,
+            );
+            try {
+              const response = await fetch(base + "/api/carrier-connections", {
+                method: "POST",
+                headers: {
+                  origin: allowedOrigin,
+                  "content-type": "application/json",
+                  cookie: `nexora_session=${session.token}`,
+                },
+                body: JSON.stringify(
+                  input(failure === "config" ? "560704" : "560705"),
+                ),
+              });
+              assert.equal(
+                response.status,
+                503,
+                "failed provisioning must not return success",
+              );
+              const body = await response.json();
+              assert.equal(body.code, "SERVICE_UNAVAILABLE");
+              assert.equal(
+                JSON.stringify(body).includes(
+                  "synthetic provisioning rollback",
+                ),
+                false,
+              );
+              assert.deepEqual(await counts(), before);
+            } finally {
+              await db.$executeRawUnsafe(
+                `DROP TRIGGER nexora056_failure ON ${table}`,
+              );
+              await db.$executeRawUnsafe("DROP FUNCTION nexora056_failure()");
+            }
+          },
+        );
       let connected;
       stage = "HTTP_CONTRACT";
       await t.test(
@@ -296,6 +509,13 @@ test(
           assert.equal(response.status, 201);
           assert.equal(response.headers.get("cache-control"), "no-store");
           connected = (await response.json()).connection;
+          assert.equal(
+            await db.syncConfig.count({
+              where: { carrier_connection_id: connected.id },
+            }),
+            1,
+            "HTTP connect commits its default config",
+          );
           assert.deepEqual(
             Object.keys(connected).sort(),
             [
