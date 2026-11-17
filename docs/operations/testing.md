@@ -1132,3 +1132,25 @@ allows restricted nexora_sync provisioning under the existing fixture pattern.
 Native PostgreSQL and hosted Docker outcomes are recorded separately. No assertion
 or acceptance gate is skipped; an unavailable local Docker run is NOT RUN.
 Fixture/mock PASS never verifies live Uniship semantics or production activation.
+
+Sync Targeted also runs the existing Sync suites and two separately named Uniship
+steps sequentially after its shared API build:
+`node --test apps/api/test/uniship/normalizer.test.cjs apps/api/test/uniship/provider.test.cjs`
+and, from apps/api,
+`node --test integration/uniship-shipment-integration.test.cjs`.
+Its narrow pull-request filters include Uniship source/tests/helper/captured fixtures,
+Shipment Sync processor/session/binding/domain and shared Shipment vocabulary; unrelated
+UI-only changes do not trigger this workflow. Existing Sync commands remain unchanged.
+
+The targeted Uniship integration step uses only its disposable PostgreSQL17.11 service.
+A runner-owned mktemp directory below RUNNER_TEMP holds an exclusively created mode0600
+API_TEST_RUNTIME_PASSWORD_FILE containing32 cryptographically random bytes encoded as
+64 lowercase hexadecimal characters. The value is never printed or uploaded. EXIT
+cleanup removes the file/directory on success or failure; handled termination signals
+also exit through cleanup. A run/attempt-scoped database marker and matching
+DISPOSABLE_CLUSTER_ADMIN_URL/TOKEN reuse the existing owned-cluster protocol, enabling
+actual restricted nexora_sync checks alongside nexora_app Carrier vault provisioning.
+The suite creates, migrates and drops its own UUID-named database; workflow service
+teardown removes remaining test-only cluster roles. No production/shared cluster,
+Compose credential or repository secret is used. The existing15-minute job timeout,
+pinned build, permissions and public-toolchain artifact retention are unchanged.

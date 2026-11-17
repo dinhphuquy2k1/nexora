@@ -426,3 +426,91 @@ material architecture/contract revision; frozen v1 snapshot/digest stays unchang
 | Rationale                | Run the selected engine compatibility gate on the final extension source without unrelated production edits                                      |
 | Risks                    | Unexpected extra CI or hidden job changes; inspect YAML diff and final-head run/jobs; superseded run cancellation, if used, is recorded honestly |
 | Verification             | Diff limited to path list; pinned format/docs/preflight, independent read-only recheck and all three exact-head hosted gates                     |
+
+## BOUNDED P3 follow-up plan — 2026-11-17
+
+Reviewed source/PR56 HEAD: f13aea8c00a100f6a5feb80a7750e03deddd4dd4; branch
+feat/uniship-http-adapter, clean worktree, PR open/unmerged. This localized CI
+verification correction retains SIGNIFICANT task classification, frozen v1 snapshot
+and SHA-256 d29e0d0f818c6b4a954d39e90a1b0eb84d896499d9b4804fcf86c262416e7032.
+Documentation Impact remains REQUIRED; no application/domain/API/schema/auth changes.
+
+Baseline P3: sync-targeted.yml has implementation triggers but misses Uniship unit,
+helper, captured-fixture and integration paths. Existing commands are exactly
+`node --test "apps/api/test/sync/**/*.test.cjs"` and, in apps/api,
+`node --test integration/sync-integration.test.cjs`. Historical run43907110578 passed
+27 units and61 PostgreSQL tests only; it does not prove targeted Uniship execution.
+Foundation43907110482 independently passed full178 integration tests including Uniship.
+Historical outcomes remain unchanged and are not final-head substitutes.
+
+| Field                    | P3 targeted coverage correction                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Existing Sync Targeted workflow trigger/execution and test-only credential fixture                                                                                                                                                                                                                                                                                                                                                             |
+| Existing implementations | .github/workflows/sync-targeted.yml pinned build/PostgreSQL17.11; foundation.yml and scripts/quality-docker.sh full integration; apps/api/test/uniship/{normalizer,provider}.test.cjs and helpers/uniship-fixture.cjs; apps/api/test/fixtures/uniship; integration/{sync,uniship-shipment}-integration.test.cjs; packages/database/scripts/provision-runtime.mjs; scripts/provision-cluster-smoke.mjs owned-cluster marker and cleanup pattern |
+| Domain owner             | CI verification only; existing Carrier/Shipment/Sync own runtime behavior                                                                                                                                                                                                                                                                                                                                                                      |
+| Reuse alternatives       | Extend existing job with sequential explicitly named Uniship steps and Node built-ins; reject workflow duplication, new dependencies/framework, skipped tests or changed assertions                                                                                                                                                                                                                                                            |
+| Selected approach        | Add four Uniship test/helper/fixture/integration paths plus directly used Shipment processor/domain and shared Shipment vocabulary; preserve every old trigger/command; add explicit two-file unit command and separate genuine integration command                                                                                                                                                                                            |
+| Rationale                | Trigger and actually execute owned regression suites while retaining narrow unrelated-UI exclusion, prerequisite build and established role provisioning                                                                                                                                                                                                                                                                                       |
+| Risks                    | Missing emitted JS/Prisma/admin/password prerequisites, privilege-check bypass, credential leakage, cleanup on failure, unintended workflow changes or15-minute budget overrun                                                                                                                                                                                                                                                                 |
+| Verification             | Parse YAML and compare baseline invariants; representative positive/negative paths; execute exact commands and fixture cleanup success/failure; pinned format/docs/preflight/lint/test:lint and tooling tests; independent review; three exact-final-head hosted workflows and log counts/merge checkout                                                                                                                                       |
+
+### Execution plan and prerequisites
+
+1. Add filters for apps/api/test/uniship/**, apps/api/test/helpers/uniship-fixture.cjs,
+   apps/api/test/fixtures/uniship/** and apps/api/integration/uniship-shipment-integration.test.cjs.
+   Also add shipment/application/shipment-sync.processor.ts, shipment/domain/shipment.ts
+   and packages/shared/src/shipment/\*\*: the adapter delegates parsing/stage policy to
+   these exact owners. No repository-wide catch-all or unrelated UI trigger.
+2. Reuse Node24.19.0, pnpm10.34.6 frozen install and existing API prerequisite build.
+   Add a named Uniship unit step invoking normalizer.test.cjs and provider.test.cjs
+   explicitly; keep existing Sync unit command unchanged.
+3. After unchanged Sync PostgreSQL step, add a named Uniship PostgreSQL step using
+   only existing disposable service admin URL. mktemp creates a runner-owned directory
+   below RUNNER_TEMP; Node crypto.randomBytes(32).toString("hex") writes an exclusive
+   mode0600 file referenced only by API_TEST_RUNTIME_PASSWORD_FILE. Never print value
+   or archive directory. Shell EXIT trap removes file/directory on success or failure;
+   HUP/INT/TERM exit through that cleanup. No production secrets/env/Compose changes.
+4. Reuse existing signed-owned-cluster fixture protocol: a run/attempt-scoped nonsecret
+   token is written as a database comment using pg format quoting, with matching
+   DISPOSABLE_CLUSTER_ADMIN_URL/TOKEN for the Uniship step only. This ensures the
+   existing test provisions and checks nexora_sync rather than silently using admin
+   for worker assertions; real nexora_app vault/auth provisioning also runs. The test
+   migrates/drops its UUID database in finally; service teardown removes test roles.
+5. Update testing.md; execute static/YAML/trigger checks, prerequisite build, explicit
+   units, sequential genuine Sync/Uniship PostgreSQL commands where supported, pinned
+   five checks and applicable tooling tests. Preserve timeout15/service/OS/versions/
+   permissions/artifact behavior. Record failures honestly; no weakened tests.
+6. Independent implementation-code-review, commit only workflow/testing/task, push
+   existing PR56, verify actual final source and merge checkout with all three hosted
+   gates. Hosted evidence is appended to PR without an evidence-only source commit.
+   Keep task VERIFICATION PENDING/PARTIALLY VERIFIED; no merge or live activation.
+
+### P3 follow-up execution evidence
+
+All local checks below used the P3 working tree on source HEAD f13aea8c00a100f6a5feb80a7750e03deddd4dd4, Node24.19.0 and pnpm10.34.6. Timestamps are UTC. No unavailable hosted gate is claimed PASS.
+
+| Claim              | Evidence                                                                                                                                                                                                                                                     | Date       | Result |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| P3 prettier        | `npx --yes prettier@3.6.2 --write .github/workflows/sync-targeted.yml docs/operations/testing.md docs/tasks/active/NEXORA-057-uniship-http-adapter.md`; exit0; 2026-11-17T04:17:58.098944+00:00 to 2026-11-17T04:18:01.014115+00:00; working tree on f13aea8 | 2026-11-17 | PASS   |
+| P3 build           | `npx --yes pnpm@10.34.6 --filter @nexora/api... build`; exit0; 2026-11-17T04:18:21.577177+00:00 to 2026-11-17T04:18:36.505273+00:00; working tree on f13aea8                                                                                                 | 2026-11-17 | PASS   |
+| P3 static          | `python3 /tmp/nexora057-p3-static.py`; exit0; 2026-11-17T04:18:51.717279+00:00 to 2026-11-17T04:18:51.799756+00:00; working tree on f13aea8                                                                                                                  | 2026-11-17 | PASS   |
+| P3 pg-setup        | `python3 /tmp/nexora057-pg.py`; exit0; 2026-11-17T04:18:56.571130+00:00 to 2026-11-17T04:18:58.547746+00:00; working tree on f13aea8                                                                                                                         | 2026-11-17 | PASS   |
+| P3 sync-unit       | `node --test apps/api/test/sync/**/*.test.cjs`; exit0; 2026-11-17T04:19:20.227029+00:00 to 2026-11-17T04:19:24.058482+00:00; working tree on f13aea8                                                                                                         | 2026-11-17 | PASS   |
+| P3 uniship-unit    | `node --test apps/api/test/uniship/normalizer.test.cjs apps/api/test/uniship/provider.test.cjs`; exit0; 2026-11-17T04:19:24.222301+00:00 to 2026-11-17T04:19:25.529188+00:00; working tree on f13aea8                                                        | 2026-11-17 | PASS   |
+| P3 format          | `npx --yes pnpm@10.34.6 format:check`; exit0; 2026-11-17T04:19:20.258987+00:00 to 2026-11-17T04:19:41.854767+00:00; working tree on f13aea8                                                                                                                  | 2026-11-17 | PASS   |
+| P3 docs            | `npx --yes pnpm@10.34.6 docs:check`; exit0; 2026-11-17T04:19:41.909836+00:00 to 2026-11-17T04:19:43.714948+00:00; working tree on f13aea8                                                                                                                    | 2026-11-17 | PASS   |
+| P3 preflight       | `npx --yes pnpm@10.34.6 preflight:check`; exit0; 2026-11-17T04:19:43.762404+00:00 to 2026-11-17T04:19:45.464594+00:00; working tree on f13aea8                                                                                                               | 2026-11-17 | PASS   |
+| P3 lint            | `npx --yes pnpm@10.34.6 lint`; exit0; 2026-11-17T04:19:45.515114+00:00 to 2026-11-17T04:20:00.498351+00:00; working tree on f13aea8                                                                                                                          | 2026-11-17 | PASS   |
+| P3 test-lint       | `npx --yes pnpm@10.34.6 test:lint`; exit0; 2026-11-17T04:20:00.559352+00:00 to 2026-11-17T04:20:13.027486+00:00; working tree on f13aea8                                                                                                                     | 2026-11-17 | PASS   |
+| P3 test-docs       | `npx --yes pnpm@10.34.6 test:docs`; exit0; 2026-11-17T04:20:13.101117+00:00 to 2026-11-17T04:20:16.221923+00:00; working tree on f13aea8                                                                                                                     | 2026-11-17 | PASS   |
+| P3 fixture-failure | `python3 /tmp/nexora057-p3-ci-run.py failure`; exit0; 2026-11-17T04:20:17.101387+00:00 to 2026-11-17T04:20:17.778470+00:00; working tree on f13aea8                                                                                                          | 2026-11-17 | PASS   |
+| P3 test-preflight  | `npx --yes pnpm@10.34.6 test:preflight`; exit0; 2026-11-17T04:20:16.273181+00:00 to 2026-11-17T04:20:21.737903+00:00; working tree on f13aea8                                                                                                                | 2026-11-17 | PASS   |
+| P3 uniship-pg      | `python3 /tmp/nexora057-p3-ci-run.py success`; exit0; 2026-11-17T04:20:17.843271+00:00 to 2026-11-17T04:20:28.732264+00:00; working tree on f13aea8                                                                                                          | 2026-11-17 | PASS   |
+
+Assertions: YAML parsed successfully; all prior job settings/steps/permissions and15-minute timeout compare equal after excluding the two new steps; exactly7 justified paths added;11 representative positive paths and2 unrelated UI negative paths pass. Shell syntax is valid. Sync units27/27 and Uniship units9/9, zero failures/skips. Uniship genuine PostgreSQL12/12 passes using the exact workflow shell script against an owned TCP PostgreSQL17.11 cluster; restricted worker and real encrypted Carrier lifecycle remain active. Synthetic password mode0600 and lowercasehex64 are asserted without printing the value. An intentional exit37 fixture probe preserves that exit and removes the file/directory; success also leaves runner temp empty. The fixture-only probe is an expected failure-path assertion, not a failed production/test command.
+
+Independent implementation-code-review by /root/shipment_list_review: P1=0/P2=0/P3=0; read-only source/plan/security review, not represented as test execution or owner approval. No application/test/assertion/schema/registry/snapshot changed. Canonical testing.md documents targeted commands, owned-cluster role setup and cleanup. Final source HEAD, merge checkout SHA, run IDs/UTC times and exact-head counts will be recorded in PR56 after push, without an evidence-only follow-up commit. Historical results remain historical. External captures/live activation stay NOT VERIFIED in058.
+
+| Claim                                                 | Evidence                                                                                                                                                                                                                                                   | Date       | Result |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Existing Sync genuine PostgreSQL regression unchanged | `node --test integration/sync-integration.test.cjs` from apps/api, owned PostgreSQL17.11;61/61 PASS,0FAIL/0SKIP; exit0; working tree on f13aea8c00a100f6a5feb80a7750e03deddd4dd4; 2026-11-17T04:19:57.956409+00:00 to 2026-11-17T04:22:21.978908+00:00 UTC | 2026-11-17 | PASS   |
