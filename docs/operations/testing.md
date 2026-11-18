@@ -1148,3 +1148,35 @@ must never be uploaded. A successful trial is coverage evidence, not a causal fi
 After15 outcomes, report each failure's interface group and co-occurring Docker
 service/actions; stop for owner review before Phase2. Issue44 remains open until
 script failures are causally explained and an approved correction is verified.
+
+### Phase1 comparison experiments — NEXORA-059 v2
+
+The optional HTTPS workflow uses one closed selector. Dispatch input mode selects
+step8-only (15 independent jobs) or runtime-then-https (10 independent jobs). For
+pull requests, https-stress arms execution; adding https-stress-runtime selects
+only the runtime variant. The runtime label alone schedules no trial. Remove
+trigger labels before pushing and after completion; add the mode label before
+arming to avoid an unintended HTTPS-only batch. No failed trial is rerun/replaced.
+
+Each runtime variant job builds the existing release prerequisites, executes
+`sh scripts/runtime-smoke.sh` then `sh scripts/public-https-smoke.sh` without an
+intermediate repair/sleep/cleanup. Existing commands and internal deadlines remain
+unchanged. Runtime failure makes HTTPS NOT RUN; it is not browser PASS. Separate
+build/runtime/HTTPS exit files and source/checkout/mode/trial metadata accompany
+only projected HTTPS diagnostics. Artifact names include mode/trial, retention7days.
+No raw runtime logs, certificates or credential/session fixtures are uploaded.
+
+E0 inventories a fixed30day UTC Foundation window, paginating all runs and attempts
+without triggering CI. Keep unique-run and attempt totals separate. Step8 rates
+use attempts actually reaching the named Public HTTPS step, excluding skipped/
+not-reached outcomes; unavailable metadata stays unknown. Preserve earlier failed
+attempts even if a later rerun passed. Group main/PR56/other/unknown using verified
+metadata and retain exact run/attempt/source/checkout/UTC/log references.
+
+E1 uses a temporary PR56-plus-harness merge, never merged into PR57/main; if
+dispatch is unavailable use a temporary draft PR, then unlabel/close it. E2 runs
+on the PR57 harness checkpoint. They share the same harness version. Final compact
+Markdown under docs/tasks/evidence/NEXORA-059 contains all trial outcomes,
+observer status/dropped/coverage and permitted verbatim environment failure lines.
+Whole-step rolling buffers after cleanup are not complete failure-window evidence.
+Branch association/correlation is not causal proof; Phase2 requires owner review.

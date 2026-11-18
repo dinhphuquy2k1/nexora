@@ -6,17 +6,17 @@ Verification: PARTIALLY VERIFIED
 
 ## Scope
 
-Owner-requested SIGNIFICANT Phase1 evidence collection for intermittent Foundation8 and [issue44](https://github.com/dinhphuquy2k1/nexora/issues/44). Stop after15 independent labeled-PR trials and report actor/evidence or NOT VERIFIED. Phase2 not authorized yet. No merge. PR56 remains open; NEXORA057 is not closed. Branch starts at origin/main a19aa0d2532b41135a90c6e48e3b6876471ad343, not PR56.
+Owner-requested SIGNIFICANT Phase1 evidence collection for intermittent Foundation8 and [issue44](https://github.com/dinhphuquy2k1/nexora/issues/44). V1 baseline15 trials completed; owner-authorized v2 adds E0 history, E1 PR56/harness15 trials and E2 runtime/HTTPS10 trials, then report actor/evidence or NOT VERIFIED. Phase2 not authorized yet. No merge. PR56 remains open; NEXORA057 is not closed. Branch starts at origin/main a19aa0d2532b41135a90c6e48e3b6876471ad343, not PR56.
 
 ## Design Review & Reuse Decision
 
 Task ID: NEXORA-059
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-18-https-network-actor-v1
-Reviewed baseline: a19aa0d2532b41135a90c6e48e3b6876471ad343
+Plan revision: rev-2026-11-18-https-network-actor-v2
+Reviewed baseline: dcac5e5ccad2f737778bd1d621a5d1567e01db77
 Branch: investigate/https-network-actor
-Design Snapshot: docs/tasks/design-reviews/NEXORA-059-rev-2026-11-18-https-network-actor-v1.md
-Design SHA-256: d0efcc3767308ca45e31b65dc25e94fb09fcf68ccdd62cffafa27c5b734744c9
+Design Snapshot: docs/tasks/design-reviews/NEXORA-059-rev-2026-11-18-https-network-actor-v2.md
+Design SHA-256: 311856859591ab0ffdd3ca93aa5fba491ca97583fee18cd88d54fd632b6b6400
 
 | Field                    | Decision                                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -64,7 +64,8 @@ Coarse interface groups, bounded Docker correlation and Script error reasons; re
 
 - [x] Test-first safe bounded observations and cleanup; existing assertions/deadlines/order preserved.
 - [x] Local checks and independent review.
-- [ ] Draft PR and15 independent trials; per-failure interface/service/action evidence; remove label afterward.
+- [x] V1 draft PR and15 independent baseline trials; label removed (run44276290570).
+- [ ] V2 E0 inventory, E1 fifteen trials, E2 ten trials and compact evidence; remove labels/close temporary PR.
 - [ ] Phase1 report to owner; no Phase2 or merge.
 
 ## Evidence
@@ -113,3 +114,48 @@ Workflow structural verification: Python YAML BaseLoader confirms only labeled/s
 | Final independent review | /root/shipment_list_review read-only review and final parser/flush/artifact follow-up: P1=0/P2=0/P3=0; no test-execution or owner-approval claim                                                                                                                                                                                            | 2026-11-18 | PASS   |
 
 Fetch provenance: generic git fetch encountered a stale configured remote branch ref; explicit `git fetch origin main:refs/remotes/origin/main` PASS confirmed baseline unchanged. No Git configuration or unrelated branches modified. Label https-stress created; not yet applied.
+
+## Owner-authorized v2 Phase1 amendment — E0/E1/E2
+
+Baseline dcac5e5; PR56 bfe89e8 remains open/unmerged. V1 snapshot bytes/history
+are unchanged. Pre-code inspection/reuse matrix, risk, scope and verification
+are recorded in the linked frozen v2 snapshot. No aggregate or contract changes.
+Documentation Impact remains REQUIRED. Owner authorizes only experiment
+workflow/test/evidence changes, not a causal correction.
+
+E0: fixed30day UTC Foundation inventory, all run pages and attempts; distinguish
+run/attempt/step8 denominators and unknowns. E1: confirmed PR56 plus common
+harness checkpoint,15 step8-only trials on temporary branch/optional draft PR.
+E2: PR57 checkpoint,10 same-job runtime then HTTPS trials. Do not replace failed
+trials or infer causality from branch rates alone. Final evidence push then stop.
+
+Reviewed baseline hosted evidence: Preflight44276243246 and
+Foundation44276243256 PASS on dcac5e5 (mergef1663e6); Sync Targeted NOT RUN due
+to path filters. Baseline stress44276290570 attempt1 passed15/15 with downloaded
+artifact digest/source/checkout/observer cleanup inspection. These are historical
+baseline results, never evidence for the forthcoming workflow checkpoint.
+
+### V2 harness checkpoint verification
+
+| Claim                       | Evidence                                                                                                                                                                  | Date       | Result |
+| :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------- | :----- |
+| Selector RED                | New public-https-stress-plan.test.mjs fails with missing selector module before implementation                                                                            | 2026-11-18 | FAIL   |
+| Selector and observer GREEN | Five focused suites38/38: unarmed labels, exclusive15/10 modes, dispatch independence, closed output privacy, existing observer/redaction/status/cleanup                  | 2026-11-18 | PASS   |
+| Workflow syntax             | PyYAML6.0.3 BaseLoader; bash -n every literal run block; read-only permission, fail-fast false and7day retention assertions                                               | 2026-11-18 | PASS   |
+| Full quality                | API_INTERNAL_URL=http://api:4000 NODE_ENV=production pinned pnpm10.34.6 quality: format/lint/boundaries/preflight/docs/typecheck,820tests, contracts and production build | 2026-11-18 | PASS   |
+| Governance and operations   | test:operations9/9, test:lint56/56, test:docs10/10, test:preflight24/24                                                                                                   | 2026-11-18 | PASS   |
+
+Self-review against v2: only optional workflow/selector/tests and canonical
+docs/task/snapshot changed; no protected production/Compose/Foundation/smoke-script
+change or new dependency. No confirmed P1/P2; this is not independent approval.
+Snapshotv1 raw digest unchanged; v2 formatted before hashing. Canonical local
+Docker NOT RUN because the small overlay has about1.7GiB available and no matching
+application images; hosted experiments/Foundation provide actual Docker evidence.
+No local screenshots captured/manually reviewed.
+
+E0 inventory began2026-11-18T09:57:49Z with fixed start2026-10-19T09:57:49Z:
+498unique Foundation runs/539attempts retrieved with pagination and rerun history.
+Run PR metadata plus unique branch/lifetime and git ancestry classify all attempts;
+47 Public HTTPS failures require per-job log inspection. No E0 workflow triggered.
+Initial gh run view log reads returned empty output despite exit0; do not treat
+those files as logs. Retrieve actual job logs through the Actions API instead.
