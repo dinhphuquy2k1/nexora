@@ -455,7 +455,9 @@ test("network observer bounds and redacts events, correlates intervals and clean
     requests,
     state.events,
   );
-  assert.equal(correlated[0].counts.LINK, 32);
+  assert.equal(correlated[0].counts.LINK, 30);
+  assert.equal(correlated[0].counts.ADDR, 1);
+  assert.equal(correlated[0].counts.ROUTE, 1);
   assert.equal(correlated[1].counts.LINK, 0);
   await monitor.stop();
   await monitor.stop();

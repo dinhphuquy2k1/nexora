@@ -1,5 +1,6 @@
 import {
   createPublicAuthRequestDiagnostics,
+  publicEnvironmentFailureWindow,
   startPublicNetworkObserver,
   correlatePublicNetworkEvents,
   diagnosePublicHttpsFailure,
@@ -56,6 +57,7 @@ function request(
     timeoutMs = 10000,
   } = {},
 ) {
+  checks.requestStarted();
   return new Promise((resolve, reject) => {
     const req = (plain ? httpRequest : httpsRequest)(
       {
@@ -187,6 +189,7 @@ try {
     readiness.headers["strict-transport-security"].includes("max-age=31536000"),
   );
   await new Promise((resolve, reject) => {
+    checks.requestStarted();
     const h2 = http2Connect(origin, {
       ca,
       servername: f.host,
@@ -423,6 +426,8 @@ try {
     if (message.method === "Network.requestWillBeSent") {
       const req = message.params.request;
       const url = new URL(req.url);
+      if (url.protocol === "https:" || url.protocol === "http:")
+        checks.requestStarted();
       const label = url.origin === origin && observedPaths.get(url.pathname);
       if (label) browserRequests.add(label);
       for (const secret of [
@@ -451,6 +456,7 @@ try {
       socket.send(JSON.stringify({ id: current, method, params }));
     });
   const evaluate = async (expression) => {
+    if (/\bfetch\s*\(/.test(expression)) checks.requestStarted();
     const r = await send("Runtime.evaluate", {
       expression,
       awaitPromise: true,
@@ -965,10 +971,64 @@ try {
 } catch (error) {
   checks.failure(error);
   // Freeze the failure interval before diagnostics perform any additional I/O.
+  const failureTime = Date.now();
   const failureTransport = authRequests.snapshot();
   const failureNetwork = networkObserver?.snapshot();
-  if (chrome) await diagnosePublicHttpsFailure(error, request);
+  let readinessDiagnostic = null;
+  if (chrome)
+    await diagnosePublicHttpsFailure(error, request, (label, json) => {
+      console.error(label, json);
+      readinessDiagnostic = JSON.parse(json);
+    });
   await readOperatorDiagnostics?.();
+  try {
+    // Diagnostic-only future half-window; the original check has already failed.
+    const window = publicEnvironmentFailureWindow(
+      {},
+      failureTransport,
+      failureTime,
+    );
+    await delay(
+      Math.max(0, Math.min(5300, Date.parse(window.toUTC) - Date.now() + 300)),
+    );
+    let environment;
+    try {
+      environment = JSON.parse(
+        await readFile(process.env.PUBLIC_HTTPS_ENVIRONMENT_PATH, "utf8"),
+      );
+    } catch {
+      environment = {};
+    }
+    const observation = publicEnvironmentFailureWindow(
+      environment,
+      failureTransport,
+      failureTime,
+    );
+    console.error(
+      "PUBLIC_HTTPS_ENVIRONMENT_DIAGNOSTIC",
+      JSON.stringify(observation),
+    );
+    if (process.env.PUBLIC_HTTPS_DIAGNOSTICS_DIR)
+      await writeFile(
+        join(process.env.PUBLIC_HTTPS_DIAGNOSTICS_DIR, "failure.json"),
+        JSON.stringify({
+          failedAtUTC: new Date(failureTime).toISOString(),
+          readinessDiagnostic,
+          browserProduct,
+          proxyEnvPresent,
+          environment: observation,
+          transport: failureTransport,
+          operatorResponses,
+          login: loginDiagnostics.snapshot(),
+        }),
+        { mode: 0o600 },
+      );
+  } catch {
+    console.error(
+      "PUBLIC_HTTPS_ENVIRONMENT_DIAGNOSTIC",
+      JSON.stringify({ status: "UNAVAILABLE" }),
+    );
+  }
   printAuthTransport(failureTransport, failureNetwork);
   console.error(
     "PUBLIC_AUTH_REQUEST_DIAGNOSTIC",

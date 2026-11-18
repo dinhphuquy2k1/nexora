@@ -135,3 +135,14 @@ test("diagnostics stay off by default", () => {
     false,
   );
 });
+
+test("starting a request clears previous response status before headerless failure", () => {
+  const lines = [];
+  const checks = createSmokeChecks((line) => lines.push(line));
+  checks.step("CREATE_AND_REISSUE");
+  checks.status(201, 201);
+  checks.requestStarted();
+  checks.failure(new TypeError("private"));
+  assert.ok(lines.includes("Actual HTTP status: NOT_OBSERVED"));
+  assert.equal(lines.includes("Actual HTTP status: 201"), false);
+});

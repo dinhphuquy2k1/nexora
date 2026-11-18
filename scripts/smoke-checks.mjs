@@ -25,6 +25,9 @@ export function createSmokeChecks(
       stepStarted = now();
       statuses = undefined;
     },
+    requestStarted() {
+      statuses = { actual: "NOT_OBSERVED", expected: "NOT_SET" };
+    },
     status(actual, expected) {
       statuses = {
         actual: Number.isInteger(actual) ? actual : "NOT_OBSERVED",

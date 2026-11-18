@@ -1,6 +1,8 @@
 // Pre-auth test-only counters. Never retain CDP URLs, bodies, headers or exceptions.
 const SCRIPT_FAILURE_REASONS = {
   "net::ERR_ABORTED": "ABORTED",
+  "net::ERR_NETWORK_CHANGED": "NETWORK_CHANGED",
+  "net::ERR_INTERNET_DISCONNECTED": "INTERNET_DISCONNECTED",
   "net::ERR_CONNECTION_CLOSED": "CONNECTION_CLOSED",
   "net::ERR_CONNECTION_RESET": "CONNECTION_RESET",
   "net::ERR_EMPTY_RESPONSE": "EMPTY_RESPONSE",
@@ -29,6 +31,8 @@ export function createLoginReadinessDiagnostics() {
   };
   const reasons = {
     ABORTED: 0,
+    NETWORK_CHANGED: 0,
+    INTERNET_DISCONNECTED: 0,
     BLOCKED: 0,
     CERTIFICATE: 0,
     CONNECTION_CLOSED: 0,

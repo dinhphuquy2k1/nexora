@@ -172,6 +172,7 @@ export function createPublicAuthRequestDiagnostics(
         if (scriptFailures.length < 4)
           scriptFailures.push({
             category: "SAME_ORIGIN_NEXT_SCRIPT",
+            failedUTC: new Date(now()).toISOString(),
             elapsedMs: Math.min(
               60000,
               Math.max(0, Math.round(now() - script.started)),
@@ -294,7 +295,9 @@ export function startPublicNetworkObserver({
   spawnProcess = spawn,
   terminate = terminateChildProcess,
   now = Date.now,
+  maxEvents = 32,
 } = {}) {
+  const capacity = maxEvents === 200 ? 200 : 32;
   const started = now();
   let status = "STARTING",
     reason = null,
@@ -315,14 +318,19 @@ export function startPublicNetworkObserver({
     const category = text.match(/^\[(LINK|ADDR|ROUTE)\]/)?.[1];
     if (!category) return;
     counts[category] = Math.min(10000, counts[category] + 1);
-    if (events.length < 32) {
+    if (events.length === capacity) {
+      events.shift();
+      dropped = Math.min(10000, dropped + 1);
+    }
+    {
       const time = now();
       events.push({
         category,
+        interfaceGroup: publicInterfaceGroup(text),
         atUTC: new Date(time).toISOString(),
         elapsedMs: Math.min(600000, Math.max(0, time - started)),
       });
-    } else dropped = Math.min(10000, dropped + 1);
+    }
   };
   if (platform !== "linux") unavailable("UNSUPPORTED_PLATFORM");
   else {
@@ -532,4 +540,241 @@ export function sanitizeOperatorResponseDiagnostics(value) {
         ? row.setupUrlOriginMatches
         : null,
   }));
+}
+
+/** Only closed coarse interface groups may escape raw ip monitor lines. */
+function publicInterfaceGroup(line) {
+  const name =
+    line.match(/\bdev\s+([^\s]+)/)?.[1] ??
+    line.match(/^\[(?:LINK|ADDR)\]\s*(?:Deleted\s+)?\d+:\s+([^\s:]+)/)?.[1];
+  const base = name?.split("@")[0];
+  if (base === "lo") return "lo";
+  if (base === "docker0") return "docker0";
+  if (/^eth[0-9]+$/.test(base)) return "eth";
+  if (/^br-/.test(base)) return "bridge";
+  if (/^veth/.test(base)) return "veth";
+  return "other";
+}
+const dockerTypes = new Set([
+  "container",
+  "network",
+  "volume",
+  "image",
+  "daemon",
+  "builder",
+]);
+const dockerActions = new Set([
+  "create",
+  "start",
+  "restart",
+  "stop",
+  "die",
+  "destroy",
+  "connect",
+  "disconnect",
+  "kill",
+  "pause",
+  "unpause",
+  "oom",
+  "remove",
+  "health_status: healthy",
+  "health_status: unhealthy",
+  "health_status: starting",
+]);
+const composeServices = new Set([
+  "builder",
+  "init",
+  "postgres",
+  "migrate",
+  "db-runtime",
+  "sync-worker",
+  "api",
+  "web",
+  "ingress",
+  "certbot",
+  "acme-bootstrap",
+  "dependencies",
+  "quality",
+]);
+/** Read-only, time-bounded Docker events. No IDs, arbitrary labels or raw JSON retained. */
+export function startPublicDockerObserver({
+  spawnProcess = spawn,
+  terminate = terminateChildProcess,
+  now = Date.now,
+  durationMs = 2700000,
+} = {}) {
+  const started = now();
+  const duration =
+    Number.isInteger(durationMs) && durationMs > 0 && durationMs <= 2700000
+      ? durationMs
+      : 2700000;
+  let child,
+    status = "STARTING",
+    reason = null,
+    stopping = false,
+    stopped,
+    timer,
+    buffer = "",
+    discarding = false,
+    dropped = 0;
+  const events = [];
+  const unavailable = (value) => {
+    status = "UNAVAILABLE";
+    reason = value;
+  };
+  const line = (text) => {
+    if (stopping || status !== "OBSERVING") return;
+    let event;
+    try {
+      event = JSON.parse(text);
+    } catch {
+      return;
+    }
+    if (!dockerTypes.has(event?.Type)) return;
+    const ms = Number.isFinite(event.timeNano)
+      ? Math.floor(event.timeNano / 1000000)
+      : event.time * 1000;
+    if (!Number.isFinite(ms) || ms < 0 || ms > 4102444800000) return;
+    const service = event.Actor?.Attributes?.["com.docker.compose.service"];
+    if (events.length === 200) {
+      events.shift();
+      dropped = Math.min(10000, dropped + 1);
+    }
+    events.push({
+      Type: event.Type,
+      Action: dockerActions.has(event.Action) ? event.Action : "other",
+      service: composeServices.has(service) ? service : "other",
+      atUTC: new Date(ms).toISOString(),
+    });
+  };
+  const stop = () => {
+    if (!stopped)
+      stopped = (async () => {
+        stopping = true;
+        clearTimeout(timer);
+        buffer = "";
+        try {
+          if (child)
+            await terminate(child, {
+              gracefulTimeoutMs: 500,
+              forceTimeoutMs: 500,
+            });
+          if (status !== "UNAVAILABLE") status = "STOPPED";
+        } catch {
+          unavailable("STOP_FAILED");
+        }
+        child?.stdout?.destroy();
+      })();
+    return stopped;
+  };
+  try {
+    const env = { PATH: process.env.PATH, HOME: process.env.HOME, LC_ALL: "C" };
+    for (const key of [
+      "DOCKER_HOST",
+      "DOCKER_CONTEXT",
+      "DOCKER_CONFIG",
+      "DOCKER_TLS_VERIFY",
+      "DOCKER_CERT_PATH",
+      "XDG_RUNTIME_DIR",
+    ])
+      if (process.env[key]) env[key] = process.env[key];
+    child = spawnProcess(
+      "docker",
+      [
+        "events",
+        "--format",
+        "{{json .}}",
+        "--since",
+        new Date(started).toISOString(),
+        "--until",
+        new Date(started + duration).toISOString(),
+      ],
+      { stdio: ["ignore", "pipe", "ignore"], env },
+    );
+    child.once("spawn", () => {
+      if (!stopping && status === "STARTING") status = "OBSERVING";
+    });
+    child.on("error", () => {
+      if (!stopping) unavailable("SPAWN_FAILED");
+    });
+    child.once("exit", () => {
+      if (!stopping) unavailable("EXITED");
+    });
+    child.stdout.on("data", (chunk) => {
+      if (stopping) return;
+      for (const character of chunk.toString("utf8")) {
+        if (character === "\n") {
+          if (!discarding) line(buffer);
+          buffer = "";
+          discarding = false;
+        } else if (!discarding) {
+          if (buffer.length < 65536) buffer += character;
+          else {
+            buffer = "";
+            discarding = true;
+            dropped = Math.min(10000, dropped + 1);
+          }
+        }
+      }
+    });
+    timer = setTimeout(() => {
+      void stop();
+    }, duration);
+    timer.unref?.();
+  } catch {
+    unavailable("SPAWN_FAILED");
+  }
+  return {
+    snapshot: () => ({
+      status,
+      reason,
+      startedUTC: new Date(started).toISOString(),
+      events: events.map((e) => ({ ...e })),
+      dropped,
+    }),
+    stop,
+  };
+}
+
+/** Correlation only, with an explicit fallback if no tracked request failed. */
+export function publicEnvironmentFailureWindow(
+  environment,
+  transport,
+  failureTime = Date.now(),
+) {
+  const failed = (transport?.requests ?? []).filter((row) => row.failed).at(-1);
+  const script = (transport?.scriptFailures ?? []).at(-1);
+  let source = "FAILURE_TIMESTAMP",
+    start = failureTime,
+    end = failureTime,
+    endpoint = null;
+  if (failed && Number.isFinite(Date.parse(failed.startedUTC))) {
+    source = "FAILED_AUTH_REQUEST";
+    start = Date.parse(failed.startedUTC);
+    end = start + failed.elapsedMs;
+    endpoint = failed.endpoint;
+  } else if (script && Number.isFinite(Date.parse(script.failedUTC))) {
+    source = "FAILED_SCRIPT";
+    start = end = Date.parse(script.failedUTC);
+  }
+  const project = (kind) => {
+    const state = environment?.[kind];
+    return {
+      status: state?.status ?? "UNAVAILABLE",
+      reason: state?.reason ?? null,
+      dropped: state?.dropped ?? 0,
+      events: (state?.events ?? []).slice(-200).filter((e) => {
+        const time = Date.parse(e.atUTC);
+        return time >= start - 5000 && time <= end + 5000;
+      }),
+    };
+  };
+  return {
+    windowSource: source,
+    endpoint,
+    fromUTC: new Date(start - 5000).toISOString(),
+    toUTC: new Date(end + 5000).toISOString(),
+    network: project("network"),
+    docker: project("docker"),
+  };
 }
