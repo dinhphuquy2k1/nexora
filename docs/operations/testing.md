@@ -1065,8 +1065,8 @@ calls and partial-index conflict inference; they do not authorize new capabiliti
 
 ### Public HTTPS login request lifecycle diagnostics
 
-The disposable HTTPS browser harness records at most four same-origin
-/api/auth/login requests using existing CDP events: dispatch, response headers/
+The disposable HTTPS browser harness records up to four requests per fixed label
+(LOGIN, OPERATOR_CREATE, OPERATOR_SETUP_LINK; at most12) using existing CDP events: dispatch, response headers/
 status, protocol, loopback/fixture-port match, validated API request ID, loading
 failure/cancellation/block reason and finish. Network errors and block reasons
 use closed allowlists; unknown strings become OTHER. Opaque CDP IDs, raw URLs
@@ -1086,7 +1086,7 @@ only on a genuine recurrence captured by bounded diagnostics, or a separately
 planned targeted reproducer with a concrete hypothesis and observable discriminant.
 
 The existing private Public HTTPS Compose overlay mounts a temporary copy of the
-Nginx template with conditional POST-login-only fixed-field access metadata
+Nginx template with conditional fixed-endpoint POST auth/operator access metadata
 (status/upstream status, timing, protocol/TLS and generated ingress request ID).
 Production template/access logging is unchanged. Existing API request IDs can be
 matched to safe browser response IDs; ingress timing/status distinguishes arrival
@@ -1103,6 +1103,37 @@ retains up to four failed same-origin Next static-script transport summaries
 time and fixed network/CORS/block categories, never script URLs or payloads.
 An earlier HTTP login redirect probe is not evidence of browser HTTPS login
 arrival; distinguish its HTTP/308 ingress row from the browser request lifecycle.
+
+The collector emits endpoint labels rather than URLs or operator IDs. Operator
+creation and UUID-scoped setup-link POSTs share existing closed transport categories;
+GETs to those admin paths are not traced. Operator response observation retains only
+response/status, JSON-parse and string-field presence/origin-match booleans (at most4),
+never user IDs, setup URLs, fragments, tokens or payloads. It returns the same data or
+exception to the original201/200/setup-token assertions, without retrying mutations.
+
+Around real Chromium execution, a read-only Linux `ip monitor` observer records only
+LINK/ADDR/ROUTE counts (capped10000) and at most32 observation timestamps, with a bounded
+private input buffer. It receives no fixture secrets in its environment and discards
+all raw interface/address/route/stderr output. Unsupported/startup/early-exit states
+report UNAVAILABLE; finally uses existing bounded child teardown. Cleanup status is
+reported separately. Request/event interval overlap is co-occurrence only: no interface
+identity is retained, dropped/capped events limit conclusions, and an unrelated Docker
+interface event does not establish causation.
+
+After a browser failure, one non-mutating Node HTTPS GET /api/health/ready uses the
+existing strict CA/hostname-verifying request helper with a3s diagnostic-only deadline.
+Only attempted/succeeded/status/elapsed/safe-category are emitted; no body, cookies or
+credentials. It neither retries authentication nor replaces the original failure, even
+if the probe or logger fails. Original assertion diagnostics are emitted first, and
+request/network snapshots freeze before probe I/O; existing authentication/readiness/
+CDP default deadlines are unchanged. Operator shape snapshots have a separate1s
+observation deadline. The temporary ingress map logs LOGIN/OPERATOR_CREATE/UUID setup
+labels with status/upstream timing/protocol/TLS/request ID only; production Nginx remains
+byte-identical with access_log off. No raw URI, arbitrary header or response payload
+is logged. Unit/fault coverage is `node --test scripts/public-https-diagnostics.test.mjs`
+plus existing login-readiness and smoke-check suites; real canonical HTTPS remains a
+separate required gate. Node200 with Chrome error/499 directs investigation toward
+browser/host transport, not an automatic diagnosis. A green run alone is not repair.
 
 ### Fixture-backed Uniship Shipment adapter — NEXORA-057
 

@@ -661,3 +661,135 @@ Static audit PASS: two file-local const declarations exactly65536/8388608 with r
 Independent read-only review by /root/shipment_list_review: P1=0/P2=0/P3=0; no tests/edits/provider access by reviewer. The parent Documentation Impact REQUIRED declaration is retained; this naming-only delta changes no canonical API/endpoint/schema/architecture fact and updates only task plan/evidence, no unrelated documentation.
 
 Canonical local Docker execution: NOT RUN; required application images absent (only nginx:1.30.6-alpine cached), rootless VFS and approximately708MiB free at inspection. No user-volume reset or global prune attempted. Native quality is not substituted for Docker: exact-final-head hosted Preflight/Sync Targeted/Foundation4–10 required. Final source/merge SHA, UTC run results and links are recorded in PR56 after push without an unnecessary evidence-only commit. Task remains VERIFICATION PENDING/IMPLEMENTED/PARTIALLY VERIFIED; no live activation or merge.
+
+## BOUNDED Public HTTPS diagnostic follow-up — 2026-11-18
+
+Reviewed source/PR56 HEADa12f34c7151336b76e7555f2126449888077a32b; branch
+feat/uniship-http-adapter, clean worktree, PR open/unmerged. Owner authorizes
+investigation and any evidence-backed correction inside this PR. PhaseA below is
+BOUNDED test-only observation, not a selected authentication/security/network fix.
+Frozen adapter v1 snapshot/revision/digest remain unchanged. Any material production
+security/architecture change requires a new recorded impact/plan before code.
+Documentation Impact REQUIRED; canonical owner docs/operations/testing.md.
+
+### Read-only facts and unresolved hypotheses
+
+Read routed governance/runtime/testing/task and both review skills; inspected
+public-https-browser/smoke/diagnostics/tests, login-readiness/browser-login-ready,
+smoke-checks, production Nginx and Foundation workflow. Existing collector records
+only login (four requests), no operator request/response shape. Browser evaluation
+masks fetch/JSON details as a fixed Error; absence of status cannot identify cause.
+Existing strict Node HTTPS helper verifies the fixture CA/name; existing teardown
+owns bounded child termination. Host ip and Chromium are available; only Nginx image
+is cached and app-image storage remains constrained for local canonical smoke.
+
+Historical Foundation44230129253 on this source: attempt1 step8 FAIL at
+CANONICAL_HTTPS_REMOTE_OPERATOR_SETUP/CHECK_FAILED/Error/26ms; attempt2 step8 FAIL
+at ADMIN_BROWSER_PENDING_MFA/REQUEST_TIMEOUT/TimeoutError/20288ms. Both4–7PASS,
+9–10SKIPPED. Attempt2 CDP LOGIN started03:56:56.044UTC, failed after12ms with
+ERR_NETWORK_CHANGED, no response headers/API ID. Ingress separate HTTP redirect
+at03:56:55.116 is308/TLS-off; browser HTTPS ingress at03:56:56.052 is499/h2/TLS-on,
+18ms request/upstream durations, upstream status absent. These temporal observations
+do not identify which component caused interruption. Attempt1 has no operator
+lifecycle capture. Do not merge these paths into a single root-cause claim.
+
+A: browser/network-change failure — discriminate using bounded host LINK/ADDR/ROUTE
+events relative to dispatch/failure and an independent strict Node health probe.
+B: connection/upstream interruption — compare browser lifecycle/status, labeled ingress
+status/upstream timing and one Node GET health result;499 alone proves no root cause.
+C: operator flow — separate dispatch/header/network failure from JSON parse/shape/
+origin observations while keeping existing201/200/token checks. All causes NOT VERIFIED.
+
+| Field                    | Diagnostic-only extension                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Component                | Existing CDP collector, owned network observer, one health probe, disposable ingress and operator shape observation                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Existing implementations | scripts/public-https-diagnostics.mjs/tests allowlists/caps and publicAuthIngressTemplate; public-https-browser.mjs request/evaluate/assertions; browser-teardown.mjs terminateChildProcess; login-readiness-diagnostics.mjs observation-only expression; public-https-smoke.sh private overlay; docker/public/nginx.conf.template access_log off                                                                                                                                                                                                                         |
+| Domain owner             | Disposable test harness/diagnostic tooling only, not production Identity/Carrier/Shipment or network policy                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Reuse alternatives       | Extend the existing collector/overlay and Node HTTPS/teardown; no parallel auth client/logger, new dependency, raw event archive or production config change                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Selected approach        | Fixed LOGIN/OPERATOR_CREATE/OPERATOR_SETUP_LINK labels;4 requests per label(max12), existing16script/4failure caps; no URL/route-ID output. Linux ip monitor label LINK/ADDR/ROUTE observer(max32 timestamps, counters capped10000, bounded private line buffer), UNAVAILABLE when unsupported; existing bounded termination. One3s failure-only strict GET health probe, safe error categories and original error preserved. Bounded operator response booleans/status, original return/error/validation unchanged. Temporary Nginx map adds fixed operator labels only |
+| Rationale                | Distinguish missing dispatch, browser transport, HTTP, JSON/shape and host-event correlation without changing authentication or claiming causality from coincidence                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Risks                    | Sensitive URL/token/header leakage, unbounded process/buffer, observation masking original failure, retries/timeout drift, treating unrelated host events or Node success as proof                                                                                                                                                                                                                                                                                                                                                                                       |
+| Verification             | RED new lifecycle/operator/privacy/observer/probe tests before code; GREEN fault injection including real owned child cleanup; Nginx syntax with cached isolated image, unchanged production template; unchanged acceptance assertions/timeouts/TLS/Origin/MFA; pinned focused/format/lint/test:lint/docs/preflight/quality; independent review; exact-head hosted evidence                                                                                                                                                                                              |
+
+### PhaseA–C execution plan
+
+1. Extend existing diagnostic.test.mjs first: network-change-before-headers, status/
+   cancellation/OTHER, operator labels/setup UUID scope, per-label caps/redaction;
+   real/fake observer startup/exit/cleanup/caps/correlation; health probe200/error/
+   timeout and original-error identity; response-shape success/parse/fetch failures.
+2. Implement helper extensions in existing diagnostics module. Preserve LOGIN capture,
+   fixed closed categories and private CDP IDs; snapshots omit raw origin/URL. Start
+   read-only Linux observer just before Chromium; stop in finally. Network-event
+   timestamps are observations only, not evidence that a particular interface caused
+   a request failure. No raw link/address/route/stderr output retained.
+3. Reuse browser Node HTTPS request via optional diagnostic signal/timeout (all old
+   defaults unchanged); on browser failure one non-mutating3s GET /api/health/ready,
+   log fixed summary, original error remains the outcome. Observe operator fetch
+   response/JSON/shape booleans with a bounded browser-side observation expression;
+   return original status/data or rethrow original exception, no mutation retries.
+4. Extend publicAuthIngressTemplate temporary map/log for exact operator create and
+   UUID setup-link POST labels, no raw URI/header/body/token fields. Production file
+   remains byte-identical; update smoke comment/testing docs only as applicable.
+5. Run focused tests and fault injection before hosted; real owned child cleanup and
+   local ip availability, safe Nginx syntax with network-none disposable container,
+   full pinned checks/quality. Local full Docker smoke NOT RUN if app images remain
+   unavailable; no user volumes/global prune. Independent review, scoped commit/push.
+6. Observe next instrumented Foundation on exact source/merge; retain both historical
+   FAILs. It is the third unresolved hosted checkpoint after the two prior attempts:
+   if cause remains insufficient, stop/re-plan rather than rerun indefinitely. A green
+   run alone is not repair. For any confirmed defect, record symptom/evidence/owner/
+   hypothesis/discriminating test/result/conclusion and focused RED/GREEN plan before
+   a minimal correction. Production auth/security scope requires impact review first.
+   If no defensible fix is established, retain diagnostics, mark cause NOT VERIFIED
+   and report VERIFICATION PENDING. Keep this PR, no live provider activation/merge.
+
+PhaseA local refinement before push: a new navigation fault test exposed that
+window-only operator diagnostics disappear on full-document setup navigation.
+Return a bounded safe observation alongside the private browser evaluation result,
+retain only that projection in Node, and return the original status/data shape to
+existing assertions. Failure-only1s snapshot supplements incomplete observations;
+a later empty document cannot erase prior rows. No extra success-path CDP roundtrip,
+mutation retry, payload logging or assertion change. RED null-vs201, then GREEN is
+recorded below; this fixes new diagnostic retention, not the historical root cause.
+
+Independent review refinement: reviewer found P3 that the old success-end snapshot
+call remained after adding Node retention, contradicting failure-only/no-extra-CDP
+policy. Removed only that redundant success call; failure snapshot remains. This is
+a diagnostic-policy correction, not a root-cause fix for prior Foundation failures.
+
+### Diagnostic PhaseA/B execution evidence
+
+Local checkpoint: diagnostic working tree on a12f34c7151336b76e7555f2126449888077a32b, pinned Node24.19.0/pnpm10.34.6; timestamps below UTC. All historical rows remain intact. Source privacy/invariants, observation execution and canonical runtime verification are separate claims.
+
+| Claim                                     | Evidence                                                                                                                                                                                                                                                                                                                                                            | Date       | Result |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Historical Foundation attempt1            | [44230129253/attempts/1](https://github.com/dinhphuquy2k1/nexora/actions/runs/44230129253/attempts/1), source a12f34c, merge17a03d2228bdbfc578b8a6e573221ac23109fdca;2026-11-18 03:23:53–03:37:46UTC;4–7PASS,8FAIL CANONICAL_HTTPS_REMOTE_OPERATOR_SETUP/CHECK_FAILED/Error/26ms;9–10SKIPPED                                                                        | 2026-11-18 | FAIL   |
+| Historical Foundation attempt2            | [44230129253/attempts/2](https://github.com/dinhphuquy2k1/nexora/actions/runs/44230129253/attempts/2), same source/merge; job134559163762 03:40:18–03:57:33UTC;4–7PASS,8FAIL ADMIN_BROWSER_PENDING_MFA/REQUEST_TIMEOUT/TimeoutError/20288ms;9–10SKIPPED. CDP net::ERR_NETWORK_CHANGED and distinct HTTPS499 vs prior HTTP308, as recorded above; cause NOT VERIFIED | 2026-11-18 | FAIL   |
+| HTTPS diagnostics diag-red                | `node --test scripts/public-https-diagnostics.test.mjs`; exit1; 2026-11-18T04:25:13.982134+00:00 to 2026-11-18T04:25:14.621994+00:00; working tree on a12f34c                                                                                                                                                                                                       | 2026-11-18 | FAIL   |
+| HTTPS diagnostics diag-green              | `node --test scripts/public-https-diagnostics.test.mjs`; exit0; 2026-11-18T04:26:29.541877+00:00 to 2026-11-18T04:26:29.866986+00:00; working tree on a12f34c                                                                                                                                                                                                       | 2026-11-18 | PASS   |
+| HTTPS diagnostics focused                 | `node --test scripts/public-https-diagnostics.test.mjs scripts/login-readiness-diagnostics.test.mjs scripts/smoke-checks.test.mjs`; exit0; 2026-11-18T04:27:50.089683+00:00 to 2026-11-18T04:27:50.845500+00:00; working tree on a12f34c                                                                                                                            | 2026-11-18 | PASS   |
+| HTTPS diagnostics projection-red          | `node --test scripts/public-https-diagnostics.test.mjs`; exit1; 2026-11-18T04:29:02.819370+00:00 to 2026-11-18T04:29:03.182513+00:00; working tree on a12f34c                                                                                                                                                                                                       | 2026-11-18 | FAIL   |
+| HTTPS diagnostics projection-green        | `node --test scripts/public-https-diagnostics.test.mjs`; exit0; 2026-11-18T04:29:29.278297+00:00 to 2026-11-18T04:29:29.624177+00:00; working tree on a12f34c                                                                                                                                                                                                       | 2026-11-18 | PASS   |
+| HTTPS diagnostics navigation-red          | `node --test scripts/public-https-diagnostics.test.mjs`; exit1; 2026-11-18T04:32:39.570414+00:00 to 2026-11-18T04:32:40.061026+00:00; working tree on a12f34c                                                                                                                                                                                                       | 2026-11-18 | FAIL   |
+| HTTPS diagnostics navigation-green        | `node --test scripts/public-https-diagnostics.test.mjs scripts/login-readiness-diagnostics.test.mjs scripts/smoke-checks.test.mjs`; exit0; 2026-11-18T04:32:58.981153+00:00 to 2026-11-18T04:32:59.640391+00:00; working tree on a12f34c                                                                                                                            | 2026-11-18 | PASS   |
+| HTTPS diagnostics nginx-syntax            | `node /tmp/nexora057-https-nginx-syntax.mjs`; exit0; 2026-11-18T04:33:52.246246+00:00 to 2026-11-18T04:33:54.425420+00:00; working tree on a12f34c                                                                                                                                                                                                                  | 2026-11-18 | PASS   |
+| HTTPS diagnostics static                  | `node /tmp/nexora057-https-static.cjs`; exit0; 2026-11-18T04:34:42.755576+00:00 to 2026-11-18T04:34:43.464346+00:00; working tree on a12f34c                                                                                                                                                                                                                        | 2026-11-18 | PASS   |
+| HTTPS diagnostics focused-final           | `node --test scripts/public-https-diagnostics.test.mjs scripts/login-readiness-diagnostics.test.mjs scripts/smoke-checks.test.mjs`; exit0; 2026-11-18T04:34:43.519415+00:00 to 2026-11-18T04:34:44.353064+00:00; working tree on a12f34c                                                                                                                            | 2026-11-18 | PASS   |
+| HTTPS diagnostics format                  | `npx --yes pnpm@10.34.6 format:check`; exit0; 2026-11-18T04:34:44.447321+00:00 to 2026-11-18T04:35:08.704938+00:00; working tree on a12f34c                                                                                                                                                                                                                         | 2026-11-18 | PASS   |
+| HTTPS diagnostics lint                    | `npx --yes pnpm@10.34.6 lint`; exit1; 2026-11-18T04:35:08.755650+00:00 to 2026-11-18T04:35:24.602224+00:00; working tree on a12f34c                                                                                                                                                                                                                                 | 2026-11-18 | FAIL   |
+| HTTPS diagnostics lint-green              | `npx --yes pnpm@10.34.6 lint`; exit0; 2026-11-18T04:35:54.541038+00:00 to 2026-11-18T04:36:09.408084+00:00; working tree on a12f34c                                                                                                                                                                                                                                 | 2026-11-18 | PASS   |
+| HTTPS diagnostics test-lint               | `npx --yes pnpm@10.34.6 test:lint`; exit0; 2026-11-18T04:36:09.466647+00:00 to 2026-11-18T04:36:17.277124+00:00; working tree on a12f34c                                                                                                                                                                                                                            | 2026-11-18 | PASS   |
+| HTTPS diagnostics docs                    | `npx --yes pnpm@10.34.6 docs:check`; exit0; 2026-11-18T04:36:17.330738+00:00 to 2026-11-18T04:36:19.448081+00:00; working tree on a12f34c                                                                                                                                                                                                                           | 2026-11-18 | PASS   |
+| HTTPS diagnostics preflight               | `npx --yes pnpm@10.34.6 preflight:check`; exit0; 2026-11-18T04:36:19.560807+00:00 to 2026-11-18T04:36:22.027772+00:00; working tree on a12f34c                                                                                                                                                                                                                      | 2026-11-18 | PASS   |
+| HTTPS diagnostics real-fixture            | `node /tmp/nexora057-https-real-fixture.mjs`; exit1; 2026-11-18T04:38:56.366376+00:00 to 2026-11-18T04:39:05.436517+00:00; working tree on a12f34c                                                                                                                                                                                                                  | 2026-11-18 | FAIL   |
+| HTTPS diagnostics quality                 | `API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; exit0; 2026-11-18T04:36:22.100662+00:00 to 2026-11-18T04:39:24.726486+00:00; working tree on a12f34c                                                                                                                                                                         | 2026-11-18 | PASS   |
+| HTTPS diagnostics real-fixture-diagnostic | `node /tmp/nexora057-https-real-fixture.mjs`; exit1; 2026-11-18T04:40:34.172466+00:00 to 2026-11-18T04:40:41.074339+00:00; working tree on a12f34c                                                                                                                                                                                                                  | 2026-11-18 | FAIL   |
+| HTTPS diagnostics real-fixture-loopback   | `node /tmp/nexora057-https-real-fixture.mjs`; exit0; 2026-11-18T04:41:09.365710+00:00 to 2026-11-18T04:41:11.370262+00:00; working tree on a12f34c                                                                                                                                                                                                                  | 2026-11-18 | PASS   |
+
+RED/GREEN interpretation: initial diagnostic additions9PASS/6FAIL due missing operator coverage/helpers, then15/15GREEN. Prototype-name fault15PASS/1FAIL exposed new health classifier object-inheritance leakage; changed only new classifier to Map, unknown codes always OTHER, thenGREEN. Navigation retention fault17PASS/1FAIL (null vs201) exposed new window-only diagnostics loss; bounded safe observation now travels with private evaluation result and survives in Node while old status/data shape is returned; then focused28/28PASS,0FAIL/0SKIP. These are corrections to new instrumentation, not evidence of repair of the historical HTTPS cause. New no-undef AbortController lintFAIL fixed with globalThis reference; no lint-policy change.
+
+Real observer/transport checks: host read-only ip observer on2026-11-18 04:29:29UTC reached OBSERVING with0events in that brief observed window and STOPPED cleanly; this is not a claim of global network stability. Real owned child teardown and fake startup/error/exit/cap cases pass. Actual Nginx1.30.6-alpine network-none disposable syntax check PASS, private config/container cleaned, production template byte-identical. Independent real Chromium+HTTPS fixture initially failed to navigate the synthetic non-loopback hostname; second diagnostic run recorded ERR_TUNNEL_CONNECTION_FAILED. Only the uncommitted isolated fixture hostname changed to localhost (no proxy/TLS flag changes in canonical harness). Final fixturePASS proves real CDP LOGIN/operator/create-setup labels, JSON-parse failure distinction, strict Node CA/name positive and wrong-name rejection, navigation-safe projected metadata and redaction. Its certificate/key/profile/server/Chromium process were cleaned. This is instrumentation validation, not canonical MFA or historical-cause reproduction.
+
+Privacy/security: synthetic secret markers across headers/cookies/body/setupURL/fragment/errors/routeIDs never occur in serialized snapshots. Closed labels/categories, counters/event/request caps, bounded private input buffer and minimal observer environment are tested. Health probe errors/timeouts/logger exceptions preserve original error identity; no authentication retry. Static comparison proves every original assert/checks.status AST unchanged, default10000ms Node/15000ms CDP and200/100poll browser/readiness contracts retained, strict CA/name/SPKI still present. Production apps/packages/Nginx/Compose/workflows and Uniship behavior/limits unchanged. Snapshot SHA remains d29e0d0f818c6b4a954d39e90a1b0eb84d896499d9b4804fcf86c262416e7032.
+
+Independent reviewer /root/shipment_list_review initially found P3 redundant success-end CDP snapshot (policy mismatch); removed and rechecked. Remaining P1=0/P2=0/P3=0, read-only review (not test execution or owner approval). All local required checks including full quality PASS. Canonical local public-https-smoke NOT RUN: app images absent and ~705MiB free on rootless VFS; no user volumes/global prune touched. Next exact-head hosted run provides canonical evidence. Root cause A/B/C remains NOT VERIFIED; no functional fix selected. Final source/merge/workflow/timestamps and causal interpretation will be recorded in PR56 after push, no evidence-only source commit or merge. If the instrumented checkpoint cannot discriminate a defensible correction, retain diagnostics and report VERIFICATION PENDING, not repair from a green rerun.

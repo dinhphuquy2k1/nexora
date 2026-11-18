@@ -1,4 +1,11 @@
-import { createPublicAuthRequestDiagnostics } from "./public-https-diagnostics.mjs";
+import {
+  createPublicAuthRequestDiagnostics,
+  startPublicNetworkObserver,
+  correlatePublicNetworkEvents,
+  diagnosePublicHttpsFailure,
+  operatorResponseObserver,
+  sanitizeOperatorResponseDiagnostics,
+} from "./public-https-diagnostics.mjs";
 import {
   createLoginReadinessDiagnostics,
   loginReadinessObserver,
@@ -45,6 +52,8 @@ function request(
     servername = f.host,
     plain = false,
     tlsVersion,
+    signal,
+    timeoutMs = 10000,
   } = {},
 ) {
   return new Promise((resolve, reject) => {
@@ -64,7 +73,8 @@ function request(
             ? callback(null, [{ address: "127.0.0.1", family: 4 }])
             : callback(null, "127.0.0.1", 4),
         headers: { host: `${f.host}:${f.httpsPort}`, ...headers },
-        timeout: 10000,
+        timeout: timeoutMs,
+        signal,
       },
       (res) => {
         const protocol = res.socket.getProtocol?.();
@@ -113,6 +123,9 @@ function totp(key) {
   );
 }
 const authRequests = createPublicAuthRequestDiagnostics(origin);
+let networkObserver, readOperatorDiagnostics;
+let operatorResponses = [];
+let operatorResponseSnapshotAvailable = false;
 let browserProduct = "UNAVAILABLE";
 const proxyEnvPresent = Object.fromEntries(
   [
@@ -126,14 +139,28 @@ const proxyEnvPresent = Object.fromEntries(
     "no_proxy",
   ].map((name) => [name, Boolean(process.env[name])]),
 );
-const printAuthTransport = () =>
+const printAuthTransport = (
+  transport = authRequests.snapshot(),
+  network = networkObserver?.snapshot(),
+) =>
   console.error(
     "PUBLIC_AUTH_TRANSPORT_DIAGNOSTIC",
     JSON.stringify({
       browserProduct,
       proxyEnvPresent,
       fixtureHostLoopbackRuleConfigured: true,
-      ...authRequests.snapshot(),
+      ...transport,
+      operatorResponses,
+      operatorResponseSnapshotAvailable,
+      network: network ?? {
+        status: "UNAVAILABLE",
+        reason: "NOT_STARTED",
+        events: [],
+      },
+      requestNetworkEvents: correlatePublicNetworkEvents(
+        transport.requests,
+        network?.events ?? [],
+      ),
     }),
   );
 const profile = await mkdtemp(join(tmpdir(), "nexora-https-browser-"));
@@ -328,6 +355,7 @@ try {
         spawnSync(name, ["--version"], { stdio: "ignore" }).status === 0,
     );
   assert.ok(executable);
+  networkObserver = startPublicNetworkObserver();
   chrome = spawn(
     executable,
     [
@@ -412,13 +440,13 @@ try {
           leaked = true;
     }
   });
-  const send = (method, params = {}) =>
+  const send = (method, params = {}, timeoutMs = 15000) =>
     new Promise((resolve, reject) => {
       const current = ++id;
       const timer = setTimeout(() => {
         pending.delete(current);
         reject(Object.assign(Error("CDP timeout"), { name: "TimeoutError" }));
-      }, 15000);
+      }, timeoutMs);
       pending.set(current, { resolve, reject, timer });
       socket.send(JSON.stringify({ id: current, method, params }));
     });
@@ -433,6 +461,36 @@ try {
       throw Error("Browser evaluation failed");
     }
     return r.result.value;
+  };
+  const observeOperator = async (endpoint, expression) => {
+    const result = await evaluate(
+      `${operatorResponseObserver}(${JSON.stringify(endpoint)}, () => (${expression}))`,
+    );
+    if (operatorResponses.length < 4)
+      operatorResponses.push(
+        ...sanitizeOperatorResponseDiagnostics([result.observation]),
+      );
+    operatorResponseSnapshotAvailable = true;
+    return { status: result.status, data: result.data };
+  };
+  readOperatorDiagnostics = async () => {
+    try {
+      const result = await send(
+        "Runtime.evaluate",
+        {
+          expression: "window.__nexoraOperatorResponseDiagnostics ?? []",
+          returnByValue: true,
+        },
+        1000,
+      );
+      if (!result.exceptionDetails && Array.isArray(result.result?.value)) {
+        const rows = sanitizeOperatorResponseDiagnostics(result.result.value);
+        if (rows.length >= operatorResponses.length) operatorResponses = rows;
+        operatorResponseSnapshotAvailable = true;
+      }
+    } catch {
+      /* Diagnostic unavailability cannot change acceptance. */
+    }
   };
   const until = async (expression, polls = UNTIL_POLLS) => {
     for (let i = 0; i < polls; i++) {
@@ -707,14 +765,16 @@ try {
     ),
   );
   checks.step("CANONICAL_HTTPS_REMOTE_OPERATOR_SETUP");
-  const created = await evaluate(
-    `fetch("/api/admin/operators",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:"https_operator"})}).then(async r=>({status:r.status,data:await r.json()}))`,
+  const created = await observeOperator(
+    "OPERATOR_CREATE",
+    `fetch("/api/admin/operators",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:"https_operator"})})`,
   );
   checks.status(created.status, 201);
   const oldLink = new URL(created.data.setupUrl),
     oldToken = oldLink.hash.slice("#token=".length);
-  const reissued = await evaluate(
-    `fetch("/api/admin/operators/${created.data.user.id}/setup-link",{method:"POST"}).then(async r=>({status:r.status,data:await r.json()}))`,
+  const reissued = await observeOperator(
+    "OPERATOR_SETUP_LINK",
+    `fetch("/api/admin/operators/${created.data.user.id}/setup-link",{method:"POST"})`,
   );
   checks.status(reissued.status, 200);
   const link = new URL(reissued.data.setupUrl);
@@ -730,8 +790,9 @@ try {
     });
   checks.status((await setupAttempt(oldToken)).status, 400);
   for (const mode of ["disabled", "expired"]) {
-    const extra = await evaluate(
-      `fetch("/api/admin/operators",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:"https_${mode}"})}).then(async r=>({status:r.status,data:await r.json()}))`,
+    const extra = await observeOperator(
+      "OPERATOR_CREATE",
+      `fetch("/api/admin/operators",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:"https_${mode}"})})`,
     );
     checks.status(extra.status, 201);
     const extraToken = new URL(extra.data.setupUrl).hash.slice(
@@ -903,7 +964,12 @@ try {
   );
 } catch (error) {
   checks.failure(error);
-  printAuthTransport();
+  // Freeze the failure interval before diagnostics perform any additional I/O.
+  const failureTransport = authRequests.snapshot();
+  const failureNetwork = networkObserver?.snapshot();
+  if (chrome) await diagnosePublicHttpsFailure(error, request);
+  await readOperatorDiagnostics?.();
+  printAuthTransport(failureTransport, failureNetwork);
   console.error(
     "PUBLIC_AUTH_REQUEST_DIAGNOSTIC",
     JSON.stringify({
@@ -916,6 +982,14 @@ try {
     console.error(`Observed browser HTTP ${label}: ${status}`);
   process.exitCode = 1;
 } finally {
+  await networkObserver?.stop();
+  if (networkObserver) {
+    const { status, reason } = networkObserver.snapshot();
+    console.error(
+      "PUBLIC_HOST_NETWORK_OBSERVER_CLEANUP",
+      JSON.stringify({ status, reason }),
+    );
+  }
   socket?.close();
   let terminationError;
   try {
