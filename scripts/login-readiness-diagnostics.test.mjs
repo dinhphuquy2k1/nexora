@@ -60,6 +60,8 @@ test("pre-auth diagnostics retain only closed counts, never CDP payloads or exce
     protocolFailures: 1,
     scriptFailureReasons: {
       ABORTED: 0,
+      NETWORK_CHANGED: 0,
+      INTERNET_DISCONNECTED: 0,
       BLOCKED: 0,
       CERTIFICATE: 1,
       CONNECTION_CLOSED: 0,
@@ -189,4 +191,19 @@ test("script load failures map to closed reasons without payloads", () => {
   assert.equal(s.scriptFailuresCanceled, 1);
   assert.equal(s.scriptLoadFailures, 10);
   assert.equal(JSON.stringify(s).includes("private"), false);
+});
+
+test("network-change and disconnection have dedicated safe Script reasons", () => {
+  const d = createLoginReadinessDiagnostics();
+  for (const errorText of [
+    "net::ERR_NETWORK_CHANGED",
+    "net::ERR_INTERNET_DISCONNECTED",
+  ])
+    d.observe({
+      method: "Network.loadingFailed",
+      params: { type: "Script", errorText },
+    });
+  assert.equal(d.snapshot().scriptFailureReasons.NETWORK_CHANGED, 1);
+  assert.equal(d.snapshot().scriptFailureReasons.INTERNET_DISCONNECTED, 1);
+  assert.equal(d.snapshot().scriptFailureReasons.OTHER, 0);
 });

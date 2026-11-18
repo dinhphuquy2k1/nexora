@@ -1,0 +1,62 @@
+name: Public HTTPS actor evidence (optional)
+on:
+  pull_request:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  https-stress:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'https-stress')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        run: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    env:
+      PUBLIC_HTTPS_DIAGNOSTICS_DIR: artifacts/public-https
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Select pinned host Node for smoke harness
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Record exact source and merge checkout
+        env:
+          SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          TRIAL: ${{ matrix.run }}
+        run: |
+          mkdir -p "$PUBLIC_HTTPS_DIAGNOSTICS_DIR"
+          git rev-parse HEAD > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/checkout-sha.txt"
+          printf '%s\n' "$SOURCE_HEAD" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/source-sha.txt"
+          printf '%s\n' "$TRIAL" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/trial.txt"
+      - name: Build only prerequisite release images
+        run: docker compose -f compose.yml build
+      - name: Disposable public HTTPS (Foundation step 8 only)
+        shell: bash
+        run: |
+          set +e
+          sh scripts/public-https-smoke.sh > "$RUNNER_TEMP/public-https.log" 2>&1
+          result=$?
+          # Never upload raw fixture/server logs. Only fixed failure vocabulary.
+          grep -E '^(PUBLIC_HTTPS_SMOKE_FAILED|Step: [A-Z0-9_]+|Expected HTTP status: ([0-9]+|NOT_SET)|Actual HTTP status: ([0-9]+|NOT_OBSERVED)|Category: [A-Z_]+|Error type: [A-Za-z]+|Step elapsed ms: [0-9]+)$' "$RUNNER_TEMP/public-https.log" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/failure-lines.txt" || true
+          cat "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/failure-lines.txt"
+          node --input-type=module <<'JS'
+          import {readFile} from 'node:fs/promises';
+          try {
+            const row=JSON.parse(await readFile(process.env.PUBLIC_HTTPS_DIAGNOSTICS_DIR+'/failure.json','utf8'));
+            console.log('PUBLIC_HTTPS_ENVIRONMENT_DIAGNOSTIC',JSON.stringify(row.environment));
+          } catch { /* Setup may have failed before the browser started. */ }
+          JS
+          printf '%s\n' "$result" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/trial-exit-code.txt"
+          rm -f "$RUNNER_TEMP/public-https.log"
+          exit "$result"
+      - name: Preserve projected diagnostics for this independent trial
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: public-https-trial-${{ matrix.run }}
+          path: artifacts/public-https
+          if-no-files-found: error
+          retention-days: 7

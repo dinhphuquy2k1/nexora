@@ -6,6 +6,10 @@ cd "$(dirname "$0")/.."
 project="nexora-https-$$"
 export COMPOSE_PROJECT_NAME="$project"
 work=$(mktemp -d)
+environment_pid=""
+export PUBLIC_HTTPS_ENVIRONMENT_PATH="$work/environment.json"
+# The caller may retain only projected diagnostic files, never this private workdir.
+if [ -n "${PUBLIC_HTTPS_DIAGNOSTICS_DIR:-}" ]; then mkdir -p "$PUBLIC_HTTPS_DIAGNOSTICS_DIR"; fi
 export PUBLIC_FQDN=nexora.example.test
 https_port=$(node --input-type=module -e 'import {createServer} from "node:net"; const server=createServer(); server.on("error",()=>process.exitCode=1); server.listen(0,"127.0.0.1",()=>{console.log(server.address().port);server.close();});' )
 http_port=$(node --input-type=module -e 'import {createServer} from "node:net"; const server=createServer(); server.on("error",()=>process.exitCode=1); server.listen(0,"127.0.0.1",()=>{console.log(server.address().port);server.close();});' )
@@ -34,9 +38,18 @@ assert_public_startup_rejected(){
 }
 cleanup(){
   status=$?
+  # Own read-only observers span the entire fixture, including container cleanup.
   # Fixed safe app logs only; no config/env or certificate/fixture output.
   if [ "$status" -ne 0 ]; then public_compose logs --no-color --tail 40 api web ingress >&2 || true; fi
   public_compose down -v --remove-orphans >/dev/null 2>&1 || local_compose down -v --remove-orphans >/dev/null 2>&1 || true
+  if [ -n "$environment_pid" ]; then
+    kill -TERM "$environment_pid" 2>/dev/null || true
+    wait "$environment_pid" || true
+  fi
+  if [ -n "${PUBLIC_HTTPS_DIAGNOSTICS_DIR:-}" ] && [ -f "$work/environment.json" ]; then
+    cp "$work/environment.json" "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/environment.json"
+    printf '%s\n' "$status" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/exit-code.txt"
+  fi
   node --input-type=module - "$work" <<'JS'
 import {realpath,rm,lstat} from 'node:fs/promises';import {dirname,basename} from 'node:path';
 const path=process.argv[2];const canonical=await realpath(path);
@@ -46,6 +59,8 @@ JS
   exit "$status"
 }
 trap cleanup EXIT HUP INT TERM
+node scripts/public-https-environment.mjs "$work/environment.json" &
+environment_pid=$!
 mkdir -p "$work/tls/live/$PUBLIC_FQDN"
 openssl req -x509 -newkey rsa:2048 -nodes -keyout "$work/ca.key" -out "$work/ca.crt" -sha256 -days 2 -subj '/CN=Nexora disposable HTTPS test CA' >/dev/null 2>&1
 openssl req -newkey rsa:2048 -nodes -keyout "$work/tls/live/$PUBLIC_FQDN/privkey.pem" -out "$work/leaf.csr" -subj "/CN=$PUBLIC_FQDN" >/dev/null 2>&1
@@ -54,7 +69,7 @@ openssl x509 -req -in "$work/leaf.csr" -CA "$work/ca.crt" -CAkey "$work/ca.key" 
 cat "$work/leaf.crt" "$work/ca.crt" > "$work/tls/live/$PUBLIC_FQDN/fullchain.pem"
 # Chromium exception is scoped to this disposable leaf SPKI only; Node verifies the real CA/name normally.
 spki=$(openssl x509 -in "$work/leaf.crt" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl base64 -A)
-# Safe login-only access metadata lives only in this disposable overlay.
+# Safe fixed-endpoint auth/operator metadata lives only in this disposable overlay.
 node --input-type=module - "$work/nginx.conf.template" <<'JS'
 import {readFile,writeFile} from 'node:fs/promises';
 import {publicAuthIngressTemplate} from './scripts/public-https-diagnostics.mjs';

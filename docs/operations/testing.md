@@ -1065,8 +1065,9 @@ calls and partial-index conflict inference; they do not authorize new capabiliti
 
 ### Public HTTPS login request lifecycle diagnostics
 
-The disposable HTTPS browser harness records at most four same-origin
-/api/auth/login requests using existing CDP events: dispatch, response headers/
+The disposable HTTPS browser harness records at most four requests per fixed
+same-origin endpoint (LOGIN, OPERATOR_CREATE, OPERATOR_SETUP_LINK; twelve total)
+using existing CDP events: dispatch, response headers/
 status, protocol, loopback/fixture-port match, validated API request ID, loading
 failure/cancellation/block reason and finish. Network errors and block reasons
 use closed allowlists; unknown strings become OTHER. Opaque CDP IDs, raw URLs
@@ -1086,7 +1087,7 @@ only on a genuine recurrence captured by bounded diagnostics, or a separately
 planned targeted reproducer with a concrete hypothesis and observable discriminant.
 
 The existing private Public HTTPS Compose overlay mounts a temporary copy of the
-Nginx template with conditional POST-login-only fixed-field access metadata
+Nginx template with conditional fixed LOGIN/operator POST access metadata
 (status/upstream status, timing, protocol/TLS and generated ingress request ID).
 Production template/access logging is unchanged. Existing API request IDs can be
 matched to safe browser response IDs; ingress timing/status distinguishes arrival
@@ -1099,7 +1100,51 @@ assertions and the original login/MFA/Origin/cookie checks remain mandatory.
 
 If hydration fails before LOGIN dispatch, the same disposable diagnostic also
 retains up to four failed same-origin Next static-script transport summaries
-(from at most sixteen privately tracked requests). These contain only elapsed
+(from at most sixteen privately tracked requests). These contain only failure UTC/elapsed
 time and fixed network/CORS/block categories, never script URLs or payloads.
 An earlier HTTP login redirect probe is not evidence of browser HTTPS login
 arrival; distinguish its HTTP/308 ingress row from the browser request lifecycle.
+
+### Public HTTPS environment actor investigation (NEXORA-059 Phase1)
+
+The disposable harness uses the reviewed PR56 operator/transport diagnostic
+extensions without depending on Uniship changes. LOGIN, OPERATOR_CREATE and
+OPERATOR_SETUP_LINK outcomes distinguish response/JSON/shape errors from
+headerless browser transport failures. One strict Node readiness GET on failure
+is observation only; it does not establish health at an earlier failing instant.
+
+During the whole step8 fixture, read-only `ip monitor` and `docker events` run as
+owned, deadline-bounded child processes and stop on cleanup/signals. Network events
+retain only LINK/ADDR/ROUTE, UTC/elapsed time and interfaceGroup from
+lo/eth/docker0/bridge/veth/other. Docker events retain Type, closed Action,
+allowlisted Compose service (otherwise other) and UTC only. No raw addresses,
+MACs, complete interface names, container IDs, arbitrary labels, route contents,
+headers, bodies, credentials or environment values are recorded. The private
+network and Docker rolling buffers each retain at most200 events; dropped counts
+and unavailable observers are explicit. Browser-local correlation retains32 events.
+
+Failure emits `PUBLIC_HTTPS_ENVIRONMENT_DIAGNOSTIC` with the failed auth-request
+interval plus/minus5s, falling back to failed Script time or an explicitly labeled
+failure timestamp. A diagnostic-only wait collects the remaining future window
+after the original check already failed; it changes no assertion or readiness
+deadline and never retries authentication or mutations. Correlation identifies
+candidate actors, not causality by itself. Script reasons additionally distinguish
+NETWORK_CHANGED and INTERNET_DISCONNECTED. Each request start resets smoke status
+to NOT_OBSERVED so a headerless failure cannot inherit a previous201 response.
+
+Optional `.github/workflows/https-stress.yml` runs only on workflow_dispatch or a
+labeled/synchronized PR carrying `https-stress`. Its15 matrix jobs use independent
+ubuntu24.04 runners, build release prerequisites and execute only Foundation step8;
+there is no required-check addition or automatic rerun. Build/setup failures are
+not successful browser trials. Apply the label after opening a draft PR; remove it
+when the experiment finishes to prevent accidental synchronize runs. Fixture
+command ordering, production Compose/Nginx, TLS/name/SPKI, Origin, MFA, cookies and
+all existing HTTP assertions remain unchanged in Phase1.
+
+Each trial uploads only projected environment/failure JSON, closed failure-status
+lines, source/merge SHA, trial number and exit status under public-https-trial-N
+for7days. Raw work directories, certificates, fixture/session JSON and server logs
+must never be uploaded. A successful trial is coverage evidence, not a causal fix.
+After15 outcomes, report each failure's interface group and co-occurring Docker
+service/actions; stop for owner review before Phase2. Issue44 remains open until
+script failures are causally explained and an approved correction is verified.
