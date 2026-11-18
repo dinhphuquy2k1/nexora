@@ -65,7 +65,8 @@ Coarse interface groups, bounded Docker correlation and Script error reasons; re
 - [x] Test-first safe bounded observations and cleanup; existing assertions/deadlines/order preserved.
 - [x] Local checks and independent review.
 - [x] V1 draft PR and15 independent baseline trials; label removed (run44276290570).
-- [ ] V2 E0 inventory, E1 fifteen trials, E2 ten trials and compact evidence; remove labels/close temporary PR.
+- [x] V2 E0 inventory and E1 fifteen trials; E2 ten attempted trials; evidence collected, labels removed and temporary PR58 closed/unmerged.
+- [ ] Valid E2 runtime-to-HTTPS coverage: blocked before HTTPS in all10 trials; owner decision required for any new batch.
 - [ ] Phase1 report to owner; no Phase2 or merge.
 
 ## Evidence
@@ -159,3 +160,58 @@ Run PR metadata plus unique branch/lifetime and git ancestry classify all attemp
 47 Public HTTPS failures require per-job log inspection. No E0 workflow triggered.
 Initial gh run view log reads returned empty output despite exit0; do not treat
 those files as logs. Retrieve actual job logs through the Actions API instead.
+
+## V2 Phase1 experiment outcomes — stop checkpoint
+
+Common source checkpoint e15f23762741fbe6ce50fdd5e31713e4edd6dc92. E1 source
+26e6752cd24f7267e0468c968a9a5e10b4426e55 merges PR56 bfe89e8 and that checkpoint;
+protected production/Compose identity and exact selected harness identity checked.
+Mechanical conflicts only: checkpoint diagnostic extensions retained, documentation
+union retains both Uniship and experiment facts; browser assert/status AST intact.
+No PR56 code was merged into PR57. Temporary draft PR58 closed/unmerged after
+artifact retrieval. All experiment trigger labels removed before final push.
+
+| Claim                             | Evidence                                                                                                                                                                                                                                   | Date       | Result |
+| :-------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| E0 inventory                      | 498unique Foundation runs/539attempts in2026-10-19T09:57:49Z..2026-11-18T09:57:49Z; all pages/attempts,47 actual failed-step job logs; main5/26, PR56 3/6, other PR39/181 observed HTTPS failures,304 skipped and22 unavailable jobs/steps | 2026-11-18 | PASS   |
+| E1 standalone HTTPS               | [run44282344066](https://github.com/dinhphuquy2k1/nexora/actions/runs/44282344066) attempt1:15/15 reached HTTPS and PASS;15ZIP hashes/source/checkout/stage/observer cleanup checked                                                       | 2026-11-18 | PASS   |
+| E2 runtime prerequisite           | [run44282193030](https://github.com/dinhphuquy2k1/nexora/actions/runs/44282193030) attempt1: build10/10PASS, runtime10/10FAIL, HTTPS10/10NOT RUN; no trial rerun/replacement                                                               | 2026-11-18 | FAIL   |
+| E2 exact observations             | Trial1 BROWSER_LAUNCH/ASSERTION_FAILED; trials2..10 RETAIL_ISOLATED_FIXTURE/CHECK_FAILED;10ZIP hashes/source/checkout/stage outcomes checked, no HTTPS environment diagnostic fabricated                                                   | 2026-11-18 | PASS   |
+| Evidence renderer initial attempt | Private renderer lacked baseline artifact expiry metadata and failed KeyError; fetched actual artifact API metadata then regenerated, no test/source assertion change                                                                      | 2026-11-18 | FAIL   |
+| Evidence documentation            | Compact Markdown under evidence/NEXORA-059; no raw log/ZIP/fixture/media; docs:check PASS                                                                                                                                                  | 2026-11-18 | PASS   |
+
+Evidence convention/provenance and all trial rows are in
+[README](../evidence/NEXORA-059/README.md),
+[E0](../evidence/NEXORA-059/foundation-30d.md),
+[E1](../evidence/NEXORA-059/e1-pr56-step8.md),
+[E2](../evidence/NEXORA-059/e2-runtime-then-https.md).
+
+Final review finding P2: standalone E2 omitted existing Foundation4 host fixture
+build prerequisites. Retail check requires artifacts/retail-fixture/bundle.js;
+release-image builds do not generate that host bundle. This is a new harness
+environment gap (A), not a production/assertion defect. However replacement trials
+are explicitly forbidden, so no further batch or corrective runtime change was
+executed. The original private Retail exception/errno was not retained; trial1
+browser-launch cause remains unexplained and its safe startup hints were not
+included in the narrow projection. Record that limitation, do not invent a cause.
+The unexplained original-test failure invokes the B stop rule after collecting
+unaffected E0/E1/evidence. This is not successful E2 comparison coverage.
+
+No H1/H2/H3 chosen. E1 reproduced0/15, but E2 has0 observed HTTPS executions;
+there is no valid E1-versus-E2 causal comparison. Owner should decide any
+separately counted prerequisite-complete/instrumented E2 batch. Do not run it here.
+Historical statistics are heterogeneous observations, not randomized causal proof.
+PR56 remains OPEN/unmerged, issue44/task059 remain open/pending. No Phase2 change,
+new production capability or live provider request. Final evidence commit/push
+then STOP; unverified new source must not inherit an earlier green HEAD claim.
+
+Final evidence-only verification: pinned pnpm10.34.6 format:check/docs:check/
+preflight:check and focused38/38 PASS; git diff --check PASS. Host Node24.22.1
+(repository24.x engine), hosted workflow Node24.19.0. All30 baseline/E1 artifacts
+passed strict projected-key/interface/cap checks; all25 E1/E2 ZIP hashes verified.
+Self-review retains the explicit E2 prerequisite P2 and unexplained startup limit;
+no independent approval claimed. V1/v2 raw snapshot SHA values unchanged. Only
+this task and four compact Markdown evidence files change in the final commit.
+No new CI batch or replacement trial. Hosted checks for the evidence commit remain
+PENDING at final push by the owner stop instruction; earlier green results stay
+historical. No causal fix, assertion/timeout change or merge.
