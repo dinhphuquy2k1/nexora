@@ -1,6 +1,12 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { LifecycleCode, LifecycleFailure } from "../../domain/lifecycle";
+import {
+  UNISHIP_ROUTES,
+  isUnishipReadRoute,
+  type UnishipAuthRoute,
+  type UnishipReadRoute,
+} from "./uniship-routes";
 
 export class UnishipResponseError extends Error {
   constructor() {
@@ -151,7 +157,7 @@ export class UnishipHttpClient {
     signal?: AbortSignal,
   ): Promise<UnishipLoginResult> {
     return this.post(
-      "/client/api-token-auth/",
+      UNISHIP_ROUTES.AUTH,
       {
         username: input.username,
         password: input.password,
@@ -170,7 +176,7 @@ export class UnishipHttpClient {
       throw this.unavailable();
     }
     const result = await this.post(
-      "/client/api-token-verify/",
+      UNISHIP_ROUTES.VERIFY,
       { token: candidateToken, FirebaseToken: null },
       candidateToken,
       signal,
@@ -240,15 +246,12 @@ export class UnishipHttpClient {
 
   /** Narrow data read; the same hard-close and token lifecycle still own access. */
   async getShipment(
-    path: "/client/api/transition/" | "/client/api/chinaStores/",
+    path: UnishipReadRoute,
     token: string,
     cancellation: AbortSignal,
     query = new URLSearchParams(),
   ): Promise<string> {
-    if (
-      !["/client/api/transition/", "/client/api/chinaStores/"].includes(path) ||
-      unsafeToken(token)
-    )
+    if (!isUnishipReadRoute(path) || unsafeToken(token))
       throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
     let target: URL;
     try {
@@ -372,7 +375,7 @@ export class UnishipHttpClient {
   }
 
   private async post(
-    path: string,
+    path: UnishipAuthRoute,
     body: Record<string, unknown>,
     token?: string,
     cancellation?: AbortSignal,

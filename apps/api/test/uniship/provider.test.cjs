@@ -56,6 +56,31 @@ async function fixture(t, handler, options = {}) {
   );
   return { client, provider, requests, calls, store };
 }
+test("canonical Uniship routes preserve wire values and the GET-only runtime allowlist", () => {
+  const {
+    UNISHIP_ROUTES,
+    isUnishipReadRoute,
+  } = require("../../dist/carrier/infrastructure/uniship/uniship-routes");
+  assert.deepEqual(UNISHIP_ROUTES, {
+    AUTH: "/client/api-token-auth/",
+    VERIFY: "/client/api-token-verify/",
+    SHIPMENTS: "/client/api/transition/",
+    WAREHOUSES: "/client/api/chinaStores/",
+  });
+  assert.equal(isUnishipReadRoute(UNISHIP_ROUTES.SHIPMENTS), true);
+  assert.equal(isUnishipReadRoute(UNISHIP_ROUTES.WAREHOUSES), true);
+  for (const path of [
+    UNISHIP_ROUTES.AUTH,
+    UNISHIP_ROUTES.VERIFY,
+    "/client/api/customers/1",
+    "/client/api/transition",
+    "https://kh.uniship.vn/client/api/transition/",
+    "",
+    null,
+    undefined,
+  ])
+    assert.equal(isUnishipReadRoute(path), false);
+});
 test("FULL-only declaration, exact100-row query, existing scoped token callback and empty production registry", async (t) => {
   const f = await fixture(t, (req, res) => {
     assert.equal(req.method, "GET");
@@ -178,6 +203,15 @@ test("GET retains existing gate, path restriction, timeout, abort and bounded bo
     throw Error("live fetch must not occur");
   };
   try {
+    for (const path of ["/client/api-token-auth/", "/client/api-token-verify/"])
+      await assert.rejects(
+        f.client.getShipment(
+          path,
+          "token",
+          new globalThis.AbortController().signal,
+        ),
+        (e) => e.code === "SERVICE_UNAVAILABLE",
+      );
     for (const apiUrl of [
       "https://kh.uniship.vn",
       "http://outside.invalid",

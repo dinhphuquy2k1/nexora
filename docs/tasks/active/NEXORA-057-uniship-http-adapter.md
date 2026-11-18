@@ -514,3 +514,87 @@ Independent implementation-code-review by /root/shipment_list_review: P1=0/P2=0/
 | Claim                                                 | Evidence                                                                                                                                                                                                                                                   | Date       | Result |
 | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Existing Sync genuine PostgreSQL regression unchanged | `node --test integration/sync-integration.test.cjs` from apps/api, owned PostgreSQL17.11;61/61 PASS,0FAIL/0SKIP; exit0; working tree on f13aea8c00a100f6a5feb80a7750e03deddd4dd4; 2026-11-17T04:19:57.956409+00:00 to 2026-11-17T04:22:21.978908+00:00 UTC | 2026-11-17 | PASS   |
+
+## BOUNDED route centralization follow-up — 2026-11-18
+
+Reviewed baseline/PR56 source: 3411a02a699b52145c1be35c2b49034e055d6448;
+feat/uniship-http-adapter, clean worktree, PR open/unmerged. Source matches the
+selected owner specification: eight endpoint literal occurrences across HTTP client
+(auth/verify, GET type and runtime list) and Shipment provider GET calls. External
+contract still has exactly four endpoints. This internal refactor keeps the frozen
+v1 snapshot/revision/digest and all historical evidence unchanged.
+Documentation Impact remains REQUIRED: testing.md and this task own changed test/CI
+facts; no change to integration contract, ADR007,058 or any application contract.
+
+| Field                    | Route centralization                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Pure Carrier infrastructure Uniship route declarations and read-route guard                                                                                                                                                                                                                                                                          |
+| Existing implementations | apps/api/src/carrier/infrastructure/uniship/uniship-http.client.ts authenticate/verify/getShipment/post; apps/api/src/shipment/infrastructure/uniship/uniship-shipment.provider.ts ordered GET calls; apps/api/test/uniship/provider.test.cjs; carrier-uniship/uniship-verify literal wire tests; sync-targeted.yml narrow owned paths               |
+| Domain owner             | Carrier provider infrastructure; Shipment infrastructure imports the existing provider contract, no Domain/Sync abstraction                                                                                                                                                                                                                          |
+| Reuse alternatives       | Apply owner-selected four-entry as-const module and private two-read tuple; retain existing transport/auth methods and Node test runner, no alternative routing design or dependency                                                                                                                                                                 |
+| Selected approach        | UNISHIP_ROUTES AUTH/VERIFY/SHIPMENTS/WAREHOUSES; derived distinct UnishipAuthRoute and UnishipReadRoute; isUnishipReadRoute unknown-input guard; client/provider consume constants; private post parameter narrows only its type                                                                                                                     |
+| Rationale                | One authoritative declaration per unchanged endpoint while preserving compile-time method separation and runtime GET enforcement; smallest scoped refactor                                                                                                                                                                                           |
+| Risks                    | GET accidentally permits auth endpoints, circular mock expectations, endpoint/method/payload changes, lost security/abort/error contracts or route-only CI omission                                                                                                                                                                                  |
+| Verification             | RED/GREEN exact route object/guard and auth-path no-fetch checks; independent literal wire assertions; emitted JS unit and real PostgreSQL suites; virtual TypeScript negative compile probes; source literal audit; exactly one CI path added with all steps unchanged; pinned checks/quality, independent review and exact-final-head hosted gates |
+
+### Selected implementation and verification sequence
+
+1. Add the focused route-contract regression to existing provider.test.cjs before
+   production edits; run it against current emitted JS to record a genuine RED.
+   Preserve old unauthorized-path and literal mock wire expectations, extend runtime
+   auth-path rejection under fetch spy so no HTTP request may occur.
+2. Create only carrier/infrastructure/uniship/uniship-routes.ts using the exact four
+   strings, as-const object, private read tuple, derived auth/read types and some()
+   guard. Client replaces route literals/type/list and narrows private post type;
+   target(path:string), body/auth/gates/status/timeouts/cancellation remain unchanged.
+   Provider replaces only two literal arguments and adds the infrastructure import.
+3. Add exactly the new routes.ts path to Sync Targeted, preserving existing paths,
+   job/commands, random runtime-password fixture, cleanup, versions and15-minute timeout.
+   Add concise testing.md description. Do not edit captured fixtures or snapshot.
+4. Build API prerequisites; GREEN carrier-uniship/uniship-verify/provider/normalizer
+   tests. Compile virtual positive and @ts-expect-error negative route examples;
+   audit source: four literal declarations in new module only. Run real PostgreSQL
+   carrier-lifecycle and Uniship suites on owned disposable cluster where supported.
+5. Pinned pnpm10.34.6 format/lint/test:lint/docs/preflight/contracts/quality; local
+   canonical Docker only if supported, otherwise explicit NOT RUN and actual hosted
+   Foundation required. Independent implementation-code-review against exact seven
+   owned files; retain FAIL history, task status VERIFICATION PENDING and verification
+   PARTIALLY VERIFIED. Commit/push existing PR56, check actual source/merge checkout
+   for Preflight, Sync Targeted (both Sync/Uniship) and Foundation4–10. Record final
+   evidence in PR without unnecessary evidence-only commit. No merge or live calls.
+
+### Route follow-up execution evidence
+
+Local source checkpoint: route-refactor working tree on3411a02a699b52145c1be35c2b49034e055d6448; Node24.19.0/pnpm10.34.6. All timestamps below are UTC. Immutable snapshot remains d29e0d0f818c6b4a954d39e90a1b0eb84d896499d9b4804fcf86c262416e7032. Historical rows are retained.
+
+| Claim                     | Evidence                                                                                                                                                                                                                                                                          | Date       | Result |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Route red                 | `node --test apps/api/test/uniship/provider.test.cjs`; exit1; 2026-11-18T02:43:23.708624+00:00 to 2026-11-18T02:43:25.273252+00:00; working tree on3411a02                                                                                                                        | 2026-11-18 | FAIL   |
+| Route build               | `npx --yes pnpm@10.34.6 --filter @nexora/api... build`; exit0; 2026-11-18T02:44:10.639765+00:00 to 2026-11-18T02:44:27.440803+00:00; working tree on3411a02                                                                                                                       | 2026-11-18 | PASS   |
+| Route unit-green          | `node --test apps/api/test/carrier-uniship.test.cjs apps/api/test/uniship-verify.test.cjs apps/api/test/uniship/provider.test.cjs apps/api/test/uniship/normalizer.test.cjs`; exit0; 2026-11-18T02:44:27.501395+00:00 to 2026-11-18T02:44:29.609919+00:00; working tree on3411a02 | 2026-11-18 | PASS   |
+| Route types               | `node /tmp/nexora057-routes-types.cjs`; exit0; 2026-11-18T02:44:48.831725+00:00 to 2026-11-18T02:44:55.730309+00:00; working tree on3411a02                                                                                                                                       | 2026-11-18 | PASS   |
+| Route source-static       | `node /tmp/nexora057-routes-static.cjs`; exit1; 2026-11-18T02:45:34.519863+00:00 to 2026-11-18T02:45:35.139617+00:00; working tree on3411a02                                                                                                                                      | 2026-11-18 | FAIL   |
+| Route source-static-green | `node /tmp/nexora057-routes-static.cjs`; exit0; 2026-11-18T02:46:03.718670+00:00 to 2026-11-18T02:46:04.340447+00:00; working tree on3411a02                                                                                                                                      | 2026-11-18 | PASS   |
+| Route ci-static           | `python3 /tmp/nexora057-routes-ci-static.py`; exit0; 2026-11-18T02:46:04.391404+00:00 to 2026-11-18T02:46:04.467233+00:00; working tree on3411a02                                                                                                                                 | 2026-11-18 | PASS   |
+| Route pg-setup            | `python3 /tmp/nexora057-pg.py`; exit0; 2026-11-18T02:46:04.515736+00:00 to 2026-11-18T02:46:06.401052+00:00; working tree on3411a02                                                                                                                                               | 2026-11-18 | PASS   |
+| Route carrier-pg          | `python3 /tmp/nexora057-pg-run.py node --test integration/carrier-lifecycle-integration.test.cjs`; exit0; 2026-11-18T02:46:40.328281+00:00 to 2026-11-18T02:47:04.934484+00:00; working tree on3411a02                                                                            | 2026-11-18 | PASS   |
+| Route format              | `npx --yes pnpm@10.34.6 format:check`; exit0; 2026-11-18T02:46:40.349005+00:00 to 2026-11-18T02:47:09.098128+00:00; working tree on3411a02                                                                                                                                        | 2026-11-18 | PASS   |
+| Route uniship-pg          | `python3 /tmp/nexora057-pg-run.py node --test integration/uniship-shipment-integration.test.cjs`; exit0; 2026-11-18T02:47:04.997273+00:00 to 2026-11-18T02:47:19.452187+00:00; working tree on3411a02                                                                             | 2026-11-18 | PASS   |
+| Route lint                | `npx --yes pnpm@10.34.6 lint`; exit0; 2026-11-18T02:47:09.194670+00:00 to 2026-11-18T02:47:26.028609+00:00; working tree on3411a02                                                                                                                                                | 2026-11-18 | PASS   |
+| Route test-lint           | `npx --yes pnpm@10.34.6 test:lint`; exit0; 2026-11-18T02:47:26.082313+00:00 to 2026-11-18T02:47:34.405553+00:00; working tree on3411a02                                                                                                                                           | 2026-11-18 | PASS   |
+| Route docs                | `npx --yes pnpm@10.34.6 docs:check`; exit0; 2026-11-18T02:47:34.460427+00:00 to 2026-11-18T02:47:36.418158+00:00; working tree on3411a02                                                                                                                                          | 2026-11-18 | PASS   |
+| Route preflight           | `npx --yes pnpm@10.34.6 preflight:check`; exit0; 2026-11-18T02:47:36.468092+00:00 to 2026-11-18T02:47:38.308859+00:00; working tree on3411a02                                                                                                                                     | 2026-11-18 | PASS   |
+| Route contracts           | `npx --yes pnpm@10.34.6 contracts:check`; exit0; 2026-11-18T02:47:38.404158+00:00 to 2026-11-18T02:47:47.728697+00:00; working tree on3411a02                                                                                                                                     | 2026-11-18 | PASS   |
+| Route quality             | `API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; exit0; 2026-11-18T02:47:47.809203+00:00 to 2026-11-18T02:50:51.777489+00:00; working tree on3411a02                                                                                        | 2026-11-18 | PASS   |
+
+RED: provider suite4PASS/1FAIL because the new canonical route module did not yet exist (MODULE_NOT_FOUND); all four old tests, including added auth-route no-fetch characterization, passed. GREEN after minimal refactor/build: requested four-file unit command15/15 PASS,0FAIL/0SKIP. Assertions independently check all four literal endpoint values, approved reads only and rejection of POST/unknown/malformed/absolute/non-string routes; auth-as-GET fetch-spy count remains0. Existing mock URL/method/payload literals were not replaced by constants.
+
+The first temporary source-audit script compared TypeScript printer output, which preserves trailing-comma/newline trivia, and falsely failed on formatting only. No production change was made to address it. Replaced only that untracked temporary checker with recursive AST kind/literal/identifier comparison (ignoring trivia); GREEN proves the client equals exactly permitted import/constants/type/guard substitutions and provider body equals two route substitutions. This retains the real original FAIL without suggesting an application defect.
+
+Full API virtual no-emit compile passes valid read/auth assignments and guard narrowing plus six independent @ts-expect-error negative cases: GET refuses AUTH/VERIFY/unknown routes, read type refuses arbitrary string, auth type refuses both read routes. AST confirms private post first parameter is UnishipAuthRoute. Probe creates no repository file. Production source search now finds exactly four endpoint literals, one each solely in uniship-routes.ts (baseline eight occurrences in client/provider).
+
+Genuine owned PostgreSQL17.11: carrier-lifecycle22/22 PASS and Uniship12/12 PASS,0FAIL/0SKIP, sequential unchanged suites with actual encrypted Carrier recovery/audit and restricted nexora_sync provisioning; no assertion bypass. Native cluster/private password config removed only after marker ownership verification. Unit tests never contact a live provider.
+
+YAML parsed; exactly one new routes.ts path added; a route-only change matches and unrelated UI does not. Every previous path and the complete jobs/steps object compare equal to baseline, including existing credential cleanup, Node/pnpm/PostgreSQL, permissions, artifacts and15-minute timeout. Snapshot, captured fixtures, external contract,058 and empty production registry unchanged. Independent implementation-code-review by /root/shipment_list_review: P1=0/P2=0/P3=0; read-only review, not execution or owner approval.
+
+Canonical local `sh scripts/quality-docker.sh`: NOT RUN. Rootless VFS has only nginx:1.30.6-alpine cached and approximately714MiB free; prerequisite application images are absent. No shared/development volume reset or global prune was attempted. Native quality/PG do not substitute for Docker: actual final-head hosted Foundation4–10 remains required. Final source SHA, CI merge checkout, run IDs/timestamps/results are recorded in PR56 after push without an unnecessary evidence-only commit. Task remains VERIFICATION PENDING/IMPLEMENTED/PARTIALLY VERIFIED; external authorization and activation remain058 prerequisites, no merge.

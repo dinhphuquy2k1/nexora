@@ -20,6 +20,7 @@ import {
   UnishipHttpClient,
   UnishipResponseError,
 } from "../../../carrier/infrastructure/uniship/uniship-http.client";
+import { UNISHIP_ROUTES } from "../../../carrier/infrastructure/uniship/uniship-routes";
 import {
   parseUnishipWarehouses,
   parseUnishipPage,
@@ -78,7 +79,7 @@ export class UnishipShipmentProvider implements SyncProvider {
           signal.throwIfAborted();
           const warehouses = parseUnishipWarehouses(
             await this.client.getShipment(
-              "/client/api/chinaStores/",
+              UNISHIP_ROUTES.WAREHOUSES,
               token,
               signal,
             ),
@@ -98,7 +99,7 @@ export class UnishipShipmentProvider implements SyncProvider {
             q: "",
           });
           const text = await this.client.getShipment(
-            "/client/api/transition/",
+            UNISHIP_ROUTES.SHIPMENTS,
             token,
             signal,
             query,

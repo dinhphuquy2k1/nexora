@@ -1154,3 +1154,15 @@ The suite creates, migrates and drops its own UUID-named database; workflow serv
 teardown removes remaining test-only cluster roles. No production/shared cluster,
 Compose credential or repository secret is used. The existing15-minute job timeout,
 pinned build, permissions and public-toolchain artifact retention are unchanged.
+
+Uniship provider.test.cjs also verifies the pure canonical uniship-routes module:
+the complete four endpoint values match independent literals; the runtime GET
+guard accepts only Shipment/warehouse reads and rejects authentication, verification,
+unknown/malformed/absolute paths and non-string values. A fetch spy confirms GET
+rejects POST authentication paths before any HTTP request. Existing mock-server
+expectations retain independent literal URLs/methods/payloads, avoiding circular
+constant-based expectations. Auth and read route types are separately derived from
+the same constants; private POST accepts only auth routes. Sync Targeted includes
+an exact path filter for carrier/infrastructure/uniship/uniship-routes.ts, so a
+route-only change runs existing Sync/Uniship unit and genuine PostgreSQL coverage.
+The external endpoint/method contract and all transport/live security gates are unchanged.
