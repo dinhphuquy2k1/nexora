@@ -8,6 +8,12 @@ import {
   type UnishipReadRoute,
 } from "./uniship-routes";
 
+/** Maximum response body size for Uniship auth/verify requests (64 KiB). */
+const UNISHIP_AUTH_MAX_RESPONSE_BYTES = 64 * 1024;
+
+/** Maximum response body size for Uniship shipment/warehouse GET requests (8 MiB). */
+const UNISHIP_DATA_MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
+
 export class UnishipResponseError extends Error {
   constructor() {
     super("UNISHIP_ENVELOPE_INVALID");
@@ -294,7 +300,11 @@ export class UnishipHttpClient {
       throw new UnishipResponseError();
     }
     try {
-      return await this.readText(response, signal, 8 * 1024 * 1024);
+      return await this.readText(
+        response,
+        signal,
+        UNISHIP_DATA_MAX_RESPONSE_BYTES,
+      );
     } catch (error) {
       if (error instanceof UnishipResponseError) throw error;
       if (signal.aborted || error instanceof TypeError)
@@ -448,7 +458,9 @@ export class UnishipHttpClient {
 
     let payload: unknown;
     try {
-      payload = JSON.parse(await this.readText(response, signal, 65536));
+      payload = JSON.parse(
+        await this.readText(response, signal, UNISHIP_AUTH_MAX_RESPONSE_BYTES),
+      );
     } catch {
       throw new HttpException(
         {

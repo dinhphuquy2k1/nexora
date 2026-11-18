@@ -81,6 +81,59 @@ test("canonical Uniship routes preserve wire values and the GET-only runtime all
   ])
     assert.equal(isUnishipReadRoute(path), false);
 });
+test("response byte ceilings accept the exact maximum and reject one extra byte on all four endpoints", async (t) => {
+  let expected;
+  const payload = JSON.stringify({
+    token: "boundary-token",
+    user: { userid: "123" },
+    note: "é",
+  });
+  const f = await fixture(t, (req, res) => {
+    assert.equal(req.url, expected.path);
+    assert.equal(req.method, expected.method);
+    const body =
+      payload +
+      " ".repeat(expected.bytes + expected.extra - Buffer.byteLength(payload));
+    res.setHeader("content-type", "application/json");
+    res.end(body);
+  });
+  for (const [path, method, bytes] of [
+    ["/client/api-token-auth/", "POST", 65536],
+    ["/client/api-token-verify/", "POST", 65536],
+    ["/client/api/transition/", "GET", 8388608],
+    ["/client/api/chinaStores/", "GET", 8388608],
+  ]) {
+    const request = () => {
+      if (path === "/client/api-token-auth/")
+        return f.client.authenticate({
+          username: "synthetic",
+          password: "synthetic",
+        });
+      if (path === "/client/api-token-verify/")
+        return f.client.verify("boundary-token");
+      return f.client.getShipment(
+        path,
+        "boundary-token",
+        new globalThis.AbortController().signal,
+      );
+    };
+    expected = { path, method, bytes, extra: 0 };
+    const result = await request();
+    if (method === "GET") assert.equal(Buffer.byteLength(result), bytes);
+    else
+      assert.deepEqual(result, {
+        externalAccountId: "123",
+        candidateToken: "boundary-token",
+      });
+    expected.extra = 1;
+    await assert.rejects(request, (error) =>
+      method === "GET"
+        ? error.name === "UnishipResponseError"
+        : error.getStatus?.() === 503,
+    );
+  }
+  assert.equal(f.requests.length, 8);
+});
 test("FULL-only declaration, exact100-row query, existing scoped token callback and empty production registry", async (t) => {
   const f = await fixture(t, (req, res) => {
     assert.equal(req.method, "GET");

@@ -598,3 +598,66 @@ Genuine owned PostgreSQL17.11: carrier-lifecycle22/22 PASS and Uniship12/12 PASS
 YAML parsed; exactly one new routes.ts path added; a route-only change matches and unrelated UI does not. Every previous path and the complete jobs/steps object compare equal to baseline, including existing credential cleanup, Node/pnpm/PostgreSQL, permissions, artifacts and15-minute timeout. Snapshot, captured fixtures, external contract,058 and empty production registry unchanged. Independent implementation-code-review by /root/shipment_list_review: P1=0/P2=0/P3=0; read-only review, not execution or owner approval.
 
 Canonical local `sh scripts/quality-docker.sh`: NOT RUN. Rootless VFS has only nginx:1.30.6-alpine cached and approximately714MiB free; prerequisite application images are absent. No shared/development volume reset or global prune was attempted. Native quality/PG do not substitute for Docker: actual final-head hosted Foundation4–10 remains required. Final source SHA, CI merge checkout, run IDs/timestamps/results are recorded in PR56 after push without an unnecessary evidence-only commit. Task remains VERIFICATION PENDING/IMPLEMENTED/PARTIALLY VERIFIED; external authorization and activation remain058 prerequisites, no merge.
+
+## BOUNDED response-size naming follow-up — 2026-11-18
+
+Reviewed source/PR56 HEAD9096468999bc0d49df6eae7fe40825ffac8987aa;
+feat/uniship-http-adapter, clean worktree, PR open/unmerged. Exact inspection of
+uniship-http.client.ts confirms getShipment passes8*1024*1024 and private post
+passes65536 to the shared streaming readText. Existing readText uses size>maxBytes,
+checks abort and cancels/releases its reader in finally; it must remain unchanged.
+
+| Field                    | File-local response ceiling names                                                                                                                                                                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Two private constants and their existing HTTP client readText call sites                                                                                                                                                                              |
+| Existing implementations | apps/api/src/carrier/infrastructure/uniship/uniship-http.client.ts getShipment/post/readText; existing carrier-uniship/uniship-verify/provider/normalizer units; provider.test.cjs existing loopback fixture                                          |
+| Domain owner             | Carrier HTTP transport, not route declarations, configuration or Shipment domain                                                                                                                                                                      |
+| Reuse alternatives       | Reuse unchanged readText and existing tests/fixture; selected owner-directed file-local constants, no config/export/new file/dependency or unrelated numeric extraction                                                                               |
+| Selected approach        | UNISHIP_AUTH_MAX_RESPONSE_BYTES=64*1024 and UNISHIP_DATA_MAX_RESPONSE_BYTES=8*1024\*1024 after imports, with owner-specified comments; replace only two arguments                                                                                     |
+| Rationale                | Name transport policies without altering their exact values or any reader/auth/read behavior                                                                                                                                                          |
+| Risks                    | Wrong call-site assignment, widened/tightened ceiling, accidental >= comparison, character instead of byte accounting or unrelated refactor                                                                                                           |
+| Verification             | Baseline/after existing unit command; one minimal exact-max/max+1 public HTTP behavior test; AST comparison of only constants/two substitutions and byte-identical readText; pinned build/format/lint/docs/preflight/quality and exact-head hosted CI |
+
+Plan before edits: existing verify oversize70000 and GET8MiB+1 cases prove rejection,
+but no exact64KiB/8MiB acceptance or64KiB+1 case exists. Add only one behavior test
+in existing apps/api/test/uniship/provider.test.cjs, using its loopback helper and
+independent numeric limits. Cover auth/verify and both GET paths with valid JSON
+including a multibyte UTF-8 character, padded to exactly the ceiling or one extra
+byte; exact values accept, +1 rejects. Preserve all old assertions. This is baseline
+characterization of unchanged behavior, not a fabricated RED or private-name test.
+Build and execute before production edits, then apply only selected constants/usages
+and rerun. No mutation of readText, routes, Provider/Processor/Normalizer/Sync or
+snapshots. Expected source scope: HTTP client, smallest boundary test and this task.
+
+Documentation assessment: no additional canonical API/endpoint/schema/architecture
+fact changes; no unrelated canonical document needs editing. Keep the task's existing
+Documentation Impact REQUIRED declaration and historical evidence intact; this delta
+updates only scoped plan/verification evidence. Existing SIGNIFICANT classification,
+v1 snapshot/revision/SHA and VERIFICATION PENDING/IMPLEMENTED/PARTIALLY VERIFIED
+remain unchanged. Commit/push same PR56; final source/merge/run provenance in PR,
+no unnecessary evidence-only commit, live activation or merge.
+
+### Response-size naming execution evidence
+
+Local checkpoint: response-limit working tree on9096468999bc0d49df6eae7fe40825ffac8987aa, Node24.19.0 and pnpm10.34.6; timestamps UTC. No existing evidence or immutable snapshot was rewritten.
+
+| Claim                           | Evidence                                                                                                                                                                                                                                                                          | Date       | Result |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Response ceiling baseline-build | `npx --yes pnpm@10.34.6 --filter @nexora/api... build`; exit0; 2026-11-18T03:17:32.241075+00:00 to 2026-11-18T03:17:48.375698+00:00; working tree on9096468                                                                                                                       | 2026-11-18 | PASS   |
+| Response ceiling baseline-unit  | `node --test apps/api/test/carrier-uniship.test.cjs apps/api/test/uniship-verify.test.cjs apps/api/test/uniship/provider.test.cjs apps/api/test/uniship/normalizer.test.cjs`; exit0; 2026-11-18T03:17:48.458731+00:00 to 2026-11-18T03:17:50.576086+00:00; working tree on9096468 | 2026-11-18 | PASS   |
+| Response ceiling build          | `npx --yes pnpm@10.34.6 --filter @nexora/api... build`; exit0; 2026-11-18T03:18:29.659188+00:00 to 2026-11-18T03:18:44.982377+00:00; working tree on9096468                                                                                                                       | 2026-11-18 | PASS   |
+| Response ceiling unit           | `node --test apps/api/test/carrier-uniship.test.cjs apps/api/test/uniship-verify.test.cjs apps/api/test/uniship/provider.test.cjs apps/api/test/uniship/normalizer.test.cjs`; exit0; 2026-11-18T03:18:45.041994+00:00 to 2026-11-18T03:18:47.125404+00:00; working tree on9096468 | 2026-11-18 | PASS   |
+| Response ceiling static         | `node /tmp/nexora057-limits-static.cjs`; exit0; 2026-11-18T03:19:03.147654+00:00 to 2026-11-18T03:19:03.849741+00:00; working tree on9096468                                                                                                                                      | 2026-11-18 | PASS   |
+| Response ceiling format         | `npx --yes pnpm@10.34.6 format:check`; exit0; 2026-11-18T03:18:47.171298+00:00 to 2026-11-18T03:19:06.315721+00:00; working tree on9096468                                                                                                                                        | 2026-11-18 | PASS   |
+| Response ceiling lint           | `npx --yes pnpm@10.34.6 lint`; exit0; 2026-11-18T03:19:06.360654+00:00 to 2026-11-18T03:19:18.780307+00:00; working tree on9096468                                                                                                                                                | 2026-11-18 | PASS   |
+| Response ceiling docs           | `npx --yes pnpm@10.34.6 docs:check`; exit0; 2026-11-18T03:19:18.829848+00:00 to 2026-11-18T03:19:20.619289+00:00; working tree on9096468                                                                                                                                          | 2026-11-18 | PASS   |
+| Response ceiling preflight      | `npx --yes pnpm@10.34.6 preflight:check`; exit0; 2026-11-18T03:19:20.668031+00:00 to 2026-11-18T03:19:22.421287+00:00; working tree on9096468                                                                                                                                     | 2026-11-18 | PASS   |
+| Response ceiling quality        | `API_INTERNAL_URL=http://api:4000 NODE_ENV=production npx --yes pnpm@10.34.6 quality`; exit0; 2026-11-18T03:19:22.471534+00:00 to 2026-11-18T03:22:14.955282+00:00; working tree on9096468                                                                                        | 2026-11-18 | PASS   |
+
+Before/after characterization: requested four-file unit group16/16 PASS before production refactor and16/16 PASS after build,0FAIL/0SKIP. One added behavior test covers eight loopback HTTP requests: exactly65536 and65537 bytes on auth/verify, exactly8388608 and8388609 bytes on both GET endpoints. Bodies contain valid JSON with a multibyte UTF-8 character and padding, so an oversized auth rejection cannot be explained only by invalid JSON, and byte/character accounting is distinguished. At the ceiling, auth identity/token parsing and GET byte length are asserted; one byte over rejects through existing errors. No private-name assertion or old test weakening; baseline GREEN is intentional for this behavior-preserving change, not a claimed RED.
+
+Static audit PASS: two file-local const declarations exactly65536/8388608 with requested comments and no exports. Full production AST equals baseline plus only the two declarations and two argument substitutions. readText source text is byte-identical, including size>maxBytes, streaming, cancellation, cancel/release and UTF-8 conversion; routes/auth/GET/status/retry/constructor behavior untouched. Exactly three changed files: HTTP client, smallest necessary existing-file boundary test and task record. Frozen v1 SHA remains d29e0d0f818c6b4a954d39e90a1b0eb84d896499d9b4804fcf86c262416e7032.
+
+Independent read-only review by /root/shipment_list_review: P1=0/P2=0/P3=0; no tests/edits/provider access by reviewer. The parent Documentation Impact REQUIRED declaration is retained; this naming-only delta changes no canonical API/endpoint/schema/architecture fact and updates only task plan/evidence, no unrelated documentation.
+
+Canonical local Docker execution: NOT RUN; required application images absent (only nginx:1.30.6-alpine cached), rootless VFS and approximately708MiB free at inspection. No user-volume reset or global prune attempted. Native quality is not substituted for Docker: exact-final-head hosted Preflight/Sync Targeted/Foundation4–10 required. Final source/merge SHA, UTC run results and links are recorded in PR56 after push without an unnecessary evidence-only commit. Task remains VERIFICATION PENDING/IMPLEMENTED/PARTIALLY VERIFIED; no live activation or merge.
