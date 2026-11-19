@@ -1312,3 +1312,42 @@ actual runtime scripts may select their own owned project. E2 is invalid due to
 missing Foundation4 fixture prerequisites; its separate BROWSER_LAUNCH observation
 remains unexplained and is not investigated by E3. E3 makes no causal correction
 and never changes existing Foundation commands/order/permissions/timeouts.
+
+### Network settle intervention — NEXORA-059 v4
+
+Owner authorizes an intervention experiment, not a proven IPv6/DAD attribution.
+After the initial public ingress up/wait, public-https-smoke runs the settle CLI
+before any Chromium launch. It reuses the existing whole-step observer snapshot:
+5 continuous seconds without ADDR/ROUTE on any interface group,30seconds maximum.
+New activity resets quiet time. Timeout fails with
+PUBLIC_HTTPS_NETWORK_SETTLE_TIMEOUT and group counts/waited time. UNAVAILABLE
+(including missing/stale snapshot or unsupported/missing ip) records fallback and
+waits5seconds; it cannot exceed the overall30second deadline. No request retry,
+existing auth timeout/assertion, runner sysctl or production Compose change.
+Later fixture starts/restarts precede Node HTTPS probes, not Chromium, so no
+additional browser gate is added there.
+
+settle.json records Docker ingress start timestamp (null if not retained), gate
+start/end/status, actual wait, fallback flag and ADDR/ROUTE counts by closed group.
+Counters are cumulative in the reused observer, independent of rolling eviction.
+browser-start-window.json records the first10seconds from Chromium launch:
+up to64projected ADDR/ROUTE events and first200requests with closed resource type,
+start/end and ok/closed Chrome error/pending outcome. Dropped counts, capture-enable
+time, actual captured-through time, complete flag and observer status/reason are
+explicit. CDP connection happens after process launch: pre-CDP requests are not
+observed; pending at window end means incomplete, not successful. No URLs, raw
+request IDs, headers, cookie/body/token/IP/MAC or raw interface names retained.
+When diagnostics are enabled, keep the already-launched browser/observer alive
+through window end (at most10s from launch) after acceptance checks finish;
+this is diagnostic capture, not a request retry or assertion deadline extension.
+Files are written on PASS and FAIL in PUBLIC_HTTPS_DIAGNOSTICS_DIR. Existing
+Foundation HTTPS artifact upload retains these on ordinary failure and every E3
+call with nonempty suffix;7day retention unchanged.
+
+Run exactly15full Foundation E3 calls for this intervention. Report each gate
+wait/counts and10s window events/ERR_NETWORK_CHANGED. Owner criterion is0step8
+failures plus no postgate ADDR/ROUTE in complete observed windows; missing,
+UNAVAILABLE, capped or incomplete coverage cannot establish absence. Historical
+trial3 CHECK_FAILED without failed transport may represent a separate mechanism.
+Do not rerun failures/add more trials. Evidence and issue44 closure recommendation
+require actual hosted results, not a predeclared causal conclusion.

@@ -110,6 +110,7 @@ if public_compose run --rm --no-deps -T -e PUBLIC_FQDN=missing.example.test -e P
 if ! grep -q 'TLS certificate custody unavailable' "$work/tls-gate.log"; then gate_diagnostic "$work/tls-gate.log"; exit 1; fi
 echo 'Missing TLS custody rejection PASS'
 public_compose up --no-build -d --wait --wait-timeout 180 ingress
+node scripts/public-https-settle-cli.mjs "$PUBLIC_HTTPS_ENVIRONMENT_PATH" "${PUBLIC_HTTPS_DIAGNOSTICS_DIR:-$work}/settle.json"
 public_compose config --format json > "$work/compose.json"
 public_compose ps -a --format json > "$work/containers.json"
 node - "$work/fixture.json" "$work/ca.crt" "$spki" "$https_port" "$http_port" "$work/compose.json" "$work/session.json" "$work/containers.json" "$work/https.yml" <<'JS' | node scripts/public-https-browser.mjs

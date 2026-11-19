@@ -186,3 +186,24 @@ test("failure window uses failed request interval plus/minus five seconds; no ca
     "FAILURE_TIMESTAMP",
   );
 });
+
+test("settle counters and callback reuse projected network observations", async () => {
+  const child = fake(),
+    seen = [];
+  const observer = diagnostics.startPublicNetworkObserver({
+    platform: "linux",
+    spawnProcess: () => child,
+    terminate: async () => {},
+    onProjectedEvent: (e) => seen.push(e),
+  });
+  child.emit("spawn");
+  child.stdout.write(
+    "[ADDR]3: veth-private inet6 2001:db8::1/64 scope link\n[ROUTE] default dev eth0\n",
+  );
+  assert.equal(observer.snapshot().groupCounts.veth.ADDR, 1);
+  assert.equal(observer.snapshot().groupCounts.eth.ROUTE, 1);
+  assert.equal(seen.length, 2);
+  assert.ok(!JSON.stringify(seen).includes("2001:"));
+  assert.ok(!JSON.stringify(seen).includes("veth-private"));
+  await observer.stop();
+});

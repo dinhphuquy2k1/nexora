@@ -296,6 +296,7 @@ export function startPublicNetworkObserver({
   terminate = terminateChildProcess,
   now = Date.now,
   maxEvents = 32,
+  onProjectedEvent = () => {},
 } = {}) {
   const capacity = maxEvents === 200 ? 200 : 32;
   const started = now();
@@ -307,6 +308,12 @@ export function startPublicNetworkObserver({
   let buffer = "",
     discarding = false,
     dropped = 0;
+  const groupCounts = Object.fromEntries(
+    ["lo", "eth", "docker0", "bridge", "veth", "other"].map((g) => [
+      g,
+      { ADDR: 0, ROUTE: 0 },
+    ]),
+  );
   const counts = { LINK: 0, ADDR: 0, ROUTE: 0 },
     events = [];
   const unavailable = (category) => {
@@ -330,6 +337,17 @@ export function startPublicNetworkObserver({
         atUTC: new Date(time).toISOString(),
         elapsedMs: Math.min(600000, Math.max(0, time - started)),
       });
+      const projected = events.at(-1);
+      if (category === "ADDR" || category === "ROUTE")
+        groupCounts[projected.interfaceGroup][category] = Math.min(
+          Number.MAX_SAFE_INTEGER,
+          groupCounts[projected.interfaceGroup][category] + 1,
+        );
+      try {
+        onProjectedEvent({ ...projected });
+      } catch {
+        /* diagnostics cannot break observer */
+      }
     }
   };
   if (platform !== "linux") unavailable("UNSUPPORTED_PLATFORM");
@@ -379,6 +397,9 @@ export function startPublicNetworkObserver({
       reason,
       startedUTC: new Date(started).toISOString(),
       counts: { ...counts },
+      groupCounts: Object.fromEntries(
+        Object.entries(groupCounts).map(([g, c]) => [g, { ...c }]),
+      ),
       events: events.map((e) => ({ ...e })),
       dropped,
     }),

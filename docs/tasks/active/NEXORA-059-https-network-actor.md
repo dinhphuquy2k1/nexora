@@ -12,11 +12,11 @@ Owner-requested SIGNIFICANT Phase1 evidence collection for intermittent Foundati
 
 Task ID: NEXORA-059
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-19-https-network-actor-v3
-Reviewed baseline: 168af39006dbb7db3c902e6a047ca7864177782d
+Plan revision: rev-2026-11-19-network-settle-v4
+Reviewed baseline: 619175e87071667b007dd7c5560e8641a33c48f6
 Branch: investigate/https-network-actor
-Design Snapshot: docs/tasks/design-reviews/NEXORA-059-rev-2026-11-19-https-network-actor-v3.md
-Design SHA-256: 2b2554c6cf638e2788353fe7aafd0b31bd254bc881054fcefb941c521462f8d1
+Design Snapshot: docs/tasks/design-reviews/NEXORA-059-rev-2026-11-19-network-settle-v4.md
+Design SHA-256: edf749965114bcfd83c60ece56c7d1f9414254ba4b70a533d3e63e81d3de3c2e
 
 | Field                    | Decision                                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -359,3 +359,31 @@ changes; current capability/verification status remains pending/partial.
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Existing timing analysis   | Deterministic UTC interval calculation over16 local artifact projections;12PASS missing early/transport data; four early deltas and6 exact-overlap intervals asserted        | 2026-11-19 | PASS   |
 | Evidence-only verification | pinned pnpm10.34.6 docs:check; Prettier of changed Markdown; privacy patterns, unchanged v3 SHA and git diff --check PASS; no code tests needed for documentation-only delta | 2026-11-19 | PASS   |
+
+## Owner-authorized Phase2 intervention — 2026-11-19
+
+Owner explicitly permits the settle experiment despite missing historical PASS controls. V4 pre-code review records existing-observer reuse, contracts, privacy/caps, placement and15-trial criteria. Prior conclusions remain historical; no proven DAD claim. No Foundation/Compose/product change. Documentation Impact REQUIRED. RED/GREEN and hosted results follow.
+
+### Intervention implementation checkpoint
+
+New tests RED (module absent), then GREEN: focused46/46; gate fake-clock quiet,
+activity reset, timeout fixed-line/counts, UNAVAILABLE5s and late-unavailability
+30s cap; browser-window caps/privacy/unknown Chrome errors/partial/pending/time
+boundary; reused observer callback/group-count projection. Lint/boundaries PASS;
+docs:check/preflight:check PASS; test:docs10/10 and test:preflight24/24 PASS.
+Initial format check raced the newly appended observer test before its Prettier
+write and failed on that one new test; formatted and final recheck below.
+
+Gate reuses whole-step private snapshots (no new ip process), cumulative counts
+by closed group survive rolling eviction. settle.json plus browser-start-window.json
+are automatically inside existing uploaded directory. Window captures PASS/FAIL,
+10s from Chromium launch with64events/200requests, drops/pending and CDP-enable
+coverage explicit. Diagnostic-only tail wait through10s does not extend any
+assertion/request deadline. Gate placement only before initial Chromium; later
+fixture restarts precede Node probes, no additional Chromium launch.
+
+V4 selected because v1/v2/v3 are immutable already; no overwrite of older v2.
+No Phase2 causal conclusion before actual results. Self-review only, no
+independent approval claim. Protected Foundation/Compose/apps/packages unchanged;
+existing assert/status/step calls compared structurally and identical. No request
+retry/timeout/assertion/namespace change. Ordinary gate and E3 still PENDING.

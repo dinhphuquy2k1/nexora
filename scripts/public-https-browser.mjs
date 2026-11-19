@@ -1,3 +1,4 @@
+import { createBrowserStartWindow } from "./public-https-settle.mjs";
 import {
   createPublicAuthRequestDiagnostics,
   publicEnvironmentFailureWindow,
@@ -125,7 +126,7 @@ function totp(key) {
   );
 }
 const authRequests = createPublicAuthRequestDiagnostics(origin);
-let networkObserver, readOperatorDiagnostics;
+let networkObserver, readOperatorDiagnostics, browserStartWindow;
 let operatorResponses = [];
 let operatorResponseSnapshotAvailable = false;
 let browserProduct = "UNAVAILABLE";
@@ -358,7 +359,10 @@ try {
         spawnSync(name, ["--version"], { stdio: "ignore" }).status === 0,
     );
   assert.ok(executable);
-  networkObserver = startPublicNetworkObserver();
+  networkObserver = startPublicNetworkObserver({
+    onProjectedEvent: (event) => browserStartWindow?.network(event),
+  });
+  browserStartWindow = createBrowserStartWindow({ launchedAt: Date.now() });
   chrome = spawn(
     executable,
     [
@@ -405,6 +409,7 @@ try {
     const message = JSON.parse(event.data);
     loginDiagnostics.observe(message);
     authRequests.observe(message);
+    browserStartWindow.observe(message);
     if (message.id) {
       const op = pending.get(message.id);
       if (op) {
@@ -538,6 +543,7 @@ try {
   }
   await send("Runtime.enable");
   await send("Network.enable");
+  browserStartWindow.enabled();
   await send("Page.enable");
   const { identifier: loginObserverId } = await send(
     "Page.addScriptToEvaluateOnNewDocument",
@@ -1042,6 +1048,29 @@ try {
     console.error(`Observed browser HTTP ${label}: ${status}`);
   process.exitCode = 1;
 } finally {
+  // Bounded diagnostic capture only; all acceptance assertions have already finished.
+  if (process.env.PUBLIC_HTTPS_DIAGNOSTICS_DIR && browserStartWindow) {
+    const remaining =
+      Date.parse(browserStartWindow.snapshot().windowEndUTC) - Date.now();
+    if (remaining > 0) await delay(remaining);
+
+    try {
+      await writeFile(
+        join(
+          process.env.PUBLIC_HTTPS_DIAGNOSTICS_DIR,
+          "browser-start-window.json",
+        ),
+        JSON.stringify({
+          ...browserStartWindow.snapshot(),
+          networkStatus: networkObserver?.snapshot().status ?? "UNAVAILABLE",
+          networkReason: networkObserver?.snapshot().reason ?? null,
+        }),
+        { mode: 0o600 },
+      );
+    } catch {
+      console.error("PUBLIC_HTTPS_BROWSER_WINDOW_UNAVAILABLE");
+    }
+  }
   await networkObserver?.stop();
   if (networkObserver) {
     const { status, reason } = networkObserver.snapshot();
