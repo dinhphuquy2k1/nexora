@@ -22,6 +22,15 @@ export async function waitForNetworkSettle({
   const timeout = async () => {
     const result = {
       status: "TIMEOUT",
+      ingressStartUTC:
+        (latest?.docker?.events ?? [])
+          .filter(
+            (e) =>
+              e.Type === "container" &&
+              e.service === "ingress" &&
+              e.Action === "start",
+          )
+          .at(-1)?.atUTC ?? null,
       startedUTC: utc(started),
       endedUTC: utc(now()),
       waitedMs: now() - started,

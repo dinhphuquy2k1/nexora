@@ -60,6 +60,10 @@ test("continuous activity times out with fixed diagnostic and counts", async () 
     JSON.parse(lines[0].split(" ").slice(1).join(" ")).waitedMs,
     30000,
   );
+  assert.equal(
+    JSON.parse(lines[0].split(" ").slice(1).join(" ")).ingressStartUTC,
+    null,
+  );
 });
 test("window bounds, privacy, outcomes and time boundary", () => {
   let t = 1000;
