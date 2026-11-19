@@ -1,3 +1,4 @@
+import type { LogisticsStageCode } from "@nexora/shared/shipment";
 import { persistShipmentProvider } from "./shipment-provider.persistence";
 import { hydrateShipment } from "./shipment.mapper";
 import type { SyncDomainProcessor } from "../../sync/application/sync.port";
@@ -66,6 +67,9 @@ export function createShipmentSyncBinding(
           syncType: job.sync_type,
         }),
         existingProviderStatus: existing?.providerStatus ?? null,
+        existingLogisticsStage: existing
+          ? (existing.logisticsStage as LogisticsStageCode)
+          : null,
         async propose(
           input: unknown,
           stage: Parameters<ShipmentSyncSession["propose"]>[1],

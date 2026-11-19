@@ -4,13 +4,25 @@ on:
     paths:
       - "apps/api/src/sync/**"
       - "apps/api/src/worker/**"
+      - "apps/api/src/shipment/application/shipment-sync.port.ts"
+      - "apps/api/src/shipment/application/shipment-sync.processor.ts"
+      - "apps/api/src/shipment/domain/shipment.ts"
+      - "apps/api/src/shipment/infrastructure/shipment-sync-domain.binding.ts"
+      - "apps/api/src/shipment/infrastructure/uniship/**"
+      - "apps/api/src/carrier/infrastructure/uniship/uniship-http.client.ts"
+      - "apps/api/src/carrier/infrastructure/uniship/uniship-routes.ts"
       - "apps/api/src/customer/application/customer-sync.port.ts"
       - "apps/api/src/customer/infrastructure/customer-sync-domain.binding.ts"
       - "apps/api/integration/sync-integration.test.cjs"
+      - "apps/api/test/uniship/**"
+      - "apps/api/test/helpers/uniship-fixture.cjs"
+      - "apps/api/test/fixtures/uniship/**"
+      - "apps/api/integration/uniship-shipment-integration.test.cjs"
       - "apps/api/integration/fixtures/sync-status-contract.cjs"
       - "apps/api/integration/fixtures/sync-extension.cjs"
       - "apps/api/integration/fixtures/sync-capabilities.cjs"
       - "packages/shared/src/sync-status.ts"
+      - "packages/shared/src/shipment/**"
       - "packages/database/prisma/**"
       - ".github/workflows/sync-targeted.yml"
 permissions:
@@ -41,11 +53,43 @@ jobs:
         run: pnpm --filter @nexora/api... build
       - name: Sync unit tests
         run: node --test "apps/api/test/sync/**/*.test.cjs"
+      - name: Uniship adapter unit tests
+        run: node --test apps/api/test/uniship/normalizer.test.cjs apps/api/test/uniship/provider.test.cjs
       - name: Sync real disposable PostgreSQL regression
         working-directory: apps/api
         run: node --test integration/sync-integration.test.cjs
         env:
           DATABASE_URL: postgresql://nexora:isolated-ci-fixture-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/sync_ci
+      - name: Uniship real disposable PostgreSQL regression
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql://nexora:isolated-ci-fixture-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/sync_ci
+        run: |
+          fixture_dir=$(mktemp -d "$RUNNER_TEMP/uniship-runtime.XXXXXX")
+          cleanup() { rm -f "$fixture_dir/runtime-password" && rmdir "$fixture_dir" && echo "Temporary Uniship runtime-password fixture removed."; }
+          trap cleanup EXIT
+          trap 'exit 1' HUP INT TERM
+          export API_TEST_RUNTIME_PASSWORD_FILE="$fixture_dir/runtime-password"
+          export DISPOSABLE_CLUSTER_ADMIN_URL="$DATABASE_URL"
+          export DISPOSABLE_CLUSTER_TOKEN="nexora-sync-targeted-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          node <<'NODE'
+          const { randomBytes } = require("node:crypto");
+          const { writeFileSync } = require("node:fs");
+          const { Client } = require("../../packages/database/node_modules/pg");
+          (async () => {
+            writeFileSync(process.env.API_TEST_RUNTIME_PASSWORD_FILE, randomBytes(32).toString("hex"), { mode: 0o600, flag: "wx" });
+            const client = new Client({ connectionString: process.env.DATABASE_URL });
+            try {
+              await client.connect();
+              const result = await client.query("SELECT format('COMMENT ON DATABASE %I IS %L', current_database(), $1::text) AS sql", [process.env.DISPOSABLE_CLUSTER_TOKEN]);
+              await client.query(result.rows[0].sql);
+            } finally {
+              await client.end();
+            }
+          })().catch(() => { console.error("UNISHIP_TEST_FIXTURE_SETUP_FAILED"); process.exitCode = 1; });
+          NODE
+          node --test integration/uniship-shipment-integration.test.cjs
+          echo "Uniship PostgreSQL suite passed; removing temporary runtime-password fixture."
       - name: Collect public Prisma toolchain
         if: always()
         run: |

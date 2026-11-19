@@ -54,7 +54,7 @@ openssl x509 -req -in "$work/leaf.csr" -CA "$work/ca.crt" -CAkey "$work/ca.key" 
 cat "$work/leaf.crt" "$work/ca.crt" > "$work/tls/live/$PUBLIC_FQDN/fullchain.pem"
 # Chromium exception is scoped to this disposable leaf SPKI only; Node verifies the real CA/name normally.
 spki=$(openssl x509 -in "$work/leaf.crt" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl base64 -A)
-# Safe login-only access metadata lives only in this disposable overlay.
+# Safe fixed-endpoint auth/operator metadata lives only in this disposable overlay.
 node --input-type=module - "$work/nginx.conf.template" <<'JS'
 import {readFile,writeFile} from 'node:fs/promises';
 import {publicAuthIngressTemplate} from './scripts/public-https-diagnostics.mjs';

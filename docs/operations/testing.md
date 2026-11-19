@@ -1065,8 +1065,8 @@ calls and partial-index conflict inference; they do not authorize new capabiliti
 
 ### Public HTTPS login request lifecycle diagnostics
 
-The disposable HTTPS browser harness records at most four same-origin
-/api/auth/login requests using existing CDP events: dispatch, response headers/
+The disposable HTTPS browser harness records up to four requests per fixed label
+(LOGIN, OPERATOR_CREATE, OPERATOR_SETUP_LINK; at most12) using existing CDP events: dispatch, response headers/
 status, protocol, loopback/fixture-port match, validated API request ID, loading
 failure/cancellation/block reason and finish. Network errors and block reasons
 use closed allowlists; unknown strings become OTHER. Opaque CDP IDs, raw URLs
@@ -1086,7 +1086,7 @@ only on a genuine recurrence captured by bounded diagnostics, or a separately
 planned targeted reproducer with a concrete hypothesis and observable discriminant.
 
 The existing private Public HTTPS Compose overlay mounts a temporary copy of the
-Nginx template with conditional POST-login-only fixed-field access metadata
+Nginx template with conditional fixed-endpoint POST auth/operator access metadata
 (status/upstream status, timing, protocol/TLS and generated ingress request ID).
 Production template/access logging is unchanged. Existing API request IDs can be
 matched to safe browser response IDs; ingress timing/status distinguishes arrival
@@ -1103,3 +1103,97 @@ retains up to four failed same-origin Next static-script transport summaries
 time and fixed network/CORS/block categories, never script URLs or payloads.
 An earlier HTTP login redirect probe is not evidence of browser HTTPS login
 arrival; distinguish its HTTP/308 ingress row from the browser request lifecycle.
+
+The collector emits endpoint labels rather than URLs or operator IDs. Operator
+creation and UUID-scoped setup-link POSTs share existing closed transport categories;
+GETs to those admin paths are not traced. Operator response observation retains only
+response/status, JSON-parse and string-field presence/origin-match booleans (at most4),
+never user IDs, setup URLs, fragments, tokens or payloads. It returns the same data or
+exception to the original201/200/setup-token assertions, without retrying mutations.
+
+Around real Chromium execution, a read-only Linux `ip monitor` observer records only
+LINK/ADDR/ROUTE counts (capped10000) and at most32 observation timestamps, with a bounded
+private input buffer. It receives no fixture secrets in its environment and discards
+all raw interface/address/route/stderr output. Unsupported/startup/early-exit states
+report UNAVAILABLE; finally uses existing bounded child teardown. Cleanup status is
+reported separately. Request/event interval overlap is co-occurrence only: no interface
+identity is retained, dropped/capped events limit conclusions, and an unrelated Docker
+interface event does not establish causation.
+
+After a browser failure, one non-mutating Node HTTPS GET /api/health/ready uses the
+existing strict CA/hostname-verifying request helper with a3s diagnostic-only deadline.
+Only attempted/succeeded/status/elapsed/safe-category are emitted; no body, cookies or
+credentials. It neither retries authentication nor replaces the original failure, even
+if the probe or logger fails. Original assertion diagnostics are emitted first, and
+request/network snapshots freeze before probe I/O; existing authentication/readiness/
+CDP default deadlines are unchanged. Operator shape snapshots have a separate1s
+observation deadline. The temporary ingress map logs LOGIN/OPERATOR_CREATE/UUID setup
+labels with status/upstream timing/protocol/TLS/request ID only; production Nginx remains
+byte-identical with access_log off. No raw URI, arbitrary header or response payload
+is logged. Unit/fault coverage is `node --test scripts/public-https-diagnostics.test.mjs`
+plus existing login-readiness and smoke-check suites; real canonical HTTPS remains a
+separate required gate. Node200 with Chrome error/499 directs investigation toward
+browser/host transport, not an automatic diagnosis. A green run alone is not repair.
+
+### Fixture-backed Uniship Shipment adapter — NEXORA-057
+
+After frozen install, build emitted-JS dependencies with
+`npx --yes pnpm@10.34.6 --filter @nexora/api... build`. Run
+`node --test apps/api/test/uniship/*.test.cjs` plus existing Carrier/Shipment/Sync
+units. New tests preserve both captured JSON SHA-256 values, exercise exact numeric
+lexemes/ID, known/unknown/claim mappings, incomplete collection omission, namespace
+separation, FULL pages/envelopes/duplicates, mock GET/token/URL/live/redirect/byte/
+abort/status contracts and bounded safe warning codes. Test-derived100-row metadata
+is never presented as an owner capture; actual captured rowsPerPage remains15.
+
+`apps/api/integration/uniship-shipment-integration.test.cjs` uses an owned UUID
+PostgreSQL database and loopback HTTP fixture with actual encrypted Carrier vault,
+lifecycle/audit and Sync→Shipment transactions. It verifies immutable previous-stage
+projection, synthetic claim/history, identity/hash/source versions, repeat/changed
+payload, complete true/false/empty children versus omitted collections and stable
+IDs/xmin, malformed sibling rejection/page no-progress,101-record retry, SQL rollback,
+owner/account scope, generation/cancel/lease/processor fences and real audited token
+recovery invalidating old job versions. No external provider calls or user-volume
+reset. Existing Shipment/Sync/capacity/fencing/Carrier suites remain mandatory.
+
+Canonical Docker quality discovers this new integration test through the existing
+integration glob. Host genuine PostgreSQL can use the existing
+API_TEST_RUNTIME_PASSWORD_FILE fallback; a signed owned-cluster token additionally
+allows restricted nexora_sync provisioning under the existing fixture pattern.
+Native PostgreSQL and hosted Docker outcomes are recorded separately. No assertion
+or acceptance gate is skipped; an unavailable local Docker run is NOT RUN.
+Fixture/mock PASS never verifies live Uniship semantics or production activation.
+
+Sync Targeted also runs the existing Sync suites and two separately named Uniship
+steps sequentially after its shared API build:
+`node --test apps/api/test/uniship/normalizer.test.cjs apps/api/test/uniship/provider.test.cjs`
+and, from apps/api,
+`node --test integration/uniship-shipment-integration.test.cjs`.
+Its narrow pull-request filters include Uniship source/tests/helper/captured fixtures,
+Shipment Sync processor/session/binding/domain and shared Shipment vocabulary; unrelated
+UI-only changes do not trigger this workflow. Existing Sync commands remain unchanged.
+
+The targeted Uniship integration step uses only its disposable PostgreSQL17.11 service.
+A runner-owned mktemp directory below RUNNER_TEMP holds an exclusively created mode0600
+API_TEST_RUNTIME_PASSWORD_FILE containing32 cryptographically random bytes encoded as
+64 lowercase hexadecimal characters. The value is never printed or uploaded. EXIT
+cleanup removes the file/directory on success or failure; handled termination signals
+also exit through cleanup. A run/attempt-scoped database marker and matching
+DISPOSABLE_CLUSTER_ADMIN_URL/TOKEN reuse the existing owned-cluster protocol, enabling
+actual restricted nexora_sync checks alongside nexora_app Carrier vault provisioning.
+The suite creates, migrates and drops its own UUID-named database; workflow service
+teardown removes remaining test-only cluster roles. No production/shared cluster,
+Compose credential or repository secret is used. The existing15-minute job timeout,
+pinned build, permissions and public-toolchain artifact retention are unchanged.
+
+Uniship provider.test.cjs also verifies the pure canonical uniship-routes module:
+the complete four endpoint values match independent literals; the runtime GET
+guard accepts only Shipment/warehouse reads and rejects authentication, verification,
+unknown/malformed/absolute paths and non-string values. A fetch spy confirms GET
+rejects POST authentication paths before any HTTP request. Existing mock-server
+expectations retain independent literal URLs/methods/payloads, avoiding circular
+constant-based expectations. Auth and read route types are separately derived from
+the same constants; private POST accepts only auth routes. Sync Targeted includes
+an exact path filter for carrier/infrastructure/uniship/uniship-routes.ts, so a
+route-only change runs existing Sync/Uniship unit and genuine PostgreSQL coverage.
+The external endpoint/method contract and all transport/live security gates are unchanged.
