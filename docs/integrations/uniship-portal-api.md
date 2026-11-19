@@ -313,3 +313,85 @@ A provider request to stop also disables it. No silent dropping or live probing.
 No live gate opens from these documents. A later fixture-backed adapter task must
 resolve required semantics; actual live-environment enablement is a separate task
 with remaining ADR007 gates, operational custody and explicit activation evidence.
+
+## Fixture-backed adapter implementation — NEXORA-057 (2026-11-16)
+
+The preceding NEXORA-054 capture/selected-policy record remains historical evidence.
+NEXORA-057 implements the following mock/fixture-backed subset, not live-provider
+verification. Production capability declarations remain empty and the existing
+external-request hard-close remains enforced, including with runtime opt-in.
+NEXORA-058 owns controlled activation and its remaining evidence/custody gates.
+
+### Transport and FULL pages
+
+Shipment infrastructure composes existing CarrierConnectionLifecycleService.withToken
+and UnishipHttpClient.getShipment; there is no second password/token mechanism.
+The existing client reuses its URL/live/HTTPS gate, timeout and bounded stream
+reader; authentication keeps64KiB, data reads have an8MiB Nexora bound. Only the two
+approved GET paths are accepted. Redirects are rejected; caller abort propagates,
+401/403 goes through existing bounded token recovery,429/5xx remain retryable.
+Owner/account/generation/lifecycle facts are checked before fetching; existing Sync
+fences reject stale work after network completion. No HTTP or crypto under DB locks.
+
+Each fetch reads the complete chinaStores response and one100-row parcel page;
+warehouses/tokens are not cached across accounts/jobs. The filter/query is exactly
+the approved ecommerce/equal filter, page>=1, rowsPerPage100 and empty q. Validate
+status/message/data/summary/count metadata, expected offset and final-page length
+before returning SyncPage. Invalid envelopes/identities fail the page without
+advancing its checkpoint; a malformed valid-ID row retains only a fixed invalid
+marker for REJECTED_SOURCE. Unknown valid status is not rejection or human review.
+Within-page duplicate IDs fail; existing stable source identity/idempotence handles
+repeat observations across pages and FULL jobs. No snapshot-isolation/ordering/
+watermark or automatic deletion-from-absence guarantee is claimed.
+
+### Implemented normalized field policy
+
+| Observation                   | Implemented normalized fact                                                               | Evidence and limits                                                                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| ID                            | uniship-parcel-v1 sourceKey with the exact canonical positive integer lexeme              | Numeric form captured; resync/account stability remains externally NOT VERIFIED; tracking code is never identity                            |
+| TransactionCode               | trackingCode unchanged                                                                    | Required nonempty Domain-valid string, no silent trimming                                                                                   |
+| Status                        | providerStatus numeric string; approved1–5 stage mapping                                  | Owner-reported mapping; captured1, other status tests derived                                                                               |
+| Status13 / OldStatus          | claim string13; known OldStatus1–5 wins, else locked existing stage, else UNKNOWN         | Selected Nexora policy, not real claim chronology/completion proof                                                                          |
+| Status other than13           | providerClaimStatus null; unknown physical codes UNKNOWN with safe warning                | Synthetic0/99 regressions, no invented labels                                                                                               |
+| Weight                        | exact source lexeme through DecimalValue(10,3), nonnegative                               | Node24 JSON.parse context.source; no float reconstruction or rounding; missing/null omitted                                                 |
+| ChinaStoreID                  | originWarehouse only from matching chinaStores ID with StoreType1 and valid nonempty Name | Names/whitespace preserved, not identity; missing lookup omitted with fixed warning                                                         |
+| ReceivePlaceName              | omitted                                                                                   | Existing Shipment schema has no destinationWarehouse target; never join ReceivePlaceID or misuse serviceLevel; no schema/API expansion here |
+| Service flags                 | services omitted                                                                          | Actual null/false and complete-snapshot semantics not verified; synthetic boolean/fee presence does not authorize facts                     |
+| Fees, money, rates and counts | omitted                                                                                   | Candidate meanings/currencies/count distinctions remain ASSUMED/UNKNOWN                                                                     |
+| ProductName/line details      | items omitted                                                                             | Scalar field is not proof of a complete child snapshot or quantity/value correspondence                                                     |
+| Provider times                | providerUpdatedAt/providerChangedAt/exchangeRateAt/milestones omitted                     | No verified timezone or export-field precedence; no appendedZ/host-time conversion                                                          |
+
+Missing optional collections preserve existing services/charges/items/milestones.
+Only a separately verified complete:true normalized snapshot may reconcile or clear
+children. Tests of complete true/false/empty inputs verify Nexora's existing contract,
+not Uniship wire completeness. No fee-derived service and no null-to-false behavior.
+Normalized source records retain only validated shipment facts and the minimal
+OldStatus decision context, or {invalid:true}; no account/contact/notes/raw record.
+Existing canonicalPayload/payloadHash/sourceVersion and processorVersion are reused.
+
+### Claim/session/version boundary
+
+ShipmentSyncSession now exposes readonly existingLogisticsStage from the root already
+locked/hydrated by ShipmentSyncBinding. The Uniship-specific processor receives only
+validated status/OldStatus and that trusted stage; generic ShipmentAggregate contains
+no Uniship dictionary. The composition delegates proposal validation/application to
+ShipmentSyncProcessor. First Uniship mapper version is1, configured in test-only
+registration; existing generic processor behavior/versions remain unchanged.
+New roots have an initial history row; later rows occur only on actual physical
+stage change. Claim-only/service-only/same-stage observations do not invent history.
+A recognized OldStatus may regress DELIVERED under the chosen priority; this does
+not prove chronology. DB/programming failures propagate and roll back, never become
+REJECTED_SOURCE. No transaction/fencing/permission contract is relaxed.
+
+### Verification still required before activation
+
+UNISHIP_FIELD_SEMANTICS_VERIFICATION and UNISHIP_CLAIM_LIFECYCLE_CAPTURE remain
+NOT VERIFIED externally. The captured raw15-row-size response and both hashes are
+unchanged;100-row mock envelopes and extra status/claim scenarios are synthetic.
+No new provider/account capture, credential publication or live endpoint call occurs.
+Still require real redacted claim-opening/update/ending evidence, ID stability and
+pagination consistency, service null/false completeness, money/unit/currency/count/
+timezone meanings, actual child maxima and the remaining ADR007/operational gates.
+The future activation must also enforce the agreed1request/s per connection and
+its provider stop/contract-drift disablement procedure; this mock-only adapter does
+not assert those live operational controls are verified.
