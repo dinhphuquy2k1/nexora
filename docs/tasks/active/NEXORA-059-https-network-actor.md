@@ -296,3 +296,37 @@ lines (3E3 plus ordinary) checked. No IP/MAC patterns retained. V3 binding and
 protected-scope comparison PASS. Code/lint/focused checks from checkpoint remain
 applicable; this final delta changes only task/evidence Markdown. Self-review,
 not independent approval. Final hosted gates PENDING; push then STOP.
+
+### Ingress restart hypothesis — existing evidence only, 2026-11-19
+
+Owner scope: read existing failures E3 trials3/8/13 plus ordinary Foundation
+44454184736 attempt1; compare PASS1/2/7. No new CI, code/diagnostics change,
+rerun or artifact download. Documentation Impact REQUIRED: this task and
+[evidence follow-up](../evidence/NEXORA-059/ingress-restart-20261119-1140.md); immutable v3 unchanged.
+Reuse existing verified ZIP projections and GitHub job logs; only safe lifecycle
+and nginx lines retained. gh job log returned0bytes despite exit0; connector job
+log API fallback provided the actual seven logs. No raw log archive committed.
+
+Verdict(c) for the start near these failures: main ingress initial startup, not
+an observed automatic restart. Earlier start/die/destroy is the deliberate TLS
+one-off; main create/start then browser failure, followed by cleanup kill/die.
+Existing allowlist DOES retain die/kill/oom/restart/health_status. No unexpected
+nginx exit or reason observed. Four failure tails have only nginx -t success,
+no emerg/alert/crit/error/exited/signal lines. error_log crit suppresses lower
+levels; PASS server logs are private and200event buffer evicts their startup,
+so do not claim globally absent errors/restarts from that missing coverage.
+PASS later stop/start/restart matches explicit fixture backup/restart commands.
+
+Only proposal (not implemented): if owner wants stronger future confirmation,
+read RestartCount/State.ExitCode/State.OOMKilled of main ingress after browser
+before cleanup; optional capped ingress-only event buffer for startup coverage.
+No Action allowlist expansion needed. Owner must approve before diagnostics
+modification/execution under this follow-up's §3. No causal repair, no new
+snapshot, no runtime or workflow change. Final evidence push then STOP.
+
+| Claim                             | Evidence                                                                                                                                                            | Date       | Result |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Ingress evidence audit            | Seven job logs and existing verified artifacts;78 retained ingress event rows represented; privacy patterns and immutable v3 SHA assertions PASS                    | 2026-11-19 | PASS   |
+| Evidence comparison first attempt | Scratch assertion expected unpadded Markdown cells after Prettier; failed only on table spacing; no observation changed                                             | 2026-11-19 | FAIL   |
+| Evidence comparison corrected     | Normalize table padding before comparison; all78 projected rows match; no code or CI executed                                                                       | 2026-11-19 | PASS   |
+| Evidence documentation checks     | pinned pnpm10.34.6 docs:check; Prettier check of three changed Markdown files; git diff --check PASS; documentation-only self-review, no independent approval claim | 2026-11-19 | PASS   |

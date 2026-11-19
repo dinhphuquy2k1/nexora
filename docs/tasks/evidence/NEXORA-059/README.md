@@ -75,3 +75,14 @@ OBSERVED0containers. Label removed, no rerun/additional batch. Trials8/13 have
 explicit OPERATOR_CREATE ERR_NETWORK_CHANGED; trial3 transport error NOT OBSERVED.
 Separate ordinary run44454184736 attempt1 FAIL8 is retained outside denominator.
 Phase1 observations only; no causal repair or merge. E2 remains invalid.
+
+## Ingress restart hypothesis — existing E3 logs
+
+[Read-only follow-up](ingress-restart-20261119-1140.md) compares E3 failures3/8/13,
+ordinary Foundation44454184736 attempt1 and E3 PASS1/2/7. Verdict(c): near-failure
+ingress/start is the main container's initial start; earlier die belongs to the
+expected missing-TLS one-off. No unexpected restart/exit reason observed.
+Existing allowlist already retains die/kill/oom/restart/health_status. Rolling
+PASS coverage and nginx crit-only logging limit broader absence claims.
+No new CI, artifact download or diagnostics change; optional three-value main
+container snapshot proposed only, awaiting owner decision before implementation.
