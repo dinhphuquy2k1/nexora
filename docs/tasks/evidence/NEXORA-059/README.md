@@ -63,4 +63,15 @@ PR56 subsequently merged as9d52e7f after its owner-authorized Foundation44239448
 attempt2 PASS (attempt1 step8 FAIL retained). NEXORA057 is closed under §1.7 in
 the dedicated closure commit168af39 of this branch. Historical v2 conclusions
 above are retained; the owner now authorizes exactly15 full Foundation E3 calls
-with preserved diagnostics, not a cause repair. E3 evidence will be linked here.
+with preserved diagnostics, not a cause repair. E3 evidence is linked below.
+
+## E3 full Foundation — collected 2026-11-19
+
+[Per-trial evidence and verbatim diagnostics](e3-20261119-1105.md):
+run44455913317 attempt1 on source900950ea652054e940560cfbca52df2f5b4ac693,
+checkout95c09918aafae781855eb9833a906b2949b87d3d.12/15PASS; trials3/8/13
+FAIL only Foundation8. All15 artifacts verified; all15 preexisting snapshots
+OBSERVED0containers. Label removed, no rerun/additional batch. Trials8/13 have
+explicit OPERATOR_CREATE ERR_NETWORK_CHANGED; trial3 transport error NOT OBSERVED.
+Separate ordinary run44454184736 attempt1 FAIL8 is retained outside denominator.
+Phase1 observations only; no causal repair or merge. E2 remains invalid.

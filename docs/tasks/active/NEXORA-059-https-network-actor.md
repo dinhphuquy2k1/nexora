@@ -6,7 +6,7 @@ Verification: PARTIALLY VERIFIED
 
 ## Scope
 
-Owner-requested SIGNIFICANT Phase1 evidence collection for intermittent Foundation8 and [issue44](https://github.com/dinhphuquy2k1/nexora/issues/44). V1 baseline15 trials completed; owner-authorized v2 adds E0 history, E1 PR56/harness15 trials and E2 runtime/HTTPS10 trials, then report actor/evidence or NOT VERIFIED. Phase2 not authorized yet. No merge. PR56 remains open; NEXORA057 is not closed. Branch starts at origin/main a19aa0d2532b41135a90c6e48e3b6876471ad343, not PR56.
+Owner-requested SIGNIFICANT Phase1 evidence collection for intermittent Foundation8 and [issue44](https://github.com/dinhphuquy2k1/nexora/issues/44). V1 baseline15 trials completed; owner-authorized v2 adds E0 history, E1 PR56/harness15 trials and E2 runtime/HTTPS10 trials, then report actor/evidence or NOT VERIFIED. Phase2 not authorized yet. No PR57 merge or Phase2 repair. PR56 subsequently merged into main as9d52e7fd9a2bf4e35f33b63ae2ff51e221798fb8; merged into this branch without rebase, and NEXORA057 closed in separate commit168af39 under §1.7. Branch originally started at origin/main a19aa0d2532b41135a90c6e48e3b6876471ad343. Owner-authorized v3 adds the exact Foundation diagnostics exception, read-only preexisting-container snapshot and15 full Foundation E3 calls. Historical checkpoints below retain their original state.
 
 ## Design Review & Reuse Decision
 
@@ -255,3 +255,44 @@ new P1/P2, self-review only (no independent approval claim). Artifact-name searc
 found documentation/historical references; ordinary names remain unchanged, no
 script downloader is broken. V1/v2 snapshots and058 bytes match merged main/
 historical bytes; v3 formatted before SHA. E2 remains invalid, never promoted PASS.
+
+### E3 collected results — 2026-11-19
+
+[Full E3 evidence](../evidence/NEXORA-059/e3-20261119-1105.md) records source
+900950ea652054e940560cfbca52df2f5b4ac693, merge checkout
+95c09918aafae781855eb9833a906b2949b87d3d, run44455913317 attempt1.
+Exactly15 independent Foundation calls:12PASS,3FAIL only step8 (trials3,8,13).
+No other-step failures; no rerun, replacement or extra batch. Full label removed.
+All15 projected HTTPS artifacts downloaded and SHA-256/schema/caps checked.
+All15 preexisting snapshots OBSERVED with0containers, including0 nexora-ci running.
+This observes the start instant only, not the absence of later Docker changes.
+
+Trials8/13 retain OPERATOR_CREATE net::ERR_NETWORK_CHANGED; ADDR/ROUTE veth
+coincides with those failed requests. Their plus/minus5s windows include
+network/connect/other and container/start/ingress. Trial3 is CHECK_FAILED in the
+same operator-setup substep, but no failed request/script is retained: Chrome
+error NOT OBSERVED, do not count it as a confirmed NETWORK_CHANGED transport.
+All three windows include veth ADDR/ROUTE and ingress start. Co-occurrence is
+not causal proof; exact actor/address family/project attribution not retained.
+No H1/H2/H3 causal fix selected or implemented; owner review required for Phase2.
+
+Separate ordinary Foundation44454184736 attempt1 FAIL only step8, interactive
+login with4SAME_ORIGIN_NEXT_SCRIPT ERR_NETWORK_CHANGED failures; safe artifact
+14498295005 verified, six original unsuffixed artifact names preserved. No rerun.
+Preflight44454184718 PASS; unarmed stress44454184720 PASS with batch jobs skipped.
+Sync Targeted NOT RUN by path filter. This ordinary sample is excluded from15.
+
+Final evidence-only changes: current Scope reflects mergedPR56/closed057;
+historical evidence and snapshots remain unchanged. Hosted results above apply
+to checkpoint900950e, not the final evidence commit. Final-head hosted gates
+PENDING at push; owner explicitly requires STOP after this evidence push.
+No independent approval claimed, no production/API/SDK/DB/Compose change, no058
+edit, no fixture/namespace/retry/timeout/assertion change and no PR merge.
+
+Final evidence-only verification: pinned pnpm10.34.6 format:check, docs:check,
+preflight:check PASS; docs/preflight Node tests34/34 PASS; git diff --check PASS.
+All15 E3 ZIP digests/keys/caps, checkout provenance and4 verbatim environment
+lines (3E3 plus ordinary) checked. No IP/MAC patterns retained. V3 binding and
+protected-scope comparison PASS. Code/lint/focused checks from checkpoint remain
+applicable; this final delta changes only task/evidence Markdown. Self-review,
+not independent approval. Final hosted gates PENDING; push then STOP.
