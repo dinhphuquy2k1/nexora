@@ -330,3 +330,32 @@ snapshot, no runtime or workflow change. Final evidence push then STOP.
 | Evidence comparison first attempt | Scratch assertion expected unpadded Markdown cells after Prettier; failed only on table spacing; no observation changed                                             | 2026-11-19 | FAIL   |
 | Evidence comparison corrected     | Normalize table padding before comparison; all78 projected rows match; no code or CI executed                                                                       | 2026-11-19 | PASS   |
 | Evidence documentation checks     | pinned pnpm10.34.6 docs:check; Prettier check of three changed Markdown files; git diff --check PASS; documentation-only self-review, no independent approval claim | 2026-11-19 | PASS   |
+
+### Settle timing prerequisite — 2026-11-19
+
+Documentation Impact REQUIRED; evidence-only continuation of v3. Owner permits
+Phase2 only after existing16-sample timing validates FAIL overlap versus PASS
+non-overlap. [Timing evidence](../evidence/NEXORA-059/settle-timing-20261119-1144.md)
+computes all four failures and audits every12PASS archive. Failed early Δ1:
+trial3=1983ms, trial8=1894ms, trial13=1897ms, ordinary=1208ms. Maximum1983ms
+is only an observed failed-sample bound. Literal final-event Δ1 maximum12002ms
+includes cleanup, not startup settle. First actual browser request NOT VERIFIED;
+first retained auth/failed-script timing is listed separately.
+
+Trials8/13 and ordinary have requests in flight at the event. Trial3 has3
+successful requests intersecting ±100ms but none pending at the exact event;
+its immediate CHECK_FAILED cause remains unknown. All12PASS initial network
+intervals were evicted and successful transport not persisted. PASS overlap
+UNKNOWN, not false. No PASS contradiction demonstrated, but prerequisite is
+INCONCLUSIVE and not satisfied. No IPv6/DAD/ingress-veth ownership proof.
+
+STOP before Phase2: no gate, new test, snapshot revision, metadata change or
+new CI. No retry/timeout/assertion/Compose/runner change. Owner must decide
+whether to authorize prospective measurements or an explicitly experimental
+settle gate despite unavailable PASS contrast. Only task/evidence Markdown
+changes; current capability/verification status remains pending/partial.
+
+| Claim                      | Evidence                                                                                                                                                                     | Date       | Result |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Existing timing analysis   | Deterministic UTC interval calculation over16 local artifact projections;12PASS missing early/transport data; four early deltas and6 exact-overlap intervals asserted        | 2026-11-19 | PASS   |
+| Evidence-only verification | pinned pnpm10.34.6 docs:check; Prettier of changed Markdown; privacy patterns, unchanged v3 SHA and git diff --check PASS; no code tests needed for documentation-only delta | 2026-11-19 | PASS   |

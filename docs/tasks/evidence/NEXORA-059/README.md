@@ -86,3 +86,13 @@ Existing allowlist already retains die/kill/oom/restart/health_status. Rolling
 PASS coverage and nginx crit-only logging limit broader absence claims.
 No new CI, artifact download or diagnostics change; optional three-value main
 container snapshot proposed only, awaiting owner decision before implementation.
+
+## Settle timing prerequisite — existing16 samples
+
+[Timing and coverage table](settle-timing-20261119-1144.md): four failures have early veth
+ADDR/ROUTE1983/1894/1897/1208ms after main ingress start (maximum1983ms).
+Trials8/13 and ordinary overlap a request at the exact event; trial3 overlaps
+successful requests within ±100ms, not exactly at event. All12PASS initial
+network/request intervals are missing from retained archives. Required PASS
+non-overlap comparison INCONCLUSIVE, not verified. Phase2 gate and new E3 NOT
+STARTED; owner decision needed before further execution. No new CI or code.
