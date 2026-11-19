@@ -96,3 +96,15 @@ successful requests within ±100ms, not exactly at event. All12PASS initial
 network/request intervals are missing from retained archives. Required PASS
 non-overlap comparison INCONCLUSIVE, not verified. Phase2 gate and new E3 NOT
 STARTED; owner decision needed before further execution. No new CI or code.
+
+## Owner-authorized settle intervention — v4
+
+[Full15-trial evidence](e3-gate-20261119-1218.md), E3 run44464207211 attempt1 on51a37b6:
+15/15 Foundation PASS,0step8 failures,0ADDR/ROUTE in complete observed10s windows,
+0recorded ERR_NETWORK_CHANGED. Each gate captured1ADDR+1ROUTEveth while waiting;
+mean6072.73ms, max6765ms. All15 artifact hashes/field limits and logs checked;
+label removed, no rerun/extra batch. Pending terminal rows are explicit.
+Owner experiment criterion confirmed; propose issue44 closure for the script-load
+network-cancellation mechanism, not a separate claim of proven IPv6 DAD. Old
+E3–3 CHECK_FAILED did not recur. Ordinary run44461694443 PASS, excluded from15.
+No automatic issue closure/PR merge; final evidence-head CI pending at push.

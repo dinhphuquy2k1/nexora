@@ -6,7 +6,7 @@ Verification: PARTIALLY VERIFIED
 
 ## Scope
 
-Owner-requested SIGNIFICANT Phase1 evidence collection for intermittent Foundation8 and [issue44](https://github.com/dinhphuquy2k1/nexora/issues/44). V1 baseline15 trials completed; owner-authorized v2 adds E0 history, E1 PR56/harness15 trials and E2 runtime/HTTPS10 trials, then report actor/evidence or NOT VERIFIED. Phase2 not authorized yet. No PR57 merge or Phase2 repair. PR56 subsequently merged into main as9d52e7fd9a2bf4e35f33b63ae2ff51e221798fb8; merged into this branch without rebase, and NEXORA057 closed in separate commit168af39 under §1.7. Branch originally started at origin/main a19aa0d2532b41135a90c6e48e3b6876471ad343. Owner-authorized v3 adds the exact Foundation diagnostics exception, read-only preexisting-container snapshot and15 full Foundation E3 calls. Historical checkpoints below retain their original state.
+Owner-requested investigation of intermittent Foundation8 and [issue44](https://github.com/dinhphuquy2k1/nexora/issues/44), now an owner-authorized v4 Phase2 network-settle intervention experiment despite missing historical PASS controls. V1/v2/v3 evidence and immutable snapshots remain historical; E2 remains invalid. V4 reuses the observer for a5s quiet gate and bounded10s browser controls, with exact15 full Foundation trials. No PR57 merge, automatic issue closure, product/API/SDK/DB/Compose/runner change. PR56 merged as9d52e7fd9a2bf4e35f33b63ae2ff51e221798fb8; incorporated without rebase, NEXORA057 closed in separate168af39;058 untouched. Historical checkpoints below retain their original state.
 
 ## Design Review & Reuse Decision
 
@@ -18,16 +18,16 @@ Branch: investigate/https-network-actor
 Design Snapshot: docs/tasks/design-reviews/NEXORA-059-rev-2026-11-19-network-settle-v4.md
 Design SHA-256: edf749965114bcfd83c60ece56c7d1f9414254ba4b70a533d3e63e81d3de3c2e
 
-| Field                    | Decision                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Component                | Disposable Public HTTPS environment attribution, script reasons, per-request status and optional stress workflow                                                                                                                                                                                                                                                              |
-| Existing implementations | scripts/public-https-diagnostics.mjs CDP lifecycle; bfe89e8 diagnostic-only helpers/strict projections/operator observations; scripts/browser-teardown.mjs bounded owned-child cleanup; scripts/login-readiness-diagnostics.mjs closed Script reasons; scripts/smoke-checks.mjs status assertions; public-https-smoke.sh owned Compose fixture; foundation.yml pinned actions |
-| Domain owner             | Operations test harness, docs/operations/testing.md; no business-domain aggregate                                                                                                                                                                                                                                                                                             |
-| Reuse alternatives       | Port only reviewed diagnostic harness changes from bfe89e8; extend existing collectors instead of new framework; raw docker/ip logs rejected; changing fixture order, browser namespace or retries before attribution rejected                                                                                                                                                |
-| Selected approach        | From origin/main, reuse four diagnostic-only files from bfe89e8 (no Uniship files). Add closed interface groups, bounded Docker observer during entire step8, safe plus/minus5s correlation at failure; add request-start status reset; optional PR-label/dispatch15-job workflow. No causal correction in Phase1                                                             |
-| Rationale                | Existing failures predate Uniship; time-aligned service/action and coarse interface evidence discriminates Docker from host events without exposing addresses or guessing actor                                                                                                                                                                                               |
-| Risks                    | Correlation is not proof; capped rolling buffers can drop older events (counts/dropped explicit); missing observer must be UNAVAILABLE; separate hosted jobs can fail build/setup and cannot count as browser PASS; no production runtime change                                                                                                                              |
-| Verification             | RED/GREEN interface samples, Docker privacy/caps/errors/deadline/cleanup, correlation boundary and stale status tests; focused/operations/full script/quality/docs/preflight/binding checks; independent review;15 independent hosted trials, artifacts7days, record all failures                                                                                             |
+| Field                    | Decision                                                                                                                                                                                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Network settle intervention, whole-step actor attribution and bounded browser startup controls                                                                                                                                                            |
+| Existing implementations | scripts/public-https-diagnostics.mjs existing network/Docker observers and projections; scripts/public-https-environment.mjs atomic snapshots; public-https-browser.mjs CDP handler; public-https-smoke.sh owned fixture/cleanup; prior v1/v2/v3 evidence |
+| Domain owner             | Operations test harness, docs/operations/testing.md; no business-domain aggregate                                                                                                                                                                         |
+| Reuse alternatives       | Reuse snapshot counters versus new observer: reuse; keep raw logs private; avoid production healthcheck/sysctl or auth retries                                                                                                                            |
+| Selected approach        | V4:5s ADDR/ROUTE quiet gate before initial Chromium,30s maximum; recorded5s unavailable fallback; bounded10s CDP/network controls on PASS and FAIL; exact15 full Foundation calls                                                                         |
+| Rationale                | Separate browser request timing from initial network churn while adding the missing PASS controls, with unchanged product/HTTP assertions and bounded secret-free projections                                                                             |
+| Risks                    | Correlation and intervention do not identify IPv6 DAD; pre-CDP traffic and missing terminals are explicit; caps/unavailable observations cannot prove absence; retain historical CHECK_FAILED as possibly distinct                                        |
+| Verification             | Fake-clock/cap/privacy RED/GREEN, focused46/46, requested local gates; ordinary Foundation44461694443 PASS and E3 run44464207211 all15PASS with projected artifacts/logs checked                                                                          |
 
 ## Domain invariants and Tactical DDD boundaries
 
@@ -387,3 +387,50 @@ No Phase2 causal conclusion before actual results. Self-review only, no
 independent approval claim. Protected Foundation/Compose/apps/packages unchanged;
 existing assert/status/step calls compared structurally and identical. No request
 retry/timeout/assertion/namespace change. Ordinary gate and E3 still PENDING.
+
+### Intervention hosted evidence — 2026-11-19
+
+[All15 intervention trials and controls](../evidence/NEXORA-059/e3-gate-20261119-1218.md):
+E3 run44464207211 attempt1 on source51a37b6437b794e5d6eaf6e066d75450161ee03d,
+actual checkout946be0f39b15934a9a3bb83fa94817b5a452e31b.15/15 Foundation PASS;
+0step8 failures,0failures elsewhere. Label removed; no rerun/replacement/extra
+batch. All15 projected ZIP digests/schema/caps verified, all15 actual job logs
+checked with step8 time bounds to exclude fake-clock diagnostics in step4.
+
+Every gate SETTLED, each captures1vethADDR+1vethROUTE during wait; no unavailable
+fallback. Mean6072.73ms, max6765ms, min5652ms. All15 windows complete10s with
+network OBSERVING, no request/event drops,0ADDR/ROUTE after gate and0recorded
+ERR_NETWORK_CHANGED.1140request rows:1065ok,75pending/no terminal; do not equate
+pending with success or proven in-flight state (redirect ID reuse possible).
+Pre-CDP traffic is outside request capture; no URL/header/token/ID retained.
+
+XÁC NHẬN theo tiêu chí thí nghiệm owner: startup network changes in the harness
+are avoided by settling before Chromium. IPv6 DAD/exact interface ownership are
+not separately proven. Propose issue44 closure for the same network-cancellation
+mechanism seen in prior Next Script failures; no automatic closure or merge.
+Historical E3–3 CHECK_FAILED may be a second mechanism, not reclassified as
+NETWORK_CHANGED; it did not recur in these15jobs.
+
+Ordinary Foundation44461694443 attempt1 PASS on51a37b6, gate6159ms with1ADDR+
+1ROUTEveth, six original artifact names/no HTTPS artifact on success. Preflight
+44461694486 PASS; Sync Targeted NOT RUN by path filter; unarmed stress44461694711
+PASS with batch jobs skipped. Earlier automatic source70caa8c/Foundation44461489798
+attempt1 PASS is superseded by timeout schema fix51a37b6, not a trial/rerun.
+The fix preserves ingressStartUTC in timeout output; unit6/6 and lint PASS.
+
+Read-only local CLI probe first hit missing snapshot and correctly fell back5006ms;
+ready observer probe SETTLED5150ms, owned children cleaned up, no network/Docker
+mutation. Final format recheck PASS after formatting the appended observer test.
+V1/v2/v3/v4 snapshots unchanged; task status remains pending for final hosted
+handoff/owner review. Experiment criteria verified on51a37b6; evidence-only final
+HEAD must not inherit green. Final evidence push then STOP, no more CI initiated.
+
+| Claim                     | Evidence                                                                                                                                                                        | Date       | Result |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Intervention criterion    | run44464207211 attempt1,15/15 full Foundation PASS; all15 complete/observed/uncapped windows zero ADDR/ROUTE and zero recorded NETWORK_CHANGED                                  | 2026-11-19 | PASS   |
+| Artifact/log verification | All15 ZIP SHA-256/schema/caps; actual checkout and step8-only gate lines equal settle.json exactly; 1140 request rows/75 missing terminals retained explicitly                  | 2026-11-19 | PASS   |
+| Final evidence review     | docs:check, preflight:check, privacy patterns, unchanged v4 SHA, protected source diff and git diff --check PASS; documentation-only self-review, no independent approval claim | 2026-11-19 | PASS   |
+
+Final evidence HEAD hosted gates PENDING at push by stop instruction. Do not
+label it Final green HEAD using earlier51a37b6 gates. No further CI batch,
+request retry, product change, issue closure or merge performed.
