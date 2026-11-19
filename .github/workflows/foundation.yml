@@ -3,6 +3,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
+    inputs:
+      artifact_suffix:
+        type: string
+        required: false
+        default: ""
 permissions:
   contents: read
 jobs:
@@ -16,6 +22,7 @@ jobs:
       M3_EVIDENCE_DIR: artifacts/m3
       ACCOUNT_EVIDENCE_DIR: artifacts/account
       CARRIER_EVIDENCE_DIR: artifacts/carrier
+      PUBLIC_HTTPS_DIAGNOSTICS_DIR: artifacts/public-https
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Select pinned host Node for smoke harnesses
@@ -40,7 +47,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: m1-browser-evidence
+          name: m1-browser-evidence${{ inputs.artifact_suffix }}
           path: artifacts/m1
           if-no-files-found: warn
           retention-days: 14
@@ -48,7 +55,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: customer-ui-evidence
+          name: customer-ui-evidence${{ inputs.artifact_suffix }}
           path: artifacts/m2
           if-no-files-found: warn
           retention-days: 14
@@ -56,7 +63,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: retail-m3-browser-evidence
+          name: retail-m3-browser-evidence${{ inputs.artifact_suffix }}
           path: artifacts/m3
           if-no-files-found: error
           retention-days: 14
@@ -64,7 +71,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: account-menu-evidence
+          name: account-menu-evidence${{ inputs.artifact_suffix }}
           path: artifacts/account
           if-no-files-found: error
           retention-days: 14
@@ -72,7 +79,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: carrier-ui-browser-evidence
+          name: carrier-ui-browser-evidence${{ inputs.artifact_suffix }}
           path: artifacts/carrier
           if-no-files-found: error
           retention-days: 14
@@ -80,10 +87,18 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pager-filter-browser-evidence
+          name: pager-filter-browser-evidence${{ inputs.artifact_suffix }}
           path: artifacts/pager-filter
           if-no-files-found: warn
           retention-days: 14
+      - name: Preserve public HTTPS diagnostics
+        if: failure() || inputs.artifact_suffix != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: public-https-diagnostics${{ inputs.artifact_suffix }}
+          path: artifacts/public-https
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Diagnostics
         if: failure()
         run: |

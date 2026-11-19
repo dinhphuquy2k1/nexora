@@ -1,0 +1,110 @@
+# NEXORA-059 — Phase1 comparison evidence
+
+Historical v2 checkpoint: owner kept PR56 OPEN/unmerged. This is observation only; no causal fix, request retry, fixture reordering, production/Compose/worker/adapter change or live-provider activation. Final evidence push is the stop point.
+
+| Experiment               | Observed outcome                                                                       | Interpretation                                                                          |
+| :----------------------- | :------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
+| E0                       | 498 runs/539 attempts;47/213 observed HTTPS executions fail;304 skipped,22 unavailable | Historical failures span main, PR56 and other PRs; revisions/attempts are heterogeneous |
+| Baseline PR57 step8-only | 15/15 HTTPS PASS                                                                       | Not reproduced on baseline; does not exonerate PR56                                     |
+| E1 PR56+harness          | 15/15 HTTPS PASS                                                                       | Not reproduced in standalone HTTPS on PR56; no branch-specific cause demonstrated       |
+| E2 runtime→HTTPS         | 10/10 runtime FAIL,0 HTTPS executions                                                  | Censored experiment; cannot compare HTTPS rates or choose H1/H2/H3                      |
+
+E0 known-execution rates: main 5/26 (19.23%), PR56 3/6 (50.00%), other PR 39/181 (21.55%). These are descriptive, non-randomized counts, not causal attribution. PR56 has a small heterogeneous sample. Details and all47 failing-attempt log references are in [foundation-30d.md](foundation-30d.md).
+
+E1 results are in [e1-pr56-step8.md](e1-pr56-step8.md). E2 stage failures, missing coverage and permitted verbatim runtime diagnostics are in [e2-runtime-then-https.md](e2-runtime-then-https.md). No HTTPS failure diagnostic exists in this batch: E1 passed and E2 never launched HTTPS.
+
+Conclusion: **NOT VERIFIED / no H1/H2/H3 selected**. The E1-versus-E2 decision table cannot be applied as though E2 had ten successful precursor executions. Do not blame/exonerate the PR56 adapter/worker/Compose from these trials. Recommendation for owner review only: authorize a separately counted E2 batch after generating the existing step4 fixture prerequisites and retaining the existing safe browser-startup summary; preserve the exact runtime/HTTPS commands and internal assertions/deadlines. Do not execute that follow-up in this task.
+
+All experiment labels removed; temporary draft PR58 closed/unmerged. PR56 unchanged/open. PR57 remains VERIFICATION PENDING/PARTIALLY VERIFIED. Unknown failure causes/expired future artifacts must remain explicit.
+
+## Baseline fifteen-trial provenance
+
+Run [44276290570](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570), attempt1; source `dcac5e5ccad2f737778bd1d621a5d1567e01db77`, actual checkout `f1663e634723cc629ebc7cb06b570859945879f7`. This is the original already-executed baseline, not E1 and not rerun. All15 artifacts downloaded and ZIP SHA-256 checked; exit0 and both observers STOPPED/reason null. Original workflow did not record a separate build exit file; actual job build/HTTPS steps were success.
+
+| Trial | Run/attempt, job                                                                                                    | UTC start → end                             | Build/runtime/HTTPS exit                     | Result / failed stage | Observer status; dropped                                             | ADDR/ROUTE interface, Docker ±5s, Script reason | Artifact (verified ZIP SHA-256; expires UTC)                                                                                         |
+| ----: | :------------------------------------------------------------------------------------------------------------------ | :------------------------------------------ | :------------------------------------------- | :-------------------- | :------------------------------------------------------------------- | :---------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------- |
+|     1 | [44276290570/1, job134705171450](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171450) | 2026-11-18T09:28:51Z → 2026-11-18T09:31:41Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=1001; docker STOPPED/none, dropped=449 | N/A: PASS, no failure window                    | 14415476061 `public-https-trial-1`; `sha256:c97e0f5d28addef5a861965d3c6b34a579fed0050352f75a492a3dac320bbce6`; 2026-11-25T09:31:36Z  |
+|     2 | [44276290570/1, job134705171314](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171314) | 2026-11-18T09:28:50Z → 2026-11-18T09:31:45Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=997; docker STOPPED/none, dropped=449  | N/A: PASS, no failure window                    | 14415346484 `public-https-trial-2`; `sha256:d8ffbcab7401c77fd705393d2d978fdc877b5b0e26f751eaa2ca7899f646eb96`; 2026-11-25T09:31:42Z  |
+|     3 | [44276290570/1, job134705171530](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171530) | 2026-11-18T09:28:51Z → 2026-11-18T09:32:01Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=992; docker STOPPED/none, dropped=455  | N/A: PASS, no failure window                    | 14414821666 `public-https-trial-3`; `sha256:e4ca8a2db9be80516f4553cade2d1f90899ad336e3ae0558ee2667eb2c9c824d`; 2026-11-25T09:31:58Z  |
+|     4 | [44276290570/1, job134705171383](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171383) | 2026-11-18T09:28:51Z → 2026-11-18T09:31:46Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=1000; docker STOPPED/none, dropped=461 | N/A: PASS, no failure window                    | 14415510635 `public-https-trial-4`; `sha256:f45fd864ed1d5bbdca7268537c165479058761915feedb08753716f6dfb1e53b`; 2026-11-25T09:31:44Z  |
+|     5 | [44276290570/1, job134705171759](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171759) | 2026-11-18T09:28:51Z → 2026-11-18T09:32:03Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=994; docker STOPPED/none, dropped=443  | N/A: PASS, no failure window                    | 14413789830 `public-https-trial-5`; `sha256:549dfd67a9120d5e5ef7665f3bb889845f1c6e7edae44a82199b317bbfd0c209`; 2026-11-25T09:31:59Z  |
+|     6 | [44276290570/1, job134705171189](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171189) | 2026-11-18T09:28:52Z → 2026-11-18T09:32:23Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=1004; docker STOPPED/none, dropped=488 | N/A: PASS, no failure window                    | 14414382885 `public-https-trial-6`; `sha256:0b4acd07d1df1075afbcd8e2ac0074f476ec05e238b7412a358de477dc43fd5e`; 2026-11-25T09:32:19Z  |
+|     7 | [44276290570/1, job134705171696](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171696) | 2026-11-18T09:28:51Z → 2026-11-18T09:32:01Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=997; docker STOPPED/none, dropped=452  | N/A: PASS, no failure window                    | 14414682946 `public-https-trial-7`; `sha256:4cc8e772ea28a7d55203b5e40838171aeb652c80966a0f6420c76fdce5ddb442`; 2026-11-25T09:31:58Z  |
+|     8 | [44276290570/1, job134705171407](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171407) | 2026-11-18T09:28:51Z → 2026-11-18T09:32:24Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=1001; docker STOPPED/none, dropped=455 | N/A: PASS, no failure window                    | 14415087328 `public-https-trial-8`; `sha256:1a7e0e651087fdcf3dab6dde0c1a731ac3e2e0b774ceb0b5d5a9edeaefc6d02c`; 2026-11-25T09:32:19Z  |
+|     9 | [44276290570/1, job134705171629](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171629) | 2026-11-18T09:28:51Z → 2026-11-18T09:32:27Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=1008; docker STOPPED/none, dropped=473 | N/A: PASS, no failure window                    | 14415750095 `public-https-trial-9`; `sha256:77d1025bd55350b895055ef199bef1eac077ecd42a3aeca0a8c12ce4951a3acb`; 2026-11-25T09:32:23Z  |
+|    10 | [44276290570/1, job134705171758](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171758) | 2026-11-18T09:28:51Z → 2026-11-18T09:31:59Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=995; docker STOPPED/none, dropped=476  | N/A: PASS, no failure window                    | 14415271588 `public-https-trial-10`; `sha256:a861c223c19d26d679deb6ec7b19980d53b14980bcff93e53c1640d10d3cabe5`; 2026-11-25T09:31:53Z |
+|    11 | [44276290570/1, job134705171642](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171642) | 2026-11-18T09:28:51Z → 2026-11-18T09:32:04Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=999; docker STOPPED/none, dropped=452  | N/A: PASS, no failure window                    | 14413829876 `public-https-trial-11`; `sha256:ef9a327b76a56af6f6de6dfa2b3236ddf43b5da300ba46bd51a302a939359238`; 2026-11-25T09:31:59Z |
+|    12 | [44276290570/1, job134705171268](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171268) | 2026-11-18T09:28:50Z → 2026-11-18T09:32:03Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=1000; docker STOPPED/none, dropped=452 | N/A: PASS, no failure window                    | 14415102200 `public-https-trial-12`; `sha256:eec5f7a6f3d66a5646d7cc83e00988e6cd33012dba8ef725770d9785e31f9b25`; 2026-11-25T09:32:00Z |
+|    13 | [44276290570/1, job134705171274](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171274) | 2026-11-18T09:28:50Z → 2026-11-18T09:31:44Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=993; docker STOPPED/none, dropped=461  | N/A: PASS, no failure window                    | 14415126750 `public-https-trial-13`; `sha256:87a50937769193b63941b49ba1fa1bd1ea4571412a3e445ceb55a81d85ab7af7`; 2026-11-25T09:31:42Z |
+|    14 | [44276290570/1, job134705171459](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171459) | 2026-11-18T09:28:51Z → 2026-11-18T09:32:09Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=1001; docker STOPPED/none, dropped=467 | N/A: PASS, no failure window                    | 14415750064 `public-https-trial-14`; `sha256:ceb010b6a29248531cfc3656110b3dbf89686bd345fe08752b23cc01dea2d26f`; 2026-11-25T09:32:06Z |
+|    15 | [44276290570/1, job134705171317](https://github.com/dinhphuquy2k1/nexora/actions/runs/44276290570/job/134705171317) | 2026-11-18T09:28:51Z → 2026-11-18T09:31:48Z | not separately recorded / NOT RUN (mode) / 0 | HTTPS PASS            | network STOPPED/none, dropped=996; docker STOPPED/none, dropped=473  | N/A: PASS, no failure window                    | 14414123705 `public-https-trial-15`; `sha256:3f99b43fa466699b5e672166b2a521e6da08a27c6f426ac6d76d5ab56e2dd8c7`; 2026-11-25T09:31:45Z |
+
+## Evidence convention
+
+UTC timestamps, run/attempt/job/source/actual checkout, artifact identity/digest/expiry, status/coverage/dropped and fixed-vocabulary failure observations are retained in text. No raw logs, ZIPs, images, credentials, fixture/cookie/session JSON or IP/MAC values are committed. Artifact expiry is7days; hashes establish integrity only, not permanent availability. Detailed private API/log downloads are scratch data, not repository evidence.
+
+## Secondary automatic CI (not experiment trials)
+
+Checkpoint Preflight44281797559 PASS; Sync Targeted NOT RUN by path filters. Temporary-PR Preflight44282185744 and Sync Targeted44282185906 PASS. These are not replacements for E1/E2 observations.
+
+At 2026-11-18T10:19:39.147926+00:00, PR57 harness checkpoint Foundation[44281797553](https://github.com/dinhphuquy2k1/nexora/actions/runs/44281797553): in_progress/PENDING, sourcee15f23762741fbe6ce50fdd5e31713e4edd6dc92, attempt1. No rerun. This is a timestamped observation, not a final-head acceptance claim.
+
+At 2026-11-18T10:19:39.147926+00:00, temporary PR58 merge Foundation[44282185867](https://github.com/dinhphuquy2k1/nexora/actions/runs/44282185867): in_progress/PENDING, source26e6752cd24f7267e0468c968a9a5e10b4426e55, attempt1. No rerun. This is a timestamped observation, not a final-head acceptance claim.
+
+## Owner checkpoint — 2026-11-19, E3
+
+E2 is **không hợp lệ (thiếu prerequisite của bước 4)** and is not causal evidence.
+Keep every historical E2 row: trial1 BROWSER_LAUNCH/ASSERTION_FAILED is recorded
+separately in e2-runtime-then-https.md, job134725686192. No actual
+BROWSER_STARTUP_DIAGNOSTIC line survived that workflow's narrow projection; do not
+fabricate one. No startup investigation or E2 rerun is authorized in E3.
+
+PR56 subsequently merged as9d52e7f after its owner-authorized Foundation44239448059
+attempt2 PASS (attempt1 step8 FAIL retained). NEXORA057 is closed under §1.7 in
+the dedicated closure commit168af39 of this branch. Historical v2 conclusions
+above are retained; the owner now authorizes exactly15 full Foundation E3 calls
+with preserved diagnostics, not a cause repair. E3 evidence is linked below.
+
+## E3 full Foundation — collected 2026-11-19
+
+[Per-trial evidence and verbatim diagnostics](e3-20261119-1105.md):
+run44455913317 attempt1 on source900950ea652054e940560cfbca52df2f5b4ac693,
+checkout95c09918aafae781855eb9833a906b2949b87d3d.12/15PASS; trials3/8/13
+FAIL only Foundation8. All15 artifacts verified; all15 preexisting snapshots
+OBSERVED0containers. Label removed, no rerun/additional batch. Trials8/13 have
+explicit OPERATOR_CREATE ERR_NETWORK_CHANGED; trial3 transport error NOT OBSERVED.
+Separate ordinary run44454184736 attempt1 FAIL8 is retained outside denominator.
+Phase1 observations only; no causal repair or merge. E2 remains invalid.
+
+## Ingress restart hypothesis — existing E3 logs
+
+[Read-only follow-up](ingress-restart-20261119-1140.md) compares E3 failures3/8/13,
+ordinary Foundation44454184736 attempt1 and E3 PASS1/2/7. Verdict(c): near-failure
+ingress/start is the main container's initial start; earlier die belongs to the
+expected missing-TLS one-off. No unexpected restart/exit reason observed.
+Existing allowlist already retains die/kill/oom/restart/health_status. Rolling
+PASS coverage and nginx crit-only logging limit broader absence claims.
+No new CI, artifact download or diagnostics change; optional three-value main
+container snapshot proposed only, awaiting owner decision before implementation.
+
+## Settle timing prerequisite — existing16 samples
+
+[Timing and coverage table](settle-timing-20261119-1144.md): four failures have early veth
+ADDR/ROUTE1983/1894/1897/1208ms after main ingress start (maximum1983ms).
+Trials8/13 and ordinary overlap a request at the exact event; trial3 overlaps
+successful requests within ±100ms, not exactly at event. All12PASS initial
+network/request intervals are missing from retained archives. Required PASS
+non-overlap comparison INCONCLUSIVE, not verified. Phase2 gate and new E3 NOT
+STARTED; owner decision needed before further execution. No new CI or code.
+
+## Owner-authorized settle intervention — v4
+
+[Full15-trial evidence](e3-gate-20261119-1218.md), E3 run44464207211 attempt1 on51a37b6:
+15/15 Foundation PASS,0step8 failures,0ADDR/ROUTE in complete observed10s windows,
+0recorded ERR_NETWORK_CHANGED. Each gate captured1ADDR+1ROUTEveth while waiting;
+mean6072.73ms, max6765ms. All15 artifact hashes/field limits and logs checked;
+label removed, no rerun/extra batch. Pending terminal rows are explicit.
+Owner experiment criterion confirmed; propose issue44 closure for the script-load
+network-cancellation mechanism, not a separate claim of proven IPv6 DAD. Old
+E3–3 CHECK_FAILED did not recur. Ordinary run44461694443 PASS, excluded from15.
+No automatic issue closure/PR merge; final evidence-head CI pending at push.

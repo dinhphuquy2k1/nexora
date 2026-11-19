@@ -6,6 +6,13 @@ cd "$(dirname "$0")/.."
 project="nexora-https-$$"
 export COMPOSE_PROJECT_NAME="$project"
 work=$(mktemp -d)
+environment_pid=""
+export PUBLIC_HTTPS_ENVIRONMENT_PATH="$work/environment.json"
+# The caller may retain only projected diagnostic files, never this private workdir.
+if [ -n "${PUBLIC_HTTPS_DIAGNOSTICS_DIR:-}" ]; then
+  mkdir -p "$PUBLIC_HTTPS_DIAGNOSTICS_DIR"
+  node scripts/public-https-preexisting.mjs "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/preexisting-containers.json" || true
+fi
 export PUBLIC_FQDN=nexora.example.test
 https_port=$(node --input-type=module -e 'import {createServer} from "node:net"; const server=createServer(); server.on("error",()=>process.exitCode=1); server.listen(0,"127.0.0.1",()=>{console.log(server.address().port);server.close();});' )
 http_port=$(node --input-type=module -e 'import {createServer} from "node:net"; const server=createServer(); server.on("error",()=>process.exitCode=1); server.listen(0,"127.0.0.1",()=>{console.log(server.address().port);server.close();});' )
@@ -34,9 +41,18 @@ assert_public_startup_rejected(){
 }
 cleanup(){
   status=$?
+  # Own read-only observers span the entire fixture, including container cleanup.
   # Fixed safe app logs only; no config/env or certificate/fixture output.
   if [ "$status" -ne 0 ]; then public_compose logs --no-color --tail 40 api web ingress >&2 || true; fi
   public_compose down -v --remove-orphans >/dev/null 2>&1 || local_compose down -v --remove-orphans >/dev/null 2>&1 || true
+  if [ -n "$environment_pid" ]; then
+    kill -TERM "$environment_pid" 2>/dev/null || true
+    wait "$environment_pid" || true
+  fi
+  if [ -n "${PUBLIC_HTTPS_DIAGNOSTICS_DIR:-}" ] && [ -f "$work/environment.json" ]; then
+    cp "$work/environment.json" "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/environment.json"
+    printf '%s\n' "$status" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/exit-code.txt"
+  fi
   node --input-type=module - "$work" <<'JS'
 import {realpath,rm,lstat} from 'node:fs/promises';import {dirname,basename} from 'node:path';
 const path=process.argv[2];const canonical=await realpath(path);
@@ -46,6 +62,8 @@ JS
   exit "$status"
 }
 trap cleanup EXIT HUP INT TERM
+node scripts/public-https-environment.mjs "$work/environment.json" &
+environment_pid=$!
 mkdir -p "$work/tls/live/$PUBLIC_FQDN"
 openssl req -x509 -newkey rsa:2048 -nodes -keyout "$work/ca.key" -out "$work/ca.crt" -sha256 -days 2 -subj '/CN=Nexora disposable HTTPS test CA' >/dev/null 2>&1
 openssl req -newkey rsa:2048 -nodes -keyout "$work/tls/live/$PUBLIC_FQDN/privkey.pem" -out "$work/leaf.csr" -subj "/CN=$PUBLIC_FQDN" >/dev/null 2>&1
@@ -92,6 +110,7 @@ if public_compose run --rm --no-deps -T -e PUBLIC_FQDN=missing.example.test -e P
 if ! grep -q 'TLS certificate custody unavailable' "$work/tls-gate.log"; then gate_diagnostic "$work/tls-gate.log"; exit 1; fi
 echo 'Missing TLS custody rejection PASS'
 public_compose up --no-build -d --wait --wait-timeout 180 ingress
+node scripts/public-https-settle-cli.mjs "$PUBLIC_HTTPS_ENVIRONMENT_PATH" "${PUBLIC_HTTPS_DIAGNOSTICS_DIR:-$work}/settle.json"
 public_compose config --format json > "$work/compose.json"
 public_compose ps -a --format json > "$work/containers.json"
 node - "$work/fixture.json" "$work/ca.crt" "$spki" "$https_port" "$http_port" "$work/compose.json" "$work/session.json" "$work/containers.json" "$work/https.yml" <<'JS' | node scripts/public-https-browser.mjs

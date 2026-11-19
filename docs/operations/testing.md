@@ -1065,8 +1065,9 @@ calls and partial-index conflict inference; they do not authorize new capabiliti
 
 ### Public HTTPS login request lifecycle diagnostics
 
-The disposable HTTPS browser harness records up to four requests per fixed label
-(LOGIN, OPERATOR_CREATE, OPERATOR_SETUP_LINK; at most12) using existing CDP events: dispatch, response headers/
+The disposable HTTPS browser harness records at most four requests per fixed
+same-origin endpoint (LOGIN, OPERATOR_CREATE, OPERATOR_SETUP_LINK; twelve total)
+using existing CDP events: dispatch, response headers/
 status, protocol, loopback/fixture-port match, validated API request ID, loading
 failure/cancellation/block reason and finish. Network errors and block reasons
 use closed allowlists; unknown strings become OTHER. Opaque CDP IDs, raw URLs
@@ -1086,7 +1087,7 @@ only on a genuine recurrence captured by bounded diagnostics, or a separately
 planned targeted reproducer with a concrete hypothesis and observable discriminant.
 
 The existing private Public HTTPS Compose overlay mounts a temporary copy of the
-Nginx template with conditional fixed-endpoint POST auth/operator access metadata
+Nginx template with conditional fixed LOGIN/operator POST access metadata
 (status/upstream status, timing, protocol/TLS and generated ingress request ID).
 Production template/access logging is unchanged. Existing API request IDs can be
 matched to safe browser response IDs; ingress timing/status distinguishes arrival
@@ -1099,10 +1100,86 @@ assertions and the original login/MFA/Origin/cookie checks remain mandatory.
 
 If hydration fails before LOGIN dispatch, the same disposable diagnostic also
 retains up to four failed same-origin Next static-script transport summaries
-(from at most sixteen privately tracked requests). These contain only elapsed
+(from at most sixteen privately tracked requests). These contain only failure UTC/elapsed
 time and fixed network/CORS/block categories, never script URLs or payloads.
 An earlier HTTP login redirect probe is not evidence of browser HTTPS login
 arrival; distinguish its HTTP/308 ingress row from the browser request lifecycle.
+
+### Public HTTPS environment actor investigation (NEXORA-059 Phase1)
+
+The disposable harness uses the reviewed PR56 operator/transport diagnostic
+extensions without depending on Uniship changes. LOGIN, OPERATOR_CREATE and
+OPERATOR_SETUP_LINK outcomes distinguish response/JSON/shape errors from
+headerless browser transport failures. One strict Node readiness GET on failure
+is observation only; it does not establish health at an earlier failing instant.
+
+During the whole step8 fixture, read-only `ip monitor` and `docker events` run as
+owned, deadline-bounded child processes and stop on cleanup/signals. Network events
+retain only LINK/ADDR/ROUTE, UTC/elapsed time and interfaceGroup from
+lo/eth/docker0/bridge/veth/other. Docker events retain Type, closed Action,
+allowlisted Compose service (otherwise other) and UTC only. No raw addresses,
+MACs, complete interface names, container IDs, arbitrary labels, route contents,
+headers, bodies, credentials or environment values are recorded. The private
+network and Docker rolling buffers each retain at most200 events; dropped counts
+and unavailable observers are explicit. Browser-local correlation retains32 events.
+
+Failure emits `PUBLIC_HTTPS_ENVIRONMENT_DIAGNOSTIC` with the failed auth-request
+interval plus/minus5s, falling back to failed Script time or an explicitly labeled
+failure timestamp. A diagnostic-only wait collects the remaining future window
+after the original check already failed; it changes no assertion or readiness
+deadline and never retries authentication or mutations. Correlation identifies
+candidate actors, not causality by itself. Script reasons additionally distinguish
+NETWORK_CHANGED and INTERNET_DISCONNECTED. Each request start resets smoke status
+to NOT_OBSERVED so a headerless failure cannot inherit a previous201 response.
+
+Optional `.github/workflows/https-stress.yml` runs only on workflow_dispatch or a
+labeled/synchronized PR carrying `https-stress`. Its15 matrix jobs use independent
+ubuntu24.04 runners, build release prerequisites and execute only Foundation step8;
+there is no required-check addition or automatic rerun. Build/setup failures are
+not successful browser trials. Apply the label after opening a draft PR; remove it
+when the experiment finishes to prevent accidental synchronize runs. Fixture
+command ordering, production Compose/Nginx, TLS/name/SPKI, Origin, MFA, cookies and
+all existing HTTP assertions remain unchanged in Phase1.
+
+Each trial uploads only projected environment/failure JSON, closed failure-status
+lines, source/merge SHA, trial number and exit status under public-https-trial-N
+for7days. Raw work directories, certificates, fixture/session JSON and server logs
+must never be uploaded. A successful trial is coverage evidence, not a causal fix.
+After15 outcomes, report each failure's interface group and co-occurring Docker
+service/actions; stop for owner review before Phase2. Issue44 remains open until
+script failures are causally explained and an approved correction is verified.
+
+### Phase1 comparison experiments — NEXORA-059 v2
+
+The optional HTTPS workflow uses one closed selector. Dispatch input mode selects
+step8-only (15 independent jobs) or runtime-then-https (10 independent jobs). For
+pull requests, https-stress arms execution; adding https-stress-runtime selects
+only the runtime variant. The runtime label alone schedules no trial. Remove
+trigger labels before pushing and after completion; add the mode label before
+arming to avoid an unintended HTTPS-only batch. No failed trial is rerun/replaced.
+
+Each runtime variant job builds the existing release prerequisites, executes
+`sh scripts/runtime-smoke.sh` then `sh scripts/public-https-smoke.sh` without an
+intermediate repair/sleep/cleanup. Existing commands and internal deadlines remain
+unchanged. Runtime failure makes HTTPS NOT RUN; it is not browser PASS. Separate
+build/runtime/HTTPS exit files and source/checkout/mode/trial metadata accompany
+only projected HTTPS diagnostics. Artifact names include mode/trial, retention7days.
+No raw runtime logs, certificates or credential/session fixtures are uploaded.
+
+E0 inventories a fixed30day UTC Foundation window, paginating all runs and attempts
+without triggering CI. Keep unique-run and attempt totals separate. Step8 rates
+use attempts actually reaching the named Public HTTPS step, excluding skipped/
+not-reached outcomes; unavailable metadata stays unknown. Preserve earlier failed
+attempts even if a later rerun passed. Group main/PR56/other/unknown using verified
+metadata and retain exact run/attempt/source/checkout/UTC/log references.
+
+E1 uses a temporary PR56-plus-harness merge, never merged into PR57/main; if
+dispatch is unavailable use a temporary draft PR, then unlabel/close it. E2 runs
+on the PR57 harness checkpoint. They share the same harness version. Final compact
+Markdown under docs/tasks/evidence/NEXORA-059 contains all trial outcomes,
+observer status/dropped/coverage and permitted verbatim environment failure lines.
+Whole-step rolling buffers after cleanup are not complete failure-window evidence.
+Branch association/correlation is not causal proof; Phase2 requires owner review.
 
 The collector emits endpoint labels rather than URLs or operator IDs. Operator
 creation and UUID-scoped setup-link POSTs share existing closed transport categories;
@@ -1197,3 +1274,80 @@ the same constants; private POST accepts only auth routes. Sync Targeted include
 an exact path filter for carrier/infrastructure/uniship/uniship-routes.ts, so a
 route-only change runs existing Sync/Uniship unit and genuine PostgreSQL coverage.
 The external endpoint/method contract and all transport/live security gates are unchanged.
+
+### Full Foundation E3 and retained HTTPS diagnostics — NEXORA-059 v3
+
+Foundation now sets PUBLIC_HTTPS_DIAGNOSTICS_DIR=artifacts/public-https for every
+job. The new pinned upload immediately after Pager preservation uploads
+public-https-diagnostics on ordinary failure, ignoring absence if HTTPS never
+started; retention7days. Ordinary success uploads no HTTPS artifact. The six
+existing artifact names/retention stay unchanged for ordinary push/PR runs.
+
+workflow_call accepts optional artifact_suffix (empty default). Optional stress
+mode foundation or PR label https-stress-full selects15 independent full reusable
+Foundation calls with fail-fast false; each supplies -e3-N. All seven artifact
+names receive that suffix to prevent collisions within one workflow run. E1/E2
+selection and commands remain; full mode excludes those jobs even if legacy
+labels are present. No required checks are added. Remove trigger labels before
+pushes and after the batch; do not rerun/replace trials or add a second batch.
+
+Before constructing the HTTPS fixture, a read-only bounded docker ps diagnostic
+writes preexisting-containers.json when the diagnostics directory is set. At
+most100 rows retain exactly com.docker.compose.project,
+com.docker.compose.service, State and Status. Known nexora-ci/nexora-smoke-PID/
+nexora-https-PID project names, repository service labels and Docker lifecycle/
+human-status grammar are retained; other values become other and absent labels
+are null. No IDs, full container names, ports, image digests, mounts, network
+identities, arbitrary labels or environment values are stored. Failed command/
+parsing emits status UNAVAILABLE without failing the smoke check. Raw command
+output stays private in memory; the3second diagnostic command bound changes no
+existing test timeout.
+
+Retained environment/failure JSON uses existing closed projections and observer
+caps; an artifact is not proof of sufficient event coverage. Copy named failure
+lines verbatim into compact per-trial Markdown, summarize preexisting project/
+service/state for PASS and failure, and record missing/unavailable artifacts.
+Do not assume a nexora-ci stack exists merely from a global environment variable;
+actual runtime scripts may select their own owned project. E2 is invalid due to
+missing Foundation4 fixture prerequisites; its separate BROWSER_LAUNCH observation
+remains unexplained and is not investigated by E3. E3 makes no causal correction
+and never changes existing Foundation commands/order/permissions/timeouts.
+
+### Network settle intervention — NEXORA-059 v4
+
+Owner authorizes an intervention experiment, not a proven IPv6/DAD attribution.
+After the initial public ingress up/wait, public-https-smoke runs the settle CLI
+before any Chromium launch. It reuses the existing whole-step observer snapshot:
+5 continuous seconds without ADDR/ROUTE on any interface group,30seconds maximum.
+New activity resets quiet time. Timeout fails with
+PUBLIC_HTTPS_NETWORK_SETTLE_TIMEOUT and group counts/waited time. UNAVAILABLE
+(including missing/stale snapshot or unsupported/missing ip) records fallback and
+waits5seconds; it cannot exceed the overall30second deadline. No request retry,
+existing auth timeout/assertion, runner sysctl or production Compose change.
+Later fixture starts/restarts precede Node HTTPS probes, not Chromium, so no
+additional browser gate is added there.
+
+settle.json records Docker ingress start timestamp (null if not retained), gate
+start/end/status, actual wait, fallback flag and ADDR/ROUTE counts by closed group.
+Counters are cumulative in the reused observer, independent of rolling eviction.
+browser-start-window.json records the first10seconds from Chromium launch:
+up to64projected ADDR/ROUTE events and first200requests with closed resource type,
+start/end and ok/closed Chrome error/pending outcome. Dropped counts, capture-enable
+time, actual captured-through time, complete flag and observer status/reason are
+explicit. CDP connection happens after process launch: pre-CDP requests are not
+observed; pending at window end means incomplete, not successful. No URLs, raw
+request IDs, headers, cookie/body/token/IP/MAC or raw interface names retained.
+When diagnostics are enabled, keep the already-launched browser/observer alive
+through window end (at most10s from launch) after acceptance checks finish;
+this is diagnostic capture, not a request retry or assertion deadline extension.
+Files are written on PASS and FAIL in PUBLIC_HTTPS_DIAGNOSTICS_DIR. Existing
+Foundation HTTPS artifact upload retains these on ordinary failure and every E3
+call with nonempty suffix;7day retention unchanged.
+
+Run exactly15full Foundation E3 calls for this intervention. Report each gate
+wait/counts and10s window events/ERR_NETWORK_CHANGED. Owner criterion is0step8
+failures plus no postgate ADDR/ROUTE in complete observed windows; missing,
+UNAVAILABLE, capped or incomplete coverage cannot establish absence. Historical
+trial3 CHECK_FAILED without failed transport may represent a separate mechanism.
+Do not rerun failures/add more trials. Evidence and issue44 closure recommendation
+require actual hosted results, not a predeclared causal conclusion.

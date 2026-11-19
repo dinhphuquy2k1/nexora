@@ -1,0 +1,122 @@
+name: Public HTTPS actor evidence (optional)
+on:
+  pull_request:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Independent Phase1 experiment
+        type: choice
+        options: [step8-only, runtime-then-https, foundation]
+        default: step8-only
+permissions:
+  contents: read
+jobs:
+  select:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      enabled: ${{ steps.plan.outputs.enabled }}
+      mode: ${{ steps.plan.outputs.mode }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - id: plan
+        run: node scripts/public-https-stress-plan.mjs
+  https-stress:
+    needs: select
+    if: needs.select.outputs.enabled == 'true' && needs.select.outputs.mode != 'foundation'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    env:
+      PUBLIC_HTTPS_DIAGNOSTICS_DIR: artifacts/public-https
+      COMPOSE_PROJECT_NAME: nexora-ci
+      M1_EVIDENCE_DIR: artifacts/m1
+      M2_EVIDENCE_DIR: artifacts/m2
+      M3_EVIDENCE_DIR: artifacts/m3
+      ACCOUNT_EVIDENCE_DIR: artifacts/account
+      CARRIER_EVIDENCE_DIR: artifacts/carrier
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Select pinned host Node for smoke harness
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Record exact source, checkout and stage outcomes
+        env:
+          SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          TRIAL: ${{ matrix.trial }}
+          MODE: ${{ needs.select.outputs.mode }}
+        run: |
+          mkdir -p "$PUBLIC_HTTPS_DIAGNOSTICS_DIR"
+          git rev-parse HEAD > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/checkout-sha.txt"
+          printf '%s\n' "$SOURCE_HEAD" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/source-sha.txt"
+          printf '%s\n' "$TRIAL" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/trial.txt"
+          printf '%s\n' "$MODE" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/mode.txt"
+          if [ "$MODE" = runtime-then-https ]; then experiment=E2; else experiment=E1; fi
+          printf '%s\n' "$experiment" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/experiment.txt"
+          for stage in build runtime https; do printf 'NOT_RUN\n' > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/$stage-exit-code.txt"; done
+      - name: Build only prerequisite release images
+        shell: bash
+        run: |
+          set +e
+          docker compose -f compose.yml build
+          result=$?
+          printf '%s\n' "$result" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/build-exit-code.txt"
+          exit "$result"
+      - name: Local release runtime (Foundation step 7)
+        if: needs.select.outputs.mode == 'runtime-then-https'
+        shell: bash
+        run: |
+          set +e
+          sh scripts/runtime-smoke.sh > "$RUNNER_TEMP/runtime-smoke.log" 2>&1
+          result=$?
+          grep -E '^(BROWSER_LOGIN_SMOKE_FAILED|Step: [A-Z0-9_]+|Expected HTTP status: ([0-9]+|NOT_SET)|Actual HTTP status: ([0-9]+|NOT_OBSERVED)|Category: [A-Z_]+|Error type: [A-Za-z]+|Step elapsed ms: [0-9]+)$' "$RUNNER_TEMP/runtime-smoke.log" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/runtime-failure-lines.txt" || true
+          cat "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/runtime-failure-lines.txt"
+          printf '%s\n' "$result" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/runtime-exit-code.txt"
+          rm -f "$RUNNER_TEMP/runtime-smoke.log"
+          exit "$result"
+      - name: Disposable public HTTPS (Foundation step 8)
+        shell: bash
+        run: |
+          set +e
+          sh scripts/public-https-smoke.sh > "$RUNNER_TEMP/public-https.log" 2>&1
+          result=$?
+          # Never upload raw fixture/server logs. Only fixed failure vocabulary.
+          grep -E '^(PUBLIC_HTTPS_SMOKE_FAILED|Step: [A-Z0-9_]+|Expected HTTP status: ([0-9]+|NOT_SET)|Actual HTTP status: ([0-9]+|NOT_OBSERVED)|Category: [A-Z_]+|Error type: [A-Za-z]+|Step elapsed ms: [0-9]+)$' "$RUNNER_TEMP/public-https.log" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/failure-lines.txt" || true
+          cat "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/failure-lines.txt"
+          node --input-type=module <<'JS'
+          import {readFile} from 'node:fs/promises';
+          try {
+            const row=JSON.parse(await readFile(process.env.PUBLIC_HTTPS_DIAGNOSTICS_DIR+'/failure.json','utf8'));
+            console.log('PUBLIC_HTTPS_ENVIRONMENT_DIAGNOSTIC',JSON.stringify(row.environment));
+          } catch { /* Setup may have failed before the browser started. */ }
+          JS
+          printf '%s\n' "$result" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/https-exit-code.txt"
+          printf '%s\n' "$result" > "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/trial-exit-code.txt"
+          rm -f "$RUNNER_TEMP/public-https.log"
+          exit "$result"
+      - name: Preserve projected diagnostics for this independent trial
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: public-https-${{ needs.select.outputs.mode }}-trial-${{ matrix.trial }}
+          path: artifacts/public-https
+          if-no-files-found: error
+          retention-days: 7
+  foundation-e3:
+    needs: select
+    if: needs.select.outputs.enabled == 'true' && needs.select.outputs.mode == 'foundation'
+    strategy:
+      fail-fast: false
+      matrix:
+        trial: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    uses: ./.github/workflows/foundation.yml
+    with:
+      artifact_suffix: -e3-${{ matrix.trial }}
