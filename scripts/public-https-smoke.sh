@@ -9,7 +9,10 @@ work=$(mktemp -d)
 environment_pid=""
 export PUBLIC_HTTPS_ENVIRONMENT_PATH="$work/environment.json"
 # The caller may retain only projected diagnostic files, never this private workdir.
-if [ -n "${PUBLIC_HTTPS_DIAGNOSTICS_DIR:-}" ]; then mkdir -p "$PUBLIC_HTTPS_DIAGNOSTICS_DIR"; fi
+if [ -n "${PUBLIC_HTTPS_DIAGNOSTICS_DIR:-}" ]; then
+  mkdir -p "$PUBLIC_HTTPS_DIAGNOSTICS_DIR"
+  node scripts/public-https-preexisting.mjs "$PUBLIC_HTTPS_DIAGNOSTICS_DIR/preexisting-containers.json" || true
+fi
 export PUBLIC_FQDN=nexora.example.test
 https_port=$(node --input-type=module -e 'import {createServer} from "node:net"; const server=createServer(); server.on("error",()=>process.exitCode=1); server.listen(0,"127.0.0.1",()=>{console.log(server.address().port);server.close();});' )
 http_port=$(node --input-type=module -e 'import {createServer} from "node:net"; const server=createServer(); server.on("error",()=>process.exitCode=1); server.listen(0,"127.0.0.1",()=>{console.log(server.address().port);server.close();});' )

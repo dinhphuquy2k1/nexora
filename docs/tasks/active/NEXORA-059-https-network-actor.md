@@ -12,11 +12,11 @@ Owner-requested SIGNIFICANT Phase1 evidence collection for intermittent Foundati
 
 Task ID: NEXORA-059
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-18-https-network-actor-v2
-Reviewed baseline: dcac5e5ccad2f737778bd1d621a5d1567e01db77
+Plan revision: rev-2026-11-19-https-network-actor-v3
+Reviewed baseline: 168af39006dbb7db3c902e6a047ca7864177782d
 Branch: investigate/https-network-actor
-Design Snapshot: docs/tasks/design-reviews/NEXORA-059-rev-2026-11-18-https-network-actor-v2.md
-Design SHA-256: 311856859591ab0ffdd3ca93aa5fba491ca97583fee18cd88d54fd632b6b6400
+Design Snapshot: docs/tasks/design-reviews/NEXORA-059-rev-2026-11-19-https-network-actor-v3.md
+Design SHA-256: 2b2554c6cf638e2788353fe7aafd0b31bd254bc881054fcefb941c521462f8d1
 
 | Field                    | Decision                                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -215,3 +215,43 @@ this task and four compact Markdown evidence files change in the final commit.
 No new CI batch or replacement trial. Hosted checks for the evidence commit remain
 PENDING at final push by the owner stop instruction; earlier green results stay
 historical. No causal fix, assertion/timeout change or merge.
+
+## Owner-authorized E3 review delta — 2026-11-19
+
+Planv3 records the explicit Foundation exception: workflow_call/input, diagnostic
+env, unique artifact suffixes and one projected HTTPS upload only. Add read-only
+preexisting project/service/state/status observation before step8 fixture creation.
+No cause correction, existing command/ordering/permission/timeout/assertion change.
+Pre-code reuse audit/interfaces/risks/verification are in the linked v3 snapshot;
+Documentation Impact REQUIRED. Main PR56 merge9d52e7f incorporated by merge700e8e3,
+not rebase. Four mechanical diagnostic/testing-doc conflicts retained current
+harness plus main Uniship docs; production/Compose identity against main and
+harness identity against pre-merge branch PASS, focused38/38 PASS. Separate
+closure168af39 closes057 with final-head hosted gates and retained attempt1FAIL.
+058 unchanged against main; no source edits to058.
+
+Owner labels E2 invalid (missing Foundation4 fixture prerequisites). Historical
+trial1 BROWSER_LAUNCH/ASSERTION_FAILED is separately retained in E2 evidence;
+BROWSER_STARTUP_DIAGNOSTIC was not retained by that run's narrow projection.
+No startup investigation or E2 rerun in E3. Exactly15 full Foundation calls are
+authorized after the ordinary new-head gate, with no replacement or extra batch.
+
+### E3 implementation checkpoint checks
+
+| Claim                      | Evidence                                                                                                                                                                                                                                              | Date       | Result |
+| :------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| New behavior RED           | New preexisting test import fails for missing exports; foundation selector test fails before implementation                                                                                                                                           | 2026-11-19 | FAIL   |
+| Focused GREEN              | Six Node suites43/43, including four-field privacy/100cap/Docker failures/CLI success and exclusive full-mode selection; old observer/status suites unchanged                                                                                         | 2026-11-19 | PASS   |
+| Exact Foundation exception | PyYAML BaseLoader comparison against merged main removes only workflow_call, one env, six suffixes and exact new upload; all remaining parsed triggers/jobs/steps/commands/order/permissions/timeouts equal;15-call matrix and bash -n all run blocks | 2026-11-19 | PASS   |
+| Requested local gates      | pinned pnpm10.34.6 format:check, lint/boundaries, docs:check, preflight:check PASS; test:docs10/10 and test:preflight24/24                                                                                                                            | 2026-11-19 | PASS   |
+| Live read-only snapshot    | node scripts/public-https-preexisting.mjs against local Docker: OBSERVED,0rows; no mutation, no raw output retained                                                                                                                                   | 2026-11-19 | PASS   |
+
+actionlint NOT RUN: executable is not installed; PyYAML structure/shell checks are
+separate evidence, not an actionlint claim. Local canonical Docker/full browser
+NOT RUN due small overlay capacity; ordinary hosted Foundation is the required
+next gate. No local images captured or manually reviewed. Source review retains
+only owner-approved Foundation changes and read-only diagnostics; no confirmed
+new P1/P2, self-review only (no independent approval claim). Artifact-name search
+found documentation/historical references; ordinary names remain unchanged, no
+script downloader is broken. V1/v2 snapshots and058 bytes match merged main/
+historical bytes; v3 formatted before SHA. E2 remains invalid, never promoted PASS.

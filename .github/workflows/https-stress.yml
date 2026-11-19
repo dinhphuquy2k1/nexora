@@ -7,7 +7,7 @@ on:
       mode:
         description: Independent Phase1 experiment
         type: choice
-        options: [step8-only, runtime-then-https]
+        options: [step8-only, runtime-then-https, foundation]
         default: step8-only
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
         run: node scripts/public-https-stress-plan.mjs
   https-stress:
     needs: select
-    if: needs.select.outputs.enabled == 'true'
+    if: needs.select.outputs.enabled == 'true' && needs.select.outputs.mode != 'foundation'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     strategy:
@@ -110,3 +110,13 @@ jobs:
           path: artifacts/public-https
           if-no-files-found: error
           retention-days: 7
+  foundation-e3:
+    needs: select
+    if: needs.select.outputs.enabled == 'true' && needs.select.outputs.mode == 'foundation'
+    strategy:
+      fail-fast: false
+      matrix:
+        trial: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    uses: ./.github/workflows/foundation.yml
+    with:
+      artifact_suffix: -e3-${{ matrix.trial }}

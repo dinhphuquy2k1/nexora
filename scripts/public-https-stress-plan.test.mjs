@@ -87,3 +87,24 @@ test("workflow CLI emits only closed outputs, never arbitrary event or label val
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("full label or dispatch selects Foundation exclusively and preserves fifteen trials", () => {
+  for (const event of [
+    pr("https-stress-full"),
+    pr("https-stress", "https-stress-runtime", "https-stress-full"),
+  ]) {
+    const plan = selectPublicHttpsExperiment("pull_request", event);
+    assert.equal(plan.enabled, true);
+    assert.equal(plan.mode, "foundation");
+    assert.equal(plan.matrix.trial.length, 15);
+  }
+  const plan = selectPublicHttpsExperiment("workflow_dispatch", {
+    ...pr("https-stress"),
+    inputs: { mode: "foundation" },
+  });
+  assert.equal(plan.mode, "foundation");
+  assert.deepEqual(
+    plan.matrix.trial,
+    Array.from({ length: 15 }, (_, i) => i + 1),
+  );
+});

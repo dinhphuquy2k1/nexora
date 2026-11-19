@@ -1,6 +1,6 @@
 # NEXORA-059 — Phase1 comparison evidence
 
-Owner keeps PR56 OPEN/unmerged. This is observation only; no causal fix, request retry, fixture reordering, production/Compose/worker/adapter change or live-provider activation. Final evidence push is the stop point.
+Historical v2 checkpoint: owner kept PR56 OPEN/unmerged. This is observation only; no causal fix, request retry, fixture reordering, production/Compose/worker/adapter change or live-provider activation. Final evidence push is the stop point.
 
 | Experiment               | Observed outcome                                                                       | Interpretation                                                                          |
 | :----------------------- | :------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
@@ -50,3 +50,17 @@ Checkpoint Preflight44281797559 PASS; Sync Targeted NOT RUN by path filters. Tem
 At 2026-11-18T10:19:39.147926+00:00, PR57 harness checkpoint Foundation[44281797553](https://github.com/dinhphuquy2k1/nexora/actions/runs/44281797553): in_progress/PENDING, sourcee15f23762741fbe6ce50fdd5e31713e4edd6dc92, attempt1. No rerun. This is a timestamped observation, not a final-head acceptance claim.
 
 At 2026-11-18T10:19:39.147926+00:00, temporary PR58 merge Foundation[44282185867](https://github.com/dinhphuquy2k1/nexora/actions/runs/44282185867): in_progress/PENDING, source26e6752cd24f7267e0468c968a9a5e10b4426e55, attempt1. No rerun. This is a timestamped observation, not a final-head acceptance claim.
+
+## Owner checkpoint — 2026-11-19, E3
+
+E2 is **không hợp lệ (thiếu prerequisite của bước 4)** and is not causal evidence.
+Keep every historical E2 row: trial1 BROWSER_LAUNCH/ASSERTION_FAILED is recorded
+separately in e2-runtime-then-https.md, job134725686192. No actual
+BROWSER_STARTUP_DIAGNOSTIC line survived that workflow's narrow projection; do not
+fabricate one. No startup investigation or E2 rerun is authorized in E3.
+
+PR56 subsequently merged as9d52e7f after its owner-authorized Foundation44239448059
+attempt2 PASS (attempt1 step8 FAIL retained). NEXORA057 is closed under §1.7 in
+the dedicated closure commit168af39 of this branch. Historical v2 conclusions
+above are retained; the owner now authorizes exactly15 full Foundation E3 calls
+with preserved diagnostics, not a cause repair. E3 evidence will be linked here.

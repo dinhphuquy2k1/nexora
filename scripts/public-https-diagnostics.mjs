@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { setTimeout, clearTimeout } from "node:timers";
 import { terminateChildProcess } from "./browser-teardown.mjs";
 import { isUuid } from "../packages/shared/src/validation/uuid.ts";
@@ -777,4 +777,86 @@ export function publicEnvironmentFailureWindow(
     network: project("network"),
     docker: project("docker"),
   };
+}
+
+const containerStates = new Set([
+  "created",
+  "running",
+  "paused",
+  "restarting",
+  "removing",
+  "exited",
+  "dead",
+]);
+const containerDuration =
+  "(?:Less than a second|About a minute|About an hour|[0-9]{1,8} (?:second|minute|hour|day|week|month|year)s?)";
+const containerStatus = new RegExp(
+  `^(?:Created|Dead|Removal In Progress|Up ${containerDuration}(?: \\((?:healthy|unhealthy|health: starting|Paused)\\))?|(?:Exited|Restarting) \\(-?[0-9]{1,8}\\) ${containerDuration} ago)$`,
+);
+
+/** Project docker ps JSON lines; never retain arbitrary labels or container identities. */
+export function projectPublicPreexistingContainers(text) {
+  try {
+    if (typeof text !== "string") return { status: "UNAVAILABLE" };
+    const containers = [];
+    for (const line of text.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      if (containers.length === 100) break;
+      if (line.length > 65536) return { status: "UNAVAILABLE" };
+      const row = JSON.parse(line);
+      if (!row || typeof row !== "object" || Array.isArray(row))
+        return { status: "UNAVAILABLE" };
+      const labels = new Map();
+      if (typeof row.Labels === "string") {
+        for (const label of row.Labels.split(",")) {
+          const index = label.indexOf("=");
+          if (index > 0)
+            labels.set(label.slice(0, index), label.slice(index + 1));
+        }
+      }
+      const project = labels.get("com.docker.compose.project");
+      const service = labels.get("com.docker.compose.service");
+      let safeProject = null;
+      if (project !== undefined) {
+        safeProject = "other";
+        if (
+          project === "nexora-ci" ||
+          /^nexora-(?:smoke|https)-[0-9]{1,12}$/.test(project)
+        )
+          safeProject = project;
+      }
+      let safeService = null;
+      if (service !== undefined)
+        safeService = composeServices.has(service) ? service : "other";
+      containers.push({
+        "com.docker.compose.project": safeProject,
+        "com.docker.compose.service": safeService,
+        State: containerStates.has(row.State) ? row.State : "other",
+        Status:
+          typeof row.Status === "string" &&
+          row.Status.length <= 100 &&
+          containerStatus.test(row.Status)
+            ? row.Status
+            : "other",
+      });
+    }
+    return { status: "OBSERVED", containers };
+  } catch {
+    return { status: "UNAVAILABLE" };
+  }
+}
+
+export function capturePublicPreexistingContainers({ run = spawnSync } = {}) {
+  try {
+    const result = run("docker", ["ps", "-a", "--format", "{{json .}}"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 3000,
+      maxBuffer: 1048576,
+    });
+    if (result.status !== 0 || result.error) return { status: "UNAVAILABLE" };
+    return projectPublicPreexistingContainers(result.stdout);
+  } catch {
+    return { status: "UNAVAILABLE" };
+  }
 }

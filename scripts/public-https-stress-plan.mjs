@@ -6,7 +6,7 @@ export function selectPublicHttpsExperiment(eventName, event = {}) {
   let mode = "step8-only";
   if (eventName === "workflow_dispatch") {
     mode = event.inputs?.mode ?? mode;
-    if (!["step8-only", "runtime-then-https"].includes(mode))
+    if (!["step8-only", "runtime-then-https", "foundation"].includes(mode))
       throw Error("Unsupported HTTPS experiment mode");
     enabled = true;
   } else if (eventName === "pull_request") {
@@ -14,6 +14,10 @@ export function selectPublicHttpsExperiment(eventName, event = {}) {
     enabled = labels.some((label) => label.name === "https-stress");
     if (labels.some((label) => label.name === "https-stress-runtime"))
       mode = "runtime-then-https";
+    if (labels.some((label) => label.name === "https-stress-full")) {
+      enabled = true;
+      mode = "foundation";
+    }
   }
   // Disabled plans keep a valid matrix shape; the job-level gate skips all trials.
   let count = 1;
