@@ -745,7 +745,7 @@ condition and remaining real-environment custody/activation gates to
 investigation only on actual recurrence with bounded diagnostics or a separately
 planned reproducer with a concrete hypothesis/discriminant; no blind retries.
 Adapter field semantics and claim captures remain
-[NEXORA-057](../active/NEXORA-057-uniship-http-adapter.md) prerequisites, not claims
+[NEXORA-057](NEXORA-057-uniship-http-adapter.md) prerequisites, not claims
 of live provider verification. Verification remains PARTIALLY VERIFIED to preserve
 those external/causal limits; completed implementation/closure does not mark them PASS.
 

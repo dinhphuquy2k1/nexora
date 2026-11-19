@@ -524,7 +524,7 @@ SHA itself. NEXORA-056's final CI will include that actual ancestor. Original lo
 FAILs, PARTIALLY VERIFIED status and independent/self-review distinctions remain.
 No GitHub review objects were returned; merge proves the owner decision only.
 
-External prerequisites are not promoted to PASS: [NEXORA-057](../active/NEXORA-057-uniship-http-adapter.md)
+External prerequisites are not promoted to PASS: [NEXORA-057](NEXORA-057-uniship-http-adapter.md)
 PLANNED owns fixture-backed field/claim semantics and independent adapter/service
 contract review; [NEXORA-058](../active/NEXORA-058-uniship-controlled-activation.md)
 PLANNED owns UNISHIP_LIVE_ACTIVATION and remaining operational gates.

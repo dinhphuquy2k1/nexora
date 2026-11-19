@@ -1,8 +1,8 @@
 # NEXORA-057 — Uniship HTTP Adapter
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -793,3 +793,20 @@ Real observer/transport checks: host read-only ip observer on2026-11-18 04:29:29
 Privacy/security: synthetic secret markers across headers/cookies/body/setupURL/fragment/errors/routeIDs never occur in serialized snapshots. Closed labels/categories, counters/event/request caps, bounded private input buffer and minimal observer environment are tested. Health probe errors/timeouts/logger exceptions preserve original error identity; no authentication retry. Static comparison proves every original assert/checks.status AST unchanged, default10000ms Node/15000ms CDP and200/100poll browser/readiness contracts retained, strict CA/name/SPKI still present. Production apps/packages/Nginx/Compose/workflows and Uniship behavior/limits unchanged. Snapshot SHA remains d29e0d0f818c6b4a954d39e90a1b0eb84d896499d9b4804fcf86c262416e7032.
 
 Independent reviewer /root/shipment_list_review initially found P3 redundant success-end CDP snapshot (policy mismatch); removed and rechecked. Remaining P1=0/P2=0/P3=0, read-only review (not test execution or owner approval). All local required checks including full quality PASS. Canonical local public-https-smoke NOT RUN: app images absent and ~705MiB free on rootless VFS; no user volumes/global prune touched. Next exact-head hosted run provides canonical evidence. Root cause A/B/C remains NOT VERIFIED; no functional fix selected. Final source/merge/workflow/timestamps and causal interpretation will be recorded in PR56 after push, no evidence-only source commit or merge. If the instrumented checkpoint cannot discriminate a defensible correction, retain diagnostics and report VERIFICATION PENDING, not repair from a green rerun.
+
+## Closure — NEXORA-059 §1.7
+
+Delivered by PR #56. Final-head hosted gates passed on bfe89e8 (Foundation
+attempt 2; attempt 1 failed Foundation step 8 with the intermittent
+ERR_NETWORK_CHANGED issue investigated in NEXORA-059). Closed in a closure
+commit of NEXORA-059 under §1.7.
+
+| Claim                   | Evidence                                                                                                                                                                                               | Date       | Result |
+| :---------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :----- |
+| Merged to main          | PR56 merge9d52e7fd9a2bf4e35f33b63ae2ff51e221798fb8, merged2026-11-19; final source bfe89e848494fe26254f3e82305c83c5be312691                                                                            | 2026-11-19 | PASS   |
+| Final-head hosted gates | Preflight44239448094, Sync Targeted44239448155 PASS; Foundation44239448059 attempt2 PASS steps4–10, actual merge checkout fdb9857970366cc082090ecf33eeeea1e0a72f49; attempt1 step8 FAIL retained above | 2026-11-19 | PASS   |
+
+Verification VERIFIED applies to delivered fixture-backed adapter scope. Live
+activation/remaining external semantics remain in NEXORA-058; no live request or
+production registration is claimed. NEXORA-058 is unchanged by this closure.
+Historical FAIL/NOT RUN observations and immutable snapshot bytes are preserved.
