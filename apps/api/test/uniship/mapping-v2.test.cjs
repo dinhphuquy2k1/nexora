@@ -115,8 +115,14 @@ test("unresolved China warehouse ID cannot be staged beside an old resolved name
     warnings,
   ).payload.shipment;
   assert.equal(shipment.originWarehouse, undefined);
-  assert.equal(shipment.providerAttributesPatch.values.originWarehouseId, undefined);
-  assert.equal(shipment.providerAttributesPatch.values.freightUnitPrice.amount, "23500.00");
+  assert.equal(
+    shipment.providerAttributesPatch.values.originWarehouseId,
+    undefined,
+  );
+  assert.equal(
+    shipment.providerAttributesPatch.values.freightUnitPrice.amount,
+    "23500.00",
+  );
   assert.ok(warnings.includes("UNISHIP_REQUIRED_FIELD_MISSING"));
 });
 test("exact counts accept scientific notation after insignificant leading zeros", () => {
