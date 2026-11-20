@@ -176,6 +176,19 @@ ExDate is guard only. Exchange-rate effective time is absent; no conversion.
 No incremental watermark, inferred service enablement, claim lifecycle proof,
 provider ID stability or live activation/backfill is claimed. NEXORA-058 remains active.
 
+## Current PR review follow-up — verification pending
+
+The historical review and green implementation-head evidence below remain valid
+for the cited SHAs, but **are not an exact-final-HEAD approval** after the later
+warehouse-consistency and UI-copy fixes. HEAD
+`e1e4357547d54b5dae7e65356955ce6dc39d7f54` had Preflight and Sync
+targeted PASS, while Foundation run `44707220283` failed at
+`pnpm format:check` (unformatted assertion in the new Uniship test); its later
+runtime/browser checks were NOT RUN. The subsequent formatting correction and this
+evidence clarification require fresh exact-HEAD CI. **Current readiness:
+VERIFICATION INCOMPLETE / NOT READY TO MERGE** until that CI passes.
+NEXORA-058 production activation is still out of scope.
+
 ## J. Merge readiness
 
 READY FOR OWNER REVIEW — implementation73d984b has local quality, genuine PostgreSQL,
