@@ -107,6 +107,18 @@ test("missing/null observations preserve fields; timestamp conflict omits only d
   assert.ok(!JSON.stringify(r).includes("private-marker"));
   assert.ok(!JSON.stringify(r).includes("999"));
 });
+test("unresolved China warehouse ID cannot be staged beside an old resolved name", () => {
+  const sourceRow = JSON.parse(sample).data[0];
+  const warnings = [];
+  const shipment = parse(
+    page([{ ...sourceRow, ChinaStoreID: 999999 }]),
+    warnings,
+  ).payload.shipment;
+  assert.equal(shipment.originWarehouse, undefined);
+  assert.equal(shipment.providerAttributesPatch.values.originWarehouseId, undefined);
+  assert.equal(shipment.providerAttributesPatch.values.freightUnitPrice.amount, "23500.00");
+  assert.ok(warnings.includes("UNISHIP_REQUIRED_FIELD_MISSING"));
+});
 test("exact counts accept scientific notation after insignificant leading zeros", () => {
   const distinct = parse(
     sample.replace(/"RealNumberOfPack":\s*1/, '"RealNumberOfPack": 2'),
