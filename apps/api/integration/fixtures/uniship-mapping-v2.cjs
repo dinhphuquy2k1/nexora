@@ -160,6 +160,17 @@ module.exports.verifyMappingV2 = async ({
       assert.equal((await apply(source)).status, "SUCCEEDED");
       assert.deepEqual(await versions(), feeVersions);
       assert.equal((await get()).id, mapped.id);
+      // Unresolved China warehouse lookup must preserve the last consistent ID/name pair.
+      assert.equal(
+        (await apply(normalize({ ...sourceRow, ChinaStoreID: 999999 }))).status,
+        "SUCCEEDED",
+      );
+      const unresolvedWarehouse = await get();
+      assert.equal(unresolvedWarehouse.originWarehouse, mapped.originWarehouse);
+      assert.equal(
+        unresolvedWarehouse.providerAttributes.values.originWarehouseId,
+        mapped.providerAttributes.values.originWarehouseId,
+      );
       const partial = {
         ...sourceRow,
         FeeWeightAmount: null,
