@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: NOT VERIFIED
+Verification: PARTIALLY VERIFIED
 
 ## Scope
 
@@ -68,11 +68,11 @@ Owner-confirmed counts/VND amounts/UTC+7/reference dates, storage choice and sco
 
 ## Acceptance
 
-- [ ] All27 selected mapping rows stored/read correctly, zero/null/UTC+7 exact.
-- [ ] Scoped patches preserve other fees/milestones and stable IDs; ambiguous fees review, complete snapshots unchanged.
-- [ ] Typed attributes keys/version/size/depth/provider isolation and merge/hydration proven.
-- [ ] Forward migration/repeat/constraints/least-privilege/read contracts/UI regression executed.
-- [ ] Version2/reprocessing preserves source identity; no automatic historical backfill or production activation claim.
+- [x] All27 selected mapping rows stored/read correctly, zero/null/UTC+7 exact.
+- [x] Scoped patches preserve other fees/milestones and stable IDs; ambiguous fees review, complete snapshots unchanged.
+- [x] Typed attributes keys/version/size/depth/provider isolation and merge/hydration proven.
+- [x] Forward migration/repeat/constraints/least-privilege/read contracts/UI regression executed.
+- [x] Version2/reprocessing preserves source identity; no automatic historical backfill or production activation claim.
 - [ ] Required quality/independent review/final-head hosted evidence and PM report.
 
 ## Evidence
@@ -96,3 +96,21 @@ wording), no open finding in reviewed working tree. Captured fixtures and refere
 remain unchanged. Full quality/final-head hosted results pending. Local Chromium
 column-picker background assertion FAIL reproduces on unchanged baseline ef0cf4e;
 not hidden or fixed outside mapping scope. Production remains hard-closed under058.
+
+## Verification delta on implementation38cce9b
+
+| Claim                        | Evidence                                                                                                                   | Date       | Result |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Full local quality           | pnpm quality after generated contracts committed: scripts182/API264/Web366/UI37/database6 tests, typecheck/contracts/build | 2026-11-20 | PASS   |
+| Full real PostgreSQL API     | 179/179 after signed disposable base migration/legacy-role/storage prerequisites; no user volume mutation                  | 2026-11-20 | PASS   |
+| Independent review           | 27/27 tests independently executed; no open P1/P2/P3 on38cce9b; snapshot/captures unchanged                                | 2026-11-20 | PASS   |
+| Hosted first head            | Preflight44698351386 and Sync44698351380, attempt1, source38cce9b                                                          | 2026-11-20 | PASS   |
+| Hosted Foundation first head | 44698351390/job136160428827 attempt1, step7 migration oracle expected16 instead of new17; steps4/5 PASS, step8 NOT RUN     | 2026-11-20 | FAIL   |
+
+Review delta: runtime-smoke.sh migration-count oracle16→17 for the task's new
+forward migration, stored_files=0 and all other assertions retained; no workflow
+change, retry or timeout adjustment. sh-n and physical migration count17 PASS.
+Fresh exact-HEAD checks required after push; no gh run rerun performed.
+See [independent RED/GREEN](../evidence/NEXORA-060/review-and-red-green.md) and
+[A–J report](../evidence/NEXORA-060/implementation-report.md). Final live CI status
+is recorded in PR59 description with source SHA/run IDs, not inferred from local tests.

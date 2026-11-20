@@ -100,17 +100,19 @@ Logs are summarized here rather than uploading credentials, connection URLs or r
 | Command / execution                                                                                   | Result     | Evidence                                                                                                                                                                                                                |
 | ----------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Initial two new unit files, pre-implementation                                                        | FAIL (RED) | 7 missing behaviors; subsequent byte-size test corrected because emoji fixture was below1024 bytes                                                                                                                      |
-| node --test apps/api/test/shipment/partial-mapping.test.cjs apps/api/test/uniship/mapping-v2.test.cjs | PASS       | 9/9 after independent-review fixes; count exponent, date leap/year/TZ, privacy and merge                                                                                                                                |
-| node --test apps/web/test/retail-\*.test.mjs                                                          | PASS       | 141/141, including typedVND/kg, zero, legacyCNY, actual count/destination                                                                                                                                               |
+| node --test apps/api/test/shipment/partial-mapping.test.cjs apps/api/test/uniship/mapping-v2.test.cjs | PASS       | 10/10 after independent-review fixes and legacy51 coverage; count exponent, date leap/year/TZ, privacy and merge                                                                                                        |
+| node --test apps/web/test/retail-\*.test.mjs                                                          | PASS       | 142/142, including typedVND/kg, zero, legacyCNY, actual count/destination                                                                                                                                               |
 | packages/database/test/shipment-sql.mjs on owned PG                                                   | PASS       | New worker six-column allow / API-deny, numeric/JSON constraints, WEIGHT_FREIGHT; old deny assertions kept                                                                                                              |
 | packages/database/test/migration.mjs on owned PG                                                      | PASS       | Legacy preservation, NULL new fields, repeat and schema drift                                                                                                                                                           |
 | integration/shipment-integration.test.cjs on owned PG                                                 | PASS       | 22/22, new genuine mapping Sync/API subtest and existing capacity/fence/rollback/read tests                                                                                                                             |
 | integration/uniship-shipment-integration.test.cjs on owned PG                                         | PASS       | 12/12, existing hash/claim/complete-child semantics                                                                                                                                                                     |
 | integration/sync-integration.test.cjs on owned PG                                                     | PASS       | 61/61, existing execution/identity/version/lease/fence/concurrency regressions                                                                                                                                          |
+| packages/database/test/shipment-worker.mjs                                                            | PASS       | Canonical wrapper rebuild and real integration; pinned pnpm PATH supplied after host fallback version mismatch                                                                                                          |
+| node --test integration/\*_/_.test.cjs on owned PG                                                    | PASS       | 179/179 after preparing migrated base DB, STORAGE_ROOT and expected legacy role; first invocation FAIL104/112 due missing Compose prerequisites, no product code change                                                 |
 | contracts:generate                                                                                    | PASS       | DTO→OpenAPI→SDK generated; contract check in quality                                                                                                                                                                    |
 | pnpm typecheck with canonical API_INTERNAL_URL/NODE_ENV                                               | PASS       | 10 tasks; initial missing API_INTERNAL_URL failed then environment supplied                                                                                                                                             |
-| pnpm quality                                                                                          | PENDING    | Final invocation running; earlier lint fixture exports/unused values and new fixture privacy scanner failures corrected; contracts:check also correctly rejected uncommitted generated files before commit              |
-| docs/preflight unit suites                                                                            | PENDING    | Explicit executions before final commit                                                                                                                                                                                 |
+| pnpm quality                                                                                          | PASS       | Committed38cce9b: scripts182, API264, Web366, UI37, database6 tests; typecheck/contracts/build PASS. Earlier lint/privacy errors corrected; initial contracts:check rejected uncommitted generated files as intended    |
+| test:docs / test:preflight / test:lint                                                                | PASS       | 10/10,24/24,56/56 respectively                                                                                                                                                                                          |
 | Retail fixture build                                                                                  | PASS       | Actual TSX/CSS bundle                                                                                                                                                                                                   |
 | Retail Chromium checks                                                                                | FAIL       | Column-picker search background expected white, actual surface-muted at retail-column-picker-checks.mjs:83. Reproduced identically on unchanged ef0cf4e baseline; six-viewport geometry passed. No assertion/CSS change |
 | sh scripts/quality-docker.sh                                                                          | NOT RUN    | Full Compose services/tooling unavailable in this host-only workspace;636MB free after builds, no safe isolated full-stack override. No shared stack/volume mutation to obtain a green result                           |
@@ -121,7 +123,9 @@ Test harness corrections are recorded, not erased: private runtime secret initia
 historical migration Prisma create needed select:id before new columns existed;
 old charge oracle fixed hardcoded8/9 positions for the added catalog code; old
 Uniship omission fixture stopped mutating now-confirmed dates. Existing assertions
-were retained. First local Chromium teardown masked its original failure; temporary
+were retained. The first full integration invocation lacked migrated base DB and
+legacy nexora role; those canonical Compose prerequisites were added only to the
+signed task-owned cluster before179/179 PASS. First local Chromium teardown masked its original failure; temporary
 runner now uses repository teardown utilities. Baseline browser comparison reproduces
 the same pre-existing focus/background failure; it is not counted as a pass. No CI/assertion/timeout bypass.
 
@@ -134,8 +138,8 @@ unchanged. No credentials logged. Root trusted namespace matches attributes; unk
 keys/version/depth/oversize fail closed. API exposes only typed values. Production
 registry/transport, identity and worker Nexora-owned privilege restrictions unchanged.
 
-Independent reviewer inspected working tree vs ef0cf4e and independently ran9/9 tests.
-Three P2 closed: leading-zero scientific-count overflow check, required leap/TZ
+Independent reviewer inspected working tree vs ef0cf4e and independently ran27/27 tests across four files on38cce9b.
+See [independent RED/GREEN record](review-and-red-green.md). Three P2 closed: leading-zero scientific-count overflow check, required leap/TZ
 coverage, canonical mapping confidence wording. No open P1/P2/P3 in reviewed scope.
 Reviewer verified frozen snapshot SHA and unchanged captured/reference fixtures.
 This is independent code review, not approval of future exact-final-HEAD CI.
@@ -143,9 +147,9 @@ This is independent code review, not approval of future exact-final-HEAD CI.
 ## H. Báo cáo PM (bảy câu hỏi)
 
 1. **Đủ yêu cầu chưa?**27/27 correspondences đã được triển khai; không dùng tỷ lệ này
-   thay cho nghiệm thu live. Unit và PostgreSQL chính đã PASS; quality/hosted/browser
-   cuối còn cần chốt bằng bằng chứng dưới mụcF.
-2. **Blocker?** Chưa phát hiện blocker mapping sau review; kiểm thử cuối/release còn
+   thay cho nghiệm thu live. Unit, PostgreSQL và quality đã PASS; hosted cuối còn cần chốt. Browser local FAIL
+   tái hiện baseline như mụcF, không tính là green.
+2. **Blocker?** Chưa phát hiện blocker mapping sau review; hosted/release còn
    pending. Production bị hard-close bởi NEXORA-058, độc lập với mapping.
 3. **Mất dữ liệu/sai tiền?** Không cộng trùng phí hay suy tổng. Decimal chính xác,
    null giữ dữ liệu,0 ghi0, nhiều phí cùng mã chuyển review; test chứng minh giữ ID,
@@ -158,7 +162,7 @@ This is independent code review, not approval of future exact-final-HEAD CI.
    API/SDK additive và Web strict guard cần deploy cùng revision. Sáu grant provider-owned
    mới không mở quyền ghi API/Nexora fields. Batch read giữ nguyên, không N+1; không
    tuyên bố cải thiện hiệu năng khi chưa benchmark riêng.
-6. **Tiếp theo?** Agent chốt quality/browser/final-headCI; owner review PR, không auto-merge.
+6. **Tiếp theo?** Agent chốt final-headCI, giữ giới hạn browser local đã ghi; owner review PR, không auto-merge.
    Owner/nhóm NEXORA-058 xác minh provider/live/operational prerequisites; chỉ sau đó
    mới cân nhắc activation. Không backfill hàng loạt trong task này.
 7. **Khi nào production?** Chưa có ngày có căn cứ. Mapping hoàn thiện mã không đồng
@@ -175,5 +179,21 @@ provider ID stability or live activation/backfill is claimed. NEXORA-058 remains
 
 ## J. Merge readiness
 
-VERIFICATION INCOMPLETE — pending final quality, browser and exact-final-HEAD hosted
+VERIFICATION INCOMPLETE — pending exact-final-HEAD hosted
 evidence. No merge or production activation is authorized by this report.
+
+## Hosted first-head delta — 38cce9b
+
+Preflight44698351386 PASS and Sync Targeted44698351380 PASS, attempt1.
+Foundation44698351390/job136160428827 attempt1: Docker quality/migrated integration
+and shared Pager/filter browser acceptance PASS; runtime step7 FAIL before browser
+with `Migrated schema assertion failed`. The migration deploy log states
+`17 migrations found in prisma/migrations` and `No pending migrations to apply.`
+scripts/runtime-smoke.sh:30 still expected16; this task adds migration17. The oracle
+now expects17 while retaining stored_files=0 and all migration/runtime assertions.
+This is a task-caused migration-catalog fixture correction, not an unrelated flaky
+failure, relaxed assertion, retry or workflow change. Step8 and later were NOT RUN.
+Missing browser artifacts are downstream because the runtime stopped before browser.
+No failed action run was rerun. A subsequent commit triggers fresh exact-HEAD CI.
+Source38cce9b, base5e96199d8e83b058d6871942ca8becb2fbb30ac2; PR merge checkout reported
+by GitHub API830868bc335a457d373975d104bba5264fc85fc0. No raw logs/IPs/credentials copied.
