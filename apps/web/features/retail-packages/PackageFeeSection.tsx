@@ -7,7 +7,7 @@ export function PackageFeeSection({ shipment }: { shipment: ShipmentDetail }) {
   return (
     <div className={styles.feeSection} aria-label="Chi tiết phí">
       <div className={styles.feeHeader}>
-        <span className={styles.feeTitle}>Cước phí dự kiến</span>
+        <span className={styles.feeTitle}>Tổng cước hãng báo cáo</span>
         <span className={styles.feeAmount}>
           {formatMoney(shipment.totalAmount, shipment.totalCurrency).replace(
             /đ$/,
