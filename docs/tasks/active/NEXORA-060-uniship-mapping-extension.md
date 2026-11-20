@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: PENDING — current PR HEAD quality/hosted gates require fresh PASS
+Verification: PARTIALLY VERIFIED
 
 ## Scope
 
