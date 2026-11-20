@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -73,7 +73,7 @@ Owner-confirmed counts/VND amounts/UTC+7/reference dates, storage choice and sco
 - [x] Typed attributes keys/version/size/depth/provider isolation and merge/hydration proven.
 - [x] Forward migration/repeat/constraints/least-privilege/read contracts/UI regression executed.
 - [x] Version2/reprocessing preserves source identity; no automatic historical backfill or production activation claim.
-- [ ] Required quality/independent review/final-head hosted evidence and PM report.
+- [x] Required quality/independent review/final-head hosted evidence and PM report.
 
 ## Evidence
 
@@ -86,7 +86,7 @@ Owner-confirmed counts/VND amounts/UTC+7/reference dates, storage choice and sco
 
 STORAGE_PLACEMENT resolved by selected narrow ADR011 amendment: current shared singleton reconciliation/display need justifies five typed root fields despite no new filter. Four source reference facts use the actual closed JSONB schema, not prospective columns. No index/filter framework. Duplicate-target charge ambiguity uses Domain conflict → NEEDS_REVIEW/SOURCE_CONFLICT. Captured fixtures/hashes immutable; owner supplied all four milestone dates and matching ExDate via discussion, retained in a new explicitly labelled fixture. Legacy staged payload remains processable but cannot recover fields never staged; no automatic backfill claim.
 
-## Implementation and review evidence
+## Initial implementation and review evidence (before hosted results)
 
 See [Mapping V2 A–J/PM report](../evidence/NEXORA-060/implementation-report.md).
 Domain/normalizer tests executed RED/GREEN; migrated Docker PostgreSQL SQL roles,
@@ -114,3 +114,17 @@ Fresh exact-HEAD checks required after push; no gh run rerun performed.
 See [independent RED/GREEN](../evidence/NEXORA-060/review-and-red-green.md) and
 [A–J report](../evidence/NEXORA-060/implementation-report.md). Final live CI status
 is recorded in PR59 description with source SHA/run IDs, not inferred from local tests.
+
+## Final executed verification on code73d984b
+
+| Claim                       | Evidence                                                                                                                                                                                                           | Date       | Result |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Hosted code gates           | source73d984b4e6fdd3694369de2cc5dcd3a9335b3aad; merge checkout58439f3d8c77979a7a5331c073e5a1e8ae10423e; Preflight44699768005, Sync44699767860, Foundation44699767849/job136165016539, all attempt1, steps4–10 PASS | 2026-11-20 | PASS   |
+| Local actual Retail browser | Compiled TSX/CSS; canonical Page.bringToFront prerequisite added only to temporary runner; all verifyRetailBrowser assertions including native detail/create and six viewports, exit0                              | 2026-11-20 | PASS   |
+
+Earlier local focus failures and Foundation migration-count failure remain
+historical evidence. No CSS/assertion/timeout/workflow bypass. No open independent
+P1/P2/P3; source code unchanged after reviewed migration oracle correction.
+Task remains active pending owner review and merge under §1.7. The evidence-only
+final commit's exact CI SHA/run IDs are recorded in PR59 description before handoff.
+Capability mapping is VERIFIED, not NEXORA-058 production activation.

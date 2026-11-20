@@ -51,3 +51,12 @@ and exposed it. Baseline comparison confirms recurrence without this diff; it do
 not prove a root cause. No assertion, retry, timeout or unrelated CSS was changed.
 Hosted Foundation browser evidence remains necessary. Raw screenshot/log dumps are
 not committed; no provider/account data is used by these synthetic Retail fixtures.
+
+### Follow-up: canonical focus prerequisite, local PASS
+
+The canonical browser-login-smoke.mjs:284 calls Page.bringToFront; the temporary
+isolated runner had not. After adding that same call only to the temporary runner,
+all verifyRetailBrowser assertions passed with screenshots at six viewports, including
+RETAIL_DETAIL_AND_CREATE_NATIVE_DIALOG and RETAIL_API_ERROR_EMPTY_AND_ABORT. Exit0.
+No source CSS/assertion/timeout changed. This supersedes the local limitation while
+retaining the earlier FAILs above. Hosted final-head acceptance remains separate.
