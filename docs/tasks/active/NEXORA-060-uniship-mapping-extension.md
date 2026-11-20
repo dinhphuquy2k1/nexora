@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: VERIFIED
+Verification: PENDING — current PR HEAD quality/hosted gates require fresh PASS
 
 ## Scope
 
@@ -73,7 +73,7 @@ Owner-confirmed counts/VND amounts/UTC+7/reference dates, storage choice and sco
 - [x] Typed attributes keys/version/size/depth/provider isolation and merge/hydration proven.
 - [x] Forward migration/repeat/constraints/least-privilege/read contracts/UI regression executed.
 - [x] Version2/reprocessing preserves source identity; no automatic historical backfill or production activation claim.
-- [x] Required quality/independent review/final-head hosted evidence and PM report.
+- [ ] Required quality/independent review/final-head hosted evidence and PM report on the current PR HEAD. Earlier implementation-head results remain PASS as recorded below.
 
 ## Evidence
 
@@ -125,6 +125,21 @@ is recorded in PR59 description with source SHA/run IDs, not inferred from local
 Earlier local focus failures and Foundation migration-count failure remain
 historical evidence. No CSS/assertion/timeout/workflow bypass. No open independent
 P1/P2/P3; source code unchanged after reviewed migration oracle correction.
-Task remains active pending owner review and merge under §1.7. The evidence-only
-final commit's exact CI SHA/run IDs are recorded in PR59 description before handoff.
-Capability mapping is VERIFIED, not NEXORA-058 production activation.
+Task remains active pending latest-head CI, owner review and merge under §1.7.
+Previously verified implementation results are historical evidence only, not a claim
+that subsequent changes passed. Capability mapping is implemented; NEXORA-058
+production activation remains separate.
+
+## Follow-up verification after review fixes
+
+- PR head `e1e4357547d54b5dae7e65356955ce6dc39d7f54`: Preflight `44707219991`,
+  Sync targeted PostgreSQL `44707219962` and optional Public HTTPS `44707219974` PASS.
+  Foundation `44707220283` FAIL at `pnpm format:check` because
+  `apps/api/test/uniship/mapping-v2.test.cjs` needed Prettier formatting.
+  Browser/runtime acceptance later in Foundation was NOT RUN; missing artifact
+  uploads are downstream effects, not additional product failures.
+- Follow-up code commit applies Prettier-compatible assertion formatting without
+  weakening tests. A new exact-HEAD Foundation PASS remains mandatory.
+- The P2 evidence contradiction is resolved by marking current verification PENDING
+  and keeping already-green earlier SHA/run results as historical evidence.
+  PR description should reference the final current HEAD and its actual workflow runs.
