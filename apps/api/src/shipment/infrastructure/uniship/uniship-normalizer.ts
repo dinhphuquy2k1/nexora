@@ -261,7 +261,10 @@ function record(
     if (value.ReceivePlaceName != null)
       shipment.destinationWarehouse = value.ReceivePlaceName;
     const attributes: Record<string, unknown> = {};
-    if (warehouseId !== null) attributes.originWarehouseId = warehouseId;
+    // Keep provider warehouse ID and display name as one resolved observation.
+    // An unknown ID must not be paired with a name retained from an earlier sync.
+    if (warehouseId !== null && origin !== undefined)
+      attributes.originWarehouseId = warehouseId;
     if (value.PriceAmount != null)
       attributes.freightUnitPrice = {
         amount: sourceDecimal(value.PriceAmount),
