@@ -136,6 +136,8 @@ test("Retail drawer reads exact item price, fee lines and observed history witho
   );
   assert.match(html, /¥1,234,567,890,123,456.78/);
   assert.match(html, /Hãng ghi nhận:/);
+  assert.match(html, /Tổng cước hãng báo cáo/);
+  assert.doesNotMatch(html, /Cước phí dự kiến/);
   assert.match(html, /Nhập kho gửi/);
   assert.match(html, /Sản phẩm bổ sung/);
   assert.doesNotMatch(html, /Dự kiến 1[345]\/10|Người bán phát hàng/);
