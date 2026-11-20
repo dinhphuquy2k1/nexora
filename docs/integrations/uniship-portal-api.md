@@ -115,6 +115,11 @@ identifier namespace; use the parcel's ReceivePlaceName directly for destination
 warehouse. Even a coinciding numeric ID is not a valid join: sample ReceivePlaceID1
 has name Kho Hà Nội, whereas chinaStores ID1 names a different store. Do not infer
 warehouse identity from a display name or silently fabricate a missing lookup.
+For Mapping V2, only stage originWarehouseId when the same ChinaStoreID resolves
+successfully to a valid originWarehouse name in the current chinaStores lookup.
+On an unresolved ID, warn and omit both fields; a subsequent partial sync must
+preserve the last consistent ID/name pair instead of combining a new unknown ID
+with an old name. This intentionally defers an unresolved ID until a valid lookup.
 Contact/address/audio and other omitted warehouse fields are outside scope; the
 fixture README records exactly what was removed.
 
