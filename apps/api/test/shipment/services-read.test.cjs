@@ -38,7 +38,14 @@ test("service facts remain tri-state and independent of fees in list and detail;
             if (text.includes("FROM shipments s"))
               return empty || foreign
                 ? []
-                : [{ id, logisticsStage: "UNKNOWN" }];
+                : [
+                    {
+                      id,
+                      logisticsStage: "UNKNOWN",
+                      provider: null,
+                      providerAttributes: null,
+                    },
+                  ];
             if (text.includes("shipment_services"))
               return text.includes("ANY(")
                 ? services

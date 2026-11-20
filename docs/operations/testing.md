@@ -1351,3 +1351,18 @@ UNAVAILABLE, capped or incomplete coverage cannot establish absence. Historical
 trial3 CHECK_FAILED without failed transport may represent a separate mechanism.
 Do not rerun failures/add more trials. Evidence and issue44 closure recommendation
 require actual hosted results, not a predeclared causal conclusion.
+
+## NEXORA-060 mapping regression
+
+New owner-discussion fixture lives under apps/api/test/fixtures/uniship/mapping-v2/;
+its README distinguishes owner-supplied facts from synthetic envelope. It is not a
+new live capture. Historical captured fixtures/digests remain untouched.
+
+Run Shipment partial-mapping and Uniship mapping-v2 unit tests after the API build;
+run Retail tests with node --test apps/web/test/retail-\*.test.mjs. Real PostgreSQL
+checks use packages/database/test/shipment-sql.mjs and test/migration.mjs under the
+existing signed disposable-cluster protocol. API shipment-integration and
+uniship-shipment-integration suites cover migrated persistence, stable children,
+rollback, isolation and processor-version compatibility. Never point these tests
+at a live database or reset shared user volumes. Record executed quality/CI evidence
+separately from fixture acceptance and NEXORA-058 production enablement.

@@ -207,7 +207,7 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
           `GRANT USAGE ON SEQUENCE public.shipment_code_seq TO ${role}; GRANT EXECUTE ON FUNCTION public.next_shipment_code() TO ${role}`,
         );
         const providerColumns =
-          "tracking_code,shipment_kind,origin_warehouse,service_level,weight_kg,package_count,item_count,declared_value,declared_currency,total_amount,total_currency,exchange_rate,exchange_rate_at,provider_status,logistics_stage,provider_claim_status,provider_updated_at,last_synced_at,updated_at";
+          "actual_package_count,provider_paid_amount,provider_remaining_amount,provider_paid_at,destination_warehouse,provider_attributes,tracking_code,shipment_kind,origin_warehouse,service_level,weight_kg,package_count,item_count,declared_value,declared_currency,total_amount,total_currency,exchange_rate,exchange_rate_at,provider_status,logistics_stage,provider_claim_status,provider_updated_at,last_synced_at,updated_at";
         await db.query(
           `GRANT INSERT(owner_user_id,source_identity_id,carrier_connection_id,provider,${providerColumns}), UPDATE(${providerColumns}) ON public.shipments TO ${role}`,
         );

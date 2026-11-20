@@ -57,6 +57,13 @@ function isSummary(x: unknown): x is ShipmentSummary {
     !fields(x, ["id", "code", "trackingCode"], text) ||
     x.shipmentKind !== ShipmentKind.RETAIL_PARCEL ||
     !stage(x.logisticsStage) ||
+    !(
+      x.freightUnitPrice === null ||
+      (record(x.freightUnitPrice) &&
+        decimal(x.freightUnitPrice.amount) &&
+        text(x.freightUnitPrice.currency) &&
+        x.freightUnitPrice.unit === "kg")
+    ) ||
     !fields(
       x,
       [
@@ -65,13 +72,18 @@ function isSummary(x: unknown): x is ShipmentSummary {
         "providerClaimStatus",
         "customerId",
         "originWarehouse",
+        "destinationWarehouse",
         "totalCurrency",
         "declaredCurrency",
       ],
       nullableText,
     ) ||
     !fields(x, ["weightKg", "declaredValue", "totalAmount"], nullableDecimal) ||
-    !fields(x, ["packageCount", "itemCount"], nullableInteger) ||
+    !fields(
+      x,
+      ["packageCount", "itemCount", "actualPackageCount"],
+      nullableInteger,
+    ) ||
     !fields(x, ["createdAt", "updatedAt"], date)
   )
     return false;
@@ -181,13 +193,30 @@ function isDetail(value: unknown): value is ShipmentDetail {
     !isSummary(value) ||
     !fields(
       x,
-      ["serviceLevel", "assigneeUserId", "internalNote"],
+      [
+        "serviceLevel",
+        "assigneeUserId",
+        "internalNote",
+        "originWarehouseProviderId",
+        "lastMileMethod",
+      ],
       nullableText,
+    ) ||
+    !fields(
+      x,
+      ["providerPaidAmount", "providerRemainingAmount"],
+      nullableDecimal,
     ) ||
     !nullableDecimal(x.exchangeRate) ||
     !fields(
       x,
-      ["exchangeRateAt", "providerUpdatedAt", "lastSyncedAt"],
+      [
+        "exchangeRateAt",
+        "providerUpdatedAt",
+        "lastSyncedAt",
+        "providerPaidAt",
+        "providerCreatedAt",
+      ],
       nullableDate,
     )
   )

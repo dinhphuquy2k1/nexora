@@ -41,13 +41,23 @@ test("captured bytes and15-row provenance are preserved; minimal normalized fiel
     Object.keys(value.shipment).sort(),
     [
       "originWarehouse",
+      "actualPackageCount",
+      "destinationWarehouse",
+      "exchangeRate",
+      "exchangeRateAt",
+      "providerAttributesPatch",
+      "providerPaidAmount",
+      "providerRemainingAmount",
+      "providerUpdatedAt",
+      "totalAmount",
+      "totalCurrency",
       "providerClaimStatus",
       "providerStatus",
       "trackingCode",
       "weightKg",
     ].sort(),
   );
-  for (const privateValue of ["redacted-user", "Kho Hà Nội"])
+  for (const privateValue of ["redacted-user"])
     assert.equal(JSON.stringify(value).includes(privateValue), false);
   assert.notEqual(
     warehouses().get("1"),
@@ -156,9 +166,7 @@ test("unverified service flags, fees, items, timestamps and missing warehouse fa
       "milestones",
       "originWarehouse",
       "weightKg",
-      "providerUpdatedAt",
       "declaredValue",
-      "totalAmount",
     ])
       assert.equal(Object.hasOwn(r.payload.shipment, key), false, key);
     assert.ok(warnings.includes("UNISHIP_REQUIRED_FIELD_MISSING"));

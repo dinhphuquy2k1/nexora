@@ -78,6 +78,8 @@ test("Shipment list batches all child summaries within its locked transaction", 
   const root = {
     id: "00000000-0000-4000-8000-000000000001",
     logisticsStage: "UNKNOWN",
+    provider: null,
+    providerAttributes: null,
   };
   const { Prisma } = require("@nexora/database");
   adapter.instance = {

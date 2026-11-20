@@ -214,3 +214,33 @@ aggregate encapsulation, locked hydration and minimal persistence.
 ## Storage placement rule
 
 A value becomes a shipments column only when every carrier shares the concept, it has one value per shipment and it is filtered or sorted. Carrier-varying catalogues with possibly several rows per shipment use child tables with a closed vocabulary (shipment_charges, shipment_milestones, shipment_items). Values unique to one carrier that are neither filtered nor shown as columns may later use a provider_attributes JSONB, approved but not implemented. Provider milestones are carrier-reported times; they are never derived from stage history.
+
+## 2026-11-20 amendment — NEXORA-060 canonical and hybrid mapping
+
+The preceding placement rule remains the original decision. This scoped amendment
+permits five shared singleton facts for current reconciliation/list/detail reads,
+without inventing a future filter requirement: actual package count, provider paid
+amount, provider remaining amount, provider payment time and destination warehouse.
+They use nullable typed columns. No new filter or index is introduced.
+
+Four selected reference facts use the now-implemented provider_attributes JSONB:
+origin warehouse provider ID, freight unit price, provider creation time and last-mile
+method. These are reference values without a filter requirement or verified shared
+catalogue; no column per carrier and no provider-specific table is needed. Repeating
+fees and warehouse milestones remain existing child tables. Tracking code remains
+mutable presentation data, never unique source identity.
+
+The JSON envelope is closed: schemaVersion=1, trusted provider namespace, values
+containing only originWarehouseId, freightUnitPrice (amount/currency/unit=kg),
+providerCreatedAt and lastMileMethod. Domain validates exact decimals, UTC times,
+text limits, fixed depth and compact UTF-8 size <=1024 bytes on input, merged state
+and hydration. Unknown keys/versions/namespaces fail closed. SQL additionally checks
+top-level shape/version/provider and a 2048-byte JSONB-text cap (storage rendering
+has overhead); it does not claim nested key enforcement. No JSONB index, raw payload,
+PII, generic recursive merge, EAV or carrier rules in Shipment Domain.
+
+Trade-off: these five columns explicitly relax the original filter/sort criterion
+for actual shared financial/parcel reconciliation needs. Typed JSONB prevents four
+reference facts from becoming speculative core columns, at the cost of bounded
+validation on reads. A new provider must map into existing neutral contracts;
+new keys/schema revisions require a separate reviewed decision, not arbitrary JSON.

@@ -178,6 +178,80 @@ test(
         "UPDATE shipments SET total_amount=$1,total_currency=$2 WHERE id=$3",
         ["9999999999999999.99", "CNY", rootRow.id],
       );
+      const sourceRoot = (
+        await db.query("SELECT id FROM shipments WHERE code='SHP000002'")
+      ).rows[0];
+      const attributes = {
+        schemaVersion: 1,
+        provider: "fixture-a",
+        values: {
+          originWarehouseId: "19",
+          freightUnitPrice: { amount: "23500.00", currency: "VND", unit: "kg" },
+        },
+      };
+      await worker.query(
+        "UPDATE shipments SET actual_package_count=1,provider_paid_amount='940.00',provider_remaining_amount='0.00',provider_paid_at='2026-11-16T23:59:01.000Z',destination_warehouse='Kho Hà Nội',provider_attributes=$1::jsonb WHERE id=$2",
+        [JSON.stringify(attributes), sourceRoot.id],
+      );
+      const mapped = (
+        await app.query(
+          "SELECT actual_package_count,provider_paid_amount::text,provider_remaining_amount::text,provider_paid_at,destination_warehouse,provider_attributes FROM shipments WHERE id=$1",
+          [sourceRoot.id],
+        )
+      ).rows[0];
+      assert.equal(mapped.actual_package_count, 1);
+      assert.equal(mapped.provider_paid_amount, "940.00");
+      assert.equal(mapped.provider_remaining_amount, "0.00");
+      assert.equal(
+        mapped.provider_paid_at.toISOString(),
+        "2026-11-16T23:59:01.000Z",
+      );
+      assert.deepEqual(mapped.provider_attributes, attributes);
+      await worker.query(
+        "INSERT INTO shipments(owner_user_id,tracking_code,actual_package_count,provider_paid_amount,provider_remaining_amount,provider_paid_at,destination_warehouse,provider_attributes) VALUES($1,'new-mapping-grants',0,0,0,NULL,NULL,NULL)",
+        [owner],
+      );
+      for (const column of [
+        "actual_package_count",
+        "provider_paid_amount",
+        "provider_remaining_amount",
+        "provider_paid_at",
+        "destination_warehouse",
+        "provider_attributes",
+      ]) {
+        const privilege = (
+          await db.query(
+            "SELECT has_column_privilege('nexora_sync','shipments',$1,'INSERT') AS i,has_column_privilege('nexora_sync','shipments',$1,'UPDATE') AS u,has_column_privilege('nexora_app','shipments',$1,'UPDATE') AS api",
+            [column],
+          )
+        ).rows[0];
+        assert.deepEqual(privilege, { i: true, u: true, api: false });
+        await assert.rejects(
+          app.query(`UPDATE shipments SET ${column}=NULL WHERE id=$1`, [
+            sourceRoot.id,
+          ]),
+          (e) => e.code === "42501",
+        );
+      }
+      for (const [sql, constraint] of [
+        ["actual_package_count=-1", "chk_shipments_actual_package_count"],
+        ["provider_paid_amount='NaN'", "chk_shipments_provider_paid"],
+        ["provider_remaining_amount=-1", "chk_shipments_provider_remaining"],
+        [
+          "provider_attributes='{}'::jsonb",
+          "chk_shipments_provider_attributes",
+        ],
+      ])
+        await assert.rejects(
+          worker.query(`UPDATE shipments SET ${sql} WHERE id=$1`, [
+            sourceRoot.id,
+          ]),
+          (e) => e.code === "23514" && e.constraint === constraint,
+        );
+      await worker.query(
+        "INSERT INTO shipment_charges(shipment_id,line_no,charge_code,amount,currency) VALUES($1,1,'WEIGHT_FREIGHT',940,'VND')",
+        [sourceRoot.id],
+      );
       for (const column of [
         "id",
         "created_at",

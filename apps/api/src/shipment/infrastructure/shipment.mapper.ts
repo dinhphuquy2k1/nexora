@@ -1,5 +1,9 @@
 import type { Prisma } from "@nexora/database";
-import { ShipmentAggregate, type ShipmentState } from "../domain/shipment";
+import {
+  ShipmentAggregate,
+  parseShipmentProviderAttributes,
+  type ShipmentState,
+} from "../domain/shipment";
 import type {
   LogisticsStageCode,
   ShipmentKindCode,
@@ -19,6 +23,15 @@ export function hydrateShipment(row: StoredShipment): ShipmentAggregate {
     carrierConnectionId: row.carrierConnectionId,
     provider: row.provider,
     shipmentKind: row.shipmentKind as ShipmentKindCode,
+    actualPackageCount: row.actualPackageCount,
+    providerPaidAmount: row.providerPaidAmount?.toFixed(2) ?? null,
+    providerRemainingAmount: row.providerRemainingAmount?.toFixed(2) ?? null,
+    providerPaidAt: row.providerPaidAt?.toISOString() ?? null,
+    destinationWarehouse: row.destinationWarehouse,
+    providerAttributes: parseShipmentProviderAttributes(
+      row.providerAttributes,
+      row.provider,
+    ),
     trackingCode: row.trackingCode,
     originWarehouse: row.originWarehouse,
     serviceLevel: row.serviceLevel,

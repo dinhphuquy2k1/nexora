@@ -83,7 +83,43 @@ export interface ServiceEntry {
   serviceCode: ShipmentServiceCodeValue;
   enabled: boolean;
 }
+export interface ShipmentFreightUnitPrice {
+  amount: string;
+  currency: string;
+  unit: "kg";
+}
+export interface ShipmentProviderAttributeValues {
+  originWarehouseId?: string;
+  freightUnitPrice?: ShipmentFreightUnitPrice;
+  providerCreatedAt?: string;
+  lastMileMethod?: string;
+}
+export interface ShipmentProviderAttributes {
+  schemaVersion: 1;
+  provider: string;
+  values: ShipmentProviderAttributeValues;
+}
+export interface ShipmentProviderAttributesPatch {
+  schemaVersion: 1;
+  provider: string;
+  values: {
+    [K in keyof ShipmentProviderAttributeValues]?:
+      | ShipmentProviderAttributeValues[K]
+      | null;
+  };
+}
+export class ShipmentPatchConflict extends Error {
+  constructor() {
+    super("CHARGE_PATCH_AMBIGUOUS");
+  }
+}
 export interface ProviderFields {
+  actualPackageCount?: number | null;
+  providerPaidAmount?: string | null;
+  providerRemainingAmount?: string | null;
+  providerPaidAt?: string | null;
+  destinationWarehouse?: string | null;
+  providerAttributes?: ShipmentProviderAttributes | null;
   trackingCode?: string;
   shipmentKind?: typeof ShipmentKind.RETAIL_PARCEL;
   originWarehouse?: string | null;
@@ -116,19 +152,33 @@ const textFields = {
   trackingCode: 256,
   originWarehouse: 256,
   serviceLevel: 128,
+  destinationWarehouse: 256,
   providerStatus: 128,
   providerClaimStatus: 128,
 } as const;
 const decimalFields = {
   weightKg: [10, 3],
+  providerPaidAmount: [18, 2],
+  providerRemainingAmount: [18, 2],
   declaredValue: [18, 2],
   totalAmount: [18, 2],
   exchangeRate: [18, 6],
 } as const;
-const dateFields = ["exchangeRateAt", "providerUpdatedAt"] as const;
+const dateFields = [
+  "exchangeRateAt",
+  "providerUpdatedAt",
+  "providerPaidAt",
+] as const;
 const currencyFields = ["declaredCurrency", "totalCurrency"] as const;
-const countFields = ["packageCount", "itemCount"] as const;
+const countFields = [
+  "packageCount",
+  "itemCount",
+  "actualPackageCount",
+] as const;
 const allowed = [
+  "providerAttributesPatch",
+  "chargePatch",
+  "milestonePatch",
   "providerChangedAt",
   "shipmentKind",
   ...Object.keys(textFields),
@@ -268,7 +318,14 @@ export type ShipmentChargeInput = Omit<
 > & { providerLabel?: string | null };
 /** Explicit collection authority is part of the typed normalized contract. */
 export interface ShipmentProviderInput
-  extends Omit<ProviderFields, "logisticsStage"> {
+  extends Omit<ProviderFields, "logisticsStage" | "providerAttributes"> {
+  providerAttributesPatch?: ShipmentProviderAttributesPatch;
+  chargePatch?: {
+    lines: readonly Pick<ChargeLine, "chargeCode" | "amount" | "currency">[];
+  };
+  milestonePatch?: {
+    entries: readonly Omit<ShipmentMilestoneInput, "providerLabel">[];
+  };
   charges?: { complete: true; lines: readonly ShipmentChargeInput[] };
   milestones?: { complete: true; entries: readonly ShipmentMilestoneInput[] };
   items?: { complete: true; lines: readonly ShipmentItemInput[] };
@@ -276,6 +333,9 @@ export interface ShipmentProviderInput
   providerChangedAt?: string | null;
 }
 interface NormalizedProviderPatch {
+  providerAttributesPatch?: ShipmentProviderAttributes;
+  chargePatch?: Pick<ChargeLine, "chargeCode" | "amount" | "currency">[];
+  milestonePatch?: Omit<ShipmentMilestoneInput, "providerLabel">[];
   fields: Omit<ProviderFields, "logisticsStage">;
   charges?: ChargeLine[];
   milestones?: MilestoneEntry[];
@@ -286,6 +346,11 @@ interface NormalizedProviderPatch {
 function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
   const raw = shipmentRecord(input, allowed);
   const out: Record<string, unknown> = {};
+  if (
+    (Object.hasOwn(raw, "charges") && Object.hasOwn(raw, "chargePatch")) ||
+    (Object.hasOwn(raw, "milestones") && Object.hasOwn(raw, "milestonePatch"))
+  )
+    invalid();
   if (Object.hasOwn(raw, "shipmentKind")) {
     if (raw.shipmentKind !== ShipmentKind.RETAIL_PARCEL) invalid();
     out.shipmentKind = ShipmentKind.RETAIL_PARCEL;
@@ -300,7 +365,9 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
     if (Object.hasOwn(raw, key)) {
       out[key] = raw[key] === null ? null : DecimalValue.parse(raw[key], p, s);
       if (
-        key === "weightKg" &&
+        ["weightKg", "providerPaidAmount", "providerRemainingAmount"].includes(
+          key,
+        ) &&
         typeof out[key] === "string" &&
         (out[key] as string).startsWith("-")
       )
@@ -404,7 +471,74 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
   if (Object.hasOwn(raw, "providerChangedAt"))
     providerChangedAt =
       raw.providerChangedAt === null ? null : date(raw.providerChangedAt);
+  const providerAttributesPatch = Object.hasOwn(raw, "providerAttributesPatch")
+    ? attributesValue(raw.providerAttributesPatch, true)
+    : undefined;
+  let chargePatch: NormalizedProviderPatch["chargePatch"];
+  if (Object.hasOwn(raw, "chargePatch")) {
+    const patch = shipmentRecord(raw.chargePatch, ["lines"]);
+    if (
+      !Array.isArray(patch.lines) ||
+      patch.lines.length > SHIPMENT_MAX_CHARGE_LINES
+    )
+      invalid();
+    const codes = [
+      ShipmentChargeCode.WEIGHT_FREIGHT,
+      ShipmentChargeCode.INSURANCE,
+      ShipmentChargeCode.WOOD_PACKING,
+      ShipmentChargeCode.BUBBLE_WRAP,
+    ] as readonly string[];
+    for (const line of patch.lines) {
+      const row = shipmentRecord(line, ["chargeCode", "amount", "currency"]);
+      if (!codes.includes(row.chargeCode as string)) invalid();
+    }
+    const lines = normalizeProviderPatch({
+      charges: { complete: true, lines: patch.lines },
+    }).charges!;
+    if (
+      new Set(lines.map((c) => c.chargeCode)).size !== lines.length ||
+      lines.some((c) => c.amount.startsWith("-"))
+    )
+      invalid();
+    chargePatch = lines.map(({ chargeCode, amount, currency }) => ({
+      chargeCode,
+      amount,
+      currency,
+    }));
+  }
+  let milestonePatch: NormalizedProviderPatch["milestonePatch"];
+  if (Object.hasOwn(raw, "milestonePatch")) {
+    const patch = shipmentRecord(raw.milestonePatch, ["entries"]);
+    if (
+      !Array.isArray(patch.entries) ||
+      patch.entries.length > SHIPMENT_MAX_MILESTONES
+    )
+      invalid();
+    milestonePatch = Array.from(patch.entries, (value) => {
+      const row = shipmentRecord(value, [
+        "milestoneCode",
+        "occurredAt",
+        "locationName",
+      ]);
+      const normalized = milestonePayload(row);
+      return {
+        milestoneCode: normalized.milestoneCode,
+        occurredAt: normalized.occurredAt,
+        ...(row.locationName == null
+          ? {}
+          : { locationName: normalized.locationName }),
+      };
+    });
+    if (
+      new Set(milestonePatch.map((m) => m.milestoneCode)).size !==
+      milestonePatch.length
+    )
+      invalid();
+  }
   return {
+    providerAttributesPatch,
+    chargePatch,
+    milestonePatch,
     fields: out as Omit<ProviderFields, "logisticsStage">,
     providerChangedAt,
     charges,
@@ -420,6 +554,12 @@ export function parseShipmentProviderInput(
 ): ShipmentProviderInput {
   const normalized = normalizeProviderPatch(input);
   const result: ShipmentProviderInput = { ...normalized.fields };
+  if (normalized.providerAttributesPatch !== undefined)
+    result.providerAttributesPatch = normalized.providerAttributesPatch;
+  if (normalized.chargePatch !== undefined)
+    result.chargePatch = { lines: normalized.chargePatch };
+  if (normalized.milestonePatch !== undefined)
+    result.milestonePatch = { entries: normalized.milestonePatch };
   if (normalized.charges !== undefined)
     result.charges = {
       complete: true,
@@ -455,13 +595,86 @@ export function parseShipmentProviderInput(
   return result;
 }
 function prepareOperation(
-  existing: { logisticsStage: LogisticsStageCode } | null,
+  existing: Pick<
+    ShipmentState,
+    "logisticsStage" | "charges" | "milestones" | "providerAttributes"
+  > | null,
   input: unknown,
   stage: LogisticsStageCode,
+  provider: string | null,
 ): ProviderOperation {
   if (!Object.values(LogisticsStage).includes(stage)) invalid();
-  const normalized = normalizeProviderPatch(input);
+  const {
+    chargePatch,
+    milestonePatch,
+    providerAttributesPatch,
+    ...normalized
+  } = normalizeProviderPatch(input);
   if (!existing && normalized.fields.trackingCode === undefined) invalid();
+  if (chargePatch !== undefined) {
+    const lines = (existing?.charges ?? []).map(
+      ({ lineNo, chargeCode, amount, currency, providerLabel }) => ({
+        lineNo,
+        chargeCode,
+        amount,
+        currency,
+        providerLabel,
+      }),
+    );
+    for (const patch of chargePatch) {
+      const matches = lines.filter(
+        (line) => line.chargeCode === patch.chargeCode,
+      );
+      if (matches.length > 1) throw new ShipmentPatchConflict();
+      if (matches.length) Object.assign(matches[0], patch);
+      else {
+        if (lines.length >= SHIPMENT_MAX_CHARGE_LINES || lines.length >= 32767)
+          invalid();
+        lines.push({ ...patch, lineNo: lines.length + 1, providerLabel: null });
+      }
+    }
+    normalized.charges = lines;
+  }
+  if (milestonePatch !== undefined) {
+    const entries = new Map(
+      (existing?.milestones ?? []).map((m) => [
+        m.milestoneCode,
+        {
+          milestoneCode: m.milestoneCode,
+          occurredAt: m.occurredAt,
+          locationName: m.locationName,
+          providerLabel: m.providerLabel,
+        },
+      ]),
+    );
+    for (const patch of milestonePatch) {
+      const old = entries.get(patch.milestoneCode);
+      entries.set(patch.milestoneCode, {
+        ...(old ?? { locationName: null, providerLabel: null }),
+        ...patch,
+      });
+    }
+    const order = Object.values(ShipmentMilestoneCode);
+    normalized.milestones = [...entries.values()].sort(
+      (a, b) => order.indexOf(a.milestoneCode) - order.indexOf(b.milestoneCode),
+    );
+  }
+  if (providerAttributesPatch !== undefined) {
+    if (providerAttributesPatch.provider !== provider) invalid();
+    if (Object.keys(providerAttributesPatch.values).length) {
+      const old = parseShipmentProviderAttributes(
+        existing?.providerAttributes ?? null,
+        provider,
+      );
+      normalized.fields.providerAttributes = parseShipmentProviderAttributes(
+        {
+          ...providerAttributesPatch,
+          values: { ...old?.values, ...providerAttributesPatch.values },
+        },
+        provider,
+      );
+    }
+  }
   return {
     ...normalized,
     fields: { ...normalized.fields, logisticsStage: stage },
@@ -645,7 +858,7 @@ export class ShipmentAggregate {
       provider.length > CARRIER_PROVIDER_MAX_LENGTH
     )
       invalid();
-    const operation = prepareOperation(null, input, stage);
+    const operation = prepareOperation(null, input, stage, provider);
     const root = new ShipmentAggregate({
       id: null,
       code: null,
@@ -725,13 +938,35 @@ export class ShipmentAggregate {
         snapshot.services.length
     )
       invalid();
+    if (snapshot.providerAttributes !== undefined)
+      parseShipmentProviderAttributes(
+        snapshot.providerAttributes,
+        snapshot.provider,
+      );
+    if (snapshot.actualPackageCount !== undefined)
+      count(snapshot.actualPackageCount);
+    for (const amount of [
+      snapshot.providerPaidAmount,
+      snapshot.providerRemainingAmount,
+    ])
+      if (amount != null && DecimalValue.parse(amount, 18, 2).startsWith("-"))
+        invalid();
+    if (snapshot.providerPaidAt != null) date(snapshot.providerPaidAt);
+    if (snapshot.destinationWarehouse != null)
+      text(snapshot.destinationWarehouse, 256);
     return new ShipmentAggregate(snapshot);
   }
   applyProvider(input: unknown, stage: LogisticsStageCode): void {
     const operation = prepareOperation(
-      { logisticsStage: this.state.logisticsStage },
+      {
+        logisticsStage: this.state.logisticsStage,
+        charges: this.charges.map((c) => c.snapshot()),
+        milestones: this.milestones.map((m) => m.snapshot()),
+        providerAttributes: this.state.providerAttributes,
+      },
       input,
       stage,
+      this.state.provider,
     );
     // Validate and construct every child before modifying the root or collection.
     let charges = this.charges;
@@ -794,4 +1029,68 @@ export class ShipmentAggregate {
     if (!this.proposed) invalid();
     return structuredClone(this.proposed);
   }
+}
+
+function attributesValue(
+  input: unknown,
+  patch: boolean,
+): ShipmentProviderAttributes {
+  const row = shipmentRecord(input, ["schemaVersion", "provider", "values"]);
+  if (row.schemaVersion !== 1) invalid();
+  const provider = text(row.provider, CARRIER_PROVIDER_MAX_LENGTH);
+  const values = shipmentRecord(row.values, [
+    "originWarehouseId",
+    "freightUnitPrice",
+    "providerCreatedAt",
+    "lastMileMethod",
+  ]);
+  const out: ShipmentProviderAttributeValues = {};
+  for (const key of ["originWarehouseId", "lastMileMethod"] as const)
+    if (Object.hasOwn(values, key)) {
+      if (patch && values[key] === null) continue;
+      out[key] = text(values[key], 128);
+    }
+  if (
+    Object.hasOwn(values, "providerCreatedAt") &&
+    !(patch && values.providerCreatedAt === null)
+  )
+    out.providerCreatedAt = date(values.providerCreatedAt);
+  if (
+    Object.hasOwn(values, "freightUnitPrice") &&
+    !(patch && values.freightUnitPrice === null)
+  ) {
+    const price = shipmentRecord(values.freightUnitPrice, [
+      "amount",
+      "currency",
+      "unit",
+    ]);
+    if (price.unit !== "kg") invalid();
+    const amount = DecimalValue.parse(price.amount, 18, 2);
+    if (amount.startsWith("-")) invalid();
+    out.freightUnitPrice = {
+      amount,
+      currency: currency(price.currency),
+      unit: "kg",
+    };
+  }
+  const result: ShipmentProviderAttributes = {
+    schemaVersion: 1,
+    provider,
+    values: out,
+  };
+  if (
+    (!patch && !Object.keys(out).length) ||
+    new TextEncoder().encode(JSON.stringify(result)).byteLength > 1024
+  )
+    invalid();
+  return result;
+}
+export function parseShipmentProviderAttributes(
+  input: unknown,
+  provider: string | null,
+): ShipmentProviderAttributes | null {
+  if (input === null) return null;
+  const value = attributesValue(input, false);
+  if (value.provider !== provider) invalid();
+  return value;
 }

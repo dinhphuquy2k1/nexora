@@ -42,7 +42,7 @@ export class UnishipShipmentProcessor
 {
   private readonly normal: ShipmentSyncProcessor;
   constructor(
-    readonly version = 1,
+    readonly version = 2,
     private readonly warn: UnishipWarning = (code) => console.warn(code),
   ) {
     this.normal = new ShipmentSyncProcessor(version, stages, () =>

@@ -277,3 +277,40 @@ test("Retail refresh error explains retained rows; denied errors remove rows and
     assert.equal(html.includes("data-package-id="), !denied);
   }
 });
+test("Retail reported detail keeps independent counts and payment zero, with truthful VND/kg and nullable references", () => {
+  const shipment = {
+    ...FIXTURE_DETAILS[0],
+    packageCount: 2,
+    actualPackageCount: 1,
+    freightUnitPrice: { amount: "23500.00", currency: "VND", unit: "kg" },
+    providerPaidAmount: "940.00",
+    providerRemainingAmount: "0.00",
+    totalCurrency: "VND",
+    providerPaidAt: "2026-11-16T23:59:01.000Z",
+    originWarehouseProviderId: "19",
+    lastMileMethod: "CPN-VietelPost",
+    providerCreatedAt: null,
+  };
+  const { PackageDetailDrawer } = loaded("PackageDetailDrawer", {
+    status: "ready",
+    loading: false,
+    data: { shipment, history: { history: [] } },
+    refresh() {},
+  });
+  const html = render(
+    React.createElement(PackageDetailDrawer, {
+      id: shipment.id,
+      api: {},
+      onClose() {},
+    }),
+  );
+  assert.match(html, /Số kiện:<\/strong> 2/);
+  assert.match(html, /Số kiện thực tế:<\/strong> 1/);
+  assert.match(html, /23.500đ\/kg/);
+  assert.match(html, /Đã thanh toán:<\/strong> 940đ/);
+  assert.match(html, /Còn lại:<\/strong> 0đ/);
+  assert.match(html, /17\/11\/2026/);
+  assert.match(html, /CPN-VietelPost/);
+  assert.match(html, /Ngày tạo phía hãng:<\/strong> —/);
+  assert.doesNotMatch(html, /—\s*(?:kg|kiện|đ)/);
+});

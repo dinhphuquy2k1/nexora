@@ -414,7 +414,7 @@ test(
                 rawPage = page([
                   row({
                     ProductAmount: 999999,
-                    ModifiedDate: "2026-11-16T01:00:00.000",
+                    ShippingInfo: "unverified provider text",
                   }),
                 ]);
                 assert.equal(
@@ -586,7 +586,7 @@ test(
                     row({
                       ...flags,
                       ProductName: "unverified scalar",
-                      StoreVNImportDate: "2026-11-16T01:02:03.000",
+                      StoreVNImportDate: null,
                     }),
                   ]);
                   await ingest();

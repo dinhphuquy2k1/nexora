@@ -15,7 +15,15 @@ export interface Pagination {
   total: number;
   totalPages: number;
 }
+export interface ShipmentFreightPriceView {
+  amount: string;
+  currency: string;
+  unit: "kg";
+}
 export interface ShipmentSummary {
+  actualPackageCount: number | null;
+  destinationWarehouse: string | null;
+  freightUnitPrice: ShipmentFreightPriceView | null;
   id: string;
   code: string;
   trackingCode: string;
@@ -95,6 +103,12 @@ export interface ShipmentItemView {
   currency: string | null;
 }
 export interface ShipmentDetail extends ShipmentSummary {
+  providerPaidAmount: string | null;
+  providerRemainingAmount: string | null;
+  providerPaidAt: Date | null;
+  originWarehouseProviderId: string | null;
+  providerCreatedAt: Date | null;
+  lastMileMethod: string | null;
   serviceLevel: string | null;
   milestones: ShipmentMilestoneView[];
   items: ShipmentItemView[];

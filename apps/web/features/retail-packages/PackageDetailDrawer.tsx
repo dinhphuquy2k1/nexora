@@ -125,6 +125,58 @@ export function PackageDetailDrawer({
                   </div>
                 </div>
               </div>
+              <section
+                className={styles.warehouseBox}
+                aria-label="Dữ liệu hãng báo cáo"
+              >
+                <div>
+                  <strong>Số kiện:</strong> {row.packageCount}
+                </div>
+                <div>
+                  <strong>Số kiện thực tế:</strong> {row.actualPackageCount}
+                </div>
+                <div>
+                  <strong>Đơn giá cước:</strong> {row.freightUnitPrice}
+                </div>
+                <div>
+                  <strong>ID kho gửi phía hãng:</strong>{" "}
+                  {data.shipment.originWarehouseProviderId ?? "—"}
+                </div>
+                <div>
+                  <strong>Phương thức chặng cuối:</strong>{" "}
+                  {data.shipment.lastMileMethod ?? "—"}
+                </div>
+                <div>
+                  <strong>Ngày tạo phía hãng:</strong>{" "}
+                  {formatDate(data.shipment.providerCreatedAt, true)}
+                </div>
+                <div>
+                  <strong>Ngày cập nhật phía hãng:</strong>{" "}
+                  {formatDate(data.shipment.providerUpdatedAt, true)}
+                </div>
+                <div>
+                  <strong>Đã thanh toán:</strong>{" "}
+                  {formatMoney(
+                    data.shipment.providerPaidAmount,
+                    data.shipment.totalCurrency,
+                  )}
+                </div>
+                <div>
+                  <strong>Còn lại:</strong>{" "}
+                  {formatMoney(
+                    data.shipment.providerRemainingAmount,
+                    data.shipment.totalCurrency,
+                  )}
+                </div>
+                <div>
+                  <strong>Ngày thanh toán:</strong>{" "}
+                  {formatDate(data.shipment.providerPaidAt, true)}
+                </div>
+                <div>
+                  <strong>Tỷ giá hãng báo cáo:</strong>{" "}
+                  {data.shipment.exchangeRate ?? "—"}
+                </div>
+              </section>
               <PackageFeeSection shipment={data.shipment} />
               <section className={styles.timelineSection} aria-label="Mốc kho">
                 <h3 className={styles.timelineHeading}>Mốc kho</h3>

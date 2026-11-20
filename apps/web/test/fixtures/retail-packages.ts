@@ -88,6 +88,15 @@ export const REFERENCE_DETAILS: ShipmentDetail[] = SYNTHETIC_PACKAGES.map(
       id: rootId,
       code: `SHP${String(index + 1).padStart(6, "0")}`,
       trackingCode: p.trackingCode,
+      actualPackageCount: null,
+      destinationWarehouse: null,
+      freightUnitPrice: null,
+      providerPaidAmount: null,
+      providerRemainingAmount: null,
+      providerPaidAt: null,
+      originWarehouseProviderId: null,
+      providerCreatedAt: null,
+      lastMileMethod: null,
       shipmentKind: "RETAIL_PARCEL",
       provider:
         p.carrierProviderName === "Uniship" ? "uniship" : p.carrierProviderName,
@@ -188,6 +197,12 @@ export const REFERENCE_DETAILS: ShipmentDetail[] = SYNTHETIC_PACKAGES.map(
 );
 export function asSummary(detail: ShipmentDetail): ShipmentSummary {
   const {
+    providerPaidAmount,
+    providerRemainingAmount,
+    providerPaidAt,
+    originWarehouseProviderId,
+    providerCreatedAt,
+    lastMileMethod,
     serviceLevel,
     exchangeRate,
     exchangeRateAt,
@@ -202,6 +217,12 @@ export function asSummary(detail: ShipmentDetail): ShipmentSummary {
     ...summary
   } = detail;
   void [
+    providerPaidAmount,
+    providerRemainingAmount,
+    providerPaidAt,
+    originWarehouseProviderId,
+    providerCreatedAt,
+    lastMileMethod,
     serviceLevel,
     exchangeRate,
     exchangeRateAt,

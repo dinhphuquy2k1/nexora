@@ -12,6 +12,7 @@ export const LogisticsStage = {
 export type LogisticsStageCode =
   (typeof LogisticsStage)[keyof typeof LogisticsStage];
 export const ShipmentChargeCode = {
+  WEIGHT_FREIGHT: "WEIGHT_FREIGHT",
   UNIT_PRICE: "UNIT_PRICE",
   DOMESTIC_SHIPPING: "DOMESTIC_SHIPPING",
   INSURANCE: "INSURANCE",

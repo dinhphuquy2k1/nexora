@@ -1092,7 +1092,7 @@ export async function verifyRetailBrowser({
         destWarehouseDate: source.destWarehouseDate ?? "—",
         destWarehouseExportDate: source.destWarehouseExportDate ?? "—",
         weightKg: source.weightKg.toFixed(2),
-        unitPriceCNY: cny(source.unitPriceCNY),
+        freightUnitPrice: cny(source.unitPriceCNY),
         domesticShipCNY:
           source.domesticShipCNY > 0 ? cny(source.domesticShipCNY) : "—",
         valueCNY: cny(source.valueCNY),

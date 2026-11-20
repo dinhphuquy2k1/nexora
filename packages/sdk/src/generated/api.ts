@@ -460,6 +460,13 @@ export interface components {
             message: string;
             requestId: string;
         };
+        ShipmentFreightUnitPriceDto: {
+            /** @description Exact reported freight price; not payable charge or computed total */
+            amount: string;
+            currency: string;
+            /** @enum {string} */
+            unit: "kg";
+        };
         ShipmentAmountSummaryDto: {
             /** @enum {string} */
             state: "NONE" | "SINGLE" | "MULTIPLE";
@@ -514,6 +521,9 @@ export interface components {
             lineCount: number;
         };
         ShipmentSummaryDto: {
+            actualPackageCount: number | null;
+            destinationWarehouse: string | null;
+            freightUnitPrice: components["schemas"]["ShipmentFreightUnitPriceDto"] | null;
             originWarehouse: string | null;
             /** @description Exact decimal string; no monetary arithmetic or rounding */
             weightKg: string | null;
@@ -625,13 +635,16 @@ export interface components {
             id: string;
             lineNo: number;
             /** @enum {string} */
-            chargeCode: "UNIT_PRICE" | "DOMESTIC_SHIPPING" | "INSURANCE" | "COUNTING" | "WOOD_PACKING" | "BUBBLE_WRAP" | "OTHER";
+            chargeCode: "WEIGHT_FREIGHT" | "UNIT_PRICE" | "DOMESTIC_SHIPPING" | "INSURANCE" | "COUNTING" | "WOOD_PACKING" | "BUBBLE_WRAP" | "OTHER";
             /** @description Exact decimal string; no monetary arithmetic or rounding */
             amount: string;
             currency: string;
             providerLabel: string | null;
         };
         ShipmentDetailDto: {
+            actualPackageCount: number | null;
+            destinationWarehouse: string | null;
+            freightUnitPrice: components["schemas"]["ShipmentFreightUnitPriceDto"] | null;
             originWarehouse: string | null;
             /** @description Exact decimal string; no monetary arithmetic or rounding */
             weightKg: string | null;
@@ -664,6 +677,15 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** @description Exact provider-reported payment amount in totalCurrency; never computed */
+            providerPaidAmount: string | null;
+            providerRemainingAmount: string | null;
+            /** Format: date-time */
+            providerPaidAt: string | null;
+            originWarehouseProviderId: string | null;
+            /** Format: date-time */
+            providerCreatedAt: string | null;
+            lastMileMethod: string | null;
             services: components["schemas"]["ShipmentServiceDto"][];
             milestones: components["schemas"]["ShipmentMilestoneDto"][];
             items: components["schemas"]["ShipmentItemDto"][];

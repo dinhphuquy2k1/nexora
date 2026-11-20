@@ -28,7 +28,12 @@ export function toRetailRow(s: ShipmentSummary): RetailRow {
     destWarehouseDate: formatDate(s.milestoneSummary.destReceivedAt),
     destWarehouseExportDate: formatDate(s.milestoneSummary.destDispatchedAt),
     weightKg: formatWeight(s.weightKg),
-    unitPriceCNY: fee(s.chargeSummary.unitPrice),
+    freightUnitPrice:
+      s.freightUnitPrice === null
+        ? fee(s.chargeSummary.unitPrice)
+        : `${formatMoney(s.freightUnitPrice.amount, s.freightUnitPrice.currency)}/${s.freightUnitPrice.unit}`,
+    actualPackageCount:
+      s.actualPackageCount === null ? "—" : String(s.actualPackageCount),
     domesticShipCNY: fee(s.chargeSummary.domesticShipping),
     valueCNY: formatMoney(s.declaredValue, s.declaredCurrency),
     hasInsurance: s.serviceSummary.insurance,
@@ -38,7 +43,8 @@ export function toRetailRow(s: ShipmentSummary): RetailRow {
     status: stageToTab(s.logisticsStage),
     statusText: stageLabel(s.logisticsStage),
     originWarehouseName: s.originWarehouse ?? "—",
-    destWarehouseName: s.milestoneSummary.destWarehouse ?? "—",
+    destWarehouseName:
+      s.destinationWarehouse ?? s.milestoneSummary.destWarehouse ?? "—",
     totalAmountVND: formatMoney(s.totalAmount, s.totalCurrency),
   };
 }

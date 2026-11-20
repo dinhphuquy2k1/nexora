@@ -1289,6 +1289,17 @@ test(
           }
         },
       );
+      await require("./fixtures/uniship-mapping-v2.cjs").verifyMappingV2({
+        t,
+        db,
+        owner,
+        connection,
+        makeRepo,
+        prepare,
+        finish,
+        req,
+        foreignToken: tokens[1],
+      });
     } finally {
       await app?.close();
       await identity?.client.$disconnect();

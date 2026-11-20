@@ -1,3 +1,8 @@
+import {
+  ShipmentChargeCode as C,
+  ShipmentMilestoneCode as M,
+} from "@nexora/shared/shipment";
+import { CarrierProvider } from "../../../carrier/domain/carrier";
 import { SyncError, sourceKey } from "../../../sync/domain/sync-policy";
 import { SyncErrorCode } from "../../../sync/domain/sync.constants";
 import type {
@@ -15,6 +20,7 @@ export const UnishipDiagnostic = {
   REQUIRED_FIELD_MISSING: "UNISHIP_REQUIRED_FIELD_MISSING",
   FIELD_TYPE_CHANGED: "UNISHIP_FIELD_TYPE_CHANGED",
   ENVELOPE_INVALID: "UNISHIP_ENVELOPE_INVALID",
+  ORIGIN_DISPATCH_CONFLICT: "UNISHIP_ORIGIN_DISPATCH_CONFLICT",
 } as const;
 export type UnishipDiagnosticCode =
   (typeof UnishipDiagnostic)[keyof typeof UnishipDiagnostic];
@@ -64,6 +70,57 @@ function integer(value: unknown): number | null {
   if (text === null) return null;
   const number = Number(text);
   return Number.isSafeInteger(number) ? number : null;
+}
+/** UTC+7 source wall time; validate calendar in UTC before applying the fixed offset. */
+export function parseUnishipLocalTimestamp(value: unknown): string {
+  if (
+    typeof value !== "string" ||
+    value.startsWith("0000") ||
+    !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?$/.test(value)
+  )
+    throw new ShipmentError("VALIDATION_ERROR");
+  const wall =
+    value.replace(
+      /(?:\.(\d{1,3}))?$/,
+      (_, f: string | undefined) => "." + (f ?? "").padEnd(3, "0"),
+    ) + "Z";
+  const date = new Date(wall);
+  if (!Number.isFinite(date.getTime()) || date.toISOString() !== wall)
+    throw new ShipmentError("VALIDATION_ERROR");
+  const utc = new Date(date.getTime() - 7 * 60 * 60 * 1000).toISOString();
+  if (utc.startsWith("0000")) throw new ShipmentError("VALIDATION_ERROR");
+  return utc;
+}
+function sourceCount(value: unknown): number {
+  if (!(value instanceof NumericLexeme) || value.source.length > 128)
+    throw new ShipmentError("VALIDATION_ERROR");
+  const m = /^(-?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d{1,4}))?$/.exec(value.source);
+  if (!m) throw new ShipmentError("VALIDATION_ERROR");
+  const coefficient = BigInt(m[2] + (m[3] ?? ""));
+  if (coefficient === 0n) return 0;
+  if (m[1]) throw new ShipmentError("VALIDATION_ERROR");
+  const power = Number(m[4] ?? 0) - (m[3]?.length ?? 0);
+  let result: bigint;
+  if (power >= 0) {
+    if (coefficient.toString().length + power > 10)
+      throw new ShipmentError("VALIDATION_ERROR");
+    result = coefficient * 10n ** BigInt(power);
+  } else {
+    if (-power > 128) throw new ShipmentError("VALIDATION_ERROR");
+    const divisor = 10n ** BigInt(-power);
+    if (coefficient % divisor !== 0n)
+      throw new ShipmentError("VALIDATION_ERROR");
+    result = coefficient / divisor;
+  }
+  if (result > 2147483647n) throw new ShipmentError("VALIDATION_ERROR");
+  return Number(result);
+}
+function sourceDecimal(value: unknown, scale = 2): string {
+  if (!(value instanceof NumericLexeme))
+    throw new ShipmentError("VALIDATION_ERROR");
+  const out = DecimalValue.parse(value.source, 18, scale);
+  if (out.startsWith("-")) throw new ShipmentError("VALIDATION_ERROR");
+  return out;
 }
 function envelope(text: string, warn: UnishipWarning) {
   const value = decoded(text, warn);
@@ -172,8 +229,97 @@ function record(
   const origin = warehouseId === null ? undefined : warehouses.get(warehouseId);
   if (origin !== undefined) shipment.originWarehouse = origin;
   else warn(UnishipDiagnostic.REQUIRED_FIELD_MISSING);
-  // Unknown currency/timezone/completeness never becomes an authoritative snapshot.
   try {
+    for (const [source, target] of [
+      ["NumberOfPack", "packageCount"],
+      ["RealNumberOfPack", "actualPackageCount"],
+    ] as const)
+      if (value[source] != null) shipment[target] = sourceCount(value[source]);
+    for (const [source, target] of [
+      ["TotalAmount", "totalAmount"],
+      ["TotalPaidAmount", "providerPaidAmount"],
+      ["TotalRemainAmount", "providerRemainingAmount"],
+    ] as const)
+      if (value[source] != null)
+        shipment[target] = sourceDecimal(value[source]);
+    if (
+      value.TotalAmount != null ||
+      value.TotalPaidAmount != null ||
+      value.TotalRemainAmount != null
+    )
+      shipment.totalCurrency = "VND";
+    if (value.ExchangeRate != null) {
+      shipment.exchangeRate = sourceDecimal(value.ExchangeRate, 6);
+      shipment.exchangeRateAt = null;
+    }
+    for (const [source, target] of [
+      ["PaymentDate", "providerPaidAt"],
+      ["ModifiedDate", "providerUpdatedAt"],
+    ] as const)
+      if (value[source] != null)
+        shipment[target] = parseUnishipLocalTimestamp(value[source]);
+    if (value.ReceivePlaceName != null)
+      shipment.destinationWarehouse = value.ReceivePlaceName;
+    const attributes: Record<string, unknown> = {};
+    if (warehouseId !== null) attributes.originWarehouseId = warehouseId;
+    if (value.PriceAmount != null)
+      attributes.freightUnitPrice = {
+        amount: sourceDecimal(value.PriceAmount),
+        currency: "VND",
+        unit: "kg",
+      };
+    if (value.CreatedDate != null)
+      attributes.providerCreatedAt = parseUnishipLocalTimestamp(
+        value.CreatedDate,
+      );
+    if (value.ShippingMethod != null)
+      attributes.lastMileMethod = value.ShippingMethod;
+    if (Object.keys(attributes).length)
+      shipment.providerAttributesPatch = {
+        schemaVersion: 1,
+        provider: CarrierProvider.UNISHIP,
+        values: attributes,
+      };
+    const charges = [];
+    for (const [source, chargeCode] of [
+      ["FeeWeightAmount", C.WEIGHT_FREIGHT],
+      ["GuaranteeAmountVND", C.INSURANCE],
+      ["FragileFeeVND", C.WOOD_PACKING],
+      ["FoamFeeVND", C.BUBBLE_WRAP],
+    ] as const)
+      if (value[source] != null)
+        charges.push({
+          chargeCode,
+          amount: sourceDecimal(value[source]),
+          currency: "VND",
+        });
+    if (charges.length) shipment.chargePatch = { lines: charges };
+    const milestones = [];
+    for (const [source, milestoneCode] of [
+      ["StoreCNImportDate", M.ORIGIN_RECEIVED],
+      ["StoreCNExportDate", M.ORIGIN_DISPATCHED],
+      ["StoreVNImportDate", M.DEST_RECEIVED],
+      ["StoreVNExportDate", M.DEST_DISPATCHED],
+    ] as const) {
+      if (value[source] == null) continue;
+      const occurredAt = parseUnishipLocalTimestamp(value[source]);
+      if (
+        source === "StoreCNExportDate" &&
+        value.StoreCNExDate != null &&
+        parseUnishipLocalTimestamp(value.StoreCNExDate) !== occurredAt
+      ) {
+        warn(UnishipDiagnostic.ORIGIN_DISPATCH_CONFLICT);
+        continue;
+      }
+      milestones.push({
+        milestoneCode,
+        occurredAt,
+        ...(source === "StoreVNImportDate" && value.ReceivePlaceName != null
+          ? { locationName: value.ReceivePlaceName }
+          : {}),
+      });
+    }
+    if (milestones.length) shipment.milestonePatch = { entries: milestones };
     return {
       identity,
       payload: {
