@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -69,12 +69,12 @@ Owner-confirmed counts/VND amounts/UTC/reference dates (owner evidence2026-11-20
 
 ## Acceptance
 
-- [ ] All35 selected mapping correspondences; UTC owner correction and new services/items/declared values/count/COUNTING fee verified.
+- [x] All35 selected mapping correspondences; UTC owner correction and new services/items/declared values/count/COUNTING fee verified.
 - [x] Scoped patches preserve other fees/milestones and stable IDs; ambiguous fees review, complete snapshots unchanged.
 - [x] Typed attributes keys/version/size/depth/provider isolation and merge/hydration proven.
 - [x] Forward migration/repeat/constraints/least-privilege/read contracts/UI regression executed.
 - [x] Version2/reprocessing preserves source identity; no automatic historical backfill or production activation claim.
-- [ ] Required quality/independent review/final-head hosted evidence and PM report on the current PR HEAD. Earlier implementation-head results remain PASS as recorded below.
+- [x] Required quality/independent review/final-head hosted evidence and PM report on the current PR HEAD. Earlier implementation-head results remain PASS as recorded below.
 
 ## Evidence
 
@@ -221,3 +221,14 @@ Required local format/lint/typecheck/contracts/docs/preflight/test:docs/test:pre
 PASS; independent55/55 plus17/17, no open finding. Technical policy verification
 is distinct from058's actual three-parcel comparison, which remains NOT RUN.
 No new exact-HEAD green is claimed before hosted checks finish.
+
+## Retained-local-time v2 hosted technical verification
+
+| Claim                        | Evidence                                                                                                                                                                                                                   | Date       | Result |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Local-time policy code gates | source b6bb4c02d63365f27d62f30aadc7427542835efc; actual merge checkout4cf06cc818ca15b8de383a0483be2e587a1cd05c; Preflight44918310509, Sync44918310211, Foundation44918310218/job136888597383, all attempt1, steps4–10 PASS | 2026-11-21 | PASS   |
+
+VERIFIED here means implementation of the latest owner-selected UTC+7 policy and
+existing35 mappings, not a proven external timezone. NEXORA-058 live comparison
+of3parcels remains NOT RUN and blocks automatic schedules. Task stays active
+for owner review/merge; evidence-only final HEAD/run IDs are recorded in PR59.

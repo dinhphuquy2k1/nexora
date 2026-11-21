@@ -154,11 +154,12 @@ This is independent code review, not approval of future exact-final-HEAD CI.
 
 ## H. Báo cáo PM (bảy câu hỏi)
 
-1. **Đủ yêu cầu chưa?**35 mapping correspondences giữ nguyên. Latest owner request
-   giữ UTC+7→UTC và yêu cầu gate058 so3kiện trước lịch tự động; kiểm chứng kỹ thuật
-   local-time-v2 trên HEAD mới đang thực hiện. CI UTC-only trước đây là lịch sử.
-2. **Blocker?** Timezone provider còn quan sát mâu thuẫn; không tuyên bố đã giải quyết.
-   058 phải PASS gate so3kiện trước lịch tự động. Release kỹ thuật chờ exact-HEAD CI.
+1. **Đủ yêu cầu chưa?**35 mapping correspondences giữ nguyên, helper local-time
+   được khôi phục đúng bản gốc. Related72/72, Retail143/143, PostgreSQL22/22 và12/12,
+   các lệnh local và hosted b6bb4c0 PASS. Đây là kiểm chứng triển khai UTC+7, không
+   chứng minh múi giờ thực;058 vẫn phải so3kiện trước lịch tự động.
+2. **Blocker?** Không còn finding kỹ thuật mở sau review/CI. Release chờ exact-HEAD
+   commit evidence cuối; production/automatic schedules vẫn bị chặn bởi gate058.
 3. **Mất dữ liệu/sai tiền?** Không cộng trùng phí hay suy tổng. Decimal chính xác,
    null giữ dữ liệu,0 ghi0, nhiều phí cùng mã chuyển review; test chứng minh giữ ID,
    child xmin và rollback. Dữ liệu lịch sử chưa staged không tự được phục hồi.
@@ -201,8 +202,10 @@ NEXORA-058 production activation is still out of scope.
 
 ## J. Merge readiness
 
-VERIFICATION INCOMPLETE — latest retained-local-time policy requires fresh checks.
-Earlier UTC-only green remains historical. No merge or production enablement.
+READY FOR OWNER REVIEW — technical retained-local-time policy and mapping code
+b6bb4c0 passed local/hosted checks. Final evidence-only HEAD is checked separately
+and recorded in PR59. The conflicting observation is unresolved; live058 gate
+is NOT RUN and blocks automatic schedules. No merge or activation.
 
 ## Hosted first-head delta — 38cce9b
 
@@ -273,3 +276,14 @@ not current policy or evidence resolving MD59639's conflicting API/UI observatio
 All35 fields remain; mandatory058 first-real-sync comparison of3parcels is NOT RUN
 here and blocks automatic scheduling. See review-local-time-v2 evidence for current
 implementation/tests and exact-HEAD CI; no live activation/backfill is performed.
+
+## Retained-policy hosted addendum
+
+[Current local-time-v2 evidence](review-local-time-v2.md): source
+b6bb4c02d63365f27d62f30aadc7427542835efc, actual checkout
+4cf06cc818ca15b8de383a0483be2e587a1cd05c; all attempt1:
+Preflight44918310509 PASS; Sync44918310211 PASS;
+Foundation44918310218/job136888597383 PASS, steps4–10.
+This supersedes the earlier UTC-only policy/readiness as current behavior while
+retaining its historical outcomes. Exact final evidence-only HEAD is in PR59.
+The actual058 three-parcel gate remains NOT RUN, not satisfied by these fixtures/CI.

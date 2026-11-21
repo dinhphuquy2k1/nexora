@@ -66,3 +66,28 @@ This is code/policy implementation review, not external timezone proof or CI app
 VERIFICATION INCOMPLETE until new exact-HEAD gates complete. Rules A/B retained;
 no unrelated test fix, Foundation step/order/namespace/retry/timeout/assertion change,
 no action rerun for green and no merge or activation.
+
+## Executed code-head hosted verification
+
+Source b6bb4c02d63365f27d62f30aadc7427542835efc; base
+5e96199d8e83b058d6871942ca8becb2fbb30ac2; actual checkout
+4cf06cc818ca15b8de383a0483be2e587a1cd05c (GitHub PR merge and job checkout log).
+All attempt1, date2026-11-21:
+
+| Workflow      | Run / job                 | Result |
+| ------------- | ------------------------- | ------ |
+| Preflight     | 44918310509               | PASS   |
+| Sync Targeted | 44918310211               | PASS   |
+| Foundation    | 44918310218 /136888597383 | PASS   |
+
+Foundation steps4–10 all PASS: Docker quality/migrated integration, browser
+acceptance, runtime/provisioning/TTY/browser, public HTTPS, DB/storage persistence
+and HMR/dependency drift. Job started2026-11-21T15:16:40Z and
+completed2026-11-21T15:37:29Z. Run:
+https://github.com/dinhphuquy2k1/nexora/actions/runs/44918310218
+
+Technical retained-policy implementation is READY FOR OWNER REVIEW. This does not
+resolve the provider timezone conflict:058's live three-parcel comparison is still
+NOT RUN and automatic scheduling remains gated. The evidence-only final commit
+is checked on its own HEAD; exact SHA/run IDs go in PR59 via gh api after completion.
+No rerun, merge, live sync or activation. Pre-push NOT RUN rows remain historical.
