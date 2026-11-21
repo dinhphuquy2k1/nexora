@@ -1,0 +1,32 @@
+{
+  "status": 200,
+  "message": "Success",
+  "data": [
+    {
+      "ID": 343558,
+      "TransactionCode": "MAPPING-343558-REDACTED",
+      "Status": 4,
+      "IsGuarantee": 1,
+      "IsCheck": 1,
+      "IsFragileGoods": 1,
+      "IsFoam": 1,
+      "ProductName": "A",
+      "ProductAmount": 1000,
+      "ProductNumber": 23,
+      "ModifiedDate": "2026-11-20T03:19:58"
+    }
+  ],
+  "total": 1,
+  "offset": 0,
+  "rowsPerPage": 100,
+  "summary": {
+    "TotalStatusAll": 1,
+    "TotalStatus0": 0,
+    "TotalStatus1": 0,
+    "TotalStatus2": 0,
+    "TotalStatus3": 0,
+    "TotalStatus4": 1,
+    "TotalStatus5": 0,
+    "TotalStatus13": 0
+  }
+}

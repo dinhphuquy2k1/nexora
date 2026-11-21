@@ -759,6 +759,7 @@ try {
   step = "SHIPMENT_CHILDREN_FORWARD";
   const shipmentOwner = await db.user.findFirstOrThrow();
   const legacyShipment = await db.shipment.create({
+    select: { id: true },
     data: {
       ownerUserId: shipmentOwner.id,
       trackingCode: "before-children",
@@ -864,6 +865,45 @@ try {
     0,
     "No backfill from existing fee lines",
   );
+  step = "SHIPMENT_MAPPING_ATTRIBUTES";
+  const mappingMigration = "20261120000000_shipment_mapping_attributes";
+  const beforeMapping = await db.$queryRawUnsafe(
+    "SELECT * FROM shipments ORDER BY id",
+  );
+  await cp(
+    resolve("prisma/migrations", mappingMigration),
+    join(work, "prisma/migrations", mappingMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  const afterMapping = await db.$queryRawUnsafe(
+    "SELECT * FROM shipments ORDER BY id",
+  );
+  assert.equal(afterMapping.length, beforeMapping.length);
+  const newFields = [
+    "actual_package_count",
+    "provider_paid_amount",
+    "provider_remaining_amount",
+    "provider_paid_at",
+    "destination_warehouse",
+    "provider_attributes",
+  ];
+  for (let i = 0; i < afterMapping.length; i++) {
+    for (const field of newFields)
+      assert.equal(
+        afterMapping[i][field],
+        null,
+        "nullable mapping field " + field,
+      );
+    assert.deepEqual(
+      Object.fromEntries(
+        Object.keys(beforeMapping[i]).map((k) => [k, afterMapping[i][k]]),
+      ),
+      beforeMapping[i],
+      "preserve historical Shipment columns",
+    );
+  }
+  beforeChildren.shipments = afterMapping;
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },

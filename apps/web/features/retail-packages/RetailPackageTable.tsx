@@ -333,13 +333,13 @@ export function RetailPackageTable({
                             {pkg.weightKg}
                           </td>
                         );
-                      case "unitPriceCNY":
+                      case "freightUnitPrice":
                         return (
                           <td
                             key={col.id}
                             className={`${styles.numericCell} ${styles.alignRight}`}
                           >
-                            {pkg.unitPriceCNY}
+                            {pkg.freightUnitPrice}
                           </td>
                         );
                       case "domesticShipCNY":

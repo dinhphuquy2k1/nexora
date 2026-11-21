@@ -413,8 +413,8 @@ test(
                 );
                 rawPage = page([
                   row({
-                    ProductAmount: 999999,
-                    ModifiedDate: "2026-11-16T01:00:00.000",
+                    FeeOther: 999999,
+                    ShippingInfo: "unverified provider text",
                   }),
                 ]);
                 assert.equal(
@@ -573,20 +573,20 @@ test(
                 );
                 for (const flags of [
                   { IsGuarantee: null },
-                  { IsGuarantee: false, IsCheck: null },
+                  { IsGuarantee: null, IsCheck: null },
                   {
-                    IsGuarantee: true,
-                    IsCheck: false,
-                    IsFragileGoods: true,
-                    IsFoam: false,
+                    IsGuarantee: null,
+                    IsCheck: null,
+                    IsFragileGoods: null,
+                    IsFoam: null,
                     FeeShip: 99,
                   },
                 ]) {
                   rawPage = page([
                     row({
                       ...flags,
-                      ProductName: "unverified scalar",
-                      StoreVNImportDate: "2026-11-16T01:02:03.000",
+                      ProductName: null,
+                      StoreVNImportDate: null,
                     }),
                   ]);
                   await ingest();
@@ -618,7 +618,7 @@ test(
                 ))
                   assert.equal(values.length, 0);
                 rawPage = page([
-                  row({ GuaranteeAmount: 999, ProductName: "not complete" }),
+                  row({ GuaranteeAmount: 999, ProductName: null }),
                 ]);
                 await ingest();
                 for (const values of Object.values(

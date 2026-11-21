@@ -12,7 +12,11 @@ import {
   SyncErrorCode,
   SyncProcessingStatus,
 } from "../../sync/domain/sync.constants";
-import { ShipmentError, parseShipmentProviderInput } from "../domain/shipment";
+import {
+  ShipmentError,
+  ShipmentPatchConflict,
+  parseShipmentProviderInput,
+} from "../domain/shipment";
 import type { ShipmentSyncSession } from "./shipment-sync.port";
 /** No provider mapping is bundled. Each future verified mapper needs its own version. */
 export class ShipmentSyncProcessor
@@ -55,6 +59,11 @@ export class ShipmentSyncProcessor
       await session.propose(input, stage);
       return { outcome: SyncProcessingStatus.APPLIED };
     } catch (error) {
+      if (error instanceof ShipmentPatchConflict)
+        return {
+          outcome: SyncProcessingStatus.NEEDS_REVIEW,
+          code: SyncErrorCode.SOURCE_CONFLICT,
+        };
       if (error instanceof ShipmentError && error.code === "VALIDATION_ERROR")
         return {
           outcome: SyncProcessingStatus.REJECTED_SOURCE,

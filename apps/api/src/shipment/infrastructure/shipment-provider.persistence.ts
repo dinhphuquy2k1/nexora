@@ -4,6 +4,12 @@ import { SyncError } from "../../sync/domain/sync-policy";
 import { SyncErrorCode as E } from "../../sync/domain/sync.constants";
 import type { ProviderFields } from "../domain/shipment";
 const columns: Record<keyof ProviderFields, string> = {
+  actualPackageCount: "actual_package_count",
+  providerPaidAmount: "provider_paid_amount",
+  providerRemainingAmount: "provider_remaining_amount",
+  providerPaidAt: "provider_paid_at",
+  destinationWarehouse: "destination_warehouse",
+  providerAttributes: "provider_attributes",
   trackingCode: "tracking_code",
   shipmentKind: "shipment_kind",
   originWarehouse: "origin_warehouse",
@@ -24,11 +30,17 @@ const columns: Record<keyof ProviderFields, string> = {
 };
 const decimalFields = new Set([
   "weightKg",
+  "providerPaidAmount",
+  "providerRemainingAmount",
   "declaredValue",
   "totalAmount",
   "exchangeRate",
 ]);
-const dateFields = new Set(["exchangeRateAt", "providerUpdatedAt"]);
+const dateFields = new Set([
+  "exchangeRateAt",
+  "providerUpdatedAt",
+  "providerPaidAt",
+]);
 /** Explicit provider-owned root operation. DB creates identity/code/created_at, not Prisma defaults. */
 export async function persistShipmentProvider(
   tx: Prisma.TransactionClient,
@@ -42,6 +54,8 @@ export async function persistShipmentProvider(
     ProviderFields[keyof ProviderFields],
   ][];
   const values = entries.map(([key, value]) => {
+    if (key === "providerAttributes")
+      return Prisma.sql`${JSON.stringify(value)}::jsonb`;
     if (decimalFields.has(key)) return Prisma.sql`${value}::numeric`;
     if (dateFields.has(key)) return Prisma.sql`${value}::timestamptz`;
     return Prisma.sql`${value}`;

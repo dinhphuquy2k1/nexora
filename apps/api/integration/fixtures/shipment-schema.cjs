@@ -216,17 +216,19 @@ module.exports.verifyShipmentSchema = async (db) => {
       i + 1,
       code,
     );
+  const nextChargeLine = Object.values(ShipmentChargeCode).length + 1;
   await db.$executeRawUnsafe(
-    `INSERT INTO shipment_charges(shipment_id,line_no,charge_code,amount,currency) VALUES($1::uuid,8,$2,8.01,'CNY')`,
+    `INSERT INTO shipment_charges(shipment_id,line_no,charge_code,amount,currency) VALUES($1::uuid,$2,$3,8.01,'CNY')`,
     a[0].id,
+    nextChargeLine,
     ShipmentChargeCode.DOMESTIC_SHIPPING,
   );
   for (const [line, code, amount, currency] of [
     [1, "OTHER", "1", "CNY"],
     [0, "OTHER", "1", "CNY"],
-    [9, "BAD", "1", "CNY"],
-    [9, "OTHER", "10000000000000000", "CNY"],
-    [9, "OTHER", "1", "BAD!"],
+    [nextChargeLine + 1, "BAD", "1", "CNY"],
+    [nextChargeLine + 1, "OTHER", "10000000000000000", "CNY"],
+    [nextChargeLine + 1, "OTHER", "1", "BAD!"],
   ])
     await assert.rejects(
       db.$executeRawUnsafe(

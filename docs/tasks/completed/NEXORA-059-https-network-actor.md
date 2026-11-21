@@ -1,8 +1,8 @@
 # NEXORA-059 — Public HTTPS network actor investigation
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -434,3 +434,19 @@ HEAD must not inherit green. Final evidence push then STOP, no more CI initiated
 Final evidence HEAD hosted gates PENDING at push by stop instruction. Do not
 label it Final green HEAD using earlier51a37b6 gates. No further CI batch,
 request retry, product change, issue closure or merge performed.
+
+## Closure — NEXORA-060 under Task workflow §1.7
+
+Delivered by PR57, merged2026-11-19 as5e96199d8e83b058d6871942ca8becb2fbb30ac2.
+Final evidence HEAD6a9b9166ced43b1c4d1f45924dc715418de861b1 has hosted
+Foundation44492510769 PASS (job135451432393), Preflight44492510779 PASS;
+Sync Targeted NOT RUN by path filter; unarmed optional44492510757 PASS.
+Intervention criterion was verified15/15 on51a37b6; later final-head gates now
+satisfy the previously pending hosted handoff. Historical FAIL/NOT RUN preserved.
+Owner issue44 closure decision and unproven IPv6 DAD are not claimed as completed
+external actions; no production activation or additional batch performed.
+
+| Claim                   | Evidence                                                                                                          | Date       | Result |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged to main          | PR57 merge5e96199d8e83b058d6871942ca8becb2fbb30ac2,2026-11-19                                                     | 2026-11-20 | PASS   |
+| Final-head hosted gates | source6a9b916; Foundation44492510769/job135451432393 PASS, Preflight44492510779 PASS; API metadata read2026-11-20 | 2026-11-20 | PASS   |

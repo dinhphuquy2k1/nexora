@@ -97,7 +97,7 @@ export const FILTER_FIELDS: readonly FilterField[] = [
     defaultValue: "",
   },
   {
-    id: "unitPriceCNY",
+    id: "freightUnitPrice",
     label: "Đơn giá",
     type: "number",
     operators: number,

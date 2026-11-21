@@ -258,3 +258,18 @@ in the same FOR UPDATE actor transaction. Empty pages skip it; detail fetches it
 only after owner-scoped authorization. HTTP error/auth/claim behavior is unchanged.
 OpenAPI and SDK are generated together; service booleans are strict and summary
 nullability is explicit. No live provider registration is added.
+
+## NEXORA-060 additive Shipment projection
+
+Shipment summary adds nullable actualPackageCount, destinationWarehouse and
+freightUnitPrice ({amount: exact decimal string, currency, unit: kg}). Detail adds
+nullable providerPaidAmount/providerRemainingAmount (exact decimal strings),
+providerPaidAt, originWarehouseProviderId, providerCreatedAt and lastMileMethod.
+Payment amounts are source-reported VND and never derived accounting totals.
+provider_attributes JSONB/schema envelope is internal and never returned.
+
+Swagger/OpenAPI and generated SDK change together; strict Retail guards deploy at
+the same revision. Existing fields, endpoints, ownership isolation and batch child
+queries remain. Legacy rows return null for absent new facts. Typed reference data
+is parsed once per row; corrupt stored schema fails internally rather than silently
+returning unvalidated JSON. No raw provider URL, response, ShippingInfo or PII.

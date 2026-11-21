@@ -469,3 +469,19 @@ verified against SQL interval arithmetic. No schema migration, backfill or privi
 change. Insert failure and later success-audit failure roll back all four records;
 reconnect preserves schedule state, and hard delete retains FK cascade behavior.
 Stored enabled is not an executable-capability or external authorization grant.
+
+## NEXORA-060 Shipment hybrid storage
+
+Forward migration 20261120000000_shipment_mapping_attributes adds only nullable
+actual_package_count INTEGER, provider_paid_amount/provider_remaining_amount
+NUMERIC(18,2), provider_paid_at TIMESTAMPTZ(3), destination_warehouse VARCHAR(256)
+and provider_attributes JSONB. Existing rows remain NULL; no historical backfill.
+Counts and provider payment amounts must be finite/nonnegative; currency basis is
+source-confirmed VND, not inferred from unrelated charges. WEIGHT_FREIGHT joins the
+closed charge CHECK vocabulary. Existing migrations are unchanged.
+
+JSONB top-level object/version/provider/key/2048-byte checks supplement the stricter
+Domain closed nested schema and compact1024-byte cap. SQL column privileges cannot
+validate nested key semantics. Provisioning adds only these six provider-owned
+INSERT/UPDATE columns to the Sync worker; API remains read-only, Nexora-owned columns
+and all scope/fencing controls remain unchanged. No GIN or speculative filter index.

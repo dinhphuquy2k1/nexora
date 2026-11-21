@@ -26,7 +26,7 @@ test("nine typed legacy fields validate strictly without applying client filteri
   assert.equal(calendarDay("2026-02-28x"), null);
   for (const [field, operator, value] of [
     ["weightKg", "greater_than", "5"],
-    ["unitPriceCNY", "equals", "85"],
+    ["freightUnitPrice", "equals", "85"],
     ["trackingCode", "contains", "bc1"],
     ["originWarehouse", "equals", "Quảng Châu"],
     ["originWarehouseDate", "before", "2026-02-16"],

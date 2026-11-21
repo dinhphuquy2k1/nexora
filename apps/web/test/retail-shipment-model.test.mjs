@@ -16,6 +16,9 @@ const summary = () => ({
   createdAt: "2026-11-14T00:00:00Z",
   updatedAt: "2026-11-14T00:00:00Z",
   originWarehouse: null,
+  actualPackageCount: null,
+  destinationWarehouse: null,
+  freightUnitPrice: null,
   weightKg: "1.250",
   packageCount: 0,
   itemCount: null,
@@ -114,7 +117,7 @@ test("Retail row uses reported summaries without inventing missing account, fees
   assert.equal(x.statusText, "Chưa xác định");
   assert.equal(x.productName, "Product +2");
   assert.equal(x.carrierLabel, "Uniship");
-  assert.equal(x.unitPriceCNY, "—");
+  assert.equal(x.freightUnitPrice, "—");
   assert.equal(x.domesticShipCNY, "Nhiều dòng");
   assert.equal(x.weightKg, "1.25");
   assert.equal(x.destWarehouseDate, "14/11/2026");
@@ -187,6 +190,12 @@ test("Retail response guards reject malformed nested DTOs and unavailable-claim 
   const detail = {
     ...summary(),
     serviceLevel: null,
+    providerPaidAmount: null,
+    providerRemainingAmount: null,
+    providerPaidAt: null,
+    originWarehouseProviderId: null,
+    providerCreatedAt: null,
+    lastMileMethod: null,
     exchangeRate: null,
     exchangeRateAt: null,
     providerUpdatedAt: null,
@@ -281,4 +290,26 @@ test("Retail maps confirmed packing services without inferring truth from charge
       assert.equal(row.hasBubbleWrap, foam);
     }
   }
+});
+
+test("Retail typed freight price uses actual VND/kg, preserves legacy currency and independent counts/destination", async () => {
+  const { toRetailRow } = await feature("row");
+  const s = summary();
+  s.freightUnitPrice = { amount: "23500.00", currency: "VND", unit: "kg" };
+  s.actualPackageCount = 1;
+  s.destinationWarehouse = "Kho Hà Nội";
+  const row = toRetailRow(s);
+  assert.equal(row.freightUnitPrice, "23.500đ/kg");
+  assert.equal(row.actualPackageCount, "1");
+  assert.equal(row.packageCount, "0");
+  assert.equal(row.destWarehouseName, "Kho Hà Nội");
+  s.freightUnitPrice = null;
+  s.chargeSummary.unitPrice = {
+    state: "SINGLE",
+    amount: "12.00",
+    currency: "CNY",
+  };
+  assert.equal(toRetailRow(s).freightUnitPrice, "¥12.0");
+  s.freightUnitPrice = { amount: "0.00", currency: "VND", unit: "kg" };
+  assert.equal(toRetailRow(s).freightUnitPrice, "0đ/kg");
 });

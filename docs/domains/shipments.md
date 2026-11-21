@@ -103,8 +103,8 @@ Existing claim=open/count availability
 and Retail disabled disputed tab remain unchanged by this documentation task.
 
 Uniship service flags IsGuarantee, IsCheck, IsFragileGoods and IsFoam are independent
-of fees. Nexora stores provider-neutral service facts in shipment_services; only a
-future authorized adapter may map verified source semantics into them.
+of fees. Nexora stores provider-neutral service facts in shipment_services. The
+fixture-backed adapter maps owner-confirmed numeric1/0; null has no entry/unknown.
 Owner confirmed IsFragileGoods = Đóng gỗ and IsFoam = Bọt khí directly on
 Uniship on 2026-11-15. The service/charge/UI correspondence is:
 
@@ -335,24 +335,25 @@ and synthetic cases have separate provenance; no live activation is implied.
 4. **FULL only:** page starts1; owner tested rowsPerPage50 and100, select100 for
    future sync. Captured page uses15. Non-equal filters, incremental ordering and
    update/watermark semantics remain unverified.
-5. **Unresolved:** exact unit-price/value candidates, currencies of each fee/total,
-   exchange-rate effective time and unsupported/null fee semantics.
+5. **Selected Mapping V2 answered:** PriceAmount is VND/kg; selected fee/total/payment
+   amounts are VND, counts are distinct. ProductAmount is confirmed CNY; unselected aliases and
+   exchange-rate effective time remain unresolved.
 6. **Owner-authorized read scope answered:** ADR007 dated NEXORA-054 amendment
    records own-account portal access and automatic encrypted-password login;
    hard-close and remaining auth/live gates stay unchanged.
 7. **Unresolved:** cancellation, return and exceptional flows.
 8. **Partly answered:** ChinaStoreID resolves origin name via chinaStores;
    ReceivePlaceName supplies destination directly, not a ReceivePlaceID join.
-   StoreCNExDate versus StoreCNExportDate and timezone remain unresolved.
+   UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16) and ExportDate selection are owner-confirmed; ExDate only guards conflicts.
 9. **Product shape answered:** ProductName is a scalar string (one item line when
    nonempty), not an observed product array. Quantity/per-item value mapping and
-   actual maximum charge/item rows per parcel remain unverified; ProductNumber,
-   NumberOfPack versus RealNumberOfPack meanings need confirmation.
+   actual maximum charge/item rows per parcel remain unverified. ProductNumber is
+   the confirmed aggregate itemCount; NumberOfPack/RealNumberOfPack are declared/actual counts, owner-confirmed2026-11-20.
 10. **Separate flags answered:** services use IsGuarantee/IsCheck/IsFragileGoods/IsFoam,
     not fee presence. Owner confirmed IsFragileGoods = Đóng gỗ and IsFoam = Bọt khí
     directly on Uniship on 2026-11-15 (mapping table above). Retail uses independent
     serviceSummary facts; deprecated chargeSummary flags retain fee-presence semantics.
-    Source null/missing/false semantics and fee currencies remain verification gates.
+    Numeric1/0/null flags are now owner-confirmed; unselected fee currencies remain gates.
 
 Confirmed status codes and owner authorization do not settle the remaining
 [unknowns and guessing risks](../integrations/uniship-portal-api.md#unknowns-and-the-consequence-of-guessing).
@@ -520,3 +521,69 @@ serviceSummary.insurance/counting/fragileGoods/foam, with unknown distinct from
 false in accessible labels. RETAIL_SERVICE_CATALOG_PRESENTATION remains NOT
 VERIFIED for a separate owner-approved column/label/detail presentation task; this
 foundation does not claim that UI redesign or any live provider integration.
+
+## NEXORA-060 — owner-confirmed Mapping V2 (2026-11-20)
+
+The dated ADR-011 amendment implements canonical columns plus existing children
+and bounded typed reference attributes. packageCount is NumberOfPack (declared
+count); actualPackageCount is RealNumberOfPack, independently nullable. destinationWarehouse
+is the provider destination name. providerPaidAmount/providerRemainingAmount are
+reported VND amounts, not sums of charges or Nexora accounting balances;
+providerPaidAt is the reported payment time. Never calculate total by adding these
+amounts. Missing/null provider facts preserve prior state; explicit zero writes zero.
+
+chargePatch.lines accepts only WEIGHT_FREIGHT, INSURANCE, COUNTING, WOOD_PACKING and BUBBLE_WRAP
+with exact amount/currency. Unique existing charge code updates its line while
+preserving ID, position and label; absent code appends. Multiple existing matches
+raise ShipmentPatchConflict and NEEDS_REVIEW/SOURCE_CONFLICT atomically. New collections
+are capped at50; legacy larger collections may update existing targets but not grow.
+milestonePatch.entries updates by canonical code; omitted location/other milestones
+and labels survive. Complete snapshots retain previous replacement/empty semantics;
+complete and partial input for the same collection is rejected. The aggregate merges
+against locked current state before reusing conditional stable-key batch persistence.
+No stage-history row is added merely for enrichment.
+
+providerAttributesPatch merges four known slots under schemaVersion1 and the trusted
+provider namespace. Omitted/null leaves preserve; nested freight price is a complete
+typed object. The stored schema and 1024-byte limit are validated on hydration too.
+No raw JSON reaches API/Web. Summary adds actualPackageCount, destinationWarehouse
+and typed freightUnitPrice {amount,currency,unit}; detail adds providerPaidAmount,
+providerRemainingAmount, providerPaidAt, originWarehouseProviderId, providerCreatedAt
+and lastMileMethod. Legacy nullable rows remain readable. Retail uses actual currency
+and /kg for mapped prices, legacy UNIT_PRICE currency without an invented unit, and
+separate declared/actual counts and source-reported financial facts.
+
+Uniship processor defaults to version2 without changing source identity, FULL scope,
+owner locks, lease/version fencing or production hard-close. Reprocessing old minimal
+staging cannot recover never-staged fields; new observation under the same source key
+is required. Owner discussion fixtures establish mapping acceptance, not new live
+provider evidence or NEXORA-058 production readiness.
+
+## NEXORA-060 review v2 — owner evidence2026-11-20
+
+UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16). The prior UTC+7 confirmation is superseded.
+OrderMD59639 CreatedDate2026-11-20T03:03:16 displayed20-11-2026 10:03:16; browser
+session began03:02:35UTC. Parcel343558 ModifiedDate03:19:58 preceded capture03:20:50UTC.
+parseUnishipUtcTimestamp preserves the source instant and calendar day, validates
+calendar/format/milliseconds and adds UTC suffix without subtracting7hours. UI
+Vietnam-time rendering stays unchanged; no automatic repair of previously normalized
+shifted timestamps or live backfill is claimed. Immutable snapshotv1/evidence remain
+historical and are not current timestamp-correctness proof.
+
+Owner saw numeric1 labels in all four columns: Bảo hiểm chính ngạch đường bộ,
+Kiểm đếm gói A, Dịch vụ đóng gỗ, Dịch vụ bọt khí. Map IsGuarantee→INSURANCE,
+IsCheck→COUNTING, IsFragileGoods→FRAGILE_GOODS, IsFoam→FOAM; numeric0 is false,
+null/missing creates no row (unknown), other values raise VALIDATION_ERROR through
+the existing safe source rejection path. Existing complete:true services snapshot
+contains supplied numeric flags only; if all missing/null, omit services. Omitted
+entries inside a supplied complete snapshot become unknown per existing semantics.
+Fees never imply service state. CheckFeeVND is COUNTING VND, including0.0.
+
+ProductAmount1000 corresponds to GIÁ TRỊ(¥)1,000: exact nonnegative declaredValue
+with CNY. ProductNumber23 corresponds to SỐ SẢN PHẨM23: strict aggregate itemCount.
+Nonblank ProductName becomes one complete item {name}; null/trim-empty omits items.
+No inferred item quantity/unit value. FeeShip/FeeShipVN/FeeOther/unsuffixed fees remain
+deferred because no nonnull owner sample establishes their semantics. No migration,
+grant, API/SDK contract change, source identity/FULL/fence change or production enablement.
+
+Owner decision 2026-11-20: package_count holds NumberOfPack (declared count). The Uniship UI column 'SỐ KIỆN (CHÍNH)' showed 0 while NumberOfPack was 1 on all weighed samples; its source is unknown, so Nexora's value may differ from that column.
