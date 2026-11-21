@@ -72,8 +72,8 @@ function integer(value: unknown): number | null {
   const number = Number(text);
   return Number.isSafeInteger(number) ? number : null;
 }
-/** Source wall time is UTC (owner evidence2026-11-20); never apply the UI timezone offset. */
-export function parseUnishipUtcTimestamp(value: unknown): string {
+/** UTC+7 source wall time; validate calendar in UTC before applying the fixed offset. */
+export function parseUnishipLocalTimestamp(value: unknown): string {
   if (
     typeof value !== "string" ||
     value.startsWith("0000") ||
@@ -88,7 +88,9 @@ export function parseUnishipUtcTimestamp(value: unknown): string {
   const date = new Date(wall);
   if (!Number.isFinite(date.getTime()) || date.toISOString() !== wall)
     throw new ShipmentError("VALIDATION_ERROR");
-  return date.toISOString();
+  const utc = new Date(date.getTime() - 7 * 60 * 60 * 1000).toISOString();
+  if (utc.startsWith("0000")) throw new ShipmentError("VALIDATION_ERROR");
+  return utc;
 }
 function sourceCount(value: unknown): number {
   if (!(value instanceof NumericLexeme) || value.source.length > 128)
@@ -284,7 +286,7 @@ function record(
       ["ModifiedDate", "providerUpdatedAt"],
     ] as const)
       if (value[source] != null)
-        shipment[target] = parseUnishipUtcTimestamp(value[source]);
+        shipment[target] = parseUnishipLocalTimestamp(value[source]);
     if (value.ReceivePlaceName != null)
       shipment.destinationWarehouse = value.ReceivePlaceName;
     const attributes: Record<string, unknown> = {};
@@ -299,7 +301,7 @@ function record(
         unit: "kg",
       };
     if (value.CreatedDate != null)
-      attributes.providerCreatedAt = parseUnishipUtcTimestamp(
+      attributes.providerCreatedAt = parseUnishipLocalTimestamp(
         value.CreatedDate,
       );
     if (value.ShippingMethod != null)
@@ -333,11 +335,11 @@ function record(
       ["StoreVNExportDate", M.DEST_DISPATCHED],
     ] as const) {
       if (value[source] == null) continue;
-      const occurredAt = parseUnishipUtcTimestamp(value[source]);
+      const occurredAt = parseUnishipLocalTimestamp(value[source]);
       if (
         source === "StoreCNExportDate" &&
         value.StoreCNExDate != null &&
-        parseUnishipUtcTimestamp(value.StoreCNExDate) !== occurredAt
+        parseUnishipLocalTimestamp(value.StoreCNExDate) !== occurredAt
       ) {
         warn(UnishipDiagnostic.ORIGIN_DISPATCH_CONFLICT);
         continue;

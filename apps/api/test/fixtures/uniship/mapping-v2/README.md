@@ -2,7 +2,7 @@
 
 Source: owner supplied selected values for Uniship341827/MAPPING-V2-REDACTED in the
 implementation prompt and conversation on2026-11-20. Milestone dates and matching
-StoreCNExDate were separately supplied in the same conversation; all interpreted as UTC under the owner correction2026-11-20.
+StoreCNExDate were separately supplied in the same conversation; all interpreted as Vietnam local time(UTC+7) under the latest retained-policy decision.
 This newly assembled/redacted fixture is NOT a new live capture, NOT a complete
 raw response, and does not replace historical captured bytes or their digests.
 Only selected nonpersonal fields and synthetic envelope/summary metadata retained.
@@ -13,8 +13,10 @@ selected numeric/time facts retain the owner-discussion values.
 
 ## Review v2 provenance and supersession
 
-UTC (owner evidence2026-11-20: API03:03:16 ↔ UI10:03:16). Prior UTC+7 confirmation
-is superseded; source timestamp strings are unchanged, normalization now keeps UTC.
+Latest owner decision retains Vietnam local time(UTC+7); source timestamp strings
+are unchanged and the original adapter converts them to UTC. The intervening UTC-only
+interpretation is historical and superseded; MD59639 API03:03:16/UI10:03:16 remains
+conflicting evidence for the mandatory058 three-parcel comparison, not resolved here.
 MD59639 and343558 clock evidence was supplied by owner, not fetched live by this task.
 owner-parcel-343558.json contains owner-selected ID343558, four numeric flags1,
 ProductNameA, ProductAmount1000, ProductNumber23 and ModifiedDate2026-11-20T03:19:58.

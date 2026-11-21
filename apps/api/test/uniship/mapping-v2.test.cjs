@@ -18,7 +18,7 @@ const parse = (text, warnings = []) =>
   parseUnishipPage(text, 1, 100, parseUnishipWarehouses(stores), (c) =>
     warnings.push(c),
   ).records[0];
-test("owner-discussion sample exact mapping, UTC and zero-valued fees; no total/rate calculation", () => {
+test("owner-discussion sample exact mapping, Vietnam local time and zero-valued fees; no total/rate calculation", () => {
   const r = parse(sample);
   assert.equal(r.identity.scheme, "uniship-parcel-v1");
   assert.deepEqual(JSON.parse(r.identity.key), ["341827"]);
@@ -32,14 +32,14 @@ test("owner-discussion sample exact mapping, UTC and zero-valued fees; no total/
   assert.equal(s.providerRemainingAmount, "0.00");
   assert.equal(s.exchangeRate, "3980.000000");
   assert.equal(s.exchangeRateAt, null);
-  assert.equal(s.providerPaidAt, "2026-11-17T06:59:01.000Z");
-  assert.equal(s.providerUpdatedAt, "2026-11-17T07:34:50.000Z");
+  assert.equal(s.providerPaidAt, "2026-11-16T23:59:01.000Z");
+  assert.equal(s.providerUpdatedAt, "2026-11-17T00:34:50.000Z");
   assert.equal(s.destinationWarehouse, "Kho Hà Nội");
   assert.equal(s.providerChangedAt, undefined);
   const a = s.providerAttributesPatch;
   assert.equal(a.values.originWarehouseId, "19");
   assert.equal(a.values.freightUnitPrice.amount, "23500.00");
-  assert.equal(a.values.providerCreatedAt, "2026-11-14T08:23:36.000Z");
+  assert.equal(a.values.providerCreatedAt, "2026-11-14T01:23:36.000Z");
   assert.equal(a.values.lastMileMethod, "CPN-VietelPost");
   assert.deepEqual(
     s.chargePatch.lines.map((x) => [x.chargeCode, x.amount, x.currency]),
@@ -55,10 +55,10 @@ test("owner-discussion sample exact mapping, UTC and zero-valued fees; no total/
   assert.deepEqual(
     s.milestonePatch.entries.map((x) => x.occurredAt),
     [
-      "2026-11-14T08:23:36.000Z",
-      "2026-11-14T13:28:59.000Z",
-      "2026-11-16T14:05:25.000Z",
-      "2026-11-17T07:34:50.000Z",
+      "2026-11-14T01:23:36.000Z",
+      "2026-11-14T06:28:59.000Z",
+      "2026-11-16T07:05:25.000Z",
+      "2026-11-17T00:34:50.000Z",
     ],
   );
 });
@@ -150,9 +150,9 @@ test("exact counts accept scientific notation after insignificant leading zeros"
     );
   }
 });
-test("UTC calendar/leap boundaries are independent of server timezone", () => {
+test("Vietnam local calendar/leap boundaries are independent of server timezone", () => {
   const {
-    parseUnishipUtcTimestamp: convert,
+    parseUnishipLocalTimestamp: convert,
   } = require("../../dist/shipment/infrastructure/uniship/uniship-normalizer");
   const previous = process.env.TZ;
   try {
@@ -160,12 +160,12 @@ test("UTC calendar/leap boundaries are independent of server timezone", () => {
       process.env.TZ = zone;
       assert.equal(
         convert("2024-02-29T00:00:00.001"),
-        "2024-02-29T00:00:00.001Z",
+        "2024-02-28T17:00:00.001Z",
       );
-      assert.equal(convert("2026-01-01T00:00:00"), "2026-01-01T00:00:00.000Z");
+      assert.equal(convert("2026-01-01T00:00:00"), "2025-12-31T17:00:00.000Z");
       assert.equal(
         convert("2026-11-20T23:59:59.9"),
-        "2026-11-20T23:59:59.900Z",
+        "2026-11-20T16:59:59.900Z",
       );
       for (const bad of [
         "2025-02-29T00:00:00",

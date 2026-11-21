@@ -313,3 +313,32 @@ test("Retail typed freight price uses actual VND/kg, preserves legacy currency a
   s.freightUnitPrice = { amount: "0.00", currency: "VND", unit: "kg" };
   assert.equal(toRetailRow(s).freightUnitPrice, "0đ/kg");
 });
+
+test("Shipment milestones render in Asia/Ho_Chi_Minh with time and day rollover regardless of host zone", async () => {
+  const { formatDate } = await feature("format");
+  const { toRetailRow } = await feature("row");
+  const previous = process.env.TZ;
+  try {
+    for (const zone of ["UTC", "America/New_York", "Asia/Tokyo"]) {
+      process.env.TZ = zone;
+      assert.equal(
+        formatDate("2026-11-20T03:03:16.000Z", true),
+        "20/11/2026 10:03",
+      );
+      assert.equal(
+        formatDate("2026-11-19T20:03:16.000Z", true),
+        "20/11/2026 03:03",
+      );
+      assert.equal(
+        formatDate("2026-11-19T18:30:00.000Z", true),
+        "20/11/2026 01:30",
+      );
+      const s = summary();
+      s.milestoneSummary.destReceivedAt = "2026-11-19T18:30:00.000Z";
+      assert.equal(toRetailRow(s).destWarehouseDate, "20/11/2026");
+    }
+  } finally {
+    if (previous === undefined) delete process.env.TZ;
+    else process.env.TZ = previous;
+  }
+});

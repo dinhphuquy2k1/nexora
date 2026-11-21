@@ -134,7 +134,7 @@ module.exports.verifyMappingV2 = async ({
       assert.equal(mapped.exchangeRateAt, null);
       assert.equal(
         mapped.providerPaidAt.toISOString(),
-        "2026-11-17T06:59:01.000Z",
+        "2026-11-16T23:59:01.000Z",
       );
       assert.deepEqual(mapped.charges[0], unrelated);
       assert.equal(mapped.charges[1].id, insurance.id);
@@ -233,7 +233,7 @@ module.exports.verifyMappingV2 = async ({
         unit: "kg",
       });
       assert.equal(wire.originWarehouseProviderId, "19");
-      assert.equal(wire.providerCreatedAt, "2026-11-14T08:23:36.000Z");
+      assert.equal(wire.providerCreatedAt, "2026-11-14T01:23:36.000Z");
       assert.equal(wire.lastMileMethod, "CPN-VietelPost");
       assert.equal(wire.providerAttributes, undefined);
       assert.ok(!JSON.stringify(wire).includes("PriceAmount"));
@@ -251,14 +251,14 @@ module.exports.verifyMappingV2 = async ({
         (await req("/" + mapped.id, foreignToken)).response.status,
         404,
       );
-      // Owner-confirmed v2 review: UTC instants, real service rows, item and CNY declared facts.
+      // Owner-retained v2 policy: UTC+7 converted instants, real service rows, item and CNY declared facts.
       assert.deepEqual(
         mapped.milestones.map((m) => m.occurredAt.toISOString()).sort(),
         [
-          "2026-11-14T08:23:36.000Z",
-          "2026-11-14T13:28:59.000Z",
-          "2026-11-16T14:05:25.000Z",
-          "2026-11-17T07:34:50.000Z",
+          "2026-11-14T01:23:36.000Z",
+          "2026-11-14T06:28:59.000Z",
+          "2026-11-16T07:05:25.000Z",
+          "2026-11-17T00:34:50.000Z",
         ].sort(),
       );
       const reviewRow = JSON.parse(
@@ -293,7 +293,7 @@ module.exports.verifyMappingV2 = async ({
       assert.equal(review.itemCount, 23);
       assert.equal(
         review.providerUpdatedAt.toISOString(),
-        "2026-11-20T03:19:58.000Z",
+        "2026-11-19T20:19:58.000Z",
       );
       assert.equal(review.items.length, 1);
       assert.equal(review.items[0].name, "A");
@@ -318,7 +318,7 @@ module.exports.verifyMappingV2 = async ({
       assert.equal(reviewWire.serviceSummary.counting, true);
       assert.equal(reviewWire.declaredValue, "1000.00");
       assert.equal(reviewWire.itemCount, 23);
-      assert.equal(reviewWire.providerUpdatedAt, "2026-11-20T03:19:58.000Z");
+      assert.equal(reviewWire.providerUpdatedAt, "2026-11-19T20:19:58.000Z");
       const retainedItems = review.items;
       assert.equal(
         (

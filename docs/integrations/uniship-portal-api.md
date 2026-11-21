@@ -191,32 +191,32 @@ The capture has113 parcel keys. Status labels below distinguish observed form
 from unverified normalization; null never supplies evidence of a nonnull currency,
 unit or meaning. Assumptions are not permission to populate misleading values.
 
-| Provider field(s)                                 | Nexora target / rule                                                                                       | Confidence                                                                                                        |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| ID                                                | Source-key scheme uniship-parcel-v1 with the provider ID; never tracking-code identity                     | XÁC NHẬN numeric form; GIẢ ĐỊNH stability/uniqueness across resync/account scope                                  |
-| TransactionCode                                   | tracking_code                                                                                              | XÁC NHẬN owner mapping and string form                                                                            |
-| Status / OldStatus                                | provider_status, logistics_stage, provider_claim_status under the ordered rule above                       | Status labels XÁC NHẬN; OldStatus handling is Nexora policy; lifecycle CHƯA BIẾT                                  |
-| Weight                                            | weight_kg using the raw JSON numeric lexeme and Domain decimal validation                                  | XÁC NHẬN numeric wire type; no floating-point calculation                                                         |
-| RealNumberOfPack                                  | actual_package_count; NumberOfPack → package_count (declared)                                              | XÁC NHẬN owner Mapping V2, 2026-11-20; exact integral numeric lexeme                                              |
-| ProductNumber                                     | item_count; aggregate count, never per-item quantity                                                       | XÁC NHẬN owner2026-11-20:23 ↔ SỐ SẢN PHẨM23; strict nonnegative integer                                          |
-| ProductName                                       | Nonblank scalar name → complete single item; null/blank omits items                                        | XÁC NHẬN owner2026-11-20, parcel343558 nameA; no invented quantity/value                                          |
-| ProductAmount                                     | declared_value, CNY                                                                                        | XÁC NHẬN owner2026-11-20:1000 ↔ GIÁ TRỊ(¥)1,000; exact nonnegative decimal                                       |
-| PriceAmount / ListedPriceAmount / FeeWeightAmount | PriceAmount → typed VND/kg freight price; FeeWeightAmount → WEIGHT_FREIGHT VND; ListedPriceAmount deferred | XÁC NHẬN selected fields by owner, 2026-11-20; ListedPriceAmount CHƯA BIẾT                                        |
-| FeeShip / FeeShipVN                               | DOMESTIC_SHIPPING; unsuffixed candidate CNY and suffixed candidate VND                                     | GIẢ ĐỊNH; verify units and avoid double-counting two representations                                              |
-| IsGuarantee + GuaranteeAmount/GuaranteeAmountVND  | INSURANCE service from numeric1/0; selected VND insurance fee independent                                  | XÁC NHẬN owner2026-11-20: Bảo hiểm chính ngạch đường bộ; null omitted/unknown, unsuffixed alias deferred          |
-| IsCheck + CheckFee/CheckFeeVND                    | COUNTING service from numeric1/0; CheckFeeVND → COUNTING VND, zero retained                                | XÁC NHẬN owner2026-11-20: Kiểm đếm gói A; null omitted/unknown, unsuffixed alias deferred                         |
-| IsFragileGoods + FragileFee/FragileFeeVND         | FRAGILE_GOODS service from numeric1/0; selected WOOD_PACKING VND independent                               | XÁC NHẬN owner2026-11-20: Dịch vụ đóng gỗ; null omitted/unknown, unsuffixed alias deferred                        |
-| IsFoam + FoamFee/FoamFeeVND                       | FOAM service from numeric1/0; selected BUBBLE_WRAP VND independent                                         | XÁC NHẬN owner2026-11-20: Dịch vụ bọt khí; null omitted/unknown, unsuffixed alias deferred                        |
-| FeeOther + FeeOtherNote                           | OTHER, providerLabel = FeeOtherNote                                                                        | GIẢ ĐỊNH; currency still unverified                                                                               |
-| StoreCNImportDate                                 | ORIGIN_RECEIVED occurred_at                                                                                | XÁC NHẬN owner 2026-11-20, UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16)                           |
-| StoreCNExportDate / StoreCNExDate                 | ExportDate → ORIGIN_DISPATCHED; ExDate is consistency guard only                                           | XÁC NHẬN selected ExportDate; warn/omit dispatch on conflict, no ExDate fallback                                  |
-| StoreVNImportDate                                 | DEST_RECEIVED occurred_at, location_name = ReceivePlaceName                                                | XÁC NHẬN owner 2026-11-20, UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16)                           |
-| StoreVNExportDate                                 | DEST_DISPATCHED occurred_at                                                                                | XÁC NHẬN owner 2026-11-20, UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16)                           |
-| ChinaStoreID                                      | origin_warehouse lookup by chinaStores ID                                                                  | XÁC NHẬN lookup shape and owner mapping                                                                           |
-| ReceivePlaceName                                  | Destination warehouse name; not a ReceivePlaceID join to chinaStores                                       | XÁC NHẬN string/owner mapping                                                                                     |
-| ExchangeRate                                      | exchange_rate (source-reported value, no conversion); exchange_rate_at remains null                        | XÁC NHẬN rate value; effective-rate timestamp NOT PROVIDED                                                        |
-| TotalAmount                                       | total_amount, VND                                                                                          | XÁC NHẬN owner 2026-11-20, VND; paid/remain stored separately                                                     |
-| ModifiedDate                                      | provider_updated_at after explicit timezone conversion                                                     | XÁC NHẬN owner UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16), 2026-11-20; not incremental ordering |
+| Provider field(s)                                 | Nexora target / rule                                                                                       | Confidence                                                                                               |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| ID                                                | Source-key scheme uniship-parcel-v1 with the provider ID; never tracking-code identity                     | XÁC NHẬN numeric form; GIẢ ĐỊNH stability/uniqueness across resync/account scope                         |
+| TransactionCode                                   | tracking_code                                                                                              | XÁC NHẬN owner mapping and string form                                                                   |
+| Status / OldStatus                                | provider_status, logistics_stage, provider_claim_status under the ordered rule above                       | Status labels XÁC NHẬN; OldStatus handling is Nexora policy; lifecycle CHƯA BIẾT                         |
+| Weight                                            | weight_kg using the raw JSON numeric lexeme and Domain decimal validation                                  | XÁC NHẬN numeric wire type; no floating-point calculation                                                |
+| RealNumberOfPack                                  | actual_package_count; NumberOfPack → package_count (declared)                                              | XÁC NHẬN owner Mapping V2, 2026-11-20; exact integral numeric lexeme                                     |
+| ProductNumber                                     | item_count; aggregate count, never per-item quantity                                                       | XÁC NHẬN owner2026-11-20:23 ↔ SỐ SẢN PHẨM23; strict nonnegative integer                                 |
+| ProductName                                       | Nonblank scalar name → complete single item; null/blank omits items                                        | XÁC NHẬN owner2026-11-20, parcel343558 nameA; no invented quantity/value                                 |
+| ProductAmount                                     | declared_value, CNY                                                                                        | XÁC NHẬN owner2026-11-20:1000 ↔ GIÁ TRỊ(¥)1,000; exact nonnegative decimal                              |
+| PriceAmount / ListedPriceAmount / FeeWeightAmount | PriceAmount → typed VND/kg freight price; FeeWeightAmount → WEIGHT_FREIGHT VND; ListedPriceAmount deferred | XÁC NHẬN selected fields by owner, 2026-11-20; ListedPriceAmount CHƯA BIẾT                               |
+| FeeShip / FeeShipVN                               | DOMESTIC_SHIPPING; unsuffixed candidate CNY and suffixed candidate VND                                     | GIẢ ĐỊNH; verify units and avoid double-counting two representations                                     |
+| IsGuarantee + GuaranteeAmount/GuaranteeAmountVND  | INSURANCE service from numeric1/0; selected VND insurance fee independent                                  | XÁC NHẬN owner2026-11-20: Bảo hiểm chính ngạch đường bộ; null omitted/unknown, unsuffixed alias deferred |
+| IsCheck + CheckFee/CheckFeeVND                    | COUNTING service from numeric1/0; CheckFeeVND → COUNTING VND, zero retained                                | XÁC NHẬN owner2026-11-20: Kiểm đếm gói A; null omitted/unknown, unsuffixed alias deferred                |
+| IsFragileGoods + FragileFee/FragileFeeVND         | FRAGILE_GOODS service from numeric1/0; selected WOOD_PACKING VND independent                               | XÁC NHẬN owner2026-11-20: Dịch vụ đóng gỗ; null omitted/unknown, unsuffixed alias deferred               |
+| IsFoam + FoamFee/FoamFeeVND                       | FOAM service from numeric1/0; selected BUBBLE_WRAP VND independent                                         | XÁC NHẬN owner2026-11-20: Dịch vụ bọt khí; null omitted/unknown, unsuffixed alias deferred               |
+| FeeOther + FeeOtherNote                           | OTHER, providerLabel = FeeOtherNote                                                                        | GIẢ ĐỊNH; currency still unverified                                                                      |
+| StoreCNImportDate                                 | ORIGIN_RECEIVED occurred_at                                                                                | XÁC NHẬN owner 2026-11-20, Vietnam local time (UTC+7; retained owner policy)                             |
+| StoreCNExportDate / StoreCNExDate                 | ExportDate → ORIGIN_DISPATCHED; ExDate is consistency guard only                                           | XÁC NHẬN selected ExportDate; warn/omit dispatch on conflict, no ExDate fallback                         |
+| StoreVNImportDate                                 | DEST_RECEIVED occurred_at, location_name = ReceivePlaceName                                                | XÁC NHẬN owner 2026-11-20, Vietnam local time (UTC+7; retained owner policy)                             |
+| StoreVNExportDate                                 | DEST_DISPATCHED occurred_at                                                                                | XÁC NHẬN owner 2026-11-20, Vietnam local time (UTC+7; retained owner policy)                             |
+| ChinaStoreID                                      | origin_warehouse lookup by chinaStores ID                                                                  | XÁC NHẬN lookup shape and owner mapping                                                                  |
+| ReceivePlaceName                                  | Destination warehouse name; not a ReceivePlaceID join to chinaStores                                       | XÁC NHẬN string/owner mapping                                                                            |
+| ExchangeRate                                      | exchange_rate (source-reported value, no conversion); exchange_rate_at remains null                        | XÁC NHẬN rate value; effective-rate timestamp NOT PROVIDED                                               |
+| TotalAmount                                       | total_amount, VND                                                                                          | XÁC NHẬN owner 2026-11-20, VND; paid/remain stored separately                                            |
+| ModifiedDate                                      | provider_updated_at after explicit timezone conversion                                                     | XÁC NHẬN owner Vietnam local time (UTC+7; retained owner policy), 2026-11-20; not incremental ordering   |
 
 The provider's service flags are separate from fees. Nexora's independent
 shipment_services foundation accepts only canonical normalized boolean facts from
@@ -266,10 +266,18 @@ spelling even though the JSON value remains numeric. IDs/counts additionally nee
 their own validated integer/source-key contracts; density's sentinel is unused.
 
 Observed timestamps are strings without a timezone, for example
-`2026-10-18T15:35:48.000`. **XÁC NHẬN owner 2026-11-20: UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16).**
-The adapter validates calendar/time and marks that same instant UTC; it does not subtract an offset. Never let the execution host's timezone decide
-or append Z while pretending the wall time was UTC. Timestamp ordering and rate
-effective time remain separate questions; ModifiedDate supplies no exchange-rate time.
+`2026-10-18T15:35:48.000`.
+
+Owner decision 2026-11-20: Vietnam local time (UTC+7). Conflicting observation kept for review: order MD59639 API CreatedDate 2026-11-20T03:03:16 while the Uniship UI showed 20-11-2026 10:03:16.
+
+Retain the original parseUnishipLocalTimestamp: validate calendar/format/milliseconds,
+then convert UTC+7 to UTC for storage. Web renders Asia/Ho_Chi_Minh. The observation
+is conflicting evidence, not a resolved UTC conclusion. The intervening UTC-only
+interpretation is superseded by this latest retained-policy decision. Before
+automatic scheduling, NEXORA-058 requires first-real-sync comparison of warehouse
+milestones for three parcels;7-hour discrepancy stops/keeps schedules disabled,
+requires a separate UTC correction task and fresh sync of provider-owned times.
+No host-local parsing, invented rate effective time or live activation is authorized.
 
 ## Errors, drift and stop behavior
 
@@ -349,20 +357,20 @@ watermark or automatic deletion-from-absence guarantee is claimed.
 
 ### Implemented normalized field policy
 
-| Observation                            | Implemented normalized fact                                                                                             | Evidence and limits                                                                                              |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| ID                                     | uniship-parcel-v1 sourceKey with the exact canonical positive integer lexeme                                            | Numeric form captured; resync/account stability remains externally NOT VERIFIED; tracking code is never identity |
-| TransactionCode                        | trackingCode unchanged                                                                                                  | Required nonempty Domain-valid string, no silent trimming                                                        |
-| Status                                 | providerStatus numeric string; approved1–5 stage mapping                                                                | Owner-reported mapping; captured1, other status tests derived                                                    |
-| Status13 / OldStatus                   | claim string13; known OldStatus1–5 wins, else locked existing stage, else UNKNOWN                                       | Selected Nexora policy, not real claim chronology/completion proof                                               |
-| Status other than13                    | providerClaimStatus null; unknown physical codes UNKNOWN with safe warning                                              | Synthetic0/99 regressions, no invented labels                                                                    |
-| Weight                                 | exact source lexeme through DecimalValue(10,3), nonnegative                                                             | Node24 JSON.parse context.source; no float reconstruction or rounding; missing/null omitted                      |
-| ChinaStoreID                           | originWarehouse only from matching chinaStores ID with StoreType1 and valid nonempty Name                               | Names/whitespace preserved, not identity; missing lookup omitted with fixed warning                              |
-| ReceivePlaceName                       | destinationWarehouse                                                                                                    | Owner Mapping V2; never a ReceivePlaceID join                                                                    |
-| Service flags                          | services complete snapshot of supplied numeric1/0 facts; null no row, all-null omit collection                          | Owner confirmed four labels and flag1/0/null semantics2026-11-20; no fee inference                               |
-| Selected fees, money, rates and counts | Mapped under the V2 table below                                                                                         | Owner 2026-11-20; unselected fields remain omitted                                                               |
-| ProductName/line details               | complete single item for nonblank name; ProductNumber itemCount, ProductAmount declaredValue CNY                        | Owner confirmed; item quantity/unitValue remain null, no splitting/inference                                     |
-| Provider times                         | UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16) explicit conversion for selected times and four milestones | providerChangedAt/exchangeRateAt are not inferred                                                                |
+| Observation                            | Implemented normalized fact                                                                                  | Evidence and limits                                                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| ID                                     | uniship-parcel-v1 sourceKey with the exact canonical positive integer lexeme                                 | Numeric form captured; resync/account stability remains externally NOT VERIFIED; tracking code is never identity |
+| TransactionCode                        | trackingCode unchanged                                                                                       | Required nonempty Domain-valid string, no silent trimming                                                        |
+| Status                                 | providerStatus numeric string; approved1–5 stage mapping                                                     | Owner-reported mapping; captured1, other status tests derived                                                    |
+| Status13 / OldStatus                   | claim string13; known OldStatus1–5 wins, else locked existing stage, else UNKNOWN                            | Selected Nexora policy, not real claim chronology/completion proof                                               |
+| Status other than13                    | providerClaimStatus null; unknown physical codes UNKNOWN with safe warning                                   | Synthetic0/99 regressions, no invented labels                                                                    |
+| Weight                                 | exact source lexeme through DecimalValue(10,3), nonnegative                                                  | Node24 JSON.parse context.source; no float reconstruction or rounding; missing/null omitted                      |
+| ChinaStoreID                           | originWarehouse only from matching chinaStores ID with StoreType1 and valid nonempty Name                    | Names/whitespace preserved, not identity; missing lookup omitted with fixed warning                              |
+| ReceivePlaceName                       | destinationWarehouse                                                                                         | Owner Mapping V2; never a ReceivePlaceID join                                                                    |
+| Service flags                          | services complete snapshot of supplied numeric1/0 facts; null no row, all-null omit collection               | Owner confirmed four labels and flag1/0/null semantics2026-11-20; no fee inference                               |
+| Selected fees, money, rates and counts | Mapped under the V2 table below                                                                              | Owner 2026-11-20; unselected fields remain omitted                                                               |
+| ProductName/line details               | complete single item for nonblank name; ProductNumber itemCount, ProductAmount declaredValue CNY             | Owner confirmed; item quantity/unitValue remain null, no splitting/inference                                     |
+| Provider times                         | Vietnam local time (UTC+7; retained owner policy) explicit conversion for selected times and four milestones | providerChangedAt/exchangeRateAt are not inferred                                                                |
 
 Missing optional collections preserve existing services/charges/items/milestones.
 Selected chargePatch/milestonePatch enrich only supplied facts; only a separately
@@ -403,7 +411,7 @@ not assert those live operational controls are verified.
 
 This extends the minimal processor1 baseline above; default processor is now2.
 Owner-discussion sample341827 is not a new live capture. All four milestone dates,
-CreatedDate, ModifiedDate and PaymentDate are UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16); dates are validated rather than
+CreatedDate, ModifiedDate and PaymentDate are Vietnam local time (UTC+7; retained owner policy); dates are validated rather than
 host-parsed. NumberOfPack is declared count, RealNumberOfPack actual count.
 
 | Source                                                                        | Implemented target                                        | Basis                                                   |
@@ -434,11 +442,10 @@ NEXORA-058 live prerequisites remain unchanged.
 
 ## NEXORA-060 review v2 — owner evidence2026-11-20
 
-UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16). The prior UTC+7 confirmation is superseded.
+Vietnam local time (UTC+7; retained owner policy). The intervening UTC-only interpretation is superseded as current policy; the conflicting observation remains open for review.
 OrderMD59639 CreatedDate2026-11-20T03:03:16 displayed20-11-2026 10:03:16; browser
 session began03:02:35UTC. Parcel343558 ModifiedDate03:19:58 preceded capture03:20:50UTC.
-parseUnishipUtcTimestamp preserves the source instant and calendar day, validates
-calendar/format/milliseconds and adds UTC suffix without subtracting7hours. UI
+parseUnishipLocalTimestamp validates source calendar/format/milliseconds and subtracts7hours to store UTC. The original helper body is retained. UI
 Vietnam-time rendering stays unchanged; no automatic repair of previously normalized
 shifted timestamps or live backfill is claimed. Immutable snapshotv1/evidence remain
 historical and are not current timestamp-correctness proof.
@@ -460,3 +467,21 @@ deferred because no nonnull owner sample establishes their semantics. No migrati
 grant, API/SDK contract change, source identity/FULL/fence change or production enablement.
 
 Owner decision 2026-11-20: package_count holds NumberOfPack (declared count). The Uniship UI column 'SỐ KIỆN (CHÍNH)' showed 0 while NumberOfPack was 1 on all weighed samples; its source is unknown, so Nexora's value may differ from that column.
+
+## Latest retained-time policy — owner request2026-11-21
+
+Owner decision 2026-11-20: Vietnam local time (UTC+7). Conflicting observation kept for review: order MD59639 API CreatedDate 2026-11-20T03:03:16 while the Uniship UI showed 20-11-2026 10:03:16.
+
+The policy remains UTC+7→UTC with the original parseUnishipLocalTimestamp body.
+The preceding UTC-only decision/synthetic test expectations are now historical,
+not current policy or proof resolving this conflict. All selected service/product/
+COUNTING mappings and both count sources stay unchanged. Web explicitly renders
+Shipment milestones in Asia/Ho_Chi_Minh, independently of host timezone.
+
+NEXORA-058 must, after first controlled real sync and before enabling automatic
+schedules, compare warehouse import/export times of three parcels between Nexora
+and Uniship UI. Record redacted observations. If Nexora is7hours off, stop/keep
+automatic schedules disabled, implement a separate task switching interpretation
+to UTC, then sync fresh observations again to overwrite provider-owned timestamps
+under existing source/version/transaction fences. Stage history is not fabricated.
+This task performs no live sync and does not open production.

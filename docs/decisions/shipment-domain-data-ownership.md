@@ -247,11 +247,10 @@ new keys/schema revisions require a separate reviewed decision, not arbitrary JS
 
 ## NEXORA-060 review v2 — owner evidence2026-11-20
 
-UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16). The prior UTC+7 confirmation is superseded.
+Vietnam local time (UTC+7; retained owner policy). The intervening UTC-only interpretation is superseded as current policy; the conflicting observation remains open for review.
 OrderMD59639 CreatedDate2026-11-20T03:03:16 displayed20-11-2026 10:03:16; browser
 session began03:02:35UTC. Parcel343558 ModifiedDate03:19:58 preceded capture03:20:50UTC.
-parseUnishipUtcTimestamp preserves the source instant and calendar day, validates
-calendar/format/milliseconds and adds UTC suffix without subtracting7hours. UI
+parseUnishipLocalTimestamp validates source calendar/format/milliseconds and subtracts7hours to store UTC. The original helper body is retained. UI
 Vietnam-time rendering stays unchanged; no automatic repair of previously normalized
 shifted timestamps or live backfill is claimed. Immutable snapshotv1/evidence remain
 historical and are not current timestamp-correctness proof.
@@ -273,3 +272,21 @@ deferred because no nonnull owner sample establishes their semantics. No migrati
 grant, API/SDK contract change, source identity/FULL/fence change or production enablement.
 
 Owner decision 2026-11-20: package_count holds NumberOfPack (declared count). The Uniship UI column 'SỐ KIỆN (CHÍNH)' showed 0 while NumberOfPack was 1 on all weighed samples; its source is unknown, so Nexora's value may differ from that column.
+
+## Latest retained-time policy — owner request2026-11-21
+
+Owner decision 2026-11-20: Vietnam local time (UTC+7). Conflicting observation kept for review: order MD59639 API CreatedDate 2026-11-20T03:03:16 while the Uniship UI showed 20-11-2026 10:03:16.
+
+The policy remains UTC+7→UTC with the original parseUnishipLocalTimestamp body.
+The preceding UTC-only decision/synthetic test expectations are now historical,
+not current policy or proof resolving this conflict. All selected service/product/
+COUNTING mappings and both count sources stay unchanged. Web explicitly renders
+Shipment milestones in Asia/Ho_Chi_Minh, independently of host timezone.
+
+NEXORA-058 must, after first controlled real sync and before enabling automatic
+schedules, compare warehouse import/export times of three parcels between Nexora
+and Uniship UI. Record redacted observations. If Nexora is7hours off, stop/keep
+automatic schedules disabled, implement a separate task switching interpretation
+to UTC, then sync fresh observations again to overwrite provider-owned timestamps
+under existing source/version/transaction fences. Stage history is not fabricated.
+This task performs no live sync and does not open production.

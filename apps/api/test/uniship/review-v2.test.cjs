@@ -21,18 +21,18 @@ const row = (change) =>
   page([
     { ID: 343558, TransactionCode: "REVIEW-REDACTED", Status: 4, ...change },
   ]);
-test("owner clock evidence means UTC with no seven-hour/day shift", () => {
+test("retained Vietnam local policy converts UTC+7 to UTC independently of host timezone", () => {
   for (const zone of ["UTC", "Asia/Ho_Chi_Minh", "America/New_York"]) {
     const old = process.env.TZ;
     try {
       process.env.TZ = zone;
       assert.equal(
-        normalizer.parseUnishipUtcTimestamp("2026-11-20T03:03:16"),
-        "2026-11-20T03:03:16.000Z",
+        normalizer.parseUnishipLocalTimestamp("2026-11-20T03:03:16"),
+        "2026-11-19T20:03:16.000Z",
       );
       assert.equal(
-        normalizer.parseUnishipUtcTimestamp("2026-11-19T18:30:00"),
-        "2026-11-19T18:30:00.000Z",
+        normalizer.parseUnishipLocalTimestamp("2026-11-19T18:30:00"),
+        "2026-11-19T11:30:00.000Z",
       );
     } finally {
       if (old === undefined) delete process.env.TZ;
@@ -55,7 +55,7 @@ test("343558 owner-selected facts map four independent services, CNY value and o
     complete: true,
     lines: [{ name: "A", quantity: null, unitValue: null, currency: null }],
   });
-  assert.equal(s.providerUpdatedAt, "2026-11-20T03:19:58.000Z");
+  assert.equal(s.providerUpdatedAt, "2026-11-19T20:19:58.000Z");
 });
 test("numeric flags distinguish enabled/disabled/unknown and reject every other shape", () => {
   const fields = ["IsGuarantee", "IsCheck", "IsFragileGoods", "IsFoam"];

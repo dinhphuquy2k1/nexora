@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: VERIFIED
+Verification: PARTIALLY VERIFIED
 
 ## Scope
 
@@ -12,11 +12,11 @@ Implement owner Mapping V2, superseding the earlier nine-column baseline before 
 
 Task ID: NEXORA-060
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-21-uniship-mapping-v2
-Reviewed baseline: 074298d5ba866de79988d793c997e2767fad7025
+Plan revision: rev-2026-11-21-local-time-v2
+Reviewed baseline: 52988c26ab9373f411c5049838a2e326e7042d48
 Branch: feature/uniship-mapping-extension
-Design Snapshot: docs/tasks/design-reviews/NEXORA-060-rev-2026-11-21-uniship-mapping-v2.md
-Design SHA-256: 5093a9822ad64c028cc3de8c4917aa51837c80fc7416e05a7337375a2029ca0e
+Design Snapshot: docs/tasks/design-reviews/NEXORA-060-rev-2026-11-21-local-time-v2.md
+Design SHA-256: b5fe0fbc490ed807532df7e02904f5fd73b30102bdd23ba5ad45f64e351e29a7
 
 | Field                    | Decision                                                                                                                                                                                          |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -59,6 +59,7 @@ Owner-confirmed counts/VND amounts/UTC/reference dates (owner evidence2026-11-20
 - docs/architecture/api-contract.md
 - docs/architecture/sync-extensions.md
 - docs/operations/testing.md
+- docs/tasks/active/NEXORA-058-uniship-controlled-activation.md
 
 ### Documentation verification
 
@@ -68,12 +69,12 @@ Owner-confirmed counts/VND amounts/UTC/reference dates (owner evidence2026-11-20
 
 ## Acceptance
 
-- [x] All35 selected mapping correspondences; UTC owner correction and new services/items/declared values/count/COUNTING fee verified.
+- [ ] All35 selected mapping correspondences; UTC owner correction and new services/items/declared values/count/COUNTING fee verified.
 - [x] Scoped patches preserve other fees/milestones and stable IDs; ambiguous fees review, complete snapshots unchanged.
 - [x] Typed attributes keys/version/size/depth/provider isolation and merge/hydration proven.
 - [x] Forward migration/repeat/constraints/least-privilege/read contracts/UI regression executed.
 - [x] Version2/reprocessing preserves source identity; no automatic historical backfill or production activation claim.
-- [x] Required quality/independent review/final-head hosted evidence and PM report on the current PR HEAD. Earlier implementation-head results remain PASS as recorded below.
+- [ ] Required quality/independent review/final-head hosted evidence and PM report on the current PR HEAD. Earlier implementation-head results remain PASS as recorded below.
 
 ## Evidence
 
@@ -194,3 +195,29 @@ not the superseded v1 timestamp interpretation. No open independent finding.
 All historical evidence remains. The evidence-only final HEAD is checked separately
 and recorded in PR59 metadata; task stays active for owner review/merge under§1.7.
 NEXORA-058 production activation remains outside this capability verification.
+
+## Latest owner decision — retain Vietnam local time, local-time-v2
+
+The latest request supersedes the immediately preceding UTC interpretation and
+UTC-only readiness claims as current policy. Restore original
+parseUnishipLocalTimestamp exactly, with UTC+7→UTC conversion. Keep all35 mappings,
+services/items/COUNTING/product semantics and count caveat. New separately named
+local-time-v2 snapshot preserves both frozen earlier snapshots. Conflicting MD59639
+API03:03:16/UI10:03:16 remains review evidence, not resolved by unit/CI.
+
+Add mandatory058 post-first-real-sync, pre-auto-schedule comparison of three parcels'
+warehouse milestones;7-hour discrepancy requires schedules stopped/disabled, a
+separate UTC correction task and fresh sync overwriting provider-owned timestamps.
+No live request or activation here. Web formatter already uses Asia/Ho_Chi_Minh;
+add explicit time-of-day/host-TZ regression. Earlier PASS/FAIL rows remain historical.
+Current local-time-v2 technical verification/CI is pending.
+
+## Retained-local-time v2 executed local evidence
+
+See [review-local-time-v2](../evidence/NEXORA-060/review-local-time-v2.md).
+Policy RED13/17 then related GREEN72/72; Retail143/143; actual owned PostgreSQL
+Shipment22/22 and Uniship12/12 PASS. Original helper byte-equivalent to074298d.
+Required local format/lint/typecheck/contracts/docs/preflight/test:docs/test:preflight
+PASS; independent55/55 plus17/17, no open finding. Technical policy verification
+is distinct from058's actual three-parcel comparison, which remains NOT RUN.
+No new exact-HEAD green is claimed before hosted checks finish.
