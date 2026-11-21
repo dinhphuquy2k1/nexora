@@ -154,11 +154,13 @@ This is independent code review, not approval of future exact-final-HEAD CI.
 
 ## H. Báo cáo PM (bảy câu hỏi)
 
-1. **Đủ yêu cầu chưa?**35 correspondences đã có mã mapping theo owner review v2.
-   Unit và PostgreSQL liên quan đã PASS, nhưng CI trên HEAD remediation v2 chưa
-   hoàn tất. Các số quality/hosted73d984b ở trên là lịch sử, không chứng minh v2.
-2. **Blocker?** Không thấy blocker code trong independent review v2; release còn
-   chờ các gate cục bộ và hosted trên HEAD mới. Production vẫn hard-close bởi058.
+1. **Đủ yêu cầu chưa?**35 correspondences đã được triển khai theo owner review v2.
+   Unit48/48, privacy/provenance17/17, PostgreSQL Shipment22/22 và Uniship12/12 cùng
+   các lệnh local bắt buộc PASS. Hosted v2 source8b24f69 cả ba workflow PASS; các
+   kết quả73d984b vẫn là lịch sử, không thay thế bằng chứng v2.
+2. **Blocker?** Không còn blocker code/release đã biết sau independent review v2 và
+   CI8b24f69; commit evidence cuối được kiểm tra riêng trên exact HEAD trong PR59.
+   Production vẫn bị hard-close bởi058, owner cần review và quyết định merge.
 3. **Mất dữ liệu/sai tiền?** Không cộng trùng phí hay suy tổng. Decimal chính xác,
    null giữ dữ liệu,0 ghi0, nhiều phí cùng mã chuyển review; test chứng minh giữ ID,
    child xmin và rollback. Dữ liệu lịch sử chưa staged không tự được phục hồi.
@@ -201,11 +203,9 @@ NEXORA-058 production activation is still out of scope.
 
 ## J. Merge readiness
 
-VERIFICATION INCOMPLETE — owner review v2 supersedes the earlier readiness. Historical
-implementation73d984b had local quality, genuine PostgreSQL,
-Chromium and all hosted gates PASS. Evidence-only final commit is bound to its own
-exact HEAD/run IDs in PR59 description before handoff. This report is a captured
-verification record, not production authorization or permission to merge.
+READY FOR OWNER REVIEW — v2 code8b24f69 has related local tests, genuine
+PostgreSQL and hosted Preflight/Sync/Foundation PASS. Evidence-only final HEAD/run
+IDs are recorded in PR59 after its checks. No merge or production activation.
 
 ## Hosted first-head delta — 38cce9b
 
@@ -258,3 +258,12 @@ remain executed historical evidence, not proof of v2 timestamp/business semantic
 Current v2 mapping adds the four numeric flags, CNY declared value, aggregate product
 count, complete single item and COUNTING VND fee. New results are in the dedicated
 review-v2 evidence; no production activation/backfill, schema or public contract change.
+
+## Final v2 verification addendum
+
+See [review-v2](review-v2.md): source8b24f69482b6275b298f091d0db6b913a251b7b7,
+actual merge checkout413b2a8f9b77c472ac533865c5441845bb244185, all attempt1:
+Preflight44908003499 PASS; Sync44908003491 PASS;
+Foundation44908003476/job136857611753 PASS, steps4–10.
+Earlier current-review-pending paragraphs are retained as chronological records;
+this executed v2 addendum supersedes them. Exact evidence-only final HEAD is in PR59.

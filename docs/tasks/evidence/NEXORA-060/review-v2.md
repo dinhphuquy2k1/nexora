@@ -65,3 +65,32 @@ is historical, not proof for remediationv2. Rules A/B retained: task-owned defec
 format and missing environment are corrected with evidence; unrelated existing test
 failure, Preflight CI failure or out-of-scope harness/timeout/retry/assertion changes
 require stopping. No action rerun for green, merge, issue closure or production enablement.
+
+## Executed hosted code-head verification
+
+All attempt1, source8b24f69482b6275b298f091d0db6b913a251b7b7,
+base5e96199d8e83b058d6871942ca8becb2fbb30ac2. Actual checkout
+413b2a8f9b77c472ac533865c5441845bb244185 matches GitHub PR merge SHA and
+checkout git-log output fetched from Foundation job. Date2026-11-21.
+
+| Workflow      | Run / job                 | Result |
+| ------------- | ------------------------- | ------ |
+| Preflight     | 44908003499               | PASS   |
+| Sync Targeted | 44908003491               | PASS   |
+| Foundation    | 44908003476 /136857611753 | PASS   |
+
+Foundation Docker quality/migrated integration, Pager/filter browser acceptance,
+runtime/provisioning/TTY/browser, public HTTPS/onboarding, DB/storage persistence
+and HMR/dependency drift all PASS (steps4–10). Retail artifact14708719717,
+retail-m3-browser-evidence,10745197bytes. Raw job logs were read locally; no raw
+logs, IP/MAC, URLs with credentials, cookies or tokens are committed. No action
+rerun, merge, timeout/assertion weakening or production activation.
+
+V2 code is READY FOR OWNER REVIEW. This evidence-only finalization commit is
+verified separately on its exact HEAD; its SHA/run IDs are recorded in PR59
+description via gh api after completion, avoiding a self-referential SHA claim.
+The pre-push NOT RUN row and previous-snapshot results above remain historical.
+
+Foundation job clock: started2026-11-21T13:16:12Z, completed2026-11-21T13:33:44Z.
+Run: https://github.com/dinhphuquy2k1/nexora/actions/runs/44908003476
+Job: https://github.com/dinhphuquy2k1/nexora/actions/runs/44908003476/job/136857611753

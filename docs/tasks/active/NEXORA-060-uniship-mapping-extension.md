@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -68,12 +68,12 @@ Owner-confirmed counts/VND amounts/UTC/reference dates (owner evidence2026-11-20
 
 ## Acceptance
 
-- [ ] All35 selected mapping correspondences; UTC owner correction and new services/items/declared values/count/COUNTING fee verified.
+- [x] All35 selected mapping correspondences; UTC owner correction and new services/items/declared values/count/COUNTING fee verified.
 - [x] Scoped patches preserve other fees/milestones and stable IDs; ambiguous fees review, complete snapshots unchanged.
 - [x] Typed attributes keys/version/size/depth/provider isolation and merge/hydration proven.
 - [x] Forward migration/repeat/constraints/least-privilege/read contracts/UI regression executed.
 - [x] Version2/reprocessing preserves source identity; no automatic historical backfill or production activation claim.
-- [ ] Required quality/independent review/final-head hosted evidence and PM report on the current PR HEAD. Earlier implementation-head results remain PASS as recorded below.
+- [x] Required quality/independent review/final-head hosted evidence and PM report on the current PR HEAD. Earlier implementation-head results remain PASS as recorded below.
 
 ## Evidence
 
@@ -182,3 +182,15 @@ COUNTING0.00, repeated child ID/xmin and null omission are verified. Required lo
 format/lint/typecheck/contracts/docs/preflight/test:docs/test:preflight PASS;
 independent code review48/48, no P1/P2 code finding. Report corrections applied.
 New exact-HEAD CI remains required; no prior green or v1 timestamp claim substitutes.
+
+## V2 hosted verification — code8b24f69
+
+| Claim                 | Evidence                                                                                                                                                                                                                  | Date       | Result |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Owner review v2 gates | source8b24f69482b6275b298f091d0db6b913a251b7b7; actual merge checkout413b2a8f9b77c472ac533865c5441845bb244185; Preflight44908003499, Sync44908003491, Foundation44908003476/job136857611753, all attempt1, steps4–10 PASS | 2026-11-21 | PASS   |
+
+Current UTC/services/products/counting semantics are verified by v2 tests/CI,
+not the superseded v1 timestamp interpretation. No open independent finding.
+All historical evidence remains. The evidence-only final HEAD is checked separately
+and recorded in PR59 metadata; task stays active for owner review/merge under§1.7.
+NEXORA-058 production activation remains outside this capability verification.
