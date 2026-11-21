@@ -134,7 +134,7 @@ module.exports.verifyMappingV2 = async ({
       assert.equal(mapped.exchangeRateAt, null);
       assert.equal(
         mapped.providerPaidAt.toISOString(),
-        "2026-11-16T23:59:01.000Z",
+        "2026-11-17T06:59:01.000Z",
       );
       assert.deepEqual(mapped.charges[0], unrelated);
       assert.equal(mapped.charges[1].id, insurance.id);
@@ -192,7 +192,7 @@ module.exports.verifyMappingV2 = async ({
         ReceivePlaceName: "Kho nhận cập nhật",
         ShippingInfo: "excluded-private-marker",
         FakeCustomerName: "excluded-private-marker",
-        IsFoam: true,
+        IsFoam: null,
       };
       assert.equal((await apply(normalize(partial))).status, "SUCCEEDED");
       const preserved = await get();
@@ -233,7 +233,7 @@ module.exports.verifyMappingV2 = async ({
         unit: "kg",
       });
       assert.equal(wire.originWarehouseProviderId, "19");
-      assert.equal(wire.providerCreatedAt, "2026-11-14T01:23:36.000Z");
+      assert.equal(wire.providerCreatedAt, "2026-11-14T08:23:36.000Z");
       assert.equal(wire.lastMileMethod, "CPN-VietelPost");
       assert.equal(wire.providerAttributes, undefined);
       assert.ok(!JSON.stringify(wire).includes("PriceAmount"));
@@ -251,6 +251,148 @@ module.exports.verifyMappingV2 = async ({
         (await req("/" + mapped.id, foreignToken)).response.status,
         404,
       );
+      // Owner-confirmed v2 review: UTC instants, real service rows, item and CNY declared facts.
+      assert.deepEqual(
+        mapped.milestones.map((m) => m.occurredAt.toISOString()).sort(),
+        [
+          "2026-11-14T08:23:36.000Z",
+          "2026-11-14T13:28:59.000Z",
+          "2026-11-16T14:05:25.000Z",
+          "2026-11-17T07:34:50.000Z",
+        ].sort(),
+      );
+      const reviewRow = JSON.parse(
+        await readFile(
+          resolve(
+            __dirname,
+            "../../test/fixtures/uniship/mapping-v2/owner-parcel-343558.json",
+          ),
+          "utf8",
+        ),
+      ).data[0];
+      assert.equal((await apply(normalize(reviewRow))).status, "SUCCEEDED");
+      const reviewIdentity = await db.syncSourceIdentity.findFirstOrThrow({
+        where: {
+          owner_user_id: owner.id,
+          source_key: normalize(reviewRow).identity.key,
+          external_account_id: connection.externalAccountId,
+        },
+      });
+      const reviewGet = () =>
+        db.shipment.findUniqueOrThrow({
+          where: { sourceIdentityId: reviewIdentity.id },
+          include: {
+            services: { orderBy: { serviceCode: "asc" } },
+            items: { orderBy: { lineNo: "asc" } },
+            charges: true,
+          },
+        });
+      const review = await reviewGet();
+      assert.equal(review.declaredValue.toFixed(2), "1000.00");
+      assert.equal(review.declaredCurrency, "CNY");
+      assert.equal(review.itemCount, 23);
+      assert.equal(
+        review.providerUpdatedAt.toISOString(),
+        "2026-11-20T03:19:58.000Z",
+      );
+      assert.equal(review.items.length, 1);
+      assert.equal(review.items[0].name, "A");
+      assert.equal(review.items[0].quantity, null);
+      assert.equal(review.items[0].unitValue, null);
+      assert.deepEqual(
+        review.services.map((s) => [s.serviceCode, s.enabled]),
+        ["COUNTING", "FOAM", "FRAGILE_GOODS", "INSURANCE"].map((c) => [
+          c,
+          true,
+        ]),
+      );
+      const childVersions = () =>
+        db.$queryRawUnsafe(
+          "SELECT 'service' AS kind,id,xmin::text AS xmin FROM shipment_services WHERE shipment_id=$1::uuid UNION ALL SELECT 'item' AS kind,id,xmin::text AS xmin FROM shipment_items WHERE shipment_id=$1::uuid ORDER BY kind,id",
+          review.id,
+        );
+      const stableReviewChildren = await childVersions();
+      assert.equal((await apply(normalize(reviewRow))).status, "SUCCEEDED");
+      assert.deepEqual(await childVersions(), stableReviewChildren);
+      const reviewWire = (await req("/" + review.id)).body.shipment;
+      assert.equal(reviewWire.serviceSummary.counting, true);
+      assert.equal(reviewWire.declaredValue, "1000.00");
+      assert.equal(reviewWire.itemCount, 23);
+      assert.equal(reviewWire.providerUpdatedAt, "2026-11-20T03:19:58.000Z");
+      const retainedItems = review.items;
+      assert.equal(
+        (
+          await apply(
+            normalize({
+              ...reviewRow,
+              ProductName: "  ",
+              ProductAmount: null,
+              ProductNumber: null,
+              IsGuarantee: 0,
+              IsCheck: null,
+              IsFragileGoods: null,
+              IsFoam: null,
+            }),
+          )
+        ).status,
+        "SUCCEEDED",
+      );
+      const partialReview = await reviewGet();
+      assert.deepEqual(partialReview.items, retainedItems);
+      assert.equal(partialReview.declaredValue.toFixed(2), "1000.00");
+      assert.equal(partialReview.itemCount, 23);
+      assert.deepEqual(
+        partialReview.services.map((s) => [s.serviceCode, s.enabled]),
+        [["INSURANCE", false]],
+      );
+      assert.equal(
+        (await req("/" + review.id)).body.shipment.serviceSummary.counting,
+        null,
+      );
+      assert.equal(
+        (
+          await apply(
+            normalize({
+              ...reviewRow,
+              ProductName: null,
+              ProductAmount: null,
+              ProductNumber: null,
+              IsGuarantee: null,
+              IsCheck: null,
+              IsFragileGoods: null,
+              IsFoam: null,
+            }),
+          )
+        ).status,
+        "SUCCEEDED",
+      );
+      assert.deepEqual((await reviewGet()).services, partialReview.services);
+      assert.deepEqual((await reviewGet()).items, retainedItems);
+      const delivered = JSON.parse(
+        await readFile(
+          resolve(
+            __dirname,
+            "../../test/fixtures/uniship/mapping-v2/derived-delivered-counting-zero.json",
+          ),
+          "utf8",
+        ),
+      ).data[0];
+      assert.equal((await apply(normalize(delivered))).status, "SUCCEEDED");
+      const deliveredIdentity = await db.syncSourceIdentity.findFirstOrThrow({
+        where: {
+          owner_user_id: owner.id,
+          source_key: normalize(delivered).identity.key,
+          external_account_id: connection.externalAccountId,
+        },
+      });
+      const deliveredRoot = await db.shipment.findUniqueOrThrow({
+        where: { sourceIdentityId: deliveredIdentity.id },
+        include: { charges: true, services: true },
+      });
+      assert.equal(deliveredRoot.charges[0].chargeCode, "COUNTING");
+      assert.equal(deliveredRoot.charges[0].amount.toFixed(2), "0.00");
+      assert.equal(deliveredRoot.charges[0].currency, "VND");
+      assert.equal(deliveredRoot.services.length, 0);
       // Existing duplicate target fee is a business conflict, not arbitrary replacement.
       await db.shipmentCharge.create({
         data: {

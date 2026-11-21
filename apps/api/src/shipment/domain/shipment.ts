@@ -485,6 +485,7 @@ function normalizeProviderPatch(input: unknown): NormalizedProviderPatch {
     const codes = [
       ShipmentChargeCode.WEIGHT_FREIGHT,
       ShipmentChargeCode.INSURANCE,
+      ShipmentChargeCode.COUNTING,
       ShipmentChargeCode.WOOD_PACKING,
       ShipmentChargeCode.BUBBLE_WRAP,
     ] as readonly string[];

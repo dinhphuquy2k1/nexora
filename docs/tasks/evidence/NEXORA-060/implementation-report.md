@@ -6,40 +6,48 @@ separately in the PR. No merge, production enablement or live Uniship request.
 
 ## A. Field Storage Decision Matrix
 
-27 selected correspondences; this denominator includes existing source/status/lookup
+35 selected correspondences; this denominator includes existing source/status/lookup
 facts as well as newly enriched fields. Alias validation and exclusions are separate,
 not extra accepted mappings. Test names refer to the new two unit files and genuine
 Shipment/Uniship PostgreSQL integration suites, not live provider captures.
 
-| Uniship Field      | Canonical Meaning                       | Chosen Storage      | Validation                                                                | API Exposure                                             | Tests                                  | Rationale                                                       |
-| ------------------ | --------------------------------------- | ------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------- |
-| ID                 | Scoped source identity                  | EXISTING CORE       | Exact positive integer lexeme; scoped uniship-parcel-v1 identity          | uniship-parcel-v1 unchanged                              | mapping-v2 / partial-mapping / real PG | Current read need; Source key per provider/account              |
-| TransactionCode    | Tracking text                           | EXISTING CORE       | Required nonempty Domain-bounded text; no silent trimming                 | trackingCode                                             | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| Status             | Original status and physical stage      | EXISTING CORE       | Exact numeric status; known stage mapping, safe UNKNOWN warning           | providerStatus/logisticsStage                            | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| OldStatus          | Claim context                           | EXISTING CORE       | Optional numeric claim context; known1–5, else locked prior stage/UNKNOWN | Same status/claim behavior                               | mapping-v2 / partial-mapping / real PG | Current read need; Provider mapping only                        |
-| Weight             | Reported kg                             | EXISTING CORE       | DecimalValue(10,3), nonnegative, raw numeric lexeme                       | weightKg                                                 | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| NumberOfPack       | Package count                           | EXISTING CORE       | Exact integer0..2147483647, no rounding                                   | packageCount                                             | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| RealNumberOfPack   | Actual package count                    | NEW CORE            | Exact integer0..2147483647, no rounding                                   | actualPackageCount summary/detail                        | mapping-v2 / partial-mapping / real PG | Current read need; Shared singleton                             |
-| PriceAmount        | Source freight unit price/currency/unit | PROVIDER ATTRIBUTES | DecimalValue(18,2), nonnegative; VND (PriceAmount per kg); zero retained  | typed freightUnitPrice summary/detail                    | mapping-v2 / partial-mapping / real PG | Current read need; Current reported source pricing basis        |
-| FeeWeightAmount    | Weight freight charge                   | CHILD TABLE         | DecimalValue(18,2), nonnegative; VND (PriceAmount per kg); zero retained  | WEIGHT_FREIGHT VND                                       | mapping-v2 / partial-mapping / real PG | Current read need; Shared charge vocabulary                     |
-| TotalAmount        | Reported total                          | EXISTING CORE       | DecimalValue(18,2), nonnegative; VND (PriceAmount per kg); zero retained  | totalAmount/totalCurrency VND                            | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| TotalPaidAmount    | Provider-reported paid amount           | NEW CORE            | DecimalValue(18,2), nonnegative; VND (PriceAmount per kg); zero retained  | providerPaidAmount                                       | mapping-v2 / partial-mapping / real PG | Current read need; Shared singleton                             |
-| TotalRemainAmount  | Provider-reported remaining amount      | NEW CORE            | DecimalValue(18,2), nonnegative; VND (PriceAmount per kg); zero retained  | providerRemainingAmount                                  | mapping-v2 / partial-mapping / real PG | Current read need; Shared singleton                             |
-| PaymentDate        | Provider payment timestamp              | NEW CORE            | Calendar-valid UTC+7 → UTC, null preserves                                | providerPaidAt                                           | mapping-v2 / partial-mapping / real PG | Current read need; Shared singleton                             |
-| ExchangeRate       | Reported rate                           | EXISTING CORE       | DecimalValue(18,6), nonnegative; no conversion/effective time             | exchangeRate; exchangeRateAt null without effective time | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| CreatedDate        | Source-created reference time           | PROVIDER ATTRIBUTES | Calendar-valid UTC+7 → UTC, null preserves                                | typed providerCreatedAt detail                           | mapping-v2 / partial-mapping / real PG | Current read need; Reference fact, not Nexora createdAt         |
-| ModifiedDate       | Provider update time                    | EXISTING CORE       | Calendar-valid UTC+7 → UTC, null preserves                                | providerUpdatedAt, never stage time/watermark            | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| ChinaStoreID       | Source warehouse identifier             | PROVIDER ATTRIBUTES | Exact provider ID as bounded string, trusted namespace; no Nexora FK      | typed originWarehouseProviderId detail                   | mapping-v2 / partial-mapping / real PG | Current read need; Opaque provider key, not global warehouse FK |
-| chinaStores.Name   | Origin name                             | EXISTING CORE       | Matching ID/StoreType1, valid nonempty name; missing lookup warns         | originWarehouse                                          | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| ReceivePlaceName   | Destination warehouse name              | NEW CORE            | Nullable text <=256; omission preserves                                   | destinationWarehouse                                     | mapping-v2 / partial-mapping / real PG | Current read need; Shared singleton                             |
-| ShippingMethod     | Source-reported delivery method text    | PROVIDER ATTRIBUTES | Nullable text <=128 in closed attributes schema                           | typed lastMileMethod detail                              | mapping-v2 / partial-mapping / real PG | Current read need; Not a verified cross-carrier method taxonomy |
-| GuaranteeAmountVND | Insurance fee                           | CHILD TABLE         | DecimalValue(18,2), nonnegative; VND (PriceAmount per kg); zero retained  | INSURANCE VND,0 retained                                 | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| FragileFeeVND      | Wood packing fee                        | CHILD TABLE         | DecimalValue(18,2), nonnegative; VND (PriceAmount per kg); zero retained  | WOOD_PACKING VND,0 retained                              | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| FoamFeeVND         | Bubble wrap fee                         | CHILD TABLE         | DecimalValue(18,2), nonnegative; VND (PriceAmount per kg); zero retained  | BUBBLE_WRAP VND,0 retained                               | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| StoreCNImportDate  | Origin receipt                          | CHILD TABLE         | Calendar-valid UTC+7 → UTC, null preserves                                | ORIGIN_RECEIVED                                          | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| StoreCNExportDate  | Origin dispatch                         | CHILD TABLE         | Calendar-valid UTC+7 → UTC, null preserves                                | ORIGIN_DISPATCHED                                        | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| StoreVNImportDate  | Destination receipt                     | CHILD TABLE         | Calendar-valid UTC+7 → UTC, null preserves                                | DEST_RECEIVED, supplied destination location             | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
-| StoreVNExportDate  | Destination dispatch                    | CHILD TABLE         | Calendar-valid UTC+7 → UTC, null preserves                                | DEST_DISPATCHED, not delivered time                      | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| Uniship Field      | Canonical Meaning                       | Chosen Storage      | Validation                                                                                     | API Exposure                                             | Tests                                  | Rationale                                                       |
+| ------------------ | --------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------- | --------------------------------------------------------------- |
+| ID                 | Scoped source identity                  | EXISTING CORE       | Exact positive integer lexeme; scoped uniship-parcel-v1 identity                               | uniship-parcel-v1 unchanged                              | mapping-v2 / partial-mapping / real PG | Current read need; Source key per provider/account              |
+| TransactionCode    | Tracking text                           | EXISTING CORE       | Required nonempty Domain-bounded text; no silent trimming                                      | trackingCode                                             | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| Status             | Original status and physical stage      | EXISTING CORE       | Exact numeric status; known stage mapping, safe UNKNOWN warning                                | providerStatus/logisticsStage                            | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| OldStatus          | Claim context                           | EXISTING CORE       | Optional numeric claim context; known1–5, else locked prior stage/UNKNOWN                      | Same status/claim behavior                               | mapping-v2 / partial-mapping / real PG | Current read need; Provider mapping only                        |
+| Weight             | Reported kg                             | EXISTING CORE       | DecimalValue(10,3), nonnegative, raw numeric lexeme                                            | weightKg                                                 | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| NumberOfPack       | Package count                           | EXISTING CORE       | Exact integer0..2147483647, no rounding                                                        | packageCount                                             | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| RealNumberOfPack   | Actual package count                    | NEW CORE            | Exact integer0..2147483647, no rounding                                                        | actualPackageCount summary/detail                        | mapping-v2 / partial-mapping / real PG | Current read need; Shared singleton                             |
+| PriceAmount        | Source freight unit price/currency/unit | PROVIDER ATTRIBUTES | DecimalValue(18,2), nonnegative; VND/kg; zero retained                                         | typed freightUnitPrice summary/detail                    | mapping-v2 / partial-mapping / real PG | Current read need; Current reported source pricing basis        |
+| FeeWeightAmount    | Weight freight charge                   | CHILD TABLE         | DecimalValue(18,2), nonnegative; VND; zero retained                                            | WEIGHT_FREIGHT VND                                       | mapping-v2 / partial-mapping / real PG | Current read need; Shared charge vocabulary                     |
+| TotalAmount        | Reported total                          | EXISTING CORE       | DecimalValue(18,2), nonnegative; VND; zero retained                                            | totalAmount/totalCurrency VND                            | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| TotalPaidAmount    | Provider-reported paid amount           | NEW CORE            | DecimalValue(18,2), nonnegative; VND; zero retained                                            | providerPaidAmount                                       | mapping-v2 / partial-mapping / real PG | Current read need; Shared singleton                             |
+| TotalRemainAmount  | Provider-reported remaining amount      | NEW CORE            | DecimalValue(18,2), nonnegative; VND; zero retained                                            | providerRemainingAmount                                  | mapping-v2 / partial-mapping / real PG | Current read need; Shared singleton                             |
+| PaymentDate        | Provider payment timestamp              | NEW CORE            | Calendar-valid UTC (owner evidence2026-11-20: API03:03:16 ↔ UI10:03:16) → UTC, null preserves | providerPaidAt                                           | mapping-v2 / partial-mapping / real PG | Current read need; Shared singleton                             |
+| ExchangeRate       | Reported rate                           | EXISTING CORE       | DecimalValue(18,6), nonnegative; no conversion/effective time                                  | exchangeRate; exchangeRateAt null without effective time | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| CreatedDate        | Source-created reference time           | PROVIDER ATTRIBUTES | Calendar-valid UTC (owner evidence2026-11-20: API03:03:16 ↔ UI10:03:16) → UTC, null preserves | typed providerCreatedAt detail                           | mapping-v2 / partial-mapping / real PG | Current read need; Reference fact, not Nexora createdAt         |
+| ModifiedDate       | Provider update time                    | EXISTING CORE       | Calendar-valid UTC (owner evidence2026-11-20: API03:03:16 ↔ UI10:03:16) → UTC, null preserves | providerUpdatedAt, never stage time/watermark            | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| ChinaStoreID       | Source warehouse identifier             | PROVIDER ATTRIBUTES | Exact provider ID as bounded string, trusted namespace; no Nexora FK                           | typed originWarehouseProviderId detail                   | mapping-v2 / partial-mapping / real PG | Current read need; Opaque provider key, not global warehouse FK |
+| chinaStores.Name   | Origin name                             | EXISTING CORE       | Matching ID/StoreType1, valid nonempty name; missing lookup warns                              | originWarehouse                                          | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| ReceivePlaceName   | Destination warehouse name              | NEW CORE            | Nullable text <=256; omission preserves                                                        | destinationWarehouse                                     | mapping-v2 / partial-mapping / real PG | Current read need; Shared singleton                             |
+| ShippingMethod     | Source-reported delivery method text    | PROVIDER ATTRIBUTES | Nullable text <=128 in closed attributes schema                                                | typed lastMileMethod detail                              | mapping-v2 / partial-mapping / real PG | Current read need; Not a verified cross-carrier method taxonomy |
+| GuaranteeAmountVND | Insurance fee                           | CHILD TABLE         | DecimalValue(18,2), nonnegative; VND; zero retained                                            | INSURANCE VND,0 retained                                 | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| FragileFeeVND      | Wood packing fee                        | CHILD TABLE         | DecimalValue(18,2), nonnegative; VND; zero retained                                            | WOOD_PACKING VND,0 retained                              | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| FoamFeeVND         | Bubble wrap fee                         | CHILD TABLE         | DecimalValue(18,2), nonnegative; VND; zero retained                                            | BUBBLE_WRAP VND,0 retained                               | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| StoreCNImportDate  | Origin receipt                          | CHILD TABLE         | Calendar-valid UTC (owner evidence2026-11-20: API03:03:16 ↔ UI10:03:16) → UTC, null preserves | ORIGIN_RECEIVED                                          | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| StoreCNExportDate  | Origin dispatch                         | CHILD TABLE         | Calendar-valid UTC (owner evidence2026-11-20: API03:03:16 ↔ UI10:03:16) → UTC, null preserves | ORIGIN_DISPATCHED                                        | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| StoreVNImportDate  | Destination receipt                     | CHILD TABLE         | Calendar-valid UTC (owner evidence2026-11-20: API03:03:16 ↔ UI10:03:16) → UTC, null preserves | DEST_RECEIVED, supplied destination location             | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| StoreVNExportDate  | Destination dispatch                    | CHILD TABLE         | Calendar-valid UTC (owner evidence2026-11-20: API03:03:16 ↔ UI10:03:16) → UTC, null preserves | DEST_DISPATCHED, not delivered time                      | mapping-v2 / partial-mapping / real PG | Current read need; Shared                                       |
+| IsGuarantee        | Insurance service                       | CHILD TABLE         | Numeric1/0 only; null omitted                                                                  | serviceSummary.insurance                                 | review-v2 unit / real PG               | Owner confirmed2026-11-20; existing contract reused             |
+| IsCheck            | Counting service                        | CHILD TABLE         | Numeric1/0 only; null omitted                                                                  | serviceSummary.counting                                  | review-v2 unit / real PG               | Owner confirmed2026-11-20; existing contract reused             |
+| IsFragileGoods     | Wood packing service                    | CHILD TABLE         | Numeric1/0 only; null omitted                                                                  | serviceSummary.fragileGoods                              | review-v2 unit / real PG               | Owner confirmed2026-11-20; existing contract reused             |
+| IsFoam             | Bubble wrap service                     | CHILD TABLE         | Numeric1/0 only; null omitted                                                                  | serviceSummary.foam                                      | review-v2 unit / real PG               | Owner confirmed2026-11-20; existing contract reused             |
+| ProductAmount      | Declared CNY value                      | EXISTING CORE       | Exact nonnegative Decimal18,2; null omission                                                   | declaredValue/declaredCurrency                           | review-v2 unit / real PG               | Owner confirmed2026-11-20; existing contract reused             |
+| ProductNumber      | Aggregate item count                    | EXISTING CORE       | Exact integral0..2147483647; no inferred line quantity                                         | itemCount                                                | review-v2 unit / real PG               | Owner confirmed2026-11-20; existing contract reused             |
+| ProductName        | Single product name                     | CHILD TABLE         | Nonblank string <=512; null/blank omits snapshot                                               | items/itemSummary                                        | review-v2 unit / real PG               | Owner confirmed2026-11-20; existing contract reused             |
+| CheckFeeVND        | Counting fee                            | CHILD TABLE         | Exact nonnegative Decimal18,2; zero retained                                                   | COUNTING VND charge                                      | review-v2 unit / real PG               | Owner confirmed2026-11-20; existing contract reused             |
 
 ## B. Architecture decision
 
@@ -56,7 +64,7 @@ provider maps into the same neutral contracts; new schema fields require review.
 
 - Domain/parser: bounded canonical fields, strict attributes patch and scoped charge/
   milestone commands; generic processor maps ambiguous charge conflict to review.
-- Uniship infrastructure: exact numeric lexemes, strict UTC+7, selected fields,
+- Uniship infrastructure: exact numeric lexemes, strict UTC (owner evidence2026-11-20: API03:03:16 ↔ UI10:03:16), selected fields,
   consistency-only dispatch alias; default processor2, same source identity.
 - SQL/Prisma/grants/persistence/read adapter: additive migration and typed projections.
 - DTO/OpenAPI/SDK: additive nullable fields, internal JSON envelope never exposed.
@@ -146,10 +154,11 @@ This is independent code review, not approval of future exact-final-HEAD CI.
 
 ## H. Báo cáo PM (bảy câu hỏi)
 
-1. **Đủ yêu cầu chưa?**27/27 correspondences đã được triển khai; không dùng tỷ lệ này
-   thay cho nghiệm thu live. Unit, PostgreSQL và quality đã PASS; hosted73d984b đã PASS. Browser local đã PASS sau khi runner tạm có đủ prerequisite focus như harness chính;
-   các lần FAIL trước giữ ở mụcF.
-2. **Blocker?** Không còn blocker mapping/release đã biết sau review và CI73d984b; owner vẫn cần review. Production bị hard-close bởi NEXORA-058, độc lập với mapping.
+1. **Đủ yêu cầu chưa?**35 correspondences đã có mã mapping theo owner review v2.
+   Unit và PostgreSQL liên quan đã PASS, nhưng CI trên HEAD remediation v2 chưa
+   hoàn tất. Các số quality/hosted73d984b ở trên là lịch sử, không chứng minh v2.
+2. **Blocker?** Không thấy blocker code trong independent review v2; release còn
+   chờ các gate cục bộ và hosted trên HEAD mới. Production vẫn hard-close bởi058.
 3. **Mất dữ liệu/sai tiền?** Không cộng trùng phí hay suy tổng. Decimal chính xác,
    null giữ dữ liệu,0 ghi0, nhiều phí cùng mã chuyển review; test chứng minh giữ ID,
    child xmin và rollback. Dữ liệu lịch sử chưa staged không tự được phục hồi.
@@ -170,8 +179,9 @@ This is independent code review, not approval of future exact-final-HEAD CI.
 
 ## I. Remaining scope
 
-FeeShip/FeeShipVN/CheckFeeVND, unsuffixed fee aliases, ProductAmount/quantity-value,
-all four Is\* flags, raw private fields and other unselected fields remain omitted.
+FeeShip/FeeShipVN/FeeOther, unsuffixed fee aliases, per-item quantity/value, raw
+private fields and other unselected fields remain omitted. Four numeric flags,
+ProductAmount/CNY, ProductNumber, ProductName and CheckFeeVND are now confirmed.
 ExDate is guard only. Exchange-rate effective time is absent; no conversion.
 No incremental watermark, inferred service enablement, claim lifecycle proof,
 provider ID stability or live activation/backfill is claimed. NEXORA-058 remains active.
@@ -191,7 +201,8 @@ NEXORA-058 production activation is still out of scope.
 
 ## J. Merge readiness
 
-READY FOR OWNER REVIEW — implementation73d984b has local quality, genuine PostgreSQL,
+VERIFICATION INCOMPLETE — owner review v2 supersedes the earlier readiness. Historical
+implementation73d984b had local quality, genuine PostgreSQL,
 Chromium and all hosted gates PASS. Evidence-only final commit is bound to its own
 exact HEAD/run IDs in PR59 description before handoff. This report is a captured
 verification record, not production authorization or permission to merge.
@@ -238,3 +249,12 @@ Local full Compose command remains NOT RUN locally; hosted Foundation executes i
 and passes. Final documentation-only HEAD/run IDs are recorded by gh api in PR59
 description after its exact-HEAD gates complete, avoiding a self-referential commit
 SHA claim. No merge, issue closure or Uniship production enablement.
+
+## Review v2 supersession (owner2026-11-20, remediation2026-11-21)
+
+Earlier timestamp acceptance used an owner interpretation now superseded: source
+timestamp strings mean UTC, not the prior UTC+7 interpretation. Earlier PASS rows
+remain executed historical evidence, not proof of v2 timestamp/business semantics.
+Current v2 mapping adds the four numeric flags, CNY declared value, aggregate product
+count, complete single item and COUNTING VND fee. New results are in the dedicated
+review-v2 evidence; no production activation/backfill, schema or public contract change.

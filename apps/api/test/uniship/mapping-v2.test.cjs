@@ -18,7 +18,7 @@ const parse = (text, warnings = []) =>
   parseUnishipPage(text, 1, 100, parseUnishipWarehouses(stores), (c) =>
     warnings.push(c),
   ).records[0];
-test("owner-discussion sample exact mapping, UTC+7 and zero-valued fees; no total/rate calculation", () => {
+test("owner-discussion sample exact mapping, UTC and zero-valued fees; no total/rate calculation", () => {
   const r = parse(sample);
   assert.equal(r.identity.scheme, "uniship-parcel-v1");
   assert.deepEqual(JSON.parse(r.identity.key), ["341827"]);
@@ -32,14 +32,14 @@ test("owner-discussion sample exact mapping, UTC+7 and zero-valued fees; no tota
   assert.equal(s.providerRemainingAmount, "0.00");
   assert.equal(s.exchangeRate, "3980.000000");
   assert.equal(s.exchangeRateAt, null);
-  assert.equal(s.providerPaidAt, "2026-11-16T23:59:01.000Z");
-  assert.equal(s.providerUpdatedAt, "2026-11-17T00:34:50.000Z");
+  assert.equal(s.providerPaidAt, "2026-11-17T06:59:01.000Z");
+  assert.equal(s.providerUpdatedAt, "2026-11-17T07:34:50.000Z");
   assert.equal(s.destinationWarehouse, "Kho Hà Nội");
   assert.equal(s.providerChangedAt, undefined);
   const a = s.providerAttributesPatch;
   assert.equal(a.values.originWarehouseId, "19");
   assert.equal(a.values.freightUnitPrice.amount, "23500.00");
-  assert.equal(a.values.providerCreatedAt, "2026-11-14T01:23:36.000Z");
+  assert.equal(a.values.providerCreatedAt, "2026-11-14T08:23:36.000Z");
   assert.equal(a.values.lastMileMethod, "CPN-VietelPost");
   assert.deepEqual(
     s.chargePatch.lines.map((x) => [x.chargeCode, x.amount, x.currency]),
@@ -55,10 +55,10 @@ test("owner-discussion sample exact mapping, UTC+7 and zero-valued fees; no tota
   assert.deepEqual(
     s.milestonePatch.entries.map((x) => x.occurredAt),
     [
-      "2026-11-14T01:23:36.000Z",
-      "2026-11-14T06:28:59.000Z",
-      "2026-11-16T07:05:25.000Z",
-      "2026-11-17T00:34:50.000Z",
+      "2026-11-14T08:23:36.000Z",
+      "2026-11-14T13:28:59.000Z",
+      "2026-11-16T14:05:25.000Z",
+      "2026-11-17T07:34:50.000Z",
     ],
   );
 });
@@ -82,7 +82,7 @@ test("fractional/negative/overflow counts and money/date corruption reject only 
     assert.ok(!JSON.stringify([r, warnings]).includes("private-marker"));
   }
 });
-test("missing/null observations preserve fields; timestamp conflict omits only dispatch; private fields/flags never stage", () => {
+test("missing/null observations preserve fields; timestamp conflict omits only dispatch; private fields never stage; numeric flags map independently", () => {
   const base = JSON.parse(sample).data[0];
   const warnings = [];
   const r = parse(
@@ -92,8 +92,8 @@ test("missing/null observations preserve fields; timestamp conflict omits only d
         StoreCNExDate: "2026-11-14T14:28:59.000",
         GuaranteeAmountVND: null,
         FeeShip: 999,
-        CheckFeeVND: 999,
-        IsFoam: true,
+        FeeOther: 999,
+        IsFoam: 1,
         ShippingInfo: "private-marker",
         FakeCustomerName: "private-marker",
       },
@@ -103,7 +103,10 @@ test("missing/null observations preserve fields; timestamp conflict omits only d
   assert.equal(r.milestonePatch.entries.length, 3);
   assert.ok(warnings.includes("UNISHIP_ORIGIN_DISPATCH_CONFLICT"));
   assert.ok(!r.chargePatch.lines.some((x) => x.chargeCode === "INSURANCE"));
-  assert.equal(r.services, undefined);
+  assert.deepEqual(r.services, {
+    complete: true,
+    entries: [{ serviceCode: "FOAM", enabled: true }],
+  });
   assert.ok(!JSON.stringify(r).includes("private-marker"));
   assert.ok(!JSON.stringify(r).includes("999"));
 });
@@ -147,9 +150,9 @@ test("exact counts accept scientific notation after insignificant leading zeros"
     );
   }
 });
-test("UTC+7 calendar/leap boundaries are independent of server timezone", () => {
+test("UTC calendar/leap boundaries are independent of server timezone", () => {
   const {
-    parseUnishipLocalTimestamp: convert,
+    parseUnishipUtcTimestamp: convert,
   } = require("../../dist/shipment/infrastructure/uniship/uniship-normalizer");
   const previous = process.env.TZ;
   try {
@@ -157,12 +160,12 @@ test("UTC+7 calendar/leap boundaries are independent of server timezone", () => 
       process.env.TZ = zone;
       assert.equal(
         convert("2024-02-29T00:00:00.001"),
-        "2024-02-28T17:00:00.001Z",
+        "2024-02-29T00:00:00.001Z",
       );
-      assert.equal(convert("2026-01-01T00:00:00"), "2025-12-31T17:00:00.000Z");
+      assert.equal(convert("2026-01-01T00:00:00"), "2026-01-01T00:00:00.000Z");
       assert.equal(
         convert("2026-11-20T23:59:59.9"),
-        "2026-11-20T16:59:59.900Z",
+        "2026-11-20T23:59:59.900Z",
       );
       for (const bad of [
         "2025-02-29T00:00:00",

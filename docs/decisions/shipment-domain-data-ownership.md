@@ -244,3 +244,32 @@ for actual shared financial/parcel reconciliation needs. Typed JSONB prevents fo
 reference facts from becoming speculative core columns, at the cost of bounded
 validation on reads. A new provider must map into existing neutral contracts;
 new keys/schema revisions require a separate reviewed decision, not arbitrary JSON.
+
+## NEXORA-060 review v2 — owner evidence2026-11-20
+
+UTC (owner evidence 2026-11-20: API 03:03:16 ↔ UI 10:03:16). The prior UTC+7 confirmation is superseded.
+OrderMD59639 CreatedDate2026-11-20T03:03:16 displayed20-11-2026 10:03:16; browser
+session began03:02:35UTC. Parcel343558 ModifiedDate03:19:58 preceded capture03:20:50UTC.
+parseUnishipUtcTimestamp preserves the source instant and calendar day, validates
+calendar/format/milliseconds and adds UTC suffix without subtracting7hours. UI
+Vietnam-time rendering stays unchanged; no automatic repair of previously normalized
+shifted timestamps or live backfill is claimed. Immutable snapshotv1/evidence remain
+historical and are not current timestamp-correctness proof.
+
+Owner saw numeric1 labels in all four columns: Bảo hiểm chính ngạch đường bộ,
+Kiểm đếm gói A, Dịch vụ đóng gỗ, Dịch vụ bọt khí. Map IsGuarantee→INSURANCE,
+IsCheck→COUNTING, IsFragileGoods→FRAGILE_GOODS, IsFoam→FOAM; numeric0 is false,
+null/missing creates no row (unknown), other values raise VALIDATION_ERROR through
+the existing safe source rejection path. Existing complete:true services snapshot
+contains supplied numeric flags only; if all missing/null, omit services. Omitted
+entries inside a supplied complete snapshot become unknown per existing semantics.
+Fees never imply service state. CheckFeeVND is COUNTING VND, including0.0.
+
+ProductAmount1000 corresponds to GIÁ TRỊ(¥)1,000: exact nonnegative declaredValue
+with CNY. ProductNumber23 corresponds to SỐ SẢN PHẨM23: strict aggregate itemCount.
+Nonblank ProductName becomes one complete item {name}; null/trim-empty omits items.
+No inferred item quantity/unit value. FeeShip/FeeShipVN/FeeOther/unsuffixed fees remain
+deferred because no nonnull owner sample establishes their semantics. No migration,
+grant, API/SDK contract change, source identity/FULL/fence change or production enablement.
+
+Owner decision 2026-11-20: package_count holds NumberOfPack (declared count). The Uniship UI column 'SỐ KIỆN (CHÍNH)' showed 0 while NumberOfPack was 1 on all weighed samples; its source is unknown, so Nexora's value may differ from that column.

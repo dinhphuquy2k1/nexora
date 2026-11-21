@@ -1,6 +1,7 @@
 import {
   ShipmentChargeCode as C,
   ShipmentMilestoneCode as M,
+  ShipmentServiceCode as S,
 } from "@nexora/shared/shipment";
 import { CarrierProvider } from "../../../carrier/domain/carrier";
 import { SyncError, sourceKey } from "../../../sync/domain/sync-policy";
@@ -71,8 +72,8 @@ function integer(value: unknown): number | null {
   const number = Number(text);
   return Number.isSafeInteger(number) ? number : null;
 }
-/** UTC+7 source wall time; validate calendar in UTC before applying the fixed offset. */
-export function parseUnishipLocalTimestamp(value: unknown): string {
+/** Source wall time is UTC (owner evidence2026-11-20); never apply the UI timezone offset. */
+export function parseUnishipUtcTimestamp(value: unknown): string {
   if (
     typeof value !== "string" ||
     value.startsWith("0000") ||
@@ -87,9 +88,7 @@ export function parseUnishipLocalTimestamp(value: unknown): string {
   const date = new Date(wall);
   if (!Number.isFinite(date.getTime()) || date.toISOString() !== wall)
     throw new ShipmentError("VALIDATION_ERROR");
-  const utc = new Date(date.getTime() - 7 * 60 * 60 * 1000).toISOString();
-  if (utc.startsWith("0000")) throw new ShipmentError("VALIDATION_ERROR");
-  return utc;
+  return date.toISOString();
 }
 function sourceCount(value: unknown): number {
   if (!(value instanceof NumericLexeme) || value.source.length > 128)
@@ -233,6 +232,7 @@ function record(
     for (const [source, target] of [
       ["NumberOfPack", "packageCount"],
       ["RealNumberOfPack", "actualPackageCount"],
+      ["ProductNumber", "itemCount"],
     ] as const)
       if (value[source] != null) shipment[target] = sourceCount(value[source]);
     for (const [source, target] of [
@@ -248,6 +248,33 @@ function record(
       value.TotalRemainAmount != null
     )
       shipment.totalCurrency = "VND";
+    if (value.ProductAmount != null) {
+      shipment.declaredValue = sourceDecimal(value.ProductAmount);
+      shipment.declaredCurrency = "CNY";
+    }
+    if (value.ProductName != null) {
+      if (typeof value.ProductName !== "string")
+        throw new ShipmentError("VALIDATION_ERROR");
+      if (value.ProductName.trim().length)
+        shipment.items = {
+          complete: true,
+          lines: [{ name: value.ProductName }],
+        };
+    }
+    const services = [];
+    for (const [source, serviceCode] of [
+      ["IsGuarantee", S.INSURANCE],
+      ["IsCheck", S.COUNTING],
+      ["IsFragileGoods", S.FRAGILE_GOODS],
+      ["IsFoam", S.FOAM],
+    ] as const) {
+      if (value[source] == null) continue;
+      const flag = sourceCount(value[source]);
+      if (flag !== 0 && flag !== 1) throw new ShipmentError("VALIDATION_ERROR");
+      services.push({ serviceCode, enabled: flag === 1 });
+    }
+    if (services.length)
+      shipment.services = { complete: true, entries: services };
     if (value.ExchangeRate != null) {
       shipment.exchangeRate = sourceDecimal(value.ExchangeRate, 6);
       shipment.exchangeRateAt = null;
@@ -257,7 +284,7 @@ function record(
       ["ModifiedDate", "providerUpdatedAt"],
     ] as const)
       if (value[source] != null)
-        shipment[target] = parseUnishipLocalTimestamp(value[source]);
+        shipment[target] = parseUnishipUtcTimestamp(value[source]);
     if (value.ReceivePlaceName != null)
       shipment.destinationWarehouse = value.ReceivePlaceName;
     const attributes: Record<string, unknown> = {};
@@ -272,7 +299,7 @@ function record(
         unit: "kg",
       };
     if (value.CreatedDate != null)
-      attributes.providerCreatedAt = parseUnishipLocalTimestamp(
+      attributes.providerCreatedAt = parseUnishipUtcTimestamp(
         value.CreatedDate,
       );
     if (value.ShippingMethod != null)
@@ -287,6 +314,7 @@ function record(
     for (const [source, chargeCode] of [
       ["FeeWeightAmount", C.WEIGHT_FREIGHT],
       ["GuaranteeAmountVND", C.INSURANCE],
+      ["CheckFeeVND", C.COUNTING],
       ["FragileFeeVND", C.WOOD_PACKING],
       ["FoamFeeVND", C.BUBBLE_WRAP],
     ] as const)
@@ -305,11 +333,11 @@ function record(
       ["StoreVNExportDate", M.DEST_DISPATCHED],
     ] as const) {
       if (value[source] == null) continue;
-      const occurredAt = parseUnishipLocalTimestamp(value[source]);
+      const occurredAt = parseUnishipUtcTimestamp(value[source]);
       if (
         source === "StoreCNExportDate" &&
         value.StoreCNExDate != null &&
-        parseUnishipLocalTimestamp(value.StoreCNExDate) !== occurredAt
+        parseUnishipUtcTimestamp(value.StoreCNExDate) !== occurredAt
       ) {
         warn(UnishipDiagnostic.ORIGIN_DISPATCH_CONFLICT);
         continue;

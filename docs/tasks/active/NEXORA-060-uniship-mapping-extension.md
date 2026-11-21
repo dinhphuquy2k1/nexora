@@ -6,17 +6,17 @@ Verification: PARTIALLY VERIFIED
 
 ## Scope
 
-Implement owner Mapping V2, superseding the earlier nine-column baseline before code.27 selected mapping correspondences plus alias/exclusion validation; new owner-discussion fixture, no new live evidence. Production remains hard-closed under058. No source identity/FULL filter/engine changes, historical capture/migration/evidence rewrite, user-volume reset or merge. First commit ef0cf4e closes merged059 under §1.7;058 remains active.
+Implement owner Mapping V2, superseding the earlier nine-column baseline before code.35 selected mapping correspondences after owner review v2 plus alias/exclusion validation; new owner-discussion fixture, no new live evidence. Production remains hard-closed under058. No source identity/FULL filter/engine changes, historical capture/migration/evidence rewrite, user-volume reset or merge. First commit ef0cf4e closes merged059 under §1.7;058 remains active.
 
 ## Design Review & Reuse Decision
 
 Task ID: NEXORA-060
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-20-uniship-mapping-v1
-Reviewed baseline: ef0cf4e7e793a3d10844ebfa39b87869b51f6755
+Plan revision: rev-2026-11-21-uniship-mapping-v2
+Reviewed baseline: 074298d5ba866de79988d793c997e2767fad7025
 Branch: feature/uniship-mapping-extension
-Design Snapshot: docs/tasks/design-reviews/NEXORA-060-rev-2026-11-20-uniship-mapping-v1.md
-Design SHA-256: e5c3f9ea98e01f96816a59bb277f999004c181653d791f294af7df1155c8af35
+Design Snapshot: docs/tasks/design-reviews/NEXORA-060-rev-2026-11-21-uniship-mapping-v2.md
+Design SHA-256: 5093a9822ad64c028cc3de8c4917aa51837c80fc7416e05a7337375a2029ca0e
 
 | Field                    | Decision                                                                                                                                                                                          |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -48,7 +48,7 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
-Owner-confirmed counts/VND amounts/UTC+7/reference dates, storage choice and scoped patch contracts; additive read/API/UI fields and migration/grants. Earlier assumptions remain historical, not retroactive evidence.
+Owner-confirmed counts/VND amounts/UTC/reference dates (owner evidence2026-11-20; prior UTC+7 confirmation superseded), storage choice and scoped patch contracts; additive read/API/UI fields and migration/grants. Earlier assumptions remain historical, not retroactive evidence.
 
 ### Canonical owners
 
@@ -68,7 +68,7 @@ Owner-confirmed counts/VND amounts/UTC+7/reference dates, storage choice and sco
 
 ## Acceptance
 
-- [x] All27 selected mapping rows stored/read correctly, zero/null/UTC+7 exact.
+- [ ] All35 selected mapping correspondences; UTC owner correction and new services/items/declared values/count/COUNTING fee verified.
 - [x] Scoped patches preserve other fees/milestones and stable IDs; ambiguous fees review, complete snapshots unchanged.
 - [x] Typed attributes keys/version/size/depth/provider isolation and merge/hydration proven.
 - [x] Forward migration/repeat/constraints/least-privilege/read contracts/UI regression executed.
@@ -143,3 +143,42 @@ production activation remains separate.
 - The P2 evidence contradiction is resolved by marking current verification PENDING
   and keeping already-green earlier SHA/run results as historical evidence.
   PR description should reference the final current HEAD and its actual workflow runs.
+
+## Review delta v2 — owner decisions2026-11-20, implementation2026-11-21
+
+Prior UTC+7 confirmation is superseded: UTC (owner evidence2026-11-20:
+API03:03:16 ↔ UI10:03:16). MD59639 session03:02:35UTC and parcel343558
+ModifiedDate03:19:58 before capture03:20:50UTC establish same-instant UTC parsing.
+35 selected correspondences now include four numeric service flags, ProductAmount
+CNY, ProductNumber, one ProductName item, and CheckFeeVND COUNTING. Existing schema/
+DTO/SDK/contracts and processor2 remain; no production/backfill claim.
+Snapshotv1 and earlier evidence are immutable historical records, not current
+UTC correctness proof. Current verified status stays partial until new tests/CI.
+
+Reuse: existing calendar parser renamed with no offset, exact DecimalValue/sourceCount,
+NEXORA-055 complete services/items, existing scoped charge merge with COUNTING.
+Services snapshot semantics: numeric flags only; null creates no entry/unknown; when
+all flags missing/null omit collection. Nonblank ProductName is a complete one-line
+item snapshot; null/blank omits collection. No inferred quantity/value or fee flags.
+No migration, grant or public API/SDK change. Preserve warehouse name/ID coupling
+and reported-total wording fixes already present at074298d.
+
+Rules A/B: task-owned test/fixture/script/format/environment errors are fixed with
+evidence; stop for unrelated existing test failure, Preflight CI failure or need
+for out-of-scope Foundation step/fixture-order/browser namespace/retry/timeout/
+assertion changes. No merge, CI rerun for green or live activation.
+
+Snapshot v2 carries forward the original v1 inspection inventory; its “no060 task/PR
+exists” sentence describes the original v1 inspection, not current state. Current
+review baseline074298d already contains task060/PR59 and the appended v2 review
+records that fact. Frozen snapshot bytes/digest remain unchanged.
+
+## Review v2 executed local verification
+
+See [review-v2 evidence](../evidence/NEXORA-060/review-v2.md). RED3/10 then GREEN10/10;
+all Shipment/Uniship units48/48; genuine owned PostgreSQL Shipment22/22 and
+Uniship12/12 PASS. Strict UTC storage, service/item rows, CNY declared value/count,
+COUNTING0.00, repeated child ID/xmin and null omission are verified. Required local
+format/lint/typecheck/contracts/docs/preflight/test:docs/test:preflight PASS;
+independent code review48/48, no P1/P2 code finding. Report corrections applied.
+New exact-HEAD CI remains required; no prior green or v1 timestamp claim substitutes.
