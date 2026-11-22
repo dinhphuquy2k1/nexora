@@ -1,8 +1,8 @@
 # NEXORA-061 — FULL Sync Observation & Validation
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Scope
 
@@ -88,13 +88,13 @@ Documentation Impact: REQUIRED
 
 ## Acceptance
 
-- [ ] AC01–03: every valid identity, including unchanged/rejected, atomically observed;
+- [x] AC01–03: every valid identity, including unchanged/rejected, atomically observed;
       failed identity/seen/checkpoint/summary rolls back page.
-- [ ] AC04–07: duplicates/total/count/gaps/terminal correctness; ingestion unaffected.
-- [ ] AC08–09: source scope and retry/replay/independent-worker fencing.
-- [ ] AC10–12: durable summary before bounded/idempotent terminal cleanup; active retained.
-- [ ] AC13–15: no domain visibility/API/UI/mapping/version/token/fence regression.
-- [ ] AC16: fresh/staged/repeat/drift, physical constraints and actual runtime roles.
+- [x] AC04–07: duplicates/total/count/gaps/terminal correctness; ingestion unaffected.
+- [x] AC08–09: source scope and retry/replay/independent-worker fencing.
+- [x] AC10–12: durable summary before bounded/idempotent terminal cleanup; active retained.
+- [x] AC13–15: no domain visibility/API/UI/mapping/version/token/fence regression.
+- [x] AC16: fresh/staged/repeat/drift, physical constraints and actual runtime roles.
 - [ ] AC17–18: canonical docs/governance, no production/live, independent review and CI.
 
 ## Verification plan and environment
@@ -117,3 +117,21 @@ snapshot §12. NEXORA-058 retains all external/live/time checks; NOT RUN here.
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Baseline and merge confirmed | Original workspace97a6b6d; clean status; git fetch origin main =>4708721661b00781d0581840cca548a11e971ad5. gh API PR59 merged=true at2026-11-22T06:16:31Z. Task061 absent before branch creation. | 2026-11-22 | PASS   |
 | Plan-first gate              | Read-only source/reuse/lock/role/test audit; formatted frozen snapshot SHA f776784cc62b8d6e570c27ec560f583a52b388c0a22f92d658aea82e85d7849b before code/tests/migration edits.                    | 2026-11-22 | PASS   |
+
+## Implementation verification
+
+[Executed verification and benchmark](../evidence/NEXORA-061/implementation-verification.md)
+records local RED/GREEN/FAIL corrections, genuine207/207 integration,28/28 dedicated
+observation cases,869/869 quality tests, role/catalog/migration/rollback/races and
+1k/10k/100k measurements. Independent reviewer reports no open P1/P2/P3; canonical
+Docker/signed launcher and exact-final-HEAD hosted verification remain pending.
+Local Docker/native launcher is NOT RUN (VFS, absent tooling image, about0.5GiB
+free); no shared/user data or verification gate was weakened. NEXORA-058 live gates
+remain NOT RUN and production stays hard-closed.
+
+| Claim                                                        | Evidence                                                                                                                                                                                                                              | Date       | Result |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Genuine observation integrity/rollback/fencing/cleanup/roles | Dedicated PostgreSQL suite28/28,0 skipped; two manual Uniship fixtures receive required scan metadata without changing business assertions. Full API integration207/207,0 skipped,254657.728082ms. Task working tree based on40aa955. | 2026-11-22 | PASS   |
+| Schema preservation and grants                               | Real staged060→061 migration/repeat/drift PASS; physical validated exact code sets and native valid/invalid INSERTs; real nexora_sync/nexora_app credentials/obsolete ACL removal PASS.                                               | 2026-11-22 | PASS   |
+| Full host quality                                            | pnpm quality PASS:869/869 tests, typecheck/contracts/build/format/lint/docs/preflight; unchanged public contract.                                                                                                                     | 2026-11-22 | PASS   |
+| Independent review                                           | Read-only reviewer compared frozen plan/core/final diff, executed3/3 units and checked raw snapshot SHA/diff; no open P1/P2/P3. Hosted readiness still incomplete.                                                                    | 2026-11-22 | PASS   |

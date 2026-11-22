@@ -1,3 +1,4 @@
+import { UNISHIP_FULL_SCAN } from "./uniship-full-scan";
 import type {
   SyncProvider,
   SyncJob,
@@ -30,6 +31,7 @@ import {
 
 /** Test-only composition until NEXORA-058; no production registration or live opt-in. */
 export class UnishipShipmentProvider implements SyncProvider {
+  readonly fullScan = UNISHIP_FULL_SCAN;
   constructor(
     private readonly client: UnishipHttpClient,
     private readonly lifecycle: Pick<

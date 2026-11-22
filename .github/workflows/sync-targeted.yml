@@ -14,6 +14,11 @@ on:
       - "apps/api/src/customer/application/customer-sync.port.ts"
       - "apps/api/src/customer/infrastructure/customer-sync-domain.binding.ts"
       - "apps/api/integration/sync-integration.test.cjs"
+      - "apps/api/integration/sync-observation-integration.test.cjs"
+      - "apps/api/integration/fixtures/sync-observation-*.cjs"
+      - "apps/api/test/sync/**"
+      - "packages/database/scripts/provision-runtime.mjs"
+      - "packages/database/test/shipment-worker.mjs"
       - "apps/api/test/uniship/**"
       - "apps/api/test/helpers/uniship-fixture.cjs"
       - "apps/api/test/fixtures/uniship/**"
@@ -88,7 +93,7 @@ jobs:
             }
           })().catch(() => { console.error("UNISHIP_TEST_FIXTURE_SETUP_FAILED"); process.exitCode = 1; });
           NODE
-          node --test integration/uniship-shipment-integration.test.cjs
+          node --test integration/uniship-shipment-integration.test.cjs integration/sync-observation-integration.test.cjs
           echo "Uniship PostgreSQL suite passed; removing temporary runtime-password fixture."
       - name: Collect public Prisma toolchain
         if: always()

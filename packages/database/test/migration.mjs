@@ -904,6 +904,56 @@ try {
     );
   }
   beforeChildren.shipments = afterMapping;
+  step = "FULL_SYNC_OBSERVATION";
+  const observationMigration = "20261122000000_sync_observation";
+  const preservedTables = [
+    "sync_jobs",
+    "sync_configs",
+    "sync_job_items",
+    "sync_source_identities",
+    "provider_source_records",
+    "shipments",
+    "stored_files",
+    "users",
+    "user_credentials",
+  ];
+  const observationBefore = {};
+  for (const table of preservedTables)
+    observationBefore[table] = await db.$queryRawUnsafe(
+      `SELECT * FROM ${table} ORDER BY 1`,
+    );
+  await cp(
+    resolve("prisma/migrations", observationMigration),
+    join(work, "prisma/migrations", observationMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  for (const table of preservedTables) {
+    const after = await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`);
+    assert.equal(after.length, observationBefore[table].length);
+    for (let i = 0; i < after.length; i++) {
+      assert.deepEqual(
+        Object.fromEntries(
+          Object.keys(observationBefore[table][i]).map((k) => [k, after[i][k]]),
+        ),
+        observationBefore[table][i],
+      );
+      if (table === "sync_jobs")
+        for (const k of [
+          "scan_integrity_status",
+          "scan_integrity_reason",
+          "scan_observed_count",
+          "scan_reported_total",
+          "scan_scope_fingerprint",
+        ])
+          assert.equal(after[i][k], null, "no historical scan backfill");
+    }
+  }
+  assert.equal(
+    await db.syncJobSeenPage.count(),
+    0,
+    "no invented historical observations",
+  );
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },

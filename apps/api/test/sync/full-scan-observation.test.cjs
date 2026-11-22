@@ -1,0 +1,199 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const {
+  assessScanFacts,
+  validateScanPage,
+  scanScopeFingerprint,
+} = require("../../dist/sync/infrastructure/sync-scan-observation");
+const contract = {
+  sourceKeyScheme: "uniship-parcel-v1",
+  pageSize: 100,
+  scope: "UNISHIP_ECOMMERCE_V1",
+};
+const job = {
+  owner_user_id: "00000000-0000-4000-8000-000000000001",
+  provider: "uniship",
+  external_account_id: "synthetic",
+  sync_type: "SHIPMENT",
+  fetch_strategy: "FULL",
+  next_page: 1,
+  next_cursor: null,
+  target_watermark: null,
+};
+const facts = {
+  pages: 3,
+  first: 1,
+  last: 3,
+  totalVariants: 1,
+  reportedTotal: 205,
+  observations: 205,
+  observedCount: 205,
+  scopeMismatches: 0,
+};
+test("complete scan assessment has deterministic safe outcomes, independent from ingestion", () => {
+  assert.deepEqual(assessScanFacts(facts, true, 3), {
+    status: "VALIDATED",
+    reason: null,
+    observedCount: 205,
+    reportedTotal: 205,
+  });
+  for (const [change, meta, last, status, reason] of [
+    [{}, false, 3, "INCOMPLETE", "MISSING_SCAN_METADATA"],
+    [{ scopeMismatches: 1 }, true, 3, "UNTRUSTED", "SCOPE_MISMATCH"],
+    [{ totalVariants: 2 }, true, 3, "UNTRUSTED", "TOTAL_MISMATCH"],
+    [{ observedCount: 204 }, true, 3, "UNTRUSTED", "DUPLICATE_IDENTITY"],
+    [{ pages: 2 }, true, 3, "INCOMPLETE", "PAGE_GAP"],
+    [{}, true, null, "INCOMPLETE", "MISSING_TERMINAL_PAGE"],
+    [
+      { observations: 204, observedCount: 204 },
+      true,
+      3,
+      "UNTRUSTED",
+      "COUNT_MISMATCH",
+    ],
+    [
+      {
+        pages: 0,
+        first: null,
+        last: null,
+        totalVariants: 0,
+        reportedTotal: null,
+        observations: 0,
+        observedCount: 0,
+      },
+      true,
+      null,
+      "INCOMPLETE",
+      "MISSING_SCAN_METADATA",
+    ],
+  ]) {
+    const out = assessScanFacts({ ...facts, ...change }, meta, last);
+    assert.equal(out.status, status);
+    assert.equal(out.reason, reason);
+    assert.ok(!JSON.stringify(out).includes("synthetic"));
+  }
+  assert.equal(
+    assessScanFacts(
+      {
+        ...facts,
+        pages: 1,
+        last: 1,
+        reportedTotal: 0,
+        observations: 0,
+        observedCount: 0,
+      },
+      true,
+      1,
+    ).status,
+    "VALIDATED",
+  );
+});
+test("observation metadata is exact, bounded and tied to the current full scan", () => {
+  const page = {
+    records: [],
+    done: true,
+    scan: { pageNumber: 1, pageSize: 100, reportedTotal: 0, ...contract },
+  };
+  assert.doesNotThrow(() => validateScanPage(contract, job, page));
+  for (const mutate of [
+    (p) => delete p.scan,
+    (p) => (p.scan.reportedTotal = "0"),
+    (p) => (p.scan.reportedTotal = -1),
+    (p) => (p.scan.reportedTotal = 2147483648),
+    (p) => (p.scan.pageNumber = 2),
+    (p) => (p.scan.pageSize = 500),
+    (p) => (p.scan.scope = "other"),
+    (p) => (p.scan.sourceKeyScheme = "other-v1"),
+    (p) => (p.scan.token = "must-not-persist"),
+    (p) => (p.done = false),
+    (p) => (p.nextCursor = "forbidden"),
+    (p) => (p.watermark = "forbidden"),
+  ]) {
+    const p = globalThis.structuredClone(page);
+    mutate(p);
+    assert.throws(
+      () => validateScanPage(contract, job, p),
+      (e) => e.code === "SOURCE_INVALID",
+    );
+  }
+  const next = { ...job, next_page: 2 };
+  assert.throws(
+    () =>
+      validateScanPage(contract, next, {
+        ...page,
+        scan: { ...page.scan, pageNumber: 2 },
+      }),
+    (e) => e.code === "SOURCE_INVALID",
+  );
+  assert.equal(scanScopeFingerprint(job, contract).length, 64);
+  for (const change of [
+    { owner_user_id: "other" },
+    { external_account_id: "other" },
+    { provider: "other" },
+    { sync_type: "CUSTOMER" },
+  ])
+    assert.notEqual(
+      scanScopeFingerprint({ ...job, ...change }, contract),
+      scanScopeFingerprint(job, contract),
+    );
+  assert.notEqual(
+    scanScopeFingerprint(job, { ...contract, scope: "OTHER" }),
+    scanScopeFingerprint(job, contract),
+  );
+});
+
+test("actual Uniship opt-in is immutable in the registry; legacy providers stay unobserved", () => {
+  const {
+    SyncCapabilityRegistry,
+  } = require("../../dist/sync/infrastructure/sync-capability.registry");
+  const {
+    UnishipShipmentProvider,
+  } = require("../../dist/shipment/infrastructure/uniship/uniship-shipment.provider");
+  const actual = new UnishipShipmentProvider({}, {}, {});
+  assert.deepEqual(actual.fullScan, contract);
+  assert.equal(Object.isFrozen(actual.fullScan), true);
+  const provider = {
+    strategy: () => "FULL",
+    fetch: async () => {},
+    fullScan: { ...contract },
+  };
+  const domain = { version: 1, supports: () => true };
+  const registry = new SyncCapabilityRegistry([
+    { providerName: "uniship", type: "SHIPMENT", provider, domain },
+  ]);
+  provider.fullScan.scope = "changed";
+  assert.equal(
+    registry.resolve("uniship", "SHIPMENT").fullScan.scope,
+    contract.scope,
+  );
+  assert.equal(
+    Object.isFrozen(registry.resolve("uniship", "SHIPMENT").fullScan),
+    true,
+  );
+  for (const change of [
+    { providerName: "other" },
+    { type: "CUSTOMER" },
+    { provider: { ...provider, fullScan: { ...contract, pageSize: 500 } } },
+  ])
+    assert.throws(
+      () =>
+        new SyncCapabilityRegistry([
+          {
+            providerName: "uniship",
+            type: "SHIPMENT",
+            provider,
+            domain,
+            ...change,
+          },
+        ]),
+    );
+  const legacy = new SyncCapabilityRegistry([
+    {
+      providerName: "uniship",
+      type: "SHIPMENT",
+      provider: { strategy: () => "FULL", fetch: async () => {} },
+      domain,
+    },
+  ]);
+  assert.equal(legacy.resolve("uniship", "SHIPMENT").fullScan, undefined);
+});

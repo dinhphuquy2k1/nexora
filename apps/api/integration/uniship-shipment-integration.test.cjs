@@ -558,6 +558,11 @@ test(
                         },
                       ],
                       done: true,
+                      scan: {
+                        ...provider.fullScan,
+                        pageNumber: work.next_page,
+                        reportedTotal: 1,
+                      },
                     },
                     1,
                   );
@@ -735,6 +740,18 @@ test(
                   (await finish(r, repeated.j, actor, link)).status,
                   "SUCCEEDED",
                 );
+                const scan = await db.syncJob.findUniqueOrThrow({
+                  where: { id: repeated.j.id },
+                });
+                assert.equal(scan.scanIntegrityStatus, "UNTRUSTED");
+                assert.equal(scan.scanIntegrityReason, "DUPLICATE_IDENTITY");
+                assert.equal(scan.scanObservedCount, 100);
+                assert.equal(
+                  await db.syncJobSeenPage.count({
+                    where: { jobId: repeated.j.id },
+                  }),
+                  0,
+                );
                 assert.equal(
                   await db.syncSourceIdentity.count({
                     where: {
@@ -805,6 +822,11 @@ test(
                         },
                       ],
                       done: true,
+                      scan: {
+                        ...provider.fullScan,
+                        pageNumber: prepared.work.next_page,
+                        reportedTotal: 1,
+                      },
                     },
                     1,
                   );

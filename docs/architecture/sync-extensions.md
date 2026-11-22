@@ -250,3 +250,45 @@ codes/null source values preserve, zero writes zero, duplicate target fee codes
 return NEEDS_REVIEW/SOURCE_CONFLICT. No adapter-side fee selection, new repository,
 generic engine branch or network call under lock. Complete child contracts are
 unchanged; a simultaneous complete/partial collection is invalid.
+
+## FULL scan observation and validation — NEXORA-061
+
+The existing SyncProvider/SyncCapability ports optionally declare a readonly
+fullScan contract(sourceKeyScheme,pageSize,scope). The registry validates/copies/
+freezes the opt-in for Uniship/SHIPMENT/FULL only; legacy/synthetic providers
+without it keep ingestion behavior and NULL summaries. Actual Uniship always
+opts in with uniship-parcel-v1,100 and UNISHIP_ECOMMERCE_V1. Its SyncPage carries
+scan metadata(pageNumber,pageSize,reportedTotal,scope,sourceKeyScheme); done remains
+the terminal signal. Missing/malformed required metadata fails SOURCE_INVALID.
+The scope denotes the fixed existing ecommerce=true/IsEcommerce=1/empty-q FULL
+request; no route/filter/order/pagination policy or live registration changes.
+
+Admission pins a fingerprint of trusted owner/provider/account/type and static
+scope. Page validates metadata and source keys before the existing fence, then
+reuses identity UPSERT, resolves ALL scoped IDs (including unchanged/rejected),
+inserts one UUID-array observation and retains staging/checkpoint in that same
+transaction. No UUID list is inferred from job_items or applied outcomes.
+Committed replay/stale workers are rejected by existing lease/checkpoint protocol;
+conflicting page PK never overwrites. Rollback permits retry of an uncommitted page.
+
+On an explicit last page, a set-based aggregate checks metadata, scope, total
+consistency, duplicate IDs, contiguous pages, terminal completion and distinct count.
+The fixed precedence is MISSING_SCAN_METADATA; SCOPE_MISMATCH; TOTAL_MISMATCH;
+DUPLICATE_IDENTITY; PAGE_GAP; MISSING_TERMINAL_PAGE; COUNT_MISMATCH; VALIDATED.
+Missing metadata/pages/terminal yield INCOMPLETE; other inconsistencies UNTRUSTED.
+An empty complete scan can VALIDATE, without authorizing any deletion or hiding.
+Only last-page transaction may publish VALIDATED; cleanup cannot reconstruct it
+from a phase/checkpoint alone. Summary commits atomically with its final checkpoint.
+
+Integrity and ingestion outcomes are separate: repeated sources across valid pages
+still reuse identity and may finish SUCCEEDED with UNTRUSTED integrity. No new
+Sync job phase, error outcome or Shipment matching/policy is introduced. The Domain
+Aggregate, processor1, Mapping V2, UTC+7 and generic fences remain unchanged.
+
+Success finalization retains durable scalar summary then deletes seen-pages in its
+existing transaction. Existing worker cleanup handles terminal leftovers (20 jobs/
+500 pages, SKIP LOCKED), including cancelled/detached jobs, even when retentionDays
+is null. Active pages never age out. PR2 must place missing reconciliation before
+success cleanup and require final job SUCCEEDED AND scan VALIDATED. It will use
+new post-capability jobs, not reconstruct historical temporary arrays. VALIDATED
+is technical consistency only, not snapshot isolation or Uniship deletion semantics.

@@ -1,7 +1,21 @@
 import type { SyncCapabilityResolver } from "./sync-capability.port";
 import type { SyncConfig } from "../domain/sync-policy";
 import type { SyncType, SyncCode } from "../domain/sync.constants";
+export interface FullScanContract {
+  readonly sourceKeyScheme: string;
+  readonly pageSize: number;
+  readonly scope: string;
+}
+export interface FullScanMetadata extends FullScanContract {
+  readonly pageNumber: number;
+  readonly reportedTotal: number;
+}
 export interface SyncJob {
+  scan_scope_fingerprint?: string | null;
+  scan_integrity_status?: string | null;
+  scan_integrity_reason?: string | null;
+  scan_observed_count?: number | null;
+  scan_reported_total?: number | null;
   id: string;
   carrier_connection_id: string | null;
   owner_user_id: string;
@@ -39,6 +53,7 @@ export interface NormalizedSource {
   sourceOrder?: number;
 }
 export interface SyncPage {
+  scan?: FullScanMetadata;
   records: readonly NormalizedSource[];
   nextPage?: number;
   nextCursor?: string;
@@ -96,6 +111,7 @@ export interface SyncDomainProcessor<
   apply(source: SyncSource, session: Session): Promise<SyncDecision>;
 }
 export interface SyncProvider {
+  readonly fullScan?: FullScanContract;
   strategy(provider: string, type: SyncType): "FULL" | "INCREMENTAL" | null;
   fetch(job: SyncJob, signal: AbortSignal): Promise<SyncPage>;
 }

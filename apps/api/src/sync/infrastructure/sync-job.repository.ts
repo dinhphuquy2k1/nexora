@@ -1,4 +1,11 @@
 import {
+  scanScopeFingerprint,
+  validateScanPage,
+  recordScanPage,
+  readScanSummary,
+  saveScanSummary,
+} from "./sync-scan-observation";
+import {
   SyncCapabilityRegistry,
   type BoundSyncCapability,
 } from "./sync-capability.registry";
@@ -190,7 +197,8 @@ export class SyncRepository implements SyncQueue {
           generation,
           lifecycle_version,
           fetch_strategy,
-          target_watermark
+          target_watermark,
+          scan_scope_fingerprint
         )
         VALUES (
           ${id}::uuid,
@@ -219,7 +227,8 @@ export class SyncRepository implements SyncQueue {
               ORDER BY finished_at DESC, id DESC
               LIMIT 1
             )
-          )
+          ),
+          ${capability.fullScan ? scanScopeFingerprint({ owner_user_id: userId, provider: c.provider, external_account_id: c.external_account_id, sync_type: type }, capability.fullScan) : null}
         )
         ON CONFLICT (carrier_connection_id, sync_type)
           WHERE status IN ('QUEUED', 'RUNNING', 'WAITING')
@@ -545,6 +554,11 @@ export class SyncRepository implements SyncQueue {
         !(page.nextCursor && page.nextCursor !== job.next_cursor))
     )
       throw new SyncError(E.SOURCE_INVALID);
+    const scan = this.capabilities.resolve(
+      job.provider,
+      job.sync_type,
+    )?.fullScan;
+    if (scan) validateScanPage(scan, job, page);
     const unique = new Map<
       string,
       {
@@ -565,6 +579,8 @@ export class SyncRepository implements SyncQueue {
       }
       if (!Array.isArray(fields)) throw new SyncError(E.SOURCE_INVALID);
       const identity = sourceKey(r.identity.scheme, fields);
+      if (scan && identity.scheme !== scan.sourceKeyScheme)
+        throw new SyncError(E.SOURCE_INVALID);
       if (
         identity.key !== r.identity.key ||
         identity.hash !== r.identity.hash ||
@@ -591,9 +607,18 @@ export class SyncRepository implements SyncQueue {
         continue;
       unique.set(key, entry);
     }
+    if (scan && unique.size !== page.records.length)
+      throw new SyncError(E.SOURCE_CONFLICT);
     await this.client.$transaction(
       async (tx) => {
         const current = await this.fence(tx, job);
+        const expectedScope = scan ? scanScopeFingerprint(current, scan) : null;
+        if (
+          current.scan_scope_fingerprint &&
+          current.scan_scope_fingerprint !== expectedScope
+        )
+          throw new SyncError(E.SOURCE_INVALID);
+        if (scan) validateScanPage(scan, current, page);
         if (
           current.processing_phase !== P.FETCHING ||
           current.next_page !== job.next_page ||
@@ -652,11 +677,43 @@ export class SyncRepository implements SyncQueue {
         });
         const data = JSON.stringify(changes);
         await tx.$executeRaw`INSERT INTO sync_source_identities(owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key,source_key_hash,last_observed_hash,observed_source_version,last_source_order) SELECT ${job.owner_user_id}::uuid,${job.provider},${job.external_account_id},${job.sync_type},scheme,key,hash,"payloadHash",version,"sourceOrder" FROM jsonb_to_recordset(${data}::jsonb) AS r(scheme text,key text,hash text,"payloadHash" text,version int,"sourceOrder" bigint,stale boolean) WHERE NOT stale ON CONFLICT(owner_user_id,provider,external_account_id,sync_type,source_key_scheme,source_key_hash) DO UPDATE SET last_observed_hash=excluded.last_observed_hash,observed_source_version=excluded.observed_source_version,last_source_order=coalesce(excluded.last_source_order,sync_source_identities.last_source_order),updated_at=clock_timestamp() WHERE sync_source_identities.source_key=excluded.source_key AND (sync_source_identities.last_observed_hash IS DISTINCT FROM excluded.last_observed_hash OR (excluded.last_source_order IS NOT NULL AND (sync_source_identities.last_source_order IS NULL OR excluded.last_source_order>sync_source_identities.last_source_order)))`;
+        if (scan)
+          await recordScanPage(
+            tx,
+            current,
+            current.next_page,
+            page.scan!.reportedTotal,
+            [...unique.values()],
+          );
         await tx.$executeRaw`INSERT INTO provider_source_records(source_identity_id,normalized_payload,payload_hash,source_version,processor_version) SELECT s.id,r.payload::jsonb,r."payloadHash",r.version,${processorVersion} FROM jsonb_to_recordset(${data}::jsonb) AS r(scheme text,hash text,payload text,"payloadHash" text,version int,stale boolean) JOIN sync_source_identities s ON s.source_key_scheme=r.scheme AND s.source_key_hash=r.hash AND s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider} AND s.external_account_id=${job.external_account_id} AND s.sync_type=${job.sync_type} WHERE NOT r.stale AND (s.last_resolved_hash IS DISTINCT FROM r."payloadHash" OR s.resolved_processor_version IS DISTINCT FROM ${processorVersion} OR EXISTS(SELECT 1 FROM provider_source_records p WHERE p.source_identity_id=s.id)) ON CONFLICT(source_identity_id) DO UPDATE SET normalized_payload=CASE WHEN provider_source_records.payload_hash IS DISTINCT FROM excluded.payload_hash THEN excluded.normalized_payload ELSE provider_source_records.normalized_payload END,payload_hash=excluded.payload_hash,source_version=excluded.source_version,processor_version=excluded.processor_version,processing_status=${O.PENDING},attempt_count=0,last_error_code=NULL,next_retry_at=NULL,updated_at=clock_timestamp() WHERE provider_source_records.source_version<excluded.source_version OR provider_source_records.processor_version<excluded.processor_version`;
         await tx.$executeRaw`UPDATE sync_job_items i SET source_version=p.source_version,processor_version=p.processor_version FROM provider_source_records p WHERE i.job_id=${job.id}::uuid AND i.source_identity_id=p.source_identity_id AND i.processing_outcome=${O.PENDING} AND (i.source_version<p.source_version OR i.processor_version<p.processor_version)`;
         await tx.$executeRaw`INSERT INTO sync_job_items(job_id,source_identity_id,source_version,processor_version) SELECT ${job.id}::uuid,p.source_identity_id,p.source_version,p.processor_version FROM provider_source_records p JOIN sync_source_identities s ON s.id=p.source_identity_id JOIN jsonb_to_recordset(${data}::jsonb) AS r(scheme text,hash text,stale boolean) ON s.source_key_scheme=r.scheme AND s.source_key_hash=r.hash WHERE s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider} AND s.external_account_id=${job.external_account_id} AND s.sync_type=${job.sync_type} AND NOT r.stale AND p.processing_status=ANY(${[O.PENDING, O.RETRYABLE_ERROR]}::text[]) ON CONFLICT DO NOTHING`;
+        const summary =
+          scan && page.done
+            ? await readScanSummary(
+                tx,
+                { ...current, scan_scope_fingerprint: expectedScope },
+                scan.sourceKeyScheme,
+                current.next_page,
+              )
+            : null;
         await this.assertLease(tx, job);
-        await tx.$executeRaw`UPDATE sync_jobs SET next_page=${page.nextPage ?? job.next_page},next_cursor=${page.nextCursor ?? null},target_watermark=${page.watermark ?? job.target_watermark},processing_phase=${page.done ? P.APPLYING : P.FETCHING},fetched_count=fetched_count+${page.records.length},new_count=new_count+${added},changed_count=changed_count+${changed},unchanged_count=unchanged_count+${unchanged},attempt_count=0 WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+        await tx.$executeRaw`
+          UPDATE sync_jobs SET
+            scan_scope_fingerprint=coalesce(scan_scope_fingerprint,${expectedScope}),
+            scan_integrity_status=coalesce(${summary?.status ?? null},scan_integrity_status),
+            scan_integrity_reason=CASE WHEN ${summary !== null} THEN ${summary?.reason ?? null} ELSE scan_integrity_reason END,
+            scan_observed_count=coalesce(${summary?.observedCount ?? null}::int,scan_observed_count),
+            scan_reported_total=CASE WHEN ${summary !== null} THEN ${summary?.reportedTotal ?? null}::int ELSE scan_reported_total END,
+            next_page=${page.nextPage ?? job.next_page},
+            next_cursor=${page.nextCursor ?? null},
+            target_watermark=${page.watermark ?? job.target_watermark},
+            processing_phase=${page.done ? P.APPLYING : P.FETCHING},
+            fetched_count=fetched_count+${page.records.length},
+            new_count=new_count+${added},changed_count=changed_count+${changed},unchanged_count=unchanged_count+${unchanged},
+            attempt_count=0
+          WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}
+        `;
         await this.release(tx, job);
       },
       { timeout: 15000 },
@@ -757,8 +814,23 @@ export class SyncRepository implements SyncQueue {
           ),
         );
         if (done) {
+          if (
+            current.scan_scope_fingerprint &&
+            !current.scan_integrity_status
+          ) {
+            const summary = await readScanSummary(
+              tx,
+              current,
+              capability.fullScan?.sourceKeyScheme ?? null,
+              null,
+            );
+            await saveScanSummary(tx, current.id, summary);
+          }
+          if (current.scan_scope_fingerprint) await this.assertLease(tx, job);
           await tx.$executeRaw`UPDATE sync_configs SET last_success_at=clock_timestamp(),last_completed_at=clock_timestamp(),last_completed_watermark=${current.target_watermark},next_run_at=CASE WHEN enabled THEN clock_timestamp()+interval_minutes*interval '1 minute' ELSE NULL END,updated_at=clock_timestamp() WHERE carrier_connection_id=${job.carrier_connection_id}::uuid AND sync_type=${job.sync_type}`;
           await tx.$executeRaw`UPDATE sync_jobs SET status=${J.SUCCEEDED},finished_at=clock_timestamp(),worker_id=NULL,lease_expires_at=NULL,updated_at=clock_timestamp() WHERE id=${job.id}::uuid AND lease_version=${job.lease_version}`;
+          if (current.scan_scope_fingerprint)
+            await tx.$executeRaw`DELETE FROM sync_job_seen_pages WHERE job_id=${job.id}::uuid`;
         } else {
           const failed = await tx.$queryRaw<
             { id: string }[]
@@ -944,9 +1016,44 @@ export class SyncRepository implements SyncQueue {
     }
   }
   async cleanup() {
-    if (!this.config.retentionDays) return 0;
-    return this.client
+    const removed = await this.client.$transaction(
+      async (tx) => {
+        const jobs = await tx.$queryRaw<SyncJob[]>`
+        SELECT j.* FROM sync_jobs j WHERE j.status=ANY(${[J.SUCCEEDED, J.FAILED, J.CANCELLED]}::text[])
+        AND (EXISTS(SELECT 1 FROM sync_job_seen_pages p WHERE p.job_id=j.id)
+          OR (j.scan_scope_fingerprint IS NOT NULL AND j.scan_integrity_status IS NULL))
+        ORDER BY j.id LIMIT 20 FOR UPDATE OF j SKIP LOCKED
+      `;
+        for (const job of jobs) {
+          if (!job.scan_integrity_status) {
+            const contract = this.capabilities.resolve(
+              job.provider,
+              job.sync_type,
+            )?.fullScan;
+            await saveScanSummary(
+              tx,
+              job.id,
+              await readScanSummary(
+                tx,
+                job,
+                contract?.sourceKeyScheme ?? null,
+                null,
+              ),
+            );
+          }
+        }
+        if (!jobs.length) return 0;
+        return tx.$executeRaw`DELETE FROM sync_job_seen_pages WHERE (job_id,page_no) IN (
+        SELECT job_id,page_no FROM sync_job_seen_pages WHERE job_id=ANY(${jobs.map((j) => j.id)}::uuid[])
+        ORDER BY job_id,page_no LIMIT 500
+      )`;
+      },
+      { timeout: 15000 },
+    );
+    if (!this.config.retentionDays) return removed;
+    const payloads = await this.client
       .$executeRaw`DELETE FROM provider_source_records p WHERE p.id IN (SELECT id FROM provider_source_records WHERE processing_status=ANY(${[O.APPLIED, O.REJECTED_SOURCE]}::text[]) AND processed_at<clock_timestamp()-${this.config.retentionDays}*interval '1 day' ORDER BY id LIMIT 500) AND NOT EXISTS(SELECT 1 FROM sync_job_items i JOIN sync_jobs j ON j.id=i.job_id WHERE i.source_identity_id=p.source_identity_id AND j.status=ANY(${ACTIVE_SYNC_JOBS}::text[]))`;
+    return removed + payloads;
   }
   async close() {
     await this.instance?.$disconnect();

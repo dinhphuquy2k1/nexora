@@ -1,3 +1,4 @@
+import { UNISHIP_FULL_SCAN } from "./uniship-full-scan";
 import {
   parseNonNegativeInt32,
   parseUnsignedIntegerText,
@@ -179,7 +180,7 @@ function record(
     );
     throw new SyncError(SyncErrorCode.SOURCE_INVALID);
   }
-  const identity = sourceKey("uniship-parcel-v1", [id]);
+  const identity = sourceKey(UNISHIP_FULL_SCAN.sourceKeyScheme, [id]);
   const invalidRecord = (code: UnishipDiagnosticCode): NormalizedSource => {
     warn(code);
     return { identity, payload: { invalid: true } };
@@ -399,5 +400,13 @@ export function parseUnishipPage(
   }
   const done = offset + records.length === value.total;
   if (!done && !Number.isSafeInteger(page + 1)) return envelopeInvalid(warn);
-  return done ? { records, done } : { records, done, nextPage: page + 1 };
+  const scan = {
+    ...UNISHIP_FULL_SCAN,
+    pageNumber: page,
+    pageSize: size,
+    reportedTotal: value.total,
+  };
+  return done
+    ? { records, done, scan }
+    : { records, done, scan, nextPage: page + 1 };
 }
