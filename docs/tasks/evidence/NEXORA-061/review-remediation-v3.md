@@ -142,7 +142,7 @@ this job only; delete/rollback can leave reusable pages/bloat in the disposable 
 Independent read-only reviewer checked source, frozen SHA, actual plans and local
 signed output and ran observation/provider units11/11. P2 CLOSED; P3 CLOSED —
 NO CHANGE REQUIRED for resolver/index. No open P1/P2/P3 in reviewed scope; hosted
-exact-new-HEAD acceptance remains pending, not inferred from v2.
+corrective code-HEAD acceptance is recorded below, not inferred from v2.
 
 | Command / verification                                           | Result  | Executed evidence                                                                                                                                                 |
 | ---------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -154,10 +154,48 @@ exact-new-HEAD acceptance remains pending, not inferred from v2.
 | pnpm test:docs; test:preflight; test:lint                        | PASS    | 10/10;24/24;56/56                                                                                                                                                 |
 | Independent review                                               | PASS    | Real separate reviewer; units11/11, actual PG29/29/plans examined; P2/P3 closed, no new finding                                                                   |
 | Local canonical quality-docker / approved native launcher        | NOT RUN | VFS driver; only PG17.11 image; missing tooling image and534MiB available. No user volumes reset/native protocol bypass; hosted Foundation required               |
-| Hosted Preflight / Sync Targeted / Foundation on corrective HEAD | NOT RUN | Pending first corrective push; historical776ea5f checks are not v3 evidence                                                                                       |
+| Hosted Preflight / Sync Targeted / Foundation on corrective HEAD | PASS    | Source1bdab2c; attempt1 runs45043370063/45043370073/45043370090; full details below                                                                               |
 
 Local commands use pinned pnpm10.34.6. Full host quality ran with API_INTERNAL_URL
 and production build environment; genuine full integration used the privately signed
 owned cluster and real API/worker passwords. Private logs remain outside Git; curated
 facts above contain no URLs, credentials, payloads or real-person data. The task-owned
 PostgreSQL is removed after verification. No merge/live activation is performed.
+
+## Hosted corrective code acceptance
+
+Committed source1bdab2c8ff21735795af94a983af6dac88c8a88d. All three checkout logs
+confirm actual merge6cf648e19ae99a1c8f2ce2c9293f93090eb5c41d against main4708721.
+Each run has head_sha1bdab2c and run_attempt1; API reports completed/success:
+
+| Workflow                                                                                 | Run / job                 | Result | Executed assertions                                                                                                                  |
+| ---------------------------------------------------------------------------------------- | ------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| [Preflight Governance](https://github.com/dinhphuquy2k1/nexora/actions/runs/45043370063) | 45043370063 /137272500823 | PASS   | Bound task/snapshot/PR metadata and governance tests                                                                                 |
+| [Sync Targeted](https://github.com/dinhphuquy2k1/nexora/actions/runs/45043370073)        | 45043370073 /137272500954 | PASS   | 32 Sync units,11 Uniship units,61 Sync PostgreSQL and41 signed Uniship/observation tests; mid-job semantic drift executes            |
+| [Foundation](https://github.com/dinhphuquy2k1/nexora/actions/runs/45043370090)           | 45043370090 /137272500779 | PASS   | Steps4–10 all success; actual canonical Docker, migrated integration, signed native/worker and runtime/browser/persistence/HMR gates |
+
+Foundation step4 actually executes quality871/871, ordinary unsigned API integration
+207/207 and staged/repeat/drift migrations. Unsigned context explicitly reports
+restricted-role verification NOT RUN; the approved signed launcher then executes
+Shipment22/22 followed by Observation29/29 (including real runtime credentials),
+plus its other selected native suites, ending with:
+`Actual disposable cluster tests PASS (all requested suites and cleanup verified)`.
+No duplicate-context count is represented as unique scenarios. Local Docker NOT RUN
+remains a local fact; this hosted run supplies the canonical execution proof.
+No stress labels, CI reruns, merge or live activation are used.
+
+## Final verification publication and exact byte boundary
+
+The final publication adds CI evidence and strengthens the existing byte-bound case
+only; production code stays byte-identical to1bdab2c. Tests now use the actual64-hex
+scope and construct preimages of exactly2048 UTF-8 bytes, ASCII and Unicode: accepted
+and equal to the expected canonical hash; adding one ASCII byte (2049) fails
+SOURCE_INVALID. Intentional compiled-only mutation `>2048`→`>=2048` produces RED;
+restoring the original compiled file gives5/5 GREEN. Source implementation is never
+mutated for this experiment. Targeted observation/provider/normalizer16/16 and lint
+PASS. Independent reviewer separately runs5/5 and finds no new issue; it did not
+independently rerun the intentional mutation. No new plan/schema/production change.
+
+The final publication HEAD must have its own Preflight, Sync Targeted and Foundation
+checks. Its source/merge/run/attempt outcomes are recorded in PR60's Final green HEAD
+and delivery report after execution, not inferred from1bdab2c's success above.

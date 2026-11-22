@@ -211,3 +211,13 @@ HTTP filters versus scope label; P3 concerns missing EXPLAIN for UUID resolution
 [Corrective v3 evidence](review-remediation-v3.md) records the frozen new design,
 RED/GREEN, actual scoped resolver plans/benchmarks and new verification. V1/v2
 snapshots and measurements remain immutable; no earlier green closes these findings.
+
+### Hosted v3 corrective code proof
+
+New findings close on1bdab2c8ff21735795af94a983af6dac88c8a88d with actual merge
+6cf648e19ae99a1c8f2ce2c9293f93090eb5c41d. Preflight45043370063,
+Sync45043370073 and Foundation45043370090 attempt1 PASS; Foundation4–10 PASS,
+canonical quality/migrations and actual approved signed suites executed. The
+[v3 evidence](review-remediation-v3.md#hosted-corrective-code-acceptance) records
+counts, limits and exact byte-boundary mutation proof. Final publication HEAD's own
+checks are tracked in PR60/delivery, never inferred from earlier green. No merge/live.

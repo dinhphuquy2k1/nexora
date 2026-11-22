@@ -201,6 +201,43 @@ test("actual Uniship opt-in is immutable in the registry; legacy providers stay 
 });
 
 test("scope fingerprint permits only bounded UTF-8 metadata, never unbounded hashing under locks", () => {
+  const {
+    canonicalPayload,
+    payloadHash,
+  } = require("../../dist/sync/domain/sync-policy");
+  const {
+    UNISHIP_FULL_SCAN: actual,
+  } = require("../../dist/shipment/infrastructure/uniship/uniship-full-scan");
+  const tuple = {
+    owner: job.owner_user_id,
+    provider: job.provider,
+    account: "",
+    type: job.sync_type,
+    strategy: "FULL",
+    sourceKeyScheme: actual.sourceKeyScheme,
+    pageSize: actual.pageSize,
+    scope: actual.scope,
+  };
+  const available = 2048 - Buffer.byteLength(canonicalPayload(tuple), "utf8");
+  for (const account of [
+    "a".repeat(available),
+    "đ".repeat(Math.floor(available / 2)) + "a".repeat(available % 2),
+  ]) {
+    const preimage = canonicalPayload({ ...tuple, account });
+    assert.equal(Buffer.byteLength(preimage, "utf8"), 2048);
+    assert.equal(
+      scanScopeFingerprint({ ...job, external_account_id: account }, actual),
+      payloadHash(preimage),
+    );
+    assert.throws(
+      () =>
+        scanScopeFingerprint(
+          { ...job, external_account_id: account + "a" },
+          actual,
+        ),
+      (e) => e.code === "SOURCE_INVALID",
+    );
+  }
   assert.equal(
     scanScopeFingerprint(
       { ...job, external_account_id: "😀".repeat(128) },

@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -119,7 +119,10 @@ snapshot §12. NEXORA-058 retains all external/live/time checks; NOT RUN here.
 | Baseline and merge confirmed | Original workspace97a6b6d; clean status; git fetch origin main =>4708721661b00781d0581840cca548a11e971ad5. gh API PR59 merged=true at2026-11-22T06:16:31Z. Task061 absent before branch creation. | 2026-11-22 | PASS   |
 | Plan-first gate              | Read-only source/reuse/lock/role/test audit; formatted frozen snapshot SHA f776784cc62b8d6e570c27ec560f583a52b388c0a22f92d658aea82e85d7849b before code/tests/migration edits.                    | 2026-11-22 | PASS   |
 
-## Implementation verification
+## Historical v1 local implementation verification
+
+This section records the initial local state; later hosted/v3 sections supersede
+its pending-check notes without erasing the historical evidence.
 
 [Executed verification and benchmark](../evidence/NEXORA-061/implementation-verification.md)
 records local RED/GREEN/FAIL corrections, genuine207/207 integration,28/28 dedicated
@@ -158,13 +161,14 @@ P2 CLOSED by independent reviewer after4/4 units and40/40 actual PostgreSQL targ
 tests. Byte bound RED→GREEN; v2 quality870/870 PASS with unchanged contracts/build.
 Canonical metadata exception is narrowly documented in ADR010; no credential crypto
 is moved under locks. Earlier no-finding/open-P2 notes preserve review chronology.
-Current exact-new-HEAD hosted checks remain pending; no earlier green is substituted.
+At this v2 local-verification point, new-HEAD hosted checks were pending; later
+hosted acceptance below records their outcome.
 
 | Claim                                 | Evidence                                                                                                                                                                                                                                                       | Date       | Result |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | v2 bounded fingerprint and P2 closure | Snapshot4afd3aa9bac8b5f23a9fff2c8431198558773d0d874e4a351292da152d3e3894 pinned before guard/test. Byte-bound unit RED→GREEN4/4; PostgreSQL40/40; quality870/870 including contracts/build. Reviewer independently verified4/4 and CLOSED P2; no open finding. | 2026-11-22 | PASS   |
 
-## Hosted implementation acceptance — v2
+## Historical hosted implementation acceptance — v2
 
 V2 code776ea5f221af2a793ba0ef5f5af6b5ddcaaf71cf, actual merge checkout
 0f96f0cf699a9e6c91dae33a225310f02a7d9f5b. Attempt1 PASS: Preflight45019834848,
@@ -190,12 +194,12 @@ records single canonical immutable Uniship definition and derived scope token/qu
 unchanged ports/SQL semantics/index/grants, RED/GREEN and mid-job drift regression.
 Benchmark exact production resolver with5 warm-ups/30 samples and mixed scope noise;
 no optimization without measured need. Documentation Impact REQUIRED. Historical v1/v2
-PASS and review closure do not close these new findings. Corrective verification pending.
+PASS and review closure do not close these new findings. Corrective verification was pending when this plan was recorded.
 
 - [x] P2: same canonical query/scope, unchanged wire contract, semantic mutation/page
       invariance/isolation/UTF-8 and genuine mid-job rollback proof.
 - [x] P3: exact1k/10k/100k resolver plans/index/buffers/p50/p95 and decision.
-- [ ] v3 quality, independent review and exact-final-HEAD hosted CI.
+- [x] v3 quality, independent review and corrective-code-HEAD hosted CI.
 
 ### v3 local corrective closure
 
@@ -206,4 +210,28 @@ exact production SQL plans at1k/10k/100k and mixed scope,5 warm-ups/30 samples s
 existing composite unique index serves larger cases. No performance SLA inferred.
 Quality871/871 and full genuine API integration208/208,0 skipped PASS; migrations,
 actual roles and governance regressions PASS. Independent reviewer has no open
-P1/P2/P3. Exact corrective-HEAD hosted verification remains pending first push.
+P1/P2/P3. At this local-verification point, corrective-HEAD hosted checks were
+pending first push; subsequent hosted acceptance below records their outcome.
+
+### v3 hosted corrective acceptance and final publication
+
+Source1bdab2c8ff21735795af94a983af6dac88c8a88d; actual merge checkout
+6cf648e19ae99a1c8f2ce2c9293f93090eb5c41d confirmed in all three logs.
+Attempt1 PASS: Preflight45043370063/job137272500823, Sync45043370073/job137272500954,
+Foundation45043370090/job137272500779, steps4–10. Foundation executes canonical
+quality871/871, ordinary unsigned integration207/207, migration checks and actual
+signed Shipment22/22 then Observation29/29 with real roles; all requested native
+suites and cleanup PASS. Local Docker limitation does not become a false local PASS.
+Independent review closes P2/P3 with no open finding; no schema/index optimization.
+
+Final publication includes this evidence and ASCII/Unicode exact2048-byte acceptance/
+2049-byte rejection assertions using actual derived scope. Compiled-only off-by-one
+mutation RED→restored GREEN; targeted16/16 and independent5/5 PASS, production code
+unchanged from1bdab2c. Its own final-HEAD Preflight/Sync/Foundation results must be
+recorded in PR60 Final green HEAD and delivery report; older green never substitutes.
+Status remains active VERIFICATION PENDING until owner merge/lifecycle closure.
+
+| Claim                                                | Evidence                                                                                                                                                                                                                                             | Date       | Result |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| v3 canonical query-bound scope and resolver evidence | Frozen SHA8922c838280bad03e2d8c779ab79fcf903ec58a2ace4c9ddf06ea6d5d45bdd5e; independent literal query/mutation/page/isolation/Unicode and PG drift rollback PASS; exact resolver plans use existing unique index at scale; no optimization required. | 2026-11-22 | PASS   |
+| v3 genuine regression and canonical code CI          | Local208/208 signed integration; quality871/871; code1bdab2c, merge6cf648e; Preflight45043370063/Sync45043370073/Foundation45043370090 attempt1 PASS, including canonical/signed suites. Detailed evidence linked above.                             | 2026-11-22 | PASS   |
