@@ -115,13 +115,13 @@ test(
         t.diagnostic(
           "Restricted role verification NOT RUN in ordinary unsigned context; required signed targeted/shipment-worker context executes it.",
         );
-      const makeRepo = (observation = true) => {
+      const makeRepo = (observation = true, scanContract = contract) => {
         const provider = {
           strategy: () => "FULL",
           fetch: async () => {
             throw Error("no network in observation fixtures");
           },
-          ...(observation ? { fullScan: contract } : {}),
+          ...(observation ? { fullScan: scanContract } : {}),
         };
         const repo = new SyncRepository(
           workerUrl,
@@ -411,6 +411,55 @@ test(
             readScanSummary(tx, base, "different-scheme", 1),
           );
           assert.equal(summary.reason, "SCOPE_MISMATCH");
+        },
+      );
+      await scope(
+        "query semantics changing after admission fail closed with atomic checkpoint and identity preservation",
+        async (c) => {
+          const {
+            defineUnishipFullScan,
+            UNISHIP_SCAN_DEFINITION,
+          } = require("../dist/shipment/infrastructure/uniship/uniship-full-scan");
+          const { j, work } = await start(c);
+          await repo.page(work, page(1, 101, entries(910000, 100)), 1);
+          const changed = defineUnishipFullScan({
+            ...UNISHIP_SCAN_DEFINITION,
+            filters: [
+              ...UNISHIP_SCAN_DEFINITION.filters,
+              { column: "SoftDeleted", value: 0, condition: "equal" },
+            ],
+          }).contract;
+          assert.notEqual(changed.scope, contract.scope);
+          const other = makeRepo(true, changed);
+          const next = await other.claim(randomUUID());
+          assert.equal(next.id, j.id);
+          const before = await state(j.id),
+            observed = await seen(j.id);
+          const identities = await db.syncSourceIdentity.findMany({
+            where: { owner_user_id: c.owner.id },
+          });
+          const incoming = page(2, 101, [source(910100)]);
+          incoming.scan = { ...incoming.scan, ...changed };
+          await assert.rejects(
+            other.page(next, incoming, 1),
+            (e) => e.code === "SOURCE_INVALID",
+          );
+          assert.deepEqual(await state(j.id), before);
+          assert.deepEqual(await seen(j.id), observed);
+          assert.deepEqual(
+            await db.syncSourceIdentity.findMany({
+              where: { owner_user_id: c.owner.id },
+            }),
+            identities,
+          );
+          assert.equal(
+            await db.syncJobItem.count({ where: { job_id: j.id } }),
+            100,
+          );
+          // The original admitted semantics can still commit using the unchanged lease/checkpoint.
+          await repo.page(next, page(2, 101, [source(910100)]), 1);
+          assert.equal((await state(j.id)).scanIntegrityStatus, "VALIDATED");
+          await finish(j.id);
         },
       );
       await scope(

@@ -257,7 +257,7 @@ The existing SyncProvider/SyncCapability ports optionally declare a readonly
 fullScan contract(sourceKeyScheme,pageSize,scope). The registry validates/copies/
 freezes the opt-in for Uniship/SHIPMENT/FULL only; legacy/synthetic providers
 without it keep ingestion behavior and NULL summaries. Actual Uniship always
-opts in with uniship-parcel-v1,100 and UNISHIP_ECOMMERCE_V1. Its SyncPage carries
+opts in with uniship-parcel-v1,100 and a64-hex derived scope. Its SyncPage carries
 scan metadata(pageNumber,pageSize,reportedTotal,scope,sourceKeyScheme); done remains
 the terminal signal. Missing/malformed required metadata fails SOURCE_INVALID.
 The scope denotes the fixed existing ecommerce=true/IsEcommerce=1/empty-q FULL
@@ -301,3 +301,21 @@ metadata under admission/page locks. The helper enforces bytes before hashing.
 This is not credential crypto or untrusted bulk-payload hashing; those and HTTP/
 file IO remain outside locks. No new pre-read/transaction split or authorization
 exception is introduced. v2 clarifies v1's blanket wording and preserves its history.
+
+### Query-bound scope —061 review v3
+
+Uniship infrastructure owns one copied, deeply frozen definition in
+uniship-full-scan.ts: endpoint, ecommerce, ordered filter clauses (column/value/
+condition), q, pageSize, sourceKeyScheme, FULL strategy and semantic version label
+UNISHIP_ECOMMERCE_V1. The same definition builds each HTTP query and derives
+scope = payloadHash(canonicalPayload(definition)) once at module initialization,
+outside locks. Changing a filter/endpoint changes scope even if the label stays
+unchanged; page number is dynamic and excluded. Actual wire behavior is unchanged.
+No origin, credentials, timestamps or response content are hashed. Ordered filters
+are conservatively significant; no equivalent-query normalization is claimed.
+
+The existing three-field contract/five-field page metadata and registry remain.
+Admission/page hash the trusted job tuple with this fixed-size scope token under
+the existing2048 UTF-8 byte guard. A scan admitted under earlier/different semantics
+fails SOURCE_INVALID before new page writes; it is never silently relabelled.
+No live jobs/backfill/activation, schema/grant or reconciliation change is included.

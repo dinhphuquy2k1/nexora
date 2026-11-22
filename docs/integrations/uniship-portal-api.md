@@ -493,7 +493,7 @@ This task performs no live sync and does not open production.
 ## FULL observation contract — NEXORA-061
 
 The fixture-backed provider now declares a frozen technical observation contract:
-uniship-parcel-v1,100 rows, UNISHIP_ECOMMERCE_V1. This scope means the unchanged
+uniship-parcel-v1,100 rows and a derived64-hex scope token. This scope means the unchanged
 FULL request with ecommerce=true, IsEcommerce=1 and empty q. Parser preserves each
 validated envelope total/page/page-size in SyncPage.scan, alongside source scheme/
 scope; done retains its existing termination meaning. Captured15-row bytes/digests
@@ -516,3 +516,16 @@ requires final job SUCCEEDED AND scan VALIDATED and new jobs after PR2 activatio
 semantics.** Equal totals and no observed duplicate cannot prove that no upstream
 row changed during pagination. No anti-join, missing streak, soft delete, restore,
 production registration or live request is authorized by this technical foundation.
+
+### Canonical query semantics —061 review v3
+
+A single immutable Uniship definition builds both the actual request and scope:
+/client/api/transition/, ecommerce=true, exactly IsEcommerce=1/condition=equal,
+empty q, rowsPerPage100, uniship-parcel-v1, FULL and the descriptive version
+UNISHIP_ECOMMERCE_V1. Existing canonicalPayload/payloadHash derives scope from
+these semantics, not just the version label. A filter/endpoint change therefore
+changes the admitted fingerprint; page1/page2 do not. Static hashing happens outside
+locks, and generic locked job-scope hashing keeps its2048 UTF-8 byte bound.
+Tests independently decode the real HTTP query and exercise semantic drift between
+admission/page processing. No additional SoftDeleted filter or provider request is
+introduced; captured samples and historical digests remain immutable.

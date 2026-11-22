@@ -1415,7 +1415,7 @@ expects18 real migrations and still requires stored_files=0.
 
 The genuine observation integration emits compact SYNC_OBSERVATION_BENCHMARK lines
 for1k/10k/100k identities(10/100/1000 pages): actual two-statement observation helper
-latency, aggregate validation, EXPLAIN job read, logical/physical bytes and bounded
+latency, aggregate validation, EXPLAIN resolver and job read, logical/physical bytes and bounded
 cleanup. This is SQL microbenchmarking, not provider latency/end-to-end throughput
 or snapshot-isolation evidence. No speculative index or latency threshold is added.
 Store only curated provenance/results, not raw SQL/logs/URLs/credentials.
@@ -1426,3 +1426,24 @@ contracts:check, docs:check/preflight:check and quality; canonical
 smokes in Foundation. Use only owned disposable infrastructure. Missing local tooling/
 capacity is NOT RUN with a reason, never a substitute PASS; hosted results must bind
 exact source HEAD, actual merge checkout, run/job/attempt and executed steps.
+
+### Query-bound scope and resolver plans —061 review v3
+
+Scope unit regressions keep an independent literal wire-contract assertion, mutate
+filter value/condition/additional clause, q/ecommerce/endpoint/pageSize/scheme/strategy,
+prove page invariance and defensive freezing, and retain Unicode byte-bound tests.
+Genuine PostgreSQL changes query semantics after a committed first page: the next
+page must fail SOURCE_INVALID without changing identities, seen-pages, staging or
+checkpoint, then the originally admitted contract can resume under the same fence.
+
+The benchmark shares the exact parameterized production resolver SQL expression
+with recordScanPage and executes EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) through the
+worker role. Each1k/10k/100k target has100 inputs/page; an extra100k case includes
+30k identical-key noise split across other owner/account/scheme scopes. It records
+global population and existing index columns, analyzes both tables, warms up5 and
+samples30 rollback transactions. Curated output includes server execution/planning,
+node estimates/actuals/loops, index use, hits/reads/filter removals, helper and driver
+p50/p95, and transaction-minus-helper overhead. Server EXPLAIN is an instrumented
+sample, not driver latency; warm-cache synthetic timings are not a production SLA.
+No raw predicates/URLs/credentials are exported and no timing threshold weakens CI.
+Keep previous measurements as historical; new evidence states HEAD/method/environment.

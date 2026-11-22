@@ -16,11 +16,11 @@ Integrity VALIDATED does not prove snapshot isolation or provider deletion seman
 
 Task ID: NEXORA-061
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-22-observation-v2
-Reviewed baseline: 4708721661b00781d0581840cca548a11e971ad5
+Plan revision: rev-2026-11-22-observation-v3
+Reviewed baseline: 776ea5f221af2a793ba0ef5f5af6b5ddcaaf71cf
 Branch: feature/full-sync-observation-validation
-Design Snapshot: docs/tasks/design-reviews/NEXORA-061-rev-2026-11-22-observation-v2.md
-Design SHA-256: 4afd3aa9bac8b5f23a9fff2c8431198558773d0d874e4a351292da152d3e3894
+Design Snapshot: docs/tasks/design-reviews/NEXORA-061-rev-2026-11-22-observation-v3.md
+Design SHA-256: 8922c838280bad03e2d8c779ab79fcf903ec58a2ace4c9ddf06ea6d5d45bdd5e
 
 | Field                    | Decision                                                                                                                                                                                                          |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -96,7 +96,7 @@ Documentation Impact: REQUIRED
 - [x] AC10–12: durable summary before bounded/idempotent terminal cleanup; active retained.
 - [x] AC13–15: no domain visibility/API/UI/mapping/version/token/fence regression.
 - [x] AC16: fresh/staged/repeat/drift, physical constraints and actual runtime roles.
-- [ ] AC17–18: canonical docs/governance, no production/live, independent review and CI.
+- [x] AC17–18: canonical docs/governance, no production/live, independent review and CI.
 
 ## Verification plan and environment
 
@@ -163,3 +163,47 @@ Current exact-new-HEAD hosted checks remain pending; no earlier green is substit
 | Claim                                 | Evidence                                                                                                                                                                                                                                                       | Date       | Result |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | v2 bounded fingerprint and P2 closure | Snapshot4afd3aa9bac8b5f23a9fff2c8431198558773d0d874e4a351292da152d3e3894 pinned before guard/test. Byte-bound unit RED→GREEN4/4; PostgreSQL40/40; quality870/870 including contracts/build. Reviewer independently verified4/4 and CLOSED P2; no open finding. | 2026-11-22 | PASS   |
+
+## Hosted implementation acceptance — v2
+
+V2 code776ea5f221af2a793ba0ef5f5af6b5ddcaaf71cf, actual merge checkout
+0f96f0cf699a9e6c91dae33a225310f02a7d9f5b. Attempt1 PASS: Preflight45019834848,
+Sync45019834852, Foundation45019834914/job137200056280, steps4–10. Actual
+quality-docker and approved signed suites execute in Foundation; local Docker
+NOT RUN remains a local environment fact. No live gate is promoted to PASS.
+
+See [hosted code evidence](../evidence/NEXORA-061/implementation-verification.md#hosted-code-verification-and-v2-full-local-integration).
+This supersedes earlier implementation-pending notes. Final evidence-only HEAD
+and its own exact-HEAD CI are tracked separately in PR60 and are not inferred
+from older code commits. Status remains active pending owner merge/§1.7 closure.
+
+| Claim                            | Evidence                                                                                                                                                                                                                                              | Date       | Result |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Canonical hosted v2 verification | Source776ea5f221af2a793ba0ef5f5af6b5ddcaaf71cf; merge0f96f0cf699a9e6c91dae33a225310f02a7d9f5b. Preflight45019834848, Sync45019834852, Foundation45019834914/job137200056280 attempt1 PASS. Steps4–10 and actual quality-docker/signed suites execute. | 2026-11-22 | PASS   |
+| Full local v2 PostgreSQL         | pnpm test:integration on committed776ea5f, signed task-owned PG17.11:207/207 PASS,0 skipped,186741.396384ms; private owned cluster removed afterward.                                                                                                 | 2026-11-22 | PASS   |
+
+## Review delta v3 — query semantics and production resolver evidence
+
+Owner findings on776ea5f: P2 confirmed independent HTTP filter/manual scope label;
+P3 lacks EXPLAIN for UUID resolution (old plan measured seen-page read). Frozen v3
+records single canonical immutable Uniship definition and derived scope token/query,
+unchanged ports/SQL semantics/index/grants, RED/GREEN and mid-job drift regression.
+Benchmark exact production resolver with5 warm-ups/30 samples and mixed scope noise;
+no optimization without measured need. Documentation Impact REQUIRED. Historical v1/v2
+PASS and review closure do not close these new findings. Corrective verification pending.
+
+- [x] P2: same canonical query/scope, unchanged wire contract, semantic mutation/page
+      invariance/isolation/UTF-8 and genuine mid-job rollback proof.
+- [x] P3: exact1k/10k/100k resolver plans/index/buffers/p50/p95 and decision.
+- [ ] v3 quality, independent review and exact-final-HEAD hosted CI.
+
+### v3 local corrective closure
+
+[Review remediation evidence](../evidence/NEXORA-061/review-remediation-v3.md):
+P2 CLOSED after independent literal query/semantic mutation/page/Unicode tests and
+genuine PG mid-job drift rollback. P3 CLOSED — NO CHANGE REQUIRED for resolver/index;
+exact production SQL plans at1k/10k/100k and mixed scope,5 warm-ups/30 samples show
+existing composite unique index serves larger cases. No performance SLA inferred.
+Quality871/871 and full genuine API integration208/208,0 skipped PASS; migrations,
+actual roles and governance regressions PASS. Independent reviewer has no open
+P1/P2/P3. Exact corrective-HEAD hosted verification remains pending first push.

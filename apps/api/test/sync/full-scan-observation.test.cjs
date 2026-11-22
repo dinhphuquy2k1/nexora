@@ -150,7 +150,9 @@ test("actual Uniship opt-in is immutable in the registry; legacy providers stay 
     UnishipShipmentProvider,
   } = require("../../dist/shipment/infrastructure/uniship/uniship-shipment.provider");
   const actual = new UnishipShipmentProvider({}, {}, {});
-  assert.deepEqual(actual.fullScan, contract);
+  assert.equal(actual.fullScan.sourceKeyScheme, "uniship-parcel-v1");
+  assert.equal(actual.fullScan.pageSize, 100);
+  assert.equal(actual.fullScan.scope.length, 64);
   assert.equal(Object.isFrozen(actual.fullScan), true);
   const provider = {
     strategy: () => "FULL",
@@ -211,4 +213,90 @@ test("scope fingerprint permits only bounded UTF-8 metadata, never unbounded has
       () => scanScopeFingerprint({ ...job, external_account_id }, contract),
       (e) => e.code === "SOURCE_INVALID",
     );
+});
+
+test("Uniship canonical query semantics bind scope while page position does not", () => {
+  const {
+    defineUnishipFullScan,
+    UNISHIP_SCAN_DEFINITION,
+    UNISHIP_SCAN,
+  } = require("../../dist/shipment/infrastructure/uniship/uniship-full-scan");
+  const definition = {
+    endpoint: "/client/api/transition/",
+    ecommerce: "true",
+    filters: [{ column: "IsEcommerce", value: 1, condition: "equal" }],
+    q: "",
+    pageSize: 100,
+    sourceKeyScheme: "uniship-parcel-v1",
+    strategy: "FULL",
+    version: "UNISHIP_ECOMMERCE_V1",
+  };
+  const scan = defineUnishipFullScan(definition);
+  assert.deepEqual(UNISHIP_SCAN_DEFINITION, definition);
+  assert.deepEqual(UNISHIP_SCAN.contract, scan.contract);
+  assert.equal(scan.contract.scope.length, 64);
+  const base = scanScopeFingerprint(job, scan.contract);
+  for (const change of [
+    { filters: [{ column: "IsEcommerce", value: 0, condition: "equal" }] },
+    { filters: [{ column: "IsEcommerce", value: 1, condition: "not_equal" }] },
+    {
+      filters: [
+        ...definition.filters,
+        { column: "SoftDeleted", value: 0, condition: "equal" },
+      ],
+    },
+    { filters: [{ column: "OtherColumn", value: 1, condition: "equal" }] },
+    { version: "UNISHIP_ECOMMERCE_V2" },
+    { q: "other" },
+    { ecommerce: "false" },
+    { endpoint: "/client/api/other/" },
+    { pageSize: 50 },
+    { sourceKeyScheme: "other-v1" },
+    { strategy: "INCREMENTAL" },
+  ]) {
+    const alternate = defineUnishipFullScan({ ...definition, ...change });
+    assert.notEqual(scanScopeFingerprint(job, alternate.contract), base);
+  }
+  for (const change of [
+    { owner_user_id: "other" },
+    { provider: "other" },
+    { external_account_id: "other" },
+    { sync_type: "CUSTOMER" },
+  ])
+    assert.notEqual(
+      scanScopeFingerprint({ ...job, ...change }, scan.contract),
+      base,
+    );
+  const first = scan.request(1),
+    second = scan.request(2);
+  assert.equal(first.endpoint, "/client/api/transition/");
+  assert.equal(first.query.get("page"), "1");
+  assert.equal(second.query.get("page"), "2");
+  const firstScopeQuery = new globalThis.URLSearchParams(first.query);
+  firstScopeQuery.delete("page");
+  const secondScopeQuery = new globalThis.URLSearchParams(second.query);
+  secondScopeQuery.delete("page");
+  assert.equal(firstScopeQuery.toString(), secondScopeQuery.toString());
+  assert.equal(
+    scanScopeFingerprint({ ...job, next_page: 2 }, scan.contract),
+    base,
+  );
+  first.query.set("q", "caller mutation");
+  definition.filters[0].value = 0;
+  assert.equal(scan.request(1).query.get("q"), "");
+  assert.deepEqual(
+    JSON.parse(Buffer.from(scan.request(1).query.get("filter"), "base64")),
+    {
+      filter: [{ column: "IsEcommerce", value: 1, condition: "equal" }],
+    },
+  );
+  assert.equal(scanScopeFingerprint(job, scan.contract), base);
+  for (const value of [
+    scan,
+    scan.definition,
+    scan.definition.filters,
+    scan.definition.filters[0],
+    scan.contract,
+  ])
+    assert.equal(Object.isFrozen(value), true);
 });

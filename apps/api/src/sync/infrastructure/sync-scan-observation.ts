@@ -1,4 +1,4 @@
-import type { Prisma } from "@nexora/database";
+import { Prisma } from "@nexora/database";
 import type {
   FullScanContract,
   SyncJob,
@@ -130,6 +130,25 @@ export function assessScanFacts(
     return result(I.UNTRUSTED, R.COUNT_MISMATCH);
   return result(I.VALIDATED, null);
 }
+/** Shared solely to EXPLAIN the exact production resolver, with identical bound input. */
+export function scanIdentityResolutionQuery(
+  job: Pick<
+    SyncJob,
+    "owner_user_id" | "provider" | "external_account_id" | "sync_type"
+  >,
+  identities: readonly { scheme: string; key: string; hash: string }[],
+): Prisma.Sql {
+  const input = JSON.stringify(
+    identities.map(({ scheme, key, hash }) => ({ scheme, key, hash })),
+  );
+  return Prisma.sql`
+  SELECT s.id FROM sync_source_identities s
+  JOIN jsonb_to_recordset(${input}::jsonb) r(scheme text,key text,hash text)
+   ON s.source_key_scheme=r.scheme AND s.source_key=r.key AND s.source_key_hash=r.hash
+  WHERE s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider}
+   AND s.external_account_id=${job.external_account_id} AND s.sync_type=${job.sync_type}
+ `;
+}
 /** Call only inside the existing fenced page transaction, after identity UPSERT. */
 export async function recordScanPage(
   tx: Tx,
@@ -138,16 +157,9 @@ export async function recordScanPage(
   reportedTotal: number,
   identities: readonly { scheme: string; key: string; hash: string }[],
 ): Promise<void> {
-  const input = JSON.stringify(
-    identities.map(({ scheme, key, hash }) => ({ scheme, key, hash })),
+  const resolved = await tx.$queryRaw<{ id: string }[]>(
+    scanIdentityResolutionQuery(job, identities),
   );
-  const resolved = await tx.$queryRaw<{ id: string }[]>`
-  SELECT s.id FROM sync_source_identities s
-  JOIN jsonb_to_recordset(${input}::jsonb) r(scheme text,key text,hash text)
-   ON s.source_key_scheme=r.scheme AND s.source_key=r.key AND s.source_key_hash=r.hash
-  WHERE s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider}
-   AND s.external_account_id=${job.external_account_id} AND s.sync_type=${job.sync_type}
- `;
   const ids = resolved.map((r) => r.id);
   if (
     ids.length !== identities.length ||

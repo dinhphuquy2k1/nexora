@@ -160,3 +160,54 @@ implementation; exact v2 hosted suites additionally bind the committed guard.
 Independent reviewer rechecked docs/guard/test alignment and both raw snapshot SHAs,
 executed4/4 units, read40/40 PostgreSQL output, and explicitly CLOSED P2. No finding
 remains open. Final hosted verification is still required; v1 CI is not substituted.
+
+## Hosted code verification and v2 full local integration
+
+V1 code HEAD f7f039304c2ea5639461da90d87a889367b351b2 checked out actual merge
+f0027d3c90753c3892ab971f2575a35b4e6445f4. Attempt1 PASS:
+Preflight45018151225, Sync45018151206, Foundation45018151210/job137194855614,
+steps4–10. This is historical v1 execution, not closure of the later P2 by itself.
+
+V2 code HEAD776ea5f221af2a793ba0ef5f5af6b5ddcaaf71cf checked out actual merge
+0f96f0cf699a9e6c91dae33a225310f02a7d9f5b, confirmed separately in all three checkout
+logs. All attempt1, no reruns:
+
+| Workflow                                 | Run / job                 | Result                                                                               |
+| ---------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------ |
+| Preflight Policy & Design Governance     | 45019834848               | PASS                                                                                 |
+| Sync V1 targeted PostgreSQL verification | 45019834852               | PASS: Sync units31, Uniship units11, Sync PostgreSQL61, signed Uniship/Observation40 |
+| Nexora foundation                        | 45019834914 /137200056280 | PASS; steps4–10 individually PASS                                                    |
+| Optional actor selector                  | 45019834917               | Selector PASS; stress NOT RUN because no stress label was requested                  |
+
+Executed Foundation step4 runs the actual `sh scripts/quality-docker.sh`: root
+quality870 tests/contracts/build, ordinary functional integration206, migrated
+preservation/repeat/drift and the approved signed launcher. Its actual output
+records Shipment22 then Observation28, including authenticated nexora_sync/API
+ACL assertions, and `Actual disposable cluster tests PASS (all requested suites
+and cleanup verified)`. Native shipment-sql/provision/customer-sql execute through
+the approved launcher, not a direct native bypass. The ordinary206 context explicitly
+reports its restricted-role case NOT RUN; the separate signed28/40 contexts execute
+that extra case. These are repeated contexts, not a sum of distinct tests.
+
+Local full v2 `pnpm test:integration` was additionally rerun on committed776ea5f:
+207/207 PASS,0 skipped,186741.396384ms, signed owned PostgreSQL17.11. It includes
+the actual role case. Owned container/private state were verified and removed after
+testing. Earlier207 core/40 targeted rows remain historical, not substitutes.
+
+Foundation runtime evidence also passes Pager/filter, LOCAL runtime/provisioning/
+TTY/browser, public HTTPS/ingress, DB/storage persistence and HMR. Thus canonical
+Docker/signed verification is now executed on hosted v2; local Docker remains
+NOT RUN for the documented resource limitation. No live Uniship inference is made.
+Run URLs use https://github.com/dinhphuquy2k1/nexora/actions/runs/<run-id>.
+
+This compact hosted-evidence addendum is committed after code validation. The exact
+final evidence-only HEAD, its own merge checkout and CI run IDs are separately
+recorded in PR60; code-HEAD results above are not substituted for final-HEAD checks.
+
+## New owner review findings — v3 corrective work
+
+The earlier v2 review/CI is historical. New owner P2 concerns independently editable
+HTTP filters versus scope label; P3 concerns missing EXPLAIN for UUID resolution.
+[Corrective v3 evidence](review-remediation-v3.md) records the frozen new design,
+RED/GREEN, actual scoped resolver plans/benchmarks and new verification. V1/v2
+snapshots and measurements remain immutable; no earlier green closes these findings.
