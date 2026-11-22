@@ -1,3 +1,4 @@
+import { ShipmentWeightUnit } from "@nexora/shared/shipment";
 import { STATUS_TABS } from "./columns.ts";
 import type { FilterCondition } from "./types.ts";
 const option = (value: string, label: string) => ({ value, label });
@@ -97,7 +98,7 @@ export const FILTER_FIELDS: readonly FilterField[] = [
     defaultValue: "",
   },
   {
-    id: "unitPriceCNY",
+    id: "freightUnitPrice",
     label: "Đơn giá",
     type: "number",
     operators: number,
@@ -173,7 +174,7 @@ export function makeFilter(
         string
       >
     )[operator];
-    label = `${prefix} ${symbol} ${normalized} ${cfg.id === "weightKg" ? "kg" : "¥"}`;
+    label = `${prefix} ${symbol} ${normalized} ${cfg.id === "weightKg" ? ShipmentWeightUnit.KILOGRAM : "¥"}`;
   }
   if (cfg.type === "date") {
     const parts = normalized.split("-");

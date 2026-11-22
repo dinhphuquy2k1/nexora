@@ -73,6 +73,7 @@ export function shipmentListQuery(
 export const providerLabel = (provider: string | null) =>
   provider === "uniship" ? "Uniship" : (provider ?? "—");
 const chargeLabels = {
+  WEIGHT_FREIGHT: "Cước cân nặng",
   UNIT_PRICE: "Đơn giá",
   DOMESTIC_SHIPPING: "Ship nội địa",
   INSURANCE: "Bảo hiểm",

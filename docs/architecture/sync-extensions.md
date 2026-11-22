@@ -229,3 +229,24 @@ Customer matching or destination-schema addition. Production registrations remai
 empty and external HTTP hard-closed; SYNC_ENABLED alone cannot activate this code.
 Only tests compose a static capability. NEXORA-058 owns activation after external
 contract/claim evidence and operational safeguards are satisfied.
+
+## NEXORA-060 scoped Shipment enrichment
+
+Owner decision2026-11-22: Uniship development processor defaults to version1.
+Mapping V2 is a mapping name, not processor2. A richer new observation advances
+sourceVersion1→2 under processor1; an identical repeat stays2. Generic explicit
+processor upgrades, mismatch checks and final fences remain supported unchanged.
+The mapping enriches the same uniship-parcel-v1 identity;
+tracking code is not identity and ModifiedDate is not an incremental cursor.
+Existing FULL auth/transport/production close are unchanged. Old normalized staging
+remains processable but does not contain new facts; processor reprocessing is not
+a backfill. A new source observation produces a changed canonical hash/version.
+
+Shipment input adds bounded chargePatch, milestonePatch and providerAttributesPatch.
+Infrastructure maps wire fields into neutral Domain types. The aggregate resolves
+patches against its locked persisted children; existing transaction/final fences
+atomically persist the resulting full state through conditional upserts. Omitted
+codes/null source values preserve, zero writes zero, duplicate target fee codes
+return NEEDS_REVIEW/SOURCE_CONFLICT. No adapter-side fee selection, new repository,
+generic engine branch or network call under lock. Complete child contracts are
+unchanged; a simultaneous complete/partial collection is invalid.

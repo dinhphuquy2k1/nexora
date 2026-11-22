@@ -76,6 +76,13 @@ export function checkFileImports(p, content) {
     // deployment policies, other package modules, or third-party runtimes.
     // Every validation source is visited by the repository walk below.
     if (
+      p.startsWith("packages/shared/src/numeric/") &&
+      (!spec.startsWith(".") ||
+        !target ||
+        !under(target, resolve("packages/shared/src/numeric")))
+    )
+      throw Error(`Shared numeric purity boundary: ${p}`);
+    if (
       p.startsWith("packages/shared/src/validation/") &&
       (!spec.startsWith(".") ||
         !target ||
@@ -83,9 +90,17 @@ export function checkFileImports(p, content) {
     )
       throw Error(`Shared validation purity boundary: ${p}`);
     if (
+      p.startsWith("packages/shared/src/") &&
+      target &&
+      under(target, resolve("packages/shared/test"))
+    )
+      throw Error(`Shared production-to-test boundary: ${p}`);
+    const sharedNodeTest = /^packages\/shared\/test\/.*\.test\.mjs$/.test(p);
+    if (
       p.startsWith("packages/shared/") &&
-      (builtinModules.includes(spec) ||
-        /^(?:node:|@nestjs\/|@prisma\/|@nexora\/(?:database|sdk)(?:\/|$))/.test(
+      ((!sharedNodeTest &&
+        (builtinModules.includes(spec) || spec.startsWith("node:"))) ||
+        /^(?:@nestjs\/|@prisma\/|@nexora\/(?:database|sdk)(?:\/|$))/.test(
           spec,
         ) ||
         (target && under(target, resolve("packages/database"))))
@@ -110,7 +125,8 @@ export function checkFileImports(p, content) {
           spec !== "@nexora/shared/customer-status" &&
           spec !== "@nexora/shared/sync-status" &&
           spec !== "@nexora/shared/shipment" &&
-          spec !== "@nexora/shared/validation") ||
+          spec !== "@nexora/shared/validation" &&
+          spec !== "@nexora/shared/numeric") ||
         spec.includes("customer-status-labels") ||
         (target &&
           under(target, resolve("packages/shared")) &&
@@ -141,6 +157,51 @@ export function runNegativeTests() {
     "apps/api/src/shipment/domain/example.ts",
     "import {LogisticsStage} from '@nexora/shared/shipment';",
   );
+  checkFileImports(
+    "apps/api/src/shipment/domain/example.ts",
+    "import {parseExactDecimal} from '@nexora/shared/numeric';",
+  );
+  checkFileImports(
+    "packages/shared/src/numeric/index.ts",
+    "export * from './exact-decimal';",
+  );
+  checkFileImports(
+    "packages/shared/test/numeric.test.mjs",
+    "import 'node:test';",
+  );
+  assert.throws(
+    () =>
+      checkFileImports(
+        "packages/shared/src/example.ts",
+        "import '../test/numeric.test.mjs';",
+      ),
+    /Shared production-to-test boundary/,
+  );
+  assert.throws(
+    () =>
+      checkFileImports(
+        "packages/shared/test/numeric.test.mjs",
+        "import '@nexora/database';",
+      ),
+    /Shared browser boundary/,
+  );
+  for (const spec of [
+    "node:fs",
+    "@nestjs/common",
+    "@nexora/database",
+    "../shipment/index",
+    "../validation/index",
+    "../../../../apps/api/src/shipment/domain/shipment",
+  ]) {
+    assert.throws(
+      () =>
+        checkFileImports(
+          "packages/shared/src/numeric/index.ts",
+          `import '${spec}';`,
+        ),
+      /Shared numeric purity boundary|App import/,
+    );
+  }
   for (const spec of [
     "node:crypto",
     "@nestjs/common",

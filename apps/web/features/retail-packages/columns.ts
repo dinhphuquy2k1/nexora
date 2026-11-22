@@ -84,10 +84,10 @@ export const RETAIL_PACKAGE_COLUMNS: readonly ColumnConfig[] = [
     align: "right",
   },
   {
-    id: "unitPriceCNY",
+    id: "freightUnitPrice",
     width: 95,
     basic: false,
-    label: "ĐƠN GIÁ (¥)",
+    label: "ĐƠN GIÁ",
     defaultVisible: true,
     align: "right",
   },

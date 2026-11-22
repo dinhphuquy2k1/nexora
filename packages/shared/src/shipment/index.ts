@@ -12,6 +12,7 @@ export const LogisticsStage = {
 export type LogisticsStageCode =
   (typeof LogisticsStage)[keyof typeof LogisticsStage];
 export const ShipmentChargeCode = {
+  WEIGHT_FREIGHT: "WEIGHT_FREIGHT",
   UNIT_PRICE: "UNIT_PRICE",
   DOMESTIC_SHIPPING: "DOMESTIC_SHIPPING",
   INSURANCE: "INSURANCE",
@@ -41,3 +42,8 @@ export const ShipmentServiceCode = {
 } as const;
 export type ShipmentServiceCodeValue =
   (typeof ShipmentServiceCode)[keyof typeof ShipmentServiceCode];
+
+/** Canonical Shipment weight and freight-price unit on the wire. */
+export const ShipmentWeightUnit = { KILOGRAM: "kg" } as const;
+export type ShipmentWeightUnitCode =
+  (typeof ShipmentWeightUnit)[keyof typeof ShipmentWeightUnit];

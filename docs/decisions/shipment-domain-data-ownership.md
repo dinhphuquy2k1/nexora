@@ -214,3 +214,79 @@ aggregate encapsulation, locked hydration and minimal persistence.
 ## Storage placement rule
 
 A value becomes a shipments column only when every carrier shares the concept, it has one value per shipment and it is filtered or sorted. Carrier-varying catalogues with possibly several rows per shipment use child tables with a closed vocabulary (shipment_charges, shipment_milestones, shipment_items). Values unique to one carrier that are neither filtered nor shown as columns may later use a provider_attributes JSONB, approved but not implemented. Provider milestones are carrier-reported times; they are never derived from stage history.
+
+## 2026-11-20 amendment — NEXORA-060 canonical and hybrid mapping
+
+The preceding placement rule remains the original decision. This scoped amendment
+permits five shared singleton facts for current reconciliation/list/detail reads,
+without inventing a future filter requirement: actual package count, provider paid
+amount, provider remaining amount, provider payment time and destination warehouse.
+They use nullable typed columns. No new filter or index is introduced.
+
+Four selected reference facts use the now-implemented provider_attributes JSONB:
+origin warehouse provider ID, freight unit price, provider creation time and last-mile
+method. These are reference values without a filter requirement or verified shared
+catalogue; no column per carrier and no provider-specific table is needed. Repeating
+fees and warehouse milestones remain existing child tables. Tracking code remains
+mutable presentation data, never unique source identity.
+
+The JSON envelope is closed: schemaVersion=1, trusted provider namespace, values
+containing only originWarehouseId, freightUnitPrice (amount/currency/unit=kg),
+providerCreatedAt and lastMileMethod. Domain validates exact decimals, UTC times,
+text limits, fixed depth and compact UTF-8 size <=1024 bytes on input, merged state
+and hydration. Unknown keys/versions/namespaces fail closed. SQL additionally checks
+top-level shape/version/provider and a 2048-byte JSONB-text cap (storage rendering
+has overhead); it does not claim nested key enforcement. No JSONB index, raw payload,
+PII, generic recursive merge, EAV or carrier rules in Shipment Domain.
+
+Trade-off: these five columns explicitly relax the original filter/sort criterion
+for actual shared financial/parcel reconciliation needs. Typed JSONB prevents four
+reference facts from becoming speculative core columns, at the cost of bounded
+validation on reads. A new provider must map into existing neutral contracts;
+new keys/schema revisions require a separate reviewed decision, not arbitrary JSON.
+
+## NEXORA-060 review v2 — owner evidence2026-11-20
+
+Vietnam local time (UTC+7; retained owner policy). The intervening UTC-only interpretation is superseded as current policy; the conflicting observation remains open for review.
+OrderMD59639 CreatedDate2026-11-20T03:03:16 displayed20-11-2026 10:03:16; browser
+session began03:02:35UTC. Parcel343558 ModifiedDate03:19:58 preceded capture03:20:50UTC.
+parseUnishipLocalTimestamp validates source calendar/format/milliseconds and subtracts7hours to store UTC. The original helper body is retained. UI
+Vietnam-time rendering stays unchanged; no automatic repair of previously normalized
+shifted timestamps or live backfill is claimed. Immutable snapshotv1/evidence remain
+historical and are not current timestamp-correctness proof.
+
+Owner saw numeric1 labels in all four columns: Bảo hiểm chính ngạch đường bộ,
+Kiểm đếm gói A, Dịch vụ đóng gỗ, Dịch vụ bọt khí. Map IsGuarantee→INSURANCE,
+IsCheck→COUNTING, IsFragileGoods→FRAGILE_GOODS, IsFoam→FOAM; numeric0 is false,
+null/missing creates no row (unknown), other values raise VALIDATION_ERROR through
+the existing safe source rejection path. Existing complete:true services snapshot
+contains supplied numeric flags only; if all missing/null, omit services. Omitted
+entries inside a supplied complete snapshot become unknown per existing semantics.
+Fees never imply service state. CheckFeeVND is COUNTING VND, including0.0.
+
+ProductAmount1000 corresponds to GIÁ TRỊ(¥)1,000: exact nonnegative declaredValue
+with CNY. ProductNumber23 corresponds to SỐ SẢN PHẨM23: strict aggregate itemCount.
+Nonblank ProductName becomes one complete item {name}; null/trim-empty omits items.
+No inferred item quantity/unit value. FeeShip/FeeShipVN/FeeOther/unsuffixed fees remain
+deferred because no nonnull owner sample establishes their semantics. No migration,
+grant, API/SDK contract change, source identity/FULL/fence change or production enablement.
+
+Owner decision 2026-11-20: package_count holds NumberOfPack (declared count). The Uniship UI column 'SỐ KIỆN (CHÍNH)' showed 0 while NumberOfPack was 1 on all weighed samples; its source is unknown, so Nexora's value may differ from that column.
+
+## Latest retained-time policy — owner request2026-11-21
+
+Owner decision 2026-11-20: Vietnam local time (UTC+7). Conflicting observation kept for review: order MD59639 API CreatedDate 2026-11-20T03:03:16 while the Uniship UI showed 20-11-2026 10:03:16.
+
+The policy remains UTC+7→UTC with the original parseUnishipLocalTimestamp body.
+The preceding UTC-only decision/synthetic test expectations are now historical,
+not current policy or proof resolving this conflict. All selected service/product/
+COUNTING mappings and both count sources stay unchanged. Web explicitly renders
+Shipment milestones in Asia/Ho_Chi_Minh, independently of host timezone.
+
+NEXORA-058 must, after first controlled real sync and before enabling automatic
+schedules, compare warehouse import/export times of three parcels between Nexora
+and Uniship UI. Record redacted observations. If Nexora is7hours off, stop/keep
+automatic schedules disabled, implement a separate task switching interpretation
+to UTC, then sync fresh observations again to overwrite provider-owned timestamps
+under existing source/version/transaction fences. Stage history is not fabricated.
+This task performs no live sync and does not open production.

@@ -1,6 +1,7 @@
 import { PaginationLimits } from "@nexora/shared/validation";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
+  ShipmentWeightUnit,
   LogisticsStage,
   ShipmentKind,
   ShipmentChargeCode,
@@ -155,7 +156,30 @@ export class ShipmentItemDto {
   unitValue!: string | null;
   @ApiProperty({ type: String, nullable: true }) currency!: string | null;
 }
+export class ShipmentFreightUnitPriceDto {
+  @ApiProperty({
+    type: String,
+    description:
+      "Exact reported freight price; not payable charge or computed total",
+  })
+  amount!: string;
+  @ApiProperty({ type: String }) currency!: string;
+  @ApiProperty({ type: String, enum: [ShipmentWeightUnit.KILOGRAM] })
+  unit!: string;
+}
 export class ShipmentSummaryDto {
+  @ApiProperty({
+    type: "integer",
+    minimum: 0,
+    maximum: 2147483647,
+    nullable: true,
+  })
+  actualPackageCount!: number | null;
+  @ApiProperty({ type: String, nullable: true }) destinationWarehouse!:
+    | string
+    | null;
+  @ApiProperty({ type: () => ShipmentFreightUnitPriceDto, nullable: true })
+  freightUnitPrice!: ShipmentFreightUnitPriceDto | null;
   @ApiProperty({ type: String, nullable: true }) originWarehouse!:
     | string
     | null;
@@ -236,6 +260,24 @@ export class ShipmentChargeDto {
   @ApiProperty({ type: String, nullable: true }) providerLabel!: string | null;
 }
 export class ShipmentDetailDto extends ShipmentSummaryDto {
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      "Exact provider-reported payment amount in totalCurrency; never computed",
+  })
+  providerPaidAmount!: string | null;
+  @ApiProperty({ type: String, nullable: true }) providerRemainingAmount!:
+    | string
+    | null;
+  @ApiProperty({ type: String, format: "date-time", nullable: true })
+  providerPaidAt!: string | null;
+  @ApiProperty({ type: String, nullable: true }) originWarehouseProviderId!:
+    | string
+    | null;
+  @ApiProperty({ type: String, format: "date-time", nullable: true })
+  providerCreatedAt!: string | null;
+  @ApiProperty({ type: String, nullable: true }) lastMileMethod!: string | null;
   @ApiProperty({ type: () => ShipmentServiceDto, isArray: true })
   services!: ShipmentServiceDto[];
   @ApiProperty({ type: () => ShipmentMilestoneDto, isArray: true })

@@ -1,4 +1,6 @@
+import { isDecimalString as decimal } from "@nexora/shared/numeric";
 import {
+  ShipmentWeightUnit,
   LogisticsStage as ShipmentLogisticsStage,
   ShipmentKind,
   ShipmentChargeCode,
@@ -19,8 +21,6 @@ const nullableText = (x: unknown) => x === null || text(x);
 const integer = (x: unknown): x is number =>
   typeof x === "number" && Number.isSafeInteger(x) && x >= 0;
 const nullableInteger = (x: unknown) => x === null || integer(x);
-const decimal = (x: unknown): x is string =>
-  text(x) && /^-?(0|[1-9]\d*)(\.\d+)?$/.test(x);
 const nullableDecimal = (x: unknown) => x === null || decimal(x);
 const date = (x: unknown): x is string =>
   text(x) && /^\d{4}-\d{2}-\d{2}T/.test(x) && Number.isFinite(Date.parse(x));
@@ -57,6 +57,13 @@ function isSummary(x: unknown): x is ShipmentSummary {
     !fields(x, ["id", "code", "trackingCode"], text) ||
     x.shipmentKind !== ShipmentKind.RETAIL_PARCEL ||
     !stage(x.logisticsStage) ||
+    !(
+      x.freightUnitPrice === null ||
+      (record(x.freightUnitPrice) &&
+        decimal(x.freightUnitPrice.amount) &&
+        text(x.freightUnitPrice.currency) &&
+        x.freightUnitPrice.unit === ShipmentWeightUnit.KILOGRAM)
+    ) ||
     !fields(
       x,
       [
@@ -65,13 +72,18 @@ function isSummary(x: unknown): x is ShipmentSummary {
         "providerClaimStatus",
         "customerId",
         "originWarehouse",
+        "destinationWarehouse",
         "totalCurrency",
         "declaredCurrency",
       ],
       nullableText,
     ) ||
     !fields(x, ["weightKg", "declaredValue", "totalAmount"], nullableDecimal) ||
-    !fields(x, ["packageCount", "itemCount"], nullableInteger) ||
+    !fields(
+      x,
+      ["packageCount", "itemCount", "actualPackageCount"],
+      nullableInteger,
+    ) ||
     !fields(x, ["createdAt", "updatedAt"], date)
   )
     return false;
@@ -181,13 +193,30 @@ function isDetail(value: unknown): value is ShipmentDetail {
     !isSummary(value) ||
     !fields(
       x,
-      ["serviceLevel", "assigneeUserId", "internalNote"],
+      [
+        "serviceLevel",
+        "assigneeUserId",
+        "internalNote",
+        "originWarehouseProviderId",
+        "lastMileMethod",
+      ],
       nullableText,
+    ) ||
+    !fields(
+      x,
+      ["providerPaidAmount", "providerRemainingAmount"],
+      nullableDecimal,
     ) ||
     !nullableDecimal(x.exchangeRate) ||
     !fields(
       x,
-      ["exchangeRateAt", "providerUpdatedAt", "lastSyncedAt"],
+      [
+        "exchangeRateAt",
+        "providerUpdatedAt",
+        "lastSyncedAt",
+        "providerPaidAt",
+        "providerCreatedAt",
+      ],
       nullableDate,
     )
   )

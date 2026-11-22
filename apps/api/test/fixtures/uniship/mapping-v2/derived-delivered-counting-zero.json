@@ -1,0 +1,25 @@
+{
+  "status": 200,
+  "message": "Success",
+  "data": [
+    {
+      "ID": 900060,
+      "TransactionCode": "MAPPING-DELIVERED-REDACTED",
+      "Status": 5,
+      "CheckFeeVND": 0.0
+    }
+  ],
+  "total": 1,
+  "offset": 0,
+  "rowsPerPage": 100,
+  "summary": {
+    "TotalStatusAll": 1,
+    "TotalStatus0": 0,
+    "TotalStatus1": 0,
+    "TotalStatus2": 0,
+    "TotalStatus3": 0,
+    "TotalStatus4": 0,
+    "TotalStatus5": 1,
+    "TotalStatus13": 0
+  }
+}

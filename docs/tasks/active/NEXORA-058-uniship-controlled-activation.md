@@ -61,3 +61,25 @@ verified/necessary normalized contracts, never reuse serviceLevel as a destinati
 Before activation also implement/verify agreed per-connection1request/s and provider
 stop/drift disablement controls and remaining ADR007/live/host/custody gates.
 Production registration and external live hard-close remain unchanged in057.
+
+## Điều kiện bắt buộc trước khi bật lịch tự động — quyết định owner2026-11-20
+
+Owner giữ thời gian Uniship không có múi giờ là giờ Việt Nam(UTC+7), adapter chuyển
+sang UTC khi lưu; Web hiển thị Asia/Ho_Chi_Minh. Quan sát MD59639(API03:03:16,
+UI10:03:16) còn mâu thuẫn, được giữ để kiểm chứng chứ không kết luận đã giải quyết.
+
+- Sau lần sync thật đầu tiên theo chế độ kiểm soát/thủ công, trước khi bật bất kỳ
+  lịch sync tự động nào, owner chọn3kiện có mốc nhập/xuất kho.
+- So giờ hiển thị các mốc trên Nexora với giao diện Uniship; ghi bằng chứng đã xóa
+  định danh cho từng kiện, mốc và kết quả so sánh. Gate này phải được xác nhận PASS
+  trước khi cho phép lịch tự động; hiện NOT RUN.
+- Nếu Nexora lệch7tiếng, dừng lịch sync/giữ lịch tự động tắt. Tạo task sửa riêng để
+  đổi cách hiểu nguồn sang UTC, rồi sync lại từ dữ liệu hãng mới; các mốc thời gian
+  do hãng sở hữu sẽ được ghi đè qua cơ chế source/version/transaction hiện có.
+  Không sửa trực tiếp DB, không suy mốc từ stage history, không dùng retry/timeout
+  để coi như gate đã đạt.
+
+NEXORA-060 chỉ ghi nhận điều kiện này và kiểm thử kỹ thuật, không chạy sync thật
+hay bật lịch. Các điều kiện authorization/custody/operational/live khác vẫn giữ.
+Phần mô tả adapter057 ở trên là phạm vi lịch sử;060 bổ sung mapping đã xác minh
+nhưng không thay thế kiểm chứng thực về múi giờ trước lịch tự động.

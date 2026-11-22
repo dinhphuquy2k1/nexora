@@ -1351,3 +1351,34 @@ UNAVAILABLE, capped or incomplete coverage cannot establish absence. Historical
 trial3 CHECK_FAILED without failed transport may represent a separate mechanism.
 Do not rerun failures/add more trials. Evidence and issue44 closure recommendation
 require actual hosted results, not a predeclared causal conclusion.
+
+## NEXORA-060 mapping regression
+
+New owner-discussion fixture lives under apps/api/test/fixtures/uniship/mapping-v2/;
+its README distinguishes owner-supplied facts from synthetic envelope. It is not a
+new live capture. Historical captured fixtures/digests remain untouched.
+
+Run Shipment partial-mapping and Uniship mapping-v2 unit tests after the API build;
+run Retail tests with node --test apps/web/test/retail-\*.test.mjs. Real PostgreSQL
+checks use packages/database/test/shipment-sql.mjs and test/migration.mjs under the
+existing signed disposable-cluster protocol. API shipment-integration and
+uniship-shipment-integration suites cover migrated persistence, stable children,
+rollback, isolation and processor-version compatibility. Never point these tests
+at a live database or reset shared user volumes. Record executed quality/CI evidence
+separately from fixture acceptance and NEXORA-058 production enablement.
+
+## NEXORA-060 shared numeric regression
+
+`pnpm --filter @nexora/shared test` runs test discovery and the built numeric subpath
+suite. Turbo test depends on build, so root `pnpm test` discovers this suite too.
+The static parity fixture records outputs from baseline f48c80b before extraction;
+it covers count bounds/exponents/negative zero, strict integer text/safe range,
+lexical decimal acceptance and exact precision/scale/padding. API Domain and Retail
+response regression tests consume the same vectors against real consumers.
+
+The genuine PostgreSQL mapping integration uses one repository/default processor1:
+minimal observation sourceVersion1, richer observation2, identical repeat2. It asserts
+stable identity/code/Nexora fields/child rows/history and absent historical facts.
+Generic processor-upgrade, stale/mismatch/final-fence tests remain independent.
+Run the full `pnpm test:integration` against an explicitly owned disposable cluster;
+never reset user data or substitute mocks for PostgreSQL evidence.

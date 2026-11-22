@@ -1,3 +1,4 @@
+import { parseUnsignedIntegerText } from "@nexora/shared/numeric";
 import {
   LogisticsStage,
   type LogisticsStageCode,
@@ -72,8 +73,7 @@ export class UnishipShipmentProcessor
       if (
         Object.hasOwn(value, "invalid") ||
         (value.oldStatus !== null &&
-          (typeof value.oldStatus !== "string" ||
-            !/^(0|[1-9]\d{0,127})$/.test(value.oldStatus)))
+          parseUnsignedIntegerText(value.oldStatus) === null)
       )
         invalid();
       const shipment = parseShipmentProviderInput(value.shipment);

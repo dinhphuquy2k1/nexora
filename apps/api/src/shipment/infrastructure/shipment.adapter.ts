@@ -7,7 +7,10 @@ import {
   type LogisticsStageCode,
 } from "@nexora/shared/shipment";
 import { UserStatus } from "../../identity/domain/user-policy";
-import { ShipmentError } from "../domain/shipment";
+import {
+  ShipmentError,
+  parseShipmentProviderAttributes,
+} from "../domain/shipment";
 import {
   ShipmentReadPort,
   type ShipmentQuery,
@@ -25,8 +28,12 @@ import {
 } from "../application/shipment-read.port";
 type RootSummary = Omit<
   ShipmentSummary,
-  "chargeSummary" | "milestoneSummary" | "itemSummary" | "serviceSummary"
->;
+  | "chargeSummary"
+  | "milestoneSummary"
+  | "itemSummary"
+  | "serviceSummary"
+  | "freightUnitPrice"
+> & { providerAttributes: unknown };
 type ChargeGroup = {
   shipmentId: string;
   chargeCode: string;
@@ -39,9 +46,29 @@ type MilestoneGroup = Pick<
   "milestoneCode" | "occurredAt" | "locationName"
 > & { shipmentId: string };
 const summary = Prisma.raw(
-  's.id AS "id",s.code AS "code",s.tracking_code AS "trackingCode",s.shipment_kind AS "shipmentKind",s.provider AS "provider",s.logistics_stage AS "logisticsStage",s.provider_status AS "providerStatus",s.provider_claim_status AS "providerClaimStatus",s.customer_id AS "customerId",s.total_amount::text AS "totalAmount",s.total_currency AS "totalCurrency",s.created_at AS "createdAt",s.updated_at AS "updatedAt",s.origin_warehouse AS "originWarehouse",s.weight_kg::text AS "weightKg",s.package_count AS "packageCount",s.item_count AS "itemCount",s.declared_value::text AS "declaredValue",s.declared_currency AS "declaredCurrency"',
+  's.actual_package_count AS "actualPackageCount",s.destination_warehouse AS "destinationWarehouse",s.provider_attributes AS "providerAttributes",s.id AS "id",s.code AS "code",s.tracking_code AS "trackingCode",s.shipment_kind AS "shipmentKind",s.provider AS "provider",s.logistics_stage AS "logisticsStage",s.provider_status AS "providerStatus",s.provider_claim_status AS "providerClaimStatus",s.customer_id AS "customerId",s.total_amount::text AS "totalAmount",s.total_currency AS "totalCurrency",s.created_at AS "createdAt",s.updated_at AS "updatedAt",s.origin_warehouse AS "originWarehouse",s.weight_kg::text AS "weightKg",s.package_count AS "packageCount",s.item_count AS "itemCount",s.declared_value::text AS "declaredValue",s.declared_currency AS "declaredCurrency"',
 );
-const detail = Prisma.sql`${summary},${Prisma.raw('s.service_level AS "serviceLevel",s.exchange_rate::text AS "exchangeRate",s.exchange_rate_at AS "exchangeRateAt",s.provider_updated_at AS "providerUpdatedAt",s.last_synced_at AS "lastSyncedAt",s.assignee_user_id AS "assigneeUserId",s.internal_note AS "internalNote"')}`;
+const detail = Prisma.sql`${summary},${Prisma.raw('s.provider_paid_amount::text AS "providerPaidAmount",s.provider_remaining_amount::text AS "providerRemainingAmount",s.provider_paid_at AS "providerPaidAt",s.service_level AS "serviceLevel",s.exchange_rate::text AS "exchangeRate",s.exchange_rate_at AS "exchangeRateAt",s.provider_updated_at AS "providerUpdatedAt",s.last_synced_at AS "lastSyncedAt",s.assignee_user_id AS "assigneeUserId",s.internal_note AS "internalNote"')}`;
+function attributes(row: {
+  providerAttributes: unknown;
+  provider: string | null;
+}) {
+  try {
+    return (
+      parseShipmentProviderAttributes(row.providerAttributes, row.provider)
+        ?.values ?? {}
+    );
+  } catch {
+    throw new Error("Invalid stored Shipment attributes");
+  }
+}
+function rootProjection<
+  T extends { providerAttributes: unknown; provider: string | null },
+>(row: T, selected = attributes(row)) {
+  const { providerAttributes: _private, ...root } = row;
+  void _private;
+  return { ...root, freightUnitPrice: selected.freightUnitPrice ?? null };
+}
 function chargeSummary(
   rows: Pick<ChargeGroup, "chargeCode" | "count" | "amount" | "currency">[],
 ): ShipmentChargeSummary {
@@ -185,7 +212,7 @@ export class ShipmentAdapter extends ShipmentReadPort {
         ]),
       );
       const projected = shipments.map((row) => ({
-        ...row,
+        ...rootProjection(row),
         serviceSummary: serviceSummary(servicesById.get(row.id) ?? []),
         chargeSummary: chargeSummary(chargesById.get(row.id) ?? []),
         milestoneSummary: milestoneSummary(milestonesById.get(row.id) ?? []),
@@ -210,8 +237,12 @@ export class ShipmentAdapter extends ShipmentReadPort {
   async get(owner: string, id: string) {
     return this.transaction(owner, async (tx) => {
       const rows = await tx.$queryRaw<
-        Omit<
+        (Omit<
           ShipmentDetail,
+          | "freightUnitPrice"
+          | "providerCreatedAt"
+          | "originWarehouseProviderId"
+          | "lastMileMethod"
           | "services"
           | "serviceSummary"
           | "charges"
@@ -220,7 +251,7 @@ export class ShipmentAdapter extends ShipmentReadPort {
           | "chargeSummary"
           | "milestoneSummary"
           | "itemSummary"
-        >[]
+        > & { providerAttributes: unknown })[]
       >(
         Prisma.sql`SELECT ${detail} FROM shipments s WHERE s.id=${id}::uuid AND s.owner_user_id=${owner}::uuid`,
       );
@@ -248,8 +279,14 @@ export class ShipmentAdapter extends ShipmentReadPort {
       const items = await tx.$queryRaw<
         ShipmentItemView[]
       >`SELECT id,line_no AS "lineNo",name,quantity,unit_value::text AS "unitValue",currency FROM shipment_items WHERE shipment_id=${id}::uuid ORDER BY line_no`;
+      const selectedAttributes = attributes(rows[0]);
       return {
-        ...rows[0],
+        ...rootProjection(rows[0], selectedAttributes),
+        originWarehouseProviderId: selectedAttributes.originWarehouseId ?? null,
+        providerCreatedAt: selectedAttributes.providerCreatedAt
+          ? new Date(selectedAttributes.providerCreatedAt!)
+          : null,
+        lastMileMethod: selectedAttributes.lastMileMethod ?? null,
         services,
         serviceSummary: serviceSummary(services),
         charges: charges.map(

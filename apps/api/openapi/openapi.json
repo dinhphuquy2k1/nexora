@@ -2583,6 +2583,29 @@
           "requestId"
         ]
       },
+      "ShipmentFreightUnitPriceDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string",
+            "description": "Exact reported freight price; not payable charge or computed total"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "kg"
+            ]
+          }
+        },
+        "required": [
+          "amount",
+          "currency",
+          "unit"
+        ]
+      },
       "ShipmentAmountSummaryDto": {
         "type": "object",
         "properties": {
@@ -2733,6 +2756,25 @@
       "ShipmentSummaryDto": {
         "type": "object",
         "properties": {
+          "actualPackageCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "destinationWarehouse": {
+            "type": "string",
+            "nullable": true
+          },
+          "freightUnitPrice": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ShipmentFreightUnitPriceDto"
+              }
+            ]
+          },
           "originWarehouse": {
             "type": "string",
             "nullable": true
@@ -2838,6 +2880,9 @@
           }
         },
         "required": [
+          "actualPackageCount",
+          "destinationWarehouse",
+          "freightUnitPrice",
           "originWarehouse",
           "weightKg",
           "packageCount",
@@ -3184,6 +3229,7 @@
           "chargeCode": {
             "type": "string",
             "enum": [
+              "WEIGHT_FREIGHT",
               "UNIT_PRICE",
               "DOMESTIC_SHIPPING",
               "INSURANCE",
@@ -3217,6 +3263,25 @@
       "ShipmentDetailDto": {
         "type": "object",
         "properties": {
+          "actualPackageCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "nullable": true
+          },
+          "destinationWarehouse": {
+            "type": "string",
+            "nullable": true
+          },
+          "freightUnitPrice": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ShipmentFreightUnitPriceDto"
+              }
+            ]
+          },
           "originWarehouse": {
             "type": "string",
             "nullable": true
@@ -3320,6 +3385,33 @@
             "type": "string",
             "format": "date-time"
           },
+          "providerPaidAmount": {
+            "type": "string",
+            "nullable": true,
+            "description": "Exact provider-reported payment amount in totalCurrency; never computed"
+          },
+          "providerRemainingAmount": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerPaidAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "originWarehouseProviderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "providerCreatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastMileMethod": {
+            "type": "string",
+            "nullable": true
+          },
           "services": {
             "type": "array",
             "items": {
@@ -3379,6 +3471,9 @@
           }
         },
         "required": [
+          "actualPackageCount",
+          "destinationWarehouse",
+          "freightUnitPrice",
           "originWarehouse",
           "weightKg",
           "packageCount",
@@ -3402,6 +3497,12 @@
           "totalCurrency",
           "createdAt",
           "updatedAt",
+          "providerPaidAmount",
+          "providerRemainingAmount",
+          "providerPaidAt",
+          "originWarehouseProviderId",
+          "providerCreatedAt",
+          "lastMileMethod",
           "services",
           "milestones",
           "items",

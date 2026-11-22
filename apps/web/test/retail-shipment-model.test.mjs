@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 const feature = (name) => import(`../features/retail-packages/${name}.ts`);
@@ -16,6 +17,9 @@ const summary = () => ({
   createdAt: "2026-11-14T00:00:00Z",
   updatedAt: "2026-11-14T00:00:00Z",
   originWarehouse: null,
+  actualPackageCount: null,
+  destinationWarehouse: null,
+  freightUnitPrice: null,
   weightKg: "1.250",
   packageCount: 0,
   itemCount: null,
@@ -114,7 +118,7 @@ test("Retail row uses reported summaries without inventing missing account, fees
   assert.equal(x.statusText, "Chưa xác định");
   assert.equal(x.productName, "Product +2");
   assert.equal(x.carrierLabel, "Uniship");
-  assert.equal(x.unitPriceCNY, "—");
+  assert.equal(x.freightUnitPrice, "—");
   assert.equal(x.domesticShipCNY, "Nhiều dòng");
   assert.equal(x.weightKg, "1.25");
   assert.equal(x.destWarehouseDate, "14/11/2026");
@@ -187,6 +191,12 @@ test("Retail response guards reject malformed nested DTOs and unavailable-claim 
   const detail = {
     ...summary(),
     serviceLevel: null,
+    providerPaidAmount: null,
+    providerRemainingAmount: null,
+    providerPaidAt: null,
+    originWarehouseProviderId: null,
+    providerCreatedAt: null,
+    lastMileMethod: null,
     exchangeRate: null,
     exchangeRateAt: null,
     providerUpdatedAt: null,
@@ -281,4 +291,101 @@ test("Retail maps confirmed packing services without inferring truth from charge
       assert.equal(row.hasBubbleWrap, foam);
     }
   }
+});
+
+test("Retail typed freight price uses actual VND/kg, preserves legacy currency and independent counts/destination", async () => {
+  const { toRetailRow } = await feature("row");
+  const s = summary();
+  s.freightUnitPrice = { amount: "23500.00", currency: "VND", unit: "kg" };
+  s.actualPackageCount = 1;
+  s.destinationWarehouse = "Kho Hà Nội";
+  const row = toRetailRow(s);
+  assert.equal(row.freightUnitPrice, "23.500đ/kg");
+  assert.equal(row.actualPackageCount, "1");
+  assert.equal(row.packageCount, "0");
+  assert.equal(row.destWarehouseName, "Kho Hà Nội");
+  s.freightUnitPrice = null;
+  s.chargeSummary.unitPrice = {
+    state: "SINGLE",
+    amount: "12.00",
+    currency: "CNY",
+  };
+  assert.equal(toRetailRow(s).freightUnitPrice, "¥12.0");
+  s.freightUnitPrice = { amount: "0.00", currency: "VND", unit: "kg" };
+  assert.equal(toRetailRow(s).freightUnitPrice, "0đ/kg");
+});
+
+test("Shipment milestones render in Asia/Ho_Chi_Minh with time and day rollover regardless of host zone", async () => {
+  const { formatDate } = await feature("format");
+  const { toRetailRow } = await feature("row");
+  const previous = process.env.TZ;
+  try {
+    for (const zone of ["UTC", "America/New_York", "Asia/Tokyo"]) {
+      process.env.TZ = zone;
+      assert.equal(
+        formatDate("2026-11-20T03:03:16.000Z", true),
+        "20/11/2026 10:03",
+      );
+      assert.equal(
+        formatDate("2026-11-19T20:03:16.000Z", true),
+        "20/11/2026 03:03",
+      );
+      assert.equal(
+        formatDate("2026-11-19T18:30:00.000Z", true),
+        "20/11/2026 01:30",
+      );
+      const s = summary();
+      s.milestoneSummary.destReceivedAt = "2026-11-19T18:30:00.000Z";
+      assert.equal(toRetailRow(s).destWarehouseDate, "20/11/2026");
+    }
+  } finally {
+    if (previous === undefined) delete process.env.TZ;
+    else process.env.TZ = previous;
+  }
+});
+
+test("Retail shared decimal predicate preserves lexical-only acceptance and kilogram wire enum", async () => {
+  const { readShipmentPage } = await feature("response");
+  const fixture = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../../packages/shared/test/fixtures/numeric-parity.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  const page = () => ({
+    shipments: [summary()],
+    pagination: { page: 1, pageSize: 10, total: 1, totalPages: 1 },
+    stats: {
+      total: 1,
+      byStage: {
+        TO_ORIGIN_WAREHOUSE: 0,
+        AT_ORIGIN_WAREHOUSE: 0,
+        TO_DEST_WAREHOUSE: 0,
+        AT_DEST_WAREHOUSE: 0,
+        DELIVERED: 0,
+        UNKNOWN: 1,
+      },
+      claims: null,
+    },
+    claimFilterAvailable: false,
+  });
+  for (const row of fixture.cases) {
+    const p = page();
+    p.shipments[0].weightKg = row.source;
+    if (row.lexical) assert.deepEqual(readShipmentPage(p), p);
+    else assert.throws(() => readShipmentPage(p));
+  }
+  for (const unit of ["kg", "g", "lb", "KG", null, undefined]) {
+    const p = page();
+    p.shipments[0].freightUnitPrice = { amount: "1.00", currency: "VND", unit };
+    if (unit === "kg") assert.deepEqual(readShipmentPage(p), p);
+    else assert.throws(() => readShipmentPage(p));
+  }
+  // Response DTO guard intentionally accepts object prototypes; provider envelope policy differs.
+  const p = page();
+  Object.setPrototypeOf(p.shipments[0], { marker: true });
+  assert.equal(readShipmentPage(p), p);
 });

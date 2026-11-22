@@ -22,6 +22,7 @@ const fields = {
     UNKNOWN: "LogisticsStage.UNKNOWN",
   },
   chargeCode: {
+    WEIGHT_FREIGHT: "ShipmentChargeCode.WEIGHT_FREIGHT",
     UNIT_PRICE: "ShipmentChargeCode.UNIT_PRICE",
     DOMESTIC_SHIPPING: "ShipmentChargeCode.DOMESTIC_SHIPPING",
     INSURANCE: "ShipmentChargeCode.INSURANCE",

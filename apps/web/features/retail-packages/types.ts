@@ -33,12 +33,13 @@ export interface RetailRow {
   readonly productName: string;
   readonly itemCount: string;
   readonly packageCount: string;
+  readonly actualPackageCount: string;
   readonly originWarehouseDate: string;
   readonly originWarehouseExportDate: string;
   readonly destWarehouseDate: string;
   readonly destWarehouseExportDate: string;
   readonly weightKg: string;
-  readonly unitPriceCNY: string;
+  readonly freightUnitPrice: string;
   readonly domesticShipCNY: string;
   readonly valueCNY: string;
   readonly hasInsurance: boolean | null;

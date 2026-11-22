@@ -41,13 +41,23 @@ test("captured bytes and15-row provenance are preserved; minimal normalized fiel
     Object.keys(value.shipment).sort(),
     [
       "originWarehouse",
+      "actualPackageCount",
+      "destinationWarehouse",
+      "exchangeRate",
+      "exchangeRateAt",
+      "providerAttributesPatch",
+      "providerPaidAmount",
+      "providerRemainingAmount",
+      "providerUpdatedAt",
+      "totalAmount",
+      "totalCurrency",
       "providerClaimStatus",
       "providerStatus",
       "trackingCode",
       "weightKg",
     ].sort(),
   );
-  for (const privateValue of ["redacted-user", "Kho Hà Nội"])
+  for (const privateValue of ["redacted-user"])
     assert.equal(JSON.stringify(value).includes(privateValue), false);
   assert.notEqual(
     warehouses().get("1"),
@@ -129,7 +139,7 @@ test("FULL pagination validates offset/total/size/summary and rejects duplicate 
     );
 });
 
-test("unverified service flags, fees, items, timestamps and missing warehouse facts never fabricate authoritative collections", () => {
+test("verified flags/items are explicit while unselected fees and missing warehouse facts remain omitted", () => {
   for (const flags of [null, false, true, 0, 1, undefined]) {
     const warnings = [];
     const r = parse(
@@ -149,16 +159,25 @@ test("unverified service flags, fees, items, timestamps and missing warehouse fa
       100,
       warnings,
     ).records[0];
+    if (typeof flags === "boolean") {
+      assert.deepEqual(r.payload, { invalid: true });
+      continue;
+    }
+    assert.equal(r.payload.shipment.items.lines[0].name, "a product");
+    if (flags === 0 || flags === 1) {
+      assert.equal(r.payload.shipment.services.entries.length, 4);
+      assert.ok(
+        r.payload.shipment.services.entries.every(
+          (s) => s.enabled === (flags === 1),
+        ),
+      );
+    } else assert.equal(r.payload.shipment.services, undefined);
     for (const key of [
-      "services",
       "charges",
-      "items",
       "milestones",
       "originWarehouse",
       "weightKg",
-      "providerUpdatedAt",
       "declaredValue",
-      "totalAmount",
     ])
       assert.equal(Object.hasOwn(r.payload.shipment, key), false, key);
     assert.ok(warnings.includes("UNISHIP_REQUIRED_FIELD_MISSING"));
