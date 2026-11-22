@@ -1366,3 +1366,19 @@ uniship-shipment-integration suites cover migrated persistence, stable children,
 rollback, isolation and processor-version compatibility. Never point these tests
 at a live database or reset shared user volumes. Record executed quality/CI evidence
 separately from fixture acceptance and NEXORA-058 production enablement.
+
+## NEXORA-060 shared numeric regression
+
+`pnpm --filter @nexora/shared test` runs test discovery and the built numeric subpath
+suite. Turbo test depends on build, so root `pnpm test` discovers this suite too.
+The static parity fixture records outputs from baseline f48c80b before extraction;
+it covers count bounds/exponents/negative zero, strict integer text/safe range,
+lexical decimal acceptance and exact precision/scale/padding. API Domain and Retail
+response regression tests consume the same vectors against real consumers.
+
+The genuine PostgreSQL mapping integration uses one repository/default processor1:
+minimal observation sourceVersion1, richer observation2, identical repeat2. It asserts
+stable identity/code/Nexora fields/child rows/history and absent historical facts.
+Generic processor-upgrade, stale/mismatch/final-fence tests remain independent.
+Run the full `pnpm test:integration` against an explicitly owned disposable cluster;
+never reset user data or substitute mocks for PostgreSQL evidence.

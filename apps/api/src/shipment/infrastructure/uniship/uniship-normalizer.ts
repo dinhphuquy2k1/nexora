@@ -1,4 +1,10 @@
 import {
+  parseNonNegativeInt32,
+  parseUnsignedIntegerText,
+  parseUnsignedSafeInteger,
+} from "@nexora/shared/numeric";
+import {
+  ShipmentWeightUnit,
   ShipmentChargeCode as C,
   ShipmentMilestoneCode as M,
   ShipmentServiceCode as S,
@@ -61,16 +67,14 @@ function object(value: unknown): value is Record<string, unknown> {
   );
 }
 function integerText(value: unknown): string | null {
-  return value instanceof NumericLexeme &&
-    /^(0|[1-9]\d{0,127})$/.test(value.source)
-    ? value.source
+  return value instanceof NumericLexeme
+    ? parseUnsignedIntegerText(value.source)
     : null;
 }
 function integer(value: unknown): number | null {
-  const text = integerText(value);
-  if (text === null) return null;
-  const number = Number(text);
-  return Number.isSafeInteger(number) ? number : null;
+  return value instanceof NumericLexeme
+    ? parseUnsignedSafeInteger(value.source)
+    : null;
 }
 /** UTC+7 source wall time; validate calendar in UTC before applying the fixed offset. */
 export function parseUnishipLocalTimestamp(value: unknown): string {
@@ -93,28 +97,11 @@ export function parseUnishipLocalTimestamp(value: unknown): string {
   return utc;
 }
 function sourceCount(value: unknown): number {
-  if (!(value instanceof NumericLexeme) || value.source.length > 128)
+  if (!(value instanceof NumericLexeme))
     throw new ShipmentError("VALIDATION_ERROR");
-  const m = /^(-?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d{1,4}))?$/.exec(value.source);
-  if (!m) throw new ShipmentError("VALIDATION_ERROR");
-  const coefficient = BigInt(m[2] + (m[3] ?? ""));
-  if (coefficient === 0n) return 0;
-  if (m[1]) throw new ShipmentError("VALIDATION_ERROR");
-  const power = Number(m[4] ?? 0) - (m[3]?.length ?? 0);
-  let result: bigint;
-  if (power >= 0) {
-    if (coefficient.toString().length + power > 10)
-      throw new ShipmentError("VALIDATION_ERROR");
-    result = coefficient * 10n ** BigInt(power);
-  } else {
-    if (-power > 128) throw new ShipmentError("VALIDATION_ERROR");
-    const divisor = 10n ** BigInt(-power);
-    if (coefficient % divisor !== 0n)
-      throw new ShipmentError("VALIDATION_ERROR");
-    result = coefficient / divisor;
-  }
-  if (result > 2147483647n) throw new ShipmentError("VALIDATION_ERROR");
-  return Number(result);
+  const result = parseNonNegativeInt32(value.source);
+  if (result === null) throw new ShipmentError("VALIDATION_ERROR");
+  return result;
 }
 function sourceDecimal(value: unknown, scale = 2): string {
   if (!(value instanceof NumericLexeme))
@@ -298,7 +285,7 @@ function record(
       attributes.freightUnitPrice = {
         amount: sourceDecimal(value.PriceAmount),
         currency: "VND",
-        unit: "kg",
+        unit: ShipmentWeightUnit.KILOGRAM,
       };
     if (value.CreatedDate != null)
       attributes.providerCreatedAt = parseUnishipLocalTimestamp(

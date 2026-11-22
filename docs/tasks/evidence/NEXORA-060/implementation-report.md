@@ -287,3 +287,12 @@ Foundation44918310218/job136888597383 PASS, steps4–10.
 This supersedes the earlier UTC-only policy/readiness as current behavior while
 retaining its historical outcomes. Exact final evidence-only HEAD is in PR59.
 The actual058 three-parcel gate remains NOT RUN, not satisfied by these fixtures/CI.
+
+## Latest development refactor —2026-11-22
+
+[Shared numeric v3 evidence](shared-numeric-v3.md) supersedes the earlier default
+processor2 statement: default development processor is1, Mapping V2 is a mapping name.
+Shared numeric algorithms and canonical Shipment kilogram vocabulary now have real
+API/Web consumers with baseline parity; current source identity, UTC+7 and wire contracts
+remain unchanged. Same-version new observations, not fabricated historical reprocessing,
+prove enrichment. Earlier version2 execution rows remain chronological evidence.

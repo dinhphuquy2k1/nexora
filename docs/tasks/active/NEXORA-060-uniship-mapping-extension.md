@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: VERIFIED
+Verification: PARTIALLY VERIFIED
 
 ## Scope
 
@@ -12,11 +12,11 @@ Implement owner Mapping V2, superseding the earlier nine-column baseline before 
 
 Task ID: NEXORA-060
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-21-local-time-v2
-Reviewed baseline: 52988c26ab9373f411c5049838a2e326e7042d48
+Plan revision: rev-2026-11-22-shared-numeric-v3
+Reviewed baseline: f48c80bb313d7983b5ddf326f9415e8f404cfdbe
 Branch: feature/uniship-mapping-extension
-Design Snapshot: docs/tasks/design-reviews/NEXORA-060-rev-2026-11-21-local-time-v2.md
-Design SHA-256: b5fe0fbc490ed807532df7e02904f5fd73b30102bdd23ba5ad45f64e351e29a7
+Design Snapshot: docs/tasks/design-reviews/NEXORA-060-rev-2026-11-22-shared-numeric-v3.md
+Design SHA-256: 6eaa62e31a4746d49ca9b180cff9b00fe850af3cbe2cce292e7fa842db578301
 
 | Field                    | Decision                                                                                                                                                                                          |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -36,7 +36,7 @@ Shipment is the aggregate root; charges/milestones/items/services are children. 
 ## Plan
 
 1. Complete routed inspection, storage matrix, ADR011 PLAN ISSUE decision and pre-code snapshot before code; preserve immutable raw SHA.
-2. RED Domain/normalizer tests and new discussion-source fixture. Extend strict root/attributes/child patch contracts and default processor2; preserve complete and source identity semantics.
+2. RED Domain/normalizer tests and new discussion-source fixture. Extend strict root/attributes/child patch contracts and default development processor1 (latest owner decision); preserve complete and source identity semantics.
 3. Forward migration five canonical fields plus bounded provider_attributes JSONB; exact WEIGHT_FREIGHT CHECK/grants; hydrate and persist validated provider-owned operations under current fences.
 4. Add typed list/detail projections, Swagger/generated SDK, Retail units/count/destination/reference/payment presentation and guards; no new filter/endpoint.
 5. Genuine SQL migration/grant/parity and Sync preservation/rollback/reprocessing/HTTP tests, old behavior/limits/isolation and capacity; targeted then quality/Docker/hosted final-head gates.
@@ -48,7 +48,7 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
-Owner-confirmed counts/VND amounts/UTC/reference dates (owner evidence2026-11-20; prior UTC+7 confirmation superseded), storage choice and scoped patch contracts; additive read/API/UI fields and migration/grants. Earlier assumptions remain historical, not retroactive evidence.
+Owner-confirmed counts/VND amounts/reference dates (retained owner UTC+7 policy; conflicting UTC observation remains documented), storage choice and scoped patch contracts; additive read/API/UI fields and migration/grants. Earlier assumptions remain historical, not retroactive evidence.
 
 ### Canonical owners
 
@@ -69,12 +69,12 @@ Owner-confirmed counts/VND amounts/UTC/reference dates (owner evidence2026-11-20
 
 ## Acceptance
 
-- [x] All35 selected mapping correspondences; UTC owner correction and new services/items/declared values/count/COUNTING fee verified.
+- [x] All35 selected mapping correspondences; retained UTC+7 policy and new services/items/declared values/count/COUNTING fee verified.
 - [x] Scoped patches preserve other fees/milestones and stable IDs; ambiguous fees review, complete snapshots unchanged.
 - [x] Typed attributes keys/version/size/depth/provider isolation and merge/hydration proven.
 - [x] Forward migration/repeat/constraints/least-privilege/read contracts/UI regression executed.
-- [x] Version2/reprocessing preserves source identity; no automatic historical backfill or production activation claim.
-- [x] Required quality/independent review/final-head hosted evidence and PM report on the current PR HEAD. Earlier implementation-head results remain PASS as recorded below.
+- [x] Mapping V2 enrichment uses the same processor1/new observation; identity and no-historical-backfill behavior preserved.
+- [ ] Required quality/independent review/final-head hosted evidence and PM report on the current PR HEAD. Earlier implementation-head results remain PASS as recorded below.
 
 ## Evidence
 
@@ -232,3 +232,33 @@ VERIFIED here means implementation of the latest owner-selected UTC+7 policy and
 existing35 mappings, not a proven external timezone. NEXORA-058 live comparison
 of3parcels remains NOT RUN and blocks automatic schedules. Task stays active
 for owner review/merge; evidence-only final HEAD/run IDs are recorded in PR59.
+
+## Owner shared-numeric refactor — revision v3 (2026-11-22)
+
+Three explicit owner decisions: pure @nexora/shared/numeric algorithms with real
+API/Web consumers and exact behavior parity; default Uniship processor.version1
+for unreleased development; ShipmentWeightUnit.KILOGRAM canonical kg. Mapping V2
+name, uniship-parcel-v1, attributes schemaVersion1 and generic observation/processor
+fences remain distinct/unchanged. No SQL read adapter/schema/migration/registry/
+UTC+7/activation change. Scope remains this PR59; no new PR.
+
+Mandatory three-component reuse matrix and interfaces are frozen in shared-numeric-v3
+snapshot§3–8. Shared owns neutral string/math algorithms, Domain facade/error and
+nonnegative field rules remain, NumericLexeme/reviver/provider/page/clock policy stay
+in infrastructure. Web lexical guard is not narrowed to Domain precision; filters
+retain separate bounded policy. Single mapping repo uses processor1 for seed/new
+observation/repeat; generic upgrade/mismatch/security tests are retained.
+
+Documentation Impact remains REQUIRED: current domain/Sync defaults, numeric/unit
+ownership, reusable registry, testing, task/evidence and PR metadata. Historical
+processor2 decisions, snapshots and PASS/FAIL rows remain history, not current
+default or new-head verification. New refactor quality/CI pending.
+
+### Shared-numeric v3 implementation evidence
+
+See [shared-numeric-v3](../evidence/NEXORA-060/shared-numeric-v3.md) for extraction
+parity RED/GREEN, genuine PostgreSQL179/179, targeted regression194/194 and independent
+review. Full local quality PASS (scripts182/API271/Web368/shared2/UI37/database6;866 total). Narrow boundary adaptation permits the numeric leaf and Node test harness while
+enforcing numeric purity and blocking production imports of shared tests. Generic processor
+security tests, UTC+7 and058 live gate remain unchanged. Final hosted exact-HEAD
+verification is pending and is not inferred from prior green commits.

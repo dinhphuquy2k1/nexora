@@ -42,3 +42,8 @@ export const ShipmentServiceCode = {
 } as const;
 export type ShipmentServiceCodeValue =
   (typeof ShipmentServiceCode)[keyof typeof ShipmentServiceCode];
+
+/** Canonical Shipment weight and freight-price unit on the wire. */
+export const ShipmentWeightUnit = { KILOGRAM: "kg" } as const;
+export type ShipmentWeightUnitCode =
+  (typeof ShipmentWeightUnit)[keyof typeof ShipmentWeightUnit];

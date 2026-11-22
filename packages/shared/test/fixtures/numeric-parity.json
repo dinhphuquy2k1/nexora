@@ -1,0 +1,1543 @@
+{
+  "baseline": "f48c80bb313d7983b5ddf326f9415e8f404cfdbe",
+  "provenance": "Captured before refactor from baseline private normalizer helpers, DecimalValue.parse and Web response decimal predicate using TypeScript AST extraction; null represents validation failure.",
+  "cases": [
+    {
+      "source": "0",
+      "count": 0,
+      "integerText": "0",
+      "safeInteger": 0,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "0.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": "0.000"
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": "0.000000"
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": "0."
+        }
+      ]
+    },
+    {
+      "source": "1",
+      "count": 1,
+      "integerText": "1",
+      "safeInteger": 1,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "1.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": "1.000"
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": "1.000000"
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": "1."
+        }
+      ]
+    },
+    {
+      "source": "1.0",
+      "count": 1,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "1.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": "1.000"
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": "1.000000"
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1.00",
+      "count": 1,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "1.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": "1.000"
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": "1.000000"
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1e0",
+      "count": 1,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1e3",
+      "count": 1000,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "0.0000000001e10",
+      "count": 1,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "2147483647",
+      "count": 2147483647,
+      "integerText": "2147483647",
+      "safeInteger": 2147483647,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "2147483647.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": "2147483647.000000"
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "2147483648",
+      "count": null,
+      "integerText": "2147483648",
+      "safeInteger": 2147483648,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "2147483648.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": "2147483648.000000"
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "21474836470e-1",
+      "count": 2147483647,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1.1",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "1.10"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": "1.100"
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": "1.100000"
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "-1",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "-1.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": "-1.000"
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": "-1.000000"
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": "-1."
+        }
+      ]
+    },
+    {
+      "source": "-0",
+      "count": 0,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "0.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": "0.000"
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": "0.000000"
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": "0."
+        }
+      ]
+    },
+    {
+      "source": "-0.00",
+      "count": 0,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "0.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": "0.000"
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": "0.000000"
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "-0e9999",
+      "count": 0,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "0e10000",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1e-129",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1e9999",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1e0000",
+      "count": 1,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1e+1",
+      "count": 10,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1e-1",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1e",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1e+",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "01",
+      "count": 1,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "00",
+      "count": 0,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "01.00",
+      "count": 1,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "9007199254740991",
+      "count": null,
+      "integerText": "9007199254740991",
+      "safeInteger": 9007199254740991,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "9007199254740991.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "9007199254740992",
+      "count": null,
+      "integerText": "9007199254740992",
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "9007199254740992.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "9007199254740993",
+      "count": null,
+      "integerText": "9007199254740993",
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "9007199254740993.00"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "999999999999999999999",
+      "count": null,
+      "integerText": "999999999999999999999",
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "0.123456789",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1\n",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1\r",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "-0\n",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1.2\n",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1\r\n",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": " 1",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1 ",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "+1",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": ".1",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1.",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "NaN",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "Infinity",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+      "count": null,
+      "integerText": "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "count": 0,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "0e-9999",
+      "count": 0,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1e-0001",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": false,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "1.000000000000000000000",
+      "count": 1,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "9999999999999999.99",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": "9999999999999999.99"
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    },
+    {
+      "source": "10000000000000000.00",
+      "count": null,
+      "integerText": null,
+      "safeInteger": null,
+      "lexical": true,
+      "decimals": [
+        {
+          "precision": 18,
+          "scale": 2,
+          "result": null
+        },
+        {
+          "precision": 10,
+          "scale": 3,
+          "result": null
+        },
+        {
+          "precision": 18,
+          "scale": 6,
+          "result": null
+        },
+        {
+          "precision": 1,
+          "scale": 0,
+          "result": null
+        }
+      ]
+    }
+  ]
+}

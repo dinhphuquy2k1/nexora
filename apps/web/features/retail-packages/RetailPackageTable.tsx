@@ -1,4 +1,5 @@
 "use client";
+import { ShipmentWeightUnit } from "@nexora/shared/shipment";
 import { type ReactNode, useState, useRef, useEffect } from "react";
 import { Button } from "@nexora/ui";
 import { Copy, Check, Eye, AlertTriangle } from "lucide-react";
@@ -603,7 +604,11 @@ export function RetailPackageTable({
               <p className={styles.mobileCardProduct}>{pkg.productName}</p>
               <div className={styles.mobileCardMeta}>
                 <span>{pkg.carrierLabel}</span>
-                <span>{pkg.weightKg !== "—" ? `${pkg.weightKg} kg` : "—"}</span>
+                <span>
+                  {pkg.weightKg !== "—"
+                    ? `${pkg.weightKg} ${ShipmentWeightUnit.KILOGRAM}`
+                    : "—"}
+                </span>
                 <span>
                   {pkg.packageCount !== "—" ? `${pkg.packageCount} kiện` : "—"}
                 </span>

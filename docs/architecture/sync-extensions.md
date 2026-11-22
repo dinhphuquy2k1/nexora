@@ -232,7 +232,11 @@ contract/claim evidence and operational safeguards are satisfied.
 
 ## NEXORA-060 scoped Shipment enrichment
 
-Uniship processor default version2 enriches the same uniship-parcel-v1 identity;
+Owner decision2026-11-22: Uniship development processor defaults to version1.
+Mapping V2 is a mapping name, not processor2. A richer new observation advances
+sourceVersion1→2 under processor1; an identical repeat stays2. Generic explicit
+processor upgrades, mismatch checks and final fences remain supported unchanged.
+The mapping enriches the same uniship-parcel-v1 identity;
 tracking code is not identity and ModifiedDate is not an incremental cursor.
 Existing FULL auth/transport/production close are unchanged. Old normalized staging
 remains processable but does not contain new facts; processor reprocessing is not

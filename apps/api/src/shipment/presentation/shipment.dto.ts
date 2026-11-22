@@ -1,6 +1,7 @@
 import { PaginationLimits } from "@nexora/shared/validation";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
+  ShipmentWeightUnit,
   LogisticsStage,
   ShipmentKind,
   ShipmentChargeCode,
@@ -163,7 +164,8 @@ export class ShipmentFreightUnitPriceDto {
   })
   amount!: string;
   @ApiProperty({ type: String }) currency!: string;
-  @ApiProperty({ type: String, enum: ["kg"] }) unit!: string;
+  @ApiProperty({ type: String, enum: [ShipmentWeightUnit.KILOGRAM] })
+  unit!: string;
 }
 export class ShipmentSummaryDto {
   @ApiProperty({

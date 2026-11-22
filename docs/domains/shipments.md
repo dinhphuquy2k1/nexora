@@ -553,7 +553,10 @@ and lastMileMethod. Legacy nullable rows remain readable. Retail uses actual cur
 and /kg for mapped prices, legacy UNIT_PRICE currency without an invented unit, and
 separate declared/actual counts and source-reported financial facts.
 
-Uniship processor defaults to version2 without changing source identity, FULL scope,
+Owner decision2026-11-22: Uniship development processor defaults to version1.
+Mapping V2 names the field mapping, not a processor upgrade. New richer observations
+advance sourceVersion1→2 under the same processor1; identical repeats stay2.
+This does not change source identity, FULL scope,
 owner locks, lease/version fencing or production hard-close. Reprocessing old minimal
 staging cannot recover never-staged fields; new observation under the same source key
 is required. Owner discussion fixtures establish mapping acceptance, not new live

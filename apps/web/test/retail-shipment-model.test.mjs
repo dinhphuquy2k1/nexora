@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 const feature = (name) => import(`../features/retail-packages/${name}.ts`);
@@ -341,4 +342,50 @@ test("Shipment milestones render in Asia/Ho_Chi_Minh with time and day rollover 
     if (previous === undefined) delete process.env.TZ;
     else process.env.TZ = previous;
   }
+});
+
+test("Retail shared decimal predicate preserves lexical-only acceptance and kilogram wire enum", async () => {
+  const { readShipmentPage } = await feature("response");
+  const fixture = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../../packages/shared/test/fixtures/numeric-parity.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  const page = () => ({
+    shipments: [summary()],
+    pagination: { page: 1, pageSize: 10, total: 1, totalPages: 1 },
+    stats: {
+      total: 1,
+      byStage: {
+        TO_ORIGIN_WAREHOUSE: 0,
+        AT_ORIGIN_WAREHOUSE: 0,
+        TO_DEST_WAREHOUSE: 0,
+        AT_DEST_WAREHOUSE: 0,
+        DELIVERED: 0,
+        UNKNOWN: 1,
+      },
+      claims: null,
+    },
+    claimFilterAvailable: false,
+  });
+  for (const row of fixture.cases) {
+    const p = page();
+    p.shipments[0].weightKg = row.source;
+    if (row.lexical) assert.deepEqual(readShipmentPage(p), p);
+    else assert.throws(() => readShipmentPage(p));
+  }
+  for (const unit of ["kg", "g", "lb", "KG", null, undefined]) {
+    const p = page();
+    p.shipments[0].freightUnitPrice = { amount: "1.00", currency: "VND", unit };
+    if (unit === "kg") assert.deepEqual(readShipmentPage(p), p);
+    else assert.throws(() => readShipmentPage(p));
+  }
+  // Response DTO guard intentionally accepts object prototypes; provider envelope policy differs.
+  const p = page();
+  Object.setPrototypeOf(p.shipments[0], { marker: true });
+  assert.equal(readShipmentPage(p), p);
 });

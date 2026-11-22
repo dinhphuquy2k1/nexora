@@ -409,7 +409,11 @@ not assert those live operational controls are verified.
 
 ## Owner Mapping V2 — 2026-11-20
 
-This extends the minimal processor1 baseline above; default processor is now2.
+This extends the minimal processor1 mapping baseline. Owner decision2026-11-22
+supersedes the earlier development processor2 choice: the default remains1.
+Mapping V2 identifies the mapping scope, not a processor version. Richer new
+observations under processor1 advance source versions; stored minimal payloads
+cannot reconstruct absent provider facts.
 Owner-discussion sample341827 is not a new live capture. All four milestone dates,
 CreatedDate, ModifiedDate and PaymentDate are Vietnam local time (UTC+7; retained owner policy); dates are validated rather than
 host-parsed. NumberOfPack is declared count, RealNumberOfPack actual count.

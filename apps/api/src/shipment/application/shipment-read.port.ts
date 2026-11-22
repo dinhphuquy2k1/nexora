@@ -1,4 +1,5 @@
 import type {
+  ShipmentWeightUnitCode,
   LogisticsStageCode,
   ShipmentMilestoneCodeValue,
   ShipmentServiceCodeValue,
@@ -18,7 +19,7 @@ export interface Pagination {
 export interface ShipmentFreightPriceView {
   amount: string;
   currency: string;
-  unit: "kg";
+  unit: ShipmentWeightUnitCode;
 }
 export interface ShipmentSummary {
   actualPackageCount: number | null;

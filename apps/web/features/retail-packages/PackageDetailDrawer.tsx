@@ -1,4 +1,5 @@
 "use client";
+import { ShipmentWeightUnit } from "@nexora/shared/shipment";
 import { Truck, X, Clock } from "lucide-react";
 import { Button } from "@nexora/ui";
 import { PackageFeeSection } from "./PackageFeeSection.tsx";
@@ -46,7 +47,7 @@ export function PackageDetailDrawer({
                 <span>Lộ trình kiện hàng: {row?.trackingCode ?? "—"}</span>
                 <span className={styles.modalTrackingBadge}>
                   {row?.weightKg && row.weightKg !== "—"
-                    ? `${row.weightKg} kg`
+                    ? `${row.weightKg} ${ShipmentWeightUnit.KILOGRAM}`
                     : "—"}
                 </span>
               </h2>
@@ -85,7 +86,9 @@ export function PackageDetailDrawer({
                 <div className={styles.summaryCol}>
                   <span className={styles.summaryLabel}>Cân nặng</span>
                   <span className={styles.summaryVal}>
-                    {row.weightKg !== "—" ? `${row.weightKg} kg` : "—"}
+                    {row.weightKg !== "—"
+                      ? `${row.weightKg} ${ShipmentWeightUnit.KILOGRAM}`
+                      : "—"}
                   </span>
                 </div>
                 <div className={styles.summaryCol}>

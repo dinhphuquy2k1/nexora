@@ -432,3 +432,21 @@ feature-local implementation over Retail visibleColumns; it does not import
 Customer CSS or introduce a shared skeleton framework. Retail owns separate scoped
 backend statistics and local three-digit badge reservation. TabCountBadge and
 TabBar remain unchanged; larger counts may grow rather than clip.
+
+## Exact numeric primitives and Shipment unit vocabulary
+
+`@nexora/shared/numeric` owns pure exact-string algorithms in `packages/shared/src/numeric/`.
+It has no framework, Node, database, Domain or provider dependency. `parseNonNegativeInt32`
+retains bounded integral decimal/exponent counts; `parseUnsignedIntegerText` and
+`parseUnsignedSafeInteger` retain separate strict plain ID/status/paging grammar.
+`isDecimalString` is lexical only; `parseExactDecimal` additionally enforces caller
+precision/scale, pads zeros and normalizes negative zero without rounding or Number conversion.
+
+Shipment Domain's `DecimalValue.parse` remains the business facade and translates
+failure to `ShipmentError(VALIDATION_ERROR)`. Uniship infrastructure retains NumericLexeme,
+JSON source context, envelope/status/provider/timezone dictionaries and nonnegative money policy.
+Retail response guards consume only the lexical predicate and keep their existing object
+prototype policy; numeric URL filters retain their separate bounds/coercion policy.
+`ShipmentWeightUnit.KILOGRAM` and `ShipmentWeightUnitCode` in the existing Shipment leaf
+own the single wire value `kg`, consumed by Domain, mapping, reads, Swagger and Web.
+There is no unit conversion layer; independent wire tests retain literal `kg` expectations.

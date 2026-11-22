@@ -1,6 +1,9 @@
+import { parseExactDecimal } from "@nexora/shared/numeric";
 import { CARRIER_PROVIDER_MAX_LENGTH } from "../../carrier/domain/carrier";
 import { isUuid } from "../../common/validation/uuid";
 import {
+  ShipmentWeightUnit,
+  type ShipmentWeightUnitCode,
   LogisticsStage,
   ShipmentKind,
   ShipmentChargeCode,
@@ -49,14 +52,9 @@ export function shipmentRecord(
 /** Exact decimal validation; padding zeros is not rounding or arithmetic. */
 export class DecimalValue {
   static parse(input: unknown, precision: number, scale: number): string {
-    if (typeof input !== "string" || !/^-?(0|[1-9]\d*)(\.\d+)?$/.test(input))
-      invalid();
-    const [integer, fraction = ""] = input.replace(/^-/, "").split(".");
-    if (integer.length > precision - scale || fraction.length > scale)
-      invalid();
-    const sign =
-      input.startsWith("-") && /[1-9]/.test(integer + fraction) ? "-" : "";
-    return sign + integer + "." + fraction.padEnd(scale, "0");
+    const result = parseExactDecimal(input, precision, scale);
+    if (result === null) invalid();
+    return result;
   }
 }
 export interface ChargeLine {
@@ -86,7 +84,7 @@ export interface ServiceEntry {
 export interface ShipmentFreightUnitPrice {
   amount: string;
   currency: string;
-  unit: "kg";
+  unit: ShipmentWeightUnitCode;
 }
 export interface ShipmentProviderAttributeValues {
   originWarehouseId?: string;
@@ -1065,13 +1063,13 @@ function attributesValue(
       "currency",
       "unit",
     ]);
-    if (price.unit !== "kg") invalid();
+    if (price.unit !== ShipmentWeightUnit.KILOGRAM) invalid();
     const amount = DecimalValue.parse(price.amount, 18, 2);
     if (amount.startsWith("-")) invalid();
     out.freightUnitPrice = {
       amount,
       currency: currency(price.currency),
-      unit: "kg",
+      unit: ShipmentWeightUnit.KILOGRAM,
     };
   }
   const result: ShipmentProviderAttributes = {

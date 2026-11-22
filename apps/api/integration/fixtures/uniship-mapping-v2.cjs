@@ -40,13 +40,12 @@ module.exports.verifyMappingV2 = async ({
       const normalize = (row) =>
         parseUnishipPage(page([row]), 1, 100, warehouses, () => {}).records[0];
       const source = normalize(sourceRow);
-      const v1 = makeRepo(new UnishipShipmentProcessor(1, () => {}));
-      const v2 = makeRepo(new UnishipShipmentProcessor(undefined, () => {}));
+      const repo = makeRepo(new UnishipShipmentProcessor(undefined, () => {}));
       assert.equal(
-        v2.capabilities.resolve("uniship", "SHIPMENT").processor.version,
-        2,
+        repo.capabilities.resolve("uniship", "SHIPMENT").processor.version,
+        1,
       );
-      const apply = async (record, repo = v2) =>
+      const apply = async (record) =>
         finish(await prepare([record], repo), repo);
       const seed = {
         identity: source.identity,
@@ -86,7 +85,7 @@ module.exports.verifyMappingV2 = async ({
           oldStatus: null,
         },
       };
-      assert.equal((await apply(seed, v1)).status, "SUCCEEDED");
+      assert.equal((await apply(seed)).status, "SUCCEEDED");
       const identity = await db.syncSourceIdentity.findFirstOrThrow({
         where: {
           owner_user_id: owner.id,
@@ -95,6 +94,19 @@ module.exports.verifyMappingV2 = async ({
           source_key_scheme: "uniship-parcel-v1",
         },
       });
+      assert.equal(identity.observed_source_version, 1);
+      const assertObserved = async (version) => {
+        const current = await db.syncSourceIdentity.findUniqueOrThrow({
+          where: { id: identity.id },
+        });
+        assert.equal(current.observed_source_version, version);
+        const record = await db.providerSourceRecord.findFirstOrThrow({
+          where: { source_identity_id: identity.id },
+          orderBy: { source_version: "desc" },
+        });
+        assert.equal(record.source_version, version);
+        assert.equal(record.processor_version, 1);
+      };
       const get = () =>
         db.shipment.findUniqueOrThrow({
           where: { sourceIdentityId: identity.id },
@@ -118,7 +130,9 @@ module.exports.verifyMappingV2 = async ({
         insurance = before.charges[1],
         firstMilestone = before.milestones[0];
       assert.equal((await apply(source)).status, "SUCCEEDED");
+      await assertObserved(2);
       let mapped = await get();
+      assert.equal(mapped.history[0].processorVersion, 1);
       assert.equal(mapped.id, before.id);
       assert.equal(mapped.code, before.code);
       assert.equal(mapped.internalNote, "nexora-owned preserved");
@@ -158,6 +172,7 @@ module.exports.verifyMappingV2 = async ({
         );
       const feeVersions = await versions();
       assert.equal((await apply(source)).status, "SUCCEEDED");
+      await assertObserved(2);
       assert.deepEqual(await versions(), feeVersions);
       assert.equal((await get()).id, mapped.id);
       // Unresolved China warehouse lookup must preserve the last consistent ID/name pair.
@@ -432,10 +447,10 @@ module.exports.verifyMappingV2 = async ({
               ReceivePlaceName: "must rollback",
             }),
           ],
-          v2,
+          repo,
         );
-        const work = await v2.claim(require("node:crypto").randomUUID());
-        await assert.rejects(v2.apply(work));
+        const work = await repo.claim(require("node:crypto").randomUUID());
+        await assert.rejects(repo.apply(work));
         assert.deepEqual(await get(), rollbackBefore);
       } finally {
         await db.$executeRawUnsafe(
@@ -448,7 +463,7 @@ module.exports.verifyMappingV2 = async ({
             job.id,
           );
       }
-      // Same old minimal payload with processor2 changes neither identity nor source version and cannot backfill missing facts.
+      // Same old minimal payload under processor1 changes neither identity nor source version and cannot backfill missing facts.
       const old = {
         identity: sourceKey("uniship-parcel-v1", ["341828"]),
         payload: {
@@ -460,7 +475,7 @@ module.exports.verifyMappingV2 = async ({
           oldStatus: null,
         },
       };
-      assert.equal((await apply(old, v1)).status, "SUCCEEDED");
+      assert.equal((await apply(old)).status, "SUCCEEDED");
       const oldIdentity = await db.syncSourceIdentity.findFirstOrThrow({
         where: {
           owner_user_id: owner.id,
