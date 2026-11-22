@@ -2,7 +2,7 @@
 
 Status: VERIFICATION PENDING
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -74,7 +74,7 @@ Owner-confirmed counts/VND amounts/reference dates (retained owner UTC+7 policy;
 - [x] Typed attributes keys/version/size/depth/provider isolation and merge/hydration proven.
 - [x] Forward migration/repeat/constraints/least-privilege/read contracts/UI regression executed.
 - [x] Mapping V2 enrichment uses the same processor1/new observation; identity and no-historical-backfill behavior preserved.
-- [ ] Required quality/independent review/final-head hosted evidence and PM report on the current PR HEAD. Earlier implementation-head results remain PASS as recorded below.
+- [x] Required quality/independent review and hosted implementation evidence recorded in shared-numeric-v3. Exact final evidence-commit HEAD verification is recorded separately in PR59; earlier runs are not substituted for it.
 
 ## Evidence
 
@@ -262,3 +262,13 @@ review. Full local quality PASS (scripts182/API271/Web368/shared2/UI37/database6
 enforcing numeric purity and blocking production imports of shared tests. Generic processor
 security tests, UTC+7 and058 live gate remain unchanged. Final hosted exact-HEAD
 verification is pending and is not inferred from prior green commits.
+
+### Shared-numeric v3 hosted acceptance
+
+Implementation ca41a5355050cf505f2039b7b217fef915d983e1 checked out actual merge
+60639691d073392abc9aae344bd6bb3b3f6298a8. All attempt1 PASS: Preflight44989381569,
+Sync44989381573, Foundation44989381561/job137106874206 (steps4–10).
+See [hosted evidence](../evidence/NEXORA-060/shared-numeric-v3.md#hosted-implementation-verification).
+This supersedes earlier v3 pending notes for implementation acceptance. The final
+evidence-only HEAD and its own CI remain separately tracked in PR59.058 real
+three-parcel gate remains NOT RUN and automatic scheduling stays blocked.

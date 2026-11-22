@@ -76,3 +76,32 @@ Raw SQL/read projections, schema/migrations/grants, SDK/OpenAPI wire, source ide
 providerAttributes.schemaVersion, generic Sync engine/fences, UTC+7 and captured
 fixtures/digests stay unchanged. NEXORA-058 mandatory real three-parcel comparison
 remains NOT RUN and blocks automatic schedules.
+
+## Hosted implementation verification
+
+Implementation HEAD:ca41a5355050cf505f2039b7b217fef915d983e1.
+Actual checkout in Preflight, Sync and Foundation:
+60639691d073392abc9aae344bd6bb3b3f6298a8 (read from each checkout log).
+All runs are attempt1; none was rerun.
+
+| Workflow                                 | Run / job                 | Result                                                                       |
+| ---------------------------------------- | ------------------------- | ---------------------------------------------------------------------------- |
+| Preflight Policy & Design Governance     | 44989381569 /137106874129 | PASS                                                                         |
+| Sync V1 targeted PostgreSQL verification | 44989381573 /137106874113 | PASS; Sync units27, Uniship units11, Sync PostgreSQL61, Uniship PostgreSQL12 |
+| Nexora foundation                        | 44989381561 /137106874206 | PASS; steps4–10 individually PASS                                            |
+| Public HTTPS actor evidence (optional)   | 44989381564               | Selector PASS; stress NOT RUN (no stress label)                              |
+
+Foundation logs confirm root tests866/866 (shared2/API271/Web368/UI37/database6/scripts182),
+contracts reproducible PASS and genuine integration179/179. Local release/browser,
+public HTTPS, DB/storage persistence and HMR all executed successfully.
+
+Retail artifact14741538780 (`retail-m3-browser-evidence`) was retrieved with the GitHub
+connector after direct gh download was denied by the artifact storage endpoint.
+Both manifests identify checkout6063969: admin132 records and second-operator6;
+all138 file SHA-256 digests match. This verifies artifact integrity/provenance;
+no new visual-comparison claim is made for a constants-only rendering refactor.
+Only curated counts/IDs/hashes are retained here, with no signed download URLs or raw logs.
+
+This evidence-only addendum is committed after implementation CI. Exact final
+evidence-commit HEAD and its own CI run IDs/checkout are recorded separately in PR59;
+the implementation runs above are not substituted for final-HEAD verification.
