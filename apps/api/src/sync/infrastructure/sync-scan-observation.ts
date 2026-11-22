@@ -41,18 +41,20 @@ export function scanScopeFingerprint(
   >,
   contract: FullScanContract,
 ): string {
-  return payloadHash(
-    canonicalPayload({
-      owner: job.owner_user_id,
-      provider: job.provider,
-      account: job.external_account_id,
-      type: job.sync_type,
-      strategy: SyncStrategy.FULL,
-      sourceKeyScheme: contract.sourceKeyScheme,
-      pageSize: contract.pageSize,
-      scope: contract.scope,
-    }),
-  );
+  const preimage = canonicalPayload({
+    owner: job.owner_user_id,
+    provider: job.provider,
+    account: job.external_account_id,
+    type: job.sync_type,
+    strategy: SyncStrategy.FULL,
+    sourceKeyScheme: contract.sourceKeyScheme,
+    pageSize: contract.pageSize,
+    scope: contract.scope,
+  });
+  // ADR010/061 v2: bounded non-secret technical metadata only, never credential crypto.
+  if (Buffer.byteLength(preimage, "utf8") > 2048)
+    throw new SyncError(E.SOURCE_INVALID);
+  return payloadHash(preimage);
 }
 export function validateScanPage(
   contract: FullScanContract,

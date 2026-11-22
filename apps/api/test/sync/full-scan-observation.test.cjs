@@ -197,3 +197,18 @@ test("actual Uniship opt-in is immutable in the registry; legacy providers stay 
   ]);
   assert.equal(legacy.resolve("uniship", "SHIPMENT").fullScan, undefined);
 });
+
+test("scope fingerprint permits only bounded UTF-8 metadata, never unbounded hashing under locks", () => {
+  assert.equal(
+    scanScopeFingerprint(
+      { ...job, external_account_id: "😀".repeat(128) },
+      contract,
+    ).length,
+    64,
+  );
+  for (const external_account_id of ["a".repeat(2048), "đ".repeat(1400)])
+    assert.throws(
+      () => scanScopeFingerprint({ ...job, external_account_id }, contract),
+      (e) => e.code === "SOURCE_INVALID",
+    );
+});

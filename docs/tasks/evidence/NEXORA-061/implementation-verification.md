@@ -9,7 +9,7 @@ commit and exact hosted source/merge/run/attempt evidence are recorded at delive
 
 Snapshot rev-2026-11-22-observation-v1 raw SHA-256:
 f776784cc62b8d6e570c27ec560f583a52b388c0a22f92d658aea82e85d7849b.
-No material design revision was required. Old snapshots/migrations/captures remain.
+The initial implementation used v1. Later independent review required the bounded-fingerprint contract clarification in v2 below. Old snapshots/migrations/captures remain.
 
 ## Implemented boundaries and data integrity
 
@@ -131,3 +131,32 @@ jobs and may assess compatible permitted durable summaries, never reconstruct
 historical seen sets. No missing streak, hidden/deleted field, soft delete, auto
 restore, Shipment anti-join update, UI/endpoint, production registration or live
 Uniship traffic has been implemented or activated by PR1.
+
+## Review v2 — bounded metadata fingerprint
+
+Current plan revision: rev-2026-11-22-observation-v2. Frozen snapshot
+NEXORA-061-rev-2026-11-22-observation-v2.md SHA-256
+4afd3aa9bac8b5f23a9fff2c8431198558773d0d874e4a351292da152d3e3894.
+It was formatted/pinned with updated Task metadata/docs/preflight before changing
+the guard or test. v1 remains immutable with its original SHA and execution history.
+
+A later independent pass raised P2 after the initial no-finding pass: the blanket
+crypto-outside-lock sentence conflicted with SHA-256 of the small trusted scope
+tuple under locks. No data/security/lock problem was found. Selected clarification
+allows only a synchronous deterministic fingerprint of <=2048 UTF-8 bytes of
+trusted metadata; excludes secret/ciphertext inputs, KDF/Scrypt, credential crypto,
+provider payload hashing and IO. ADR010 and Sync docs explicitly record this scoped
+engineering decision, not an invented owner attestation. No pre-read/query/lock order,
+schema or port change was needed. The v2 addendum supersedes v1's blanket clause.
+
+New byte-bound regression was RED (missing expected exception), then GREEN4/4.
+The helper checks Buffer.byteLength before canonical payloadHash; multibyte overflow
+rejects SOURCE_INVALID, while valid Unicode metadata remains accepted. Actual
+Observation+Uniship PostgreSQL v2 PASS40/40; full v2 quality PASS870/870
+(API275, scripts182, Web368, shared2, UI37, database6), contracts/build included.
+Full207 integration and staged/repeat/drift above verify the unchanged storage/engine
+implementation; exact v2 hosted suites additionally bind the committed guard.
+
+Independent reviewer rechecked docs/guard/test alignment and both raw snapshot SHAs,
+executed4/4 units, read40/40 PostgreSQL output, and explicitly CLOSED P2. No finding
+remains open. Final hosted verification is still required; v1 CI is not substituted.

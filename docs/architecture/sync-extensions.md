@@ -292,3 +292,12 @@ is null. Active pages never age out. PR2 must place missing reconciliation befor
 success cleanup and require final job SUCCEEDED AND scan VALIDATED. It will use
 new post-capability jobs, not reconstruct historical temporary arrays. VALIDATED
 is technical consistency only, not snapshot isolation or Uniship deletion semantics.
+
+### Bounded technical scope fingerprint —061 review v2
+
+[ADR010 clarification](../decisions/sync-worker-staging.md#2026-11-22-bounded-technical-fingerprint-clarification--nexora-061)
+permits only one deterministic SHA-256 of at most2048 UTF-8 bytes of trusted scope
+metadata under admission/page locks. The helper enforces bytes before hashing.
+This is not credential crypto or untrusted bulk-payload hashing; those and HTTP/
+file IO remain outside locks. No new pre-read/transaction split or authorization
+exception is introduced. v2 clarifies v1's blanket wording and preserves its history.

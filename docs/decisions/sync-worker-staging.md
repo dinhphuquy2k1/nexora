@@ -169,3 +169,21 @@ uses existing cascade. No backfill/schema/grant change, activation state, extra
 queue/worker or production capability is introduced. This amendment records current
 control policy without rewriting historical flag-era implementation decisions or
 authorizing live provider requests.
+
+## 2026-11-22 bounded technical fingerprint clarification — NEXORA-061
+
+The earlier blanket outside-lock crypto wording has this narrow engineering
+exception: one synchronous deterministic SHA-256 over at most2048 UTF-8 bytes of
+trusted locked owner/provider/account/type/FULL and frozen scope/scheme/page-size
+metadata may execute in the existing admission/page transaction. Enforce the byte
+bound before hashing and reuse canonicalPayload/payloadHash. The fingerprint is
+consistency metadata, never an authorization secret. No network, file IO, random
+input acquisition, secret/ciphertext input, KDF/Scrypt, credential encryption/decryption
+or bulk/untrusted provider-payload hashing is permitted by this exception.
+
+Rationale: derive from the actual locked scope without an unrelated pre-read/recheck
+or split admission transaction. This bounded CPU-only operation changes no lock
+order, lease/checkpoint fence or authorization. Credential crypto/HTTP remain outside
+locks. This resolves an independent implementation-review contract finding; it does
+not claim a new owner attestation or provider/live authorization. The immutable v1
+snapshot remains historical;061 v2 records the explicit limit before its guard/test.

@@ -16,11 +16,11 @@ Integrity VALIDATED does not prove snapshot isolation or provider deletion seman
 
 Task ID: NEXORA-061
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-22-observation-v1
+Plan revision: rev-2026-11-22-observation-v2
 Reviewed baseline: 4708721661b00781d0581840cca548a11e971ad5
 Branch: feature/full-sync-observation-validation
-Design Snapshot: docs/tasks/design-reviews/NEXORA-061-rev-2026-11-22-observation-v1.md
-Design SHA-256: f776784cc62b8d6e570c27ec560f583a52b388c0a22f92d658aea82e85d7849b
+Design Snapshot: docs/tasks/design-reviews/NEXORA-061-rev-2026-11-22-observation-v2.md
+Design SHA-256: 4afd3aa9bac8b5f23a9fff2c8431198558773d0d874e4a351292da152d3e3894
 
 | Field                    | Decision                                                                                                                                                                                                          |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -78,6 +78,7 @@ Documentation Impact: REQUIRED
 
 - docs/architecture/database.md
 - docs/architecture/sync-extensions.md
+- docs/decisions/sync-worker-staging.md
 - docs/integrations/uniship-portal-api.md
 - docs/operations/testing.md
 - docs/tasks/active/NEXORA-061-full-sync-observation-validation.md
@@ -135,3 +136,30 @@ remain NOT RUN and production stays hard-closed.
 | Schema preservation and grants                               | Real staged060→061 migration/repeat/drift PASS; physical validated exact code sets and native valid/invalid INSERTs; real nexora_sync/nexora_app credentials/obsolete ACL removal PASS.                                               | 2026-11-22 | PASS   |
 | Full host quality                                            | pnpm quality PASS:869/869 tests, typecheck/contracts/build/format/lint/docs/preflight; unchanged public contract.                                                                                                                     | 2026-11-22 | PASS   |
 | Independent review                                           | Read-only reviewer compared frozen plan/core/final diff, executed3/3 units and checked raw snapshot SHA/diff; no open P1/P2/P3. Hosted readiness still incomplete.                                                                    | 2026-11-22 | PASS   |
+
+## Review delta v2 — bounded technical fingerprint
+
+Independent review raised P2 after the initial no-finding review: v1 §7's blanket
+crypto-outside-lock wording conflicted with bounded scope SHA-256 under locked
+admission/page facts. No data/security/lock failure was found. The explicit v2
+exception supersedes that blanket clause only for one deterministic fingerprint
+of at most2048 UTF-8 bytes of trusted scope metadata, no secrets/KDF/I/O. Credential
+crypto and bulk/untrusted payload hashing stay outside. Canonical ADR010/Sync docs
+record this engineering clarification, not an invented owner approval.
+
+The v2 snapshot is formatted and pinned before implementing the new byte guard/test.
+No storage/port/transaction/authorization/mapping contract changes. Existing v1
+CI on f7f0393 remains historical; v2 requires affected checks and new exact-HEAD CI.
+P2 remains open until guard, regression, documentation and independent review pass.
+
+### v2 executed review closure
+
+P2 CLOSED by independent reviewer after4/4 units and40/40 actual PostgreSQL targeted
+tests. Byte bound RED→GREEN; v2 quality870/870 PASS with unchanged contracts/build.
+Canonical metadata exception is narrowly documented in ADR010; no credential crypto
+is moved under locks. Earlier no-finding/open-P2 notes preserve review chronology.
+Current exact-new-HEAD hosted checks remain pending; no earlier green is substituted.
+
+| Claim                                 | Evidence                                                                                                                                                                                                                                                       | Date       | Result |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| v2 bounded fingerprint and P2 closure | Snapshot4afd3aa9bac8b5f23a9fff2c8431198558773d0d874e4a351292da152d3e3894 pinned before guard/test. Byte-bound unit RED→GREEN4/4; PostgreSQL40/40; quality870/870 including contracts/build. Reviewer independently verified4/4 and CLOSED P2; no open finding. | 2026-11-22 | PASS   |
