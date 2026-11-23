@@ -238,3 +238,46 @@ Foundation and independent final review remain delivery gates, never inferred fr
 | pnpm test:docs / test:preflight / test:lint                                                            | PASS    | 10/10,24/24,56/56                                                        |
 | Local quality-docker / approved native launcher                                                        | NOT RUN | VFS, absent tooling image,524MiB free; no unsafe cleanup/protocol bypass |
 | Hosted new-HEAD Preflight / Sync Targeted / Foundation                                                 | NOT RUN | Awaiting corrective task PR push; older061 results not substituted       |
+
+## First hosted run — signed coverage PASS, unsigned fixture FAIL
+
+Code30547d40ac58c6fadb8804849390f68df014a834, actual merge checkout
+e5bae81515c309c615cd7d10458e528e6fcabdef confirmed in all three logs. Attempt1:
+
+| Workflow      | Run / job                 | Result | Evidence                                                                                                                                                                                                         |
+| ------------- | ------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Preflight     | 45101495037               | PASS   | Correct task/v3 snapshot/PR binding                                                                                                                                                                              |
+| Sync Targeted | 45101495036               | PASS   | 32 Sync units,11 adapter units,61 Sync PG and59 signed Uniship/observation/reconciliation                                                                                                                        |
+| Foundation    | 45101495093 /137453148278 | FAIL   | Step4 new benchmark concurrent API read throws UNAUTHORIZED in ordinary unsigned integration; steps5–10 not executed. Missing later browser artifacts are secondary failures, not independent product diagnoses. |
+
+The benchmark used apiUrl or process.env.DATABASE_URL. In unsigned mode apiUrl is
+absent and the latter points to the base DB, while the owner fixture lives in an
+owned UUID DB. Actor authorization correctly rejects that absent owner. Signed
+contexts use the correct owned API URL, explaining signed local/Sync PASS. Independent
+reviewer confirms this code-based cause. No production authorization failure inferred.
+
+Reproduced unsigned local RED45 cases/43 PASS/2 FAIL (leaf plus enclosing test),
+UNAUTHORIZED at ShipmentAdapter actor check. Fix passes a required owned readUrl
+from the suite; it never falls back to an ambient base DB. A separate diagnostic
+context distinguishes restricted-api from unsigned-privileged; unsigned execution
+never certifies restricted-role ACLs. Corrected unsigned GREEN45/45,0 skipped,
+78894.977609ms. Same assertions, real actor lock-wait, datasets and15s timeout.
+Signed re-verification pending at this checkpoint. No gh run rerun or Foundation
+workflow-step change is used; a new task commit will trigger fresh exact-head gates.
+
+### Targeted workflow coverage follow-up
+
+Add exact new Shipment policy/infrastructure/test paths to Sync Targeted (the old
+filters missed standalone future edits), and extend its existing Sync unit command
+with reconciliation policy tests. Local/independent34/34 PASS. Permission/pins/
+timeout/Foundation remain unchanged. YAML parse and Prettier PASS; actionlint
+NOT RUN (not installed). This verification-only delta joins the fixture correction.
+
+### Context correction acceptance before fresh CI
+
+Corrected signed re-verification47/47 PASS,0 skipped,85498.858689ms. Corrected
+unsigned45/45 PASS,0 skipped,78894.977609ms. Both retain full datasets/extreme UPDATEs,
+lock observation, rollback/retry and all functional assertions. Diagnostic read
+context is explicit; actual ACL certification remains in signed cases. Production
+source/schema/grants are byte-identical to30547d4. Final targeted command34/34 and
+independent workflow review PASS; new hosted checks required on the fixture-fix HEAD.

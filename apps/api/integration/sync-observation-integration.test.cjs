@@ -836,7 +836,15 @@ test(
         },
       );
       await require("./fixtures/sync-observation-reconciliation-benchmark.cjs").benchmarkReconciliation(
-        { t, db, makeRepo, lane, contract, apiUrl },
+        {
+          t,
+          db,
+          makeRepo,
+          lane,
+          contract,
+          readUrl: apiUrl ?? url.toString(),
+          readContext: apiUrl ? "restricted-api" : "unsigned-privileged",
+        },
       );
       await require("./fixtures/sync-observation-benchmark.cjs").benchmarkObservation(
         { t, db, repo, lane },

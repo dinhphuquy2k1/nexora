@@ -44,7 +44,8 @@ module.exports.benchmarkReconciliation = async ({
   makeRepo,
   lane,
   contract,
-  apiUrl,
+  readUrl,
+  readContext,
 }) => {
   await t.test(
     "062 1k/10k/100k atomic finalization plans, zero-update invariant, rollback and concurrent API lock",
@@ -255,7 +256,7 @@ module.exports.benchmarkReconciliation = async ({
             if (scenario === "concurrent-api") {
               await entered;
               const apiName = "owned-reconciliation-" + randomUUID(),
-                url = new URL(apiUrl || process.env.DATABASE_URL);
+                url = new URL(readUrl);
               url.searchParams.set("application_name", apiName);
               const adapter = new ShipmentAdapter(url.toString());
               const waitStart = performance.now();
@@ -354,6 +355,7 @@ module.exports.benchmarkReconciliation = async ({
                 node: process.version,
                 cpu: cpus()[0]?.model,
                 availableCpus: availableParallelism(),
+                apiReadContext: readContext,
                 method:
                   "synthetic warm data, rollback EXPLAIN before actual fenced finalization; no production SLA",
                 plans,

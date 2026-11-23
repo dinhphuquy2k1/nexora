@@ -7,6 +7,9 @@ on:
       - "apps/api/src/shipment/application/shipment-sync.port.ts"
       - "apps/api/src/shipment/application/shipment-sync.processor.ts"
       - "apps/api/src/shipment/domain/shipment.ts"
+      - "apps/api/src/shipment/domain/shipment-reconciliation.ts"
+      - "apps/api/src/shipment/infrastructure/shipment-reconciliation.ts"
+      - "apps/api/test/shipment/reconciliation.test.cjs"
       - "apps/api/src/shipment/infrastructure/shipment-sync-domain.binding.ts"
       - "apps/api/src/shipment/infrastructure/uniship/**"
       - "apps/api/src/carrier/infrastructure/uniship/uniship-http.client.ts"
@@ -56,8 +59,8 @@ jobs:
         run: npm install --global pnpm@10.34.6 && pnpm install --frozen-lockfile
       - name: Genuine Prisma generation and prerequisite build
         run: pnpm --filter @nexora/api... build
-      - name: Sync unit tests
-        run: node --test "apps/api/test/sync/**/*.test.cjs"
+      - name: Sync and Shipment reconciliation policy unit tests
+        run: node --test "apps/api/test/sync/**/*.test.cjs" apps/api/test/shipment/reconciliation.test.cjs
       - name: Uniship adapter unit tests
         run: node --test apps/api/test/uniship/normalizer.test.cjs apps/api/test/uniship/provider.test.cjs
       - name: Sync real disposable PostgreSQL regression

@@ -1482,3 +1482,10 @@ ACTIVE defaults, historical admission/summaryNULL, repeat deploy/drift; runtime 
 expects19 migrations. Quality/contracts/full integration, canonical Docker/signed
 launcher and exact-final-HEAD hosted Preflight/Sync/Foundation remain required.
 Store curated plans/results/provenance, no raw SQL predicates, credentials or media.
+
+The reconciliation benchmark's concurrent reader receives an explicit owned-database
+URL from the parent fixture. Signed context uses nexora_app; ordinary unsigned mode
+uses its owned privileged fixture DB and labels that limitation. Never fall back to
+the ambient base DATABASE_URL: its absent fixture owner produces UNAUTHORIZED.
+Sync Targeted explicitly watches the new policy/adapter/test paths and runs their
+policy units alongside all prior Sync units; no package discovery list is replaced.

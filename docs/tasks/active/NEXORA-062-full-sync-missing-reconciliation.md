@@ -148,3 +148,24 @@ canonical hosted execution required. No merge/live activation/user-volume reset.
 | Claim                           | Evidence                                                                                                                                                                                            | Date       | Result |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Full local final implementation | Signed task-owned PostgreSQL pnpm test:integration227/227,0 skipped258149.10042ms; quality877/877 including final UI/manual refresh and scope+empty tests; staged/repeat/drift and governance PASS. | 2026-11-23 | PASS   |
+
+## Hosted fixture correction checkpoint
+
+Code30547d4 /mergee5bae815: Preflight45101495037 and signed Sync45101495036 PASS;
+Foundation45101495093 attempt1 FAIL in new unsigned benchmark at step4. Ambient DB
+URL targeted base DB rather than owned UUID fixture DB, so absent owner correctly
+returned UNAUTHORIZED. Independent diagnosis confirmed; unsigned local RED→GREEN
+45/45 after required owned readUrl; signed recheck follows. No product assertion,
+timeout, authorization or Foundation step is weakened. Extend targeted paths/units
+for future policy-only edits; local/independent34/34 and YAML/format PASS. Preserve
+original FAIL and require fresh-head canonical CI before readiness.
+
+| Claim                                      | Evidence                                                                                                                                                                                                           | Date       | Result |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Initial hosted unsigned fixture failure    | Source30547d40ac58c6fadb8804849390f68df014a834; mergee5bae81515c309c615cd7d10458e528e6fcabdef; Foundation45101495093/job137453148278 attempt1 step4 new concurrent-read benchmark UNAUTHORIZED; steps5–10 not run. | 2026-11-23 | FAIL   |
+| Owned DB correction and context separation | Unsigned local RED45/43PASS/2FAIL, required owned readUrl fix GREEN45/45,0 skipped78894.977609ms. Existing assertions unchanged, restricted-role evidence remains signed-only; independent review confirms cause.  | 2026-11-23 | PASS   |
+
+Corrected fixture acceptance: unsigned45/45 and signed47/47 PASS,0 skipped,
+78894.977609/85498.858689ms. Production source/schema/grants unchanged from30547d4;
+only verification-context plumbing/workflow paths and curated evidence change.
+The first FAIL remains historical. Fresh new-HEAD Preflight/Sync/Foundation required.
