@@ -607,3 +607,42 @@ automatic schedules disabled, implement a separate task switching interpretation
 to UTC, then sync fresh observations again to overwrite provider-owned timestamps
 under existing source/version/transaction fences. Stage history is not fabricated.
 This task performs no live sync and does not open production.
+
+## FULL Sync visibility lifecycle — NEXORA-062
+
+Shipment owns derived ACTIVE(sync_hidden_at NULL,missing_streak0), SUSPECTED_MISSING
+(nonnull,1) and CONFIRMED_MISSING(nonnull,>=2). This is not logistics_stage,
+provider_status or an interpretation of Uniship SoftDeleted. Missing means absent from
+an eligible observed scope, not proven upstream deletion. Never hard delete.
+
+A pure Shipment policy evaluates admitted capability, technical validity, matching
+scope/baseline and explicit safety limits. Set-based persistence is a reviewed
+aggregate-hydration omission: only the two visibility columns change; no100k aggregate/
+child hydration or generic full save. First missing sets timestamp/streak1; subsequent
+qualified missing preserves timestamp and increments once. Seen hidden identities
+restore NULL/0 even with unchanged payload or REJECTED_SOURCE and no processor apply.
+UPDATE only absent or hidden rows, so all-ACTIVE/all-seen scans write0 visibility rows.
+updated_at/last_synced_at, stage/history, IDs, Customer/assignee/note and children are
+unchanged by reconciliation. Actual provider apply remains a separate existing action.
+
+Candidates use exact source owner/provider/account/SHIPMENT/scheme plus root owner/
+provider and stable source UUID, never tracking code. Manual/NULL-source/incompatible
+sources are excluded. NULL connection after deletion is allowed; any different nonnull
+root connection is conservatively SOURCE_SCOPE_CONFLICT, never silently reassigned.
+Reconnecting the same account reuses source/Shipment IDs and compatible baseline.
+
+First qualified newly admitted scan establishes baseline without hide/restore. Empty
+scan with existing candidates is anomalous and cannot bootstrap. Skipped, failed,
+cancelled, untrusted or incomplete jobs cannot increment/reset streak or restore.
+A changed fingerprint always requires a separately designed migration/repair policy;
+no automatic rebootstrap or hidden reset across narrow/wide query scopes. At int32
+streak limit, skip the entire operation; a later seen identity can still restore.
+
+Default list/search/stage counts/total/pagination share sync_hidden_at IS NULL.
+Detail/history use the same owner/visibility rule and404 NOT_FOUND. No hidden-state
+DTO/SDK or privileged bypass endpoint is introduced. Retail manual refresh/reopen/
+error retry revalidate server data; no Sync completion signal/global polling is
+invented. Parent manual refresh remounts an open detail read; detail keys include
+session epoch. Any revalidation NOT_FOUND or denial clears retained detail even when
+a sibling transport error arrives first. Data may remain from its last successful
+read until an actual revalidation occurs; no immediate push-update claim is made.

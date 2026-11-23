@@ -187,3 +187,13 @@ order, lease/checkpoint fence or authorization. Credential crypto/HTTP remain ou
 locks. This resolves an independent implementation-review contract finding; it does
 not claim a new owner attestation or provider/live authorization. The immutable v1
 snapshot remains historical;061 v2 records the explicit limit before its guard/test.
+
+## 2026-11-23 bounded finalization fingerprint recheck — NEXORA-062
+
+The existing2048 UTF-8 byte technical fingerprint exception also applies to the
+single current-contract recheck inside the existing fenced APPLYING finalization.
+This is required to reject scope drift before visibility reconciliation. Reuse the
+same canonical helper and byte guard with trusted job/static metadata; no payload,
+secrets, KDF, credential crypto or network/file IO enters this exception. No lock
+order, timeout or authorization change is permitted. This is a scoped engineering
+clarification of the planned finalization check, not a new owner attestation.

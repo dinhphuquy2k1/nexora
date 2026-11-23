@@ -228,6 +228,12 @@ model SyncConfig {
  @@map("sync_configs")
 }
 model SyncJob {
+ reconciliationVersion Int? @map("reconciliation_version")
+ reconciliationStatus String? @map("reconciliation_status") @db.VarChar(24)
+ reconciliationReason String? @map("reconciliation_reason") @db.VarChar(40)
+ reconciliationNewlyHiddenCount Int? @map("reconciliation_newly_hidden_count")
+ reconciliationRestoredCount Int? @map("reconciliation_restored_count")
+ reconciliationStillMissingCount Int? @map("reconciliation_still_missing_count")
  scanIntegrityStatus String? @map("scan_integrity_status") @db.VarChar(16)
  scanIntegrityReason String? @map("scan_integrity_reason") @db.VarChar(32)
  scanObservedCount Int? @map("scan_observed_count")
@@ -373,6 +379,8 @@ model SyncProviderBudget {
 }
 
 model Shipment {
+ syncHiddenAt DateTime? @map("sync_hidden_at") @db.Timestamptz(3)
+ missingStreak Int @default(0) @map("missing_streak")
  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
  ownerUserId String @db.Uuid @map("owner_user_id")
  code String @unique(map:"uq_shipments_code") @default(dbgenerated("next_shipment_code()")) @db.VarChar(32)

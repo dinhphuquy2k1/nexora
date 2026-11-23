@@ -41,6 +41,15 @@ export class SyncCapabilityRegistry implements SyncCapabilityResolver {
         throw new SyncConfigurationError(
           "Invalid Sync capability registration",
         );
+      if (
+        (domain.finalize !== undefined ||
+          domain.finalizationVersion !== undefined) &&
+        (typeof domain.finalize !== "function" ||
+          !Number.isSafeInteger(domain.finalizationVersion) ||
+          domain.finalizationVersion! < 1 ||
+          domain.finalizationVersion! > 2147483647)
+      )
+        throw new SyncConfigurationError("Invalid finalization capability");
       let fullScan;
       if (provider.fullScan !== undefined) {
         const scan = provider.fullScan;

@@ -1,3 +1,5 @@
+import { createShipmentReconciler } from "./shipment-reconciliation";
+import type { ShipmentReconciliationPolicy } from "../domain/shipment-reconciliation";
 import type { LogisticsStageCode } from "@nexora/shared/shipment";
 import { persistShipmentProvider } from "./shipment-provider.persistence";
 import { hydrateShipment } from "./shipment.mapper";
@@ -10,10 +12,13 @@ import type { ShipmentSyncSession } from "../application/shipment-sync.port";
 /** Transaction and source lock are owned by Sync; never create another client here. */
 export function createShipmentSyncBinding(
   processor: SyncDomainProcessor<ShipmentSyncSession>,
+  reconciliation?: ShipmentReconciliationPolicy,
 ): SyncDomainBinding {
   const version = processor.version;
   return Object.freeze<SyncDomainBinding>({
     version,
+    finalizationVersion: 1,
+    finalize: createShipmentReconciler(reconciliation),
     supports: (type) =>
       type === SyncType.SHIPMENT &&
       processor.version === version &&

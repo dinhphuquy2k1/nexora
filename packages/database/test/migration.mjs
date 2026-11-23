@@ -758,15 +758,12 @@ try {
 
   step = "SHIPMENT_CHILDREN_FORWARD";
   const shipmentOwner = await db.user.findFirstOrThrow();
-  const legacyShipment = await db.shipment.create({
-    select: { id: true },
-    data: {
-      ownerUserId: shipmentOwner.id,
-      trackingCode: "before-children",
-      totalAmount: "123.45",
-      totalCurrency: "CNY",
-    },
-  });
+  // Use the actual old schema: the latest generated client supplies new defaults
+  // (missing_streak) even when RETURNING selects only id.
+  const [legacyShipment] = await db.$queryRaw`
+    INSERT INTO shipments(owner_user_id,tracking_code,total_amount,total_currency)
+    VALUES(${shipmentOwner.id}::uuid,'before-children',123.45,'CNY') RETURNING id
+  `;
   await db.shipmentCharge.create({
     data: {
       shipmentId: legacyShipment.id,
@@ -954,6 +951,51 @@ try {
     0,
     "no invented historical observations",
   );
+  step = "SHIPMENT_VISIBILITY_PRESERVATION";
+  const beforeVisibility = {};
+  for (const table of [
+    ...preservedTables,
+    "shipment_charges",
+    "shipment_milestones",
+    "shipment_items",
+    "shipment_services",
+    "shipment_stage_history",
+  ])
+    beforeVisibility[table] = await db.$queryRawUnsafe(
+      `SELECT * FROM ${table} ORDER BY 1`,
+    );
+  const visibilityMigration = "20261123000000_shipment_visibility";
+  await cp(
+    resolve("prisma/migrations", visibilityMigration),
+    join(work, "prisma/migrations", visibilityMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  for (const [table, before] of Object.entries(beforeVisibility)) {
+    const after = await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`);
+    assert.equal(after.length, before.length);
+    for (let i = 0; i < after.length; i++) {
+      assert.deepEqual(
+        Object.fromEntries(Object.keys(before[i]).map((k) => [k, after[i][k]])),
+        before[i],
+      );
+      if (table === "shipments") {
+        assert.equal(after[i].sync_hidden_at, null);
+        assert.equal(after[i].missing_streak, 0);
+      }
+      if (table === "sync_jobs")
+        for (const key of [
+          "reconciliation_version",
+          "reconciliation_status",
+          "reconciliation_reason",
+          "reconciliation_newly_hidden_count",
+          "reconciliation_restored_count",
+          "reconciliation_still_missing_count",
+        ])
+          assert.equal(after[i][key], null);
+    }
+    if (table in beforeChildren) beforeChildren[table] = after;
+  }
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },
@@ -992,7 +1034,11 @@ try {
   console.log(
     "Real Prisma legacy preservation, forward local identity migration, approved legacy session cutover, setup constraints, repeat and drift PASS",
   );
-} catch {
+} catch (error) {
+  const code = ["P2022", "P2010"].includes(error?.code) ? error.code : "OTHER";
+  console.error(
+    `MIGRATION_FAILURE_CLASS code=${code} missingVisibilityColumn=${String(error?.message).includes("missing_streak")}`,
+  );
   console.error(`IDENTITY_MIGRATION_TEST_FAILED step=${step}`);
   process.exitCode = 1;
 } finally {

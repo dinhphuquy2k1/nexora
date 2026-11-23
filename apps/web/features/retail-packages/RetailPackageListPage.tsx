@@ -89,7 +89,8 @@ export function RetailPackageListPage({
   const [visibility, setVisibility] = useState<ColumnVisibility>(
       DEFAULT_COLUMN_VISIBILITY,
     ),
-    [detail, setDetail] = useState<string | null>(null);
+    [detail, setDetail] = useState<string | null>(null),
+    [detailRevision, setDetailRevision] = useState(0);
 
   const [searchDraft, setSearchDraft] = useState(query.search);
   const isSearchSessionActive = useRef(false);
@@ -361,7 +362,13 @@ export function RetailPackageListPage({
           <p className={styles.availabilityNotice} role="alert">
             {read.error.message}{" "}
             {rows.length > 0 && "Đang hiển thị dữ liệu của lần tải trước. "}
-            <Button variant="secondary" onClick={read.refresh}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                read.refresh();
+                setDetailRevision((n) => n + 1);
+              }}
+            >
               Thử lại
             </Button>
           </p>
@@ -400,6 +407,7 @@ export function RetailPackageListPage({
       </section>
       {detail && (
         <PackageDetailDrawer
+          key={`${detail}:${detailRevision}`}
           id={detail}
           api={api}
           onClose={() => setDetail(null)}

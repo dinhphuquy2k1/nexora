@@ -529,3 +529,21 @@ locks, and generic locked job-scope hashing keeps its2048 UTF-8 byte bound.
 Tests independently decode the real HTTP query and exercise semantic drift between
 admission/page processing. No additional SoftDeleted filter or provider request is
 introduced; captured samples and historical digests remain immutable.
+
+## Missing reconciliation safety boundary — NEXORA-062
+
+Current HTTP route/filter/pageSize100, canonical query-bound scope, stable key,
+Mapping V2, processor1 and retained UTC+7 policy remain unchanged. SoftDeleted rows
+and valid identities with rejected business payloads remain seen. A technical
+VALIDATED result does not establish snapshot isolation or deletion semantics for
+offset pagination. Nexora's visibility action requires separately configured safety
+limits, a new admitted capability version and compatible trusted baseline.
+
+No production thresholds are invented: absent configuration skips all reconciliation.
+Zero-result/populated-account and mass-hide/drop anomalies preserve visibility.
+Historical061 jobs cannot bootstrap; initial new qualified scan only establishes
+baseline. A later query fingerprint change, narrow or wide, always skips pending an
+explicit migration policy because root records lack per-query membership provenance.
+Missing/restore updates are internal atomic Shipment visibility, never upstream
+writes or hard deletion. Production registry remains empty; NEXORA-058 retains live/
+authorization/ID stability/rate/stop/timezone controls and threshold approval.

@@ -83,3 +83,13 @@ NEXORA-060 chỉ ghi nhận điều kiện này và kiểm thử kỹ thuật, k
 hay bật lịch. Các điều kiện authorization/custody/operational/live khác vẫn giữ.
 Phần mô tả adapter057 ở trên là phạm vi lịch sử;060 bổ sung mapping đã xác minh
 nhưng không thay thế kiểm chứng thực về múi giờ trước lịch tự động.
+
+## Reconciliation activation prerequisites retained by NEXORA-062
+
+Missing reconciliation is implemented/tested only with synthetic configurations.
+Before any future production auto-hide, approve explicit absolute missing, missing
+percentage and observed-drop limits, complete source-ID/query consistency/live
+prerequisites and scoped operational review. No thresholds, production registration
+or automatic scheduling are enabled here. Query fingerprint transitions require an
+explicit migration/repair policy, not automatic baseline replacement. These live/
+operational gates remain NOT RUN under this PLANNED task.

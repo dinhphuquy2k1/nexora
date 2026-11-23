@@ -167,7 +167,7 @@ export class ShipmentAdapter extends ShipmentReadPort {
   async list(owner: string, q: ShipmentQuery) {
     return this.transaction(owner, async (tx) => {
       const pattern = "%" + (q.q ?? "").replace(/[\\%_]/g, "\\$&") + "%";
-      const base = Prisma.sql`s.owner_user_id=${owner}::uuid AND s.tracking_code ILIKE ${pattern}`;
+      const base = Prisma.sql`s.sync_hidden_at IS NULL AND s.owner_user_id=${owner}::uuid AND s.tracking_code ILIKE ${pattern}`;
       const where = q.stage
         ? Prisma.sql`${base} AND s.logistics_stage=${q.stage}`
         : base;
@@ -253,7 +253,7 @@ export class ShipmentAdapter extends ShipmentReadPort {
           | "itemSummary"
         > & { providerAttributes: unknown })[]
       >(
-        Prisma.sql`SELECT ${detail} FROM shipments s WHERE s.id=${id}::uuid AND s.owner_user_id=${owner}::uuid`,
+        Prisma.sql`SELECT ${detail} FROM shipments s WHERE s.sync_hidden_at IS NULL AND s.id=${id}::uuid AND s.owner_user_id=${owner}::uuid`,
       );
       if (!rows.length) throw new ShipmentError("NOT_FOUND");
       const services = await tx.$queryRaw<
@@ -314,7 +314,7 @@ export class ShipmentAdapter extends ShipmentReadPort {
     return this.transaction(owner, async (tx) => {
       const root = await tx.$queryRaw<
         { id: string }[]
-      >`SELECT id FROM shipments WHERE id=${id}::uuid AND owner_user_id=${owner}::uuid`;
+      >`SELECT id FROM shipments WHERE sync_hidden_at IS NULL AND id=${id}::uuid AND owner_user_id=${owner}::uuid`;
       if (!root.length) throw new ShipmentError("NOT_FOUND");
       const history = await tx.$queryRaw<
         ShipmentHistoryView[]

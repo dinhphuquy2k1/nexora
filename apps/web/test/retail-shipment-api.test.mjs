@@ -424,3 +424,99 @@ test("Shipment list and counts invalidate across workspace session epochs", asyn
   assert.equal(h.render(q).stats.total, 0);
   h.unmount();
 });
+
+for (const notFoundFirst of [false, true])
+  test(`Detail refresh clears hidden/not-found data despite sibling transient failure; notFoundFirst=${notFoundFirst}`, async () => {
+    const requests = [];
+    const api = {
+      get: (id, signal) =>
+        new Promise((resolve, reject) =>
+          requests.push({ method: "get", resolve, reject, signal }),
+        ),
+      history: (id, q, signal) =>
+        new Promise((resolve, reject) =>
+          requests.push({ method: "history", resolve, reject, signal }),
+        ),
+    };
+    const h = await hookHarness(api);
+    h.renderDetail("A");
+    requests[0].resolve({ id: "A" });
+    requests[1].resolve({ history: [] });
+    await new Promise(setImmediate);
+    assert.equal(h.renderDetail("A").data.shipment.id, "A");
+    h.renderDetail("A").refresh();
+    h.renderDetail("A");
+    const { ShipmentApiError } = await import(new URL("errors.ts", root));
+    if (notFoundFirst) {
+      requests[2].reject(new ShipmentApiError(404, { code: "NOT_FOUND" }));
+      await new Promise(setImmediate);
+      assert.equal(h.renderDetail("A").data, undefined);
+      requests[3].reject(Error("transient"));
+    } else {
+      requests[3].reject(Error("transient"));
+      await new Promise(setImmediate);
+      requests[2].reject(new ShipmentApiError(404, { code: "NOT_FOUND" }));
+    }
+    await new Promise(setImmediate);
+    assert.equal(h.renderDetail("A").data, undefined);
+    assert.equal(h.renderDetail("A").error.notFound, true);
+    h.unmount();
+  });
+
+test("Detail session epoch replacement clears prior cached visibility and fences old requests", async () => {
+  const requests = [];
+  const api = {
+    get: (id, signal) =>
+      new Promise((resolve, reject) =>
+        requests.push({ resolve, reject, signal }),
+      ),
+    history: (id, q, signal) =>
+      new Promise((resolve, reject) =>
+        requests.push({ resolve, reject, signal }),
+      ),
+  };
+  const h = await hookHarness(api);
+  h.renderDetail("same");
+  requests[0].resolve({ id: "same" });
+  requests[1].resolve({ history: [] });
+  await new Promise(setImmediate);
+  assert.equal(h.renderDetail("same").data.shipment.id, "same");
+  h.session(2);
+  assert.equal(h.renderDetail("same").data, undefined);
+  assert.equal(requests[0].signal.aborted, true);
+  requests[2].resolve({ id: "same", fresh: true });
+  requests[3].resolve({ history: [] });
+  await new Promise(setImmediate);
+  assert.equal(h.renderDetail("same").data.shipment.fresh, true);
+  h.unmount();
+});
+
+test("Manual Shipment refresh replaces removed rows and visible pagination/statistics together", async () => {
+  const requests = [];
+  const h = await hookHarness({
+    list: () => new Promise((resolve) => requests.push(resolve)),
+  });
+  const query = { tab: "all", search: "", page: 1, pageSize: 10, filters: [] };
+  const envelope = (ids) => ({
+    shipments: ids.map((id) => ({ id })),
+    pagination: { page: 1, pageSize: 10, total: ids.length, totalPages: 1 },
+    stats: { total: ids.length, byStage: {} },
+    claimFilterAvailable: false,
+  });
+  h.render(query);
+  requests[0](envelope(["A", "B"]));
+  await new Promise(setImmediate);
+  assert.equal(h.render(query).data.shipments.length, 2);
+  h.render(query).refresh();
+  h.render(query);
+  requests[1](envelope(["A"]));
+  await new Promise(setImmediate);
+  const refreshed = h.render(query);
+  assert.deepEqual(
+    Array.from(refreshed.data.shipments, (x) => x.id),
+    ["A"],
+  );
+  assert.equal(refreshed.data.pagination.total, 1);
+  assert.equal(refreshed.stats.total, 1);
+  h.unmount();
+});

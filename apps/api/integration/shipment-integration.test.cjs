@@ -778,6 +778,76 @@ test(
         },
       );
       await t.test(
+        "062 hidden Shipment has consistent real HTTP list/search/stats/paging/detail/history visibility",
+        async () => {
+          const before = await getRoot();
+          const visibleBefore = await req("");
+          const searchedBefore = await req(
+            "?q=" + encodeURIComponent(before.trackingCode),
+          );
+          await db.shipment.update({
+            where: { id: root.id },
+            data: { syncHiddenAt: new Date(), missingStreak: 1 },
+          });
+          try {
+            const list = await req("?pageSize=1");
+            assert.equal(list.body.stats.total, 1);
+            assert.equal(list.body.pagination.total, 1);
+            assert.equal(list.body.pagination.totalPages, 1);
+            const expectedStage =
+              visibleBefore.body.stats.byStage[before.logisticsStage] - 1;
+            assert.equal(
+              list.body.stats.byStage[before.logisticsStage],
+              expectedStage,
+            );
+            assert.equal(
+              (await req("?stage=" + before.logisticsStage)).body.pagination
+                .total,
+              expectedStage,
+            );
+            assert.equal(
+              (await req("?pageSize=1&page=2")).body.shipments.length,
+              0,
+            );
+
+            assert.ok(list.body.shipments.every((x) => x.id !== root.id));
+            const search = await req(
+              "?q=" + encodeURIComponent(before.trackingCode),
+            );
+            assert.ok(search.body.shipments.every((x) => x.id !== root.id));
+            assert.equal(
+              search.body.pagination.total,
+              searchedBefore.body.pagination.total - 1,
+            );
+            for (const path of ["/" + root.id, "/" + root.id + "/history"]) {
+              const result = await req(path);
+              assert.equal(result.response.status, 404);
+              assert.equal(result.body.code, "NOT_FOUND");
+            }
+          } finally {
+            await db.shipment.update({
+              where: { id: root.id },
+              data: { syncHiddenAt: null, missingStreak: 0 },
+            });
+          }
+          const restored = await req("/" + root.id);
+          assert.equal(restored.body.shipment.id, root.id);
+          assert.equal(
+            Object.hasOwn(restored.body.shipment, "syncHiddenAt"),
+            false,
+          );
+          assert.equal(
+            Object.hasOwn(restored.body.shipment, "missingStreak"),
+            false,
+          );
+          assert.equal(
+            restored.body.shipment.internalNote,
+            before.internalNote,
+          );
+          assert.equal((await req("")).body.stats.total, 2);
+        },
+      );
+      await t.test(
         "milestones and item values reconcile by key without rewriting unchanged rows",
         async () => {
           // Reuse the file's real owner/connection and fenced repository setup, with independent identities.

@@ -115,7 +115,12 @@ test(
         t.diagnostic(
           "Restricted role verification NOT RUN in ordinary unsigned context; required signed targeted/shipment-worker context executes it.",
         );
-      const makeRepo = (observation = true, scanContract = contract) => {
+      const makeRepo = (
+        observation = true,
+        scanContract = contract,
+        reconciliation,
+        beforeFinalize,
+      ) => {
         const provider = {
           strategy: () => "FULL",
           fetch: async () => {
@@ -131,7 +136,20 @@ test(
               providerName: "uniship",
               type: "SHIPMENT",
               provider,
-              domain: createShipmentSyncBinding(new UnishipShipmentProcessor()),
+              domain: (() => {
+                const binding = createShipmentSyncBinding(
+                  new UnishipShipmentProcessor(),
+                  reconciliation,
+                );
+                if (!beforeFinalize) return binding;
+                return Object.freeze({
+                  ...binding,
+                  async finalize(tx, job, facts) {
+                    await beforeFinalize();
+                    return binding.finalize(tx, job, facts);
+                  },
+                });
+              })(),
             },
           ]),
           "shared",
@@ -786,6 +804,27 @@ test(
           assert.equal((await finish(j.id, legacy)).status, "SUCCEEDED");
         },
       );
+      await require("./fixtures/sync-observation-reconciliation.cjs").verifyReconciliation(
+        {
+          t,
+          db,
+          makeRepo,
+          lane,
+          source,
+          page,
+          start,
+          finish,
+          state,
+          seen,
+          scope,
+          workerUrl,
+          apiUrl,
+          contract,
+        },
+      );
+      await require("./fixtures/sync-observation-reconciliation-schema.cjs").verifyReconciliationSchema(
+        { t, db, lane, workerUrl, apiUrl, adminUrl: url.toString() },
+      );
       await require("./fixtures/sync-observation-schema.cjs").verifyObservationSchema(
         {
           t,
@@ -795,6 +834,9 @@ test(
           adminUrl: url.toString(),
           lane,
         },
+      );
+      await require("./fixtures/sync-observation-reconciliation-benchmark.cjs").benchmarkReconciliation(
+        { t, db, makeRepo, lane, contract, apiUrl },
       );
       await require("./fixtures/sync-observation-benchmark.cjs").benchmarkObservation(
         { t, db, repo, lane },

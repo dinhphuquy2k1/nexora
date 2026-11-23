@@ -1447,3 +1447,38 @@ p50/p95, and transaction-minus-helper overhead. Server EXPLAIN is an instrumente
 sample, not driver latency; warm-cache synthetic timings are not a production SLA.
 No raw predicates/URLs/credentials are exported and no timing threshold weakens CI.
 Keep previous measurements as historical; new evidence states HEAD/method/environment.
+
+## FULL missing reconciliation verification — NEXORA-062
+
+Ordinary policy tests are apps/api/test/shipment/reconciliation.test.cjs. Genuine
+observation integration reuses its owned migrated DB, exact source identities,
+fenced repos and approved signed roles, loading sync-observation-reconciliation
+fixtures. Existing discovery/Sync Targeted/signed shipment-worker paths include them;
+no native privileged suite is called outside the approved launcher protocol.
+
+Tests cover bootstrap/legacy admission, missing/unchanged/rejected restore, repeated
+scope narrow/wide skips, configuration/zero/mass/overflow gates, source/reconnect
+isolation, children/local ownership preservation, failures at summary/terminal/
+cleanup/lease, concurrent finalizers/takeover and terminal cleanup. Physical validated
+CHECKs bind conkey and exact vocabulary with mutation sensitivity/native writes.
+Actual worker/API passwords prove narrow column writes and repeat provisioning
+removes obsolete broad ACLs. Unsigned contexts do not certify restricted roles.
+Shipment HTTP tests exercise list/search/stats/paging/detail/history hiding/restoring;
+Retail hook regressions exercise sibling404 races/session fencing and actual refresh.
+
+SHIPMENT_RECONCILIATION_BENCHMARK uses owned synthetic1k/10k/100k datasets and shared
+production SQL builders: candidate facts/locks and mutation plus diagnostic anti-join/
+restore projections. EXPLAIN(ANALYZE,BUFFERS,FORMAT JSON) mutations roll back before
+actual fenced apply; a blocked policy's mutation plan is hypothetical, not an actual
+production update. Real finalization includes all fences, policy, summaries and
+cleanup, retaining15s timeout. Nine scenarios per size plus99999-missing/100000-restore
+extremes at100k measure counts, timings, buffers, indexes, driver statements and cleanup.
+All-seen ACTIVE case checks0 UPDATEs and unchanged xmin. Controlled concurrent API
+read verifies pg_stat_activity lock waiting, then committed counts, with its deliberate
+barrier time labeled separately. Warm-data single measurements are not a production SLA.
+
+Migration harness stages exact061→062 and checks original values/children retained,
+ACTIVE defaults, historical admission/summaryNULL, repeat deploy/drift; runtime smoke
+expects19 migrations. Quality/contracts/full integration, canonical Docker/signed
+launcher and exact-final-HEAD hosted Preflight/Sync/Foundation remain required.
+Store curated plans/results/provenance, no raw SQL predicates, credentials or media.
