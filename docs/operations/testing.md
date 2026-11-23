@@ -1382,3 +1382,68 @@ stable identity/code/Nexora fields/child rows/history and absent historical fact
 Generic processor-upgrade, stale/mismatch/final-fence tests remain independent.
 Run the full `pnpm test:integration` against an explicitly owned disposable cluster;
 never reset user data or substitute mocks for PostgreSQL evidence.
+
+## FULL scan observation verification — NEXORA-061
+
+After API/database/shared build, ordinary discovery includes
+`apps/api/test/sync/full-scan-observation.test.cjs` and genuine
+`apps/api/integration/sync-observation-integration.test.cjs`. The latter owns a
+migrated UUID database; functional tests cover100/205/101/0 scans, new/unchanged/
+rejected/SoftDeleted identities, duplicate and total drift, gap/count/scope/terminal
+checks, rollback injections, lease/replay/takeover/concurrent page, lifecycle fences,
+retention-off old active pages, terminal/cascade/idempotent/racing cleanup and legacy
+provider500-record compatibility. Existing Uniship duplicate-page success assertions
+remain and additionally assert UNTRUSTED metadata with no extra Shipment.
+
+New physical schema tests bind PK/FK/CHECK catalog columns, validated exact code
+sets, rollback DDL mutation sensitivity, actual valid/invalid writes, array constraints
+and a single PK index. Real nexora_sync/nexora_app credentials verify permitted
+SELECT/INSERT/DELETE, denied UPDATE/TRUNCATE/DDL and API table access, including repeat
+provisioning after obsolete ACLs. Role mutation requires the existing signed owned
+cluster protocol. Unsigned ordinary context reports restricted-role verification
+NOT RUN; the signed targeted/approved shipment-worker contexts execute it explicitly.
+Never treat unsigned privileged functional execution as restricted-role proof.
+
+Sync Targeted retains previous steps and runs the observation integration together
+with Uniship integration under its existing private password/signature fixture;
+its relevant path filters include new test/fixtures and provisioning inputs.
+The approved signed `shipment-worker` launcher suite also executes observation
+integration after Shipment integration; no native role script is invoked outside
+the launcher. Fresh/staged/repeat/drift checks live in the existing migration suite,
+including exact060 rows preserved and historical scan columns NULL. Runtime smoke
+expects18 real migrations and still requires stored_files=0.
+
+The genuine observation integration emits compact SYNC_OBSERVATION_BENCHMARK lines
+for1k/10k/100k identities(10/100/1000 pages): actual two-statement observation helper
+latency, aggregate validation, EXPLAIN resolver and job read, logical/physical bytes and bounded
+cleanup. This is SQL microbenchmarking, not provider latency/end-to-end throughput
+or snapshot-isolation evidence. No speculative index or latency threshold is added.
+Store only curated provenance/results, not raw SQL/logs/URLs/credentials.
+
+Run targeted Sync/Uniship tests, API integration, database test:migrations,
+contracts:check, docs:check/preflight:check and quality; canonical
+`sh scripts/quality-docker.sh` also exercises approved launcher suites and runtime
+smokes in Foundation. Use only owned disposable infrastructure. Missing local tooling/
+capacity is NOT RUN with a reason, never a substitute PASS; hosted results must bind
+exact source HEAD, actual merge checkout, run/job/attempt and executed steps.
+
+### Query-bound scope and resolver plans —061 review v3
+
+Scope unit regressions keep an independent literal wire-contract assertion, mutate
+filter value/condition/additional clause, q/ecommerce/endpoint/pageSize/scheme/strategy,
+prove page invariance and defensive freezing, and retain Unicode byte-bound tests.
+Genuine PostgreSQL changes query semantics after a committed first page: the next
+page must fail SOURCE_INVALID without changing identities, seen-pages, staging or
+checkpoint, then the originally admitted contract can resume under the same fence.
+
+The benchmark shares the exact parameterized production resolver SQL expression
+with recordScanPage and executes EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) through the
+worker role. Each1k/10k/100k target has100 inputs/page; an extra100k case includes
+30k identical-key noise split across other owner/account/scheme scopes. It records
+global population and existing index columns, analyzes both tables, warms up5 and
+samples30 rollback transactions. Curated output includes server execution/planning,
+node estimates/actuals/loops, index use, hits/reads/filter removals, helper and driver
+p50/p95, and transaction-minus-helper overhead. Server EXPLAIN is an instrumented
+sample, not driver latency; warm-cache synthetic timings are not a production SLA.
+No raw predicates/URLs/credentials are exported and no timing threshold weakens CI.
+Keep previous measurements as historical; new evidence states HEAD/method/environment.

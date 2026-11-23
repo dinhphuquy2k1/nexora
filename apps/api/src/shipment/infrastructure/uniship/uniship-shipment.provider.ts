@@ -1,3 +1,4 @@
+import { UNISHIP_FULL_SCAN, UNISHIP_SCAN } from "./uniship-full-scan";
 import type {
   SyncProvider,
   SyncJob,
@@ -30,6 +31,7 @@ import {
 
 /** Test-only composition until NEXORA-058; no production registration or live opt-in. */
 export class UnishipShipmentProvider implements SyncProvider {
+  readonly fullScan = UNISHIP_FULL_SCAN;
   constructor(
     private readonly client: UnishipHttpClient,
     private readonly lifecycle: Pick<
@@ -39,9 +41,9 @@ export class UnishipShipmentProvider implements SyncProvider {
     private readonly store: Pick<CarrierLifecyclePort, "read">,
     private readonly warn: UnishipWarning = (code) => console.warn(code),
   ) {}
-  strategy(provider: string, type: SyncType): "FULL" | null {
+  strategy(provider: string, type: SyncType): "FULL" | "INCREMENTAL" | null {
     return provider === CarrierProvider.UNISHIP && type === SyncType.SHIPMENT
-      ? SyncStrategy.FULL
+      ? UNISHIP_SCAN.definition.strategy
       : null;
   }
   async fetch(job: SyncJob, signal: AbortSignal): Promise<SyncPage> {
@@ -85,21 +87,9 @@ export class UnishipShipmentProvider implements SyncProvider {
             ),
             this.warn,
           );
-          const query = new URLSearchParams({
-            ecommerce: "true",
-            filter: Buffer.from(
-              JSON.stringify({
-                filter: [
-                  { column: "IsEcommerce", value: 1, condition: "equal" },
-                ],
-              }),
-            ).toString("base64"),
-            page: String(job.next_page),
-            rowsPerPage: "100",
-            q: "",
-          });
+          const { endpoint, query } = UNISHIP_SCAN.request(job.next_page);
           const text = await this.client.getShipment(
-            UNISHIP_ROUTES.SHIPMENTS,
+            endpoint,
             token,
             signal,
             query,
@@ -108,7 +98,7 @@ export class UnishipShipmentProvider implements SyncProvider {
           return parseUnishipPage(
             text,
             job.next_page,
-            100,
+            this.fullScan.pageSize,
             warehouses,
             this.warn,
           );

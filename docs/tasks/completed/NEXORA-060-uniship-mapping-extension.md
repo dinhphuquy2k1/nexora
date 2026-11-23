@@ -1,6 +1,6 @@
 # NEXORA-060 — Uniship canonical and hybrid mapping
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
 Verification: VERIFIED
 
@@ -272,3 +272,20 @@ See [hosted evidence](../evidence/NEXORA-060/shared-numeric-v3.md#hosted-impleme
 This supersedes earlier v3 pending notes for implementation acceptance. The final
 evidence-only HEAD and its own CI remain separately tracked in PR59.058 real
 three-parcel gate remains NOT RUN and automatic scheduling stays blocked.
+
+## Closure after PR59 merge —2026-11-22
+
+Closed by NEXORA-061 under Task Workflow §1.7. GitHub API confirms PR59 merged
+on2026-11-22T06:16:31Z (13:16:31 Asia/Ho_Chi_Minh), merge
+4708721661b00781d0581840cca548a11e971ad5. Original HEAD
+97a6b6d6f7928431f0b5fabdf78fc8c39ef976af had Preflight44991036178,
+Sync44991036183 and Foundation44991036204/job137111922905 attempt1 PASS;
+actual merge checkout ea1bcd478793fd04e7e8dec3726890612002de6a, steps4–10 PASS.
+Historical evidence/snapshots remain immutable. Live/external authorization/custody
+and required three-parcel time comparison remain NOT RUN in the named
+[NEXORA-058 follow-up](../active/NEXORA-058-uniship-controlled-activation.md),
+Status PLANNED. No live/production/automatic schedule gate is promoted to PASS.
+
+| Claim                     | Evidence                                                                                                                                                                   | Date       | Result |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| PR59 merged and060 closed | gh api repos/dinhphuquy2k1/nexora/pulls/59: merged=true; merge4708721661b00781d0581840cca548a11e971ad5; merged_at2026-11-22T06:16:31Z. Verified by061 before first commit. | 2026-11-22 | PASS   |

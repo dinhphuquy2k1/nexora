@@ -1,10 +1,13 @@
-import { CARRIER_PROVIDER_MAX_LENGTH } from "../../carrier/domain/carrier";
+import {
+  CarrierProvider,
+  CARRIER_PROVIDER_MAX_LENGTH,
+} from "../../carrier/domain/carrier";
 import type {
   SyncCapability,
   SyncCapabilityResolver,
 } from "../application/sync-capability.port";
 import type { SyncProvider } from "../application/sync.port";
-import { SyncConfigurationError } from "../domain/sync-policy";
+import { SyncConfigurationError, sourceKey } from "../domain/sync-policy";
 import { SyncType, SyncStrategy } from "../domain/sync.constants";
 import type { SyncDomainBinding } from "./sync-domain.binding";
 
@@ -38,11 +41,37 @@ export class SyncCapabilityRegistry implements SyncCapabilityResolver {
         throw new SyncConfigurationError(
           "Invalid Sync capability registration",
         );
+      let fullScan;
+      if (provider.fullScan !== undefined) {
+        const scan = provider.fullScan;
+        if (
+          providerName !== CarrierProvider.UNISHIP ||
+          type !== SyncType.SHIPMENT ||
+          provider.strategy(providerName, type) !== SyncStrategy.FULL ||
+          !scan ||
+          typeof scan !== "object" ||
+          Array.isArray(scan) ||
+          Object.keys(scan).sort().join(",") !==
+            "pageSize,scope,sourceKeyScheme" ||
+          scan.pageSize !== 100 ||
+          typeof scan.scope !== "string" ||
+          !scan.scope.length ||
+          scan.scope.length > 64 ||
+          scan.scope.trim() !== scan.scope
+        )
+          throw new SyncConfigurationError("Invalid FULL scan capability");
+        try {
+          sourceKey(scan.sourceKeyScheme, ["contract"]);
+        } catch {
+          throw new SyncConfigurationError("Invalid FULL scan capability");
+        }
+        fullScan = Object.freeze({ ...scan });
+      }
       const processor = Object.freeze({
         version: domain.version,
         supports: (candidate: SyncType) => domain.supports(candidate),
       });
-      const entry = Object.freeze({ provider, processor, domain });
+      const entry = Object.freeze({ provider, processor, domain, fullScan });
       let types = this.entries.get(providerName);
       if (!types) {
         types = new Map();

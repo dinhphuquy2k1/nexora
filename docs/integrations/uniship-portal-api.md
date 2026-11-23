@@ -489,3 +489,43 @@ automatic schedules disabled, implement a separate task switching interpretation
 to UTC, then sync fresh observations again to overwrite provider-owned timestamps
 under existing source/version/transaction fences. Stage history is not fabricated.
 This task performs no live sync and does not open production.
+
+## FULL observation contract — NEXORA-061
+
+The fixture-backed provider now declares a frozen technical observation contract:
+uniship-parcel-v1,100 rows and a derived64-hex scope token. This scope means the unchanged
+FULL request with ecommerce=true, IsEcommerce=1 and empty q. Parser preserves each
+validated envelope total/page/page-size in SyncPage.scan, alongside source scheme/
+scope; done retains its existing termination meaning. Captured15-row bytes/digests
+remain unchanged. No filter, order, endpoint, mapping/timezone or live gate changes.
+
+The repository requires this metadata for that opted-in capability, pins trusted
+owner/account/provider/type/scope and stores internal identity UUID arrays/page in
+the existing checkpoint transaction. Every valid identity returned is observed,
+even unchanged/rejected business payload or a row containing SoftDeleted; this
+field never causes removal/filtering/hiding. Invalid identity retains fail-page policy.
+
+Cross-page duplicates and total changes are now technical integrity anomalies,
+not an automatic ingestion failure: job SUCCEEDED can have UNTRUSTED scan metadata.
+Validated totals/distinct identities/continuity/terminal scope are required for
+technical VALIDATED. Durable summaries survive terminal array cleanup. No public
+API/SDK field or Shipment domain state is added. Future missing reconciliation
+requires final job SUCCEEDED AND scan VALIDATED and new jobs after PR2 activation.
+
+**Scan integrity VALIDATED does not establish snapshot isolation or Uniship deletion
+semantics.** Equal totals and no observed duplicate cannot prove that no upstream
+row changed during pagination. No anti-join, missing streak, soft delete, restore,
+production registration or live request is authorized by this technical foundation.
+
+### Canonical query semantics —061 review v3
+
+A single immutable Uniship definition builds both the actual request and scope:
+/client/api/transition/, ecommerce=true, exactly IsEcommerce=1/condition=equal,
+empty q, rowsPerPage100, uniship-parcel-v1, FULL and the descriptive version
+UNISHIP_ECOMMERCE_V1. Existing canonicalPayload/payloadHash derives scope from
+these semantics, not just the version label. A filter/endpoint change therefore
+changes the admitted fingerprint; page1/page2 do not. Static hashing happens outside
+locks, and generic locked job-scope hashing keeps its2048 UTF-8 byte bound.
+Tests independently decode the real HTTP query and exercise semantic drift between
+admission/page processing. No additional SoftDeleted filter or provider request is
+introduced; captured samples and historical digests remain immutable.

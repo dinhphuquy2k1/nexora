@@ -5,6 +5,7 @@ export const RUNTIME_ROLE = "nexora_app";
 const SYNC_LOCK_FUNCTIONS =
   "public.sync_lock_user(uuid),public.sync_lock_epoch(uuid),public.sync_lock_connection(uuid,uuid),public.sync_lock_customer(uuid,uuid)";
 export const SYNC_GRANTS = {
+  sync_job_seen_pages: ["SELECT", "INSERT", "DELETE"],
   shipments: ["SELECT"],
   shipment_charges: ["SELECT", "DELETE"],
   shipment_milestones: ["SELECT", "DELETE"],

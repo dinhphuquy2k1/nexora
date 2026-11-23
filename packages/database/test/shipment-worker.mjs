@@ -28,10 +28,12 @@ try {
       stdio: "inherit",
       cwd: resolve("."),
     });
-  execFileSync(
-    process.execPath,
-    ["--test", "integration/shipment-integration.test.cjs"],
-    {
+  // Keep the existing timed Shipment capacity test isolated from observation benchmarks.
+  for (const file of [
+    "integration/shipment-integration.test.cjs",
+    "integration/sync-observation-integration.test.cjs",
+  ])
+    execFileSync(process.execPath, ["--test", file], {
       cwd: resolve("apps/api"),
       stdio: "inherit",
       env: {
@@ -40,8 +42,7 @@ try {
         API_TEST_RUNTIME_PASSWORD_FILE: passwordFile,
         STORAGE_ROOT: join(dir, "storage"),
       },
-    },
-  );
+    });
 } finally {
   await rm(dir, { recursive: true, force: true });
 }

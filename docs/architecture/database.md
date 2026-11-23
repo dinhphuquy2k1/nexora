@@ -485,3 +485,40 @@ Domain closed nested schema and compact1024-byte cap. SQL column privileges cann
 validate nested key semantics. Provisioning adds only these six provider-owned
 INSERT/UPDATE columns to the Sync worker; API remains read-only, Nexora-owned columns
 and all scope/fencing controls remain unchanged. No GIN or speculative filter index.
+
+## FULL scan observation — NEXORA-061
+
+Forward migration20261122000000_sync_observation adds `sync_job_seen_pages` and
+five nullable internal `sync_jobs` scalars: scan_integrity_status/reason,
+scan_observed_count, scan_reported_total and scan_scope_fingerprint. Existing jobs
+remain NULL; no historical seen set is invented. There is no Shipment schema change.
+
+Seen-page PK is(job_id,page_no), job FK CASCADE delete/NO ACTION update. It contains
+only internal source UUIDs, reported total and DB-created TIMESTAMPTZ(3). CHECKs
+require page>=1, total>=0, a nonnull one-dimensional/one-based UUID array without
+NULL elements, cardinality<=500 (empty allowed). Actual Uniship remains100/page.
+The PK is the sole index; no GIN. Array elements have no FK: the fenced repository
+resolves full scoped identity keys and the validator rechecks every UUID's scope.
+No raw upstream IDs, response or payload is stored in this table.
+
+Summary vocabulary uses backend Sync constants plus validated VARCHAR/CHECKs:
+VALIDATED/INCOMPLETE/UNTRUSTED, fixed reason codes, nonnegative counts and a nullable
+lowercase SHA-256 scope fingerprint. Coherence checks require a VALIDATED summary
+with known scope/total and observed=reported; unassessed fields remain NULL.
+Fingerprint binds trusted owner/provider/account/type/FULL and static scope/scheme/
+page size. It is consistency metadata, not an authorization token or snapshot proof.
+The existing explicit API presenter does not expose these internal columns.
+
+Worker nexora_sync receives SELECT/INSERT/DELETE on seen-pages only. No UPDATE,
+TRUNCATE, DDL, ownership or additional parent authority is granted. nexora_app has
+no seen-page privilege. Existing role provisioning clears/reapplies ACLs; real
+credential tests verify API denial and removal of obsolete manual grants on repeat.
+
+Page identity/seen/staging/checkpoint/final scan summary share one existing fenced
+transaction. Terminal success keeps its summary then removes temporary arrays.
+Failed/cancelled leftovers are conservatively assessed before bounded cleanup;
+QUEUED/RUNNING/WAITING data never expires by age. Existing worker cleanup locks at
+most20 terminal jobs with SKIP LOCKED and deletes at most500 pages/call independently
+of payload retention. Summary survives repeated/partial cleanup and job deletion
+cascades. A completed fetch may have VALIDATED integrity but a FAILED/CANCELLED job:
+future reconciliation must require SUCCEEDED AND VALIDATED. PR1 performs none.

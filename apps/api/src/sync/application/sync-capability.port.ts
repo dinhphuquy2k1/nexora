@@ -1,7 +1,12 @@
-import type { SyncDomainProcessor, SyncProvider } from "./sync.port";
+import type {
+  SyncDomainProcessor,
+  SyncProvider,
+  FullScanContract,
+} from "./sync.port";
 import type { SyncType } from "../domain/sync.constants";
 
 export interface SyncCapability {
+  readonly fullScan?: FullScanContract;
   readonly provider: SyncProvider;
   readonly strategy: NonNullable<ReturnType<SyncProvider["strategy"]>>;
   readonly processor: Pick<SyncDomainProcessor, "version" | "supports">;
