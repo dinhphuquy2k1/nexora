@@ -415,7 +415,7 @@ it("desktop and mobile distinguish unavailable data from an available empty resu
 });
 
 describe("Retail Packages — Visual Parity (M3 v4)", () => {
-  it("Reload button renders RefreshCw icon with label 'Làm mới' even when disabled", () => {
+  it("Reload button preserves icon/label and disables during initial loading", () => {
     const { RetailPackageListPage } = loadComponent(
       new URL(
         "../features/retail-packages/RetailPackageListPage.tsx",
@@ -430,7 +430,7 @@ describe("Retail Packages — Visual Parity (M3 v4)", () => {
     );
     assert.match(
       html,
-      /<button[^>]*disabled[^>]*aria-label="Làm mới dữ liệu \(chưa khả dụng\)"|<button[^>]*aria-label="Làm mới dữ liệu \(chưa khả dụng\)"[^>]*disabled/,
+      /<button[^>]*disabled[^>]*aria-label="Làm mới dữ liệu"|<button[^>]*aria-label="Làm mới dữ liệu"[^>]*disabled/,
       "Reload button is disabled when unavailable",
     );
     assert.match(
@@ -847,4 +847,41 @@ it("Retail packing columns render enabled, disabled and unknown service facts", 
       assert.equal(cell[1].trim(), value === true ? "✓" : "—");
     }
   }
+});
+
+it("Retail ready toolbar enables manual refresh with an accurate accessible name", () => {
+  const Page = listReadComponent({
+    shipments: [],
+    pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+  });
+  const html = render(React.createElement(Page));
+  const button = html.match(
+    /<button[^>]*aria-label="Làm mới dữ liệu"[^>]*>/,
+  )?.[0];
+  assert.ok(button);
+  assert.doesNotMatch(button, /disabled|title=/);
+});
+
+it("Retail pagination never renders a reversed or fabricated range during recovery", () => {
+  const { RetailPagination } = loadComponent(
+    new URL(
+      "../features/retail-packages/RetailPagination.tsx",
+      import.meta.url,
+    ),
+  );
+  const props = {
+    page: 5,
+    pageSize: 20,
+    total: 78,
+    unavailable: false,
+    onPage() {},
+    onSize() {},
+  };
+  const html = render(React.createElement(RetailPagination, props));
+  assert.doesNotMatch(html, /81–78|61–78/);
+  assert.match(html, /paginationRange[^>]*>—</);
+  const empty = render(
+    React.createElement(RetailPagination, { ...props, page: 1, total: 0 }),
+  );
+  assert.match(empty, /0–0/);
 });

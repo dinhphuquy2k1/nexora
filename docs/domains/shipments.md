@@ -646,3 +646,12 @@ invented. Parent manual refresh remounts an open detail read; detail keys includ
 session epoch. Any revalidation NOT_FOUND or denial clears retained detail even when
 a sibling transport error arrives first. Data may remain from its last successful
 read until an actual revalidation occurs; no immediate push-update claim is made.
+The Retail toolbar Làm mới and error Thử lại share list/statistics/open-detail
+revalidation; they only read Nexora data, never start a provider SyncJob or reload
+the document. Invalid/unsupported queries and pending reads disable toolbar refresh.
+Search, stage, legacy inert filters and page size remain unchanged. A successful
+current-query/API/session response whose pagination.totalPages no longer covers
+the current page replaces the URL with the last valid page (at least1) and fetches
+it; retained loading/error totals and uncommitted search never drive recovery.
+During an out-of-range transition the range is unavailable, never reversed or a
+fabricated valid-page range. User navigation retains existing Back/Forward behavior.

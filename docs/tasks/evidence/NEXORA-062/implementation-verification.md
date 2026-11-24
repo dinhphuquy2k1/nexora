@@ -281,3 +281,195 @@ lock observation, rollback/retry and all functional assertions. Diagnostic read
 context is explicit; actual ACL certification remains in signed cases. Production
 source/schema/grants are byte-identical to30547d4. Final targeted command34/34 and
 independent workflow review PASS; new hosted checks required on the fixture-fix HEAD.
+
+## BOUNDED final review correction —2026-11-24, STOP B
+
+Owner limits corrections to FIX01 toolbar refresh, FIX02 pagination recovery and
+FIX03 docs/evidence. Overall SIGNIFICANT/v3 contract remains unchanged; correction
+plan and eight-field reuse audit were recorded in active task before source/tests.
+No Batch Verification or algorithm/threshold/schema/grant/adapter/engine/API/SDK/
+shared/dependency/workflow changes versus reviewed aa743e2. Frozen v1/v2/v3 SHA
+checks match historical values. Production activation/live provider/merge NOT RUN.
+
+Local provenance: source HEAD aa743e2d9d5cc8649a5859b705a1b609dc01b1ea plus
+uncommitted bounded correction working tree, branch feature/full-sync-missing-reconciliation,
+Node24.22.1/pnpm10.34.6/Linux/Chromium, date2026-11-24 Asia/Ho_Chi_Minh;
+recorded2026-11-24T06:32:35+00:00. No commit or push of these corrections occurred. Local commands
+have no merge checkout/run/job/attempt; hosted metadata below is historical only.
+
+| Claim                                      | Evidence                                                                                                                                                                                                                                                                                                                                                      | Date       | Result |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Refresh/range RED                          | node --test apps/web/test/retail-packages.test.mjs on reviewed production page/pager: disabled toolbar/accessibility and actual81–78 range regressions fail; existing label expectation intentionally updated                                                                                                                                                 | 2026-11-24 | FAIL   |
+| Recovery RED                               | New page-effect12-case suite executed against original aa743e2 page restored temporarily;3 recovery cases fail,9 negative cases pass; corrected source restored in finally                                                                                                                                                                                    | 2026-11-24 | FAIL   |
+| Browser RED                                | Built actual TSX/CSS with review fixture, existing Retail CDP session: ready toolbar lookup undefined versus expected enabled; no source-text-only click proof                                                                                                                                                                                                | 2026-11-24 | FAIL   |
+| Local test environment correction          | Initial quality run failed because API_INTERNAL_URL absent; no product change, set loopback upstream for supported host quality                                                                                                                                                                                                                               | 2026-11-24 | FAIL   |
+| New keyboard test correction               | First expanded browser run did not activate native Enter because CDP keyDown lacked text carriage-return; own test corrected, no assertion/timeout weakening                                                                                                                                                                                                  | 2026-11-24 | FAIL   |
+| Targeted GREEN                             | node --test apps/web/test/retail-\*.test.mjs150/150 PASS before adding12-case recovery suite; recovery suite12/12 PASS on corrected page, independently repeated12/12                                                                                                                                                                                         | 2026-11-24 | PASS   |
+| Full quality GREEN                         | API_INTERNAL_URL=http://127.0.0.1:4000 pnpm quality exit0: format/lint/boundaries/preflight/docs/typecheck/contracts/build and891 tests (scripts182,API278,Web386,shared2,UI37,database6),0 skipped                                                                                                                                                           | 2026-11-24 | PASS   |
+| Extra governance tests                     | pnpm test:docs10/10; pnpm test:preflight24/24; pnpm test:lint56/56, all exit0                                                                                                                                                                                                                                                                                 | 2026-11-24 | PASS   |
+| Existing Retail browser GREEN              | node scripts/build-retail-fixture.mjs then existing verifyRetailBrowser fixtureOnly session using temporary copy of existing pager CDP launcher; RETAIL_REFRESH_PAGINATION_PASS and RETAIL_FULL_BROWSER_PASS, all existing six-viewport checks retained; no new committed launcher/framework                                                                  | 2026-11-24 | PASS   |
+| Independent code review                    | Separate read-only final_review agent: no P1/P2/P3 production finding, independent recovery12/12 and diff-check PASS; initial stage/filter/keyboard coverage gaps resolved and expanded browser executed GREEN                                                                                                                                                | 2026-11-24 | PASS   |
+| Full signed PostgreSQL integration —STOP B | pnpm test:integration through owned signed PostgreSQL17.11 context,227 tests226 PASS/1 FAIL/0 skipped,338339.93325ms,exit1. Existing integration/identity-concurrency.test.cjs file-level test failed at3108.016051ms; no actionable stage/root cause emitted. Unchanged test/backend. Do not infer environment cause, retry or fix it without owner decision | 2026-11-24 | FAIL   |
+| Owned infrastructure cleanup               | Verified task nonce/container labels before removing only task PostgreSQL/private state; no user volume reset                                                                                                                                                                                                                                                 | 2026-11-24 | PASS   |
+
+Browser assertions: actual pointer toolbar click and Enter activation; refreshed rows,
+stats and pagination;5→4(total78)/1(total15)/1(total0) with exactly one corrected-page
+request,replaceState and no document reload; valid page2 unchanged; retained loading/
+transient failure do not navigate, retry shares handler; current search, non-all
+stage, legacy inert filter and size retained; pending search wins, Back/Forward;
+invalid/unsupported query disabled and zero list requests. Native modal intentionally
+blocks background pointer, so open-detail branch dispatches actual toolbar DOM click,
+then verifies new detail/history404 clears cached detail. Synthetic restore retains
+same IDs; genuine backend hide/restore tests remain in unchanged integration suite.
+All actual new corrections are read-only Nexora UI; no provider SyncJob/live traffic.
+
+Historical reviewed-head hosted evidence was re-read with gh API/job steps/log ZIP,
+not inferred from YAML. Source aa743e2d9d5cc8649a5859b705a1b609dc01b1ea,
+actual merge checkout772890c205014f1ce56421eaf0162c18a1e5ca74; all attempt1,
+created2026-11-23T02:57:06Z. These do NOT certify uncommitted corrections:
+
+| Claim                                | Evidence                                                                                                                                                                                                                                                    | Date       | Result |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Reviewed-head Preflight              | run45103084523 job137458138850 SUCCESS, finished02:57:21Z; governance executed, same merge checkout in log                                                                                                                                                  | 2026-11-23 | PASS   |
+| Reviewed-head Sync Targeted          | run45103084484 job137458138835 SUCCESS,finished03:00:29Z;34Sync/policy units,11Uniship units,61Sync PG,59 signed Uniship/observation/reconciliation per previously retained logs                                                                            | 2026-11-23 | PASS   |
+| Reviewed-head Foundation             | run45103084471 job137458138315 SUCCESS,finished03:15:23Z;steps4–10 actually executed PASS. Step4 ordinary225 integration0skip plus signed47 observation/reconciliation0skip and migration23; unit877. Failure-only diagnostics17/18 SKIPPED; cleanup19 PASS | 2026-11-23 | PASS   |
+| Reviewed-head optional selector only | run45103084527 select job137458138509 SUCCESS; foundation-e3 job137458206711 and https-stress job137458207375 SKIPPED. No optional stress execution is claimed                                                                                              | 2026-11-23 | PASS   |
+
+Required current correction HEAD checks/PR metadata publication: NOT RUN due STOP B.
+Canonical sh scripts/quality-docker.sh local: NOT RUN; only postgres image available,
+less than1GiB disk remaining while host build ran; canonical full tool/runtime image
+stack absent. No unisolated Compose stack launched, images/volumes deleted or native
+signed protocol bypassed to fit. Historical hosted canonical result is not substitute
+for new final HEAD. Task remains VERIFICATION PENDING / PARTIALLY VERIFIED.
+Review recommendation NOT READY until existing integration failure is resolved by
+owner-directed next action and bounded changes are published/verified on exact HEAD.
+Historical Foundation45101495093 FAIL and all previous evidence remain untouched.
+
+## Owner-authorized bounded integration investigation —2026-11-24
+
+Owner permits one working-tree targeted execution and, only if it fails, one
+isolated clean-baseline targeted execution. Both allowances are now consumed;
+full-suite subsequent execution is NOT RUN because targeted did not pass. No
+Identity/test/timeout/concurrency/workflow/dependency/schema/reconciliation edits.
+All three Retail corrections remain in the same uncommitted working tree. Source
+HEAD aa743e2d9d5cc8649a5859b705a1b609dc01b1ea; current bounded Web/tests/docs diff
+preserved. No merge checkout/run/job/attempt for local commands. Historical full
+226/227 FAIL, Foundation FAILs and earlier PASS evidence remain unchanged.
+
+### Retained-log and environment inspection
+
+Original full command was pnpm test:integration through the existing private signed
+owned-cluster wrapper. Exit1;227 tests,226 PASS,1 FAIL,0 skipped,total338339.93325ms;
+identity-concurrency file3108.016051ms. Retained stdout/stderr has no
+IDENTITY_POSTGRES_TEST_FAILED stage=, stack, signal, PostgreSQL error code or
+migration/cleanup diagnostic. The spec reporter only says test failed; duration
+alone cannot prove timeout/process signal or root cause. Current test still has
+120000ms overall and60000ms migration subprocess limits; neither was changed.
+
+At investigation start: Node24.22.1,pnpm10.34.6, Linux, Docker PostgreSQL17.11 image
+available;1.4GiB free disk,305914 free inodes at subsequent check, cgroup RAM limit
+8589934592 bytes, current memory initially low, memory oom/oom_kill counters0;
+CPU quota200000/100000 (2CPU), affinity reports3. No existing running container.
+Prisma facade loads and the current API compiled app exists from previous quality;
+no backend source differs from HEAD. An initial readiness stat used the wrong
+Prisma generated-file path and stopped before any test or container creation;
+actual generator is prisma-client-js, not a custom generated/client.ts output.
+
+The existing launcher creates a nonce-labeled task container with private credentials,
+loopback randomized port, tmpfs PGDATA and signed owned-database marker. Actual
+migrations and the prior expected legacy role preparation execute. Container VFS
+layers reduce available disk to488MiB; baseline checkout/build needs only about
+10MiB tracked source plus3MiB dist, so fits without deleting user data. No other
+quality/browser job ran concurrently. Current cgroup counters remain oom0/kill0;
+these new-runtime counters do NOT establish resources at original failure time.
+
+### Executed comparison
+
+| Claim                                         | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                         | Date       | Result |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Working-tree targeted execution, allowance1/1 | From apps/api, node --test --test-reporter=spec integration/identity-concurrency.test.cjs via existing signed wrapper; source aa743e2 plus preserved bounded Web/docs/tests diff; file3948.909012ms,total3957.019655ms,exit1,1 test0PASS1FAIL0skip; generic test failed,stage/signal/code unavailable                                                                                                                            | 2026-11-24 | FAIL   |
+| Clean baseline independent build/resolution   | Separate detached task worktree aa743e2, no source edits; freshly compiled its own shared/database/API with pinned tsc. Workspace require.resolve points to baseline packages/database/dist/index.js and baseline packages/shared/dist/index.js; external pinned dependencies and generated Prisma cache reused with byte-identical baseline schema/lockfile. No app/workspace compiled artifact resolves to corrective worktree | 2026-11-24 | PASS   |
+| Baseline targeted execution, allowance1/1     | Same node --test --test-reporter=spec integration/identity-concurrency.test.cjs from baseline apps/api, same PostgreSQL17.11 signed context/policy, new test-owned database, unchanged assertions/limits. File3215.93201ms,total3223.557663ms,exit1,1 test0PASS1FAIL0skip; same generic signature,stage/signal/code unavailable                                                                                                  | 2026-11-24 | FAIL   |
+| Configuration prerequisite diagnostic         | Read-only loadConfig with inherited environment and synthetic placeholder database URL emits exactly Invalid configuration: STORAGE_ROOT; safe presence check confirms STORAGE_ROOT absent. Existing private wrapper injects signed DB credentials but no STORAGE_ROOT; this readiness omission was missed before targeted execution                                                                                             | 2026-11-24 | FAIL   |
+| Owned cleanup and correction preservation     | Verified container nonce/labels before cleanup; removed only task container/private state and explicitly created detached baseline worktree. Original correction tree preserved; free disk returns1.4GiB. Source diff for Identity/API/database/SDK/shared/dependencies/workflows remains empty versus aa743e2                                                                                                                   | 2026-11-24 | PASS   |
+
+Execution window2026-11-24T06:46Z–07:01:33Z (Asia/Ho_Chi_Minh13:46–14:01:33);
+local logs did not record individual test start timestamps, so no finer times are
+invented. Detailed sanitized reporter logs stay private/temporary, not in Git.
+
+### Diagnosis and stop decision
+
+CONFIRMED prerequisite defect: current local invocation lacks required STORAGE_ROOT.
+apps/api/src/config.ts:25 requires a canonical absolute storage path; config.ts:49
+validates it. AppModule's CONFIG factory calls loadConfig; the Identity test creates
+NestFactory with logger:false at HTTP_RBAC (test lines212–215). Pinned Nest11's
+exceptions-zone default teardown calls process.exit(1), consistent with a generic
+file-level failure without the test catch/stage message. This is a plausible
+explanation of the signature, not an observed stage or causal counterfactual.
+The exact failure stage/direct cause of both executions and the historical full
+failure remain UNKNOWN; no test with corrected environment was authorized/executed.
+Do not label Identity flaky or claim a causal fix.
+
+The clean baseline FAIL establishes the observed failure outside the three Retail
+fixes under this same incomplete local environment; it does not certify that the
+production Identity implementation is defective, nor that the Web fixes are verified
+by full integration. Missing STORAGE_ROOT means the intended prerequisite-preserving
+execution was not achieved. Record this limitation rather than treating either run
+as a valid completed verification of Identity contracts.
+
+STOP at owner decision §8B/§9: no further targeted/full execution, no Identity or
+assertion changes, no commit/push/CI/PR metadata update. Proposed next bounded action
+requires owner authorization: supply a canonical task-owned STORAGE_ROOT using the
+existing prepared storage directory, validate all required config without printing
+secrets, then one targeted run and (only if PASS) one full signed suite. Retain all
+current FAILs. No production activation/live request/merge occurred.
+
+## STORAGE_ROOT controlled verification —2026-11-24, delivery resumed
+
+Owner explicitly grants one additional targeted run with valid STORAGE_ROOT and
+one full signed suite only if targeted PASS. Both executions below use unchanged
+source HEAD aa743e2d9d5cc8649a5859b705a1b609dc01b1ea plus the same bounded
+Web/tests/docs corrections. No API/backend/test assertion/timeout/migration/grant/
+contract/dependency/workflow change. All historical STOP/FAIL sections above are
+retained as checkpoints; this subsequent PASS authorizes delivery to resume.
+
+Existing owned signed PostgreSQL17.11 launcher/preparation reused, with only
+STORAGE_ROOT=/tmp/nexora062-pg/storage added to the invocation. Private parent is
+nonce-owned0700; disposable absolute canonical directory created within it, no
+user/production storage. Readiness before test validates actual loadConfig and
+loadSyncConfig, two trusted origins, actual LocalStorage write/read/delete and
+liveAuthorized=false. Lazy keyring contract is unchanged; existing MFA fixture
+provides its synthetic identity keys before Nest initialization. Prisma facade and
+compiled API present; no backend source drift. Current environment has Node24.22.1,
+pnpm10.34.6, CPU quota2,8GiB cgroup RAM, no OOM counter increment; free disk1.4GiB
+before container/488MiB during, stable. No concurrent quality/browser run.
+
+| Claim                              | Evidence                                                                                                                                                                                                                                                                                                                                 | Date       | Result |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Complete prerequisite readiness    | Existing signed wrapper, actual API/Sync config validation PASS; LocalStorage.isReady write/read/delete true; trustedOriginCount2; live authorization false. Exit0 before targeted execution                                                                                                                                             | 2026-11-24 | PASS   |
+| Controlled targeted Identity       | From apps/api, STORAGE_ROOT set, node --test --test-reporter=spec integration/identity-concurrency.test.cjs via existing signed wrapper;1/1 PASS,0 skipped,exit0; actual test2513.538976ms,total3224.174957ms; completed2026-11-24T09:05:35Z                                                                                             | 2026-11-24 | PASS   |
+| Controlled full signed integration | Same valid storage/signed context, pnpm test:integration, unchanged discovery/concurrency/assertions/limits;227/227 PASS,0 skipped,exit0,total260642.545202ms; launched2026-11-24T09:05:46Z, completed09:10:08Z (16:05:46–16:10:08 Asia/Ho_Chi_Minh). Actual Identity/RBAC/MFA and signed restricted-role/reconciliation suites executed | 2026-11-24 | PASS   |
+| Owned cleanup                      | Verified nonce/labels, removed only task PostgreSQL/private state including disposable storage; disk returns1.4GiB. No user volumes affected                                                                                                                                                                                             | 2026-11-24 | PASS   |
+| Independent bounded code review    | Separate delivery_review agent re-read actual source/tests/browser logs, verified targeted1/1 and no P1/P2/P3 code findings. Protected source/dependency/workflow diff empty and v3 SHA matches; final documentation/quality/hosted provenance separately required                                                                       | 2026-11-24 | PASS   |
+
+Confirmed fact: earlier local invocation lacked mandatory configuration. Subsequent
+controlled targeted and full PASS support that omission as the failure explanation;
+no historical exact stage was observed, so do not claim absolute causal proof, an
+Identity production fix or a flaky test. Execution budget respected: exactly one
+new targeted and one full run, no baseline/retry. No generated logs/media committed.
+
+Final source/docs quality and exact-final-HEAD hosted checks remain publication
+gates. Final CI provenance is recorded in PR61 description after runs finish,
+including source/merge checkout/run/job/attempt/steps/counts; do not create another
+commit solely to claim its own prior CI. Repository evidence describes the local
+working tree before publication, while PR description binds the resulting commit.
+Production activation, live provider requests and merge remain NOT RUN.
+
+### Final local quality checkpoint —2026-11-24
+
+| Claim                               | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                               | Date       | Result |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Final corrected source/docs quality | API_INTERNAL_URL=http://127.0.0.1:4000 pnpm quality exit0 after controlled integration evidence update: format/lint/boundaries/preflight/docs/typecheck/contracts/build and891 tests,0 skipped (scripts182/API278/Web386/shared2/UI37/database6). pnpm test:docs10/10,test:preflight24/24,test:lint56/56 PASS. Source aa743e2 plus bounded correction working tree; final CI provenance will bind published commit in PR61 description | 2026-11-24 | PASS   |
+
+This evidence-only checkpoint addition receives final formatting/docs/preflight checks
+before commit; no source or test change follows the successful quality run.

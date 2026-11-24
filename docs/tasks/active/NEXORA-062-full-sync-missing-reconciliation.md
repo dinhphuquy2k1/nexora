@@ -37,6 +37,41 @@ Shipment pure policy/set-based persistence and current reads/refresh; no second 
 | Risks                    | Lease expiry/rollback, baseline poisoning, scope transition, mass-hide/overflow, stale UI cache and grants                                          |
 | Verification             | RED/GREEN, signed genuine PG/migrations/parity/races/API/UI,1k/10k/100k plans, quality and final-HEAD CI                                            |
 
+## BOUNDED final-review correction plan —2026-11-24
+
+Recorded before corrective source/tests; reviewed HEAD aa743e2d9d5cc8649a5859b705a1b609dc01b1ea,
+PR61 OPEN, branch feature/full-sync-missing-reconciliation. Overall classification
+SIGNIFICANT remains; these corrections are BOUNDED within v3 section9 minimal
+existing refresh plumbing/read contract. No material design change or new snapshot;
+v1–v3 bytes/digests remain immutable. Owner accepts initial eventual consistency;
+all v3 reconciliation/safety/thresholds stay unchanged.058 prerequisites remain.
+
+Read-only inspection: RetailPackageListPage toolbar disabled despite error retry
+refresh/detailRevision; RetailPagination can render81–78; useRetailQuery boolean
+means reset, object replace uses replaceState. useShipmentRead binds ready data to
+query/API/session; unsupported query is idle. Search draft/debounce must gate recovery.
+Search scope: these components, useShipmentRead/useRetailQuery/query/presentation,
+Retail hook tests, retail-entry/createRetailFixtureApi, existing CDP/loading checks,
+AI governance/ADR009, Web AGENTS/Next local navigation guides, Shipment/Sync/Testing,
+058/062 and frozen v3/evidence. No unresolved PLAN ISSUE.
+
+| Field                    | Refresh                                                                                                       | Pagination and verification                                                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Component                | Toolbar/retry local handler                                                                                   | Current-response page recovery and safe range                                                                                                     |
+| Existing implementations | apps/web/features/retail-packages/RetailPackageListPage.tsx detailRevision; useShipmentRead.ts refresh/fences | useRetailQuery.ts change object replace; RetailPagination.tsx Pager; scripts/retail-browser-checks.mjs; apps/web/test/fixtures/retail-entry.tsx   |
+| Domain owner             | Retail presentation; Shipment remains read-only                                                               | Retail presentation and test-owned synthetic fixture                                                                                              |
+| Reuse alternatives       | Existing handler versus reload/new cache                                                                      | Existing change/Pager/CDP versus global hook/framework                                                                                            |
+| Selected approach        | Shared callback calls refresh and increments detailRevision; valid nonloading toolbar                         | Ready current response totalPages only; skip uncommitted search; replace page while preserving query; unavailable range while out-of-range        |
+| Rationale                | Smallest correction, existing lifecycle and drawer key                                                        | Correct rows/navigation without fake page range or global abstraction                                                                             |
+| Risks                    | Same-key stale retention, session/API replacement, unsupported query                                          | Stale totals, navigation loop, debounce and history regression                                                                                    |
+| Verification             | Real toolbar click/keyboard, rows/stats/total/detail404/retry plus existing hook fencing                      | RED/GREEN5→4/1/empty, valid/loading/error/stale states, replace/preserve/back/forward/debounce in existing browser harness; quality/exact-HEAD CI |
+
+Order: add behavioral regressions and run RED; wire shared refresh; add guarded
+recovery/safe range; run GREEN/browser acceptance; update Shipment/Testing/task/evidence;
+quality and available owned integration/Docker; independent review; commit/push PR61,
+inspect exact final HEAD checks and update five metadata fields via gh API. No merge,
+provider SyncJob/live requests/backend/schema/grants/contracts/dependency/workflow edits.
+
 ## Plan
 
 1. Verify main/PR60/taskID and close061 in first commit; freeze formatted plan/SHA.
@@ -59,6 +94,8 @@ Documentation Impact: REQUIRED
 - Shipment hidden/streak lifecycle, baseline/safety/scope and job summary.
 - Atomic finalization ordering, scoped column grants and default read visibility.
 - UI revalidation contract, migrated/role/concurrency/performance verification.
+- Final review: enabled toolbar/retry list/stats/open-detail refresh, current-response
+  pagination recovery using replace and safe transient range; regression/CI provenance.
 
 ### Canonical owners
 
@@ -169,3 +206,67 @@ Corrected fixture acceptance: unsigned45/45 and signed47/47 PASS,0 skipped,
 78894.977609/85498.858689ms. Production source/schema/grants unchanged from30547d4;
 only verification-context plumbing/workflow paths and curated evidence change.
 The first FAIL remains historical. Fresh new-HEAD Preflight/Sync/Foundation required.
+
+## Final review correction checkpoint —2026-11-24
+
+FIX01/02 implemented in uncommitted working tree; FIX03 canonical Shipment/Testing,
+correction plan and evidence updated. Shared refresh callback, current-ready
+pagination.totalPages replacement, safe transient range; no reconciliation changes.
+Immutable v3 and earlier hashes match. Independent code review no P1/P2/P3 findings.
+
+| Claim                                | Evidence                                                                                                                                                                                                                                                                         | Date       | Result |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Bounded correction verification      | [Implementation evidence](../evidence/NEXORA-062/implementation-verification.md#bounded-final-review-correction-2026-11-24-stop-b): actual RED/GREEN,891 quality tests, docs10/preflight24/lint56 and full Retail Chromium PASS; source aa743e2 plus uncommitted correction tree | 2026-11-24 | PASS   |
+| Existing integration failure —STOP B | Signed owned PostgreSQL pnpm test:integration226/227 PASS, existing identity-concurrency.test.cjs FAIL; cause unknown, no rerun/fix/commit/push/new CI or PR metadata update. Task-owned container/private state cleaned; owner decision required before continuing              | 2026-11-24 | FAIL   |
+
+Status remains VERIFICATION PENDING / PARTIALLY VERIFIED; no task closure or merge.
+Reviewed-head historical three workflows PASS; they do not verify new corrections.
+
+## Bounded investigation checkpoint —2026-11-24
+
+Owner-authorized one targeted execution and one clean-baseline comparison consumed.
+Working tree targeted FAIL3948.909012ms; separately built aa743e2 baseline FAIL
+3215.93201ms, same generic signature. Full subsequent suite NOT RUN per decision
+branch. Confirmed local prerequisite omission: STORAGE_ROOT absent and read-only
+loadConfig validation rejects it. This was missed in initial readiness checks;
+exact observed failure stage/direct cause remains UNKNOWN. No environment-corrected
+retry or Identity fix is claimed. [Evidence](../evidence/NEXORA-062/implementation-verification.md#owner-authorized-bounded-integration-investigation-2026-11-24)
+retains command/source/build isolation/resource/cleanup details and historical FAILs.
+
+| Claim                                     | Evidence                                                                                                                                                                                                                                     | Date       | Result |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Targeted and clean baseline investigation | Existing signed owned PostgreSQL wrapper, unchanged tests/limits; each1test0PASS1FAIL0skip,exit1; failure observed outside corrective Web diff, root cause UNKNOWN, required local STORAGE_ROOT missing                                      | 2026-11-24 | FAIL   |
+| Scope and infrastructure preservation     | Three Retail fixes retained; Identity/test assertions/reconciliation/schema/grants/contracts/dependencies/workflows unchanged; only task PostgreSQL/private state and separate baseline cleaned. No new commit/push/CI/live activation/merge | 2026-11-24 | PASS   |
+
+Status remains VERIFICATION PENDING / PARTIALLY VERIFIED. Delivery NOT READY;
+owner decision required to authorize any further environment-corrected execution.
+
+## Controlled verification supersedes STOP checkpoint —2026-11-24
+
+Owner granted one additional targeted run with complete task-owned STORAGE_ROOT,
+then one full signed suite only after targeted PASS. Both now PASS: Identity1/1,
+full integration227/227,0 skipped, unchanged assertions/timeouts/backend. API/Sync
+configuration and actual disposable storage readiness validated before test.
+[Controlled evidence](../evidence/NEXORA-062/implementation-verification.md#storage-root-controlled-verification-2026-11-24-delivery-resumed)
+retains exact commands/durations/environment/timestamps and all historical FAILs.
+Missing prerequisite is confirmed; subsequent PASS supports the hypothesis without
+claiming absolute causal proof or an Identity implementation fix. Owned cleanup done.
+
+| Claim                              | Evidence                                                                                                                                                                    | Date       | Result |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Controlled Identity and full suite | Targeted1/1 PASS,3224.174957ms total, then full signed227/227 PASS,260642.545202ms,0 skipped; source aa743e2 plus preserved bounded corrective diff,2026-11-24T09:05–09:10Z | 2026-11-24 | PASS   |
+
+Delivery resumes within existing three-FIX scope. Final quality/local documentation
+checks and exact-final-HEAD Preflight/Sync/Foundation remain gates. Final hosted CI
+provenance is appended to PR description, avoiding evidence-only commit loops.
+Task stays active VERIFICATION PENDING / PARTIALLY VERIFIED at this pre-publication
+checkpoint; final CI results belong to PR61's exact-source checkpoint. No merge/live.
+
+### Final local quality checkpoint —2026-11-24
+
+| Claim                               | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                               | Date       | Result |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Final corrected source/docs quality | API_INTERNAL_URL=http://127.0.0.1:4000 pnpm quality exit0 after controlled integration evidence update: format/lint/boundaries/preflight/docs/typecheck/contracts/build and891 tests,0 skipped (scripts182/API278/Web386/shared2/UI37/database6). pnpm test:docs10/10,test:preflight24/24,test:lint56/56 PASS. Source aa743e2 plus bounded correction working tree; final CI provenance will bind published commit in PR61 description | 2026-11-24 | PASS   |
+
+This evidence-only checkpoint addition receives final formatting/docs/preflight checks
+before commit; no source or test change follows the successful quality run.

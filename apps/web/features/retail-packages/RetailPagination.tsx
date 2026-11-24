@@ -26,7 +26,7 @@ export function RetailPagination({
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
-  const rangeDisplay = unavailable ? "—" : `${start}–${end}`;
+  const rangeDisplay = unavailable || page > pages ? "—" : `${start}–${end}`;
   return (
     <div className={styles.paginationBar}>
       <Pager

@@ -1240,6 +1240,10 @@ allows restricted nexora_sync provisioning under the existing fixture pattern.
 Native PostgreSQL and hosted Docker outcomes are recorded separately. No assertion
 or acceptance gate is skipped; an unavailable local Docker run is NOT RUN.
 Fixture/mock PASS never verifies live Uniship semantics or production activation.
+Host integration that initializes the actual Nest AppModule also requires a canonical
+absolute, writable, task-owned STORAGE_ROOT. Validate loadConfig/loadSyncConfig and
+storage readiness before executing tests; the database URL alone is insufficient.
+Use disposable synthetic storage and ownership-checked cleanup, never user storage.
 
 Sync Targeted also runs the existing Sync suites and two separately named Uniship
 steps sequentially after its shared API build:
@@ -1465,6 +1469,19 @@ Actual worker/API passwords prove narrow column writes and repeat provisioning
 removes obsolete broad ACLs. Unsigned contexts do not certify restricted roles.
 Shipment HTTP tests exercise list/search/stats/paging/detail/history hiding/restoring;
 Retail hook regressions exercise sibling404 races/session fencing and actual refresh.
+Retail page-effect regressions cover current successful totalPages recovery5→4/1/empty
+and reject valid-page/loading/error/idle/invalid/pending-search/old-page/size/no-data
+snapshots. SSR verifies toolbar state and unavailable out-of-range versus0–0 empty.
+The existing Retail CDP session imports scripts/retail-refresh-checks.mjs, using
+retail-entry.tsx fixtureMode=refresh with a mutable synthetic100-row population.
+Actual pointer/Enter toolbar activation and retry verify rows/stats/totals, exactly
+one replacement-page read, replaceState, stage/search/inert-filter/size preservation,
+loading/error retention, debounce and Back/Forward. Open native-modal drawer refresh
+uses the real toolbar DOM click (background pointer intentionally blocked by modal)
+and verifies fresh detail/history404 clears old content. No live provider requests
+or SyncJob writes are made. This extends the same launcher/session and introduces
+no testing framework. Build with node scripts/build-retail-fixture.mjs; canonical
+Foundation runtime smoke invokes the existing Retail browser checks.
 
 SHIPMENT_RECONCILIATION_BENCHMARK uses owned synthetic1k/10k/100k datasets and shared
 production SQL builders: candidate facts/locks and mutation plus diagnostic anti-join/
