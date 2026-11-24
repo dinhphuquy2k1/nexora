@@ -1,6 +1,6 @@
 # NEXORA-058 — Uniship controlled activation
 
-Status: PLANNED
+Status: IN PROGRESS
 Capability: PLANNED
 Verification: NOT VERIFIED
 
@@ -12,18 +12,78 @@ Future task named by the owner in NEXORA-056. Retains external prerequisites fro
 
 ## Scope
 
-UNISHIP_LIVE_ACTIVATION and remaining ADR007/live-environment, operational custody, hard-gate and owner-controlled activation prerequisites. Requires verified adapter contracts from NEXORA-057 and explicit activation evidence; no implementation or live request is authorized by this planning stub.
+Technical readiness for one scoped Uniship SHIPMENT FULL production composition,
+existing Carrier recovery with restricted Worker custody, cross-process per-request
+pacing, cancellation/lifecycle fencing, manual/AUTO gating, strict optional existing
+reconciliation policy and operational runbook/evidence. Latest owner implementation
+prompt2026-11-24 supersedes the earlier planning-only stub. External live gate stays
+closed; no live request, activation, thresholds or merge authorized.
 
-Complete the required SIGNIFICANT pre-code review and versioned plan before starting.
-This is a planning stub only; no snapshot or runtime implementation is claimed.
+## Design Review & Reuse Decision
+
+Task ID: NEXORA-058
+Classification: SIGNIFICANT
+Plan revision: rev-2026-11-24-controlled-activation-v1
+Reviewed baseline: 5edbcfe1609562f9eb5b6c156cf5cec68b5b71fa
+Branch: feature/uniship-controlled-activation
+Design Snapshot: docs/tasks/design-reviews/NEXORA-058-rev-2026-11-24-controlled-activation-v1.md
+Design SHA-256: 185ac494aab2afc766d19b26bfa33913388db64869f86408a00256882a8652af
+
+Snapshot records12-section ownership/security/interfaces/migration/verification plan
+and eight-field reuse audit before source/tests. Reuse existing Carrier lifecycle/
+vault/audit/crypto, Sync registry/fences/worker and Shipment policy/binding. Scoped
+Worker operations replace broad privilege assumptions; private recovery proof is
+necessary to distinguish self-claim from concurrent reconnect after version change.
+No owner design approval gate is introduced. Actual external activation is separate.
+
+| Component             | Existing Implementations                                                                             | Domain Owner                                                         | Reuse Alternatives                                            | Selected Approach                                                                                             | Rationale                                                  | Risks                                                | Verification                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| Runtime/recovery      | sync-runtime-capabilities.ts; app.module.ts; SyncWorkerModule; Carrier lifecycle/vault/adapter/audit | Sync composition; Carrier custody                                    | Shared helper versus copying lifecycle/API module             | One declaration, role-specific construction, existing orchestration                                           | Preserve budgets/CAS/AAD and process isolation             | Secret authority, claim provenance, shutdown         | Real role/mock Nest runtime, recovery/disable/takeover races         |
+| HTTP/admission/policy | UnishipHttpClient; PostgresProviderBudget; SyncRepository; reconciliationPolicy                      | Carrier transport/rollout; Sync eligibility; Shipment reconciliation | Existing slots/process Map versus separate scoped SQL permits | Keep acquisition slots; per-dispatch shared permit; generic scoped eligibility; strict existing policy parser | Correct cross-process spacing and OFF/manual-only behavior | Lease/cooldown/abort/old AUTO lane, malformed config | Mock server arrivals, real PG ACL/CAS/queue tests and v3 regressions |
+
+### Tactical DDD and domain invariants
+
+Carrier owns verified credential identity/recovery and scoped rollout policy; Sync
+owns immutable job provenance/leases/admission/terminalization; Shipment owns its
+existing aggregate and reconciliation v3. No new aggregate or business engine.
+Infrastructure scoped operations omit full hydration only for fixed authorization/
+CAS/permit facts; application reuses existing lifecycle business rules and audit.
+User→epoch→connection→job/operation lock order; no HTTP/crypto/delay under locks.
+No password decrypt before committed audit and revalidation, no stale page commit,
+no broad Worker secret/Identity grants, no partial visibility or public DTO changes.
+
+## Plan
+
+1. Close merged062 in first commit; freeze formatted058 plan and raw SHA before code.
+2. RED Carrier runtime/activation/reconciliation config and security/HTTP contracts.
+3. Scoped Worker credential/audit persistence, cancellation and recovery lifecycle fences.
+4. Per-dispatch SQL permit for GET/POST with mock receive-time/cooldown/lease tests.
+5. Shared API/Worker composition; scoped admission/schedule/claim/fence and manual-only.
+6. Existing reconciliation config/binding, canonical docs/evidence matrix/runbook.
+7. Genuine owned signed PG/mock runtime, readiness, quality/available Docker, independent
+   review, commit/push exact-head hosted checks/PR metadata. No live activation/merge.
 
 ## Documentation Impact
 
-Documentation Impact: NONE
+Documentation Impact: REQUIRED
 
-### Reason
+### Changed facts
 
-Follow-up scope bookkeeping only; assess implementation impact when this task starts.
+- Shared technical composition, Worker scoped credential authority/audit and cancellation.
+- Cross-process request spacing, scoped deployment/manual/AUTO and optional policy config.
+- Stop/recovery/deployment verification and external evidence matrix; technical versus live.
+
+### Canonical owners
+
+- docs/architecture/sync-extensions.md, backend.md, runtime.md, database.md
+- docs/operations/configuration.md, deployment.md, testing.md
+- docs/integrations/uniship-portal-api.md; docs/domains/shipments.md where changed
+- docs/decisions/multi-carrier-architecture.md dated amendment
+- This active task, frozen design and docs/tasks/evidence/NEXORA-058/
+
+### Documentation verification
+
+pnpm docs:check,preflight:check,test:docs,test:preflight; final raw snapshot binding.
 
 ## Evidence
 
