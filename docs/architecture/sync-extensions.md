@@ -319,3 +319,36 @@ Admission/page hash the trusted job tuple with this fixed-size scope token under
 the existing2048 UTF-8 byte guard. A scan admitted under earlier/different semantics
 fails SOURCE_INVALID before new page writes; it is never silently relabelled.
 No live jobs/backfill/activation, schema/grant or reconciliation change is included.
+
+## Domain-bound atomic finalization — NEXORA-062
+
+SyncDomainBinding optionally declares finalizationVersion and finalize(tx,job,facts).
+Registry validates the paired declaration; new admission stamps reconciliation_version.
+Legacy jobs remain NULL. Sync supplies fenced RUNNING/APPLYING completion, all-terminal
+items, current fullScan/VALIDATED/fingerprint and admission-version compatibility.
+It does not require SUCCEEDED before reconciliation: that status commits afterward.
+Shipment binding owns the pure business decision and set-based persistence; generic
+Sync knows neither ShipmentAggregate nor an Uniship reconciliation implementation.
+
+Order in the existing15s transaction: actor→epoch→connection→job fence; terminal
+items/technical integrity; domain source→root facts and policy; visibility UPDATE
+or whole-operation skip; durable scalar summary; lease recheck AFTER domain work;
+SUCCEEDED; seen-page DELETE; commit. Any later error/lease expiry rolls back all of
+these. No retry can increment a committed job twice; no partial batches/new worker.
+Failed/cancelled cleanup never runs reconciliation. Worker shared actor locks conflict
+with Shipment API exclusive actor locks, giving consistent before/after reads.
+
+Baseline comes only from latest admitted-version, SUCCEEDED, VALIDATED job with
+BASELINE_ESTABLISHED/APPLIED for the same owner/provider/account/type. Skips never
+replace it. ANY changed fingerprint fails SCOPE_MISMATCH, including zero hidden rows:
+source identity has no per-query membership provenance, so widening/narrowing requires
+an explicit future migration policy. Legacy pre-deployment jobs skip
+CAPABILITY_NOT_ADMITTED; first new qualified job bootstraps without hiding old rows.
+
+No configured policy means POLICY_NOT_CONFIGURED. Explicit immutable limits cover
+absolute newly missing, missing/current-visible basis points and observed-count drop
+from trusted baseline. Production has no thresholds/registration. Empty source with
+existing candidates fails ZERO_RESULT_ANOMALY, even bootstrap; truly empty account
+may bootstrap. Every skip leaves visibility and baseline unchanged while normal
+successful ingestion may complete. VALIDATED is technical consistency, not eligibility
+or a provider snapshot/deletion guarantee. See Shipment Domain for lifecycle rules.

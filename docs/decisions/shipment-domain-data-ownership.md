@@ -290,3 +290,15 @@ automatic schedules disabled, implement a separate task switching interpretation
 to UTC, then sync fresh observations again to overwrite provider-owned timestamps
 under existing source/version/transaction fences. Stage history is not fabricated.
 This task performs no live sync and does not open production.
+
+## 2026-11-23 amendment — guarded visibility policy
+
+NEXORA-062 adds Shipment-owned derived visibility, separate from physical stages
+and carrier deletion claims. Sync orchestrates finalization/lease/summary; Shipment
+pure policy owns eligibility/baseline/safety and infrastructure executes scoped
+set-based updates. Explicitly omit full aggregate/child hydration for this operation:
+only sync_hidden_at and missing_streak change under actor/source/root locks, with
+schema coherence and atomic success/cleanup. Reuse existing worker provider grants
+without allowing local/identity columns or broad root UPDATE. Unchanged/rejected
+seen observations can restore; source payload never writes these fields directly.
+No hard delete, new global deleted_at or inferred provider removal is authorized.

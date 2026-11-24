@@ -13,7 +13,22 @@ export interface BoundDomainExecution {
   commit(): Promise<void>;
   close(): void;
 }
+export interface FinalizationFacts {
+  readonly admitted: boolean;
+  readonly scan?: import("../application/sync.port").FullScanContract;
+  readonly scanValidated: boolean;
+  readonly scopeMatches: boolean;
+}
 export interface SyncDomainBinding {
+  readonly finalizationVersion?: number;
+  finalize?(
+    tx: Prisma.TransactionClient,
+    job: SyncJob,
+    facts: FinalizationFacts,
+  ): Promise<
+    import("../domain/sync-reconciliation.constants").ReconciliationSummary
+  >;
+
   readonly version: number;
   supports(type: SyncType): boolean;
   begin(

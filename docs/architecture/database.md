@@ -522,3 +522,26 @@ most20 terminal jobs with SKIP LOCKED and deletes at most500 pages/call independ
 of payload retention. Summary survives repeated/partial cleanup and job deletion
 cascades. A completed fetch may have VALIDATED integrity but a FAILED/CANCELLED job:
 future reconciliation must require SUCCEEDED AND VALIDATED. PR1 performs none.
+
+## Shipment visibility and reconciliation provenance — NEXORA-062
+
+Forward migration20261123000000_shipment_visibility adds sync_hidden_at
+TIMESTAMPTZ(3) and missing_streak INTEGER NOT NULL DEFAULT0. The validated CHECK
+requires NULL/0 or nonnull/>=1. Existing Shipments remain ACTIVE; no historical
+backfill, identity/association/history/child mutation or hard delete. Int32 overflow
+is a whole-operation policy skip before SQL; reappearance can still restore max streak.
+
+sync_jobs adds nullable reconciliation_version (positive Int, no default), internal
+status/reason and newly-hidden/restored/still-missing counters. Exact VARCHAR/CHECK
+vocabulary and assessed-summary coherence are tested through catalog binding and
+native writes. Version is stamped only by new admission with a declared domain
+finalizer, separately from processor version; legacy/in-flight NULL is never backfilled
+or used to bootstrap. Status APPLIED/BASELINE_ESTABLISHED/SKIPPED and safe fixed reasons
+persist with job retention, without payload/PII. Missing baseline evidence forces safe
+bootstrap; historical061 summaries are not reconciliation evidence.
+
+Worker provisioning grants UPDATE only sync_hidden_at/missing_streak in addition to
+its existing approved provider columns; no table-wide UPDATE or local/root identity
+writes/DELETE. API keeps SELECT-only on Shipment. Repeat provisioning revokes stale
+broad/column ACLs before reapplying. No new index: existing scoped source unique and
+Shipment source/owner/PK indexes are assessed by actual EXPLAIN, not assumption.

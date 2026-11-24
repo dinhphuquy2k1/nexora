@@ -140,9 +140,9 @@ export function useShipmentList(
 }
 export function useShipmentDetail(id: string | null, api: ShipmentApi) {
   return useShipmentRead(
-    "detail:" + (id ?? ""),
+    "detail:" + JSON.stringify([getCurrentSessionEpoch(), id]),
     async (signal) => {
-      // Any denial clears retained detail immediately, even if its sibling failed first.
+      // Denial or NOT_FOUND clears retained detail, even if its sibling failed first.
       let rejectDenial: (reason: unknown) => void;
       const denial = new Promise<never>((resolve, reject) => {
         void resolve;
@@ -150,7 +150,8 @@ export function useShipmentDetail(id: string | null, api: ShipmentApi) {
       });
       const watch = <T>(request: Promise<T>) =>
         request.catch((error) => {
-          if (shipmentError(error).denied) rejectDenial(error);
+          const safe = shipmentError(error);
+          if (safe.denied || safe.notFound) rejectDenial(error);
           throw error;
         });
       const settled = Promise.allSettled([

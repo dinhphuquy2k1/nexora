@@ -1,3 +1,4 @@
+import { SyncScanIntegrityStatus } from "../domain/sync-observation.constants";
 import {
   scanScopeFingerprint,
   validateScanPage,
@@ -198,7 +199,8 @@ export class SyncRepository implements SyncQueue {
           lifecycle_version,
           fetch_strategy,
           target_watermark,
-          scan_scope_fingerprint
+          scan_scope_fingerprint,
+          reconciliation_version
         )
         VALUES (
           ${id}::uuid,
@@ -228,7 +230,8 @@ export class SyncRepository implements SyncQueue {
               LIMIT 1
             )
           ),
-          ${capability.fullScan ? scanScopeFingerprint({ owner_user_id: userId, provider: c.provider, external_account_id: c.external_account_id, sync_type: type }, capability.fullScan) : null}
+          ${capability.fullScan ? scanScopeFingerprint({ owner_user_id: userId, provider: c.provider, external_account_id: c.external_account_id, sync_type: type }, capability.fullScan) : null},
+          ${capability.domain.finalizationVersion ?? null}
         )
         ON CONFLICT (carrier_connection_id, sync_type)
           WHERE status IN ('QUEUED', 'RUNNING', 'WAITING')
@@ -825,6 +828,32 @@ export class SyncRepository implements SyncQueue {
               null,
             );
             await saveScanSummary(tx, current.id, summary);
+          }
+          if (capability.domain.finalize) {
+            const scan = capability.fullScan;
+            const reconciliation = await capability.domain.finalize(
+              tx,
+              current,
+              {
+                admitted:
+                  current.reconciliation_version != null &&
+                  current.reconciliation_version ===
+                    capability.domain.finalizationVersion,
+                scan,
+                scanValidated:
+                  current.scan_integrity_status ===
+                  SyncScanIntegrityStatus.VALIDATED,
+                scopeMatches:
+                  !!scan &&
+                  current.scan_scope_fingerprint ===
+                    scanScopeFingerprint(current, scan),
+              },
+            );
+            await tx.$executeRaw`UPDATE sync_jobs SET reconciliation_status=${reconciliation.status},
+              reconciliation_reason=${reconciliation.reason},reconciliation_newly_hidden_count=${reconciliation.newlyHidden},
+              reconciliation_restored_count=${reconciliation.restored},reconciliation_still_missing_count=${reconciliation.stillMissing}
+              WHERE id=${current.id}::uuid`;
+            await this.assertLease(tx, job);
           }
           if (current.scan_scope_fingerprint) await this.assertLease(tx, job);
           await tx.$executeRaw`UPDATE sync_configs SET last_success_at=clock_timestamp(),last_completed_at=clock_timestamp(),last_completed_watermark=${current.target_watermark},next_run_at=CASE WHEN enabled THEN clock_timestamp()+interval_minutes*interval '1 minute' ELSE NULL END,updated_at=clock_timestamp() WHERE carrier_connection_id=${job.carrier_connection_id}::uuid AND sync_type=${job.sync_type}`;

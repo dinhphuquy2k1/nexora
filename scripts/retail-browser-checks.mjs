@@ -1,3 +1,4 @@
+import { verifyRetailRefresh } from "./retail-refresh-checks.mjs";
 import { verifyRetailLoading } from "./retail-loading-checks.mjs";
 import { SYNTHETIC_PACKAGES } from "../apps/web/test/fixtures/retail-reference.ts";
 import {
@@ -339,6 +340,13 @@ export async function verifyRetailBrowser({
       trackingHeader.ordinary.border,
     );
     await snapshot("all");
+    await verifyRetailRefresh({
+      send,
+      evaluate,
+      navigate,
+      until,
+      origin: fixtureOrigin,
+    });
     await verifyRetailLoading({
       send,
       evaluate,

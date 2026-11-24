@@ -89,9 +89,41 @@ export function RetailPackageListPage({
   const [visibility, setVisibility] = useState<ColumnVisibility>(
       DEFAULT_COLUMN_VISIBILITY,
     ),
-    [detail, setDetail] = useState<string | null>(null);
+    [detail, setDetail] = useState<string | null>(null),
+    [detailRevision, setDetailRevision] = useState(0);
 
   const [searchDraft, setSearchDraft] = useState(query.search);
+  const refresh = read.refresh;
+  const handleRefresh = useCallback(() => {
+    refresh();
+    setDetailRevision((revision) => revision + 1);
+  }, [refresh]);
+
+  // The read hook exposes ready data only for the current query/API/session.
+  // Retained loading/error totals and an uncommitted search cannot move the URL.
+  useEffect(() => {
+    if (
+      invalid ||
+      read.status !== "ready" ||
+      !data ||
+      searchDraft !== query.search ||
+      data.pagination.page !== query.page ||
+      data.pagination.pageSize !== query.pageSize
+    )
+      return;
+    const lastPage = Math.max(1, data.pagination.totalPages);
+    if (query.page > lastPage) change({ page: lastPage }, { replace: true });
+  }, [
+    invalid,
+    read.status,
+    data,
+    searchDraft,
+    query.search,
+    query.page,
+    query.pageSize,
+    change,
+  ]);
+
   const isSearchSessionActive = useRef(false);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -302,9 +334,9 @@ export function RetailPackageListPage({
 
             <Button
               variant="secondary"
-              disabled
-              aria-label="Làm mới dữ liệu (chưa khả dụng)"
-              title="Chưa hỗ trợ"
+              disabled={invalid || read.loading || read.status === "idle"}
+              onClick={handleRefresh}
+              aria-label="Làm mới dữ liệu"
             >
               <RefreshCw size={14} />
               <span>Làm mới</span>
@@ -361,7 +393,7 @@ export function RetailPackageListPage({
           <p className={styles.availabilityNotice} role="alert">
             {read.error.message}{" "}
             {rows.length > 0 && "Đang hiển thị dữ liệu của lần tải trước. "}
-            <Button variant="secondary" onClick={read.refresh}>
+            <Button variant="secondary" onClick={handleRefresh}>
               Thử lại
             </Button>
           </p>
@@ -400,6 +432,7 @@ export function RetailPackageListPage({
       </section>
       {detail && (
         <PackageDetailDrawer
+          key={`${detail}:${detailRevision}`}
           id={detail}
           api={api}
           onClose={() => setDetail(null)}

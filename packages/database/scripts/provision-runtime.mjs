@@ -205,6 +205,9 @@ export async function provisionRuntime(adminUrl, password, options = {}) {
       );
       if (role !== RUNTIME_ROLE) {
         await db.query(
+          `GRANT UPDATE(sync_hidden_at,missing_streak) ON public.shipments TO ${role}`,
+        );
+        await db.query(
           `GRANT USAGE ON SEQUENCE public.shipment_code_seq TO ${role}; GRANT EXECUTE ON FUNCTION public.next_shipment_code() TO ${role}`,
         );
         const providerColumns =

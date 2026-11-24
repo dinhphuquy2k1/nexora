@@ -1,6 +1,6 @@
 # NEXORA-061 — FULL Sync Observation & Validation
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
 Verification: VERIFIED
 
@@ -235,3 +235,17 @@ Status remains active VERIFICATION PENDING until owner merge/lifecycle closure.
 | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | v3 canonical query-bound scope and resolver evidence | Frozen SHA8922c838280bad03e2d8c779ab79fcf903ec58a2ace4c9ddf06ea6d5d45bdd5e; independent literal query/mutation/page/isolation/Unicode and PG drift rollback PASS; exact resolver plans use existing unique index at scale; no optimization required. | 2026-11-22 | PASS   |
 | v3 genuine regression and canonical code CI          | Local208/208 signed integration; quality871/871; code1bdab2c, merge6cf648e; Preflight45043370063/Sync45043370073/Foundation45043370090 attempt1 PASS, including canonical/signed suites. Detailed evidence linked above.                             | 2026-11-22 | PASS   |
+
+## Closure by NEXORA-062
+
+PR60 merged2026-11-23T01:19:42Z (08:19:42 Asia/Ho_Chi_Minh), merge
+561d48762556ea2220b86fd83a843f6129b5e33d. Final source7fd33e98a156cbb17fc5e8fb843470701261d25b;
+Preflight45045627949, Sync45045627930, Foundation45045627953/job137279487530,
+actual merge checkout11d118951f826b2c6f99dbcd1c6ed87d919ae73f, attempt1 PASS,
+Foundation4–10 and actual signed suites execute. PR metadata and independent review
+were verified. Immutable snapshots and historical evidence remain. NEXORA-058 stays
+PLANNED; live authorization/operational/timezone gates are NOT RUN, not promoted.
+
+| Claim             | Evidence                                                                                                                                                                                                                              | Date       | Result |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged061 closure | gh api PR60 merged=true, merge561d48762556ea2220b86fd83a843f6129b5e33d at2026-11-23T01:19:42Z; final code7fd33e9 and exact-head Preflight45045627949/Sync45045627930/Foundation45045627953 attempt1 PASS; external058 gates retained. | 2026-11-23 | PASS   |

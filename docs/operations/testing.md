@@ -1240,6 +1240,10 @@ allows restricted nexora_sync provisioning under the existing fixture pattern.
 Native PostgreSQL and hosted Docker outcomes are recorded separately. No assertion
 or acceptance gate is skipped; an unavailable local Docker run is NOT RUN.
 Fixture/mock PASS never verifies live Uniship semantics or production activation.
+Host integration that initializes the actual Nest AppModule also requires a canonical
+absolute, writable, task-owned STORAGE_ROOT. Validate loadConfig/loadSyncConfig and
+storage readiness before executing tests; the database URL alone is insufficient.
+Use disposable synthetic storage and ownership-checked cleanup, never user storage.
 
 Sync Targeted also runs the existing Sync suites and two separately named Uniship
 steps sequentially after its shared API build:
@@ -1447,3 +1451,58 @@ p50/p95, and transaction-minus-helper overhead. Server EXPLAIN is an instrumente
 sample, not driver latency; warm-cache synthetic timings are not a production SLA.
 No raw predicates/URLs/credentials are exported and no timing threshold weakens CI.
 Keep previous measurements as historical; new evidence states HEAD/method/environment.
+
+## FULL missing reconciliation verification — NEXORA-062
+
+Ordinary policy tests are apps/api/test/shipment/reconciliation.test.cjs. Genuine
+observation integration reuses its owned migrated DB, exact source identities,
+fenced repos and approved signed roles, loading sync-observation-reconciliation
+fixtures. Existing discovery/Sync Targeted/signed shipment-worker paths include them;
+no native privileged suite is called outside the approved launcher protocol.
+
+Tests cover bootstrap/legacy admission, missing/unchanged/rejected restore, repeated
+scope narrow/wide skips, configuration/zero/mass/overflow gates, source/reconnect
+isolation, children/local ownership preservation, failures at summary/terminal/
+cleanup/lease, concurrent finalizers/takeover and terminal cleanup. Physical validated
+CHECKs bind conkey and exact vocabulary with mutation sensitivity/native writes.
+Actual worker/API passwords prove narrow column writes and repeat provisioning
+removes obsolete broad ACLs. Unsigned contexts do not certify restricted roles.
+Shipment HTTP tests exercise list/search/stats/paging/detail/history hiding/restoring;
+Retail hook regressions exercise sibling404 races/session fencing and actual refresh.
+Retail page-effect regressions cover current successful totalPages recovery5→4/1/empty
+and reject valid-page/loading/error/idle/invalid/pending-search/old-page/size/no-data
+snapshots. SSR verifies toolbar state and unavailable out-of-range versus0–0 empty.
+The existing Retail CDP session imports scripts/retail-refresh-checks.mjs, using
+retail-entry.tsx fixtureMode=refresh with a mutable synthetic100-row population.
+Actual pointer/Enter toolbar activation and retry verify rows/stats/totals, exactly
+one replacement-page read, replaceState, stage/search/inert-filter/size preservation,
+loading/error retention, debounce and Back/Forward. Open native-modal drawer refresh
+uses the real toolbar DOM click (background pointer intentionally blocked by modal)
+and verifies fresh detail/history404 clears old content. No live provider requests
+or SyncJob writes are made. This extends the same launcher/session and introduces
+no testing framework. Build with node scripts/build-retail-fixture.mjs; canonical
+Foundation runtime smoke invokes the existing Retail browser checks.
+
+SHIPMENT_RECONCILIATION_BENCHMARK uses owned synthetic1k/10k/100k datasets and shared
+production SQL builders: candidate facts/locks and mutation plus diagnostic anti-join/
+restore projections. EXPLAIN(ANALYZE,BUFFERS,FORMAT JSON) mutations roll back before
+actual fenced apply; a blocked policy's mutation plan is hypothetical, not an actual
+production update. Real finalization includes all fences, policy, summaries and
+cleanup, retaining15s timeout. Nine scenarios per size plus99999-missing/100000-restore
+extremes at100k measure counts, timings, buffers, indexes, driver statements and cleanup.
+All-seen ACTIVE case checks0 UPDATEs and unchanged xmin. Controlled concurrent API
+read verifies pg_stat_activity lock waiting, then committed counts, with its deliberate
+barrier time labeled separately. Warm-data single measurements are not a production SLA.
+
+Migration harness stages exact061→062 and checks original values/children retained,
+ACTIVE defaults, historical admission/summaryNULL, repeat deploy/drift; runtime smoke
+expects19 migrations. Quality/contracts/full integration, canonical Docker/signed
+launcher and exact-final-HEAD hosted Preflight/Sync/Foundation remain required.
+Store curated plans/results/provenance, no raw SQL predicates, credentials or media.
+
+The reconciliation benchmark's concurrent reader receives an explicit owned-database
+URL from the parent fixture. Signed context uses nexora_app; ordinary unsigned mode
+uses its owned privileged fixture DB and labels that limitation. Never fall back to
+the ambient base DATABASE_URL: its absent fixture owner produces UNAUTHORIZED.
+Sync Targeted explicitly watches the new policy/adapter/test paths and runs their
+policy units alongside all prior Sync units; no package discovery list is replaced.

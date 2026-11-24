@@ -11,6 +11,12 @@ export interface FullScanMetadata extends FullScanContract {
   readonly reportedTotal: number;
 }
 export interface SyncJob {
+  reconciliation_version?: number | null;
+  reconciliation_status?: string | null;
+  reconciliation_reason?: string | null;
+  reconciliation_newly_hidden_count?: number | null;
+  reconciliation_restored_count?: number | null;
+  reconciliation_still_missing_count?: number | null;
   scan_scope_fingerprint?: string | null;
   scan_integrity_status?: string | null;
   scan_integrity_reason?: string | null;
