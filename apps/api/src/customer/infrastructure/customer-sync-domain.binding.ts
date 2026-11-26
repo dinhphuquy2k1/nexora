@@ -24,9 +24,15 @@ export function createCustomerSyncBinding(
       };
       assertVersion();
       if (!job.carrier_connection_id) throw new SyncError(E.SYNC_STALE);
-      const rows = await tx.$queryRaw<
-        { customer_id: string | null }[]
-      >`SELECT customer_id FROM sync_source_identities WHERE id=${source.id}::uuid AND owner_user_id=${job.owner_user_id}::uuid AND provider=${job.provider} AND external_account_id=${job.external_account_id} AND sync_type=${job.sync_type}`;
+      const rows = await tx.$queryRaw<{ customer_id: string | null }[]>`
+        SELECT customer_id
+        FROM sync_source_identities
+        WHERE id = ${source.id}::uuid
+          AND owner_user_id = ${job.owner_user_id}::uuid
+          AND provider = ${job.provider}
+          AND external_account_id = ${job.external_account_id}
+          AND sync_type = ${job.sync_type}
+      `;
       if (rows.length !== 1) throw new SyncError(E.SOURCE_CONFLICT);
       const sourceId = source.id,
         ownerId = job.owner_user_id,
@@ -59,12 +65,19 @@ export function createCustomerSyncBinding(
           assertTarget(id);
           const customers =
             authorizationLocks === "shared"
-              ? await tx.$queryRaw<
-                  { id: string }[]
-                >`SELECT id FROM public.sync_lock_customer(${id}::uuid,${ownerId}::uuid)`
-              : await tx.$queryRaw<
-                  { id: string }[]
-                >`SELECT id FROM customers WHERE id=${id}::uuid AND owner_user_id=${ownerId}::uuid FOR UPDATE`;
+              ? // Use security-definer shared lock under nexora_sync without broadening table grants.
+                await tx.$queryRaw<{ id: string }[]>`
+                  SELECT id
+                  FROM public.sync_lock_customer(${id}::uuid, ${ownerId}::uuid)
+                `
+              : // Lock customer row directly when running under exclusive adapter locks.
+                await tx.$queryRaw<{ id: string }[]>`
+                  SELECT id
+                  FROM customers
+                  WHERE id = ${id}::uuid
+                    AND owner_user_id = ${ownerId}::uuid
+                  FOR UPDATE
+                `;
           assertTarget(id);
           if (customers.length !== 1) throw new SyncError(E.SOURCE_CONFLICT);
           proposedId = id;
@@ -83,8 +96,14 @@ export function createCustomerSyncBinding(
           assertVersion();
           if (!proposedId) throw new SyncError(E.PROCESSOR_UNAVAILABLE);
           active = false;
-          const changed =
-            await tx.$executeRaw`UPDATE sync_source_identities SET customer_id=${proposedId}::uuid,link_origin=${SyncLinkOrigin.LINKED_EXISTING} WHERE id=${sourceId}::uuid AND owner_user_id=${ownerId}::uuid`;
+          const changed = await tx.$executeRaw`
+            UPDATE sync_source_identities
+            SET
+              customer_id = ${proposedId}::uuid,
+              link_origin = ${SyncLinkOrigin.LINKED_EXISTING}
+            WHERE id = ${sourceId}::uuid
+              AND owner_user_id = ${ownerId}::uuid
+          `;
           assertVersion();
           if (changed !== 1) throw new SyncError(E.SOURCE_CONFLICT);
         },

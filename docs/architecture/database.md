@@ -525,6 +525,13 @@ future reconciliation must require SUCCEEDED AND VALIDATED. PR1 performs none.
 
 ## Shipment visibility and reconciliation provenance — NEXORA-062
 
+## Raw SQL Readability & Safety Standards — NEXORA-063
+
+- **Multiline Raw SQL convention**: Non-trivial production Raw SQL (`$queryRaw`, `$executeRaw`, `Prisma.sql`) is formatted as multiline parameterized template literals: uppercase SQL keywords, one `SELECT` column / `WHERE` condition / `SET` assignment per line, separated `WITH` / `RETURNING` blocks, and lines at most 120 characters. Short single-clause probes (e.g. `SELECT 1`) may remain single-line.
+- **Conditional query extraction**: Long (over ~15 formatted lines) or reused SQL builders live in module-local `queries/*.queries.ts` files as pure functions returning `Prisma.Sql` from explicit SQL parameters, without creating Prisma clients or opening transactions.
+- **Invariant comments**: Queries with row/advisory/security-definer locks, lease fencing (`lease_version`, `worker_id`, `lease_expires_at`), `clock_timestamp()`, or specific lock ordering carry a concise "why" comment explaining the invariant.
+- **Parameterization & lint enforcement**: `$queryRawUnsafe` and `$executeRawUnsafe` are forbidden in production. ESLint rules `nexora/no-unsafe-raw-sql` and `nexora/readable-raw-sql` enforce these standards in `apps/*/src` and `packages/*/src`.
+
 Forward migration20261123000000_shipment_visibility adds sync_hidden_at
 TIMESTAMPTZ(3) and missing_streak INTEGER NOT NULL DEFAULT0. The validated CHECK
 requires NULL/0 or nonnull/>=1. Existing Shipments remain ACTIVE; no historical

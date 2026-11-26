@@ -1,8 +1,8 @@
 # NEXORA-062 — FULL Missing Reconciliation & Shipment Visibility
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -270,3 +270,9 @@ checkpoint; final CI results belong to PR61's exact-source checkpoint. No merge/
 
 This evidence-only checkpoint addition receives final formatting/docs/preflight checks
 before commit; no source or test change follows the successful quality run.
+
+### Closure checkpoint — 2026-11-26 (§1.7)
+
+| Claim                              | Evidence                                                                                                                                                                                                                                                                                          | Date       | Result |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged PR #61 & main CI validation | PR #61 merged to `main` at `5edbcfe1609562f9eb5b6c156cf5cec68b5b71fa` (2026-11-24); `main` hosted CI: `Nexora foundation` run `45368679063` (job `138356958804`) PASS, `Preflight Policy & Design Governance` run `45368679144` PASS. Production live activation remains tracked in `NEXORA-058`. | 2026-11-24 | PASS   |

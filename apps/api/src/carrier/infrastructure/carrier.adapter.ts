@@ -24,9 +24,13 @@ export class CarrierAdapter implements CarrierPort {
     return (this.instance ??= createDatabase(this.url));
   }
   private async active(tx: Prisma.TransactionClient, userId: string) {
-    const rows = await tx.$queryRaw<
-      Array<{ status: string }>
-    >`SELECT status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+    // Serialize connection reads/writes against user disablement and credential revocation.
+    const rows = await tx.$queryRaw<Array<{ status: string }>>`
+      SELECT status
+      FROM users
+      WHERE id = ${userId}::uuid
+      FOR UPDATE
+    `;
     if (rows[0]?.status !== UserStatus.ACTIVE)
       throw new CarrierError("UNAUTHORIZED");
   }

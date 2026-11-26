@@ -60,9 +60,19 @@ export class IdentityDatabaseAdapter implements IdentityPort {
     expiresAt: Date,
   ): Promise<UserSummary | null> {
     return this.client.$transaction(async (tx) => {
+      // Lock user row to prevent session issuance racing with disablement or credential change.
       const rows = await tx.$queryRaw<
         Array<{ id: string; username: string; role: string; status: string }>
-      >`SELECT id,username,role,status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+      >`
+        SELECT
+          id,
+          username,
+          role,
+          status
+        FROM users
+        WHERE id = ${userId}::uuid
+        FOR UPDATE
+      `;
       const user = rows[0];
       if (
         !user ||

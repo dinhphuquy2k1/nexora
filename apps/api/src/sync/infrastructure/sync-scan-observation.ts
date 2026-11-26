@@ -142,12 +142,17 @@ export function scanIdentityResolutionQuery(
     identities.map(({ scheme, key, hash }) => ({ scheme, key, hash })),
   );
   return Prisma.sql`
-  SELECT s.id FROM sync_source_identities s
-  JOIN jsonb_to_recordset(${input}::jsonb) r(scheme text,key text,hash text)
-   ON s.source_key_scheme=r.scheme AND s.source_key=r.key AND s.source_key_hash=r.hash
-  WHERE s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider}
-   AND s.external_account_id=${job.external_account_id} AND s.sync_type=${job.sync_type}
- `;
+    SELECT s.id
+    FROM sync_source_identities s
+    JOIN jsonb_to_recordset(${input}::jsonb) r(scheme text, key text, hash text)
+      ON s.source_key_scheme = r.scheme
+      AND s.source_key = r.key
+      AND s.source_key_hash = r.hash
+    WHERE s.owner_user_id = ${job.owner_user_id}::uuid
+      AND s.provider = ${job.provider}
+      AND s.external_account_id = ${job.external_account_id}
+      AND s.sync_type = ${job.sync_type}
+  `;
 }
 /** Call only inside the existing fenced page transaction, after identity UPSERT. */
 export async function recordScanPage(
@@ -168,10 +173,21 @@ export async function recordScanPage(
   )
     throw new SyncError(E.SOURCE_CONFLICT);
   const inserted = await tx.$queryRaw<{ page_no: number }[]>`
-  INSERT INTO sync_job_seen_pages(job_id,page_no,source_identity_ids,reported_total)
-  VALUES(${job.id}::uuid,${pageNo},${ids}::uuid[],${reportedTotal})
-  ON CONFLICT(job_id,page_no) DO NOTHING RETURNING page_no
- `;
+    INSERT INTO sync_job_seen_pages (
+      job_id,
+      page_no,
+      source_identity_ids,
+      reported_total
+    )
+    VALUES (
+      ${job.id}::uuid,
+      ${pageNo},
+      ${ids}::uuid[],
+      ${reportedTotal}
+    )
+    ON CONFLICT (job_id, page_no) DO NOTHING
+    RETURNING page_no
+  `;
   if (inserted.length !== 1) throw new SyncError(E.SOURCE_CONFLICT);
 }
 export async function readScanSummary(
@@ -181,22 +197,51 @@ export async function readScanSummary(
   expectedPages: number | null,
 ): Promise<ScanSummary> {
   const [f] = await tx.$queryRaw<ScanFacts[]>`
-  WITH pages AS (
-   SELECT page_no,source_identity_ids,reported_total FROM sync_job_seen_pages WHERE job_id=${job.id}::uuid
-  ), observed AS (
-   SELECT u.id FROM pages p CROSS JOIN LATERAL unnest(p.source_identity_ids) AS u(id)
-  ), identity_counts AS (
-   SELECT count(*)::int AS observations,count(DISTINCT o.id)::int AS "observedCount",
-    count(*) FILTER(WHERE s.id IS NULL OR s.owner_user_id<>${job.owner_user_id}::uuid OR s.provider<>${job.provider}
-     OR s.external_account_id<>${job.external_account_id} OR s.sync_type<>${job.sync_type}
-     OR s.source_key_scheme IS DISTINCT FROM ${scheme})::int AS "scopeMismatches"
-   FROM observed o LEFT JOIN sync_source_identities s ON s.id=o.id
-  )
-  SELECT count(*)::int AS pages,min(page_no) AS first,max(page_no) AS last,
-   count(DISTINCT reported_total)::int AS "totalVariants",min(reported_total) AS "reportedTotal",
-   c.observations,c."observedCount",c."scopeMismatches"
-  FROM pages CROSS JOIN identity_counts c GROUP BY c.observations,c."observedCount",c."scopeMismatches"
- `;
+    WITH pages AS (
+      SELECT
+        page_no,
+        source_identity_ids,
+        reported_total
+      FROM sync_job_seen_pages
+      WHERE job_id = ${job.id}::uuid
+    ),
+    observed AS (
+      SELECT u.id
+      FROM pages p
+      CROSS JOIN LATERAL unnest(p.source_identity_ids) AS u(id)
+    ),
+    identity_counts AS (
+      SELECT
+        count(*)::int AS observations,
+        count(DISTINCT o.id)::int AS "observedCount",
+        count(*) FILTER (
+          WHERE s.id IS NULL
+            OR s.owner_user_id <> ${job.owner_user_id}::uuid
+            OR s.provider <> ${job.provider}
+            OR s.external_account_id <> ${job.external_account_id}
+            OR s.sync_type <> ${job.sync_type}
+            OR s.source_key_scheme IS DISTINCT FROM ${scheme}
+        )::int AS "scopeMismatches"
+      FROM observed o
+      LEFT JOIN sync_source_identities s
+        ON s.id = o.id
+    )
+    SELECT
+      count(*)::int AS pages,
+      min(page_no) AS first,
+      max(page_no) AS last,
+      count(DISTINCT reported_total)::int AS "totalVariants",
+      min(reported_total) AS "reportedTotal",
+      c.observations,
+      c."observedCount",
+      c."scopeMismatches"
+    FROM pages
+    CROSS JOIN identity_counts c
+    GROUP BY
+      c.observations,
+      c."observedCount",
+      c."scopeMismatches"
+  `;
   const facts = f ?? {
     pages: 0,
     first: null,
@@ -218,5 +263,13 @@ export async function saveScanSummary(
   jobId: string,
   summary: ScanSummary,
 ): Promise<void> {
-  await tx.$executeRaw`UPDATE sync_jobs SET scan_integrity_status=${summary.status},scan_integrity_reason=${summary.reason},scan_observed_count=${summary.observedCount},scan_reported_total=${summary.reportedTotal} WHERE id=${jobId}::uuid`;
+  await tx.$executeRaw`
+    UPDATE sync_jobs
+    SET
+      scan_integrity_status = ${summary.status},
+      scan_integrity_reason = ${summary.reason},
+      scan_observed_count = ${summary.observedCount},
+      scan_reported_total = ${summary.reportedTotal}
+    WHERE id = ${jobId}::uuid
+  `;
 }

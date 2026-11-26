@@ -35,9 +35,19 @@ export class UserManagementAdapter implements UserManagementPort {
   ) {
     // Immutable UUID order is shared by reissue and status changes; token writes
     // always follow the target user lock. No token-row-first transactions.
-    const rows = await tx.$queryRaw<
-      LockedUser[]
-    >`SELECT id,username,role,status,created_at,updated_at FROM users WHERE id IN (${actorId}::uuid,${targetId}::uuid) ORDER BY id FOR UPDATE`;
+    const rows = await tx.$queryRaw<LockedUser[]>`
+      SELECT
+        id,
+        username,
+        role,
+        status,
+        created_at,
+        updated_at
+      FROM users
+      WHERE id IN (${actorId}::uuid, ${targetId}::uuid)
+      ORDER BY id
+      FOR UPDATE
+    `;
     const actor = rows.find((u) => u.id === actorId);
     if (
       !actor ||
@@ -104,9 +114,16 @@ export class UserManagementAdapter implements UserManagementPort {
     if (!token || token.consumedAt || token.expiresAt <= new Date())
       throw new IdentityError("INVALID_OR_EXPIRED_SETUP_TOKEN");
     await this.client.$transaction(async (tx) => {
-      const users = await tx.$queryRaw<
-        LockedUser[]
-      >`SELECT id,role,status FROM users WHERE id=${token.userId}::uuid FOR UPDATE`;
+      // Lock user row before token update to maintain user -> operator_setup_tokens lock order.
+      const users = await tx.$queryRaw<LockedUser[]>`
+        SELECT
+          id,
+          role,
+          status
+        FROM users
+        WHERE id = ${token.userId}::uuid
+        FOR UPDATE
+      `;
       const user = users[0];
       if (
         !user ||
@@ -114,9 +131,16 @@ export class UserManagementAdapter implements UserManagementPort {
         user.status !== UserStatus.ACTIVE
       )
         throw new IdentityError("INVALID_OR_EXPIRED_SETUP_TOKEN");
-      const consumed = await tx.$queryRaw<
-        Array<{ id: string }>
-      >`UPDATE operator_setup_tokens SET consumed_at=clock_timestamp() WHERE token_hash=${tokenHash} AND user_id=${user.id}::uuid AND consumed_at IS NULL AND expires_at>clock_timestamp() RETURNING id`;
+      // clock_timestamp() rejects setup tokens that expire while waiting on user lock.
+      const consumed = await tx.$queryRaw<Array<{ id: string }>>`
+        UPDATE operator_setup_tokens
+        SET consumed_at = clock_timestamp()
+        WHERE token_hash = ${tokenHash}
+          AND user_id = ${user.id}::uuid
+          AND consumed_at IS NULL
+          AND expires_at > clock_timestamp()
+        RETURNING id
+      `;
       if (consumed.length !== 1)
         throw new IdentityError("INVALID_OR_EXPIRED_SETUP_TOKEN");
       if (await tx.userCredential.findUnique({ where: { userId: user.id } }))
@@ -133,7 +157,9 @@ export class UserManagementAdapter implements UserManagementPort {
   ): Promise<ManagedUser> {
     return this.client.$transaction(async (tx) => {
       // Acquired BEFORE any user lock. All active-admin reductions use this key.
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('nexora_active_admin_invariant'))`;
+      await tx.$executeRaw`
+        SELECT pg_advisory_xact_lock(hashtext('nexora_active_admin_invariant'))
+      `;
       const user = await this.lockUsers(tx, actorId, userId);
       if (
         user.role === UserRole.ADMIN &&
