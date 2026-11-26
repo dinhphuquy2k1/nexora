@@ -99,8 +99,8 @@
 }
 
 .label {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-size: var(--type-label-size);
+  font-weight: var(--font-weight-medium);
   color: var(--color-primary);
 }
 
@@ -124,12 +124,12 @@
 
 /* Layout-specific padding adjustments for inputs with leading/trailing icons */
 .inputWrapper input {
-  padding-left: 40px;
+  padding-left: 44px;
 }
 
 .inputWrapper input[type="password"],
 .inputWrapper input[name="password"] {
-  padding-right: 42px;
+  padding-right: var(--control-size-large);
 }
 
 .togglePasswordBtn {
@@ -218,6 +218,6 @@
 }
 
 .inputIcon svg {
-  width: var(--icon-control-default);
-  height: var(--icon-control-default);
+  width: var(--icon-control-large);
+  height: var(--icon-control-large);
 }

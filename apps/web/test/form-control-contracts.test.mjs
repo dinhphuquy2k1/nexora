@@ -638,6 +638,8 @@ function analyzeCssPolicy(fileList, declaredTokens, allowlist = new Set()) {
       ["--_control-padding-y", "--control-padding-block-"],
       ["--_control-icon", "--icon-control-"],
       ["--_control-indicator", "--checkbox-indicator-"],
+      ["--_control-font-size", "--control-font-size-"],
+      ["--_control-line-height", "--control-line-height-"],
     ]);
     const ownsControls =
       /(?:^|\/)packages\/ui\/src\/Controls\.module\.css$/.test(normPath);
@@ -1998,21 +2000,21 @@ test("Component Consistency: Form controls share canonical contract tokens for s
     "Textarea binds radius to --control-radius",
   );
 
-  // Input, Button & Textarea bind font-size to --control-font-size
+  // Input, Button & Textarea bind font-size to --_control-font-size
   assert.match(
     css,
-    /\.input\s*\{[^}]*font-size:\s*var\(--control-font-size/s,
-    "Input binds font-size to --control-font-size",
+    /\.input\s*\{[^}]*font-size:\s*var\(--_control-font-size/s,
+    "Input binds font-size to --_control-font-size",
   );
   assert.match(
     css,
-    /\.button\s*\{[^}]*font-size:\s*var\(--control-font-size/s,
-    "Button binds font-size to --control-font-size",
+    /\.button\s*\{[^}]*font-size:\s*var\(--_control-font-size/s,
+    "Button binds font-size to --_control-font-size",
   );
   assert.match(
     css,
-    /\.textarea\s*\{[^}]*font-size:\s*var\(--control-font-size/s,
-    "Textarea binds font-size to --control-font-size",
+    /\.textarea\s*\{[^}]*font-size:\s*var\(--_control-font-size/s,
+    "Textarea binds font-size to --_control-font-size",
   );
 
   // Input and Textarea contract parity
@@ -2322,16 +2324,16 @@ test("Runtime Token Override: Controls cascade directly from root CSS custom pro
     "Input border-radius must be dynamically bound to var(--control-radius)",
   );
 
-  // The font-size property must consume var(--control-font-size)
+  // The font-size property must consume var(--_control-font-size)
   assert.match(
     buttonBlock,
-    /font-size:\s*var\(--control-font-size\)/,
-    "Button font-size must be dynamically bound to var(--control-font-size)",
+    /font-size:\s*var\(--_control-font-size\)/,
+    "Button font-size must be dynamically bound to var(--_control-font-size)",
   );
   assert.match(
     inputBlock,
-    /font-size:\s*var\(--control-font-size\)/,
-    "Input font-size must be dynamically bound to var(--control-font-size)",
+    /font-size:\s*var\(--_control-font-size\)/,
+    "Input font-size must be dynamically bound to var(--_control-font-size)",
   );
 });
 

@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { loadComponent, React, render } from "./helpers/render-component.mjs";
@@ -80,4 +82,80 @@ test("size and refs have a checked public TypeScript contract, rejecting native 
     errors.map((d) => ts.flattenDiagnosticMessageText(d.messageText, " ")),
     [],
   );
+});
+
+test("canonical design system tokens enforce 36/40/48px controls, 16/18/20px icons, 14/14/16px fonts, and 13px table density", () => {
+  const tokensPath = fileURLToPath(
+    new URL("../styles/tokens.css", import.meta.url),
+  );
+  const tokens = fs.readFileSync(tokensPath, "utf8");
+  assert.match(tokens, /--control-size-default:\s*36px;/);
+  assert.match(tokens, /--control-size-medium:\s*40px;/);
+  assert.match(tokens, /--control-size-large:\s*48px;/);
+  assert.match(tokens, /--icon-control-default:\s*16px;/);
+  assert.match(tokens, /--icon-control-medium:\s*18px;/);
+  assert.match(tokens, /--icon-control-large:\s*20px;/);
+  assert.match(tokens, /--control-font-size:\s*var\(--font-size-md\);/);
+  assert.match(tokens, /--control-font-size-large:\s*var\(--font-size-xl\);/);
+  assert.match(tokens, /--font-size-base:\s*13px;/);
+  assert.match(tokens, /--type-table-cell-size:\s*var\(--font-size-base\);/);
+
+  const controlsCss = fs.readFileSync(
+    path.resolve(
+      fileURLToPath(
+        new URL(
+          "../../../packages/ui/src/Controls.module.css",
+          import.meta.url,
+        ),
+      ),
+    ),
+    "utf8",
+  );
+  assert.match(
+    controlsCss,
+    /--_control-font-size:\s*var\(--control-font-size-default\);/,
+  );
+  assert.match(
+    controlsCss,
+    /--_control-font-size:\s*var\(--control-font-size-large\);/,
+  );
+  assert.match(controlsCss, /font-weight:\s*var\(--font-weight-medium\);/);
+});
+
+test("canonical design system tokens enforce 36/40/48px controls, 16/18/20px icons, 14/14/16px fonts, and 13px table density", () => {
+  const tokensPath = fileURLToPath(
+    new URL("../styles/tokens.css", import.meta.url),
+  );
+  const tokens = fs.readFileSync(tokensPath, "utf8");
+  assert.match(tokens, /--control-size-default:\s*36px;/);
+  assert.match(tokens, /--control-size-medium:\s*40px;/);
+  assert.match(tokens, /--control-size-large:\s*48px;/);
+  assert.match(tokens, /--icon-control-default:\s*16px;/);
+  assert.match(tokens, /--icon-control-medium:\s*18px;/);
+  assert.match(tokens, /--icon-control-large:\s*20px;/);
+  assert.match(tokens, /--control-font-size:\s*var\(--font-size-md\);/);
+  assert.match(tokens, /--control-font-size-large:\s*var\(--font-size-xl\);/);
+  assert.match(tokens, /--font-size-base:\s*13px;/);
+  assert.match(tokens, /--type-table-cell-size:\s*var\(--font-size-base\);/);
+
+  const controlsCss = fs.readFileSync(
+    path.resolve(
+      fileURLToPath(
+        new URL(
+          "../../../packages/ui/src/Controls.module.css",
+          import.meta.url,
+        ),
+      ),
+    ),
+    "utf8",
+  );
+  assert.match(
+    controlsCss,
+    /--_control-font-size:\s*var\(--control-font-size-default\);/,
+  );
+  assert.match(
+    controlsCss,
+    /--_control-font-size:\s*var\(--control-font-size-large\);/,
+  );
+  assert.match(controlsCss, /font-weight:\s*var\(--font-weight-medium\);/);
 });

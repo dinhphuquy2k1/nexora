@@ -79,7 +79,7 @@ export async function inspectRetailColumnPicker(evaluate) {
     m.presets.findIndex((p) => p.pressed === "true")
   ];
   if (presetCount !== undefined) assert.equal(m.count, presetCount);
-  assert.equal(m.search.rect.height, 32);
+  assert.equal(m.search.rect.height, 36);
   assert.equal(
     m.search.bg,
     m.search.focused ? m.expected.surface : m.expected.muted,
@@ -91,8 +91,8 @@ export async function inspectRetailColumnPicker(evaluate) {
   assert.ok(m.search.rect.left + m.search.leftPadding >= m.search.icon.right);
   assert.ok(m.search.cancelHidden);
   if (m.search.clear) {
-    assert.equal(m.search.clear.rect.width, 32);
-    assert.equal(m.search.clear.rect.height, 32);
+    assert.equal(m.search.clear.rect.width, 36);
+    assert.equal(m.search.clear.rect.height, 36);
     assert.equal(m.search.clear.size, "default");
     assert.ok(
       m.search.rect.right - m.search.rightPadding <=
@@ -140,7 +140,7 @@ export async function inspectRetailColumnPicker(evaluate) {
     m.footer.text.replace(/\s+/g, " ").trim(),
     `Đang bật: ${m.count}/20 cột`,
   );
-  assert.equal(m.footer.button.height, 32);
+  assert.equal(m.footer.button.height, 36);
   assert.equal(m.footer.bg, m.expected.navy);
   assert.equal(m.footer.color, m.expected.white);
   assert.equal(m.footer.divider, "1px");

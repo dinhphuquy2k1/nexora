@@ -112,7 +112,7 @@ export async function verifyM1Visuals({
             label.setAttribute('data-size',size);
             const measure=()=>({target:label.getBoundingClientRect().height,indicator:input.getBoundingClientRect().height});
             const baseline=measure();
-            root.style.setProperty(tokens[i],String([36,44,52][i])+'px','important');
+            root.style.setProperty(tokens[i],String([40,44,52][i])+'px','important');
             const override=measure();
             if(saved[i][0])root.style.setProperty(tokens[i],...saved[i]);else root.style.removeProperty(tokens[i]);
             rows.push({baseline,override});
@@ -126,9 +126,9 @@ export async function verifyM1Visuals({
       })()`);
       assert.ok(checkboxSizes, "actual Login Checkbox and label required");
       for (const [i, row] of checkboxSizes.entries()) {
-        assert.equal(row.baseline.target, [32, 40, 48][i]);
+        assert.equal(row.baseline.target, [36, 40, 48][i]);
         assert.equal(row.baseline.indicator, [16, 18, 20][i]);
-        assert.equal(row.override.target, [36, 44, 52][i]);
+        assert.equal(row.override.target, [40, 44, 52][i]);
         assert.equal(
           row.override.indicator,
           row.baseline.indicator,

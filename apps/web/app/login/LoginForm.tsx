@@ -178,6 +178,7 @@ export function LoginForm() {
           </label>
           <TextInput
             key={mode}
+            size="large"
             id={codeId}
             name="mfa-code"
             type="text"
@@ -198,7 +199,12 @@ export function LoginForm() {
               : "Mỗi mã khôi phục chỉ sử dụng được một lần."}
           </p>
         </div>
-        <Button type="submit" className={styles.submitBtn} disabled={isLoading}>
+        <Button
+          type="submit"
+          size="large"
+          className={styles.submitBtn}
+          disabled={isLoading}
+        >
           {isLoading ? "Đang xác thực..." : "Xác thực"}
         </Button>
         <Button
@@ -249,6 +255,7 @@ export function LoginForm() {
               <User size={18} />
             </span>
             <TextInput
+              size="large"
               id={usernameId}
               aria-describedby={errorMessage ? errorId : undefined}
               aria-invalid={Boolean(errorMessage) && !username.trim()}
@@ -274,6 +281,7 @@ export function LoginForm() {
               <Lock size={18} />
             </span>
             <TextInput
+              size="large"
               id={passwordId}
               aria-describedby={errorMessage ? errorId : undefined}
               aria-invalid={Boolean(errorMessage) && !password}
@@ -290,6 +298,7 @@ export function LoginForm() {
             <Button
               variant="ghost"
               type="button"
+              size="large"
               icon
               className={styles.togglePasswordBtn}
               onClick={() => setShowPassword((prev) => !prev)}
@@ -320,7 +329,12 @@ export function LoginForm() {
             Quên mật khẩu?
           </Button>
         </div>
-        <Button type="submit" className={styles.submitBtn} disabled={isLoading}>
+        <Button
+          type="submit"
+          size="large"
+          className={styles.submitBtn}
+          disabled={isLoading}
+        >
           {isLoading ? (
             "Đang xử lý..."
           ) : (

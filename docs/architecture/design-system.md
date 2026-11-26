@@ -110,8 +110,8 @@ The canonical project color specification is owned by this document, and the act
 | **Hover Background**   | `--color-accent-hover`         | `#E07716`                 |
 | **Hover Foreground**   | `--color-text-on-accent-hover` | `#FFFFFF`                 |
 | **Border**             | —                              | `transparent` (1px solid) |
-| **Border Radius**      | `--control-radius`             | `6px` (`--radius-sm`)     |
-| **Standard Height**    | `--control-size-default`       | `32px`                    |
+| **Border Radius**      | `--control-radius`             | `8px` (`--radius-md`)     |
+| **Standard Height**    | `--control-size-default`       | `36px`                    |
 
 #### Status Segmented Tabs (Customer)
 
@@ -253,7 +253,7 @@ The Customer table skeleton loading state is governed by a unified geometry and 
    - **Address Count (`addresses`, 104px)**: 44px × 20px pill (`var(--radius-full)`), centered horizontally (`margin-inline: auto`, gap diff 0.00px), matching the MapPin count badge.
    - **Status Badge (`status`, 156px)**: 104px × 22px chip (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, gap diff 0.00px), matching the status badge.
    - **Created Date (`created`, 128px)**: 85% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 87.9px on 104.4px usable content box, gap diff 0.015px), matching tabular-nums date text.
-   - **Actions (`actions`, 104px)**: Two 32px × 32px button placeholders (`var(--control-radius)`) inside `.actionGroup` with 4px gap (`var(--space-1)`), centered horizontally (`vertical-align: middle`, gap diff 0.50px), matching Edit and Power controls.
+   - **Actions (`actions`, 104px)**: Two 36px × 36px button placeholders (`var(--control-radius)`) inside `.actionGroup` with 4px gap (`var(--space-1)`), centered horizontally (`vertical-align: middle`, gap diff 0.50px), matching Edit and Power controls.
 
 3. **Row Height & Layout Invariants**:
    - Both skeleton and real data rows compute to exactly 44.5px height (zero vertical row shift).
@@ -324,9 +324,9 @@ product target. Shared focus rings remain visible and reduced motion is respecte
 
 Carrier composes existing Button, TextInput, Select, TabBar/count badge and Overlay;
 no shared API, global control defaults or Customer/Retail appearance changes. Keep
-32px default targets, native multiline/focus/disabled behavior and semantic tokens.
-ZIP28/30px targets become32px; provider-card choices explicitly use large48. The
-22px switch track sits inside a32px interactive Button with role=switch and an
+36px default targets (updated from 32px in NEXORA-064), native multiline/focus/disabled behavior and semantic tokens.
+ZIP 28/30px targets become 36px; provider-card choices explicitly use large 48px. The
+22px switch track sits inside a 36px interactive Button with role=switch and an
 accessible name/checked state. Dirty dismissal uses a nested native confirmation.
 
 Scoped source exceptions belong to carrier-connections.module.css: seven-column

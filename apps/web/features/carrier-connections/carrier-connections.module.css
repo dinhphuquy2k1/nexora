@@ -1276,7 +1276,7 @@ button.switchTarget {
   width: 100%;
 }
 .readonlyField {
-  height: 32px;
+  min-height: var(--control-size-default);
   display: flex;
   align-items: center;
   padding-inline: 10px;

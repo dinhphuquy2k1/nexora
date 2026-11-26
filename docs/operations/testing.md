@@ -316,7 +316,7 @@ Post-mutation UI verification adheres to a strict settled contract: backend conf
 
 ### v3 shared control size contract migration
 
-Public --control-size-default/medium/large replace --control-height; verify exact approved32/40/48 and omission, plus dynamic variant-isolated overrides and restoration. Existing m1-p2-regression and customer browser probes target the new authoritative default token, retaining detached-consumer/contrast/security assertions. control-sizes.test.mjs executes real compiled React controls through SSR and checks native attrs/rows plus in-memory TypeScript ref/size compatibility; it is not browser geometry evidence. The existing declaration parser now checks component-owned private mappings and rejects future feature shadows/retired height aliases, with negative cases. Native Login/MFA/shell action migrations require genuine final-head CDP, not only unit PASS.
+Public --control-size-default/medium/large replace --control-height; verify exact approved 36/40/48 and omission, plus dynamic variant-isolated overrides and restoration. Existing m1-p2-regression and customer browser probes target the new authoritative default token, retaining detached-consumer/contrast/security assertions. control-sizes.test.mjs executes real compiled React controls through SSR and checks native attrs/rows plus in-memory TypeScript ref/size compatibility; it is not browser geometry evidence. The existing declaration parser now checks component-owned private mappings and rejects future feature shadows/retired height aliases, with negative cases. Native Login/MFA/shell action migrations require genuine final-head CDP, not only unit PASS.
 
 ### v3 read/Toast/Power regression contracts
 

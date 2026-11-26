@@ -22,13 +22,13 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
     try{
       for(const [index,size] of ['default','medium','large'].entries()){
         elements.forEach(e=>e.setAttribute('data-size',size));
-        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[32,40,48][index]});
+        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[36,40,48][index]});
         const other=(index+1)%tokens.length;
         root.style.setProperty(tokens[other],'99px','important');
-        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[32,40,48][index]});
+        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[36,40,48][index]});
         if(saved[other][0])root.style.setProperty(tokens[other],...saved[other]);else root.style.removeProperty(tokens[other]);
-        root.style.setProperty(tokens[index],String([36,44,52][index])+'px','important');
-        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[36,44,52][index]});
+        root.style.setProperty(tokens[index],String([40,44,52][index])+'px','important');
+        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[40,44,52][index]});
         if(saved[index][0])root.style.setProperty(tokens[index],...saved[index]);else root.style.removeProperty(tokens[index]);
       }
       return {present:true,rows,textarea:textarea.rows>=3&&getComputedStyle(textarea).resize==='vertical'&&textarea.getBoundingClientRect().height>32};

@@ -194,12 +194,12 @@
   transform: translateY(-50%);
   color: var(--color-search-icon);
   pointer-events: none;
-  width: 14px;
-  height: 14px;
+  width: var(--icon-control-default);
+  height: var(--icon-control-default);
 }
 .searchInput {
-  padding-left: 32px;
-  padding-right: 32px;
+  padding-left: var(--control-size-default);
+  padding-right: var(--control-size-default);
   background-color: var(--control-bg);
   border-color: var(--control-border);
 }
@@ -1097,8 +1097,8 @@
   margin-inline: auto;
 }
 .skeletonActionBtn {
-  width: 32px;
-  height: 32px;
+  width: var(--control-size-default);
+  height: var(--control-size-default);
   border-radius: var(--control-radius);
 }
 @keyframes pulse {

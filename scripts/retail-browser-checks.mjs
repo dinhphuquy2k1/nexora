@@ -706,13 +706,13 @@ export async function verifyRetailBrowser({
     assert.ok(clearBtnInfo, "clear button visible after typing search query");
     assert.equal(
       clearBtnInfo.height,
-      32,
-      "clear button height must be 32px (shared Button standard)",
+      36,
+      "clear button height must be 36px (shared Button standard)",
     );
     assert.equal(
       clearBtnInfo.width,
-      32,
-      "clear button width must be 32px (shared Button icon standard)",
+      36,
+      "clear button width must be 36px (shared Button icon standard)",
     );
 
     // Click clear button: input clears, focus returns, dialog stays open, 20 options restored

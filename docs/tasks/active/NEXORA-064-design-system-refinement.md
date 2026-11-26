@@ -1,8 +1,8 @@
 # NEXORA-064 — Design System Refinement: Control Sizing, Typography & Visual Consistency
 
-Status: PLANNED
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Design Review & Reuse Decision
 
@@ -63,13 +63,17 @@ Documentation Impact: REQUIRED
 
 ## Acceptance
 
-- [ ] Default control height `36px`, medium `40px`, large `48px` with `14/14/16px` font, `16/18/20px` icons, `1px` border, `8px` radius, Inter font, preserved Brand Navy/Orange palette.
-- [ ] Button, TextInput, Select, Icon Button, Textarea, Checkbox, SelectButton, Pager, TabBar, and Auth (`size="large"`) verified for computed style parity, runtime token overrides, interaction states, and `13px` table density.
-- [ ] Canonical docs synchronized and `pnpm docs:check` + `pnpm preflight:check` PASS.
-- [ ] `pnpm --filter @nexora/web test`, `pnpm --filter @nexora/web typecheck`, `pnpm quality`, and Docker/browser verification PASS.
+- [x] Default control height `36px`, medium `40px`, large `48px` with `14/14/16px` font, `16/18/20px` icons, `1px` border, `8px` radius, Inter font, preserved Brand Navy/Orange palette.
+- [ ] Button, TextInput, Select, Icon Button, Textarea, Checkbox, SelectButton, Pager, TabBar, and Auth (`size="large"`) verified for computed style parity, runtime token overrides, interaction states, and `13px` table density (unit/static/Docker build verified; live Chromium CDP `runtime-smoke.sh` pending CI Foundation).
+- [x] Canonical docs synchronized and `pnpm docs:check` + `pnpm preflight:check` PASS.
+- [ ] `pnpm --filter @nexora/web test`, `pnpm --filter @nexora/web typecheck`, `pnpm quality`, and Docker/browser verification PASS (`pnpm quality` + fixture builds in Docker PASS; live Chromium CDP `runtime-smoke.sh` pending CI Foundation).
 
 ## Evidence
 
-| Claim                      | Evidence                                                                                                                                                                                                                              | Date       | Result |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
-| Baseline branch & snapshot | Branched `refactor/design-system-refinement` from `origin/main` (`c44cf4010fe30a6a7bfe0a3d397e65fb56381e15`); closed `NEXORA-063` (`8ee4aaa`); Snapshot v1 SHA-256 `7a07b03e1c99ebd43ddaeb2c549b288caa4c1e274d07d11be7242f53480ebb96` | 2026-11-26 | PASS   |
+| Claim                            | Evidence                                                                                                                                                                                                                                                                                                                 | Date       | Result |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Baseline branch & snapshot       | Branched `refactor/design-system-refinement` from `origin/main` (`c44cf4010fe30a6a7bfe0a3d397e65fb56381e15`); closed `NEXORA-063` (`8ee4aaa`); Snapshot v1 SHA-256 `7a07b03e1c99ebd43ddaeb2c549b288caa4c1e274d07d11be7242f53480ebb96`                                                                                    | 2026-11-26 | PASS   |
+| Test-first RED                   | `node --test apps/web/test/control-sizes.test.mjs` failed on `/--control-size-default:\s*36px;/` before implementation                                                                                                                                                                                                   | 2026-11-26 | PASS   |
+| Web UI & feature tests           | `node --test apps/web/test/control-sizes.test.mjs ... carrier-connections.test.mjs` — 107/107 PASS (8 suites)                                                                                                                                                                                                            | 2026-11-26 | PASS   |
+| Docker `pnpm quality` & fixtures | `docker compose -f compose.yml -f compose.dev.yml run --rm --no-deps -T quality sh -c "NODE_ENV=production API_INTERNAL_URL=http://api:4000 pnpm quality && node scripts/build-retail-fixture.mjs ..."` — format, lint, preflight, docs, typecheck, test, contracts, Next.js build, and 3 browser fixtures PASS (exit 0) | 2026-11-26 | PASS   |
+| Post-script-edit static gates    | `pnpm format:check && pnpm lint && pnpm docs:check && pnpm preflight:check` after updating `retail-column-picker-checks.mjs`, `m1-visual-checks.mjs`, `customer-control-checks.mjs`                                                                                                                                      | 2026-11-26 | PASS   |

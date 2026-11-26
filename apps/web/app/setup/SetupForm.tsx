@@ -76,6 +76,7 @@ export function SetupForm() {
           Mật khẩu mới
         </label>
         <TextInput
+          size="large"
           id={id + "password"}
           name="password"
           type="password"
@@ -93,6 +94,7 @@ export function SetupForm() {
           Xác nhận mật khẩu
         </label>
         <TextInput
+          size="large"
           id={id + "confirmation"}
           name="confirmation"
           type="password"
@@ -104,6 +106,7 @@ export function SetupForm() {
         />
       </div>
       <Button
+        size="large"
         className={styles.submitBtn}
         type="submit"
         disabled={!ready || busy}
