@@ -834,8 +834,8 @@ export async function verifyCarrierBrowser({
     );
     assert.equal(
       visualStyles.headingFontWeight,
-      "700",
-      "heading font weight must be 700 (var(--font-weight-bold))",
+      "600",
+      "heading font weight must be 600 (var(--font-weight-semibold))",
     );
     assert.equal(
       visualStyles.headingTextTransform,

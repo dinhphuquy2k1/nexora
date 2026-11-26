@@ -698,21 +698,23 @@ export async function verifyRetailBrowser({
       const btn = document.querySelector('[role=dialog] button[aria-label="Xóa tìm kiếm"]');
       if (!btn) return null;
       const rect = btn.getBoundingClientRect();
+      const expected = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--control-size-default'));
       return {
         height: Math.round(rect.height),
         width: Math.round(rect.width),
+        expected,
       };
     })()`);
     assert.ok(clearBtnInfo, "clear button visible after typing search query");
     assert.equal(
       clearBtnInfo.height,
-      36,
-      "clear button height must be 36px (shared Button standard)",
+      clearBtnInfo.expected,
+      "clear button height must match resolved --control-size-default",
     );
     assert.equal(
       clearBtnInfo.width,
-      36,
-      "clear button width must be 36px (shared Button icon standard)",
+      clearBtnInfo.expected,
+      "clear button width must match resolved --control-size-default",
     );
 
     // Click clear button: input clears, focus returns, dialog stays open, 20 options restored

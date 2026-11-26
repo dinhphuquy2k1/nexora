@@ -369,6 +369,23 @@ try {
       );
       if (screen === "retail") {
         await click('button[aria-label="Tùy chỉnh cột hiển thị"]');
+        const presetStyles = await evaluate(`(()=>{
+          const cs=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--control-size-default'));
+          return [...document.querySelectorAll('[aria-label="Chọn cấu hình cột"] button')].map(b=>({fs:getComputedStyle(b).fontSize,fw:getComputedStyle(b).fontWeight,h:Math.round(b.getBoundingClientRect().height),cs}));
+        })()`);
+        for (const p of presetStyles) {
+          assert.equal(
+            p.fs,
+            "11px",
+            "text-actions SelectButton retains compact 11px exception",
+          );
+          assert.equal(
+            p.fw,
+            "500",
+            "text-actions SelectButton retains medium weight 500",
+          );
+          assert.equal(p.h, p.cs);
+        }
         await snap(`retail-column-picker-${width}`, "[data-retail-fixture]");
         await key("Escape", 27);
       }

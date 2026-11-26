@@ -29,7 +29,7 @@ export const columnPickerVisualExpression = `(()=>{
   search:{value:search.value,rect:sr,bg:ss.backgroundColor,color:ss.color,border:ss.borderTopColor,shadow:ss.boxShadow,focused:document.activeElement===search,leftPadding:parseFloat(ss.paddingLeft),rightPadding:parseFloat(ss.paddingRight),icon:rect(icon),clear:clear?{rect:rect(clear),size:clear.dataset.size}:null,cancelHidden:nativeCancelRuleHidden(search)},
   checklist:{max:cs.maxHeight,height:choices.clientHeight,scrollHeight:choices.scrollHeight,overflow:cs.overflowY,scrollTop:choices.scrollTop,rect:cr,rows},
   footer:{size:getComputedStyle(count).fontSize,text:count.textContent,rect:rect(footer),count:rect(count),button:rect(done),bg:getComputedStyle(done).backgroundColor,color:getComputedStyle(done).color,divider:getComputedStyle(footer).borderTopWidth,padding:getComputedStyle(footer).paddingTop},
-  expected:{primary:token('--color-primary'),unselected:token('--color-colpicker-option-unselected-text'),badge:token('--brand-orange-text'),badgeBg:token('--amber-50'),badgeBorder:token('--amber-200'),surface:token('--color-surface'),border:token('--color-border'),shadow:token('--shadow-lg','boxShadow'),muted:token('--color-surface-muted'),focus:token('--control-focus-border'),focusRing:token('--control-focus-ring'),white:token('--color-white'),navy:token('--brand-navy')},
+  expected:{controlSizeDefault:parseFloat(root.getPropertyValue('--control-size-default')),primary:token('--color-primary'),unselected:token('--color-colpicker-option-unselected-text'),badge:token('--brand-orange-text'),badgeBg:token('--amber-50'),badgeBorder:token('--amber-200'),surface:token('--color-surface'),border:token('--color-border'),shadow:token('--shadow-lg','boxShadow'),muted:token('--color-surface-muted'),focus:token('--control-focus-border'),focusRing:token('--control-focus-ring'),white:token('--color-white'),navy:token('--brand-navy')},
   count:document.querySelectorAll('colgroup col').length,headerPadding:getComputedStyle(header).paddingBottom,
  };
  }finally{probe.remove();}
@@ -79,7 +79,7 @@ export async function inspectRetailColumnPicker(evaluate) {
     m.presets.findIndex((p) => p.pressed === "true")
   ];
   if (presetCount !== undefined) assert.equal(m.count, presetCount);
-  assert.equal(m.search.rect.height, 36);
+  assert.equal(Math.round(m.search.rect.height), m.expected.controlSizeDefault);
   assert.equal(
     m.search.bg,
     m.search.focused ? m.expected.surface : m.expected.muted,
@@ -91,8 +91,14 @@ export async function inspectRetailColumnPicker(evaluate) {
   assert.ok(m.search.rect.left + m.search.leftPadding >= m.search.icon.right);
   assert.ok(m.search.cancelHidden);
   if (m.search.clear) {
-    assert.equal(m.search.clear.rect.width, 36);
-    assert.equal(m.search.clear.rect.height, 36);
+    assert.equal(
+      Math.round(m.search.clear.rect.width),
+      m.expected.controlSizeDefault,
+    );
+    assert.equal(
+      Math.round(m.search.clear.rect.height),
+      m.expected.controlSizeDefault,
+    );
     assert.equal(m.search.clear.size, "default");
     assert.ok(
       m.search.rect.right - m.search.rightPadding <=
@@ -140,7 +146,10 @@ export async function inspectRetailColumnPicker(evaluate) {
     m.footer.text.replace(/\s+/g, " ").trim(),
     `Đang bật: ${m.count}/20 cột`,
   );
-  assert.equal(m.footer.button.height, 36);
+  assert.equal(
+    Math.round(m.footer.button.height),
+    m.expected.controlSizeDefault,
+  );
   assert.equal(m.footer.bg, m.expected.navy);
   assert.equal(m.footer.color, m.expected.white);
   assert.equal(m.footer.divider, "1px");

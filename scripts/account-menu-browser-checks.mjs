@@ -142,7 +142,7 @@ export async function verifyAccountMenu({
           logout:p?{disabled:out.disabled,busy:out.getAttribute('aria-busy'),color:getComputedStyle(out).color,hover:out.matches(':hover'),bg:getComputedStyle(out).backgroundColor,outline:getComputedStyle(out).outlineStyle,outlineWidth:getComputedStyle(out).outlineWidth,outlineColor:getComputedStyle(out).outlineColor,outlineOffset:getComputedStyle(out).outlineOffset}:null,
           panelAbove:p?document.elementFromPoint(r.left+r.width/2,Math.min(innerHeight-1,r.top+20))?.closest(${JSON.stringify(panel)})===p:true,
           alert:!!p?.querySelector('[role=alert]'),hasUnexpected:p?/VIP|NXR-8829|Số dư ví|Lịch sử giao dịch|Nạp tiền|Bảo mật & Mật khẩu|Kiểm thử|Phiên làm việc|máy chủ nội bộ/.test(p.textContent.split(${JSON.stringify(user.username)}).join('')):false,
-          expected:{navy:token('--color-primary'),white:token('--color-surface'),muted:token('--color-surface-muted'),logout:token('--color-account-logout-text'),logoutHover:token('--color-account-logout-hover-bg'),focus:token('--focus-ring-on-light'),shadow:token('--shadow-account-menu','boxShadow'),border:token('--color-border')},
+          expected:{controlSizeDefault:parseFloat(root.getPropertyValue('--control-size-default')),navy:token('--color-primary'),white:token('--color-surface'),muted:token('--color-surface-muted'),logout:token('--color-account-logout-text'),logoutHover:token('--color-account-logout-hover-bg'),focus:token('--focus-ring-on-light'),shadow:token('--shadow-account-menu','boxShadow'),border:token('--color-border')},
         };}finally{probe.remove();}
       })()`);
       assert.ok(m.noOverflow);
@@ -176,7 +176,10 @@ export async function verifyAccountMenu({
         assert.equal(m.entries[0].text, "Thông tin cá nhân");
         assert.equal(m.entries[1].text, "Kết nối hãng vận chuyển");
         for (const e of m.entries) {
-          assert.equal(e.size.height, 32);
+          assert.equal(
+            Math.round(e.size.height),
+            m.expected.controlSizeDefault,
+          );
           assert.equal(e.icon.width, 16);
           assert.equal(e.icon.height, 16);
           assert.equal(e.font, "12px");
