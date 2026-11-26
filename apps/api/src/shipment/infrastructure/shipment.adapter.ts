@@ -45,10 +45,45 @@ type MilestoneGroup = Pick<
   ShipmentMilestoneView,
   "milestoneCode" | "occurredAt" | "locationName"
 > & { shipmentId: string };
-const summary = Prisma.raw(
-  's.actual_package_count AS "actualPackageCount",s.destination_warehouse AS "destinationWarehouse",s.provider_attributes AS "providerAttributes",s.id AS "id",s.code AS "code",s.tracking_code AS "trackingCode",s.shipment_kind AS "shipmentKind",s.provider AS "provider",s.logistics_stage AS "logisticsStage",s.provider_status AS "providerStatus",s.provider_claim_status AS "providerClaimStatus",s.customer_id AS "customerId",s.total_amount::text AS "totalAmount",s.total_currency AS "totalCurrency",s.created_at AS "createdAt",s.updated_at AS "updatedAt",s.origin_warehouse AS "originWarehouse",s.weight_kg::text AS "weightKg",s.package_count AS "packageCount",s.item_count AS "itemCount",s.declared_value::text AS "declaredValue",s.declared_currency AS "declaredCurrency"',
-);
-const detail = Prisma.sql`${summary},${Prisma.raw('s.provider_paid_amount::text AS "providerPaidAmount",s.provider_remaining_amount::text AS "providerRemainingAmount",s.provider_paid_at AS "providerPaidAt",s.service_level AS "serviceLevel",s.exchange_rate::text AS "exchangeRate",s.exchange_rate_at AS "exchangeRateAt",s.provider_updated_at AS "providerUpdatedAt",s.last_synced_at AS "lastSyncedAt",s.assignee_user_id AS "assigneeUserId",s.internal_note AS "internalNote"')}`;
+const summary = Prisma.raw(`
+  s.actual_package_count AS "actualPackageCount",
+  s.destination_warehouse AS "destinationWarehouse",
+  s.provider_attributes AS "providerAttributes",
+  s.id AS "id",
+  s.code AS "code",
+  s.tracking_code AS "trackingCode",
+  s.shipment_kind AS "shipmentKind",
+  s.provider AS "provider",
+  s.logistics_stage AS "logisticsStage",
+  s.provider_status AS "providerStatus",
+  s.provider_claim_status AS "providerClaimStatus",
+  s.customer_id AS "customerId",
+  s.total_amount::text AS "totalAmount",
+  s.total_currency AS "totalCurrency",
+  s.created_at AS "createdAt",
+  s.updated_at AS "updatedAt",
+  s.origin_warehouse AS "originWarehouse",
+  s.weight_kg::text AS "weightKg",
+  s.package_count AS "packageCount",
+  s.item_count AS "itemCount",
+  s.declared_value::text AS "declaredValue",
+  s.declared_currency AS "declaredCurrency"
+`);
+const detail = Prisma.sql`
+  ${summary},
+  ${Prisma.raw(`
+    s.provider_paid_amount::text AS "providerPaidAmount",
+    s.provider_remaining_amount::text AS "providerRemainingAmount",
+    s.provider_paid_at AS "providerPaidAt",
+    s.service_level AS "serviceLevel",
+    s.exchange_rate::text AS "exchangeRate",
+    s.exchange_rate_at AS "exchangeRateAt",
+    s.provider_updated_at AS "providerUpdatedAt",
+    s.last_synced_at AS "lastSyncedAt",
+    s.assignee_user_id AS "assigneeUserId",
+    s.internal_note AS "internalNote"
+  `)}
+`;
 function attributes(row: {
   providerAttributes: unknown;
   provider: string | null;
@@ -156,9 +191,12 @@ export class ShipmentAdapter extends ShipmentReadPort {
   ): Promise<T> {
     return this.client.$transaction(async (tx) => {
       // Same exclusive actor-read lock as Customer; serializes page/counts with worker actor locks.
-      const actor = await tx.$queryRaw<
-        { status: string }[]
-      >`SELECT status FROM users WHERE id=${owner}::uuid FOR UPDATE`;
+      const actor = await tx.$queryRaw<{ status: string }[]>`
+        SELECT status
+        FROM users
+        WHERE id = ${owner}::uuid
+        FOR UPDATE
+      `;
       if (actor[0]?.status !== UserStatus.ACTIVE)
         throw new ShipmentError("UNAUTHORIZED");
       return fn(tx);
@@ -167,17 +205,40 @@ export class ShipmentAdapter extends ShipmentReadPort {
   async list(owner: string, q: ShipmentQuery) {
     return this.transaction(owner, async (tx) => {
       const pattern = "%" + (q.q ?? "").replace(/[\\%_]/g, "\\$&") + "%";
-      const base = Prisma.sql`s.sync_hidden_at IS NULL AND s.owner_user_id=${owner}::uuid AND s.tracking_code ILIKE ${pattern}`;
+      const base = Prisma.sql`
+        s.sync_hidden_at IS NULL
+        AND s.owner_user_id = ${owner}::uuid
+        AND s.tracking_code ILIKE ${pattern}
+      `;
       const where = q.stage
-        ? Prisma.sql`${base} AND s.logistics_stage=${q.stage}`
+        ? Prisma.sql`
+            ${base}
+            AND s.logistics_stage = ${q.stage}
+          `
         : base;
       const shipments = await tx.$queryRaw<RootSummary[]>(
-        Prisma.sql`SELECT ${summary} FROM shipments s WHERE ${where} ORDER BY s.created_at DESC,s.id DESC LIMIT ${q.pageSize} OFFSET ${(q.page - 1) * q.pageSize}`,
+        Prisma.sql`
+          SELECT ${summary}
+          FROM shipments s
+          WHERE ${where}
+          ORDER BY
+            s.created_at DESC,
+            s.id DESC
+          LIMIT ${q.pageSize}
+          OFFSET ${(q.page - 1) * q.pageSize}
+        `,
       );
       const counts = await tx.$queryRaw<
         { stage: LogisticsStageCode; count: number }[]
       >(
-        Prisma.sql`SELECT s.logistics_stage AS stage,count(*)::int AS count FROM shipments s WHERE ${base} GROUP BY s.logistics_stage`,
+        Prisma.sql`
+          SELECT
+            s.logistics_stage AS stage,
+            count(*)::int AS count
+          FROM shipments s
+          WHERE ${base}
+          GROUP BY s.logistics_stage
+        `,
       );
       let serviceRows: (ShipmentServiceView & { shipmentId: string })[] = [];
       let chargeRows: ChargeGroup[] = [],
@@ -189,18 +250,55 @@ export class ShipmentAdapter extends ShipmentReadPort {
       }[] = [];
       if (shipments.length) {
         const ids = shipments.map((row) => row.id);
-        serviceRows = await tx.$queryRaw<
-          typeof serviceRows
-        >`SELECT shipment_id AS "shipmentId",service_code AS "serviceCode",enabled FROM shipment_services WHERE shipment_id=ANY(${ids}::uuid[])`;
-        chargeRows = await tx.$queryRaw<
-          ChargeGroup[]
-        >`SELECT shipment_id AS "shipmentId",charge_code AS "chargeCode",count(*)::int AS count,CASE WHEN count(*)=1 THEN max(amount)::text ELSE NULL END AS amount,CASE WHEN count(*)=1 THEN min(currency::text) ELSE NULL END AS currency FROM shipment_charges WHERE shipment_id=ANY(${ids}::uuid[]) GROUP BY shipment_id,charge_code`;
-        milestoneRows = await tx.$queryRaw<
-          MilestoneGroup[]
-        >`SELECT shipment_id AS "shipmentId",milestone_code AS "milestoneCode",occurred_at AS "occurredAt",location_name AS "locationName" FROM shipment_milestones WHERE shipment_id=ANY(${ids}::uuid[])`;
-        itemRows = await tx.$queryRaw<
-          typeof itemRows
-        >`WITH grouped AS (SELECT shipment_id,min(line_no) AS first_line,count(*)::int AS "lineCount" FROM shipment_items WHERE shipment_id=ANY(${ids}::uuid[]) GROUP BY shipment_id) SELECT g.shipment_id AS "shipmentId",i.name AS "firstName",g."lineCount" FROM grouped g JOIN shipment_items i ON i.shipment_id=g.shipment_id AND i.line_no=g.first_line`;
+        serviceRows = await tx.$queryRaw<typeof serviceRows>`
+          SELECT
+            shipment_id AS "shipmentId",
+            service_code AS "serviceCode",
+            enabled
+          FROM shipment_services
+          WHERE shipment_id = ANY(${ids}::uuid[])
+        `;
+        chargeRows = await tx.$queryRaw<ChargeGroup[]>`
+          SELECT
+            shipment_id AS "shipmentId",
+            charge_code AS "chargeCode",
+            count(*)::int AS count,
+            CASE WHEN count(*) = 1 THEN max(amount)::text ELSE NULL END AS amount,
+            CASE WHEN count(*) = 1 THEN min(currency::text) ELSE NULL END AS currency
+          FROM shipment_charges
+          WHERE shipment_id = ANY(${ids}::uuid[])
+          GROUP BY
+            shipment_id,
+            charge_code
+        `;
+        milestoneRows = await tx.$queryRaw<MilestoneGroup[]>`
+          SELECT
+            shipment_id AS "shipmentId",
+            milestone_code AS "milestoneCode",
+            occurred_at AS "occurredAt",
+            location_name AS "locationName"
+          FROM shipment_milestones
+          WHERE shipment_id = ANY(${ids}::uuid[])
+        `;
+        itemRows = await tx.$queryRaw<typeof itemRows>`
+          WITH grouped AS (
+            SELECT
+              shipment_id,
+              min(line_no) AS first_line,
+              count(*)::int AS "lineCount"
+            FROM shipment_items
+            WHERE shipment_id = ANY(${ids}::uuid[])
+            GROUP BY shipment_id
+          )
+          SELECT
+            g.shipment_id AS "shipmentId",
+            i.name AS "firstName",
+            g."lineCount"
+          FROM grouped g
+          JOIN shipment_items i
+            ON i.shipment_id = g.shipment_id
+            AND i.line_no = g.first_line
+        `;
       }
       const servicesById = groupByShipment(serviceRows);
       const chargesById = groupByShipment(chargeRows),
@@ -253,12 +351,23 @@ export class ShipmentAdapter extends ShipmentReadPort {
           | "itemSummary"
         > & { providerAttributes: unknown })[]
       >(
-        Prisma.sql`SELECT ${detail} FROM shipments s WHERE s.sync_hidden_at IS NULL AND s.id=${id}::uuid AND s.owner_user_id=${owner}::uuid`,
+        Prisma.sql`
+          SELECT ${detail}
+          FROM shipments s
+          WHERE s.sync_hidden_at IS NULL
+            AND s.id = ${id}::uuid
+            AND s.owner_user_id = ${owner}::uuid
+        `,
       );
       if (!rows.length) throw new ShipmentError("NOT_FOUND");
-      const services = await tx.$queryRaw<
-        ShipmentServiceView[]
-      >`SELECT id,service_code AS "serviceCode",enabled FROM shipment_services WHERE shipment_id=${id}::uuid`;
+      const services = await tx.$queryRaw<ShipmentServiceView[]>`
+        SELECT
+          id,
+          service_code AS "serviceCode",
+          enabled
+        FROM shipment_services
+        WHERE shipment_id = ${id}::uuid
+      `;
       const serviceOrder = Object.values(S);
       services.sort(
         (a, b) =>
@@ -267,18 +376,46 @@ export class ShipmentAdapter extends ShipmentReadPort {
       );
       const charges = await tx.$queryRaw<
         (ShipmentChargeView & { count: number })[]
-      >`SELECT id,line_no AS "lineNo",charge_code AS "chargeCode",amount::text,currency,provider_label AS "providerLabel",count(*) OVER(PARTITION BY charge_code)::int AS count FROM shipment_charges WHERE shipment_id=${id}::uuid ORDER BY line_no`;
-      const milestones = await tx.$queryRaw<
-        ShipmentMilestoneView[]
-      >`SELECT id,milestone_code AS "milestoneCode",occurred_at AS "occurredAt",location_name AS "locationName",provider_label AS "providerLabel" FROM shipment_milestones WHERE shipment_id=${id}::uuid`;
+      >`
+        SELECT
+          id,
+          line_no AS "lineNo",
+          charge_code AS "chargeCode",
+          amount::text,
+          currency,
+          provider_label AS "providerLabel",
+          count(*) OVER (PARTITION BY charge_code)::int AS count
+        FROM shipment_charges
+        WHERE shipment_id = ${id}::uuid
+        ORDER BY line_no
+      `;
+      const milestones = await tx.$queryRaw<ShipmentMilestoneView[]>`
+        SELECT
+          id,
+          milestone_code AS "milestoneCode",
+          occurred_at AS "occurredAt",
+          location_name AS "locationName",
+          provider_label AS "providerLabel"
+        FROM shipment_milestones
+        WHERE shipment_id = ${id}::uuid
+      `;
       const order = Object.values(M);
       milestones.sort(
         (a, b) =>
           order.indexOf(a.milestoneCode) - order.indexOf(b.milestoneCode),
       );
-      const items = await tx.$queryRaw<
-        ShipmentItemView[]
-      >`SELECT id,line_no AS "lineNo",name,quantity,unit_value::text AS "unitValue",currency FROM shipment_items WHERE shipment_id=${id}::uuid ORDER BY line_no`;
+      const items = await tx.$queryRaw<ShipmentItemView[]>`
+        SELECT
+          id,
+          line_no AS "lineNo",
+          name,
+          quantity,
+          unit_value::text AS "unitValue",
+          currency
+        FROM shipment_items
+        WHERE shipment_id = ${id}::uuid
+        ORDER BY line_no
+      `;
       const selectedAttributes = attributes(rows[0]);
       return {
         ...rootProjection(rows[0], selectedAttributes),
@@ -312,16 +449,37 @@ export class ShipmentAdapter extends ShipmentReadPort {
   }
   async history(owner: string, id: string, q: ShipmentQuery) {
     return this.transaction(owner, async (tx) => {
-      const root = await tx.$queryRaw<
-        { id: string }[]
-      >`SELECT id FROM shipments WHERE sync_hidden_at IS NULL AND id=${id}::uuid AND owner_user_id=${owner}::uuid`;
+      const root = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id
+        FROM shipments
+        WHERE sync_hidden_at IS NULL
+          AND id = ${id}::uuid
+          AND owner_user_id = ${owner}::uuid
+      `;
       if (!root.length) throw new ShipmentError("NOT_FOUND");
-      const history = await tx.$queryRaw<
-        ShipmentHistoryView[]
-      >`SELECT id,source_version AS "sourceVersion",processor_version AS "processorVersion",from_stage AS "fromStage",to_stage AS "toStage",provider_status AS "providerStatus",provider_changed_at AS "providerChangedAt",observed_at AS "observedAt" FROM shipment_stage_history WHERE shipment_id=${id}::uuid ORDER BY observed_at DESC,id DESC LIMIT ${q.pageSize} OFFSET ${(q.page - 1) * q.pageSize}`;
-      const count = await tx.$queryRaw<
-        { total: number }[]
-      >`SELECT count(*)::int AS total FROM shipment_stage_history WHERE shipment_id=${id}::uuid`;
+      const history = await tx.$queryRaw<ShipmentHistoryView[]>`
+        SELECT
+          id,
+          source_version AS "sourceVersion",
+          processor_version AS "processorVersion",
+          from_stage AS "fromStage",
+          to_stage AS "toStage",
+          provider_status AS "providerStatus",
+          provider_changed_at AS "providerChangedAt",
+          observed_at AS "observedAt"
+        FROM shipment_stage_history
+        WHERE shipment_id = ${id}::uuid
+        ORDER BY
+          observed_at DESC,
+          id DESC
+        LIMIT ${q.pageSize}
+        OFFSET ${(q.page - 1) * q.pageSize}
+      `;
+      const count = await tx.$queryRaw<{ total: number }[]>`
+        SELECT count(*)::int AS total
+        FROM shipment_stage_history
+        WHERE shipment_id = ${id}::uuid
+      `;
       return { history, pagination: pagination(q, count[0].total) };
     });
   }

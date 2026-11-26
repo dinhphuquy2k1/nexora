@@ -34,7 +34,13 @@ export class IdentityMfaAdapter implements MfaPort {
     // Read-only runtime-role check; no credentials/session/assurance mutation.
     const [role] = await this.client.$queryRaw<
       Array<{ name: string; super: boolean }>
-    >`SELECT current_user AS name,rolsuper AS super FROM pg_roles WHERE rolname=current_user`;
+    >`
+      SELECT
+        current_user AS name,
+        rolsuper AS super
+      FROM pg_roles
+      WHERE rolname = current_user
+    `;
     if (role?.name !== "nexora_app" || role.super)
       throw new Error("PUBLIC_SECURITY_NOT_READY");
     this.cipher.encrypt("IDENTITY_TOTP", "startup-key-custody-probe", "");
@@ -67,9 +73,17 @@ export class IdentityMfaAdapter implements MfaPort {
     expiresAt: Date,
   ) {
     return this.client.$transaction(async (tx) => {
-      const [user] = await tx.$queryRaw<
-        LockedUser[]
-      >`SELECT id,username,role,status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+      // Lock user row to serialize MFA challenge issuance against disablement and password change.
+      const [user] = await tx.$queryRaw<LockedUser[]>`
+        SELECT
+          id,
+          username,
+          role,
+          status
+        FROM users
+        WHERE id = ${userId}::uuid
+        FOR UPDATE
+      `;
       const credential = await tx.userCredential.findUnique({
         where: { userId },
       });
@@ -149,9 +163,17 @@ export class IdentityMfaAdapter implements MfaPort {
     } else if (!recoveryHash) return null;
     return this.client
       .$transaction(async (tx) => {
-        const [user] = await tx.$queryRaw<
-          LockedUser[]
-        >`SELECT id,username,role,status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+        // Lock user row to serialize MFA verification against disablement and concurrent challenges.
+        const [user] = await tx.$queryRaw<LockedUser[]>`
+          SELECT
+            id,
+            username,
+            role,
+            status
+          FROM users
+          WHERE id = ${userId}::uuid
+          FOR UPDATE
+        `;
         if (
           !user ||
           user.role !== UserRole.ADMIN ||
@@ -168,18 +190,26 @@ export class IdentityMfaAdapter implements MfaPort {
           )
         )
           return null;
-        const clock = await tx.$queryRaw<
-          Array<{ now: Date }>
-        >`SELECT clock_timestamp() AS now`;
+        // clock_timestamp() prevents a challenge that expired while waiting on user lock from succeeding.
+        const clock = await tx.$queryRaw<Array<{ now: Date }>>`
+          SELECT clock_timestamp() AS now
+        `;
         const now = clock[0].now.getTime();
         if (
           expiresAt.getTime() <= now ||
           (step !== null && Math.abs(step - Math.floor(now / 30000)) > 1)
         )
           return null;
-        const consumed = await tx.$queryRaw<
-          Array<{ id: string }>
-        >`UPDATE mfa_challenges SET consumed_at=clock_timestamp() WHERE token_hash=${challengeHash} AND user_id=${userId}::uuid AND consumed_at IS NULL AND expires_at>clock_timestamp() RETURNING id`;
+        // clock_timestamp() enforces commit-time expiry and single-use consumption atomically.
+        const consumed = await tx.$queryRaw<Array<{ id: string }>>`
+          UPDATE mfa_challenges
+          SET consumed_at = clock_timestamp()
+          WHERE token_hash = ${challengeHash}
+            AND user_id = ${userId}::uuid
+            AND consumed_at IS NULL
+            AND expires_at > clock_timestamp()
+          RETURNING id
+        `;
         if (consumed.length !== 1) return null;
         if (step !== null) {
           const advanced = await tx.userMfa.updateMany({
@@ -216,7 +246,13 @@ export class IdentityMfaAdapter implements MfaPort {
     });
     if (!challenge) return;
     await this.client.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM users WHERE id=${challenge.userId}::uuid FOR UPDATE`;
+      // Lock user row to serialize challenge cancellation against verification.
+      await tx.$queryRaw`
+        SELECT id
+        FROM users
+        WHERE id = ${challenge.userId}::uuid
+        FOR UPDATE
+      `;
       await tx.mfaChallenge.deleteMany({
         where: { tokenHash, userId: challenge.userId },
       });
@@ -261,15 +297,23 @@ export class IdentityMfaAdapter implements MfaPort {
     )
       throw new Error("MFA_ENROLLMENT_FAILED");
     await this.client.$transaction(async (tx) => {
-      const [user] = await tx.$queryRaw<
-        LockedUser[]
-      >`SELECT id,role,status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+      // Lock user row to serialize enrollment against password/role/status changes.
+      const [user] = await tx.$queryRaw<LockedUser[]>`
+        SELECT
+          id,
+          role,
+          status
+        FROM users
+        WHERE id = ${userId}::uuid
+        FOR UPDATE
+      `;
       const credential = await tx.userCredential.findUnique({
         where: { userId },
       });
-      const clock = await tx.$queryRaw<
-        Array<{ now: Date }>
-      >`SELECT clock_timestamp() AS now`;
+      // clock_timestamp() validates TOTP confirmation step against commit-time DB clock.
+      const clock = await tx.$queryRaw<Array<{ now: Date }>>`
+        SELECT clock_timestamp() AS now
+      `;
       if (
         !user ||
         user.role !== UserRole.ADMIN ||

@@ -16,6 +16,9 @@
 - **Application isolation**: Applications must not import one another. `apps/web` must never import `apps/api` or access `@nexora/database`.
 - **Database isolation**: Domain, application, and presentation layers are strictly Prisma-free.
 - **Infrastructure access**: Only API infrastructure boundaries consume database functionality, and only through `@nexora/database`.
+  - **Raw SQL readability & safety**: Format non-trivial production Raw SQL (`$queryRaw`, `$executeRaw`, `Prisma.sql`) as multiline parameterized template literals with uppercase SQL keywords, one `SELECT` column / `WHERE` condition / `SET` assignment per line, clear `CTE` and `RETURNING` blocks, and lines at most 120 characters. Never use `$queryRawUnsafe` or `$executeRawUnsafe` in production (enforced by `nexora/no-unsafe-raw-sql` and `nexora/readable-raw-sql`).
+  - **Conditional query extraction**: Extract long (over ~15 formatted lines) or reused SQL builders into pure functions in module-local `queries/*.queries.ts` files returning `Prisma.Sql`, receiving only the exact SQL parameters needed (never full domain objects, and never creating Prisma clients or transactions). Keep short single-use queries inline.
+  - **Invariant comments**: Add a one-line "why" comment for every query using `FOR UPDATE` / `FOR SHARE` / `SKIP LOCKED` / `pg_advisory_xact_lock` / `sync_lock_*`, lease fencing (`lease_version`, `worker_id`, `lease_expires_at`), `clock_timestamp()`, or special lock ordering, stating the invariant that must not be dropped.
 - **Controllers**: Controllers delegate directly to application services; controllers must never access database adapters or Prisma directly.
 - **Architectural linting**: Boundary rules are strictly enforced by `scripts/boundaries.mjs`.
 

@@ -3,6 +3,12 @@ import type { ShipmentReconciliationPolicy } from "../domain/shipment-reconcilia
 import type { LogisticsStageCode } from "@nexora/shared/shipment";
 import { persistShipmentProvider } from "./shipment-provider.persistence";
 import { hydrateShipment } from "./shipment.mapper";
+import {
+  buildUpsertChargesQuery,
+  buildUpsertItemsQuery,
+  buildUpsertMilestonesQuery,
+  buildUpsertServicesQuery,
+} from "./queries/shipment-children.queries";
 import type { SyncDomainProcessor } from "../../sync/application/sync.port";
 import type { SyncDomainBinding } from "../../sync/infrastructure/sync-domain.binding";
 import { SyncError } from "../../sync/domain/sync-policy";
@@ -35,13 +41,30 @@ export function createShipmentSyncBinding(
       };
       assertVersion();
       if (!job.carrier_connection_id) throw new SyncError(E.SYNC_STALE);
-      const scoped = await tx.$queryRaw<
-        { id: string }[]
-      >`SELECT s.id FROM sync_source_identities s JOIN provider_source_records p ON p.source_identity_id=s.id WHERE s.id=${source.id}::uuid AND s.owner_user_id=${job.owner_user_id}::uuid AND s.provider=${job.provider} AND s.external_account_id=${job.external_account_id} AND s.sync_type=${SyncType.SHIPMENT} AND p.source_version=${source.sourceVersion} AND p.processor_version=${version} FOR UPDATE OF s,p`;
+      // Lock source identity and provider record first to maintain source -> shipment lock order.
+      const scoped = await tx.$queryRaw<{ id: string }[]>`
+        SELECT s.id
+        FROM sync_source_identities s
+        JOIN provider_source_records p
+          ON p.source_identity_id = s.id
+        WHERE s.id = ${source.id}::uuid
+          AND s.owner_user_id = ${job.owner_user_id}::uuid
+          AND s.provider = ${job.provider}
+          AND s.external_account_id = ${job.external_account_id}
+          AND s.sync_type = ${SyncType.SHIPMENT}
+          AND p.source_version = ${source.sourceVersion}
+          AND p.processor_version = ${version}
+        FOR UPDATE OF s, p
+      `;
       if (scoped.length !== 1) throw new SyncError(E.SOURCE_CONFLICT);
-      const locked = await tx.$queryRaw<
-        { id: string }[]
-      >`SELECT id FROM shipments WHERE source_identity_id=${source.id}::uuid AND owner_user_id=${job.owner_user_id}::uuid FOR UPDATE`;
+      // Lock shipment root after source lock to serialize root/child mutations.
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id
+        FROM shipments
+        WHERE source_identity_id = ${source.id}::uuid
+          AND owner_user_id = ${job.owner_user_id}::uuid
+        FOR UPDATE
+      `;
       const existing = locked.length
         ? await tx.shipment.findUniqueOrThrow({
             where: { id: locked[0].id },
@@ -128,14 +151,16 @@ export function createShipmentSyncBinding(
           if (charges !== undefined) {
             // Position is the stable current-snapshot key. Never bulk-reinsert children.
             if (charges.length)
-              await tx.$executeRaw`INSERT INTO shipment_charges(shipment_id,line_no,charge_code,amount,currency,provider_label) SELECT ${root.id}::uuid,x.line_no,x.charge_code,x.amount::numeric,x.currency,x.provider_label FROM unnest(${charges.map((line) => line.lineNo)}::int[],${charges.map((line) => line.chargeCode)}::text[],${charges.map((line) => line.amount)}::text[],${charges.map((line) => line.currency)}::text[],${charges.map((line) => line.providerLabel)}::text[]) AS x(line_no,charge_code,amount,currency,provider_label) ON CONFLICT(shipment_id,line_no) DO UPDATE SET charge_code=EXCLUDED.charge_code,amount=EXCLUDED.amount,currency=EXCLUDED.currency,provider_label=EXCLUDED.provider_label WHERE (shipment_charges.charge_code,shipment_charges.amount,shipment_charges.currency,shipment_charges.provider_label) IS DISTINCT FROM (EXCLUDED.charge_code,EXCLUDED.amount,EXCLUDED.currency,EXCLUDED.provider_label)`;
+              await tx.$executeRaw(buildUpsertChargesQuery(root.id, charges));
             await tx.shipmentCharge.deleteMany({
               where: { shipmentId: root.id, lineNo: { gt: charges.length } },
             });
           }
           if (milestones !== undefined) {
             if (milestones.length)
-              await tx.$executeRaw`INSERT INTO shipment_milestones(shipment_id,milestone_code,occurred_at,location_name,provider_label) SELECT ${root.id}::uuid,x.milestone_code,x.occurred_at::timestamptz,x.location_name,x.provider_label FROM unnest(${milestones.map((entry) => entry.milestoneCode)}::text[],${milestones.map((entry) => entry.occurredAt)}::text[],${milestones.map((entry) => entry.locationName)}::text[],${milestones.map((entry) => entry.providerLabel)}::text[]) AS x(milestone_code,occurred_at,location_name,provider_label) ON CONFLICT(shipment_id,milestone_code) DO UPDATE SET occurred_at=EXCLUDED.occurred_at,location_name=EXCLUDED.location_name,provider_label=EXCLUDED.provider_label WHERE (shipment_milestones.occurred_at,shipment_milestones.location_name,shipment_milestones.provider_label) IS DISTINCT FROM (EXCLUDED.occurred_at,EXCLUDED.location_name,EXCLUDED.provider_label)`;
+              await tx.$executeRaw(
+                buildUpsertMilestonesQuery(root.id, milestones),
+              );
             await tx.shipmentMilestone.deleteMany({
               where: {
                 shipmentId: root.id,
@@ -147,7 +172,7 @@ export function createShipmentSyncBinding(
           }
           if (services !== undefined) {
             if (services.length)
-              await tx.$executeRaw`INSERT INTO shipment_services(shipment_id,service_code,enabled) SELECT ${root.id}::uuid,x.service_code,x.enabled FROM unnest(${services.map((entry) => entry.serviceCode)}::text[],${services.map((entry) => entry.enabled)}::boolean[]) AS x(service_code,enabled) ON CONFLICT(shipment_id,service_code) DO UPDATE SET enabled=EXCLUDED.enabled WHERE shipment_services.enabled IS DISTINCT FROM EXCLUDED.enabled`;
+              await tx.$executeRaw(buildUpsertServicesQuery(root.id, services));
             await tx.shipmentService.deleteMany({
               where: {
                 shipmentId: root.id,
@@ -159,7 +184,7 @@ export function createShipmentSyncBinding(
           }
           if (items !== undefined) {
             if (items.length)
-              await tx.$executeRaw`INSERT INTO shipment_items(shipment_id,line_no,name,quantity,unit_value,currency) SELECT ${root.id}::uuid,x.line_no,x.name,x.quantity,x.unit_value::numeric,x.currency FROM unnest(${items.map((line) => line.lineNo)}::int[],${items.map((line) => line.name)}::text[],${items.map((line) => line.quantity)}::int[],${items.map((line) => line.unitValue)}::text[],${items.map((line) => line.currency)}::text[]) AS x(line_no,name,quantity,unit_value,currency) ON CONFLICT(shipment_id,line_no) DO UPDATE SET name=EXCLUDED.name,quantity=EXCLUDED.quantity,unit_value=EXCLUDED.unit_value,currency=EXCLUDED.currency WHERE (shipment_items.name,shipment_items.quantity,shipment_items.unit_value,shipment_items.currency) IS DISTINCT FROM (EXCLUDED.name,EXCLUDED.quantity,EXCLUDED.unit_value,EXCLUDED.currency)`;
+              await tx.$executeRaw(buildUpsertItemsQuery(root.id, items));
             await tx.shipmentItem.deleteMany({
               where: { shipmentId: root.id, lineNo: { gt: items.length } },
             });

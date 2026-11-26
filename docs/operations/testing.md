@@ -1506,3 +1506,8 @@ uses its owned privileged fixture DB and labels that limitation. Never fall back
 the ambient base DATABASE_URL: its absent fixture owner produces UNAUTHORIZED.
 Sync Targeted explicitly watches the new policy/adapter/test paths and runs their
 policy units alongside all prior Sync units; no package discovery list is replaced.
+
+## Raw SQL Lint & Parity Verification — NEXORA-063
+
+- **ESLint Raw SQL guards**: `pnpm test:lint` (and `pnpm test`) executes `scripts/eslint-rules/no-unsafe-raw-sql.test.mjs` and `scripts/eslint-rules/readable-raw-sql.test.mjs` alongside `no-domain-vocabulary-literals.test.mjs` and `no-nested-ternary.test.mjs`, verifying both RuleTester cases and real ESLint config scoping on `apps/*/src` and `packages/*/src`.
+- **SQL parity evidence**: Formatting and query-builder extraction must preserve the exact normalized SQL sent to PostgreSQL (clauses, identifiers, casts, parameter order, locks, and `clock_timestamp()`); parity comparisons are recorded under `docs/tasks/evidence/NEXORA-063/`.

@@ -1,4 +1,6 @@
 import domainVocabulary from "./scripts/eslint-rules/no-domain-vocabulary-literals.mjs";
+import noUnsafeRawSql from "./scripts/eslint-rules/no-unsafe-raw-sql.mjs";
+import readableRawSql from "./scripts/eslint-rules/readable-raw-sql.mjs";
 import js from "@eslint/js";
 import ts from "typescript-eslint";
 export default ts.config(
@@ -14,6 +16,17 @@ export default ts.config(
     ],
   },
   {
+    plugins: {
+      nexora: {
+        rules: {
+          "no-domain-vocabulary-literals": domainVocabulary,
+          "no-unsafe-raw-sql": noUnsafeRawSql,
+          "readable-raw-sql": readableRawSql,
+        },
+      },
+    },
+  },
+  {
     files: ["apps/api/src/{identity,carrier,customer,shipment}/**/*.ts"],
     ignores: [
       "**/test/**",
@@ -23,10 +36,25 @@ export default ts.config(
       "**/*.spec.ts",
       "**/*.d.ts",
     ],
-    plugins: {
-      nexora: { rules: { "no-domain-vocabulary-literals": domainVocabulary } },
-    },
     rules: { "nexora/no-domain-vocabulary-literals": "error" },
+  },
+  {
+    files: [
+      "apps/*/src/**/*.{ts,tsx,js,mjs,cjs}",
+      "packages/*/src/**/*.{ts,tsx,js,mjs,cjs}",
+    ],
+    ignores: [
+      "**/test/**",
+      "**/tests/**",
+      "**/__tests__/**",
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/*.d.ts",
+    ],
+    rules: {
+      "nexora/no-unsafe-raw-sql": "error",
+      "nexora/readable-raw-sql": "error",
+    },
   },
   {
     files: ["apps/api/src/{customer,shipment}/**/*.ts"],

@@ -262,3 +262,7 @@ tuning. SyncRepository availability/admission/fences/claim/schedule retain exact
 registered pair resolution without a second ENV-derived enabled-type list. Static
 production declarations and external HTTP hard gates remain closed. No application/
 domain Prisma dependency or Carrier/Sync circular import is introduced.
+
+## Raw SQL Query Separation — NEXORA-063
+
+- **Query builders**: Long or reused `Prisma.Sql` builders are extracted into module-local `queries/*.queries.ts` files (`shipment/infrastructure/queries/`, `sync/infrastructure/queries/`) as pure functions accepting only the exact parameters bound in SQL. Transaction orchestration and persistence execution remain in the owning adapter or repository without introducing `GenericRepository`, `BaseRepository`, or a generic `UnitOfWork`.
