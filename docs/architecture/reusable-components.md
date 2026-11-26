@@ -327,7 +327,7 @@ Button primary(default)/secondary/ghost variants share control sizing/radius/fon
 
 ### v3 shared control API migration
 
-Controls export ControlSize(default|medium|large), typed native/ref props, ButtonVariant(primary|secondary|ghost|emphasis) and buttonClassName for real navigation presentation. Input/Select omit numeric native size; Textarea rows and native multiple Select retain multiline/auto-height. Private mappings belong only to Controls.module.css; feature sizing/state overrides are retired. [Design System](design-system.md) owns defaults/public runtime points and consumer migration. Existing Login/MFA/Setup, Header/account/notifications/mobile actions and Customer form/table/pagination consumers use default32. Historical44px/scoped compact guidance is superseded by approved v3; acceptance remains in task031.
+Controls export `ControlSize` (`default | medium | large`), typed native/ref props, `ButtonVariant` (`primary | secondary | ghost | emphasis`) and `buttonClassName` for real navigation presentation. Input/Select omit numeric native size; Textarea honors explicit `rows={1}`/`rows={2}` while enforcing its 3-line minimum for `rows >= 3`, and native multiple Select retains auto-height. Private mappings belong only to `Controls.module.css`; feature sizing/state overrides are retired. [Design System](design-system.md) owns defaults/public runtime points and consumer migration: current modules use `default` (`36px`), with Login/MFA/Setup primary controls using `large` (`48px`) under `NEXORA-064` (historical 32px/44px/compact references remain only in completed `NEXORA-031` provenance).
 
 ## Shared Toast and modal viewport
 

@@ -323,7 +323,7 @@ state and permits retry. No Identity/MFA/Origin/cookie/backend contract changes.
 Visual geometry and permitted Account-only appearance are owned by design-system;
 ZIP reference mock name/code/VIP/wallet and4 demo entries are intentionally excluded.
 Real user data replaces mock identity, the unavailable Profile route is disabled, and
-existing canonical medium40/default32 controls replace arbitrary ZIP sizing.
+canonical `medium` (40px) trigger / `default` (36px) menu-row controls replace arbitrary ZIP sizing.
 
 ## Carrier Connections presentation — NEXORA-033
 
