@@ -56,8 +56,9 @@
 }
 
 .heading {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
+  font-size: var(--type-page-title-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-page-title-line-height);
   color: var(--color-primary);
   margin: 0 0 4px;
   text-align: center;
@@ -101,6 +102,7 @@
 .label {
   font-size: var(--type-label-size);
   font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-line-height);
   color: var(--color-primary);
 }
 
@@ -113,7 +115,7 @@
 
 .inputIcon {
   position: absolute;
-  left: 14px;
+  left: var(--space-4);
   color: var(--control-placeholder);
   pointer-events: none;
   display: flex;
@@ -124,7 +126,9 @@
 
 /* Layout-specific padding adjustments for inputs with leading/trailing icons */
 .inputWrapper input {
-  padding-left: 44px;
+  padding-left: calc(
+    var(--space-4) + var(--icon-control-large) + var(--space-2)
+  );
 }
 
 .inputWrapper input[type="password"],

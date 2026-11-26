@@ -250,13 +250,15 @@
   --line-height-normal: 1.5;
 
   --type-page-title-size: var(--font-size-2xl);
+  --type-page-title-line-height: 28px;
   --type-section-heading-size: var(--font-size-xl);
   --type-body-size: var(--font-size-md);
   --type-small-size: var(--font-size-sm);
   --type-label-size: var(--font-size-md);
+  --type-label-line-height: 20px;
   --type-caption-size: var(--font-size-sm);
   --type-table-heading-size: var(--font-size-sm);
-  --type-table-cell-size: var(--font-size-base);
+  --type-table-cell-size: var(--font-size-sm);
   --type-button-label-size: var(--font-size-md);
   --type-status-size: var(--font-size-sm);
   --surface-padding-standard: var(--space-6);
@@ -307,7 +309,7 @@
   --checkbox-indicator-medium: 18px;
   --checkbox-indicator-large: 20px;
   --control-radius: var(--radius-md);
-  --control-font-size: var(--font-size-md);
+  --control-font-size: var(--type-button-label-size);
   --control-font-size-default: var(--control-font-size);
   --control-font-size-medium: var(--control-font-size);
   --control-font-size-large: var(--font-size-xl);

@@ -47,9 +47,9 @@
 
 .titleGroup h1 {
   margin: 0;
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-snug);
+  font-size: var(--type-page-title-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-page-title-line-height);
   text-transform: uppercase;
   color: var(--color-primary);
 }
@@ -126,6 +126,8 @@
   left: var(--space-3);
   top: 50%;
   transform: translateY(-50%);
+  width: var(--icon-control-default);
+  height: var(--icon-control-default);
   color: var(--color-search-icon);
   pointer-events: none;
 }
@@ -202,7 +204,7 @@
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--type-table-cell-size);
 }
 
 .tableHead {
@@ -415,6 +417,7 @@
   margin: 0;
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
+  line-height: var(--control-line-height);
   color: var(--color-text);
 }
 
@@ -493,6 +496,7 @@
 
 .paginationRange {
   font-family: ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-semibold);
   color: var(--color-primary);
 }
@@ -1049,8 +1053,9 @@ button.colPickerDoneBtn:hover:not(:disabled) {
 }
 
 .formLabel {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--type-label-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-line-height);
   color: var(--color-primary);
 }
 
@@ -1257,7 +1262,9 @@ button.colPickerDoneBtn:hover:not(:disabled) {
 }
 .searchInput {
   width: 100%;
-  padding-inline-start: calc(var(--space-3) + 22px);
+  padding-inline-start: calc(
+    var(--space-3) + var(--icon-control-default) + var(--space-2)
+  );
 }
 /* The separate column picker still owns this feature anchor. */
 .popoverAnchor {
