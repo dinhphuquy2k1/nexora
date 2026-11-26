@@ -58,9 +58,9 @@
 }
 .titleGroup h1 {
   margin: 0;
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-snug);
+  font-size: var(--type-page-title-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-page-title-line-height);
   text-transform: uppercase;
 }
 .brandIcon {
@@ -190,7 +190,7 @@
 .searchIcon {
   position: absolute;
   top: 50%;
-  left: 10px;
+  left: var(--space-3);
   transform: translateY(-50%);
   color: var(--color-search-icon);
   pointer-events: none;
@@ -198,8 +198,10 @@
   height: var(--icon-control-default);
 }
 .searchInput {
-  padding-left: var(--control-size-default);
-  padding-right: var(--control-size-default);
+  padding-left: calc(
+    var(--space-3) + var(--icon-control-default) + var(--space-2)
+  );
+  padding-right: calc(var(--control-size-default) + var(--space-1));
   background-color: var(--control-bg);
   border-color: var(--control-border);
 }
@@ -287,7 +289,7 @@
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: var(--font-size-sm);
+  font-size: var(--type-table-cell-size);
 }
 .tableEmpty {
   height: 100%;
@@ -325,7 +327,6 @@
 .table td {
   padding: 6px var(--space-3);
   border-bottom: 1px solid var(--color-border);
-  font-size: var(--font-size-sm);
   vertical-align: middle;
   overflow-wrap: anywhere;
 }
@@ -334,7 +335,7 @@
   text-align: center;
   padding: 6px var(--space-1);
 }
-.detailLink {
+td.detailCell a.detailLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -350,7 +351,7 @@
     background-color 0.15s ease,
     color 0.15s ease;
 }
-.detailLink:hover {
+td.detailCell a.detailLink:hover {
   background-color: var(--color-primary);
   color: var(--color-white);
   text-decoration: none;
@@ -440,6 +441,9 @@
 }
 .addressCountIcon {
   color: var(--color-accent);
+}
+.table td.actionCell {
+  padding-block: var(--space-1);
 }
 .actionCell {
   text-align: center;
@@ -586,8 +590,9 @@
 .fields label {
   display: grid;
   gap: var(--space-2);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--type-label-size);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--type-label-line-height);
 }
 .fieldPair {
   display: grid;
@@ -641,6 +646,8 @@
 }
 .drawerHeader h2 {
   font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--control-line-height);
   margin: 0;
   text-transform: uppercase;
 }
@@ -688,6 +695,8 @@
 }
 .sectionHeading h3 {
   font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--control-line-height);
   margin: 0;
 }
 .sectionNumber {
