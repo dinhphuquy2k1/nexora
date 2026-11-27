@@ -35,22 +35,30 @@ The native Worker assertion selects existing legacy load only on baseline, so a
 missing new SQL function cannot count as RED. Exact baseline worktree was built with
 existing dependencies and signed migrated PostgreSQL before native/process probes.
 
-| Claim                                     | Exact command / expected and actual behavior                                                                                                                                                                                                                                                                                                                                                                                     | Result |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| Baseline Vault/reconnect RED              | `node --test --test-name-pattern='token operation\|recovery authorizes\|audit failure\|post-audit authorization\|activation-denied' apps/api/test/carrier-credential-separation.test.cjs` in baseline worktree with candidate harness:5/5 causal failures. Token path recorded combined-password-read; recovery read ciphertext before audit; stale-after-audit hook was bypassed; denied reconnect claimed once instead of zero | FAIL   |
-| Candidate credential and lifecycle units  | Pinned-PATH `node --test apps/api/test/carrier-credential-separation.test.cjs apps/api/test/carrier-vault.test.cjs apps/api/test/carrier-lifecycle.test.cjs scripts/uniship-runtime-environment.test.mjs`:54/54. Includes cancellation after authorization/audit/password read, audit unavailable, post-audit stale and zero-claim denial                                                                                        | PASS   |
-| Baseline native restricted capability RED | Signed `node --test integration/uniship-runtime-integration.test.cjs` from apps/api, source02c2d05 build with same behavioral sections: token result contained password; pre-claim password read succeeded instead of rejecting. Both assertions executed as separate subtests                                                                                                                                                   | FAIL   |
-| Candidate native runtime                  | Same signed native command, candidate48b640c harness:64/64,0skip,44.581s overall; original runtime and new proof/ACL/audit/CAS/manual reconnect/Prisma projection assertions passed. Strengthened final signed wrapper receipt is recorded separately below                                                                                                                                                                      | PASS   |
-| Native API projection A/B                 | Actual API-role adapter query instrumentation against same owned PostgreSQL: baseline metadata projection selected secrets:true (RED); candidate metadata had no secrets relation and read only ACCESS_TOKEN (GREEN). Assertions inspect projection/type only; never log returned artifacts                                                                                                                                      | PASS   |
-| Native denied reconnect A/B               | Actual baseline/candidate UnishipSyncRuntime with mismatching synthetic login policy: both return SERVICE_UNAVAILABLE, zero HTTP and unchanged credential digest; baseline lifecycle delta1 (RED), candidate delta0 (GREEN). Candidate regression additionally compares generation and immutable job scope for owner/login/account/optional connection/operational-gate denials                                                  | PASS   |
-| Baseline strict Turbo RED                 | Same pinned `pnpm exec turbo run dev --filter=@nexora/api --filter=@nexora/shared --filter=@nexora/database --dry=json` assertion: API task passThroughEnv empty instead of required keys; JSON kept in memory                                                                                                                                                                                                                   | FAIL   |
-| Candidate strict Turbo                    | Same resolved CLI and exact task/allowlist assertions: API-only runtime values, shared/database watch-only, strict mode/cachefalse/persistenttrue                                                                                                                                                                                                                                                                                | PASS   |
-| Baseline resolved Compose RED             | Same isolated host verifier `verifyUnishipComposeEnvironment()` from scripts/uniship-compose-contract.mjs, baseline cwd: API SYNC_LEASE_SECONDS absent                                                                                                                                                                                                                                                                           | FAIL   |
-| Candidate resolved Compose                | Same verifier, candidate cwd: standard/dev/release/public × absent/empty/nondefault/invalid forwarding; all API/Worker settings match, Worker Identity and Web Carrier keys absent                                                                                                                                                                                                                                               | PASS   |
-| Actual host development process A/B       | Existing pinned Turbo dev command starts actual HTTP server; /proc socket-inode/entrypoint probe sees baseline propagation mismatch (RED), candidate API equality (GREEN). Actual direct-watch Worker main has shared settings and nexora_sync URL, no Identity in A/B. No provider requests; live flagfalse. This is host-native proof, not canonical Docker dev proof                                                          | PASS   |
+| Claim                                     | Exact command / expected and actual behavior                                                                                                                                                                                                                                                                                                                                                                                    | Result |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Baseline Vault/reconnect RED              | `node --test --test-name-pattern='token operation\|recovery authorizes\|audit failure\|post-audit authorization\|activation-denied' apps/api/test/carrier-credential-separation.test.cjs` in baseline worktree with candidate harness:5/5 causal failures. Token path recorded combined-password-read; recovery read ciphertext before audit; post-audit loads remained combined; denied reconnect claimed once instead of zero | FAIL   |
+| Candidate credential and lifecycle units  | Pinned-PATH `node --test apps/api/test/carrier-credential-separation.test.cjs apps/api/test/carrier-vault.test.cjs apps/api/test/carrier-lifecycle.test.cjs scripts/uniship-runtime-environment.test.mjs`:54/54. Includes cancellation after authorization/audit/password read, audit unavailable, post-audit stale and zero-claim denial                                                                                       | PASS   |
+| Baseline native restricted capability RED | Signed `node --test integration/uniship-runtime-integration.test.cjs` from apps/api, source02c2d05 build with same behavioral sections: token result contained password; pre-claim password read succeeded instead of rejecting. Both assertions executed as separate subtests                                                                                                                                                  | FAIL   |
+| Candidate native runtime                  | Same signed native command, candidate48b640c harness:64/64,0skip,44.581s overall; original runtime and new proof/ACL/audit/CAS/manual reconnect/Prisma projection assertions passed. Strengthened final signed wrapper receipt is recorded separately below                                                                                                                                                                     | PASS   |
+| Native API projection A/B                 | Actual API-role adapter query instrumentation against same owned PostgreSQL: baseline metadata projection selected secrets:true (RED); candidate metadata had no secrets relation and read only ACCESS_TOKEN (GREEN). Assertions inspect projection/type only; never log returned artifacts                                                                                                                                     | PASS   |
+| Native denied reconnect A/B               | Actual baseline/candidate UnishipSyncRuntime with mismatching synthetic login policy: both return SERVICE_UNAVAILABLE, zero HTTP and unchanged credential digest; baseline lifecycle delta1 (RED), candidate delta0 (GREEN). Candidate regression additionally compares generation and immutable job scope for owner/login/account/optional connection/operational-gate denials                                                 | PASS   |
+| Baseline strict Turbo RED                 | Same pinned `pnpm exec turbo run dev --filter=@nexora/api --filter=@nexora/shared --filter=@nexora/database --dry=json` assertion: API task passThroughEnv empty instead of required keys; JSON kept in memory                                                                                                                                                                                                                  | FAIL   |
+| Candidate strict Turbo                    | Same resolved CLI and exact task/allowlist assertions: API-only runtime values, shared/database watch-only, strict mode/cachefalse/persistenttrue                                                                                                                                                                                                                                                                               | PASS   |
+| Baseline resolved Compose RED             | Same isolated host verifier `verifyUnishipComposeEnvironment()` from scripts/uniship-compose-contract.mjs, baseline cwd: API SYNC_LEASE_SECONDS absent                                                                                                                                                                                                                                                                          | FAIL   |
+| Candidate resolved Compose                | Same verifier, candidate cwd: standard/dev/release/public × absent/empty/nondefault/invalid forwarding; all API/Worker settings match, Worker Identity and Web Carrier keys absent                                                                                                                                                                                                                                              | PASS   |
+| Actual host development process A/B       | Existing pinned Turbo dev command starts actual HTTP server; /proc socket-inode/entrypoint probe sees baseline propagation mismatch (RED), candidate API equality (GREEN). Actual direct-watch Worker main has shared settings and nexora_sync URL, no Identity in A/B. No provider requests; live flagfalse. This is host-native proof, not canonical Docker dev proof                                                         | PASS   |
 
 Unit harness byte SHA-256 at initial A/B:
 `4f6a65421181634d113fab8aef139336208ed2b3cb25e77026c2a7a5864cbb51`.
+The initial post-audit unit fake modeled stale only on the new method. It was
+corrected to reject stale after audit on the legacy method too, then both exact
+baseline and candidate were rebuilt/rerun: baseline5/5 fails purpose separation,
+candidate54/54 passes. Baseline already reauthorized after audit; no claim of a
+missing legacy authorization recheck is made. This correction does not weaken any
+assertion. Final unit harness SHA-256:
+`6daafa4ce54aee313b85fff0e9f6f5d0c30c6d778c1fac5b24044e47acd869a1`.
+
 Initial resolved Turbo harness:
 `3f9180faae4fa9c5a7c688825f325246c2a0a27cc1e2ffc317dfa0c31291d42d`;
 latest exact-task strengthening is pinned by1a57963 and final CI checkout.
@@ -147,3 +155,49 @@ boolean/delta assertions described in the A/B table.
 Final evidence commit changes Markdown only relative to e1d66a4. Final hosted
 receipts must pin their actual source and merge checkout, not borrow source02c2d05
 checks. Canonical Docker results remain pending until that hosted execution.
+
+## First candidate hosted receipts and probe correction
+
+Source:4013e5275d8f6defd25c7895ba46104f25f7e6b7. Actual merge checkout from
+checkout logs/fetched merge ref:082ec63bd59e5b2b8f0be676f1ebde5b7b325e31
+(parents main2b31e7e + source4013e52). Run attempt1 for all rows.
+
+| Claim                        | Run / job / actual result                                                                                                                                                                                      | Result |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Preflight                    | [46014406078](https://github.com/dinhphuquy2k1/nexora/actions/runs/46014406078), job140557726855; governance and checkout match verified in downloaded logs                                                    | PASS   |
+| Sync Targeted                | [46014405914](https://github.com/dinhphuquy2k1/nexora/actions/runs/46014405914), job140557726326;35 policy,19 adapter,61 Sync,59 provider,64 runtime tests pass; actual merge checkout matches                 | PASS   |
+| Foundation initial candidate | [46014406009](https://github.com/dinhphuquy2k1/nexora/actions/runs/46014406009), job140557726849; steps4–9 PASS; step10 Development HMR/dependency drift FAIL at new probe, before old security/HMR assertions | FAIL   |
+
+Exact new diagnostic: `Error: DEV_ENV_ACTUAL_PROCESS_NOT_UNIQUE`
+(2026-11-27T14:37:33.6327375Z). Zero boolean probe outputs precede it, so the first
+API probe failed. This is a task-added harness defect, handled under A; no existing
+HMR assertion was relaxed or claimed to have run.
+
+Bounded reproduction used the existing PostgreSQL image with the installed Node
+binary mounted read-only, networknone, a synthetic HTTP listener and synthetic
+ENV in an owned diagnostic container. Same probe: exec UID0:0 → exit1,
+DEV_ENV_ACTUAL_PROCESS_NOT_UNIQUE; exec UID1000:1000 matching listener → exit0,
+actualProcess/runtimeEnvironmentEqual true. This proves the /proc access mismatch,
+not actual application runtime acceptance. Initial reproduction lacked disk due
+owned PostgreSQL logs; removed only owned PG/private state and generated Next cache,
+then the complete controlled reproduction ran. No image build/pull, new dependency,
+SYS_PTRACE grant, user volume or raw environment output. Diagnostic container and
+files were removed afterward.
+
+Fix: dev-smoke invokes the existing dev-entrypoint.sh mapping before Node probe,
+the same service-owner mapping used by actual API/Worker startup. PID/socket/env
+assertions are unchanged; no retry, timeout, production startup or capability
+change. Final independent review and new-source CI are required below.
+
+The final original generic credential negatives also explicitly prove loadToken
+succeeds before scope mutation, then fails for disabled/generation/delete/provider/
+expired-lease and successor changes. Using password loading without a claim here
+would reject missing proof before exercising the intended old scope regression.
+After-claim proof matrix remains separate. Independent reviewer confirmed these
+corrections restore legacy negative meaning without weakening assertions. Final
+signed runtime rerun:64/64,0skip,44.772s, harness finalized by da2627a.
+
+Local Docker application gates remain NOT RUN locally; the small process-permission
+reproducer is not represented as canonical dev acceptance. Final hosted receipts
+for the corrected source will be pinned in PR64 description without reusing any
+prior source's green conclusion.

@@ -27,8 +27,9 @@ compose stop api web
 compose run --rm --no-deps -T dependencies dependencies
 compose up -d --no-build --wait --wait-timeout 180
 # Inspect actual Turbo-launched HTTP listener and worker child, not container ENV.
+# Reuse the service owner mapping: container root cannot ptrace another UID.
 for runtime_service in api sync-worker; do
-  compose exec -T "$runtime_service" node --input-type=module -e 'import {verifyDevelopmentEnvironment} from "./scripts/dev-runtime-environment-probe.mjs"; console.log(JSON.stringify(verifyDevelopmentEnvironment(process.argv[1])))' "$runtime_service"
+  compose exec -T "$runtime_service" sh /workspace/scripts/dev-entrypoint.sh node --input-type=module -e 'import {verifyDevelopmentEnvironment} from "./scripts/dev-runtime-environment-probe.mjs"; console.log(JSON.stringify(verifyDevelopmentEnvironment(process.argv[1])))' "$runtime_service"
 done
 printf '%s' 'DevSmokePass123!' | compose exec -T api sh /workspace/scripts/api-entrypoint.sh node scripts/user-create.mjs --username dev_smoke_user --password-stdin
 # Explicit new security assertion: trusted provisioning alone never enables ADMIN login.

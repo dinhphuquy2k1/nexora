@@ -286,3 +286,20 @@ production acceptance remains open and task stays VERIFICATION PENDING.
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Full native integration              | pnpm test:integration291/291,0skip; [hardening receipt](../evidence/NEXORA-058/hardening-v3-verification.md)        | 2026-11-27 | PASS   |
 | Original and separate signed entries | Shipment23/23, Observation47/47, strengthened Uniship runtime64/64,0skip; unchanged discovery/budget, sourcee1d66a4 | 2026-11-27 | PASS   |
+
+### Hosted first-candidate failure retained
+
+Source4013e52: Preflight46014406078/job140557726855 and
+Sync46014405914/job140557726326 PASS attempt1 on merge082ec63.
+Foundation46014406009/job140557726849 attempt1: steps4–9 PASS; dev step10 FAIL
+at the task-added API process probe (DEV_ENV_ACTUAL_PROCESS_NOT_UNIQUE). Controlled
+Docker reproduction proved exec-root versus mapped-owner /proc access mismatch;
+probe now reuses existing dev-entrypoint UID mapping, with assertions/timeouts/
+privileges unchanged. [Detailed evidence](../evidence/NEXORA-058/hardening-v3-verification.md).
+This failure remains FAIL; corrected final source requires fresh hosted CI.
+
+| Claim                                | Evidence                                                                                                       | Date       | Result |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| First candidate Preflight/Sync       | Source4013e52, merge082ec63, runs46014406078/46014405914, attempt1                                             | 2026-11-27 | PASS   |
+| First candidate Foundation dev probe | Run46014406009, attempt1, exact new probe diagnostic and controlled owner-UID reproduction retained            | 2026-11-27 | FAIL   |
+| Final scoped negative coverage       | Original token scope negatives restored with positive precondition; signed runtime64/64,0skip after correction | 2026-11-27 | PASS   |

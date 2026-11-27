@@ -1550,8 +1550,10 @@ standard/dev/release/public Compose with an isolated env-file and minimal synthe
 process environment; no Docker socket enters quality containers. Defaults, empty,
 explicit and invalid forwarding remain distinct; parser tests reject invalid tuning.
 Existing dev-smoke supplies synthetic runtime settings with the live gate false
-and probes actual HTTP-listener/Worker child PID environments via /proc, emitting
-boolean assertions only. Container exec ENV alone is not process propagation proof.
+and probes actual HTTP-listener/Worker child PID environments via /proc through
+the existing dev-entrypoint UID mapping, emitting boolean assertions only. Container
+exec root may lack ptrace authority over the mapped service owner; do not grant
+SYS_PTRACE or weaken PID/environment assertions. Container exec ENV alone is not process propagation proof.
 It retains ADMIN enrollment denial, OPERATOR login, HMR, frozen dependency drift,
 persistence and cleanup assertions. Existing signed Nest loopback tests prove actual
 capability behavior separately. Original signed suite discovery and180000ms budgets
