@@ -220,3 +220,19 @@ Main-integration v2 validation2026-11-27: quality919/919, signed integration263/
 (374063.186516ms,0skip), scoped runtime36/36 and migration repeat/drift PASS.
 Independent read-only integration review: no P1/P2. Snapshot SHA and historical plans
 remain unchanged; current hosted verification receipt belongs in PR64 description.
+
+## Canonical discovery correction — 2026-11-27
+
+Foundation45961050403 step4 failed at EXECUTE_SUITE_SHIPMENT-WORKER with
+DOCKER_COMMAND_TIMEOUT. Existing launcher bounds each suite at180000ms.058 appended
+its new runtime file to that existing timed suite; no individual failing assertion
+or active subtest is available in the timeout diagnostic. This is an aggregate
+suite timeout, not proof of a product failure or exact subtest cause.
+
+Within v2 discovery scope: reuse the same signed shipment-worker wrapper with one
+explicit new runtime-only selector, restore its original two-file default sequence,
+and register a separate uniship-runtime entry using the same launcher/mounts/180s
+bound. Prepare owned STORAGE_ROOT before either selected invocation. No existing
+assertion, timeout, concurrency, retry or Foundation workflow step changes. Preserve
+failed run evidence; verify selector/cleanup via existing launcher fixtures and the
+runtime-only wrapper against owned signed PostgreSQL before publishing.

@@ -1517,7 +1517,7 @@ abort and429. Actual Nest API and Worker run the existing manual endpoint/loop w
 FULL100, no-policy ingestion, synthetic-policy baseline/hide/restore, midpage401 and
 expiry recovery/stale cancellation, new job identity preservation, manual-only old
 AUTO suppression and separately configured synthetic AUTOMATIC completion scheduling.
-No live provider or production thresholds are used. Signed shipment-worker and Sync
+No live provider or production thresholds are used. Signed uniship-runtime (using the existing signed wrapper) and Sync
 Targeted discovery include the new suite; native migration verification covers19→20,
 repeat/drift and existing data. Readiness checks include task-owned STORAGE_ROOT,
 origins, keyring, generated/build artifacts, signed database and fixed closed live gate.
@@ -1527,3 +1527,8 @@ Keep command failures and historical evidence distinct from final current-HEAD C
 
 - **ESLint Raw SQL guards**: `pnpm test:lint` (and `pnpm test`) executes `scripts/eslint-rules/no-unsafe-raw-sql.test.mjs` and `scripts/eslint-rules/readable-raw-sql.test.mjs` alongside `no-domain-vocabulary-literals.test.mjs` and `no-nested-ternary.test.mjs`, verifying both RuleTester cases and real ESLint config scoping on `apps/*/src` and `packages/*/src`.
 - **SQL parity evidence**: Formatting and query-builder extraction must preserve the exact normalized SQL sent to PostgreSQL (clauses, identifiers, casts, parameter order, locks, and `clock_timestamp()`); parity comparisons are recorded under `docs/tasks/evidence/NEXORA-063/`.
+
+The signed launcher keeps the original shipment-worker two-file sequence and180s
+per-suite budget.058 runtime tests run as separate uniship-runtime entry through the
+same wrapper/source mounts, also180s, with a precreated owned storage root. This
+preserves the existing capacity/observation budget and adds bounded new coverage.

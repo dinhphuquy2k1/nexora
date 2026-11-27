@@ -170,3 +170,32 @@ is identical before/after; no SQL token, interpolation or binding-order change.
 Preflight45960468119 PASS on f13057d/merge21f4a7c, attempt1. Its still-running
 Foundation is superseded by this format-only source update, never claimed PASS.
 Exact final-HEAD CI receipt is maintained in PR64 description as linked above.
+
+## First final-source Foundation result
+
+Source91ef3d5d2dd674cd840486d00b89bce5ee1fd0b3; actual merge checkout
+241eabc76bf6a81a13f163e8dee2be28a2b356e4. Attempt1 Preflight45961050439
+job140378687491 PASS; Sync45961050466 job140378687699 PASS (35/19/61/59/36 tests,
+all PASS,0skip). Foundation45961050403 job140378687838 FAIL step4:
+PROVISION_CLUSTER_SMOKE_FAILED step=EXECUTE_SUITE_SHIPMENT-WORKER err=DOCKER_COMMAND_TIMEOUT
+No individual failed assertion/subtest is identified by that bounded diagnostic.
+The launcher uses180000ms;058 had appended runtime integration to the preexisting
+two-file suite. Split only058's added invocation into a separate signed launcher entry
+with the same bound; retain original sequence/coverage/timeouts. This is a task-added
+fixture/discovery correction. Local Docker remains unavailable. No existing failed
+run is rerun or rewritten as PASS; new source needs fresh complete CI.
+
+Discovery correction executed evidence: selector fixture RED expected5/actual4 before
+registration; complete launcher fixture8/8 GREEN, then selector/mount/argument-specific
+case GREEN. Actual host signed wrapper default PASS118.056s (original Shipment and
+FULL observation only); runtime-only PASS49.957s,36/36,0skip. Both include real builds,
+signed PostgreSQL and restricted roles, run sequentially, each below unchanged180s.
+This does not establish exact failed-CI subtest timing. Independent read-only review
+found no P1/P2 or timeout/assertion/concurrency/coverage weakening. Hosted canonical
+verification remains required on the corrected source; failed91ef3d5 run is retained.
+
+Post-correction pinned pnpm quality PASS919/919, including format/lint/static
+preflight/docs/typecheck/contracts/build. Signed default entries23/23 and47/47 PASS;
+new runtime-only36/36 PASS. Source discovery changes do not alter application/SQL
+runtime or existing budgets. Fresh exact corrected-source hosted checks remain pending
+in PR64 receipt; no failed workflow attempt is rerun or reclassified.

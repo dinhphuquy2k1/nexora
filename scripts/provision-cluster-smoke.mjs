@@ -233,6 +233,11 @@ function suiteFailure(suite, result, exit) {
 async function runSuites(suite) {
   const suites = {
     "shipment-worker": ["node", "packages/database/test/shipment-worker.mjs"],
+    "uniship-runtime": [
+      "node",
+      "packages/database/test/shipment-worker.mjs",
+      "--uniship-runtime",
+    ],
     "shipment-sql": [
       "node",
       "--test",
@@ -334,7 +339,7 @@ async function runSuites(suite) {
         "-v",
         `${root}/packages/database/${dir}:/workspace/packages/database/${dir}:ro`,
       );
-    if (key === "shipment-worker") {
+    if (key === "shipment-worker" || key === "uniship-runtime") {
       // The tooling image supplies pinned dependencies, never cached application source.
       for (const path of [
         "apps/api/src",
