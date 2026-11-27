@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Disposable-runtime MFA enrollment. Captured fixture secrets never reach logs."""
-import base64, hashlib, hmac, json, os, pty, re, select, struct, subprocess, sys, termios, time
+import argparse, base64, hashlib, hmac, json, os, pty, re, select, struct, subprocess, sys, termios, time
 
 compose=['docker','compose','-f','compose.yml']
+api_prefix=['sh','/scripts/api-entrypoint.sh']
+cli_path='dist/cli/mfa-enroll.js'
 if os.environ.get('NEXORA_COMPOSE_OVERRIDE'): compose+=['-f',os.environ['NEXORA_COMPOSE_OVERRIDE']]
 def sql(statement):
     result=subprocess.run(compose+['exec','-T','postgres','psql','-U','nexora','-d','nexora','-At','-v','ON_ERROR_STOP=1'],input=statement,text=True,capture_output=True,timeout=20)
@@ -15,8 +17,8 @@ def code(key,step=None):
     return str((struct.unpack('>I',mac[offset:offset+4])[0]&0x7fffffff)%1000000).zfill(6)
 def exercise(mode):
     master,slave=pty.openpty(); before=termios.tcgetattr(slave)
-    command='mode=$(stty -g); node dist/cli/mfa-enroll.js; result=$?; [ "$(stty -g)" = "$mode" ] || exit 90; printf "TERMINAL_RESTORED\\n"; exit "$result"'
-    child=subprocess.Popen(compose+['exec','api','sh','/scripts/api-entrypoint.sh','sh','-c',command],stdin=slave,stdout=slave,stderr=slave,close_fds=True)
+    command='mode=$(stty -g); node '+cli_path+'; result=$?; [ "$(stty -g)" = "$mode" ] || exit 90; printf "TERMINAL_RESTORED\\n"; exit "$result"'
+    child=subprocess.Popen(compose+['exec','api']+api_prefix+['sh','-c',command],stdin=slave,stdout=slave,stderr=slave,close_fds=True)
     captured=bytearray();deadline=time.monotonic()+40;key=None
     def until(marker):
         while marker not in captured:
@@ -45,20 +47,35 @@ def exercise(mode):
             assert len(codes)==10 and len(set(codes))==10,'Recovery code count'
             assert captured.index(b'MFA enrollment committed')<captured.index(codes[0].encode()),'Recovery output before commit'
             assert sql("SELECT count(*) FROM mfa_recovery_codes WHERE user_id=(SELECT id FROM users WHERE username='browser_user');")=='10','Enrollment not committed'
-            return {'username':'browser_user','password':'BrowserTestPass123!','mfaSetupKey':key,'recoveryCodes':codes}
+            return {'username':'browser_user','password':'BrowserTestPass123!','mfaSetupKey':key,'recoveryCodes':codes,'lastUsedStep':sql("SELECT last_used_step FROM user_mfa WHERE user_id=(SELECT id FROM users WHERE username='browser_user');")}
         assert not codes,'Recovery codes exposed on failure'
     finally:
         if child.poll() is None:child.kill()
         child.wait();os.close(master);os.close(slave)
-try:
-    for mode in ['interrupt','eof','cancel-confirm']:exercise(mode)
-    assert sql("SELECT count(*) FROM user_mfa WHERE user_id=(SELECT id FROM users WHERE username='browser_user');")=='0'
-    sql("CREATE FUNCTION mfa_fixture_rollback() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled fixture rollback'; END $$; CREATE TRIGGER mfa_fixture_rollback BEFORE INSERT ON user_mfa FOR EACH ROW EXECUTE FUNCTION mfa_fixture_rollback();")
-    try:exercise('rollback')
-    finally:sql('DROP TRIGGER mfa_fixture_rollback ON user_mfa; DROP FUNCTION mfa_fixture_rollback();')
-    assert sql("SELECT count(*) FROM user_mfa WHERE user_id=(SELECT id FROM users WHERE username='browser_user');")=='0'
-    fixture=exercise('success');exercise('duplicate')
-    with open(sys.argv[1],'x') as output:os.chmod(sys.argv[1],0o600);json.dump(fixture,output)
-    print('Compiled MFA CLI TTY/backspace/cancellation/rollback/commit-before-codes/duplicate PASS')
-except Exception:
-    print('MFA enrollment TTY smoke failed (secret capture withheld)',file=sys.stderr);sys.exit(1)
+def main():
+    global compose,api_prefix,cli_path
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--development',action='store_true')
+    parser.add_argument('fixture')
+    args=parser.parse_args()
+    compose=['docker','compose','-f','compose.yml']
+    if args.development:
+        compose+=['-f','compose.dev.yml']
+        api_prefix=['sh','/workspace/scripts/dev-entrypoint.sh','sh','/workspace/scripts/api-entrypoint.sh']
+        cli_path='apps/api/dist/cli/mfa-enroll.js'
+    if os.environ.get('NEXORA_COMPOSE_OVERRIDE'):compose+=['-f',os.environ['NEXORA_COMPOSE_OVERRIDE']]
+    try:
+        for mode in ['interrupt','eof','cancel-confirm']:exercise(mode)
+        assert sql("SELECT count(*) FROM user_mfa WHERE user_id=(SELECT id FROM users WHERE username='browser_user');")=='0'
+        sql("CREATE FUNCTION mfa_fixture_rollback() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled fixture rollback'; END $$; CREATE TRIGGER mfa_fixture_rollback BEFORE INSERT ON user_mfa FOR EACH ROW EXECUTE FUNCTION mfa_fixture_rollback();")
+        try:exercise('rollback')
+        finally:sql('DROP TRIGGER mfa_fixture_rollback ON user_mfa; DROP FUNCTION mfa_fixture_rollback();')
+        assert sql("SELECT count(*) FROM user_mfa WHERE user_id=(SELECT id FROM users WHERE username='browser_user');")=='0'
+        fixture=exercise('success');exercise('duplicate')
+        fd=os.open(args.fixture,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        with os.fdopen(fd,'w') as output:json.dump(fixture,output)
+        print('Compiled MFA CLI TTY/backspace/cancellation/rollback/commit-before-codes/duplicate PASS')
+    except Exception:
+        print('MFA enrollment TTY smoke failed (secret capture withheld)',file=sys.stderr);sys.exit(1)
+
+if __name__=='__main__':main()

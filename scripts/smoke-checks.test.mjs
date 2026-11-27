@@ -146,3 +146,26 @@ test("starting a request clears previous response status before headerless failu
   assert.ok(lines.includes("Actual HTTP status: NOT_OBSERVED"));
   assert.equal(lines.includes("Actual HTTP status: 201"), false);
 });
+
+test("custom Host acceptance uses the supplied raw authority without fetch rewriting", async () => {
+  const { hostStatus } = await import("./smoke-checks.mjs");
+  let observed;
+  const server = createServer((req, res) => {
+    observed = req.headers.host;
+    res.statusCode = observed === "nexora-dev.fixture" ? 200 : 400;
+    res.end();
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  try {
+    assert.equal(
+      await hostStatus(
+        `http://127.0.0.1:${server.address().port}/api/health/live`,
+        "nexora-dev.fixture",
+      ),
+      200,
+    );
+    assert.equal(observed, "nexora-dev.fixture");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});

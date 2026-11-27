@@ -81,17 +81,13 @@ export function createSmokeChecks(
 }
 
 /** Node fetch rewrites Host; use raw HTTP for the actual ingress-negative probe. */
-export function untrustedHostStatus(url) {
+export function hostStatus(url, host) {
   return new Promise((resolve, reject) => {
-    const request = get(
-      url,
-      { headers: { host: "evil.example" } },
-      (response) => {
-        response.resume();
-        response.once("end", () => resolve(response.statusCode));
-        response.once("error", reject);
-      },
-    );
+    const request = get(url, { headers: { host } }, (response) => {
+      response.resume();
+      response.once("end", () => resolve(response.statusCode));
+      response.once("error", reject);
+    });
     request.setTimeout(10000, () =>
       request.destroy(
         Object.assign(new Error("Host probe timeout"), {
@@ -101,4 +97,8 @@ export function untrustedHostStatus(url) {
     );
     request.once("error", reject);
   });
+}
+
+export function untrustedHostStatus(url) {
+  return hostStatus(url, "evil.example");
 }
