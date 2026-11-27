@@ -57,7 +57,10 @@ function fixture(expired = true) {
       }
     },
   };
+  store.claimReconnect = (_user, _id, expected) =>
+    store.claim(_user, _id, expected.version);
   const credentials = {
+    authorizeReconnect: async () => {},
     acquireStored: async () => {
       acquisitions++;
       return { externalAccountId: "1" };

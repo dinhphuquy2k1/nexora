@@ -127,6 +127,239 @@ module.exports = async function verifyWorkerSecurity(t, { db, workerUrl }) {
     );
   }
   try {
+    for (const [label, mutate] of [
+      [
+        "wrong operation",
+        async (f) =>
+          db.carrierWorkerRecovery.update({
+            where: { connectionId: f.connection.id },
+            data: { operationToken: randomUUID() },
+          }),
+      ],
+      [
+        "wrong worker",
+        async (f) =>
+          db.carrierWorkerRecovery.update({
+            where: { connectionId: f.connection.id },
+            data: { workerId: randomUUID() },
+          }),
+      ],
+      [
+        "wrong lease",
+        async (f) =>
+          db.carrierWorkerRecovery.update({
+            where: { connectionId: f.connection.id },
+            data: { leaseVersion: 2 },
+          }),
+      ],
+      [
+        "expired proof",
+        async (f) =>
+          db.carrierWorkerRecovery.update({
+            where: { connectionId: f.connection.id },
+            data: { expiresAt: new Date(0) },
+          }),
+      ],
+      [
+        "wrong proof generation",
+        async (f) =>
+          db.carrierWorkerRecovery.update({
+            where: { connectionId: f.connection.id },
+            data: { generation: 1 },
+          }),
+      ],
+      [
+        "wrong proof version",
+        async (f) =>
+          db.carrierWorkerRecovery.update({
+            where: { connectionId: f.connection.id },
+            data: { connectionVersion: 2 },
+          }),
+      ],
+      [
+        "expired lease after claim",
+        async (f) =>
+          db.syncJob.update({
+            where: { id: f.job.id },
+            data: { lease_expires_at: new Date(0) },
+          }),
+      ],
+      [
+        "disabled after claim",
+        async (f) =>
+          db.user.update({
+            where: { id: f.owner.id },
+            data: { status: "DISABLED" },
+          }),
+      ],
+      [
+        "deleted after claim",
+        async (f) =>
+          db.carrierConnection.delete({ where: { id: f.connection.id } }),
+      ],
+      [
+        "changed generation after claim",
+        async (f) =>
+          db.carrierUserState.update({
+            where: { userId: f.owner.id },
+            data: { generation: 1 },
+          }),
+      ],
+      [
+        "changed lifecycle after claim",
+        async (f) =>
+          db.carrierConnection.update({
+            where: { id: f.connection.id },
+            data: { lifecycleVersion: 2 },
+          }),
+      ],
+      [
+        "proof for another job",
+        async (f) => {
+          const other = await db.syncJob.create({
+            data: {
+              owner_user_id: f.owner.id,
+              carrier_connection_id: f.connection.id,
+              provider: "uniship",
+              external_account_id: f.connection.externalAccountId,
+              sync_type: "SHIPMENT",
+              trigger_source: "MANUAL",
+              status: "SUCCEEDED",
+              generation: 0,
+              lifecycle_version: 0,
+            },
+          });
+          await db.carrierWorkerRecovery.update({
+            where: { connectionId: f.connection.id },
+            data: { jobId: other.id },
+          });
+        },
+      ],
+    ])
+      await t.test(`recovery password proof rejects ${label}`, async () => {
+        const f = await seed();
+        try {
+          await f.store.withJob(f.job, async () => {
+            const claimed = await f.store.claim(f.owner.id, f.connection.id, 0);
+            await f.store.authorizeRecovery(f.owner.id, claimed);
+            const password = await f.store.loadRecoveryPassword(
+              f.owner.id,
+              claimed,
+            );
+            assert.equal(Object.hasOwn(password, "token"), false);
+            assert.ok(password.password);
+            await mutate(f);
+            await assert.rejects(
+              f.store.authorizeRecovery(f.owner.id, claimed),
+              { code: "STALE" },
+            );
+            await assert.rejects(
+              f.store.loadRecoveryPassword(f.owner.id, claimed),
+              { code: "STALE" },
+            );
+          });
+        } finally {
+          await db.syncJob.deleteMany({ where: { owner_user_id: f.owner.id } });
+          await db.user.delete({ where: { id: f.owner.id } });
+        }
+      });
+    for (const change of ["generation", "successor lease"])
+      await t.test(
+        `post-audit ${change} change keeps committed audit but blocks password load/decrypt`,
+        async () => {
+          const f = await seed();
+          let decrypts = 0,
+            requests = 0,
+            passwordLoads = 0;
+          const audit = new PostgresSecurityAudit(f.store.client);
+          const reader = {
+            authorizeRecovery: f.store.authorizeRecovery.bind(f.store),
+            loadToken: f.store.loadToken.bind(f.store),
+            loadRecoveryPassword: async (...args) => {
+              passwordLoads++;
+              return f.store.loadRecoveryPassword(...args);
+            },
+          };
+          const vault = new CarrierCredentialVault(
+            reader,
+            {
+              decrypt() {
+                decrypts++;
+                assert.fail("stale after audit");
+              },
+            },
+            {
+              acquire: async () => {
+                requests++;
+                assert.fail("stale after audit");
+              },
+            },
+            {
+              append: async (event) => {
+                await audit.append(event);
+                if (change === "generation")
+                  await db.carrierUserState.update({
+                    where: { userId: f.owner.id },
+                    data: { generation: 1 },
+                  });
+                else
+                  await db.syncJob.update({
+                    where: { id: f.job.id },
+                    data: { worker_id: randomUUID(), lease_version: 2 },
+                  });
+              },
+            },
+          );
+          try {
+            await f.store.withJob(f.job, async () => {
+              const snapshot = await f.store.claim(
+                f.owner.id,
+                f.connection.id,
+                0,
+              );
+              await assert.rejects(
+                vault.acquireStored(f.owner.id, snapshot, randomUUID()),
+                { code: "STALE" },
+              );
+            });
+            assert.equal(passwordLoads, 1);
+            assert.equal(decrypts, 0);
+            assert.equal(requests, 0);
+            assert.equal(
+              await db.securityAuditEvent.count({
+                where: {
+                  connectionId: f.connection.id,
+                  eventType: "PASSWORD_DECRYPT",
+                  outcome: "ALLOWED",
+                },
+              }),
+              1,
+            );
+            assert.equal(
+              digest(
+                await db.carrierConnectionSecret.findMany({
+                  where: { connectionId: f.connection.id },
+                  orderBy: { secretType: "asc" },
+                }),
+              ),
+              f.before,
+            );
+            const row = await db.syncJob.findUnique({
+              where: { id: f.job.id },
+            });
+            assert.equal(row.status, "RUNNING");
+            assert.equal(
+              row.lease_version,
+              change === "successor lease" ? 2 : 1,
+            );
+          } finally {
+            await db.syncJob.deleteMany({
+              where: { owner_user_id: f.owner.id },
+            });
+            await db.user.delete({ where: { id: f.owner.id } });
+          }
+        },
+      );
     await t.test(
       "real Worker recovery commits audit/credentials atomically, old job cannot page/apply, new job uses recovered token",
       async () => {
@@ -496,7 +729,7 @@ module.exports = async function verifyWorkerSecurity(t, { db, workerUrl }) {
           await mutate(f);
           await f.store.withJob(f.job, () =>
             assert.rejects(
-              f.store.load(f.owner.id, snapshot),
+              f.store.loadRecoveryPassword(f.owner.id, snapshot),
               (e) => e.code === "STALE",
             ),
           );
@@ -520,7 +753,7 @@ module.exports = async function verifyWorkerSecurity(t, { db, workerUrl }) {
         });
         await f.store.withJob(f.job, () =>
           assert.rejects(
-            f.store.load(f.owner.id, snapshot),
+            f.store.loadRecoveryPassword(f.owner.id, snapshot),
             (e) => e.code === "STALE",
           ),
         );

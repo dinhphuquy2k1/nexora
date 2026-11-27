@@ -73,6 +73,309 @@ module.exports = async function verifyActivation(t, { db, apiUrl, workerUrl }) {
     return result;
   }
   try {
+    const {
+      UnishipSyncRuntime,
+    } = require("../../dist/sync/infrastructure/uniship-sync.runtime");
+    const {
+      CarrierLifecycleAdapter,
+    } = require("../../dist/carrier/infrastructure/carrier-lifecycle.adapter");
+    const { createHash, randomBytes } = require("node:crypto");
+    const key = randomBytes(32).toString("base64");
+    const sealedDigest = (value) =>
+      createHash("sha256").update(JSON.stringify(value)).digest("hex");
+    async function state(f) {
+      return {
+        connection: await db.carrierConnection.findUnique({
+          where: { id: f.connection.id },
+        }),
+        generation: await db.carrierUserState.findUnique({
+          where: { userId: f.owner.id },
+        }),
+        credentials: sealedDigest(
+          await db.carrierConnectionSecret.findMany({
+            where: { connectionId: f.connection.id },
+            orderBy: { secretType: "asc" },
+          }),
+        ),
+        jobs: await db.syncJob.findMany({
+          where: { carrier_connection_id: f.connection.id },
+          orderBy: { id: "asc" },
+        }),
+      };
+    }
+    function carrier(f, patch = {}, environment = {}) {
+      return new UnishipSyncRuntime(
+        apiUrl,
+        {
+          NODE_ENV: "test",
+          SYNC_ENABLED: "true",
+          UNISHIP_API_URL: "http://127.0.0.1:9",
+          CARRIER_KEYRING_JSON: JSON.stringify({ 1: key }),
+          CARRIER_ACTIVE_KEY_VERSION: "1",
+          UNISHIP_ACTIVATION_POLICY_JSON: JSON.stringify({
+            ...f.policy,
+            ...patch,
+          }),
+          ...environment,
+        },
+        "api",
+      );
+    }
+    for (const [label, patch, environment] of [
+      ["owner", { ownerUserId: randomUUID() }, {}],
+      ["login", { loginIdentifier: "other-synthetic" }, {}],
+      ["account", { externalAccountId: "999" }, {}],
+      ["optional connection", { connectionId: randomUUID() }, {}],
+      [
+        "operational gate",
+        {},
+        {
+          UNISHIP_API_URL: "https://kh.uniship.vn",
+          UNISHIP_LIVE_AUTHORIZED: "true",
+        },
+      ],
+    ])
+      await t.test(
+        `activation-denied reconnect (${label}) leaves credentials lifecycle and jobs unchanged`,
+        async () => {
+          const f = await seed();
+          await db.carrierConnectionSecret.create({
+            data: {
+              connectionId: f.connection.id,
+              secretType: "PASSWORD",
+              ciphertext: "synthetic-sealed",
+              nonce: "synthetic",
+              authTag: "synthetic",
+              keyVersion: 1,
+            },
+          });
+          await db.syncJob.create({
+            data: {
+              owner_user_id: f.owner.id,
+              carrier_connection_id: f.connection.id,
+              provider: "uniship",
+              external_account_id: f.connection.externalAccountId,
+              sync_type: "SHIPMENT",
+              trigger_source: "MANUAL",
+              generation: 0,
+              lifecycle_version: 0,
+            },
+          });
+          const runtime = carrier(f, patch, environment);
+          let requests = 0;
+          runtime.carrier.client.authenticate = async () => {
+            requests++;
+            assert.fail("denied reconnect cannot dispatch");
+          };
+          try {
+            const before = await state(f);
+            await assert.rejects(
+              runtime.carrier.lifecycle.reconnect(
+                f.owner.id,
+                f.connection.id,
+                "synthetic",
+              ),
+              { code: "SERVICE_UNAVAILABLE" },
+            );
+            assert.deepEqual(await state(f), before);
+            assert.equal(requests, 0);
+          } finally {
+            await runtime.onApplicationShutdown();
+            await db.syncJob.deleteMany({
+              where: { owner_user_id: f.owner.id },
+            });
+            await db.user.delete({ where: { id: f.owner.id } });
+          }
+        },
+      );
+    for (const status of ["CONNECTED", "ERROR", "REAUTH_REQUIRED"])
+      await t.test(
+        `valid manual reconnect from ${status} verifies loopback provider and completes`,
+        async () => {
+          const { createServer } = require("node:http");
+          const f = await seed();
+          await db.carrierConnection.update({
+            where: { id: f.connection.id },
+            data: { status },
+          });
+          let requests = 0;
+          const server = createServer(async (req, res) => {
+            requests++;
+            for await (const chunk of req) {
+              void chunk; // Consume only; never retain credentials.
+            }
+            res.setHeader("content-type", "application/json");
+            res.end(
+              JSON.stringify({
+                token: "synthetic-reconnect-token",
+                user: { userid: f.connection.externalAccountId },
+              }),
+            );
+          });
+          await new Promise((resolve) =>
+            server.listen(0, "127.0.0.1", resolve),
+          );
+          const runtime = carrier(
+            f,
+            {},
+            { UNISHIP_API_URL: `http://127.0.0.1:${server.address().port}` },
+          );
+          try {
+            const result = await runtime.carrier.lifecycle.reconnect(
+              f.owner.id,
+              f.connection.id,
+              "synthetic",
+            );
+            assert.equal(result.status, "CONNECTED");
+            assert.equal(requests, 2);
+            const row = await db.carrierConnection.findUnique({
+              where: { id: f.connection.id },
+            });
+            assert.equal(row.lifecycleVersion, 2);
+            assert.equal(
+              await db.carrierConnectionSecret.count({
+                where: { connectionId: f.connection.id },
+              }),
+              2,
+            );
+          } finally {
+            await runtime.onApplicationShutdown();
+            await new Promise((resolve) => server.close(resolve));
+            await db.syncJob.deleteMany({
+              where: { owner_user_id: f.owner.id },
+            });
+            await db.user.delete({ where: { id: f.owner.id } });
+          }
+        },
+      );
+    for (const [label, mutate] of [
+      [
+        "generation",
+        async (f) =>
+          db.carrierUserState.update({
+            where: { userId: f.owner.id },
+            data: { generation: 1 },
+          }),
+      ],
+      [
+        "version",
+        async (f) =>
+          db.carrierConnection.update({
+            where: { id: f.connection.id },
+            data: { lifecycleVersion: 1 },
+          }),
+      ],
+      [
+        "delete",
+        async (f) =>
+          db.carrierConnection.delete({ where: { id: f.connection.id } }),
+      ],
+    ])
+      await t.test(
+        `manual reconnect CAS rejects ${label} change between precheck and claim`,
+        async () => {
+          const f = await seed(),
+            runtime = carrier(f);
+          const context = runtime.carrier.context;
+          const original = runtime.carrier.store.claimReconnect.bind(
+            runtime.carrier.store,
+          );
+          runtime.carrier.store.claimReconnect = async (...args) => {
+            await mutate(f);
+            return original(...args);
+          };
+          let requests = 0;
+          runtime.carrier.client.authenticate = async () => {
+            requests++;
+            assert.fail("stale reconnect cannot dispatch");
+          };
+          try {
+            context(
+              f.owner.id,
+              f.connection.id,
+              "synthetic",
+              await runtime.carrier.store.read(f.owner.id, f.connection.id),
+            );
+            await assert.rejects(
+              runtime.carrier.lifecycle.reconnect(
+                f.owner.id,
+                f.connection.id,
+                "synthetic",
+              ),
+              (e) => ["STALE", "NOT_FOUND"].includes(e.code),
+            );
+            assert.equal(requests, 0);
+            const row = await db.carrierConnection.findUnique({
+              where: { id: f.connection.id },
+            });
+            if (row)
+              assert.equal(row.lifecycleVersion, label === "version" ? 1 : 0);
+          } finally {
+            await runtime.onApplicationShutdown();
+            await db.syncJob.deleteMany({
+              where: { owner_user_id: f.owner.id },
+            });
+            await db.user.delete({ where: { id: f.owner.id } });
+          }
+        },
+      );
+    await t.test(
+      "API metadata and credential projections read only the requested secret type",
+      async () => {
+        const f = await seed(),
+          store = new CarrierLifecycleAdapter(apiUrl),
+          reads = [];
+        const client = store.client;
+        store.instance = client.$extends({
+          query: {
+            carrierConnection: {
+              async findUniqueOrThrow({ args, query }) {
+                assert.equal(
+                  args.select?.secrets,
+                  undefined,
+                  "metadata must not hydrate secrets",
+                );
+                return query(args);
+              },
+            },
+            carrierConnectionSecret: {
+              async findUnique({ args, query }) {
+                reads.push(args.where.connectionId_secretType.secretType);
+                return query(args);
+              },
+            },
+          },
+        });
+        try {
+          const snapshot = await store.read(f.owner.id, f.connection.id);
+          assert.deepEqual(reads.splice(0), ["ACCESS_TOKEN"]);
+          await store.authorizeRecovery(f.owner.id, snapshot);
+          assert.deepEqual(reads, []);
+          await store.loadToken(f.owner.id, snapshot);
+          assert.deepEqual(reads.splice(0), ["ACCESS_TOKEN"]);
+          await store.loadRecoveryPassword(f.owner.id, snapshot);
+          assert.deepEqual(reads.splice(0), ["PASSWORD"]);
+          for (const status of ["ERROR", "REAUTH_REQUIRED"]) {
+            await db.carrierConnection.update({
+              where: { id: f.connection.id },
+              data: { status },
+            });
+            const initial = await store.read(f.owner.id, f.connection.id);
+            const claimed = await store.claimReconnect(
+              f.owner.id,
+              f.connection.id,
+              initial,
+            );
+            assert.equal(claimed.version, initial.version + 1);
+            assert.equal(claimed.connection.status, status);
+          }
+        } finally {
+          await store.onApplicationShutdown();
+          await db.syncJob.deleteMany({ where: { owner_user_id: f.owner.id } });
+          await db.user.delete({ where: { id: f.owner.id } });
+        }
+      },
+    );
     await t.test(
       "manual-only blocks direct AUTO and scheduler despite existing enabled/due onboarding intent",
       async () => {

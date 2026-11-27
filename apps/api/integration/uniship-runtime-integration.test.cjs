@@ -97,7 +97,19 @@ test(
           const functions = await db.$queryRawUnsafe(
             "SELECT proname,prosecdef,proconfig,has_function_privilege('public',p.oid,'EXECUTE') AS exposed FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND (p.proname LIKE 'sync_carrier_%' OR p.proname LIKE 'carrier_http_%' OR p.proname LIKE '_sync_carrier_%' OR p.proname LIKE '_uniship_http_%')",
           );
-          assert.equal(functions.length, 12);
+          assert.equal(functions.length, 16);
+          assert.equal(
+            functions.some((f) => f.proname === "sync_carrier_load"),
+            false,
+          );
+          for (const name of [
+            "sync_carrier_load_token",
+            "sync_carrier_authorize_recovery",
+            "sync_carrier_load_recovery_password",
+            "_sync_carrier_token_context",
+            "_sync_carrier_recovery_context",
+          ])
+            assert.ok(functions.some((f) => f.proname === name));
           for (const f of functions) {
             assert.equal(f.prosecdef, true);
             assert.deepEqual(f.proconfig, ["search_path=pg_catalog"]);
@@ -111,6 +123,25 @@ test(
             recovery: false,
             private: false,
           });
+          for (const role of ["nexora_app", "nexora_sync"]) {
+            for (const signature of [
+              "_sync_carrier_token_context(uuid)",
+              "_sync_carrier_recovery_context(uuid,uuid,integer,uuid,integer)",
+            ]) {
+              const [permission] =
+                await db.$queryRaw`SELECT has_function_privilege(${role},${"public." + signature},'EXECUTE') AS allowed`;
+              assert.equal(permission.allowed, false);
+            }
+          }
+          for (const signature of [
+            "sync_carrier_load_token(uuid,uuid,integer,uuid,integer)",
+            "sync_carrier_authorize_recovery(uuid,uuid,integer,uuid,integer)",
+            "sync_carrier_load_recovery_password(uuid,uuid,integer,uuid,integer)",
+          ]) {
+            const [permission] =
+              await db.$queryRaw`SELECT has_function_privilege('nexora_app',${"public." + signature},'EXECUTE') AS allowed`;
+            assert.equal(permission.allowed, false);
+          }
           await db.$executeRawUnsafe(
             "GRANT SELECT(ciphertext) ON carrier_connection_secrets TO nexora_sync",
           );
@@ -260,7 +291,7 @@ test(
             "NULL snapshot version cannot authorize credential load",
             async () => {
               await assert.rejects(
-                worker.$queryRaw`SELECT public.sync_carrier_load(${job.id}::uuid,${workerId}::uuid,1,${randomUUID()}::uuid,NULL::integer)`,
+                worker.$queryRaw`SELECT public.sync_carrier_load_token(${job.id}::uuid,${workerId}::uuid,1,${randomUUID()}::uuid,NULL::integer)`,
               );
             },
           );
@@ -285,6 +316,34 @@ test(
               assert.equal(snapshot.version, 0);
               await assert.rejects(store.read(randomUUID(), connection.id));
               await assert.rejects(store.read(owner.id, randomUUID()));
+              await t.test(
+                "normal token capability excludes password",
+                async () => {
+                  const token = await (store.loadToken ?? store.load).call(
+                    store,
+                    owner.id,
+                    snapshot,
+                  );
+                  assert.equal(
+                    Object.hasOwn(token, "password"),
+                    false,
+                    "normal token load must not return password",
+                  );
+                },
+              );
+              await t.test(
+                "password capability requires recovery proof before claim",
+                async () => {
+                  await assert.rejects(
+                    (store.loadRecoveryPassword ?? store.load).call(
+                      store,
+                      owner.id,
+                      snapshot,
+                    ),
+                    "password recovery requires a claim even when ordinary lifecycle matches",
+                  );
+                },
+              );
               const claimed = await store.claim(
                 owner.id,
                 connection.id,
@@ -296,10 +355,16 @@ test(
                   .lifecycle_version,
                 0,
               );
-              const loaded = await store.load(owner.id, claimed);
+              const loaded = await store.loadRecoveryPassword(
+                owner.id,
+                claimed,
+              );
               assert.equal(loaded.loginIdentifier, "synthetic");
               await assert.rejects(
-                store.load(owner.id, { ...claimed, version: 0 }),
+                store.loadRecoveryPassword(owner.id, {
+                  ...claimed,
+                  version: 0,
+                }),
               );
               await store.fail(owner.id, claimed, "ERROR");
               assert.equal(
@@ -310,7 +375,9 @@ test(
                 ).lifecycleVersion,
                 2,
               );
-              await assert.rejects(store.load(owner.id, claimed));
+              await assert.rejects(
+                store.loadRecoveryPassword(owner.id, claimed),
+              );
             });
           } finally {
             await store.onApplicationShutdown();
