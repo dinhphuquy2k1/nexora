@@ -163,3 +163,10 @@ edit. Final hosted source/merge/run/job/attempt/step evidence will be recorded i
 [PR64 description](https://github.com/dinhphuquy2k1/nexora/pull/64) after checks complete;
 this committed local checkpoint intentionally predates hosted results and never
 claims pending CI as PASS. Local canonical Docker remains NOT RUN for disk/images.
+
+Final readability correction: two new policy fragments were split into one condition
+per line as required by main's SQL convention. Whole source with whitespace removed
+is identical before/after; no SQL token, interpolation or binding-order change.
+Preflight45960468119 PASS on f13057d/merge21f4a7c, attempt1. Its still-running
+Foundation is superseded by this format-only source update, never claimed PASS.
+Exact final-HEAD CI receipt is maintained in PR64 description as linked above.

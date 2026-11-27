@@ -18,11 +18,23 @@ export function createUnishipRuntimePolicy(
   const active = enabled && policy !== undefined;
   const automatic = active && policy?.mode === UnishipActivationMode.AUTOMATIC;
   const scope = active
-    ? Prisma.sql`c.user_id=${policy.ownerUserId}::uuid AND c.provider=${CarrierProvider.UNISHIP}
-  AND c.external_account_id=${policy.externalAccountId} AND c.login_identifier=${policy.loginIdentifier}
-  AND (${policy.connectionId ?? null}::uuid IS NULL OR c.id=${policy.connectionId ?? null}::uuid)`
+    ? Prisma.sql`
+        c.user_id=${policy.ownerUserId}::uuid
+        AND c.provider=${CarrierProvider.UNISHIP}
+        AND c.external_account_id=${policy.externalAccountId}
+        AND c.login_identifier=${policy.loginIdentifier}
+        AND (
+          ${policy.connectionId ?? null}::uuid IS NULL
+          OR c.id=${policy.connectionId ?? null}::uuid
+        )
+      `
     : Prisma.sql`FALSE`;
-  const scheduleCandidates = Prisma.sql`(${automatic} AND ${scope} AND s.sync_type=${SyncType.SHIPMENT} AND s.interval_minutes>=60)`;
+  const scheduleCandidates = Prisma.sql`(
+    ${automatic}
+    AND ${scope}
+    AND s.sync_type=${SyncType.SHIPMENT}
+    AND s.interval_minutes>=60
+  )`;
   const jobCandidates = buildUnishipJobCandidatesQuery(scope, automatic);
   return Object.freeze({
     jobCandidates,
