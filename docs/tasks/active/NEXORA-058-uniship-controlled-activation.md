@@ -23,11 +23,11 @@ closed; no live request, activation, thresholds or merge authorized.
 
 Task ID: NEXORA-058
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-27-controlled-activation-v2
-Reviewed baseline: 2b31e7e
+Plan revision: rev-2026-11-27-controlled-activation-v3
+Reviewed baseline: 02c2d05a5695ff292cdc2be5a7235170bac39580
 Branch: feature/uniship-controlled-activation
-Design Snapshot: docs/tasks/design-reviews/NEXORA-058-rev-2026-11-27-controlled-activation-v2.md
-Design SHA-256: 376b96033b44a4cbe59ab0f723620f755afd828564045c2e5959ede5918d09a9
+Design Snapshot: docs/tasks/design-reviews/NEXORA-058-rev-2026-11-27-controlled-activation-v3.md
+Design SHA-256: 728eb7babf573b133ecf3da6a10be6279b401c40307ec132e3e6ba6086dcf2d0
 
 Snapshot records12-section ownership/security/interfaces/migration/verification plan
 and eight-field reuse audit before source/tests. Reuse existing Carrier lifecycle/
@@ -186,15 +186,12 @@ verification remains pending until actual results are recorded.
 
 ## Current technical verification — 2026-11-24
 
-| Claim                                 | Evidence                                                                                            | Date       | Result  |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------- | ------- |
-| Local technical quality               | Pinned pnpm quality: format/lint/preflight/docs/typecheck,903unit/script tests, contracts and build | 2026-11-24 | PASS    |
-| Restricted scoped runtime             | Actual signed roles, real HTTP/Nest manual FULL/recovery/reconciliation and scheduling36/36         | 2026-11-24 | PASS    |
-| Forward migration                     | Real19→20 preservation, repeat deploy, drift and fixed functionACLs                                 | 2026-11-24 | PASS    |
-| Independent read-only source review   | No remaining P1/P2; implementation agent's repro is distinct from reviewer inspection               | 2026-11-24 | PASS    |
-| Controlled live verification          | Not authorized in agent/CI; remaining external matrix and three-parcel timezone gate open           | 2026-11-24 | NOT RUN |
-| Production activation/AUTO/thresholds | Hard-close false; no production policy values/activation performed                                  | 2026-11-24 | NOT RUN |
-| Local Docker runtime                  | Insufficient disk for missing API/Web/tooling images; genuine host tests do not substitute          | 2026-11-24 | NOT RUN |
+| Claim                               | Evidence                                                                                            | Date       | Result |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Local technical quality             | Pinned pnpm quality: format/lint/preflight/docs/typecheck,903unit/script tests, contracts and build | 2026-11-24 | PASS   |
+| Restricted scoped runtime           | Actual signed roles, real HTTP/Nest manual FULL/recovery/reconciliation and scheduling36/36         | 2026-11-24 | PASS   |
+| Forward migration                   | Real19→20 preservation, repeat deploy, drift and fixed functionACLs                                 | 2026-11-24 | PASS   |
+| Independent read-only source review | No remaining P1/P2; implementation agent's repro is distinct from reviewer inspection               | 2026-11-24 | PASS   |
 
 Task remains active VERIFICATION PENDING for external/hosted acceptance; technical
 implementation does not approve controlled live use, production or automatic scheduling.
@@ -236,3 +233,32 @@ bound. Prepare owned STORAGE_ROOT before either selected invocation. No existing
 assertion, timeout, concurrency, retry or Foundation workflow step changes. Preserve
 failed run evidence; verify selector/cleanup via existing launcher fixtures and the
 runtime-only wrapper against owned signed PostgreSQL before publishing.
+
+## Hardening revision v3 — 2026-11-27
+
+Owner requested purpose-specific credential access, exact Worker recovery proof,
+pre-claim reconnect authorization and generation/version CAS, task-specific strict
+Turbo ENV and shared Compose runtime settings. Reviewed source02c2d05/main2b31e7e
+are unchanged after fetch; no separate merged ENV/MFA fix found. The frozen v3
+snapshot contains the full eight-field reuse audit and selected interfaces, forward
+migration21, concurrency/custody constraints and causal A/B strategy. v1/v2 and
+historical decisions/evidence remain unchanged. No source or test modified before
+this design record. Source02c2d05 green CI is baseline evidence only.
+
+Execution pending: causal RED, candidate implementation, signed PostgreSQL and
+configuration/process proofs, quality/Docker gates, independent review and new-HEAD
+CI. Live/production acceptance remains outside this PR; status stays VERIFICATION
+PENDING. Local Docker prerequisite limitation: only PostgreSQL image present and
+approximately1.3GiB free, so application/tooling smoke availability must be assessed
+without building unpublished release images.
+
+### Historical unexecuted checks — evidence table format correction
+
+These original unexecuted rows are preserved verbatim below as limitations,
+not PASS/FAIL claims. Their blocker/provenance remains unchanged.
+
+```text
+| Controlled live verification          | Not authorized in agent/CI; remaining external matrix and three-parcel timezone gate open           | 2026-11-24 | NOT RUN |
+| Production activation/AUTO/thresholds | Hard-close false; no production policy values/activation performed                                  | 2026-11-24 | NOT RUN |
+| Local Docker runtime                  | Insufficient disk for missing API/Web/tooling images; genuine host tests do not substitute          | 2026-11-24 | NOT RUN |
+```
