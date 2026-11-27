@@ -8,11 +8,11 @@ Verification: PARTIALLY VERIFIED
 
 Task ID: NEXORA-064
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-26-design-system-refinement-v2
-Reviewed baseline: 75c95d7837880ab18085bc8dd36bc56f65ba9ef9
+Plan revision: rev-2026-11-27-design-system-refinement-v3
+Reviewed baseline: 28b9f5e09e5e110e7e88bdf61d65182172026292
 Branch: refactor/design-system-refinement
-Design Snapshot: docs/tasks/design-reviews/NEXORA-064-rev-2026-11-26-design-system-refinement-v2.md
-Design SHA-256: f312102dea891b8bab643c4ce83c1b604138b4ada573f64ad603a6cc1c3db9b6
+Design Snapshot: docs/tasks/design-reviews/NEXORA-064-rev-2026-11-27-design-system-refinement-v3.md
+Design SHA-256: 3f218000b55749e511d22b2bcd95a4039f2531b2abfe43b8d7f925b276337238
 
 | Field                        | Design Tokens (`tokens.css`)                                                                                                                                                            | Shared Controls (`Controls.tsx` / `.module.css`)                                                                                                   | Shell, Auth & Feature Consumers                                                                                                                                                                             |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -30,6 +30,8 @@ Design SHA-256: f312102dea891b8bab643c4ce83c1b604138b4ada573f64ad603a6cc1c3db9b6
 All Tactical DDD boundaries (`Presentation -> Application -> Domain`, `Infrastructure -> Domain`) and Tier A (`packages/ui`), Tier B (`apps/web/components`), and Tier C (`apps/web/features`) boundaries remain unchanged. Brand Navy `#172B4D` and Brand Orange `#F58A24` with `#FFFFFF` foreground are preserved per `NEXORA-031` v4 color policy; zero API, SDK, database, or domain invariant changes.
 
 ## Plan
+
+v3 review delta: separate card heading typography from control tokens, complete fail-closed SelectButton and Textarea/row parity regression probes, and align column picker search with shared typography. See the v3 design snapshot for the reuse audit and verification plan.
 
 1. Update `control-sizes.test.mjs` and `form-control-contracts.test.mjs` test-first (RED) for the `36/40/48px` size contract, `14/14/16px` font contract, `16/18/20px` icon contract, `500` button weight, and `13px` table density preservation.
 2. Refine canonical tokens in `apps/web/styles/tokens.css` and `packages/ui/src/Controls.module.css` (`--_control-font-size`, `--_control-line-height`, weight `500`), keeping `13px` table density and `globals.css` semantic hierarchy.
@@ -63,6 +65,9 @@ Documentation Impact: REQUIRED
 
 ## Acceptance
 
+- [ ] v3 semantic heading isolation, standard/compact SelectButton, column picker search, multiline variants and loading/data row parity verified on the new HEAD.
+- [ ] Independent review and manual visual acceptance recorded or explicitly deferred under the task workflow.
+
 - [x] Default control height `36px`, medium `40px`, large `48px` with `14/14/16px` font, `16/18/20px` icons, `1px` border, `8px` radius, Inter font, preserved Brand Navy/Orange palette.
 - [x] P1-01 Customer table skeleton & actual row density (`44.5px` measured in Chromium headless) preserved alongside `36px` actions (`actionCell` `padding-block: 4px`) and `26px` `.detailLink`.
 - [x] P2-01..P2-08 & P3-01 completed: semantic typography applied to actual consumers (`20px/600/28px` Page Title, `16px/600/24px` Section Heading), table density standardized (`--type-table-cell-size: var(--font-size-sm)` `12px`), `SelectButton` inherits `Button` typography (`14px/500`, compact `11px` `text-actions` exception), `Textarea` 3-line minimum (`78/86/106px`) honors `rows={1}` (`38px`) and `rows={2}` (`58px`), duplicate test removed + mutation sensitivity added, browser computed-style checks updated.
@@ -86,3 +91,7 @@ Documentation Impact: REQUIRED
 | Hosted Foundation CI (`28b1c35`)              | Workflow run `45855315228`, Job `140032017346`, HEAD `28b1c35476fbe4bedee097ca0191ee35ffe76a0f`, 2026-11-26T16:15:54Z (`https://github.com/dinhphuquy2k1/nexora/actions/runs/45855315228`): Login/MFA/Customer/AccountMenu CDP passed (`44.5px` Customer row geometry & `ten viewport evidence PASS`), failed at `RETAIL_PRODUCTION_AUTH_AND_TRUTH` (`scripts/retail-browser-checks.mjs:202`: stale `default32` check under `M3_EVIDENCE_DIR`)                                                                                                                                                                                                                                  | 2026-11-27 | FAIL   |
 | Hosted Foundation CI (`dbb37f1`)              | Workflow run `45915485742`, Job `140233552843`, HEAD `dbb37f11a2ebdb18087e737bda6304e864bb988a`, 2026-11-27T00:26:24Z (`https://github.com/dinhphuquy2k1/nexora/actions/runs/45915485742`): Login/MFA/Customer/Retail CDP (`RETAIL_REFRESH_PAGINATION_PASS`, `RETAIL_V2_GEOMETRY_PASS`) passed; failed at `CARRIER_V2_SOURCE_BACKED_SIX_VIEWPORT_MATRIX` (`scripts/carrier-browser-checks.mjs:217`: `ZIP command deck geometry` compared `36px`-control deck heights `164/212/256px` against `32px` ZIP fixture `156/200/240px` without `controlRows * (controlSizeDefault - 32)` adjustment)                                                                                   | 2026-11-27 | FAIL   |
 | Local Carrier fixture & Chrome CDP (post-fix) | Updated `scripts/carrier-browser-checks.mjs` to scale `expectedDeckHeight` by `deckControlRows * (controlSizeDefault - 32)` (`2/3/4` wrapped rows across `1440..375`); ran full `verifyCarrierBrowser({ fixtureOnly: true })` against `artifacts/carrier-fixture` with Chrome headless — `CARRIER_FULL_FIXTURE_PASS` (all 6 viewports × 14 surfaces + `SYNC_ISSUES_*`)                                                                                                                                                                                                                                                                                                          | 2026-11-27 | PASS   |
+
+### Verification provenance (v3)
+
+Prior HEAD `28b9f5e09e5e110e7e88bdf61d65182172026292`: Foundation run [45917497946](https://github.com/dinhphuquy2k1/nexora/actions/runs/45917497946), job 140240138137, PASS; Preflight run 45917497923 PASS. This evidence is historical, not proof of v3. New execution pending: local clone unavailable (DNS); targeted tests, browser checks and final-head CI NOT RUN at authoring. Manual visual acceptance and independent review not performed for v3.

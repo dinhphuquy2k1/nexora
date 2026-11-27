@@ -415,9 +415,9 @@
 
 .emptyTitle {
   margin: 0;
-  font-size: var(--font-size-md);
+  font-size: var(--type-card-heading-size);
   font-weight: var(--font-weight-semibold);
-  line-height: var(--control-line-height);
+  line-height: var(--type-card-heading-line-height);
   color: var(--color-text);
 }
 
@@ -684,6 +684,8 @@ button.colPickerCloseBtn:hover:not(:disabled) {
 .colPickerSearchIcon {
   position: absolute;
   left: var(--space-2);
+  width: var(--icon-control-default);
+  height: var(--icon-control-default);
   color: var(--color-text-muted);
   pointer-events: none;
   z-index: 1;
@@ -691,11 +693,12 @@ button.colPickerCloseBtn:hover:not(:disabled) {
 
 .colPickerSearchInput {
   width: 100%;
-  padding-left: calc(var(--space-2) + 16px);
+  padding-left: calc(
+    var(--space-2) + var(--icon-control-default) + var(--space-1)
+  );
   padding-right: calc(var(--space-2) + var(--control-size-default));
   background-color: var(--color-surface-muted);
   border-color: var(--color-border);
-  font-size: var(--font-size-xs);
 }
 
 .colPickerSearchInput:focus {

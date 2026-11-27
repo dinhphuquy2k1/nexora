@@ -329,6 +329,8 @@ The existing CDP session now covers ten widths:1920,1440,1280,1100,1024,901,900,
 Header height, standard max-width/wide fill and body overflow; Customer captures
 also assert nine colgroup/header/body boundaries. Negative Node tests reject wrong
 edges/gutters/max-width/overflow. Captures store these measurements with hashes.
+The NEXORA-064 v3 checks additionally require rendered standard segmented buttons, all three compact presets, column picker input typography/accessory isolation, Textarea rows 1/2/3/6 across variants and line-height overrides, independent heading typography, and Customer loading/data row parity at the same desktop viewport.
+
 Actual modal Input/Button/Select exercise 36/40/48 and isolated public size/font overrides, restoring exact attributes/token values/priorities in finally; Textarea remains multiline (`>= 78px` 3-line minimum at default size) and native Checkbox labels are preserved. These scripts require genuine browser execution; static syntax PASS does not certify their assertions.
 
 Exact-phone URL filtering (/customers?phone=...) renders an accessible filter badge

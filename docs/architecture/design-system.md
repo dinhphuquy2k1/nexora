@@ -1,6 +1,6 @@
 # Nexora Design System
 
-This document owns shared frontend visual contracts. [Frontend architecture](frontend.md) owns routes/data/server boundaries, [Reusable Components](reusable-components.md) owns exported APIs and actual consumers, and [Project Rules](../ai/PROJECT_RULES.md) owns mandatory reuse. **Current control sizing and typography contracts are governed by [NEXORA-064 Design Snapshot v2](../tasks/design-reviews/NEXORA-064-rev-2026-11-26-design-system-refinement-v2.md)** (which supersedes prior `NEXORA-031` `32px` default sizing, `14/16/18px` icons, `13px` control font, `600` button weight, and Login/MFA/Setup `32px` defaults while preserving `12px` table density and the v4 canonical color policy); historical provenance remains in the immutable [v3 design](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md) and [v4 color policy](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-color-policy-m2-v4.md) snapshots ([NEXORA-031](../tasks/completed/NEXORA-031-full-frontend-migration.md)).
+This document owns shared frontend visual contracts. [Frontend architecture](frontend.md) owns routes/data/server boundaries, [Reusable Components](reusable-components.md) owns exported APIs and actual consumers, and [Project Rules](../ai/PROJECT_RULES.md) owns mandatory reuse. **Current control sizing and typography contracts are governed by [NEXORA-064 Design Snapshot v2](../tasks/design-reviews/NEXORA-064-rev-2026-11-26-design-system-refinement-v2.md) as amended by [v3](../tasks/design-reviews/NEXORA-064-rev-2026-11-27-design-system-refinement-v3.md)** (which supersedes prior `NEXORA-031` `32px` default sizing, `14/16/18px` icons, `13px` control font, `600` button weight, and Login/MFA/Setup `32px` defaults while preserving `12px` table density and the v4 canonical color policy); historical provenance remains in the immutable [v3 design](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md) and [v4 color policy](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-color-policy-m2-v4.md) snapshots ([NEXORA-031](../tasks/completed/NEXORA-031-full-frontend-migration.md)).
 
 ## Ownership and token layers
 
@@ -45,7 +45,7 @@ Tests assert 36/40/48 as owner-defined acceptance values AND dynamically change 
 | -------------------------------- | ---------------------------------------------------------------------------------- |
 | Page title                       | 2xl (20px) / semibold (600) / 28px (`--type-page-title-size` / `-line-height`)     |
 | Section heading                  | xl (16px) / semibold (600) / normal (24px) (`--type-section-heading-size`)         |
-| Card / drawer heading            | md (14px) / semibold (600) / 20px (`--font-size-md` / `--control-line-height`)     |
+| Card / drawer heading            | md (14px) / semibold (600) / 20px (`--type-card-heading-size` / `--type-card-heading-line-height`)     |
 | Body                             | md (14px) / normal (400) / normal (21px) (`--type-body-size`)                      |
 | Form label                       | md (14px) / medium (500) / 20px (`--type-label-size` / `--type-label-line-height`) |
 | Button                           | md (14px) / medium (500) / 20px (`--type-button-label-size`; large 16px/500/24px)  |
@@ -280,7 +280,7 @@ remain unchanged. Selected/required labels remain primary navy; required trackin
 is bold with its amber badge. The popup uses `--radius-lg` (12px), maximum336px
 width,12px padding,8px gaps and a scrollable208px checklist.
 
-Column search composes TextInput and a ghost icon Button with the standard 36px (`--control-size-default`) square target. Feature CSS owns only clear-button positioning and input accessory padding; shared Button owns hover/focus/disabled states. Clear preserves column selection, keeps the disclosure open, and returns focus to the search input. Native search cancel is suppressed so the two clear mechanisms do not overlap.
+Column search inherits shared TextInput typography (14px / 400 / 20px); its leading icon and padding follow the default public icon token. Column search composes TextInput and a ghost icon Button with the standard 36px (`--control-size-default`) square target. Feature CSS owns only clear-button positioning and input accessory padding; shared Button owns hover/focus/disabled states. Clear preserves column selection, keeps the disclosure open, and returns focus to the search input. Native search cancel is suppressed so the two clear mechanisms do not overlap.
 
 SelectButton's standard segmented items inherit `Button` typography (`14px / 500 / 20px`); `.segmented.textActions` retains an intentional compact `11px` (`--font-size-xs`) exception for dense 336px popovers (`Tất cả | Cơ bản | Mặc định`). SelectButton's `appearance` belongs only to single/segmented props; multiple/stacked rejects concrete appearance values (`appearance?: never`), preserving its existing DOM/default styling.
 

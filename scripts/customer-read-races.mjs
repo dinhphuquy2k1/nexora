@@ -101,6 +101,17 @@ export async function verifyCustomerReadRaces({
     assert.equal(held, undefined);
     await waitHeld();
     await snapshot("loading");
+    await send("Emulation.setDeviceMetricsOverride", {
+      width: 1440,
+      height: 900,
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+    await evaluate("new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");
+    const skeletonHeight = await evaluate(
+      "document.querySelector('main tr[data-skeleton]')?.getBoundingClientRect().height ?? null",
+    );
+    assert.ok(skeletonHeight > 0, "Loading skeleton row must exist");
     await fill("q", latest);
     await delay(350);
     await ready();
@@ -109,6 +120,14 @@ export async function verifyCustomerReadRaces({
         `!!Array.from(document.querySelectorAll('a')).find(a=>a.textContent===${JSON.stringify(customer.code)})`,
       ),
       true,
+    );
+    const loadedHeight = await evaluate(
+      `(()=>{const link=[...document.querySelectorAll('main tbody a')].find(a=>a.textContent===${JSON.stringify(customer.code)});return link?.closest('tr')?.getBoundingClientRect().height??null;})()`,
+    );
+    assert.ok(loadedHeight > 0, "Loaded fixture row must exist");
+    assert.ok(
+      Math.abs(loadedHeight - skeletonHeight) <= 1.5,
+      `Customer loading/data row parity: ${skeletonHeight} vs ${loadedHeight}`,
     );
     // A can be aborted by transport; the feature's generation guard remains unit-tested independently.
     await send("Fetch.fulfillRequest", {

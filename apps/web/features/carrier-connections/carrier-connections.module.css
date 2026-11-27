@@ -995,9 +995,9 @@ dialog.confirmModal {
 }
 .syncPanel h3,
 .historyHeading h3 {
-  font-size: var(--font-size-md);
+  font-size: var(--type-card-heading-size);
   font-weight: var(--font-weight-semibold);
-  line-height: var(--control-line-height);
+  line-height: var(--type-card-heading-line-height);
   color: var(--color-carrier-text-strong);
   margin: 0;
 }

@@ -98,6 +98,66 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
     true,
     "multiline Textarea rows and >= 78px 3-line minimum",
   );
+  checks.step("CUSTOMER_TEXTAREA_VARIANTS_AND_HEADING_ISOLATION");
+  const multiline = await evaluate(`(()=>{
+    const textarea=document.querySelector('dialog[open] textarea');
+    const heading=document.querySelector('dialog[open] h2');
+    if(!textarea||!heading)return null;
+    const root=document.documentElement;
+    const attrs=['data-size','rows','style'].map(t=>[t,textarea.getAttribute(t)]);
+    const tokens=['--control-line-height','--control-line-height-default','--control-line-height-medium','--control-line-height-large'];
+    const saved=tokens.map(t=>[root.style.getPropertyValue(t),root.style.getPropertyPriority(t)]);
+    const measure=()=>{
+      const s=getComputedStyle(textarea);
+      const padding=parseFloat(s.paddingTop)+parseFloat(s.paddingBottom);
+      const border=parseFloat(s.borderTopWidth)+parseFloat(s.borderBottomWidth);
+      return {height:textarea.getBoundingClientRect().height,min:parseFloat(s.minHeight),line:parseFloat(s.lineHeight),font:parseFloat(s.fontSize),padding,border};
+    };
+    try{
+      const headingBefore=getComputedStyle(heading).lineHeight;
+      root.style.setProperty(tokens[0],'23px','important');
+      const headingAfter=getComputedStyle(heading).lineHeight;
+      if(saved[0][0])root.style.setProperty(tokens[0],...saved[0]);else root.style.removeProperty(tokens[0]);
+      const results=[];
+      for(const [i,size] of ['default','medium','large'].entries()){
+        textarea.setAttribute('data-size',size);
+        for(const rows of [1,2,3,6]){
+          textarea.rows=rows;
+          textarea.style.removeProperty('height');
+          const baseline=measure();
+          textarea.style.height='0px';
+          const floor=measure();
+          root.style.setProperty(tokens[i+1],'28px','important');
+          const override=measure();
+          if(saved[i+1][0])root.style.setProperty(tokens[i+1],...saved[i+1]);else root.style.removeProperty(tokens[i+1]);
+          results.push({size,rows,baseline,floor,override});
+        }
+      }
+      return {headingBefore,headingAfter,results};
+    }finally{
+      for(const [t,v] of attrs)if(v===null)textarea.removeAttribute(t);else textarea.setAttribute(t,v);
+      tokens.forEach((t,i)=>saved[i][0]?root.style.setProperty(t,...saved[i]):root.style.removeProperty(t));
+    }
+  })()`);
+  assert.ok(multiline, "Actual Textarea and drawer heading required");
+  assert.equal(multiline.headingBefore, "20px");
+  assert.equal(multiline.headingAfter, multiline.headingBefore);
+  assert.equal(multiline.results.length, 12);
+  for (const { size, rows, baseline, floor, override } of multiline.results) {
+    assert.equal(baseline.font, size === "large" ? 16 : 14);
+    assert.equal(baseline.line, size === "large" ? 24 : 20);
+    assert.ok(baseline.height >= rows * baseline.line + baseline.padding);
+    assert.equal(override.line, 28);
+    if (rows >= 3) {
+      assert.equal(floor.min, 3 * floor.line + floor.padding + floor.border);
+      assert.ok(floor.height >= floor.min);
+      assert.equal(
+        override.min,
+        3 * override.line + override.padding + override.border,
+      );
+      assert.ok(override.height >= override.min);
+    }
+  }
   checks.step("CUSTOMER_CONTROL_STATE_PRECEDENCE");
   const states = await evaluate(`(async()=>{
     const elements=[document.querySelector('dialog[open] input[name="name"]'),document.querySelector('dialog[open] textarea')];

@@ -645,9 +645,9 @@ td.detailCell a.detailLink:hover {
   background: var(--color-surface-muted);
 }
 .drawerHeader h2 {
-  font-size: var(--font-size-md);
+  font-size: var(--type-card-heading-size);
   font-weight: var(--font-weight-semibold);
-  line-height: var(--control-line-height);
+  line-height: var(--type-card-heading-line-height);
   margin: 0;
   text-transform: uppercase;
 }
@@ -694,9 +694,9 @@ td.detailCell a.detailLink:hover {
   margin-bottom: var(--space-4);
 }
 .sectionHeading h3 {
-  font-size: var(--font-size-md);
+  font-size: var(--type-card-heading-size);
   font-weight: var(--font-weight-semibold);
-  line-height: var(--control-line-height);
+  line-height: var(--type-card-heading-line-height);
   margin: 0;
 }
 .sectionNumber {

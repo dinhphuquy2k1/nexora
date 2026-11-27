@@ -252,6 +252,8 @@
   --type-page-title-size: var(--font-size-2xl);
   --type-page-title-line-height: 28px;
   --type-section-heading-size: var(--font-size-xl);
+  --type-card-heading-size: var(--font-size-md);
+  --type-card-heading-line-height: 20px;
   --type-body-size: var(--font-size-md);
   --type-small-size: var(--font-size-sm);
   --type-label-size: var(--font-size-md);

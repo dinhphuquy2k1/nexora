@@ -208,6 +208,31 @@ function assertDesignSystemContracts(files) {
     "Textarea 3-line minimum must use line-height and allow explicit rows=1/rows=2",
   );
 
+  assert.match(
+    files.tokens,
+    /--type-card-heading-size:\s*var\(--font-size-md\);/,
+  );
+  assert.match(files.tokens, /--type-card-heading-line-height:\s*20px;/);
+  for (const featureCss of [files.customers, files.retail, files.carrier]) {
+    assert.match(
+      featureCss,
+      /font-size:\s*var\(--type-card-heading-size\);[^}]*line-height:\s*var\(--type-card-heading-line-height\);/s,
+    );
+    assert.doesNotMatch(
+      featureCss,
+      /line-height:\s*var\(--control-line-height\);/,
+      "Feature headings must not depend on control line height",
+    );
+  }
+  assert.match(
+    files.retail,
+    /\.colPickerSearchIcon\s*\{[^}]*width:\s*var\(--icon-control-default\);[^}]*height:\s*var\(--icon-control-default\);/s,
+  );
+  const pickerInput = files.retail.match(/\.colPickerSearchInput\s*\{([^}]+)\}/);
+  assert.ok(pickerInput);
+  assert.doesNotMatch(pickerInput[1], /font-size\s*:/);
+  assert.match(pickerInput[1], /padding-left:\s*calc\([^;]*--icon-control-default/s);
+
   const segmentedItemMatch = files.selectButton.match(
     /\.segmentedItem\s*\{([^}]+)\}/,
   );

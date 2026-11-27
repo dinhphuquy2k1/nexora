@@ -1,5 +1,6 @@
 // Isolated actual-component browser fixture; never imported by product routes.
 import { useState } from "react";
+import { SelectButton } from "@nexora/ui";
 import { createRoot } from "react-dom/client";
 import { CustomerPagination } from "../../features/customers/CustomerPagination.tsx";
 import { RetailPagination } from "../../features/retail-packages/RetailPagination.tsx";
@@ -74,6 +75,19 @@ function Fixture() {
   };
   return (
     <main>
+      {params.has("controls") && (
+        <SelectButton
+          mode="single"
+          layout="segmented"
+          ariaLabel="Standard segmented fixture"
+          options={[
+            { value: "first", label: "First" },
+            { value: "second", label: "Second" },
+          ]}
+          value="first"
+          onValueChange={() => {}}
+        />
+      )}
       <section data-pager-filter-case="customer">
         <h2>Customer</h2>
         <CustomerPagination
