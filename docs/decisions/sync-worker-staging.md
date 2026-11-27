@@ -197,3 +197,13 @@ same canonical helper and byte guard with trusted job/static metadata; no payloa
 secrets, KDF, credential crypto or network/file IO enters this exception. No lock
 order, timeout or authorization change is permitted. This is a scoped engineering
 clarification of the planned finalization check, not a new owner attestation.
+
+## Controlled-runtime amendment (2026-11-24, NEXORA-058)
+
+Historical empty declarations above are superseded only for conditional technical
+composition. One shared API/Worker factory can register existing Uniship Shipment
+adapters when all runtime readiness gates pass; absent policy/default/live production
+remain closed. The engine, queue, FULL100 query, processor1 and reconciliation1 are
+preserved. Carrier custody follows the dated ADR-007 scoped Worker amendment; no
+Identity or API module is imported by Worker. Scope/mode filters precede candidate
+limits, preserve onboarding intent and prevent manual-only bypass by old AUTO jobs.

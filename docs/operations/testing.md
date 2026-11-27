@@ -961,7 +961,7 @@ provider credentials and live network access are excluded.
 
 [Portal API contract](../integrations/uniship-portal-api.md) owns confirmed/assumed/
 unknown mappings. ADR007 records the owner authorization amendment; the production
-external-request hard-close and empty Shipment capability registry remain intact.
+external-request hard-close remains intact. NEXORA-058 adds conditional shared runtime composition; the default Shipment registry remains empty.
 Fixture PASS does not certify live API conformance or open an activation gate.
 
 NEXORA-054 review correction strengthens that same scanner with explicit
@@ -1495,7 +1495,7 @@ barrier time labeled separately. Warm-data single measurements are not a product
 
 Migration harness stages exact061→062 and checks original values/children retained,
 ACTIVE defaults, historical admission/summaryNULL, repeat deploy/drift; runtime smoke
-expects19 migrations. Quality/contracts/full integration, canonical Docker/signed
+expected19 migrations at the062 baseline;058 advances runtime smoke to20. Quality/contracts/full integration, canonical Docker/signed
 launcher and exact-final-HEAD hosted Preflight/Sync/Foundation remain required.
 Store curated plans/results/provenance, no raw SQL predicates, credentials or media.
 
@@ -1506,7 +1506,60 @@ the ambient base DATABASE_URL: its absent fixture owner produces UNAUTHORIZED.
 Sync Targeted explicitly watches the new policy/adapter/test paths and runs their
 policy units alongside all prior Sync units; no package discovery list is replaced.
 
+## NEXORA-058 controlled runtime verification
+
+uniship-runtime-integration.test.cjs uses disposable migrated PostgreSQL with signed
+cluster ownership and actual nexora_app/nexora_sync passwords. It covers fixed ACLs,
+private helpers and CHECKs, repeat provisioning, actual scoped credential recovery,
+epoch/disable/delete/lease/takeover races, bounded lock waits and audit-before-decrypt.
+Real loopback HTTP measures cross-instance dispatch spacing, pending auth/verify,
+abort and429. Actual Nest API and Worker run the existing manual endpoint/loop with
+FULL100, no-policy ingestion, synthetic-policy baseline/hide/restore, midpage401 and
+expiry recovery/stale cancellation, new job identity preservation, manual-only old
+AUTO suppression and separately configured synthetic AUTOMATIC completion scheduling.
+No live provider or production thresholds are used. Signed uniship-runtime (using the existing signed wrapper) and Sync
+Targeted discovery include the new suite; native migration verification covers19→20,
+repeat/drift and existing data. Readiness checks include task-owned STORAGE_ROOT,
+origins, keyring, generated/build artifacts, signed database and fixed closed live gate.
+Keep command failures and historical evidence distinct from final current-HEAD CI.
+
 ## Raw SQL Lint & Parity Verification — NEXORA-063
 
 - **ESLint Raw SQL guards**: `pnpm test:lint` (and `pnpm test`) executes `scripts/eslint-rules/no-unsafe-raw-sql.test.mjs` and `scripts/eslint-rules/readable-raw-sql.test.mjs` alongside `no-domain-vocabulary-literals.test.mjs` and `no-nested-ternary.test.mjs`, verifying both RuleTester cases and real ESLint config scoping on `apps/*/src` and `packages/*/src`.
 - **SQL parity evidence**: Formatting and query-builder extraction must preserve the exact normalized SQL sent to PostgreSQL (clauses, identifiers, casts, parameter order, locks, and `clock_timestamp()`); parity comparisons are recorded under `docs/tasks/evidence/NEXORA-063/`.
+
+The signed launcher keeps the original shipment-worker two-file sequence and180s
+per-suite budget.058 runtime tests run as separate uniship-runtime entry through the
+same wrapper/source mounts, also180s, with a precreated owned storage root. This
+preserves the existing capacity/observation budget and adds bounded new coverage.
+
+## NEXORA-058 hardening verification v3
+
+Credential separation tests use the same behavioral assertions against reviewed
+baseline02c2d05 and candidate: token-only reads, claim-required password, audit
+commit/revalidation/cancellation and failure prevention. Signed real nexora_sync
+tests verify proof fields, role negatives, removed combined capability, stale
+lease/generation/delete races and unchanged successor jobs. API Prisma query
+instrumentation checks purpose projections without exposing artifacts. Reconnect
+tests compare lifecycle/generation/credential digests/job scope before and after
+policy denial, plus manual status and CAS races.
+
+Root environment tests parse actual Turbo dry-run JSON in strict mode using
+synthetic values, without printing it. Host database-runtime-smoke resolves
+standard/dev/release/public Compose with an isolated env-file and minimal synthetic
+process environment; no Docker socket enters quality containers. Defaults, empty,
+explicit and invalid forwarding remain distinct; parser tests reject invalid tuning.
+Existing dev-smoke supplies synthetic runtime settings with the live gate false
+and probes actual HTTP-listener/Worker child PID environments via /proc through
+the existing dev-entrypoint UID mapping, emitting boolean assertions only. Container
+exec root may lack ptrace authority over the mapped service owner; do not grant
+SYS_PTRACE or weaken PID/environment assertions. Container exec ENV alone is not process propagation proof.
+It retains ADMIN enrollment denial, OPERATOR login, HMR, frozen dependency drift,
+persistence and cleanup assertions. Existing signed Nest loopback tests prove actual
+capability behavior separately. Original signed suite discovery and180000ms budgets
+remain unchanged, including the separate uniship-runtime entry.
+
+Record baseline/candidate/harness/source/merge revisions and exact commands, times,
+role/environment, run/job/attempt and sanitized assertions. Historical CI is never
+new candidate proof. Canonical task table uses PASS/FAIL; unexecuted checks and
+external live gates remain adjacent limitations with concrete prerequisites.

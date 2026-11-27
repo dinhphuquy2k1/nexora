@@ -29,6 +29,7 @@ module.exports.verifyProviderLengthContract = async ({ t, url }) => {
             "sync_jobs",
             "sync_provider_budget",
             "sync_source_identities",
+            "uniship_http_budget",
           ],
           "New tables with a provider column must be added to this exact list and use the same provider length",
         );

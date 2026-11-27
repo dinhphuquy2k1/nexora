@@ -6,6 +6,7 @@ import { ACTIVE_SYNC_JOBS } from "../../domain/sync.constants";
 /** clock_timestamp() ensures due schedules reflect commit-time DB clock without active-lane conflicts. */
 export function buildFindDueSyncSchedulesQuery(params: {
   eligible: string[];
+  scope?: Prisma.Sql;
   afterAt: string | null;
   afterId: string | null;
 }): Prisma.Sql {
@@ -23,6 +24,7 @@ export function buildFindDueSyncSchedulesQuery(params: {
     JOIN users u
       ON u.id = c.user_id
     WHERE s.enabled
+      AND (${params.scope ?? Prisma.sql`TRUE`})
       AND s.next_run_at <= clock_timestamp()
       AND u.status = ${UserStatus.ACTIVE}
       AND c.status = ${ConnectionStatus.CONNECTED}

@@ -2,9 +2,20 @@
 import assert from "node:assert/strict";
 import { Client } from "pg";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+const args = process.argv.slice(2);
+assert.ok(
+  args.length === 0 || (args.length === 1 && args[0] === "--uniship-runtime"),
+  "INVALID_SIGNED_RUNTIME_SELECTOR",
+);
+const files = args.length
+  ? ["integration/uniship-runtime-integration.test.cjs"]
+  : [
+      "integration/shipment-integration.test.cjs",
+      "integration/sync-observation-integration.test.cjs",
+    ];
 const url = process.env.DISPOSABLE_CLUSTER_ADMIN_URL,
   token = process.env.DISPOSABLE_CLUSTER_TOKEN,
   password = process.env.DISPOSABLE_CLUSTER_RUNTIME_PASSWORD;
@@ -21,6 +32,7 @@ try {
 }
 const dir = await mkdtemp(join(tmpdir(), "nexora-shipment-worker-"));
 try {
+  await mkdir(join(dir, "storage"), { recursive: true, mode: 0o700 });
   const passwordFile = join(dir, "runtime-password");
   await writeFile(passwordFile, password, { mode: 0o600 });
   for (const pkg of ["@nexora/shared", "@nexora/database", "@nexora/api"])
@@ -29,10 +41,7 @@ try {
       cwd: resolve("."),
     });
   // Keep the existing timed Shipment capacity test isolated from observation benchmarks.
-  for (const file of [
-    "integration/shipment-integration.test.cjs",
-    "integration/sync-observation-integration.test.cjs",
-  ])
+  for (const file of files)
     execFileSync(process.execPath, ["--test", file], {
       cwd: resolve("apps/api"),
       stdio: "inherit",

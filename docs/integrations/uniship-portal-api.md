@@ -547,3 +547,17 @@ explicit migration policy because root records lack per-query membership provena
 Missing/restore updates are internal atomic Shipment visibility, never upstream
 writes or hard deletion. Production registry remains empty; NEXORA-058 retains live/
 authorization/ID stability/rate/stop/timezone controls and threshold approval.
+
+## Controlled runtime preparation — NEXORA-058 (2026-11-24)
+
+The earlier empty-registry/test-only descriptions above record their historical
+milestones. The shared API/Worker runtime now conditionally constructs the existing
+Uniship SHIPMENT FULL100 capability using exact scoped activation, Carrier key
+readiness and the common transport gate. The live contract hard-close remains false;
+no live production capability or external traffic is enabled by this change.
+Mapping V2, processor1, UTC+7 and reconciliation v3 remain unchanged. Existing owner
+confirmations are retained; technical mock acceptance does not establish external
+semantics. [External gates and staged runbook](../tasks/evidence/NEXORA-058/external-gates-and-runbook.md)
+record unresolved field/claim/ID/query/timezone/source prerequisites without asking
+for already sufficient facts to be re-confirmed. Per-dispatch PostgreSQL completion
+spacing enforces the agreed Nexora safeguard; no official provider quota is claimed.

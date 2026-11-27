@@ -119,7 +119,7 @@ Documentation Impact: REQUIRED
 - [x] AC15–17 crash/reclaim/exactly-once/cleanup.
 - [x] AC18–20 list/search/stats/paging/detail/history and local data preservation.
 - [x] AC21–22 actual roles and1k/10k/100k query/atomicity evidence.
-- [ ] AC23–25 regressions/docs/governance/CI and production hard-close (local gates PASS; hosted final-HEAD CI pending).
+- [x] AC23–25 regressions/docs/governance/CI and production hard-close; verified hosted source fefb596, with external activation retained by058.
 
 ## PLAN ISSUES
 
@@ -270,6 +270,23 @@ checkpoint; final CI results belong to PR61's exact-source checkpoint. No merge/
 
 This evidence-only checkpoint addition receives final formatting/docs/preflight checks
 before commit; no source or test change follows the successful quality run.
+
+## Post-merge closure —NEXORA-058 first commit
+
+Closed under TASK_WORKFLOW §1.7 after PR61 merged2026-11-24T09:48:23Z
+(16:48:23 Asia/Ho_Chi_Minh), merge SHA5edbcfe1609562f9eb5b6c156cf5cec68b5b71fa.
+Verified source fefb596510d667e58e8abbc09721188aa9f8c2c5, CI merge checkout
+35926ac1fe9e6a68a9f2f65ff07e6624f04d3b3b. Actual final-head Preflight45363231656
+job138338284968,Sync45363231695 job138338284555,Foundation45363231555
+job138338284771 all attempt1 PASS; Foundation steps4–10/upload11–16/cleanup19
+PASS, failure-only diagnostics17/18 SKIPPED. Local controlled Identity1/1 and signed
+integration227/227,quality891 tests PASS; historical failures remain untouched.
+External authorization/custody/live consistency/timezone/thresholds/host gates remain
+NOT RUN under active058, not silently closed by technical fixture verification.
+
+| Claim              | Evidence                                                                                                                                                                  | Date       | Result |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Post-merge closure | PR61 merged5edbcfe at2026-11-24T09:48:23Z; exact source/merge/run/job/attempt above and PR61 Final green HEAD verified by gh API; remaining external gates retained in058 | 2026-11-24 | PASS   |
 
 ### Closure checkpoint — 2026-11-26 (§1.7)
 

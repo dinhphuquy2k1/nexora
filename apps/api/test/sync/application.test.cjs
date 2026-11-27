@@ -1,3 +1,4 @@
+const { AbortController } = globalThis;
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const {
@@ -113,4 +114,43 @@ test("executor bounds a nonresponsive provider, forwards abort and never checkpo
   assert.equal(written, 0);
   assert.equal(waited, "PROVIDER_RETRY");
   assert.equal(signal.aborted, true);
+});
+
+test("executor requests narrowly owned stale cancellation instead of waiting or checkpointing", async () => {
+  const {
+    SyncJobExecutor,
+  } = require("../../dist/sync/application/sync-job-executor.service");
+  const { SyncError } = require("../../dist/sync/domain/sync-policy");
+  const job = {
+    provider: "uniship",
+    sync_type: "SHIPMENT",
+    processing_phase: "FETCHING",
+    fetch_strategy: "FULL",
+    attempt_count: 0,
+  };
+  let cancelled = 0;
+  const queue = {
+    config: { leaseSeconds: 60 },
+    available: () => true,
+    capabilities: {
+      resolve: () => ({
+        strategy: "FULL",
+        processor: { version: 1 },
+        provider: {
+          fetch: async () => {
+            throw new SyncError("SYNC_STALE");
+          },
+        },
+      }),
+    },
+    heartbeat: async () => {},
+    page: async () => assert.fail("stale page"),
+    wait: async () => assert.fail("stale retry"),
+    cancelStale: async (current) => {
+      assert.equal(current, job);
+      cancelled++;
+    },
+  };
+  await new SyncJobExecutor(queue).execute(job, new AbortController().signal);
+  assert.equal(cancelled, 1);
 });

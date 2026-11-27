@@ -8,10 +8,13 @@ const { LifecycleCode } = require("../dist/carrier/domain/lifecycle");
 test("durable audit failure blocks both password decrypt and provider login", async () => {
   const calls = [];
   const reader = {
-    load: async () => {
+    authorizeRecovery: async () => {
       calls.push("authorize");
-      return { password: {}, loginIdentifier: "synthetic" };
     },
+  };
+  reader.loadRecoveryPassword = async () => {
+    calls.push("authorize");
+    return { password: {}, loginIdentifier: "synthetic" };
   };
   const audit = {
     append: async () => {
@@ -48,10 +51,13 @@ test("durable audit failure blocks both password decrypt and provider login", as
 test("audit commit and owner/fence recheck precede password decrypt then provider login", async () => {
   const calls = [];
   const reader = {
-    load: async () => {
+    authorizeRecovery: async () => {
       calls.push("authorize");
-      return { password: {}, loginIdentifier: "synthetic" };
     },
+  };
+  reader.loadRecoveryPassword = async () => {
+    calls.push("authorize");
+    return { password: {}, loginIdentifier: "synthetic" };
   };
   const audit = {
     append: async (event) => {

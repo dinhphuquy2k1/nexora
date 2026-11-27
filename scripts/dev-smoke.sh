@@ -12,12 +12,25 @@ cleanup(){
   status=$?; if [ "$status" -ne 0 ]; then docker compose -f compose.yml -f compose.dev.yml logs --no-color --tail 60 >&2; fi;  cp "$work/shared.ts" packages/shared/src/index.ts; cp "$work/page.tsx" "apps/web/app/(workspace)/page.tsx"; cp "$work/package.json" package.json; docker compose -f compose.yml -f compose.dev.yml down -v --remove-orphans >/dev/null; rm -rf "$work"; }
 trap cleanup EXIT HUP INT TERM
 compose(){ docker compose -f compose.yml -f compose.dev.yml "$@"; }
+# Synthetic runtime configuration only; live authorization remains closed.
+export CARRIER_KEYRING_JSON='{"1":"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="}'
+export CARRIER_ACTIVE_KEY_VERSION=1
+export UNISHIP_API_URL=https://kh.uniship.vn
+export UNISHIP_LIVE_AUTHORIZED=false
+export UNISHIP_ACTIVATION_POLICY_JSON='{"ownerUserId":"11111111-1111-4111-8111-111111111111","externalAccountId":"1","loginIdentifier":"synthetic-dev","mode":"MANUAL_ONLY"}'
+export UNISHIP_RECONCILIATION_POLICY_JSON='{"maxNewlyMissing":1,"maxMissingRatioBps":1,"maxObservedDropRatioBps":1}'
+export SYNC_ENABLED=false SYNC_LEASE_SECONDS=120 SYNC_POLL_MS=250 SYNC_MAX_ATTEMPTS=7 SYNC_RESOLVED_RETENTION_DAYS=30
 compose up -d --no-build --wait --wait-timeout 180
 # Rebuilding shared dist with live watchers races the one-shot security assertion.
 # Match quality-docker: stop writers before rebuilding, then require fresh health.
 compose stop api web
 compose run --rm --no-deps -T dependencies dependencies
 compose up -d --no-build --wait --wait-timeout 180
+# Inspect actual Turbo-launched HTTP listener and worker child, not container ENV.
+# Reuse the service owner mapping: container root cannot ptrace another UID.
+for runtime_service in api sync-worker; do
+  compose exec -T "$runtime_service" sh /workspace/scripts/dev-entrypoint.sh node --input-type=module -e 'import {verifyDevelopmentEnvironment} from "./scripts/dev-runtime-environment-probe.mjs"; console.log(JSON.stringify(verifyDevelopmentEnvironment(process.argv[1])))' "$runtime_service"
+done
 printf '%s' 'DevSmokePass123!' | compose exec -T api sh /workspace/scripts/api-entrypoint.sh node scripts/user-create.mjs --username dev_smoke_user --password-stdin
 # Explicit new security assertion: trusted provisioning alone never enables ADMIN login.
 compose exec -T web node <<'JS'

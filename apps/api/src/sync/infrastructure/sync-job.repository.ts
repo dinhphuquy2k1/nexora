@@ -1,3 +1,5 @@
+import { buildCancelBlockedAutoQuery } from "./queries/uniship-runtime.queries";
+import type { SyncRuntimePolicy } from "./sync-runtime-policy";
 import { SyncScanIntegrityStatus } from "../domain/sync-observation.constants";
 import {
   scanScopeFingerprint,
@@ -80,6 +82,7 @@ export class SyncRepository implements SyncQueue {
     readonly config: SyncConfig,
     readonly capabilities: SyncCapabilityRegistry,
     private readonly authorizationLocks: "exclusive" | "shared" = "exclusive",
+    private readonly runtimePolicy?: SyncRuntimePolicy,
   ) {}
   get client(): PrismaClient {
     return (this.instance ??= createDatabase(this.url));
@@ -189,6 +192,17 @@ export class SyncRepository implements SyncQueue {
       current.lifecycle_version !== job.lifecycle_version
     )
       throw new SyncError(E.SYNC_STALE);
+    if (
+      this.runtimePolicy &&
+      !(await this.runtimePolicy.accepts(
+        tx,
+        c,
+        current.sync_type,
+        current.trigger_source,
+        "execute",
+      ))
+    )
+      throw new SyncError(E.SYNC_STALE);
     await this.assertLease(tx, job);
     return current;
   }
@@ -230,6 +244,36 @@ export class SyncRepository implements SyncQueue {
       const c = await this.connection(tx, userId, id, true);
       const capability = this.admissible(c.provider, type);
       if (!capability) throw new SyncError(E.SYNC_UNAVAILABLE);
+      if (this.runtimePolicy) {
+        if (!(await this.runtimePolicy.accepts(tx, c, type, trigger, "admit")))
+          throw new SyncError(E.SYNC_UNAVAILABLE);
+        // An authenticated owner Manual command may replace its policy-blocked AUTO lane.
+        if (
+          trigger === SyncTrigger.MANUAL &&
+          !(await this.runtimePolicy.accepts(
+            tx,
+            c,
+            type,
+            SyncTrigger.AUTO,
+            "execute",
+          ))
+        ) {
+          const blocked = await tx.$queryRaw<SyncJob[]>`
+            SELECT *
+            FROM sync_jobs
+            WHERE carrier_connection_id=${id}::uuid
+              AND owner_user_id=${userId}::uuid
+              AND sync_type=${type}
+              AND trigger_source=${SyncTrigger.AUTO}
+              AND status=ANY(${ACTIVE_SYNC_JOBS}::text[])
+            FOR UPDATE
+          `;
+          for (const old of blocked)
+            await tx.$executeRaw(
+              buildCancelBlockedAutoQuery(old.id, old.lease_version),
+            );
+        }
+      }
       // Static predicate preserves PostgreSQL partial-index inference; covered by
       // integration/fixtures/sync-status-contract.cjs prepared/admit contract.
       const rows = await tx.$queryRaw<SyncJob[]>(
@@ -415,7 +459,22 @@ export class SyncRepository implements SyncQueue {
           created_at DESC,
           id DESC
       `;
-      return Object.values(SyncType).map((type) => ({
+      const types = Object.values(SyncType);
+      const allowed = new Set<SyncType>();
+      for (const type of types)
+        if (
+          this.available(c.provider, type) &&
+          (!this.runtimePolicy ||
+            (await this.runtimePolicy.accepts(
+              tx,
+              c,
+              type,
+              SyncTrigger.MANUAL,
+              "execute",
+            )))
+        )
+          allowed.add(type);
+      return types.map((type) => ({
         latest_job: latest.find((j) => j.sync_type === type) ?? null,
         ...{
           sync_type: type,
@@ -427,7 +486,7 @@ export class SyncRepository implements SyncQueue {
           last_completed_watermark: null,
         },
         ...rows.find((r) => r.sync_type === type),
-        available: this.available(c.provider, type),
+        available: allowed.has(type),
       }));
     });
   }
@@ -440,9 +499,18 @@ export class SyncRepository implements SyncQueue {
   ) {
     return this.client.$transaction(async (tx) => {
       const c = await this.connection(tx, userId, id);
-      if (enabled && !this.available(c.provider, type))
-        throw new SyncError(E.SYNC_UNAVAILABLE);
-      // clock_timestamp() anchors next_run_at and updated_at to commit-time DB clock.
+      const available =
+        this.available(c.provider, type) &&
+        (!this.runtimePolicy ||
+          (await this.runtimePolicy.accepts(
+            tx,
+            c,
+            type,
+            SyncTrigger.MANUAL,
+            "execute",
+          )));
+      if (enabled && !available) throw new SyncError(E.SYNC_UNAVAILABLE);
+      // DB clock anchors schedule changes under the existing connection lock.
       const rows = await tx.$queryRaw<SyncSchedule[]>`
         INSERT INTO sync_configs (
           carrier_connection_id,
@@ -469,7 +537,7 @@ export class SyncRepository implements SyncQueue {
           updated_at = clock_timestamp()
         RETURNING *
       `;
-      return { ...rows[0], available: this.available(c.provider, type) };
+      return { ...rows[0], available };
     });
   }
   async claim(workerId: string) {
@@ -479,15 +547,19 @@ export class SyncRepository implements SyncQueue {
         { provider: string; sync_type: SyncType }[]
       >`
         SELECT DISTINCT provider, sync_type
-        FROM sync_jobs
+        FROM sync_jobs j
         WHERE status = ANY(${ACTIVE_SYNC_JOBS}::text[])
+          AND (${this.runtimePolicy?.jobCandidates ?? Prisma.sql`TRUE`})
       `;
       const eligible = pairs
         .filter((p) => this.available(p.provider, p.sync_type))
         .map((p) => p.provider + ":" + p.sync_type);
       if (!eligible.length) return null;
       const rows = await tx.$queryRaw<SyncJob[]>(
-        buildClaimCandidateQuery({ eligible }),
+        buildClaimCandidateQuery({
+          eligible,
+          scope: this.runtimePolicy?.jobCandidates,
+        }),
       );
       const job = rows[0];
       if (!job || !this.available(job.provider, job.sync_type)) return null;
@@ -585,8 +657,16 @@ export class SyncRepository implements SyncQueue {
             candidate.owner_user_id,
             candidate.carrier_connection_id,
           );
-          // Fence stale-claim cancellation to lease_version and worker_id; clock_timestamp() records finish time.
-          await tx.$executeRaw`
+          await this.cancelOwned(tx, candidate);
+        });
+      } else if (error.code !== E.UNAUTHORIZED && error.code !== E.NOT_FOUND)
+        throw error;
+      return null;
+    }
+  }
+  private async cancelOwned(tx: Tx, job: SyncJob): Promise<void> {
+    // Owned lease and worker fencing must survive lifecycle invalidation.
+    await tx.$executeRaw`
             UPDATE sync_jobs
             SET
               status = ${J.CANCELLED},
@@ -595,15 +675,63 @@ export class SyncRepository implements SyncQueue {
               worker_id = NULL,
               lease_expires_at = NULL,
               finished_at = clock_timestamp()
-            WHERE id = ${candidate.id}::uuid
-              AND lease_version = ${candidate.lease_version}
-              AND worker_id = ${candidate.worker_id}::uuid
+            WHERE id = ${job.id}::uuid
+              AND lease_version = ${job.lease_version}
+              AND worker_id = ${job.worker_id}::uuid
               AND status = ${J.RUNNING}
           `;
-        });
-      } else if (error.code !== E.UNAUTHORIZED && error.code !== E.NOT_FOUND)
-        throw error;
-      return null;
+  }
+  /** Only the still-owned live lease may terminalize proven lifecycle/epoch invalidation. */
+  async cancelStale(job: SyncJob): Promise<void> {
+    if (!job.carrier_connection_id) return;
+    try {
+      await this.client.$transaction(async (tx) => {
+        const c = await this.connection(
+          tx,
+          job.owner_user_id,
+          job.carrier_connection_id!,
+          false,
+        );
+        // Lock current job after owner/epoch/connection to prove the same live execution.
+        const [current] = await tx.$queryRaw<SyncJob[]>`
+          SELECT *
+          FROM sync_jobs
+          WHERE id=${job.id}::uuid
+          FOR UPDATE
+        `;
+        if (
+          !current ||
+          current.status !== J.RUNNING ||
+          current.worker_id !== job.worker_id ||
+          current.lease_version !== job.lease_version ||
+          current.owner_user_id !== job.owner_user_id ||
+          current.carrier_connection_id !== job.carrier_connection_id ||
+          current.provider !== job.provider ||
+          current.external_account_id !== job.external_account_id ||
+          current.sync_type !== job.sync_type ||
+          current.generation !== job.generation ||
+          current.lifecycle_version !== job.lifecycle_version ||
+          c.provider !== current.provider ||
+          c.external_account_id !== current.external_account_id
+        )
+          return;
+        if (
+          c.generation === current.generation &&
+          c.lifecycle_version === current.lifecycle_version
+        )
+          return;
+        await this.assertLease(tx, job);
+        await this.cancelOwned(tx, job);
+      });
+    } catch (error) {
+      if (
+        error instanceof SyncError &&
+        [E.SYNC_STALE, E.UNAUTHORIZED, E.NOT_FOUND, E.SYNC_UNAVAILABLE].some(
+          (code) => code === error.code,
+        )
+      )
+        return;
+      throw error;
     }
   }
   async heartbeat(job: SyncJob) {
@@ -1222,8 +1350,11 @@ export class SyncRepository implements SyncQueue {
           error.code === E.UNAUTHORIZED ||
           error.code === E.NOT_FOUND ||
           error.code === E.SYNC_UNAVAILABLE)
-      )
+      ) {
+        if (error.code === E.SYNC_STALE || error.code === E.SYNC_UNAVAILABLE)
+          await this.cancelStale(job);
         return;
+      }
       throw error;
     }
   }
@@ -1237,6 +1368,7 @@ export class SyncRepository implements SyncQueue {
       JOIN carrier_connections c
         ON c.id = s.carrier_connection_id
       WHERE s.enabled
+        AND (${this.runtimePolicy?.scheduleCandidates ?? Prisma.sql`TRUE`})
     `;
     const eligible = pairs
       .filter((p) => this.available(p.provider, p.sync_type))
@@ -1261,6 +1393,7 @@ export class SyncRepository implements SyncQueue {
       >(
         buildFindDueSyncSchedulesQuery({
           eligible,
+          scope: this.runtimePolicy?.scheduleCandidates,
           afterAt: after?.at ?? null,
           afterId: after?.id ?? null,
         }),

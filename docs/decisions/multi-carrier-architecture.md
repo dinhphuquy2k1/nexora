@@ -296,3 +296,17 @@ Never retain these credentials in Git or CI output. This task stores only the
 owner-redacted response bodies and does not perform or claim completion of password
 rotation. Carrier encryption/audit-before-decrypt/identity coherence and independent
 Nexora sessions remain unchanged.
+
+## Dated amendment — controlled Sync Worker custody (2026-11-24, NEXORA-058)
+
+The separate Worker may reuse Carrier lifecycle/vault/audit/crypto through fixed,
+job/lease/epoch/lifecycle-scoped SECURITY DEFINER capabilities. This is a narrow
+amendment to custody, not a second lifecycle engine or Identity dependency. No broad
+secrets SELECT, users UPDATE, audit mutation, admin credential, Identity key or API
+module is granted. Atomic recovery retains the immutable job version; an old job
+cannot apply/finalize after recovery, and only a fresh job uses the recovered token.
+
+API and Worker share one scoped declaration/configuration and actual per-dispatch
+PostgreSQL pacing. Manual-only mode blocks old AUTO jobs despite saved onboarding
+schedules. Live hard-close remains false pending external acceptance. Payload fixtures
+and mock runtime tests are technical evidence, not live contract verification.

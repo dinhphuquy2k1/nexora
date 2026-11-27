@@ -2,19 +2,25 @@ import {
   Module,
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
+  type BeforeApplicationShutdown,
 } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { writeFile, rm } from "node:fs/promises";
 import { SyncJobExecutor } from "../sync/application/sync-job-executor.service";
 import { SyncRepository } from "../sync/infrastructure/sync-job.repository";
-import { createSyncRuntimeCapabilities } from "../sync/infrastructure/sync-runtime-capabilities";
+import { UnishipSyncRuntime } from "../sync/infrastructure/uniship-sync.runtime";
 import { logWorkerFailure } from "../sync/infrastructure/worker-failure-log";
 import {
   loadSyncConfig,
   SyncConfigurationError,
 } from "../sync/domain/sync-policy";
-class WorkerLoop implements OnApplicationBootstrap, OnApplicationShutdown {
+class WorkerLoop
+  implements
+    OnApplicationBootstrap,
+    BeforeApplicationShutdown,
+    OnApplicationShutdown
+{
   private readonly abort = new AbortController();
   private loop?: Promise<void>;
   constructor(private readonly queue: SyncRepository) {}
@@ -45,9 +51,11 @@ class WorkerLoop implements OnApplicationBootstrap, OnApplicationShutdown {
       }
     }
   }
-  async onApplicationShutdown() {
+  async beforeApplicationShutdown() {
     this.abort.abort();
     await this.loop;
+  }
+  async onApplicationShutdown() {
     await this.queue.close();
     await rm("/tmp/nexora-sync-heartbeat", { force: true });
   }
@@ -55,8 +63,23 @@ class WorkerLoop implements OnApplicationBootstrap, OnApplicationShutdown {
 @Module({
   providers: [
     {
-      provide: SyncRepository,
+      provide: UnishipSyncRuntime,
       useFactory: () => {
+        if (!process.env.DATABASE_URL)
+          throw new SyncConfigurationError(
+            "Missing worker database configuration",
+          );
+        return new UnishipSyncRuntime(
+          process.env.DATABASE_URL,
+          process.env,
+          "worker",
+        );
+      },
+    },
+    {
+      provide: SyncRepository,
+      inject: [UnishipSyncRuntime],
+      useFactory: (runtime: UnishipSyncRuntime) => {
         if (!process.env.DATABASE_URL)
           throw new SyncConfigurationError(
             "Missing worker database configuration",
@@ -64,8 +87,9 @@ class WorkerLoop implements OnApplicationBootstrap, OnApplicationShutdown {
         return new SyncRepository(
           process.env.DATABASE_URL,
           loadSyncConfig(process.env),
-          createSyncRuntimeCapabilities(),
+          runtime.capabilities,
           "shared",
+          runtime.eligibility,
         );
       },
     },

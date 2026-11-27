@@ -1,3 +1,5 @@
+import type { LifecycleSnapshot } from "../../../carrier/application/carrier-lifecycle.port";
+import type { UnishipHttpContext } from "../../../carrier/infrastructure/uniship/postgres-http-admission";
 import { UNISHIP_FULL_SCAN, UNISHIP_SCAN } from "./uniship-full-scan";
 import type {
   SyncProvider,
@@ -29,7 +31,7 @@ import {
   type UnishipWarning,
 } from "./uniship-normalizer";
 
-/** Test-only composition until NEXORA-058; no production registration or live opt-in. */
+/** Shared adapter; runtime registration remains subject to controlled activation and the live gate. */
 export class UnishipShipmentProvider implements SyncProvider {
   readonly fullScan = UNISHIP_FULL_SCAN;
   constructor(
@@ -40,6 +42,10 @@ export class UnishipShipmentProvider implements SyncProvider {
     >,
     private readonly store: Pick<CarrierLifecyclePort, "read">,
     private readonly warn: UnishipWarning = (code) => console.warn(code),
+    private readonly context?: (
+      job: SyncJob,
+      snapshot: LifecycleSnapshot,
+    ) => UnishipHttpContext,
   ) {}
   strategy(provider: string, type: SyncType): "FULL" | "INCREMENTAL" | null {
     return provider === CarrierProvider.UNISHIP && type === SyncType.SHIPMENT
@@ -77,13 +83,19 @@ export class UnishipShipmentProvider implements SyncProvider {
       return await this.lifecycle.withToken(
         job.owner_user_id,
         job.carrier_connection_id,
-        async (token) => {
-          signal.throwIfAborted();
+        async (token, tokenSignal) => {
+          const cancellation = tokenSignal
+            ? AbortSignal.any([signal, tokenSignal])
+            : signal;
+          cancellation.throwIfAborted();
+          const context = this.context?.(job, snapshot);
           const warehouses = parseUnishipWarehouses(
             await this.client.getShipment(
               UNISHIP_ROUTES.WAREHOUSES,
               token,
-              signal,
+              cancellation,
+              new URLSearchParams(),
+              context,
             ),
             this.warn,
           );
@@ -91,8 +103,9 @@ export class UnishipShipmentProvider implements SyncProvider {
           const text = await this.client.getShipment(
             endpoint,
             token,
-            signal,
+            cancellation,
             query,
+            context,
           );
           signal.throwIfAborted();
           return parseUnishipPage(
@@ -103,6 +116,8 @@ export class UnishipShipmentProvider implements SyncProvider {
             this.warn,
           );
         },
+        undefined,
+        signal,
       );
     } catch (error) {
       if (signal.aborted) throw signal.reason;

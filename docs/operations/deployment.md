@@ -111,3 +111,23 @@ checkpoint no production data handler is available. Do not call flags an API gra
 Completion-based next run is interval after terminal completion; job duration,
 last successful completion and stale-data warnings determine observed freshness,
 not a guaranteed hourly SLA. No default production data-retention period is chosen.
+
+## Controlled Uniship deployment — NEXORA-058
+
+See [the staged runbook](../tasks/evidence/NEXORA-058/external-gates-and-runbook.md).
+Technical runtime readiness is distinct from owner live acceptance. Migrate forward,
+re-provision restricted roles, then deploy homogeneous API/Worker policy and Carrier
+keys after drain. Compose Worker receives Carrier settings and sync_credentials only;
+no Identity key, uploads/admin volume or API storage configuration is required.
+Default activation remains OFF and the immutable live contract gate remains false.
+
+### Credential capability cutover — NEXORA-058 v3
+
+Drain jobs and stop API/Worker/provisioning writers; preserve volumes, database
+credentials and key versions. Apply forward migration21, run explicit role
+provisioning, deploy matching API and Worker binaries/configuration, then restart
+and verify. Migration20 combined sync_carrier_load is removed: source02c2d05 and
+older callers are incompatible with21. Roll back only to matching compatible
+binaries/configuration; do not restore the broad loader or start an old binary
+against21. Restore approved backups to a separate validated target if needed;
+never reset user volumes. Release image tags remain unpublished templates.

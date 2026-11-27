@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { verifyUnishipComposeEnvironment } from "./uniship-compose-contract.mjs";
 import { dockerCommand } from "./docker-command.mjs";
 const development = process.argv.includes("--development");
 const compose = ["compose", "-f", "compose.yml"];
@@ -15,6 +16,10 @@ async function run(args) {
 }
 let step = "CONFIG_CUSTODY";
 try {
+  verifyUnishipComposeEnvironment();
+  console.log(
+    "Resolved Uniship Compose standard/dev/release/public contract PASS",
+  );
   const config = JSON.parse(
     await run([...compose, "--profile", "test", "config", "--format", "json"]),
   );
@@ -101,10 +106,30 @@ try {
   );
   assert.ok(
     !(workerState.Config.Env ?? []).some((v) =>
-      /^(IDENTITY_KEYRING_JSON|CARRIER_KEYRING_JSON)=/.test(v),
+      /^(IDENTITY_KEYRING_JSON|IDENTITY_ACTIVE_KEY_VERSION)=/.test(v),
     ),
-    "unexpected worker crypto custody",
+    "unexpected worker Identity custody",
   );
+  const workerEnv = new Map(
+    (workerState.Config.Env ?? []).map((value) => {
+      const separator = value.indexOf("=");
+      return [value.slice(0, separator), value.slice(separator + 1)];
+    }),
+  );
+  for (const key of [
+    "UNISHIP_API_URL",
+    "UNISHIP_LIVE_AUTHORIZED",
+    "CARRIER_KEYRING_JSON",
+    "CARRIER_ACTIVE_KEY_VERSION",
+    "UNISHIP_ACTIVATION_POLICY_JSON",
+    "UNISHIP_RECONCILIATION_POLICY_JSON",
+  ]) {
+    assert.ok(workerEnv.has(key), "missing Worker shared setting: " + key);
+    assert.ok(
+      workerEnv.get(key) === String(config.services.api.environment[key] ?? ""),
+      "Worker/API shared setting mismatch: " + key,
+    );
+  }
   const workerEntry = development
     ? "/workspace/scripts/sync-worker-entrypoint.sh"
     : "/scripts/sync-worker-entrypoint.sh";

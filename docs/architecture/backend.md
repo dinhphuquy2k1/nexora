@@ -263,6 +263,35 @@ registered pair resolution without a second ENV-derived enabled-type list. Stati
 production declarations and external HTTP hard gates remain closed. No application/
 domain Prisma dependency or Carrier/Sync circular import is introduced.
 
+## NEXORA-058 composition
+
+API and the separate Sync Worker instantiate UnishipSyncRuntime with their restricted
+role URLs. Carrier-owned createCarrierRuntime reuses lifecycle/vault/cipher/audit and
+transport with role-specific storage; Worker uses fixed execution-scoped SQL rather
+than the API adapter. The generic engine receives capabilities and an infrastructure
+eligibility interface, without Uniship account policy in its Domain registry.
+The default/external production capability stays closed; technical mock verification
+is not permission to activate live Uniship.
+
 ## Raw SQL Query Separation — NEXORA-063
 
 - **Query builders**: Long or reused `Prisma.Sql` builders are extracted into module-local `queries/*.queries.ts` files (`shipment/infrastructure/queries/`, `sync/infrastructure/queries/`) as pure functions accepting only the exact parameters bound in SQL. Transaction orchestration and persistence execution remain in the owning adapter or repository without introducing `GenericRepository`, `BaseRepository`, or a generic `UnitOfWork`.
+
+## Carrier purpose-specific access and pre-claim reconnect — NEXORA-058 v3
+
+AuthorizedCredentialReader separates authorizeRecovery (no secrets), loadToken
+(token only) and loadRecoveryPassword (password/login only). API metadata locks
+never hydrate secrets; read/claim query only token inside the same transaction,
+and complete reads no credential. Worker uses equivalent fixed scoped functions.
+Vault checks cancellation, authorizes, commits PASSWORD_DECRYPT independently,
+rechecks cancellation and current authorization while loading password, then
+decrypts/acquires. Audit failure yields AUDIT_UNAVAILABLE without password load.
+Normal token use never reads password or emits password-decrypt audit.
+
+Reconnect retains initial active-owner snapshot, admission, then calls a narrow
+credential application port delegating existing outbound authorization before
+claimReconnect. Manual claim checks initial generation and lifecycle version under
+existing locks, allowing ERROR/REAUTH_REQUIRED. Recovery claim retains its separate
+restrictions. No fresh-snapshot retry masks a changed/deleted/disabled connection.
+Existing outbound revalidation, identity check, atomic completion and failure audit
+remain. No HTTP/crypto/wait occurs under locks; application imports no infrastructure.

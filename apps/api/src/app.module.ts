@@ -5,10 +5,9 @@ import { ShipmentAdapter } from "./shipment/infrastructure/shipment.adapter";
 import { SyncService } from "./sync/application/sync-admission.service";
 import { SyncPort } from "./sync/application/sync.port";
 import { SyncRepository } from "./sync/infrastructure/sync-job.repository";
-import { createSyncRuntimeCapabilities } from "./sync/infrastructure/sync-runtime-capabilities";
+import { UnishipSyncRuntime } from "./sync/infrastructure/uniship-sync.runtime";
 import { loadSyncConfig } from "./sync/domain/sync-policy";
 import { SyncController } from "./sync/presentation/sync.controller";
-import { PostgresProviderBudget } from "./carrier/infrastructure/uniship/postgres-provider-budget";
 import { CustomerController } from "./customer/presentation/customer.controller";
 import { CustomerService } from "./customer/application/customer.service";
 import { CustomerPort } from "./customer/application/customer.port";
@@ -19,12 +18,6 @@ import { IdentityMfaAdapter } from "./identity/infrastructure/mfa.adapter";
 import { AdminBoundaryGuard } from "./identity/presentation/admin-boundary.guard";
 import { CarrierLifecycleController } from "./carrier/presentation/carrier-lifecycle.controller";
 import { CarrierConnectionLifecycleService } from "./carrier/application/carrier-connection-lifecycle.service";
-import { CarrierLifecycleAdapter } from "./carrier/infrastructure/carrier-lifecycle.adapter";
-import { PostgresSecurityAudit } from "./carrier/infrastructure/security-audit.adapter";
-import { CarrierCredentialVault } from "./carrier/infrastructure/carrier-credential-vault";
-import { UnishipHttpClient } from "./carrier/infrastructure/uniship/uniship-http.client";
-import { UnishipAdapter } from "./carrier/infrastructure/uniship/uniship-adapter";
-import { UserCarrierAdmission } from "./carrier/infrastructure/uniship/provider-budget";
 import { EnvironmentKeyring } from "./common/crypto/environment-keyring";
 import { SecretCipher } from "./common/crypto/secret-cipher";
 import { CarrierPort } from "./carrier/application/carrier.port";
@@ -78,12 +71,17 @@ export const CONFIG = "CONFIG";
     ShipmentService,
     {
       provide: SyncPort,
-      inject: [CONFIG],
-      useFactory: (c: ReturnType<typeof loadConfig>) =>
+      inject: [CONFIG, UnishipSyncRuntime],
+      useFactory: (
+        c: ReturnType<typeof loadConfig>,
+        runtime: UnishipSyncRuntime,
+      ) =>
         new SyncRepository(
           c.DATABASE_URL,
           loadSyncConfig(process.env),
-          createSyncRuntimeCapabilities(),
+          runtime.capabilities,
+          "exclusive",
+          runtime.eligibility,
         ),
     },
     {
@@ -103,57 +101,15 @@ export const CONFIG = "CONFIG";
       useFactory: (port: CustomerPort) => new CustomerService(port),
     },
     {
-      provide: CarrierLifecycleAdapter,
+      provide: UnishipSyncRuntime,
       inject: [CONFIG],
       useFactory: (c: ReturnType<typeof loadConfig>) =>
-        new CarrierLifecycleAdapter(c.DATABASE_URL),
-    },
-    {
-      provide: PostgresSecurityAudit,
-      inject: [CarrierLifecycleAdapter],
-      useFactory: (store: CarrierLifecycleAdapter) =>
-        new PostgresSecurityAudit(store.client),
+        new UnishipSyncRuntime(c.DATABASE_URL, process.env, "api"),
     },
     {
       provide: CarrierConnectionLifecycleService,
-      inject: [
-        CarrierLifecycleAdapter,
-        SecretCipher,
-        PostgresSecurityAudit,
-        PostgresProviderBudget,
-        CONFIG,
-      ],
-      useFactory: (
-        store: CarrierLifecycleAdapter,
-        cipher: SecretCipher,
-        audit: PostgresSecurityAudit,
-        budget: PostgresProviderBudget,
-        c: ReturnType<typeof loadConfig>,
-      ) =>
-        new CarrierConnectionLifecycleService(
-          store,
-          new CarrierCredentialVault(
-            store,
-            cipher,
-            new UnishipAdapter(
-              new UnishipHttpClient({
-                apiUrl: c.UNISHIP_API_URL,
-                liveAuthorized: c.UNISHIP_LIVE_AUTHORIZED === "true",
-                isProduction: c.NODE_ENV === "production",
-              }),
-              budget,
-            ),
-            audit,
-          ),
-          new UserCarrierAdmission(),
-          audit,
-        ),
-    },
-    {
-      provide: PostgresProviderBudget,
-      inject: [CONFIG],
-      useFactory: (c: ReturnType<typeof loadConfig>) =>
-        new PostgresProviderBudget(c.DATABASE_URL),
+      inject: [UnishipSyncRuntime],
+      useFactory: (runtime: UnishipSyncRuntime) => runtime.carrier.lifecycle,
     },
     {
       provide: SecretCipher,

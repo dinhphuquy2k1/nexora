@@ -2,8 +2,9 @@
 
 Phase A (NEXORA-042) extends the existing ADR-010 engine. It does not implement
 live Uniship fetching, Shipment persistence or Customer business matching. The
-production registry is intentionally empty; flags and API URLs cannot create a
-capability or authorize traffic. Existing Sync V1 scheduling, queue and worker
+production declaration is constructed by the shared NEXORA-058 runtime only when
+global enablement, exact activation scope, Carrier key readiness and transport gate
+are satisfied. Flags and API URLs alone cannot authorize traffic. Existing Sync V1 scheduling, queue and worker
 remain the execution path.
 
 ## Current extension boundary
@@ -18,8 +19,9 @@ Registration rejects provider names longer than `CARRIER_PROVIDER_MAX_LENGTH` (C
 
 API and worker both call `createSyncRuntimeCapabilities()` from the same
 `sync-runtime-capabilities.ts` declaration source. They have independent instances,
-not shared memory, credentials or clients. Repository availability also requires
-only the global SYNC_ENABLED switch in addition to the registry. Executor uses its queue's resolver and cannot
+not shared memory, credentials or clients. Repository availability also requires the global SYNC_ENABLED switch. The shared
+scoped runtime policy checks owner/account/login/optional connection at admission,
+schedule, candidate selection and execution fencing. Executor uses its queue's resolver and cannot
 receive an unrelated fetcher/processor pair; repository resolves the matching
 Domain binding again inside its fenced transaction.
 
@@ -168,7 +170,7 @@ complete empty clears; malformed/partial/ambiguous rejects the whole proposal.
 Mapping is injected/versioned; the generic processor has no Uniship dictionary.
 The NEXORA-057 fixture-backed composition is described below. Test-only
 registrations establish correctness, not real provider API access/completeness.
-Production capability declarations remain empty. Unknown source status yields a
+Production capability declarations remain closed by default; see the NEXORA-058 controlled runtime below. Unknown source status yields a
 fixed SHIPMENT_STATUS_UNMAPPED warning without payload/credentials and maps UNKNOWN,
 not automatic NEEDS_REVIEW. Worker grants are documented in database.md.
 
@@ -227,7 +229,7 @@ missing preserves, complete empty clears, explicit false is known rather than un
 No partial-service deletion, fee inference, unknown currency/timezone conversion,
 Customer matching or destination-schema addition. Production registrations remain
 empty and external HTTP hard-closed; SYNC_ENABLED alone cannot activate this code.
-Only tests compose a static capability. NEXORA-058 owns activation after external
+NEXORA-058 composes the capability conditionally through one API/Worker runtime; live activation still requires external
 contract/claim evidence and operational safeguards are satisfied.
 
 ## NEXORA-060 scoped Shipment enrichment
@@ -352,3 +354,48 @@ existing candidates fails ZERO_RESULT_ANOMALY, even bootstrap; truly empty accou
 may bootstrap. Every skip leaves visibility and baseline unchanged while normal
 successful ingestion may complete. VALIDATED is technical consistency, not eligibility
 or a provider snapshot/deletion guarantee. See Shipment Domain for lifecycle rules.
+
+## Controlled Uniship runtime — NEXORA-058 (2026-11-24)
+
+UnishipSyncRuntime constructs the same immutable declaration for API and Worker:
+Uniship/SHIPMENT, FULL100, uniship-parcel-v1, processor1, reconciliation1. It reuses
+Carrier lifecycle, vault, audit and cipher. Worker imports no API module/controllers,
+uses nexora_sync and fixed scoped credential functions; API retains nexora_app and
+its existing exclusive authorization locks. No pool is created per job.
+
+Runtime policy is absent-OFF. Exact owner/account/login and optional connection scope
+are required. MANUAL_ONLY filters existing AUTO candidates before queue limits and
+can release an owned blocked AUTO lane for manual admission without changing saved
+schedule intent. AUTOMATIC additionally requires persisted enabled/due admission and
+interval>=60. Existing15/30 values are preserved and blocked, never silently rewritten.
+Execution rechecks scope/mode/minimum, but does not reinterpret the original due fact;
+disabling a schedule alone does not promise immediate cancellation of an active job.
+
+Recovery never changes the job's immutable lifecycle version. A private per-connection
+proof allows only the owning live job/worker/lease/operation to finish its own claim;
+reconnect, epoch revocation, disable, delete or takeover invalidates it. Recovered
+credentials become usable by a new job. The old job is conditionally cancelled only
+while its current live lease and version invalidation remain provable; no successor
+can be cancelled. Scoped SQL uses short bounded transactions, never HTTP or crypto.
+
+Each outbound auth/verify/Shipment/warehouse request shares PostgreSQL admission
+across processes. Pending connects use stable owner buckets; persisted connections
+use connection buckets. A live permit is revalidated immediately before dispatch;
+completion sets next allowed time at least1s later. Existing two acquisition slots
+remain separate. Lease/cooldown updates require the same live permit token.429/5xx
+backoff is bounded; abort/deadline/DB failure closes dispatch. Waits and HTTP happen
+outside locks. Shutdown aborts/drains operations before closing clients; Worker drains
+its loop in beforeApplicationShutdown before runtime shutdown hooks close pools.
+
+Optional reconciliation JSON delegates the existing strict Shipment policy parser.
+Absent policy permits ingestion and records POLICY_NOT_CONFIGURED, without hide/
+restore. No production threshold/default is introduced. The hard-coded live contract
+gate remains false, so even configured production/live flags cannot make live traffic.
+
+NEXORA-058 v3 narrows existing Worker credential capabilities by purpose. Ordinary
+token usage never reads password. Recovery authorization/password loading require
+the existing exact job/lease/generation/lifecycle/operation proof and revalidate
+after durable audit. Immutable job provenance, stale cancellation, lease/pacing
+and recovery budgets are unchanged. API/Worker must share Carrier/Uniship and all
+Sync settings. Trusted Worker retains sync_jobs SELECT/INSERT/UPDATE; these scoped
+capabilities are not isolation from a fully compromised runtime/keyring/DB secret.

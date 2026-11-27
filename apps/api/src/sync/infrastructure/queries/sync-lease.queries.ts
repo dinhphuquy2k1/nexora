@@ -7,11 +7,13 @@ import { SyncJobStatus as J } from "../../domain/sync.constants";
  */
 export function buildClaimCandidateQuery(params: {
   eligible: string[];
+  scope?: Prisma.Sql;
 }): Prisma.Sql {
   return Prisma.sql`
     SELECT j.*
     FROM sync_jobs j
     WHERE (provider || ':' || sync_type) = ANY(${params.eligible}::text[])
+      AND (${params.scope ?? Prisma.sql`TRUE`})
       AND (
         (
           status = ANY(${[J.QUEUED, J.WAITING]}::text[])

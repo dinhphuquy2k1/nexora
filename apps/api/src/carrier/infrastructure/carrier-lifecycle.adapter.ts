@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import type { EncryptedSecret } from "../../common/crypto/secret-cipher";
+import { carrierTokenRevision } from "./carrier-token-revision";
 import {
   createDatabase,
   type Prisma,
@@ -80,24 +79,8 @@ export class CarrierLifecycleAdapter
     if (!rows.length) throw new LifecycleFailure(LifecycleCode.NOT_FOUND);
     return tx.carrierConnection.findUniqueOrThrow({
       where: { id },
-      select: { ...metadata, lifecycleVersion: true, secrets: true },
+      select: { ...metadata, lifecycleVersion: true },
     });
-  }
-  private tokenRevision(token?: EncryptedSecret): string | null {
-    // Unlike timestamps/row IDs, the sealed artifact identifies actual token writes.
-    // Do not decrypt, log, audit or expose this internal ciphertext digest.
-    return token
-      ? createHash("sha256")
-          .update(
-            JSON.stringify([
-              token.ciphertext,
-              token.nonce,
-              token.authTag,
-              token.keyVersion,
-            ]),
-          )
-          .digest("hex")
-      : null;
   }
   async authorizeNew(userId: string) {
     return this.client.$transaction((tx) => this.active(tx, userId));
@@ -107,10 +90,8 @@ export class CarrierLifecycleAdapter
       async (tx) => {
         const generation = await this.active(tx, userId),
           row = await this.locked(tx, userId, id);
-        const { lifecycleVersion, secrets, ...connection } = row;
-        const token = secrets.find(
-          (secret) => secret.secretType === SecretType.ACCESS_TOKEN,
-        );
+        const { lifecycleVersion, ...connection } = row;
+        const token = await this.secret(tx, id, SecretType.ACCESS_TOKEN);
         return {
           connection,
           generation,
@@ -122,12 +103,30 @@ export class CarrierLifecycleAdapter
       },
     );
     // Derive the internal revision after releasing database locks.
-    return { ...snapshot, tokenRevision: this.tokenRevision(token) };
+    return {
+      ...snapshot,
+      tokenRevision: carrierTokenRevision(token ?? undefined),
+    };
   }
   async claim(
     userId: string,
     id: string,
     expectedVersion?: number,
+  ): Promise<LifecycleSnapshot> {
+    return this.claimLocked(userId, id, expectedVersion);
+  }
+  async claimReconnect(
+    userId: string,
+    id: string,
+    expected: Pick<LifecycleSnapshot, "generation" | "version">,
+  ): Promise<LifecycleSnapshot> {
+    return this.claimLocked(userId, id, expected.version, expected.generation);
+  }
+  private async claimLocked(
+    userId: string,
+    id: string,
+    expectedVersion?: number,
+    expectedGeneration?: number,
   ): Promise<LifecycleSnapshot> {
     const { token, ...snapshot } = await this.client.$transaction(
       async (tx) => {
@@ -136,17 +135,18 @@ export class CarrierLifecycleAdapter
         if (
           expectedVersion !== undefined &&
           (row.lifecycleVersion !== expectedVersion ||
-            row.status === ConnectionStatus.REAUTH_REQUIRED)
+            (expectedGeneration === undefined &&
+              row.status === ConnectionStatus.REAUTH_REQUIRED) ||
+            (expectedGeneration !== undefined &&
+              generation !== expectedGeneration))
         )
           throw new LifecycleFailure(LifecycleCode.STALE);
-        const { lifecycleVersion, secrets, ...connection } = row;
+        const { lifecycleVersion, ...connection } = row;
         await tx.carrierConnection.update({
           where: { id },
           data: { lifecycleVersion: { increment: 1 } },
         });
-        const token = secrets.find(
-          (secret) => secret.secretType === SecretType.ACCESS_TOKEN,
-        );
+        const token = await this.secret(tx, id, SecretType.ACCESS_TOKEN);
         return {
           connection,
           generation,
@@ -158,7 +158,10 @@ export class CarrierLifecycleAdapter
       },
     );
     // Derive the internal revision after releasing database locks.
-    return { ...snapshot, tokenRevision: this.tokenRevision(token) };
+    return {
+      ...snapshot,
+      tokenRevision: carrierTokenRevision(token ?? undefined),
+    };
   }
   private async secrets(
     tx: Prisma.TransactionClient,
@@ -301,25 +304,62 @@ export class CarrierLifecycleAdapter
       throw error;
     }
   }
-  async load(userId: string, snapshot: LifecycleSnapshot) {
+  private secret(
+    tx: Prisma.TransactionClient,
+    connectionId: string,
+    secretType: SecretType,
+  ) {
+    return tx.carrierConnectionSecret.findUnique({
+      where: { connectionId_secretType: { connectionId, secretType } },
+      select: {
+        ciphertext: true,
+        nonce: true,
+        authTag: true,
+        keyVersion: true,
+        expiresAt: true,
+      },
+    });
+  }
+  private async authorized(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    snapshot: LifecycleSnapshot,
+  ) {
+    const generation = await this.active(tx, userId);
+    const row = await this.locked(tx, userId, snapshot.connection.id);
+    if (
+      generation !== snapshot.generation ||
+      row.lifecycleVersion !== snapshot.version
+    )
+      throw new LifecycleFailure(LifecycleCode.STALE);
+    if (row.status === ConnectionStatus.REAUTH_REQUIRED)
+      throw new LifecycleFailure(LifecycleCode.REAUTH_REQUIRED);
+    return row;
+  }
+  async authorizeRecovery(
+    userId: string,
+    snapshot: LifecycleSnapshot,
+  ): Promise<void> {
+    await this.client.$transaction(async (tx) => {
+      await this.authorized(tx, userId, snapshot);
+    });
+  }
+  async loadToken(userId: string, snapshot: LifecycleSnapshot) {
     return this.client.$transaction(async (tx) => {
-      const generation = await this.active(tx, userId),
-        row = await this.locked(tx, userId, snapshot.connection.id);
-      if (
-        generation !== snapshot.generation ||
-        row.lifecycleVersion !== snapshot.version
-      )
-        throw new LifecycleFailure(LifecycleCode.STALE);
-      if (row.status === ConnectionStatus.REAUTH_REQUIRED)
-        throw new LifecycleFailure(LifecycleCode.REAUTH_REQUIRED);
+      const row = await this.authorized(tx, userId, snapshot);
+      return {
+        token:
+          (await this.secret(tx, row.id, SecretType.ACCESS_TOKEN)) ?? undefined,
+      };
+    });
+  }
+  async loadRecoveryPassword(userId: string, snapshot: LifecycleSnapshot) {
+    return this.client.$transaction(async (tx) => {
+      const row = await this.authorized(tx, userId, snapshot);
       return {
         loginIdentifier: row.loginIdentifier,
-        password: row.secrets.find(
-          (secret) => secret.secretType === SecretType.PASSWORD,
-        ),
-        token: row.secrets.find(
-          (secret) => secret.secretType === SecretType.ACCESS_TOKEN,
-        ),
+        password:
+          (await this.secret(tx, row.id, SecretType.PASSWORD)) ?? undefined,
       };
     });
   }
