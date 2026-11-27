@@ -42,6 +42,12 @@ test("resolved strict Turbo dev grants runtime ENV only to API and watch ENV to 
   assert.equal(result.status, 0, "Turbo dry run must succeed");
   const resolved = JSON.parse(result.stdout);
   assert.equal(resolved.envMode, "strict");
+  assert.deepEqual(resolved.tasks.map((task) => task.taskId).sort(), [
+    "@nexora/api#dev",
+    "@nexora/database#dev",
+    "@nexora/shared#dev",
+  ]);
+
   for (const task of resolved.tasks) {
     const expected =
       task.taskId === "@nexora/api#dev"
