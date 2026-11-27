@@ -15,8 +15,8 @@ Future task named by the owner in NEXORA-056. Retains external prerequisites fro
 Technical readiness for one scoped Uniship SHIPMENT FULL production composition,
 existing Carrier recovery with restricted Worker custody, cross-process per-request
 pacing, cancellation/lifecycle fencing, manual/AUTO gating, strict optional existing
-reconciliation policy and operational runbook/evidence. Latest owner implementation
-prompt2026-11-24 supersedes the earlier planning-only stub. External live gate stays
+reconciliation policy and operational runbook/evidence. Owner implementation
+prompt2026-11-24 and hardening revision2026-11-27 supersede the earlier planning-only stub. External live gate stays
 closed; no live request, activation, thresholds or merge authorized.
 
 ## Design Review & Reuse Decision
@@ -248,9 +248,12 @@ migration21, concurrency/custody constraints and causal A/B strategy. v1/v2 and
 historical decisions/evidence remain unchanged. No source or test modified before
 this design record. Source02c2d05 green CI is baseline evidence only.
 
-Execution pending: causal RED, candidate implementation, signed PostgreSQL and
-configuration/process proofs, quality/Docker gates, independent review and new-HEAD
-CI. Live/production acceptance remains outside this PR; status stays VERIFICATION
+Causal RED and candidate implementation are recorded in
+[hardening v3 verification](../evidence/NEXORA-058/hardening-v3-verification.md).
+Purpose separation/proof, reconnect no-mutation/CAS, strict ENV/Compose and actual
+host process A/B passed; quality and migration/repeat/drift passed. Independent
+read-only review through e1d66a4 found no concrete P1/P2/P3. Final signed wrapper and
+new-HEAD hosted CI receipts are recorded in the linked evidence as they complete. Live/production acceptance remains outside this PR; status stays VERIFICATION
 PENDING. Local Docker prerequisite limitation: only PostgreSQL image present and
 approximately1.3GiB free, so application/tooling smoke availability must be assessed
 without building unpublished release images.
@@ -265,3 +268,21 @@ not PASS/FAIL claims. Their blocker/provenance remains unchanged.
 | Production activation/AUTO/thresholds | Hard-close false; no production policy values/activation performed                                  | 2026-11-24 | NOT RUN |
 | Local Docker runtime                  | Insufficient disk for missing API/Web/tooling images; genuine host tests do not substitute          | 2026-11-24 | NOT RUN |
 ```
+
+### Hardening v3 verification claims
+
+| Claim                                   | Evidence                                                                                                                                                                                                              | Date       | Result |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Causal baseline defects                 | Same-harness baseline02c2d05 RED for combined credentials, missing recovery proof, denied reconnect mutation, strict Turbo ENV and Compose parity; [v3 evidence](../evidence/NEXORA-058/hardening-v3-verification.md) | 2026-11-27 | FAIL   |
+| Candidate local quality                 | pnpm quality exit0,928 tests; test:lint, test:docs10/10, test:preflight24/24; migration19→20→21 preservation/repeat/drift; [v3 evidence](../evidence/NEXORA-058/hardening-v3-verification.md)                         | 2026-11-27 | PASS   |
+| Credential/reconnect and runtime config | Targeted54/54, native64/64, real restricted role/projection/CAS/audit, host actual-process A/B and resolved Compose/Turbo; final strengthened signed receipt separately linked                                        | 2026-11-27 | PASS   |
+| Independent read-only review            | Reviewer inspected e1d66a4 against02c2d05/v3; no concrete P1/P2/P3, pending runtime/hosted gates explicitly retained                                                                                                  | 2026-11-27 | PASS   |
+
+Canonical local Docker gates remain NOT RUN for missing images/insufficient disk;
+no local host/process/config check substitutes for their hosted execution. External
+production acceptance remains open and task stays VERIFICATION PENDING.
+
+| Claim                                | Evidence                                                                                                            | Date       | Result |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Full native integration              | pnpm test:integration291/291,0skip; [hardening receipt](../evidence/NEXORA-058/hardening-v3-verification.md)        | 2026-11-27 | PASS   |
+| Original and separate signed entries | Shipment23/23, Observation47/47, strengthened Uniship runtime64/64,0skip; unchanged discovery/budget, sourcee1d66a4 | 2026-11-27 | PASS   |
