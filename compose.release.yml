@@ -123,6 +123,7 @@ services:
   web:
     image: ghcr.io/dinhphuquy2k1/nexora-web:0.1.0
     environment:
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-}"
       API_INTERNAL_URL: http://api:4000
       NEXT_TELEMETRY_DISABLED: "1"
     ports: ["${WEB_PORT:-127.0.0.1:3001}:3000"]
