@@ -214,8 +214,11 @@ export async function verifyCarrierBrowser({
         "ZIP Sync header height",
       );
     if (expected) {
+      const controlDelta = geometry.controlSizeDefault - 32;
+      const expectedDeckHeight =
+        expected.deck.height + (expected.deck.controlRows ?? 0) * controlDelta;
       assert.ok(
-        Math.abs(geometry.deck.height - expected.deck.height) <= 2,
+        Math.abs(geometry.deck.height - expectedDeckHeight) <= 2,
         "ZIP command deck geometry",
       );
       for (let i = 0; i < 7; i++)
@@ -1007,8 +1010,9 @@ export async function verifyCarrierBrowser({
             "source Sync header inventory required",
           );
         const sourceIndex = contract.sizes.indexOf(size);
+        const deckControlRows = width >= 1280 ? 2 : width >= 768 ? 3 : 4;
         const expected = {
-          deck: { height: size.deckHeight },
+          deck: { height: size.deckHeight, controlRows: deckControlRows },
           columns: size.columnWidths.map((width) => ({ width })),
           rows: size.rowHeights.map((height) => ({ height })),
           frameHeaderHeight: referenceSurface.frameHeaderHeights?.[sourceIndex],
