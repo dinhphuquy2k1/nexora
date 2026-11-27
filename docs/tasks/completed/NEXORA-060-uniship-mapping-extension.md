@@ -283,7 +283,7 @@ Sync44991036183 and Foundation44991036204/job137111922905 attempt1 PASS;
 actual merge checkout ea1bcd478793fd04e7e8dec3726890612002de6a, steps4–10 PASS.
 Historical evidence/snapshots remain immutable. Live/external authorization/custody
 and required three-parcel time comparison remain NOT RUN in the named
-[NEXORA-058 follow-up](../active/NEXORA-058-uniship-controlled-activation.md),
+[NEXORA-058 follow-up](NEXORA-058-uniship-controlled-activation.md),
 Status PLANNED. No live/production/automatic schedule gate is promoted to PASS.
 
 | Claim                     | Evidence                                                                                                                                                                   | Date       | Result |
