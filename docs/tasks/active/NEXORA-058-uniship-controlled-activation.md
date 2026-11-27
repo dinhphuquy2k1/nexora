@@ -23,11 +23,11 @@ closed; no live request, activation, thresholds or merge authorized.
 
 Task ID: NEXORA-058
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-24-controlled-activation-v1
-Reviewed baseline: 5edbcfe1609562f9eb5b6c156cf5cec68b5b71fa
+Plan revision: rev-2026-11-27-controlled-activation-v2
+Reviewed baseline: 2b31e7e
 Branch: feature/uniship-controlled-activation
-Design Snapshot: docs/tasks/design-reviews/NEXORA-058-rev-2026-11-24-controlled-activation-v1.md
-Design SHA-256: 185ac494aab2afc766d19b26bfa33913388db64869f86408a00256882a8652af
+Design Snapshot: docs/tasks/design-reviews/NEXORA-058-rev-2026-11-27-controlled-activation-v2.md
+Design SHA-256: 376b96033b44a4cbe59ab0f723620f755afd828564045c2e5959ede5918d09a9
 
 Snapshot records12-section ownership/security/interfaces/migration/verification plan
 and eight-field reuse audit before source/tests. Reuse existing Carrier lifecycle/
@@ -203,3 +203,10 @@ Full signed local PostgreSQL integration result reviewed2026-11-27:263/263 PASS,
 0skip,391792.266706ms. The previous provider-inventory fixture failure is retained in
 implementation evidence; exact inventory and varchar32 assertions remain enforced.
 Hosted exact-HEAD verification remains pending.
+
+## Plan v2 integration delta — 2026-11-27
+
+PR64 source0eb9292 is conflicted with main2b31e7e after063 SQL readability and PR63 UI.
+Frozen v2 records mechanical merge/query-builder and lint compatibility before source
+changes. Preserve all previous local PASS/fail evidence; none proves merged source.
+External live/production/AUTO gates remain closed and unchanged.
