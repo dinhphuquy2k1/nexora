@@ -191,7 +191,7 @@ export async function verifyRetailBrowser({
         "document.fonts.ready.then(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r(true)))))",
       );
       const geometry = await evaluate(
-        `(()=>{const list=document.querySelector('#retail-packages-list-page'),tabs=document.querySelector('[role=tablist]'),table=document.querySelector('table'),dialog=document.querySelector('dialog[open]');return{noOverflow:document.documentElement.scrollWidth<=innerWidth,tabs:tabs.querySelectorAll('[role=tab]').length,cols:table.querySelectorAll('colgroup col').length,availability:list.dataset.availability,dialog:!!dialog,dialogFits:!dialog||dialog.getBoundingClientRect().width<=innerWidth,panelsFit:Array.from(document.querySelectorAll('[role=dialog]')).filter(e=>e.getClientRects().length).every(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth}),controls:Array.from(document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')).filter(e=>e.getClientRects().length&&!e.closest('[inert]')).map(e=>e.getBoundingClientRect().height)};})()`,
+        `(()=>{const list=document.querySelector('#retail-packages-list-page'),tabs=document.querySelector('[role=tablist]'),table=document.querySelector('table'),dialog=document.querySelector('dialog[open]');return{controlSizeDefault:parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--control-size-default')),noOverflow:document.documentElement.scrollWidth<=innerWidth,tabs:tabs.querySelectorAll('[role=tab]').length,cols:table.querySelectorAll('colgroup col').length,availability:list.dataset.availability,dialog:!!dialog,dialogFits:!dialog||dialog.getBoundingClientRect().width<=innerWidth,panelsFit:Array.from(document.querySelectorAll('[role=dialog]')).filter(e=>e.getClientRects().length).every(e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth}),controls:Array.from(document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')).filter(e=>e.getClientRects().length&&!e.closest('[inert]')).map(e=>e.getBoundingClientRect().height)};})()`,
       );
       geometry.columnPicker = await inspectRetailColumnPicker(evaluate);
       assert.equal(geometry.noOverflow, true);
@@ -200,8 +200,10 @@ export async function verifyRetailBrowser({
       assert.equal(geometry.panelsFit, true, "popover remains within viewport");
       assert.ok(geometry.controls.length > 0);
       assert.ok(
-        geometry.controls.every((h) => Math.abs(h - 32) < 1),
-        "shared controls default32",
+        geometry.controls.every(
+          (h) => Math.abs(h - geometry.controlSizeDefault) < 1,
+        ),
+        "shared controls match --control-size-default",
       );
       const shot = await send("Page.captureScreenshot", {
         format: "png",
@@ -698,21 +700,23 @@ export async function verifyRetailBrowser({
       const btn = document.querySelector('[role=dialog] button[aria-label="Xóa tìm kiếm"]');
       if (!btn) return null;
       const rect = btn.getBoundingClientRect();
+      const expected = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--control-size-default'));
       return {
         height: Math.round(rect.height),
         width: Math.round(rect.width),
+        expected,
       };
     })()`);
     assert.ok(clearBtnInfo, "clear button visible after typing search query");
     assert.equal(
       clearBtnInfo.height,
-      32,
-      "clear button height must be 32px (shared Button standard)",
+      clearBtnInfo.expected,
+      "clear button height must match resolved --control-size-default",
     );
     assert.equal(
       clearBtnInfo.width,
-      32,
-      "clear button width must be 32px (shared Button icon standard)",
+      clearBtnInfo.expected,
+      "clear button width must match resolved --control-size-default",
     );
 
     // Click clear button: input clears, focus returns, dialog stays open, 20 options restored

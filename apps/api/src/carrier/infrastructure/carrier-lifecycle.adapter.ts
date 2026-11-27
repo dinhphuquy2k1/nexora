@@ -46,9 +46,13 @@ export class CarrierLifecycleAdapter
     return (this.instance ??= createDatabase(this.url));
   }
   private async active(tx: Prisma.TransactionClient, userId: string) {
-    const rows = await tx.$queryRaw<
-      Array<{ status: string }>
-    >`SELECT status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+    // Lock user row first to maintain user -> connection lock ordering against disablement.
+    const rows = await tx.$queryRaw<Array<{ status: string }>>`
+      SELECT status
+      FROM users
+      WHERE id = ${userId}::uuid
+      FOR UPDATE
+    `;
     if (rows[0]?.status !== UserStatus.ACTIVE)
       throw new LifecycleFailure(LifecycleCode.UNAUTHORIZED);
     return (
@@ -64,9 +68,14 @@ export class CarrierLifecycleAdapter
     userId: string,
     id: string,
   ) {
-    const rows = await tx.$queryRaw<
-      Array<{ id: string }>
-    >`SELECT id FROM carrier_connections WHERE id=${id}::uuid AND user_id=${userId}::uuid FOR UPDATE`;
+    // Lock target connection row after user lock to serialize lifecycle transitions.
+    const rows = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT id
+      FROM carrier_connections
+      WHERE id = ${id}::uuid
+        AND user_id = ${userId}::uuid
+      FOR UPDATE
+    `;
     if (!rows.length) throw new LifecycleFailure(LifecycleCode.NOT_FOUND);
     return tx.carrierConnection.findUniqueOrThrow({
       where: { id },

@@ -1,3 +1,4 @@
+import { buildCompleteWorkerRecoveryQuery } from "./queries/worker-carrier.queries";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import {
@@ -78,8 +79,8 @@ export class WorkerCarrierStore
     try {
       const rows = await this.client.$transaction(
         async (tx) => {
-          await tx.$executeRawUnsafe("SET LOCAL lock_timeout='250ms'");
-          await tx.$executeRawUnsafe("SET LOCAL statement_timeout='1000ms'");
+          await tx.$executeRaw`SET LOCAL lock_timeout='250ms'`;
+          await tx.$executeRaw`SET LOCAL statement_timeout='1000ms'`;
           return operation(tx);
         },
         { timeout: 2000 },
@@ -137,7 +138,13 @@ export class WorkerCarrierStore
     return this.snapshot(
       await this.result<StoredSnapshot>(
         (tx) =>
-          tx.$queryRaw`SELECT public.sync_carrier_snapshot(${job.id}::uuid,${job.worker_id}::uuid,${job.lease_version},${operationToken}::uuid) AS result`,
+          tx.$queryRaw`
+          SELECT
+            public.sync_carrier_snapshot(${job.id}::uuid,
+              ${job.worker_id}::uuid,
+              ${job.lease_version},
+              ${operationToken}::uuid) AS result
+          `,
       ),
     );
   }
@@ -152,7 +159,14 @@ export class WorkerCarrierStore
     return this.snapshot(
       await this.result<StoredSnapshot>(
         (tx) =>
-          tx.$queryRaw`SELECT public.sync_carrier_claim(${job.id}::uuid,${job.worker_id}::uuid,${job.lease_version},${operationToken}::uuid,${expectedVersion}) AS result`,
+          tx.$queryRaw`
+          SELECT
+            public.sync_carrier_claim(${job.id}::uuid,
+              ${job.worker_id}::uuid,
+              ${job.lease_version},
+              ${operationToken}::uuid,
+              ${expectedVersion}) AS result
+          `,
       ),
     );
   }
@@ -163,7 +177,14 @@ export class WorkerCarrierStore
     const { job, operationToken } = this.scope(userId, snapshot.connection.id);
     const value = await this.result<AuthorizedCredentials>(
       (tx) =>
-        tx.$queryRaw`SELECT public.sync_carrier_load(${job.id}::uuid,${job.worker_id}::uuid,${job.lease_version},${operationToken}::uuid,${snapshot.version}) AS result`,
+        tx.$queryRaw`
+          SELECT
+            public.sync_carrier_load(${job.id}::uuid,
+              ${job.worker_id}::uuid,
+              ${job.lease_version},
+              ${operationToken}::uuid,
+              ${snapshot.version}) AS result
+          `,
     );
     return {
       loginIdentifier: value.loginIdentifier,
@@ -183,9 +204,27 @@ export class WorkerCarrierStore
     const { job, operationToken } = this.scope(userId, snapshot.connection.id),
       p = candidate.password,
       t = candidate.token;
-    const value = await this.result<StoredSnapshot["connection"]>(
-      (tx) =>
-        tx.$queryRaw`SELECT public.sync_carrier_complete(${job.id}::uuid,${job.worker_id}::uuid,${job.lease_version},${operationToken}::uuid,${snapshot.version},${candidate.externalAccountId}::varchar,${p.ciphertext},${p.nonce}::varchar,${p.authTag}::varchar,${p.keyVersion},${t.ciphertext},${t.nonce}::varchar,${t.authTag}::varchar,${t.keyVersion},${candidate.expiresAt}::timestamptz,${correlationId}::uuid) AS result`,
+    const value = await this.result<StoredSnapshot["connection"]>((tx) =>
+      tx.$queryRaw(
+        buildCompleteWorkerRecoveryQuery({
+          jobId: job.id,
+          workerId: job.worker_id,
+          leaseVersion: job.lease_version,
+          operationToken: operationToken,
+          version: snapshot.version,
+          externalAccountId: candidate.externalAccountId,
+          passwordCiphertext: p.ciphertext,
+          passwordNonce: p.nonce,
+          passwordAuthTag: p.authTag,
+          passwordKeyVersion: p.keyVersion,
+          tokenCiphertext: t.ciphertext,
+          tokenNonce: t.nonce,
+          tokenAuthTag: t.authTag,
+          tokenKeyVersion: t.keyVersion,
+          expiresAt: candidate.expiresAt,
+          correlationId: correlationId,
+        }),
+      ),
     );
     return {
       ...value,
@@ -204,7 +243,15 @@ export class WorkerCarrierStore
     try {
       await this.result(
         (tx) =>
-          tx.$queryRaw`SELECT public.sync_carrier_fail(${job.id}::uuid,${job.worker_id}::uuid,${job.lease_version},${operationToken}::uuid,${snapshot.version},${status}::varchar)::text AS result`,
+          tx.$queryRaw`
+          SELECT
+            public.sync_carrier_fail(${job.id}::uuid,
+              ${job.worker_id}::uuid,
+              ${job.lease_version},
+              ${operationToken}::uuid,
+              ${snapshot.version},
+              ${status}::varchar)::text AS result
+          `,
       );
     } catch (error) {
       if (

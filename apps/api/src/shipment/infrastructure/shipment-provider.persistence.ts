@@ -63,14 +63,50 @@ export async function persistShipmentProvider(
   let rows: { id: string; providerStatus: string | null }[];
   if (existingId) {
     const assignments = entries.map(
-      ([key], i) => Prisma.sql`${Prisma.raw(columns[key])}=${values[i]}`,
+      ([key], i) => Prisma.sql`${Prisma.raw(columns[key])} = ${values[i]}`,
     );
+    // clock_timestamp() records exact commit-time sync/update timestamps.
     rows = await tx.$queryRaw(
-      Prisma.sql`UPDATE shipments SET ${Prisma.join(assignments)},last_synced_at=clock_timestamp(),updated_at=clock_timestamp() WHERE id=${existingId}::uuid AND owner_user_id=${job.owner_user_id}::uuid AND source_identity_id=${sourceId}::uuid RETURNING id,provider_status AS "providerStatus"`,
+      Prisma.sql`
+        UPDATE shipments
+        SET
+          ${Prisma.join(assignments)},
+          last_synced_at = clock_timestamp(),
+          updated_at = clock_timestamp()
+        WHERE id = ${existingId}::uuid
+          AND owner_user_id = ${job.owner_user_id}::uuid
+          AND source_identity_id = ${sourceId}::uuid
+        RETURNING
+          id,
+          provider_status AS "providerStatus"
+      `,
     );
   } else {
+    // clock_timestamp() records exact commit-time sync/update timestamps.
     rows = await tx.$queryRaw(
-      Prisma.sql`INSERT INTO shipments(owner_user_id,source_identity_id,carrier_connection_id,provider,${Prisma.join(entries.map(([key]) => Prisma.raw(columns[key])))},last_synced_at,updated_at) VALUES(${job.owner_user_id}::uuid,${sourceId}::uuid,${job.carrier_connection_id}::uuid,${job.provider},${Prisma.join(values)},clock_timestamp(),clock_timestamp()) RETURNING id,provider_status AS "providerStatus"`,
+      Prisma.sql`
+        INSERT INTO shipments (
+          owner_user_id,
+          source_identity_id,
+          carrier_connection_id,
+          provider,
+          ${Prisma.join(entries.map(([key]) => Prisma.raw(columns[key])))},
+          last_synced_at,
+          updated_at
+        )
+        VALUES (
+          ${job.owner_user_id}::uuid,
+          ${sourceId}::uuid,
+          ${job.carrier_connection_id}::uuid,
+          ${job.provider},
+          ${Prisma.join(values)},
+          clock_timestamp(),
+          clock_timestamp()
+        )
+        RETURNING
+          id,
+          provider_status AS "providerStatus"
+      `,
     );
   }
   if (rows.length !== 1) throw new SyncError(E.SOURCE_CONFLICT);

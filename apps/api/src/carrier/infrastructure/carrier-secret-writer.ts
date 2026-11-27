@@ -33,14 +33,28 @@ export class CarrierSecretWriter {
     // All crypto finishes before transaction/row locks. A late result must recheck owner.
     const encrypted = this.cipher.encrypt(purpose, aad, plaintext);
     await this.db.$transaction(async (tx) => {
-      const users = await tx.$queryRaw<
-        Array<{ status: string }>
-      >`SELECT status FROM users WHERE id=${userId}::uuid FOR UPDATE`;
+      // Lock user row before connection row to prevent deadlocks with user disablement.
+      const users = await tx.$queryRaw<Array<{ status: string }>>`
+        SELECT status
+        FROM users
+        WHERE id = ${userId}::uuid
+        FOR UPDATE
+      `;
       if (users[0]?.status !== UserStatus.ACTIVE)
         throw new CarrierError("UNAUTHORIZED");
+      // Lock connection row to fence secret writes against concurrent lifecycle_version changes.
       const rows = await tx.$queryRaw<
         Array<{ provider: string; lifecycle_version: number; status: string }>
-      >`SELECT provider,lifecycle_version,status FROM carrier_connections WHERE id=${connectionId}::uuid AND user_id=${userId}::uuid FOR UPDATE`;
+      >`
+        SELECT
+          provider,
+          lifecycle_version,
+          status
+        FROM carrier_connections
+        WHERE id = ${connectionId}::uuid
+          AND user_id = ${userId}::uuid
+        FOR UPDATE
+      `;
       if (
         rows[0]?.provider !== connection.provider ||
         rows[0].lifecycle_version !== connection.lifecycleVersion ||

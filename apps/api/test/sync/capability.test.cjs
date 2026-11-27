@@ -461,7 +461,10 @@ test("Customer binding commits mapping only; Sync owns applied job provenance", 
     assert.equal(writes.length, 0, "decision must only stage a proposal");
     await invocation.commit();
     assert.equal(writes.length, 1);
-    const set = writes[0].sql.split(" SET ")[1].split(" WHERE ")[0];
+    const set = writes[0].sql
+      .replace(/\s+/g, " ")
+      .split(" SET ")[1]
+      .split(" WHERE ")[0];
     assert.deepEqual(
       set.split(",").map((assignment) => assignment.split("=")[0].trim()),
       ["customer_id", "link_origin"],
@@ -516,9 +519,11 @@ test("admit resolves once and persists the strategy captured by that resolution"
         $transaction: async (run) =>
           run({
             $queryRaw: async (parts, ...values) => {
-              assert.match(parts.join("?"), /INSERT INTO sync_jobs/);
+              const sql = Array.isArray(parts) ? parts.join("?") : parts.sql;
+              const bound = Array.isArray(parts) ? values : parts.values;
+              assert.match(sql, /INSERT INTO sync_jobs/);
               inserts++;
-              assert.equal(values[8], "FULL");
+              assert.equal(bound[8], "FULL");
               return [{ id: "admitted" }];
             },
           }),

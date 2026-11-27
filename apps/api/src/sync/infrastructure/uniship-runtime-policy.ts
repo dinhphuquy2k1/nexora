@@ -1,9 +1,6 @@
+import { buildUnishipJobCandidatesQuery } from "./queries/uniship-runtime.queries";
 import { Prisma } from "@nexora/database";
-import {
-  CarrierProvider,
-  ConnectionStatus,
-} from "../../carrier/domain/carrier";
-import { UserStatus } from "../../identity/domain/user-policy";
+import { CarrierProvider } from "../../carrier/domain/carrier";
 import { SyncType, SyncTrigger } from "../domain/sync.constants";
 import {
   allowsUnishipActivation,
@@ -26,12 +23,7 @@ export function createUnishipRuntimePolicy(
   AND (${policy.connectionId ?? null}::uuid IS NULL OR c.id=${policy.connectionId ?? null}::uuid)`
     : Prisma.sql`FALSE`;
   const scheduleCandidates = Prisma.sql`(${automatic} AND ${scope} AND s.sync_type=${SyncType.SHIPMENT} AND s.interval_minutes>=60)`;
-  const jobCandidates = Prisma.sql`EXISTS(SELECT 1 FROM carrier_connections c JOIN users u ON u.id=c.user_id
-  LEFT JOIN sync_configs s ON s.carrier_connection_id=c.id AND s.sync_type=j.sync_type
-  WHERE c.id=j.carrier_connection_id AND c.user_id=j.owner_user_id AND ${scope}
-   AND j.provider=c.provider AND j.external_account_id=c.external_account_id AND j.sync_type=${SyncType.SHIPMENT}
-   AND u.status=${UserStatus.ACTIVE} AND c.status=${ConnectionStatus.CONNECTED}
-   AND (j.trigger_source=${SyncTrigger.MANUAL} OR (${automatic} AND j.trigger_source=${SyncTrigger.AUTO} AND s.interval_minutes>=60)))`;
+  const jobCandidates = buildUnishipJobCandidatesQuery(scope, automatic);
   return Object.freeze({
     jobCandidates,
     scheduleCandidates,
@@ -43,6 +35,7 @@ export function createUnishipRuntimePolicy(
       phase: "admit" | "execute",
     ) {
       if (!active || type !== SyncType.SHIPMENT) return false;
+      // DB clock checks admission due-ness while existing connection locks preserve scope.
       const [row] = await tx.$queryRaw<
         {
           login_identifier: string | null;
@@ -51,9 +44,18 @@ export function createUnishipRuntimePolicy(
           due: boolean | null;
         }[]
       >`
-   SELECT c.login_identifier,s.interval_minutes,s.enabled,(s.next_run_at<=clock_timestamp()) AS due
-   FROM carrier_connections c LEFT JOIN sync_configs s ON s.carrier_connection_id=c.id AND s.sync_type=${type}
-   WHERE c.id=${c.id}::uuid AND c.user_id=${c.user_id}::uuid`;
+        SELECT
+          c.login_identifier,
+          s.interval_minutes,
+          s.enabled,
+          (s.next_run_at<=clock_timestamp()) AS due
+        FROM carrier_connections c
+        LEFT JOIN sync_configs s
+          ON s.carrier_connection_id=c.id
+          AND s.sync_type=${type}
+        WHERE c.id=${c.id}::uuid
+          AND c.user_id=${c.user_id}::uuid
+      `;
       if (
         !row ||
         !allowsUnishipActivation(

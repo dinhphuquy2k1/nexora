@@ -152,7 +152,7 @@ export async function verifyCarrierBrowser({
   async function capture(phase, width, height, expected) {
     await settleLayout();
     const geometry = await evaluate(
-      `(()=>{const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height,bottom:r.bottom,right:r.right}};const root=document.querySelector('[data-carrier-connections]'),container=document.querySelector('[data-carrier-table-container]'),d=[...document.querySelectorAll('dialog[open]')];return {connectionBadges:[...document.querySelectorAll('span[data-tone=good],span[data-tone=bad]')].map(e=>{const s=getComputedStyle(e);return {label:e.textContent.trim(),color:s.color,background:s.backgroundColor,border:s.borderColor,dot:e.firstElementChild?getComputedStyle(e.firstElementChild).backgroundColor:null}}),page:rect(root),deck:rect(document.querySelector('[data-carrier-command-deck]')),container:rect(container),footer:rect(document.querySelector('[data-carrier-pagination]')),columns:[...document.querySelectorAll('table th')].map(rect),rows:[...document.querySelectorAll('tbody tr')].map(rect),frame:rect(d.at(-1)),frameHeader:rect(d.at(-1)?.querySelector(':scope>header')),noOverflow:document.documentElement.scrollWidth<=innerWidth,noVerticalBorders:[...document.querySelectorAll('table th:not(:last-child),table td:not(:last-child)')].every(e=>getComputedStyle(e).borderRightWidth==='0px'||getComputedStyle(e).borderRightStyle==='none'),controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(rect),syncBodyFits:[...document.querySelectorAll('dialog[open] [role=tabpanel]')].every(e=>e.scrollWidth<=e.clientWidth+1)}})()`,
+      `(()=>{const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,top:r.top,width:r.width,height:r.height,bottom:r.bottom,right:r.right}};const root=document.querySelector('[data-carrier-connections]'),container=document.querySelector('[data-carrier-table-container]'),d=[...document.querySelectorAll('dialog[open]')];return {controlSizeDefault:parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--control-size-default')),connectionBadges:[...document.querySelectorAll('span[data-tone=good],span[data-tone=bad]')].map(e=>{const s=getComputedStyle(e);return {label:e.textContent.trim(),color:s.color,background:s.backgroundColor,border:s.borderColor,dot:e.firstElementChild?getComputedStyle(e.firstElementChild).backgroundColor:null}}),page:rect(root),deck:rect(document.querySelector('[data-carrier-command-deck]')),container:rect(container),footer:rect(document.querySelector('[data-carrier-pagination]')),columns:[...document.querySelectorAll('table th')].map(rect),rows:[...document.querySelectorAll('tbody tr')].map(rect),frame:rect(d.at(-1)),frameHeader:rect(d.at(-1)?.querySelector(':scope>header')),noOverflow:document.documentElement.scrollWidth<=innerWidth,noVerticalBorders:[...document.querySelectorAll('table th:not(:last-child),table td:not(:last-child)')].every(e=>getComputedStyle(e).borderRightWidth==='0px'||getComputedStyle(e).borderRightStyle==='none'),controls:[...document.querySelectorAll('button[data-size=default],input[data-size=default],select[data-size=default]')].filter(e=>e.getClientRects().length).map(e=>e.getBoundingClientRect().height),passwordBlank:[...document.querySelectorAll('input[type=password]')].every(e=>!e.value),dialogs:d.map(rect),syncBodyFits:[...document.querySelectorAll('dialog[open] [role=tabpanel]')].every(e=>e.scrollWidth<=e.clientWidth+1)}})()`,
     );
     assert.equal(geometry.noOverflow, true, phase + " document overflow");
     assert.equal(geometry.columns.length, 7);
@@ -163,8 +163,10 @@ export async function verifyCarrierBrowser({
     );
     assert.ok(
       geometry.controls.length > 0 &&
-        geometry.controls.every((h) => Math.abs(h - 32) < 1),
-      "default32 hit targets",
+        geometry.controls.every(
+          (h) => Math.abs(h - geometry.controlSizeDefault) < 1,
+        ),
+      "default control hit targets match --control-size-default",
     );
     assert.equal(
       geometry.passwordBlank,
@@ -212,8 +214,11 @@ export async function verifyCarrierBrowser({
         "ZIP Sync header height",
       );
     if (expected) {
+      const controlDelta = geometry.controlSizeDefault - 32;
+      const expectedDeckHeight =
+        expected.deck.height + (expected.deck.controlRows ?? 0) * controlDelta;
       assert.ok(
-        Math.abs(geometry.deck.height - expected.deck.height) <= 2,
+        Math.abs(geometry.deck.height - expectedDeckHeight) <= 2,
         "ZIP command deck geometry",
       );
       for (let i = 0; i < 7; i++)
@@ -834,8 +839,8 @@ export async function verifyCarrierBrowser({
     );
     assert.equal(
       visualStyles.headingFontWeight,
-      "700",
-      "heading font weight must be 700 (var(--font-weight-bold))",
+      "600",
+      "heading font weight must be 600 (var(--font-weight-semibold))",
     );
     assert.equal(
       visualStyles.headingTextTransform,
@@ -1005,8 +1010,9 @@ export async function verifyCarrierBrowser({
             "source Sync header inventory required",
           );
         const sourceIndex = contract.sizes.indexOf(size);
+        const deckControlRows = width >= 1280 ? 2 : width >= 768 ? 3 : 4;
         const expected = {
-          deck: { height: size.deckHeight },
+          deck: { height: size.deckHeight, controlRows: deckControlRows },
           columns: size.columnWidths.map((width) => ({ width })),
           rows: size.rowHeights.map((height) => ({ height })),
           frameHeaderHeight: referenceSurface.frameHeaderHeights?.[sourceIndex],

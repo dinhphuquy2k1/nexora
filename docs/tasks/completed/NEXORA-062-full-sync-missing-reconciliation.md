@@ -287,3 +287,9 @@ NOT RUN under active058, not silently closed by technical fixture verification.
 | Claim              | Evidence                                                                                                                                                                  | Date       | Result |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Post-merge closure | PR61 merged5edbcfe at2026-11-24T09:48:23Z; exact source/merge/run/job/attempt above and PR61 Final green HEAD verified by gh API; remaining external gates retained in058 | 2026-11-24 | PASS   |
+
+### Closure checkpoint — 2026-11-26 (§1.7)
+
+| Claim                              | Evidence                                                                                                                                                                                                                                                                                          | Date       | Result |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged PR #61 & main CI validation | PR #61 merged to `main` at `5edbcfe1609562f9eb5b6c156cf5cec68b5b71fa` (2026-11-24); `main` hosted CI: `Nexora foundation` run `45368679063` (job `138356958804`) PASS, `Preflight Policy & Design Governance` run `45368679144` PASS. Production live activation remains tracked in `NEXORA-058`. | 2026-11-24 | PASS   |

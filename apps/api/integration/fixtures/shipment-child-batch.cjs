@@ -72,8 +72,15 @@ async function verifyChildContext({ t, db, url, timing }) {
         get(target, key) {
           if (key === "$executeRaw")
             return async (sql, ...values) => {
-              const table = tables.find((name) =>
-                sql.join("?").startsWith("INSERT INTO " + name + "("),
+              const text = (
+                Array.isArray(sql) ? sql.join("?") : (sql?.sql ?? "")
+              )
+                .replace(/\s+/g, " ")
+                .trim();
+              const table = tables.find(
+                (name) =>
+                  text.startsWith("INSERT INTO " + name + "(") ||
+                  text.startsWith("INSERT INTO " + name + " ("),
               );
               if (table) writes.push({ table, kind: "upsert" });
               return target.$executeRaw(sql, ...values);

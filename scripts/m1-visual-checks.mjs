@@ -112,7 +112,7 @@ export async function verifyM1Visuals({
             label.setAttribute('data-size',size);
             const measure=()=>({target:label.getBoundingClientRect().height,indicator:input.getBoundingClientRect().height});
             const baseline=measure();
-            root.style.setProperty(tokens[i],String([36,44,52][i])+'px','important');
+            root.style.setProperty(tokens[i],String([40,44,52][i])+'px','important');
             const override=measure();
             if(saved[i][0])root.style.setProperty(tokens[i],...saved[i]);else root.style.removeProperty(tokens[i]);
             rows.push({baseline,override});
@@ -126,15 +126,84 @@ export async function verifyM1Visuals({
       })()`);
       assert.ok(checkboxSizes, "actual Login Checkbox and label required");
       for (const [i, row] of checkboxSizes.entries()) {
-        assert.equal(row.baseline.target, [32, 40, 48][i]);
+        assert.equal(row.baseline.target, [36, 40, 48][i]);
         assert.equal(row.baseline.indicator, [16, 18, 20][i]);
-        assert.equal(row.override.target, [36, 44, 52][i]);
+        assert.equal(row.override.target, [40, 44, 52][i]);
         assert.equal(
           row.override.indicator,
           row.baseline.indicator,
           "height override keeps indicator independent",
         );
       }
+      const loginMetrics = await evaluate(`(()=>{
+        const root=document.documentElement;
+        const h1=document.querySelector('h1');
+        const label=document.querySelector('label[for]');
+        const input=document.querySelector('input[name="username"]');
+        const submit=document.querySelector('button[type="submit"]');
+        const icon=document.querySelector('form svg');
+        if(!h1||!label||!input||!submit||!icon)return null;
+        const tokens=['--control-font-size-large','--control-line-height-large','--icon-control-large'];
+        const saved=tokens.map(t=>[root.style.getPropertyValue(t),root.style.getPropertyPriority(t)]);
+        const snap=()=>{
+          const hs=getComputedStyle(h1),ls=getComputedStyle(label),is=getComputedStyle(input),bs=getComputedStyle(submit),ir=icon.getBoundingClientRect();
+          return {
+            h1:{fs:hs.fontSize,fw:hs.fontWeight,lh:hs.lineHeight},
+            label:{fs:ls.fontSize,fw:ls.fontWeight,lh:ls.lineHeight},
+            input:{h:Math.round(input.getBoundingClientRect().height),fs:is.fontSize,fw:is.fontWeight,lh:is.lineHeight,pl:parseFloat(is.paddingLeft),iconLeft:ir.left-input.getBoundingClientRect().left,iconW:Math.round(ir.width)},
+            button:{h:Math.round(submit.getBoundingClientRect().height),fs:bs.fontSize,fw:bs.fontWeight,lh:bs.lineHeight},
+          };
+        };
+        try{
+          const baseline=snap();
+          root.style.setProperty('--control-font-size-large','18px','important');
+          root.style.setProperty('--control-line-height-large','26px','important');
+          root.style.setProperty('--icon-control-large','24px','important');
+          const override=snap();
+          return {baseline,override};
+        }finally{
+          tokens.forEach((t,i)=>saved[i][0]?root.style.setProperty(t,...saved[i]):root.style.removeProperty(t));
+          if(!tokens.every((t,i)=>root.style.getPropertyValue(t)===saved[i][0]&&root.style.getPropertyPriority(t)===saved[i][1]))throw Error('LOGIN_TOKEN_RESTORATION');
+        }
+      })()`);
+      assert.ok(
+        loginMetrics,
+        "actual Login typography and large controls required",
+      );
+      assert.deepEqual(loginMetrics.baseline.h1, {
+        fs: "20px",
+        fw: "600",
+        lh: "28px",
+      });
+      assert.deepEqual(loginMetrics.baseline.label, {
+        fs: "14px",
+        fw: "500",
+        lh: "20px",
+      });
+      assert.equal(loginMetrics.baseline.input.h, 48);
+      assert.equal(loginMetrics.baseline.input.fs, "16px");
+      assert.equal(loginMetrics.baseline.input.fw, "400");
+      assert.equal(loginMetrics.baseline.input.lh, "24px");
+      assert.equal(loginMetrics.baseline.input.iconW, 20);
+      assert.ok(
+        loginMetrics.baseline.input.pl >=
+          loginMetrics.baseline.input.iconLeft +
+            loginMetrics.baseline.input.iconW,
+      );
+      assert.equal(loginMetrics.baseline.button.h, 48);
+      assert.equal(loginMetrics.baseline.button.fs, "16px");
+      assert.equal(loginMetrics.baseline.button.fw, "500");
+      assert.equal(loginMetrics.baseline.button.lh, "24px");
+      assert.equal(loginMetrics.override.input.fs, "18px");
+      assert.equal(loginMetrics.override.button.fs, "18px");
+      assert.equal(loginMetrics.override.button.lh, "26px");
+      assert.equal(loginMetrics.override.input.iconW, 24);
+      assert.ok(
+        loginMetrics.override.input.pl >=
+          loginMetrics.override.input.iconLeft +
+            loginMetrics.override.input.iconW,
+        "large icon override keeps text clear of icon",
+      );
     }
     for (const viewport of M1_VIEWPORTS) {
       console.log(

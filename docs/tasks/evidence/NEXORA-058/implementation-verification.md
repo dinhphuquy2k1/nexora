@@ -133,3 +133,33 @@ related exact provider-table fixture update. No unrelated failure was suppressed
 This supersedes the pending execution status above, without replacing its historical
 failure. Quality remains PASS903/903. Hosted checks and canonical Docker acceptance
 remain pending until published source CI completes; no live acceptance is claimed.
+
+## Main integration checkpoint — 2026-11-27
+
+PR64 source0eb92927710cf9b4e931c2611ccec43fcaa560db initially had no Actions runs:
+GitHub mergeStateStatus DIRTY after main advanced to
+2b31e7e6ba5891fb148e54b9cec5c1d0ae54c4be (NEXORA-063 and PR63). Main's own
+Foundation45928559468 and Preflight45928559470 PASS are baseline evidence only.
+Frozen v2 plan committed7baeec6 before source merge; v1 remains unchanged.
+
+Resolved four conflicts retaining both062 closure records, both canonical-doc
+amendments, main pure query builders and058 scope/fencing. New fixed Unsafe calls
+became parameterized tagged SET LOCAL; new long/reused builders accept only exact
+scalar/Prisma.Sql parameters. Merged build and current raw SQL lint PASS. Independent
+read-only review found no P1/P2; confirmed filters before LIMIT1/100 and original16
+complete-recovery parameters. Reviewer ran no tests or CI.
+
+Fresh verified task-owned PostgreSQL replaces only its previous exited container;
+no user volumes/images touched. Merged scoped runtime36/36 PASS,0skip,
+40052.406333ms. Migration19→20 preservation/repeat/drift PASS. Merged pnpm quality
+PASS919/919 (root196,shared2,ui37,database6,API290,Web388), including format/lint/
+preflight/docs/typecheck/contracts/build. Full merged integration is pending until
+its separate result is recorded. Previous903/263 metrics describe the old baseline.
+
+Merged full signed integration PASS263/263,0fail,0skip,374063.186516ms on2026-11-27.
+Merged quality919/919, scoped runtime36/36 and migration repeat/drift all PASS. No
+Web/SDK delta versus current main, historical migration edit or foreign frozen-plan
+edit. Final hosted source/merge/run/job/attempt/step evidence will be recorded in
+[PR64 description](https://github.com/dinhphuquy2k1/nexora/pull/64) after checks complete;
+this committed local checkpoint intentionally predates hosted results and never
+claims pending CI as PASS. Local canonical Docker remains NOT RUN for disk/images.

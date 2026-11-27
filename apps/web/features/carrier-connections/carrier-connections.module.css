@@ -44,9 +44,9 @@
   flex-wrap: wrap;
 }
 .heading h1 {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-snug);
+  font-size: var(--type-page-title-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-page-title-line-height);
   text-transform: uppercase;
   margin: 0;
   color: var(--color-primary);
@@ -124,13 +124,17 @@
 .search > svg {
   position: absolute;
   left: var(--space-3);
+  width: var(--icon-control-default);
+  height: var(--icon-control-default);
   color: var(--color-search-icon);
   pointer-events: none;
 }
 .search input {
   width: 100%;
-  padding-left: 32px;
-  padding-right: 32px;
+  padding-left: calc(
+    var(--space-3) + var(--icon-control-default) + var(--space-2)
+  );
+  padding-right: var(--control-size-default);
 }
 .search > button {
   position: absolute;
@@ -254,7 +258,7 @@
   width: 100%;
   table-layout: auto;
   border-collapse: collapse;
-  font-size: var(--font-size-sm);
+  font-size: var(--type-table-cell-size);
   white-space: nowrap;
   line-height: var(--line-height-snug);
   flex-shrink: 0;
@@ -682,9 +686,9 @@ dialog.modal {
 .drawerHeader h2 {
   color: var(--color-text-on-dark);
   margin: 0;
-  font-size: var(--font-size-xl);
-  font-weight: 700;
-  line-height: 1.35;
+  font-size: var(--type-section-heading-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
   letter-spacing: -0.025em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -991,8 +995,9 @@ dialog.confirmModal {
 }
 .syncPanel h3,
 .historyHeading h3 {
-  font-size: var(--font-size-md);
-  font-weight: 700;
+  font-size: var(--type-card-heading-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-card-heading-line-height);
   color: var(--color-carrier-text-strong);
   margin: 0;
 }
@@ -1276,7 +1281,7 @@ button.switchTarget {
   width: 100%;
 }
 .readonlyField {
-  height: 32px;
+  min-height: var(--control-size-default);
   display: flex;
   align-items: center;
   padding-inline: 10px;

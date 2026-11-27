@@ -58,9 +58,13 @@ export class CustomerAdapter implements CustomerPort {
   ): Promise<T> {
     try {
       return await this.client.$transaction(async (tx) => {
-        const rows = await tx.$queryRaw<
-          Array<{ status: string }>
-        >`SELECT status FROM users WHERE id=${owner}::uuid FOR UPDATE`;
+        // Lock user row first to maintain user -> customer lock ordering against disablement.
+        const rows = await tx.$queryRaw<Array<{ status: string }>>`
+          SELECT status
+          FROM users
+          WHERE id = ${owner}::uuid
+          FOR UPDATE
+        `;
         if (rows[0]?.status !== UserStatus.ACTIVE)
           throw new CustomerError("UNAUTHORIZED");
         return fn(tx);
@@ -78,9 +82,14 @@ export class CustomerAdapter implements CustomerPort {
     owner: string,
     id: string,
   ) {
-    const rows = await tx.$queryRaw<
-      Array<{ id: string }>
-    >`SELECT id FROM customers WHERE id=${id}::uuid AND owner_user_id=${owner}::uuid FOR UPDATE`;
+    // Lock customer row to serialize profile/address mutations after user lock.
+    const rows = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT id
+      FROM customers
+      WHERE id = ${id}::uuid
+        AND owner_user_id = ${owner}::uuid
+      FOR UPDATE
+    `;
     if (!rows.length) throw new CustomerError("NOT_FOUND");
   }
   private async detail(

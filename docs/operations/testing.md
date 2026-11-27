@@ -274,7 +274,7 @@ Testing avoids rigid implementation syntax locking (such as asserting exact impl
    - Verifies state parity: `TextInput` and `Textarea` share identical border, focus, disabled, readonly, and invalid (`aria-invalid="true"`) semantics.
    - Enforces CSS specificity rules: hover states must not override active focus states (`:not(:focus)`).
    - Verifies zero `!important` overrides in form controls and ensures `@nexora/ui` primitives are reused across `LoginForm` and `SetupForm`.
-   - Runtime Adaptability: Overriding a selected public size token or control radius updates actual consumers; probes compare the override and restore its exact value/priority. Base32/40/48 acceptance is an explicit approved contract, so an unapproved base-size change must fail rather than silently update expectations.
+   - Runtime Adaptability: Overriding a selected public size token, font token, line-height token, icon token, or control radius updates actual consumers; probes compare the override and restore its exact value/priority. Base 36/40/48 acceptance is an explicit approved contract (updated from 32/40/48 in `NEXORA-064`), so an unapproved base-size change must fail rather than silently update expectations.
 
 3. **Canonical Palette and Token Fidelity Testing**:
    - Evaluates rendered colors dynamically using real rendered computed styles from `getComputedStyle()` (foreground `color` and composited `background-color`) in both default and real `:hover` states.
@@ -316,7 +316,7 @@ Post-mutation UI verification adheres to a strict settled contract: backend conf
 
 ### v3 shared control size contract migration
 
-Public --control-size-default/medium/large replace --control-height; verify exact approved32/40/48 and omission, plus dynamic variant-isolated overrides and restoration. Existing m1-p2-regression and customer browser probes target the new authoritative default token, retaining detached-consumer/contrast/security assertions. control-sizes.test.mjs executes real compiled React controls through SSR and checks native attrs/rows plus in-memory TypeScript ref/size compatibility; it is not browser geometry evidence. The existing declaration parser now checks component-owned private mappings and rejects future feature shadows/retired height aliases, with negative cases. Native Login/MFA/shell action migrations require genuine final-head CDP, not only unit PASS.
+Public --control-size-default/medium/large replace --control-height; verify exact approved 36/40/48 and omission, plus dynamic variant-isolated overrides and restoration. Existing m1-p2-regression and customer browser probes target the new authoritative default token, retaining detached-consumer/contrast/security assertions. control-sizes.test.mjs executes real compiled React controls through SSR and checks native attrs/rows plus in-memory TypeScript ref/size compatibility; it is not browser geometry evidence. The existing declaration parser now checks component-owned private mappings and rejects future feature shadows/retired height aliases, with negative cases. Native Login/MFA/shell action migrations require genuine final-head CDP, not only unit PASS.
 
 ### v3 read/Toast/Power regression contracts
 
@@ -329,10 +329,9 @@ The existing CDP session now covers ten widths:1920,1440,1280,1100,1024,901,900,
 Header height, standard max-width/wide fill and body overflow; Customer captures
 also assert nine colgroup/header/body boundaries. Negative Node tests reject wrong
 edges/gutters/max-width/overflow. Captures store these measurements with hashes.
-Actual modal Input/Button/Select exercise32/40/48 and isolated public overrides,
-restoring exact attributes/token values/priorities in finally; Textarea remains
-multiline and native Checkbox labels are preserved. These scripts require genuine
-browser execution; static syntax PASS does not certify their assertions.
+The NEXORA-064 v3 checks additionally require rendered standard segmented buttons, all three compact presets, column picker input typography/accessory isolation, Textarea rows 1/2/3/6 across variants and line-height overrides, independent heading typography, and Customer loading/data row parity at the same desktop viewport.
+
+Actual modal Input/Button/Select exercise 36/40/48 and isolated public size/font overrides, restoring exact attributes/token values/priorities in finally; Textarea remains multiline (`>= 78px` 3-line minimum at default size) and native Checkbox labels are preserved. These scripts require genuine browser execution; static syntax PASS does not certify their assertions.
 
 Exact-phone URL filtering (/customers?phone=...) renders an accessible filter badge
 with inline clear action and truthful counts. Missing pagination shows unavailable markers rather
@@ -390,8 +389,8 @@ state; failure JSON/screenshots are captured only for the isolated fixture,
 separately from acceptance captures and without extending the condition deadline.
 
 Foundation uploads manifests/screens under `M3_EVIDENCE_DIR=artifacts/m3`.
-Viewports1440×900/1280×800/1024×768/768×1024/390×844/375×812 retain overflow,
-32px controls, seven tabs and dialog-fit checks. The six-record reference path
+Viewports 1440×900/1280×800/1024×768/768×1024/390×844/375×812 retain overflow,
+36px controls (updated from 32px in NEXORA-064), seven tabs and dialog-fit checks. The six-record reference path
 checks corresponding cell values; missing carrier-account data is never fabricated.
 Local fixture-only browser execution verifies actual components, not authenticated
 full-stack behavior or direct ZIP pixel parity. Canonical hosted evidence is separate.
@@ -578,8 +577,8 @@ normalized workspace bounds and14 principal surfaces from the verified ZIP
 6912f4917756a1c3393e48b34f63f350464cb068351a377c2efb9d5cde6d5a52. It records
 reference deck/columns/rows/overlay widths, not a candidate-generated baseline.
 CI must assert expected surface membership and geometry; candidate screenshots
-alone do not establish parity. Native32px targets account for the documented4px
-action-width/footer delta from ZIP28/30px targets. Missing capture/state or failed
+alone do not establish parity. Native 36px targets (updated from 32px in NEXORA-064) account for the documented
+action-width/footer delta from ZIP 28/30px targets. Missing capture/state or failed
 assertion is a failure, never a skipped green. Keep actual default/hover/focus/
 selected/disabled inspection distinct from source read-only initial-state capture.
 
@@ -1523,3 +1522,8 @@ Targeted discovery include the new suite; native migration verification covers19
 repeat/drift and existing data. Readiness checks include task-owned STORAGE_ROOT,
 origins, keyring, generated/build artifacts, signed database and fixed closed live gate.
 Keep command failures and historical evidence distinct from final current-HEAD CI.
+
+## Raw SQL Lint & Parity Verification — NEXORA-063
+
+- **ESLint Raw SQL guards**: `pnpm test:lint` (and `pnpm test`) executes `scripts/eslint-rules/no-unsafe-raw-sql.test.mjs` and `scripts/eslint-rules/readable-raw-sql.test.mjs` alongside `no-domain-vocabulary-literals.test.mjs` and `no-nested-ternary.test.mjs`, verifying both RuleTester cases and real ESLint config scoping on `apps/*/src` and `packages/*/src`.
+- **SQL parity evidence**: Formatting and query-builder extraction must preserve the exact normalized SQL sent to PostgreSQL (clauses, identifiers, casts, parameter order, locks, and `clock_timestamp()`); parity comparisons are recorded under `docs/tasks/evidence/NEXORA-063/`.

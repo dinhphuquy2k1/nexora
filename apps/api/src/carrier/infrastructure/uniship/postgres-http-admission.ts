@@ -63,20 +63,46 @@ export class PostgresHttpAdmission implements UnishipHttpAdmission {
       return await this.db.$transaction(
         async (tx) => {
           // Bound even a database-lock wait; cancellation is rechecked after this short call.
-          await tx.$executeRawUnsafe("SET LOCAL lock_timeout='250ms'");
-          await tx.$executeRawUnsafe("SET LOCAL statement_timeout='1000ms'");
+          await tx.$executeRaw`SET LOCAL lock_timeout='250ms'`;
+          await tx.$executeRaw`SET LOCAL statement_timeout='1000ms'`;
           let rows: { result: T }[];
           if (this.authority === "worker") {
             const { job, operationToken } = context.execution!;
             rows =
               backoff === undefined
-                ? await tx.$queryRaw`SELECT public.sync_carrier_http_reserve(${job.id}::uuid,${job.worker_id}::uuid,${job.lease_version},${operationToken}::uuid,${token}::uuid) AS result`
-                : await tx.$queryRaw`SELECT public.sync_carrier_http_finish(${job.id}::uuid,${job.worker_id}::uuid,${job.lease_version},${operationToken}::uuid,${token}::uuid,${backoff}) AS result`;
+                ? await tx.$queryRaw`
+          SELECT
+            public.sync_carrier_http_reserve(${job.id}::uuid,
+              ${job.worker_id}::uuid,
+              ${job.lease_version},
+              ${operationToken}::uuid,
+              ${token}::uuid) AS result
+          `
+                : await tx.$queryRaw`
+          SELECT
+            public.sync_carrier_http_finish(${job.id}::uuid,
+              ${job.worker_id}::uuid,
+              ${job.lease_version},
+              ${operationToken}::uuid,
+              ${token}::uuid,
+              ${backoff}) AS result
+          `;
           } else {
             rows =
               backoff === undefined
-                ? await tx.$queryRaw`SELECT public.carrier_http_reserve(${context.ownerUserId}::uuid,${context.connectionId}::uuid,${token}::uuid) AS result`
-                : await tx.$queryRaw`SELECT public.carrier_http_finish(${context.ownerUserId}::uuid,${context.connectionId}::uuid,${token}::uuid,${backoff}) AS result`;
+                ? await tx.$queryRaw`
+          SELECT
+            public.carrier_http_reserve(${context.ownerUserId}::uuid,
+              ${context.connectionId}::uuid,
+              ${token}::uuid) AS result
+          `
+                : await tx.$queryRaw`
+          SELECT
+            public.carrier_http_finish(${context.ownerUserId}::uuid,
+              ${context.connectionId}::uuid,
+              ${token}::uuid,
+              ${backoff}) AS result
+          `;
           }
           if (rows.length !== 1)
             throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);

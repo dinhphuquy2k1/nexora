@@ -33,7 +33,6 @@
   border-color: transparent;
   background-color: transparent;
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
   transition:
     background-color 0.15s ease,
     color 0.15s ease,
@@ -72,6 +71,7 @@
   gap: 4px;
 }
 
+/* Compact text-actions exception for dense 336px popovers (e.g. column picker presets). */
 .segmented.textActions .segmentedItem {
   border: none;
   background-color: transparent;

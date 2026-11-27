@@ -210,3 +210,13 @@ PR64 source0eb9292 is conflicted with main2b31e7e after063 SQL readability and P
 Frozen v2 records mechanical merge/query-builder and lint compatibility before source
 changes. Preserve all previous local PASS/fail evidence; none proves merged source.
 External live/production/AUTO gates remain closed and unchanged.
+
+Snapshot v2 historical-context clarification: its copied §1 paragraph about PR61's
+"exact main revision" refers to the original v1 baseline5edbcfe, not to current
+integration baseline2b31e7e. §13 governs the new main integration. Both frozen snapshots
+remain unchanged; this explicit erratum avoids rewriting historical plan bytes.
+
+Main-integration v2 validation2026-11-27: quality919/919, signed integration263/263
+(374063.186516ms,0skip), scoped runtime36/36 and migration repeat/drift PASS.
+Independent read-only integration review: no P1/P2. Snapshot SHA and historical plans
+remain unchanged; current hosted verification receipt belongs in PR64 description.

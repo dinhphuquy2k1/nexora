@@ -17,8 +17,8 @@ export class PostgresSecurityAudit extends SecurityAuditPort {
     }
     await this.db.$transaction(
       async (tx) => {
-        await tx.$executeRawUnsafe("SET LOCAL lock_timeout='250ms'");
-        await tx.$executeRawUnsafe("SET LOCAL statement_timeout='1000ms'");
+        await tx.$executeRaw`SET LOCAL lock_timeout='250ms'`;
+        await tx.$executeRaw`SET LOCAL statement_timeout='1000ms'`;
         await PostgresSecurityAudit.insert(tx, event);
       },
       { timeout: 2000 },

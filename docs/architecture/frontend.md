@@ -49,7 +49,7 @@ The frontend enforces a strict Design Token and CSS Modules architecture. `apps/
 
 ### Shared visual contract owner
 
-[Design System](design-system.md) now owns the foundation→semantic→component token architecture, size/state/typography/spacing/radius/icon/color/density/layout contracts, the canonical [Visual Fidelity Contract](design-system.md#visual-fidelity-contract-reference-migration) for reference migrations, and migration guidance. The root theme remains apps/web/styles/tokens.css; neutral UI maps sizes at actual consumers. Public default/medium/large sizes are32/40/48px, including Login/MFA/Setup; --control-height and Customer-scoped28/32px overrides are retired. Input/Select numeric native size conflicts are resolved by the shared typed size API. Textarea remains multiline and Checkbox retains a separate indicator/target.
+[Design System](design-system.md) now owns the foundation→semantic→component token architecture, size/state/typography/spacing/radius/icon/color/density/layout contracts, the canonical [Visual Fidelity Contract](design-system.md#visual-fidelity-contract-reference-migration) for reference migrations, and migration guidance. The root theme remains apps/web/styles/tokens.css; neutral UI maps sizes at actual consumers. Public default/medium/large sizes are 36/40/48px (icons 16/18/20px, fonts 14/14/16px), with Login/MFA/Setup primary controls using `large` (`48px`); --control-height and Customer-scoped 28/32px overrides are retired. Input/Select numeric native size conflicts are resolved by the shared typed size API. Textarea remains multiline and Checkbox retains a separate indicator/target.
 
 Use shared components and explicit size/variant APIs. Native refs/attrs remain; input icon positions and genuine feature widths are layout exceptions, not authority to override control min-height or interaction states. Root public size/font/radius overrides must affect actual shared consumers and restore cleanly. Button default colors preserve Login/MFA; emphasis is the approved accessible Customer color option. Shared typography aliases reuse existing scales.
 
@@ -323,7 +323,7 @@ state and permits retry. No Identity/MFA/Origin/cookie/backend contract changes.
 Visual geometry and permitted Account-only appearance are owned by design-system;
 ZIP reference mock name/code/VIP/wallet and4 demo entries are intentionally excluded.
 Real user data replaces mock identity, the unavailable Profile route is disabled, and
-existing canonical medium40/default32 controls replace arbitrary ZIP sizing.
+canonical `medium` (40px) trigger / `default` (36px) menu-row controls replace arbitrary ZIP sizing.
 
 ## Carrier Connections presentation — NEXORA-033
 

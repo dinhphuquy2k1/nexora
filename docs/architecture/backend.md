@@ -272,3 +272,7 @@ than the API adapter. The generic engine receives capabilities and an infrastruc
 eligibility interface, without Uniship account policy in its Domain registry.
 The default/external production capability stays closed; technical mock verification
 is not permission to activate live Uniship.
+
+## Raw SQL Query Separation — NEXORA-063
+
+- **Query builders**: Long or reused `Prisma.Sql` builders are extracted into module-local `queries/*.queries.ts` files (`shipment/infrastructure/queries/`, `sync/infrastructure/queries/`) as pure functions accepting only the exact parameters bound in SQL. Transaction orchestration and persistence execution remain in the owning adapter or repository without introducing `GenericRepository`, `BaseRepository`, or a generic `UnitOfWork`.
