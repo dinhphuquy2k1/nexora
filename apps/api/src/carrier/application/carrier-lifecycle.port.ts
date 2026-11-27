@@ -47,21 +47,28 @@ export abstract class CarrierLifecyclePort {
     status: ConnectionStatus,
   ): Promise<void>;
 }
+export interface CarrierCredentialExecution {
+  readonly signal?: AbortSignal;
+  readonly snapshot?: LifecycleSnapshot;
+}
 export abstract class CarrierCredentialPort {
   abstract acquireNew(
     userId: string,
     id: string,
     loginIdentifier: string,
     password: string,
+    execution?: CarrierCredentialExecution,
   ): Promise<SealedCandidate>;
   abstract acquireStored(
     userId: string,
     snapshot: LifecycleSnapshot,
     correlationId: string,
+    execution?: CarrierCredentialExecution,
   ): Promise<SealedCandidate>;
   abstract useToken<T>(
     userId: string,
     snapshot: LifecycleSnapshot,
-    operation: (token: string) => Promise<T>,
+    operation: (token: string, signal?: AbortSignal) => Promise<T>,
+    signal?: AbortSignal,
   ): Promise<T>;
 }

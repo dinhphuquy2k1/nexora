@@ -1,3 +1,7 @@
+import type {
+  UnishipHttpAdmission,
+  UnishipHttpContext,
+} from "./postgres-http-admission";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { LifecycleCode, LifecycleFailure } from "../../domain/lifecycle";
@@ -31,6 +35,7 @@ export interface UnishipHttpClientOptions {
   liveAuthorized?: boolean;
   isProduction?: boolean;
   timeoutMs?: number;
+  admission?: UnishipHttpAdmission;
 }
 
 function unsafeToken(value: string): boolean {
@@ -147,8 +152,10 @@ export class UnishipHttpClient {
   private readonly liveAuthorized: boolean;
   private readonly isProduction: boolean;
   private readonly timeoutMs: number;
+  private readonly admission?: UnishipHttpAdmission;
 
   constructor(options: UnishipHttpClientOptions = {}) {
+    this.admission = options.admission;
     this.apiUrl = options.apiUrl;
     this.liveAuthorized = options.liveAuthorized ?? false;
     this.isProduction = options.isProduction ?? false;
@@ -161,6 +168,7 @@ export class UnishipHttpClient {
       password: string;
     },
     signal?: AbortSignal,
+    context?: UnishipHttpContext,
   ): Promise<UnishipLoginResult> {
     return this.post(
       UNISHIP_ROUTES.AUTH,
@@ -171,12 +179,14 @@ export class UnishipHttpClient {
       },
       undefined,
       signal,
+      context,
     );
   }
 
   async verify(
     candidateToken: string,
     signal?: AbortSignal,
+    context?: UnishipHttpContext,
   ): Promise<UnishipLoginResult> {
     if (unsafeToken(candidateToken)) {
       throw this.unavailable();
@@ -186,6 +196,7 @@ export class UnishipHttpClient {
       { token: candidateToken, FirebaseToken: null },
       candidateToken,
       signal,
+      context,
     );
     // Hashes have fixed length, so comparison does not expose token prefixes/lengths.
     const digest = (value: string) =>
@@ -251,7 +262,56 @@ export class UnishipHttpClient {
   }
 
   /** Narrow data read; the same hard-close and token lifecycle still own access. */
+  /** Shared production composition probes the same target gate without network IO. */
+  operationallyAvailable(): boolean {
+    try {
+      const target = this.target(UNISHIP_ROUTES.SHIPMENTS);
+      return !this.isLoopback(target) || !this.isProduction;
+    } catch {
+      return false;
+    }
+  }
+  private isLoopback(target: URL): boolean {
+    return ["127.0.0.1", "localhost", "[::1]"].includes(target.hostname);
+  }
+  private admitted<T>(
+    target: URL,
+    context: UnishipHttpContext | undefined,
+    cancellation: AbortSignal | undefined,
+    operation: (signal: AbortSignal) => Promise<T>,
+  ): Promise<T> {
+    cancellation?.throwIfAborted();
+    if (this.admission) {
+      if (!context)
+        throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+      return this.admission.run(context, cancellation, operation);
+    }
+    // Legacy standalone fixtures are loopback-only. Production never has a no-op limiter.
+    if (this.isProduction || !this.isLoopback(target))
+      throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+    return operation(cancellation ?? new AbortController().signal);
+  }
   async getShipment(
+    path: UnishipReadRoute,
+    token: string,
+    cancellation: AbortSignal,
+    query = new URLSearchParams(),
+    context?: UnishipHttpContext,
+  ): Promise<string> {
+    if (!isUnishipReadRoute(path) || unsafeToken(token))
+      throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+    let target: URL;
+    try {
+      target = this.target(path);
+    } catch {
+      throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+    }
+    return this.admitted(target, context, cancellation, (signal) =>
+      this.dispatchGet(path, token, signal, query),
+    );
+  }
+
+  private async dispatchGet(
     path: UnishipReadRoute,
     token: string,
     cancellation: AbortSignal,
@@ -348,10 +408,12 @@ export class UnishipHttpClient {
       );
     }
 
-    const isLoopback =
-      targetUrl.hostname === "127.0.0.1" ||
-      targetUrl.hostname === "localhost" ||
-      targetUrl.hostname === "[::1]";
+    const isLoopback = this.isLoopback(targetUrl);
+    if (
+      !Object.values(UNISHIP_ROUTES).some((allowed) => allowed === path) ||
+      (!isLoopback && targetUrl.origin !== "https://kh.uniship.vn")
+    )
+      throw this.unavailable();
 
     if (this.isProduction && targetUrl.protocol !== "https:") {
       throw new HttpException(
@@ -385,6 +447,18 @@ export class UnishipHttpClient {
   }
 
   private async post(
+    path: UnishipAuthRoute,
+    body: Record<string, unknown>,
+    token?: string,
+    cancellation?: AbortSignal,
+    context?: UnishipHttpContext,
+  ): Promise<UnishipLoginResult> {
+    return this.admitted(this.target(path), context, cancellation, (signal) =>
+      this.dispatchPost(path, body, token, signal),
+    );
+  }
+
+  private async dispatchPost(
     path: UnishipAuthRoute,
     body: Record<string, unknown>,
     token?: string,

@@ -67,8 +67,10 @@ export class SyncJobExecutor {
       if (
         failure instanceof SyncError &&
         failure.code === SyncErrorCode.SYNC_STALE
-      )
+      ) {
+        await this.queue.cancelStale?.(job);
         return;
+      }
       const code =
         failure instanceof SyncError
           ? failure.code

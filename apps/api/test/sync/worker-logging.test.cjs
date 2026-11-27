@@ -99,7 +99,7 @@ test("actual compiled worker startup emits only safe configuration diagnostics",
   const env = {
     ...process.env,
     SYNC_ENABLED: "invalid",
-    DATABASE_URL: "postgresql://user:" + secret + "@127.0.0.1:1/test",
+    DATABASE_URL: "postgresql://nexora_sync:" + secret + "@127.0.0.1:1/test",
   };
   const result = spawnSync(
     process.execPath,
@@ -129,7 +129,7 @@ test("actual compiled worker cycle emits safe database diagnostics then shuts do
       env: {
         ...process.env,
         DATABASE_URL:
-          "postgresql://user:" + secret + "@127.0.0.1:" + port + "/test",
+          "postgresql://nexora_sync:" + secret + "@127.0.0.1:" + port + "/test",
         SYNC_ENABLED: "true",
         SYNC_POLL_MS: "100",
       },

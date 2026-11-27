@@ -125,3 +125,24 @@ admission does not require enabled/due schedule. Existing PATCH intervals
 15/30/60/120/240 remain unchanged; default60 is not a new global minimum. Future
 provider-specific activation limits require their own reviewed verification.
 Technical tuning and all credential mounts/privileges above remain unchanged.
+
+## Controlled activation configuration — NEXORA-058
+
+UNISHIP_ACTIVATION_POLICY_JSON is blank/absent-OFF, maximum4096 characters, with exactly
+ownerUserId (UUID), externalAccountId (positive decimal string), loginIdentifier
+(nonempty, already trimmed), mode MANUAL_ONLY or AUTOMATIC, optional connectionId
+(UUID). Unknown keys/malformed values fail startup with fixed sanitized errors; never
+put passwords/tokens here. It gates scope independently of persisted schedule intent.
+No account ID or automatic production activation is shipped.
+
+UNISHIP_RECONCILIATION_POLICY_JSON is optional, exact integer keys maxNewlyMissing
+(0..2147483647), maxMissingRatioBps and maxObservedDropRatioBps (0..10000). Blank means
+no hide/restore; nonempty invalid JSON is a startup error, never silent fallback.
+Owner supplies thresholds only after separate gates. API and Worker use the same
+parsers and require homogeneous values/Carrier key versions before restart.
+
+Compose/release Worker receives UNISHIP_API_URL, UNISHIP_LIVE_AUTHORIZED, Carrier
+keyring/version and both JSON settings, but no Identity keys/storage/admin mount.
+The immutable live contract gate remains false. Neither JSON nor live-authorized ENV
+can bypass it. Completion-spaced HTTP permits are shared in PostgreSQL; the existing
+acquisition slots remain separate safeguards, not an official provider quota.

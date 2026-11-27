@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import type { EncryptedSecret } from "../../common/crypto/secret-cipher";
+import { carrierTokenRevision } from "./carrier-token-revision";
 import {
   createDatabase,
   type Prisma,
@@ -74,22 +73,6 @@ export class CarrierLifecycleAdapter
       select: { ...metadata, lifecycleVersion: true, secrets: true },
     });
   }
-  private tokenRevision(token?: EncryptedSecret): string | null {
-    // Unlike timestamps/row IDs, the sealed artifact identifies actual token writes.
-    // Do not decrypt, log, audit or expose this internal ciphertext digest.
-    return token
-      ? createHash("sha256")
-          .update(
-            JSON.stringify([
-              token.ciphertext,
-              token.nonce,
-              token.authTag,
-              token.keyVersion,
-            ]),
-          )
-          .digest("hex")
-      : null;
-  }
   async authorizeNew(userId: string) {
     return this.client.$transaction((tx) => this.active(tx, userId));
   }
@@ -113,7 +96,7 @@ export class CarrierLifecycleAdapter
       },
     );
     // Derive the internal revision after releasing database locks.
-    return { ...snapshot, tokenRevision: this.tokenRevision(token) };
+    return { ...snapshot, tokenRevision: carrierTokenRevision(token) };
   }
   async claim(
     userId: string,
@@ -149,7 +132,7 @@ export class CarrierLifecycleAdapter
       },
     );
     // Derive the internal revision after releasing database locks.
-    return { ...snapshot, tokenRevision: this.tokenRevision(token) };
+    return { ...snapshot, tokenRevision: carrierTokenRevision(token) };
   }
   private async secrets(
     tx: Prisma.TransactionClient,

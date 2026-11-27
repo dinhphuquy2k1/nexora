@@ -197,3 +197,12 @@ independently injected provider/processor. Production declarations remain empty;
 unavailable fallbacks, default-false flags, image/process topology, credentials,
 grants and issue33 deferral remain unchanged. No handler creation performs HTTP or
 crypto during bootstrap. See [extension guide](sync-extensions.md).
+
+## NEXORA-058 Worker custody
+
+Worker uses the shared Carrier/Sync runtime parsers, never API loadConfig. It requires
+only its nexora_sync URL, Sync settings, Carrier keyring and optional controlled
+activation/reconciliation JSON. No STORAGE_ROOT, Identity keys, API boot/controllers,
+admin credentials or uploads volume is needed. API/Worker policy and Carrier key
+versions must be deployed homogeneously after drain; configuration is frozen at boot.
+Worker stops and awaits its existing loop before runtime clients disconnect.

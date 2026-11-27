@@ -1,3 +1,5 @@
+const { setImmediate } = require("node:timers");
+const { AbortController } = globalThis;
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const {
@@ -548,4 +550,92 @@ test("supersession after vault entry cannot spend a second password attempt", as
   assert.equal(f.counts().acquisitions, 1);
   assert.equal(f.counts().writes, 0);
   assert.equal(f.service.recoveries.size, 0);
+});
+
+test("aborted execution cannot start token use or recovery", async () => {
+  const f = fixture(false),
+    abort = new AbortController();
+  abort.abort();
+  let called = false;
+  await assert.rejects(
+    f.service.withToken(
+      "owner",
+      "connection",
+      async () => {
+        called = true;
+      },
+      undefined,
+      abort.signal,
+    ),
+  );
+  assert.equal(called, false);
+  assert.equal(f.counts().acquisitions, 0);
+});
+test("one cancelled waiter does not cancel another callers shared recovery", async () => {
+  const f = fixture(),
+    original = f.credentials.acquireStored;
+  let release, started, sharedSignal;
+  const gate = new Promise((r) => (release = r)),
+    begin = new Promise((r) => (started = r));
+  f.credentials.acquireStored = async (...args) => {
+    sharedSignal = args[3]?.signal;
+    started();
+    await gate;
+    return original(...args);
+  };
+  const a = new AbortController(),
+    b = new AbortController();
+  const first = f.service.withToken(
+    "owner",
+    "connection",
+    async () => 42,
+    undefined,
+    a.signal,
+  );
+  await begin;
+  const second = f.service.withToken(
+    "owner",
+    "connection",
+    async () => 43,
+    undefined,
+    b.signal,
+  );
+  await new Promise((r) => setImmediate(r));
+  a.abort();
+  release();
+  const results = await Promise.allSettled([first, second]);
+  assert.equal(results[0].status, "rejected");
+  assert.equal(results[1].status, "fulfilled");
+  assert.equal(results[1].value, 43);
+  assert.ok(sharedSignal instanceof AbortSignal);
+  assert.equal(sharedSignal.aborted, false);
+  assert.equal(f.counts().writes, 1);
+});
+test("all cancelled waiters abort shared work and cannot commit a late candidate", async () => {
+  const f = fixture(),
+    original = f.credentials.acquireStored;
+  let release, started, sharedSignal;
+  const gate = new Promise((r) => (release = r)),
+    begin = new Promise((r) => (started = r));
+  f.credentials.acquireStored = async (...args) => {
+    sharedSignal = args[3]?.signal;
+    started();
+    await gate;
+    return original(...args);
+  };
+  const abort = new AbortController();
+  const pending = f.service.withToken(
+    "owner",
+    "connection",
+    async () => 42,
+    undefined,
+    abort.signal,
+  );
+  await begin;
+  abort.abort();
+  release();
+  await assert.rejects(pending);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(sharedSignal.aborted, true);
+  assert.equal(f.counts().writes, 0);
 });

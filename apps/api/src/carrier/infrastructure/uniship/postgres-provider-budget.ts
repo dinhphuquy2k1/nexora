@@ -5,6 +5,9 @@ import { CarrierProvider } from "../../domain/carrier";
 /** Shared acquisition safeguards, not a statement of official provider quota. */
 export class PostgresProviderBudget {
   private instance?: PrismaClient;
+  private readonly shutdown = new AbortController();
+  private readonly pending = new Set<Promise<unknown>>();
+  private closing?: Promise<void>;
   constructor(
     private readonly url: string,
     private readonly provider = CarrierProvider.UNISHIP,
@@ -12,7 +15,31 @@ export class PostgresProviderBudget {
   private get db(): PrismaClient {
     return (this.instance ??= createDatabase(this.url));
   }
-  async run<T>(operation: (signal?: AbortSignal) => Promise<T>): Promise<T> {
+  run<T>(
+    operation: (signal?: AbortSignal) => Promise<T>,
+    cancellation?: AbortSignal,
+  ): Promise<T> {
+    if (this.shutdown.signal.aborted)
+      return Promise.reject(
+        new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE),
+      );
+    const signal = AbortSignal.any([
+      this.shutdown.signal,
+      ...(cancellation ? [cancellation] : []),
+    ]);
+    const work = this.execute<T>(operation, signal);
+    this.pending.add(work);
+    void work.then(
+      () => this.pending.delete(work),
+      () => this.pending.delete(work),
+    );
+    return work;
+  }
+  private async execute<T>(
+    operation: (signal?: AbortSignal) => Promise<T>,
+    cancellation?: AbortSignal,
+  ): Promise<T> {
+    cancellation?.throwIfAborted();
     const token = randomUUID();
     const slot = await this.db.$transaction(async (tx) => {
       await tx.$executeRaw`INSERT INTO sync_provider_budget(provider,slot) VALUES(${this.provider},0),(${this.provider},1) ON CONFLICT DO NOTHING`;
@@ -27,6 +54,9 @@ export class PostgresProviderBudget {
       return free;
     });
     const controller = new AbortController();
+    const execution = cancellation
+      ? AbortSignal.any([controller.signal, cancellation])
+      : controller.signal;
     let renewal: Promise<void> | null = null;
     const lost = () => {
       controller.abort(new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE));
@@ -50,14 +80,15 @@ export class PostgresProviderBudget {
         failure: unknown,
         failed = false;
       try {
-        value = await operation(controller.signal);
+        execution.throwIfAborted();
+        value = await operation(execution);
       } catch (error) {
         failed = true;
         failure = error;
       }
       clearInterval(timer);
       await renewal;
-      controller.signal.throwIfAborted();
+      execution.throwIfAborted();
       // Serialize terminal bookkeeping in acquisition order. Lost owners cannot
       // return success, reset failures, impose cooldown, or affect a successor.
       await this.db.$transaction(async (tx) => {
@@ -91,6 +122,12 @@ export class PostgresProviderBudget {
     }
   }
   async onApplicationShutdown() {
-    await this.instance?.$disconnect();
+    return (this.closing ??= (async () => {
+      this.shutdown.abort(
+        new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE),
+      );
+      await Promise.allSettled([...this.pending]);
+      await this.instance?.$disconnect();
+    })());
   }
 }

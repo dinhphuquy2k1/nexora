@@ -962,7 +962,7 @@ provider credentials and live network access are excluded.
 
 [Portal API contract](../integrations/uniship-portal-api.md) owns confirmed/assumed/
 unknown mappings. ADR007 records the owner authorization amendment; the production
-external-request hard-close and empty Shipment capability registry remain intact.
+external-request hard-close remains intact. NEXORA-058 adds conditional shared runtime composition; the default Shipment registry remains empty.
 Fixture PASS does not certify live API conformance or open an activation gate.
 
 NEXORA-054 review correction strengthens that same scanner with explicit
@@ -1496,7 +1496,7 @@ barrier time labeled separately. Warm-data single measurements are not a product
 
 Migration harness stages exact061→062 and checks original values/children retained,
 ACTIVE defaults, historical admission/summaryNULL, repeat deploy/drift; runtime smoke
-expects19 migrations. Quality/contracts/full integration, canonical Docker/signed
+expected19 migrations at the062 baseline;058 advances runtime smoke to20. Quality/contracts/full integration, canonical Docker/signed
 launcher and exact-final-HEAD hosted Preflight/Sync/Foundation remain required.
 Store curated plans/results/provenance, no raw SQL predicates, credentials or media.
 
@@ -1506,3 +1506,20 @@ uses its owned privileged fixture DB and labels that limitation. Never fall back
 the ambient base DATABASE_URL: its absent fixture owner produces UNAUTHORIZED.
 Sync Targeted explicitly watches the new policy/adapter/test paths and runs their
 policy units alongside all prior Sync units; no package discovery list is replaced.
+
+## NEXORA-058 controlled runtime verification
+
+uniship-runtime-integration.test.cjs uses disposable migrated PostgreSQL with signed
+cluster ownership and actual nexora_app/nexora_sync passwords. It covers fixed ACLs,
+private helpers and CHECKs, repeat provisioning, actual scoped credential recovery,
+epoch/disable/delete/lease/takeover races, bounded lock waits and audit-before-decrypt.
+Real loopback HTTP measures cross-instance dispatch spacing, pending auth/verify,
+abort and429. Actual Nest API and Worker run the existing manual endpoint/loop with
+FULL100, no-policy ingestion, synthetic-policy baseline/hide/restore, midpage401 and
+expiry recovery/stale cancellation, new job identity preservation, manual-only old
+AUTO suppression and separately configured synthetic AUTOMATIC completion scheduling.
+No live provider or production thresholds are used. Signed shipment-worker and Sync
+Targeted discovery include the new suite; native migration verification covers19→20,
+repeat/drift and existing data. Readiness checks include task-owned STORAGE_ROOT,
+origins, keyring, generated/build artifacts, signed database and fixed closed live gate.
+Keep command failures and historical evidence distinct from final current-HEAD CI.

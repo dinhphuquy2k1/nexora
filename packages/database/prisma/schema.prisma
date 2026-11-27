@@ -16,6 +16,7 @@ model StoredFile {
 }
 
 model User {
+  unishipHttpBudgets UnishipHttpBudget[]
  shipmentsOwned Shipment[] @relation("shipment_owner")
  shipmentsAssigned Shipment[] @relation("shipment_assignee")
  shipmentsUpdated Shipment[] @relation("shipment_updater")
@@ -78,6 +79,8 @@ model Session {
 }
 
 model CarrierConnection {
+  workerRecovery CarrierWorkerRecovery?
+  httpBudgets UnishipHttpBudget[]
  shipments Shipment[]
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId String @map("user_id") @db.Uuid
@@ -228,6 +231,7 @@ model SyncConfig {
  @@map("sync_configs")
 }
 model SyncJob {
+ workerRecovery CarrierWorkerRecovery?
  reconciliationVersion Int? @map("reconciliation_version")
  reconciliationStatus String? @map("reconciliation_status") @db.VarChar(24)
  reconciliationReason String? @map("reconciliation_reason") @db.VarChar(40)
@@ -496,4 +500,34 @@ model ShipmentService {
  shipment Shipment @relation(fields:[shipmentId],references:[id],onDelete:Cascade,onUpdate:NoAction,map:"fk_shipment_services_shipment")
  @@unique([shipmentId,serviceCode],map:"uq_shipment_services_code")
  @@map("shipment_services")
+}
+
+model CarrierWorkerRecovery {
+ connectionId String @id @map("connection_id") @db.Uuid
+ jobId String @unique @map("job_id") @db.Uuid
+ workerId String @map("worker_id") @db.Uuid
+ leaseVersion Int @map("lease_version")
+ generation Int
+ connectionVersion Int @map("connection_version")
+ operationToken String @map("operation_token") @db.Uuid
+ expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+ connection CarrierConnection @relation(fields:[connectionId],references:[id],onDelete:Cascade,onUpdate:Cascade)
+ job SyncJob @relation(fields:[jobId],references:[id],onDelete:Cascade,onUpdate:Cascade)
+ @@map("carrier_worker_recoveries")
+}
+model UnishipHttpBudget {
+ provider String @default("uniship") @db.VarChar(32)
+ ownerUserId String @map("owner_user_id") @db.Uuid
+ scopeKind String @map("scope_kind") @db.VarChar(16)
+ scopeId String @map("scope_id") @db.Uuid
+ connectionId String? @map("connection_id") @db.Uuid
+ leaseToken String? @map("lease_token") @db.Uuid
+ leaseExpiresAt DateTime? @map("lease_expires_at") @db.Timestamptz(3)
+ nextAllowedAt DateTime @default(now()) @map("next_allowed_at") @db.Timestamptz(3)
+ blockedUntil DateTime? @map("blocked_until") @db.Timestamptz(3)
+ failures Int @default(0)
+ owner User @relation(fields:[ownerUserId],references:[id],onDelete:Cascade,onUpdate:Cascade)
+ connection CarrierConnection? @relation(fields:[connectionId],references:[id],onDelete:Cascade,onUpdate:Cascade)
+ @@id([provider,ownerUserId,scopeKind,scopeId])
+ @@map("uniship_http_budget")
 }

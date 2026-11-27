@@ -545,3 +545,20 @@ its existing approved provider columns; no table-wide UPDATE or local/root ident
 writes/DELETE. API keeps SELECT-only on Shipment. Repeat provisioning revokes stale
 broad/column ACLs before reapplying. No new index: existing scoped source unique and
 Shipment source/owner/PK indexes are assessed by actual EXPLAIN, not assumption.
+
+## NEXORA-058 scoped Carrier capabilities
+
+Forward migration20261124000000 adds private carrier_worker_recoveries (one proof per
+connection/job) and uniship_http_budget (one row per pending-owner or connection scope).
+Existing business tables/data and historical migrations are unchanged. Constraints
+bound lease versions, generations, failure counts, provider, scope and lease coherence.
+
+Fixed typed SECURITY DEFINER functions set search_path=pg_catalog and qualify every
+relation. PUBLIC and runtime direct private-table access are revoked. nexora_sync gets
+only job/worker/lease/epoch/lifecycle-scoped snapshot/claim/load/complete/fail and HTTP
+permit wrappers, plus append-only audit INSERT and SELECT(id); it cannot directly
+read carrier secrets, UPDATE users, mutate audits, access Identity secrets or execute
+private helpers. API gets owner-scoped HTTP wrappers, not Worker credential functions.
+Re-provision resets table/column ACLs and grants the role-specific fixed function list.
+The narrow functions authorize scoped use by trusted runtime code, not isolation
+against a fully compromised process that already owns a valid Worker DB credential.

@@ -307,12 +307,28 @@ test("actual API and worker composition factories share fail-closed capabilities
   const { AppModule } = require("../../dist/app.module");
   const { SyncWorkerModule } = require("../../dist/worker/sync-worker.module");
   const { SyncPort } = require("../../dist/sync/application/sync.port");
-  const keys = ["DATABASE_URL", "SYNC_ENABLED"];
+  const {
+    UnishipSyncRuntime,
+  } = require("../../dist/sync/infrastructure/uniship-sync.runtime");
+  const apiUrl = "postgresql://nexora_app:synthetic@127.0.0.1:1/fixture";
+  const keys = [
+    "DATABASE_URL",
+    "SYNC_ENABLED",
+    "UNISHIP_ACTIVATION_POLICY_JSON",
+    "UNISHIP_RECONCILIATION_POLICY_JSON",
+    "UNISHIP_API_URL",
+    "UNISHIP_LIVE_AUTHORIZED",
+  ];
   const before = new Map(keys.map((key) => [key, process.env[key]]));
-  const queues = [];
+  const queues = [],
+    runtimes = [];
   try {
     Object.assign(process.env, {
-      DATABASE_URL: "unused-unit-url",
+      DATABASE_URL: "postgresql://nexora_sync:synthetic@127.0.0.1:1/fixture",
+      UNISHIP_ACTIVATION_POLICY_JSON: "",
+      UNISHIP_RECONCILIATION_POLICY_JSON: "",
+      UNISHIP_API_URL: "",
+      UNISHIP_LIVE_AUTHORIZED: "false",
       SYNC_ENABLED: "true",
     });
     const apiFactory = Reflect.getMetadata("providers", AppModule).find(
@@ -322,8 +338,15 @@ test("actual API and worker composition factories share fail-closed capabilities
       "providers",
       SyncWorkerModule,
     ).find((p) => p.provide === SyncRepository);
-    const api = apiFactory.useFactory({ DATABASE_URL: "unused-unit-url" }),
-      worker = workerFactory.useFactory();
+    const apiRuntime = Reflect.getMetadata("providers", AppModule)
+      .find((p) => p.provide === UnishipSyncRuntime)
+      .useFactory({ DATABASE_URL: apiUrl });
+    const workerRuntime = Reflect.getMetadata("providers", SyncWorkerModule)
+      .find((p) => p.provide === UnishipSyncRuntime)
+      .useFactory();
+    runtimes.push(apiRuntime, workerRuntime);
+    const api = apiFactory.useFactory({ DATABASE_URL: apiUrl }, apiRuntime),
+      worker = workerFactory.useFactory(workerRuntime);
     queues.push(api, worker);
     for (const type of ["SHIPMENT", "CUSTOMER"]) {
       assert.equal(api.available("uniship", type), false);
@@ -333,6 +356,7 @@ test("actual API and worker composition factories share fail-closed capabilities
     }
   } finally {
     for (const queue of queues) await queue.close();
+    for (const runtime of runtimes) await runtime.onApplicationShutdown();
     for (const [key, value] of before) {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;

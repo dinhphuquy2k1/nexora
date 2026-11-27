@@ -1,8 +1,8 @@
 # NEXORA-058 — Uniship controlled activation
 
-Status: IN PROGRESS
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Origin
 
@@ -153,3 +153,53 @@ prerequisites and scoped operational review. No thresholds, production registrat
 or automatic scheduling are enabled here. Query fingerprint transitions require an
 explicit migration/repair policy, not automatic baseline replacement. These live/
 operational gates remain NOT RUN under this PLANNED task.
+
+## Admission/execution clarification before policy wiring
+
+Preserve existing stop semantics: enabled/due schedule is checked at AUTO admission,
+including direct internal AUTO calls, while already admitted execution is not
+reinterpreted as a new scheduling decision. Claim/fence still recheck approved
+scope/mode and minimum interval60; disabling a persisted schedule alone is not an
+immediate active-job cancellation guarantee. Explicit stop/drain/revoke remains the
+runbook. This clarifies the existing immutable job/trigger boundary within v1, not
+a new scheduling or reconciliation design. Manual admission may replace an old
+policy-blocked AUTO lane only under the current owner's normal scoped locks; it
+never rewrites schedule intent. Stale Worker cancellation retains worker/lease proof.
+
+## Technical implementation delta — 2026-11-24
+
+Within frozen v1: shared API/Worker scoped runtime, restricted Worker credential
+functions/private recovery proof, actual PostgreSQL per-dispatch permits,
+cancellation/shutdown, manual/AUTO eligibility and optional existing reconciliation
+policy. No mapping/query/version/timezone/reconciliation-v3 rewrite or live bypass.
+Independent review identified nullable CAS/permit edges, abort-after-reserve cleanup,
+query-lock bounds and failed-recovery active-lane cleanup; native regressions retain
+RED/GREEN evidence. Loop drains before runtime clients close.
+
+[Implementation verification](../evidence/NEXORA-058/implementation-verification.md)
+records executed checks. [External matrix and stages0–6](../evidence/NEXORA-058/external-gates-and-runbook.md)
+separate existing owner evidence from open prerequisites. The adapter057 description
+above is historical; Mapping V2 services/items/charges/milestones are retained.
+Technical readiness does not close external gates or this task. No production
+thresholds/account IDs, live request or AUTO activation are shipped. Final PR/CI
+verification remains pending until actual results are recorded.
+
+## Current technical verification — 2026-11-24
+
+| Claim                                 | Evidence                                                                                            | Date       | Result  |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------- | ------- |
+| Local technical quality               | Pinned pnpm quality: format/lint/preflight/docs/typecheck,903unit/script tests, contracts and build | 2026-11-24 | PASS    |
+| Restricted scoped runtime             | Actual signed roles, real HTTP/Nest manual FULL/recovery/reconciliation and scheduling36/36         | 2026-11-24 | PASS    |
+| Forward migration                     | Real19→20 preservation, repeat deploy, drift and fixed functionACLs                                 | 2026-11-24 | PASS    |
+| Independent read-only source review   | No remaining P1/P2; implementation agent's repro is distinct from reviewer inspection               | 2026-11-24 | PASS    |
+| Controlled live verification          | Not authorized in agent/CI; remaining external matrix and three-parcel timezone gate open           | 2026-11-24 | NOT RUN |
+| Production activation/AUTO/thresholds | Hard-close false; no production policy values/activation performed                                  | 2026-11-24 | NOT RUN |
+| Local Docker runtime                  | Insufficient disk for missing API/Web/tooling images; genuine host tests do not substitute          | 2026-11-24 | NOT RUN |
+
+Task remains active VERIFICATION PENDING for external/hosted acceptance; technical
+implementation does not approve controlled live use, production or automatic scheduling.
+
+Full signed local PostgreSQL integration result reviewed2026-11-27:263/263 PASS,
+0skip,391792.266706ms. The previous provider-inventory fixture failure is retained in
+implementation evidence; exact inventory and varchar32 assertions remain enforced.
+Hosted exact-HEAD verification remains pending.

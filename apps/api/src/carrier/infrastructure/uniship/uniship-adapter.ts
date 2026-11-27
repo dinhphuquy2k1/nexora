@@ -1,3 +1,4 @@
+import type { UnishipHttpContext } from "./postgres-http-admission";
 import { LifecycleCode, LifecycleFailure } from "../../domain/lifecycle";
 import { ProviderBudget } from "./provider-budget";
 import { UnishipHttpClient } from "./uniship-http.client";
@@ -30,14 +31,31 @@ export class UnishipAdapter {
     private readonly client: UnishipHttpClient,
     private readonly budget: Pick<ProviderBudget, "run"> = new ProviderBudget(),
   ) {}
-  async acquire(username: string, password: string) {
+  async acquire(
+    username: string,
+    password: string,
+    execution?: { signal?: AbortSignal; context?: UnishipHttpContext },
+  ) {
+    execution?.signal?.throwIfAborted();
     return this.budget.run(async (signal) => {
+      const cancellation =
+        signal && execution?.signal
+          ? AbortSignal.any([signal, execution.signal])
+          : (signal ?? execution?.signal);
+      cancellation?.throwIfAborted();
       try {
         const login = await this.client.authenticate(
           { username, password },
-          signal,
+          cancellation,
+          execution?.context,
         );
-        const verified = await this.client.verify(login.candidateToken, signal);
+        cancellation?.throwIfAborted();
+        const verified = await this.client.verify(
+          login.candidateToken,
+          cancellation,
+          execution?.context,
+        );
+        cancellation?.throwIfAborted();
         if (login.externalAccountId !== verified.externalAccountId)
           throw new LifecycleFailure(LifecycleCode.CANDIDATE_IDENTITY_MISMATCH);
         return {
@@ -67,6 +85,6 @@ export class UnishipAdapter {
         }
         throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
       }
-    });
+    }, execution?.signal);
   }
 }

@@ -32,6 +32,7 @@ try {
   for (const file of [
     "integration/shipment-integration.test.cjs",
     "integration/sync-observation-integration.test.cjs",
+    "integration/uniship-runtime-integration.test.cjs",
   ])
     execFileSync(process.execPath, ["--test", file], {
       cwd: resolve("apps/api"),

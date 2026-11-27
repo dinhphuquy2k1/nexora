@@ -655,3 +655,15 @@ the current page replaces the URL with the last valid page (at least1) and fetch
 it; retained loading/error totals and uncommitted search never drive recovery.
 During an out-of-range transition the range is unavailable, never reversed or a
 fabricated valid-page range. User navigation retains existing Back/Forward behavior.
+
+## Controlled runtime composition — NEXORA-058 (2026-11-24)
+
+Earlier unregistered-capability statements record their milestone baseline. Shared
+API/Worker composition can now register the existing Uniship Shipment binding only
+under explicit runtime readiness and account-scoped activation. The external live
+gate remains closed. Mapping V2, UTC+7, FULL100/source identity, processor1, existing
+Domain invariants and reconciliation v3 are unchanged. Missing reconciliation JSON
+still records POLICY_NOT_CONFIGURED without hide/restore; no production thresholds
+are supplied. The first live manual sync, three-parcel timezone comparison, remaining
+external semantics and owner-approved AUTO/reconciliation gates remain separate in
+[the activation runbook](../tasks/evidence/NEXORA-058/external-gates-and-runbook.md).

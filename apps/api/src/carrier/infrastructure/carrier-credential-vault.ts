@@ -6,6 +6,7 @@ import {
   CarrierCredentialPort,
   type LifecycleSnapshot,
   type SealedCandidate,
+  type CarrierCredentialExecution,
 } from "../application/carrier-lifecycle.port";
 import { SecurityAuditPort } from "../application/security-audit.port";
 import { SecretType, CarrierProvider } from "../domain/carrier";
@@ -28,12 +29,28 @@ export interface AuthorizedCredentialReader {
     snapshot: LifecycleSnapshot,
   ): Promise<AuthorizedCredentials>;
 }
+export interface CarrierOutboundAuthority {
+  context(
+    userId: string,
+    id: string,
+    loginIdentifier: string | null,
+    snapshot?: LifecycleSnapshot,
+  ): import("./uniship/postgres-http-admission").UnishipHttpContext;
+  verified(
+    userId: string,
+    id: string,
+    loginIdentifier: string,
+    externalAccountId: string,
+    snapshot?: LifecycleSnapshot,
+  ): void;
+}
 export class CarrierCredentialVault implements CarrierCredentialPort {
   constructor(
     private readonly reader: AuthorizedCredentialReader,
     private readonly cipher: SecretCipher,
     private readonly provider: UnishipAdapter,
     private readonly audit: SecurityAuditPort,
+    private readonly outbound?: CarrierOutboundAuthority,
   ) {}
   private aad(userId: string, id: string, type: SecretType) {
     return `${id}:${userId}:${CarrierProvider.UNISHIP}:${type}`;
@@ -43,8 +60,27 @@ export class CarrierCredentialVault implements CarrierCredentialPort {
     id: string,
     loginIdentifier: string,
     password: string,
+    execution?: CarrierCredentialExecution,
   ): Promise<SealedCandidate> {
-    const result = await this.provider.acquire(loginIdentifier, password);
+    execution?.signal?.throwIfAborted();
+    const context = this.outbound?.context(
+      userId,
+      id,
+      loginIdentifier,
+      execution?.snapshot,
+    );
+    const result = await this.provider.acquire(loginIdentifier, password, {
+      signal: execution?.signal,
+      context,
+    });
+    execution?.signal?.throwIfAborted();
+    this.outbound?.verified(
+      userId,
+      id,
+      loginIdentifier,
+      result.externalAccountId,
+      execution?.snapshot,
+    );
     return {
       externalAccountId: result.externalAccountId,
       password: this.cipher.encrypt(
@@ -64,8 +100,11 @@ export class CarrierCredentialVault implements CarrierCredentialPort {
     userId: string,
     snapshot: LifecycleSnapshot,
     correlationId: string,
+    execution?: CarrierCredentialExecution,
   ): Promise<SealedCandidate> {
+    execution?.signal?.throwIfAborted();
     await this.reader.load(userId, snapshot);
+    execution?.signal?.throwIfAborted();
     try {
       // This is its own committed insert, before decrypt. A later rollback must not remove it.
       await this.audit.append({
@@ -80,7 +119,9 @@ export class CarrierCredentialVault implements CarrierCredentialPort {
     } catch {
       throw new LifecycleFailure(LifecycleCode.AUDIT_UNAVAILABLE);
     }
+    execution?.signal?.throwIfAborted();
     const stored = await this.reader.load(userId, snapshot);
+    execution?.signal?.throwIfAborted();
     if (!stored.password || !stored.loginIdentifier)
       throw new LifecycleFailure(LifecycleCode.REAUTH_REQUIRED);
     // JS strings cannot be zeroed. Keep references local to this invocation only.
@@ -94,21 +135,26 @@ export class CarrierCredentialVault implements CarrierCredentialPort {
       snapshot.connection.id,
       stored.loginIdentifier,
       password,
+      { signal: execution?.signal, snapshot },
     );
   }
 
   async useToken<T>(
     userId: string,
     snapshot: LifecycleSnapshot,
-    operation: (token: string) => Promise<T>,
+    operation: (token: string, signal?: AbortSignal) => Promise<T>,
+    signal?: AbortSignal,
   ): Promise<T> {
+    signal?.throwIfAborted();
     const stored = await this.reader.load(userId, snapshot);
+    signal?.throwIfAborted();
     if (!stored.token) throw new LifecycleFailure(LifecycleCode.TOKEN_REJECTED);
     const token = this.cipher.decrypt(
       "CARRIER_TOKEN",
       this.aad(userId, snapshot.connection.id, SecretType.ACCESS_TOKEN),
       stored.token,
     );
-    return operation(token);
+    signal?.throwIfAborted();
+    return operation(token, signal);
   }
 }

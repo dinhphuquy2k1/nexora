@@ -3,6 +3,13 @@ on:
   pull_request:
     paths:
       - "apps/api/src/sync/**"
+      - "apps/api/src/app.module.ts"
+      - "apps/api/src/carrier/application/carrier-*.ts"
+      - "apps/api/src/carrier/infrastructure/**"
+      - "apps/api/test/uniship-runtime-*.test.cjs"
+      - "apps/api/test/uniship-rate-admission.test.cjs"
+      - "apps/api/integration/uniship-runtime-integration.test.cjs"
+      - "apps/api/integration/fixtures/uniship-runtime-*.cjs"
       - "apps/api/src/worker/**"
       - "apps/api/src/shipment/application/shipment-sync.port.ts"
       - "apps/api/src/shipment/application/shipment-sync.processor.ts"
@@ -62,7 +69,7 @@ jobs:
       - name: Sync and Shipment reconciliation policy unit tests
         run: node --test "apps/api/test/sync/**/*.test.cjs" apps/api/test/shipment/reconciliation.test.cjs
       - name: Uniship adapter unit tests
-        run: node --test apps/api/test/uniship/normalizer.test.cjs apps/api/test/uniship/provider.test.cjs
+        run: node --test apps/api/test/uniship/normalizer.test.cjs apps/api/test/uniship/provider.test.cjs apps/api/test/uniship-runtime-*.test.cjs apps/api/test/uniship-rate-admission.test.cjs
       - name: Sync real disposable PostgreSQL regression
         working-directory: apps/api
         run: node --test integration/sync-integration.test.cjs
@@ -74,7 +81,7 @@ jobs:
           DATABASE_URL: postgresql://nexora:isolated-ci-fixture-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/sync_ci
         run: |
           fixture_dir=$(mktemp -d "$RUNNER_TEMP/uniship-runtime.XXXXXX")
-          cleanup() { rm -f "$fixture_dir/runtime-password" && rmdir "$fixture_dir" && echo "Temporary Uniship runtime-password fixture removed."; }
+          cleanup() { rm -rf "$fixture_dir/storage"; rm -f "$fixture_dir/runtime-password" && rmdir "$fixture_dir" && echo "Temporary Uniship runtime-password fixture removed."; }
           trap cleanup EXIT
           trap 'exit 1' HUP INT TERM
           export API_TEST_RUNTIME_PASSWORD_FILE="$fixture_dir/runtime-password"
@@ -97,6 +104,9 @@ jobs:
           })().catch(() => { console.error("UNISHIP_TEST_FIXTURE_SETUP_FAILED"); process.exitCode = 1; });
           NODE
           node --test integration/uniship-shipment-integration.test.cjs integration/sync-observation-integration.test.cjs
+          export STORAGE_ROOT="$fixture_dir/storage"
+          mkdir -p "$STORAGE_ROOT"
+          node --test integration/uniship-runtime-integration.test.cjs
           echo "Uniship PostgreSQL suite passed; removing temporary runtime-password fixture."
       - name: Collect public Prisma toolchain
         if: always()

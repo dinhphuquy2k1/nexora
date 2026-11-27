@@ -204,6 +204,7 @@ export interface SyncQueue extends SyncPort {
   apply(job: SyncJob): Promise<boolean>;
   wait(job: SyncJob, code: SyncCode, retryAfterMs: number): Promise<void>;
   heartbeat(job: SyncJob): Promise<void>;
+  cancelStale?(job: SyncJob): Promise<void>;
   schedule(): Promise<void>;
   cleanup(): Promise<number>;
   close(): Promise<void>;

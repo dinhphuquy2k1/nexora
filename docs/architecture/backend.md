@@ -262,3 +262,13 @@ tuning. SyncRepository availability/admission/fences/claim/schedule retain exact
 registered pair resolution without a second ENV-derived enabled-type list. Static
 production declarations and external HTTP hard gates remain closed. No application/
 domain Prisma dependency or Carrier/Sync circular import is introduced.
+
+## NEXORA-058 composition
+
+API and the separate Sync Worker instantiate UnishipSyncRuntime with their restricted
+role URLs. Carrier-owned createCarrierRuntime reuses lifecycle/vault/cipher/audit and
+transport with role-specific storage; Worker uses fixed execution-scoped SQL rather
+than the API adapter. The generic engine receives capabilities and an infrastructure
+eligibility interface, without Uniship account policy in its Domain registry.
+The default/external production capability stays closed; technical mock verification
+is not permission to activate live Uniship.
