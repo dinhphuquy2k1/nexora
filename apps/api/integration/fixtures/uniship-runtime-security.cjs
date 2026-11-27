@@ -731,10 +731,14 @@ module.exports = async function verifyWorkerSecurity(t, { db, workerUrl }) {
             snapshot = await f.store.withJob(f.job, () =>
               f.store.read(f.owner.id, f.connection.id),
             );
+          const token = await f.store.withJob(f.job, () =>
+            f.store.loadToken(f.owner.id, snapshot),
+          );
+          assert.ok(token.token);
           await mutate(f);
           await f.store.withJob(f.job, () =>
             assert.rejects(
-              f.store.loadRecoveryPassword(f.owner.id, snapshot),
+              f.store.loadToken(f.owner.id, snapshot),
               (e) => e.code === "STALE",
             ),
           );
@@ -747,6 +751,10 @@ module.exports = async function verifyWorkerSecurity(t, { db, workerUrl }) {
         const snapshot = await f.store.withJob(f.job, () =>
           f.store.read(f.owner.id, f.connection.id),
         );
+        const token = await f.store.withJob(f.job, () =>
+          f.store.loadToken(f.owner.id, snapshot),
+        );
+        assert.ok(token.token);
         const successor = randomUUID();
         await db.syncJob.update({
           where: { id: f.job.id },
@@ -758,7 +766,7 @@ module.exports = async function verifyWorkerSecurity(t, { db, workerUrl }) {
         });
         await f.store.withJob(f.job, () =>
           assert.rejects(
-            f.store.loadRecoveryPassword(f.owner.id, snapshot),
+            f.store.loadToken(f.owner.id, snapshot),
             (e) => e.code === "STALE",
           ),
         );

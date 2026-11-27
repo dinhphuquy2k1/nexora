@@ -15,6 +15,8 @@ function fixture({ auditFailure = false, stale = false } = {}) {
     // Same behavioral harness supports the reviewed combined reader and candidate.
     load: async () => {
       calls.push("combined-password-read");
+      // Baseline also reauthorizes after audit; model the same stale boundary.
+      if (stale && calls.includes("audit")) throw Error("stale-after-audit");
       return { token: {}, password: {}, loginIdentifier: "synthetic" };
     },
     loadToken: async () => {
