@@ -14,7 +14,8 @@ import {
 } from "../application/carrier-lifecycle.port";
 import type {
   AuthorizedCredentialReader,
-  AuthorizedCredentials,
+  AuthorizedToken,
+  AuthorizedRecoveryPassword,
 } from "./carrier-credential-vault";
 import { LifecycleFailure, LifecycleCode } from "../domain/lifecycle";
 import type { ConnectionMetadata, ConnectionStatus } from "../domain/carrier";
@@ -170,26 +171,51 @@ export class WorkerCarrierStore
       ),
     );
   }
-  async load(
+  async claimReconnect(): Promise<LifecycleSnapshot> {
+    throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
+  }
+  async authorizeRecovery(
     userId: string,
     snapshot: LifecycleSnapshot,
-  ): Promise<AuthorizedCredentials> {
+  ): Promise<void> {
     const { job, operationToken } = this.scope(userId, snapshot.connection.id);
-    const value = await this.result<AuthorizedCredentials>(
-      (tx) =>
-        tx.$queryRaw`
-          SELECT
-            public.sync_carrier_load(${job.id}::uuid,
-              ${job.worker_id}::uuid,
-              ${job.lease_version},
-              ${operationToken}::uuid,
-              ${snapshot.version}) AS result
-          `,
+    await this.result(
+      (tx) => tx.$queryRaw`
+      SELECT public.sync_carrier_authorize_recovery(${job.id}::uuid,
+        ${job.worker_id}::uuid, ${job.lease_version}, ${operationToken}::uuid,
+        ${snapshot.version})::text AS result
+    `,
+    );
+  }
+  async loadToken(
+    userId: string,
+    snapshot: LifecycleSnapshot,
+  ): Promise<AuthorizedToken> {
+    const { job, operationToken } = this.scope(userId, snapshot.connection.id);
+    const value = await this.result<AuthorizedToken>(
+      (tx) => tx.$queryRaw`
+      SELECT public.sync_carrier_load_token(${job.id}::uuid,
+        ${job.worker_id}::uuid, ${job.lease_version}, ${operationToken}::uuid,
+        ${snapshot.version}) AS result
+    `,
+    );
+    return { token: value.token ?? undefined };
+  }
+  async loadRecoveryPassword(
+    userId: string,
+    snapshot: LifecycleSnapshot,
+  ): Promise<AuthorizedRecoveryPassword> {
+    const { job, operationToken } = this.scope(userId, snapshot.connection.id);
+    const value = await this.result<AuthorizedRecoveryPassword>(
+      (tx) => tx.$queryRaw`
+      SELECT public.sync_carrier_load_recovery_password(${job.id}::uuid,
+        ${job.worker_id}::uuid, ${job.lease_version}, ${operationToken}::uuid,
+        ${snapshot.version}) AS result
+    `,
     );
     return {
       loginIdentifier: value.loginIdentifier,
       password: value.password ?? undefined,
-      token: value.token ?? undefined,
     };
   }
   async complete(

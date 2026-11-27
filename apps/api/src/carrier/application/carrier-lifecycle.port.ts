@@ -25,6 +25,11 @@ export abstract class CarrierLifecyclePort {
     id: string,
     expectedVersion?: number,
   ): Promise<LifecycleSnapshot>;
+  abstract claimReconnect(
+    userId: string,
+    id: string,
+    expected: Pick<LifecycleSnapshot, "generation" | "version">,
+  ): Promise<LifecycleSnapshot>;
   abstract create(
     userId: string,
     id: string,
@@ -52,6 +57,10 @@ export interface CarrierCredentialExecution {
   readonly snapshot?: LifecycleSnapshot;
 }
 export abstract class CarrierCredentialPort {
+  abstract authorizeReconnect(
+    userId: string,
+    snapshot: LifecycleSnapshot,
+  ): Promise<void>;
   abstract acquireNew(
     userId: string,
     id: string,

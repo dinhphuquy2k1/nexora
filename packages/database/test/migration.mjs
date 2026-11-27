@@ -1025,6 +1025,41 @@ try {
     assert.deepEqual(f.proconfig, ["search_path=pg_catalog"]);
     assert.equal(f.exposed, false);
   }
+  step = "CREDENTIAL_PURPOSE_UPGRADE";
+  // The fixture has already proved 19→20 preservation. Now prove 20→21 separately.
+  const purposesMigration = "20261127000000_carrier_credential_purposes";
+  await cp(
+    resolve("prisma/migrations", purposesMigration),
+    join(work, "prisma/migrations", purposesMigration),
+    { recursive: true },
+  );
+  command(url.toString(), config, ["migrate", "deploy"]);
+  for (const [table, before] of Object.entries(beforeRuntime))
+    assert.deepEqual(
+      await db.$queryRawUnsafe(`SELECT * FROM ${table} ORDER BY 1`),
+      before,
+    );
+  const purposeFunctions = await db.$queryRawUnsafe(
+    "SELECT proname,prosecdef,proconfig,has_function_privilege('public',p.oid,'EXECUTE') AS exposed FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND (p.proname LIKE 'sync_carrier_%' OR p.proname LIKE 'carrier_http_%' OR p.proname LIKE '_sync_carrier_%' OR p.proname LIKE '_uniship_http_%')",
+  );
+  assert.equal(purposeFunctions.length, 16);
+  assert.equal(
+    purposeFunctions.some((f) => f.proname === "sync_carrier_load"),
+    false,
+  );
+  for (const name of [
+    "sync_carrier_load_token",
+    "sync_carrier_authorize_recovery",
+    "sync_carrier_load_recovery_password",
+    "_sync_carrier_recovery_context",
+    "_sync_carrier_token_context",
+  ])
+    assert.ok(purposeFunctions.some((f) => f.proname === name));
+  for (const f of purposeFunctions) {
+    assert.equal(f.prosecdef, true);
+    assert.deepEqual(f.proconfig, ["search_path=pg_catalog"]);
+    assert.equal(f.exposed, false);
+  }
   step = "REPEAT_AND_DRIFT";
   const sessionsBeforeRepeat = await db.session.findMany({
     orderBy: { id: "asc" },

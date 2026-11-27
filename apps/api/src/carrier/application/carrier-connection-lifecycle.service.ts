@@ -190,9 +190,22 @@ export class CarrierConnectionLifecycleService {
   ) {
     signal.throwIfAborted();
     // Ownership before rate admission/provider requests; a foreign UUID stays 404.
-    await this.store.read(userId, id);
+    const initial = await this.store.read(userId, id);
     this.admission.admit(userId);
-    const snapshot = await this.store.claim(userId, id);
+    try {
+      await this.credentials.authorizeReconnect(userId, initial);
+    } catch (error) {
+      await this.auditFailure(
+        userId,
+        id,
+        CarrierAuditType.RECONNECT,
+        error,
+        correlationId,
+      );
+      throw error;
+    }
+    signal.throwIfAborted();
+    const snapshot = await this.store.claimReconnect(userId, id, initial);
     try {
       const identifier = snapshot.connection.loginIdentifier;
       if (!identifier)

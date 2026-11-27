@@ -17,17 +17,24 @@ import {
   CarrierAuditReason,
 } from "../domain/security-audit";
 import { UnishipAdapter } from "./uniship/uniship-adapter";
-export interface AuthorizedCredentials {
-  loginIdentifier: string | null;
-  password?: EncryptedSecret;
-  token?: EncryptedSecret;
+export interface AuthorizedToken {
+  readonly token?: EncryptedSecret;
 }
-/** Infrastructure-only reader reloads ACTIVE ownership, epoch/version and stored ciphertext. */
+export interface AuthorizedRecoveryPassword {
+  readonly loginIdentifier: string | null;
+  readonly password?: EncryptedSecret;
+}
+/** Infrastructure-only reader rechecks current scope separately for each purpose. */
 export interface AuthorizedCredentialReader {
-  load(
+  authorizeRecovery(userId: string, snapshot: LifecycleSnapshot): Promise<void>;
+  loadToken(
     userId: string,
     snapshot: LifecycleSnapshot,
-  ): Promise<AuthorizedCredentials>;
+  ): Promise<AuthorizedToken>;
+  loadRecoveryPassword(
+    userId: string,
+    snapshot: LifecycleSnapshot,
+  ): Promise<AuthorizedRecoveryPassword>;
 }
 export interface CarrierOutboundAuthority {
   context(
@@ -54,6 +61,19 @@ export class CarrierCredentialVault implements CarrierCredentialPort {
   ) {}
   private aad(userId: string, id: string, type: SecretType) {
     return `${id}:${userId}:${CarrierProvider.UNISHIP}:${type}`;
+  }
+  async authorizeReconnect(
+    userId: string,
+    snapshot: LifecycleSnapshot,
+  ): Promise<void> {
+    const identifier = snapshot.connection.loginIdentifier;
+    if (!identifier) throw new LifecycleFailure(LifecycleCode.REAUTH_REQUIRED);
+    this.outbound?.context(
+      userId,
+      snapshot.connection.id,
+      identifier,
+      snapshot,
+    );
   }
   async acquireNew(
     userId: string,
@@ -103,7 +123,7 @@ export class CarrierCredentialVault implements CarrierCredentialPort {
     execution?: CarrierCredentialExecution,
   ): Promise<SealedCandidate> {
     execution?.signal?.throwIfAborted();
-    await this.reader.load(userId, snapshot);
+    await this.reader.authorizeRecovery(userId, snapshot);
     execution?.signal?.throwIfAborted();
     try {
       // This is its own committed insert, before decrypt. A later rollback must not remove it.
@@ -120,7 +140,7 @@ export class CarrierCredentialVault implements CarrierCredentialPort {
       throw new LifecycleFailure(LifecycleCode.AUDIT_UNAVAILABLE);
     }
     execution?.signal?.throwIfAborted();
-    const stored = await this.reader.load(userId, snapshot);
+    const stored = await this.reader.loadRecoveryPassword(userId, snapshot);
     execution?.signal?.throwIfAborted();
     if (!stored.password || !stored.loginIdentifier)
       throw new LifecycleFailure(LifecycleCode.REAUTH_REQUIRED);
@@ -146,7 +166,7 @@ export class CarrierCredentialVault implements CarrierCredentialPort {
     signal?: AbortSignal,
   ): Promise<T> {
     signal?.throwIfAborted();
-    const stored = await this.reader.load(userId, snapshot);
+    const stored = await this.reader.loadToken(userId, snapshot);
     signal?.throwIfAborted();
     if (!stored.token) throw new LifecycleFailure(LifecycleCode.TOKEN_REJECTED);
     const token = this.cipher.decrypt(

@@ -5,11 +5,11 @@ export const RUNTIME_ROLE = "nexora_app";
 const SYNC_LOCK_FUNCTIONS =
   "public.sync_lock_user(uuid),public.sync_lock_epoch(uuid),public.sync_lock_connection(uuid,uuid),public.sync_lock_customer(uuid,uuid)";
 const CARRIER_WORKER_FUNCTIONS =
-  "public.sync_carrier_snapshot(uuid,uuid,integer,uuid),public.sync_carrier_claim(uuid,uuid,integer,uuid,integer),public.sync_carrier_load(uuid,uuid,integer,uuid,integer),public.sync_carrier_complete(uuid,uuid,integer,uuid,integer,varchar,text,varchar,varchar,integer,text,varchar,varchar,integer,timestamptz,uuid),public.sync_carrier_fail(uuid,uuid,integer,uuid,integer,varchar),public.sync_carrier_http_reserve(uuid,uuid,integer,uuid,uuid),public.sync_carrier_http_finish(uuid,uuid,integer,uuid,uuid,integer)";
+  "public.sync_carrier_snapshot(uuid,uuid,integer,uuid),public.sync_carrier_claim(uuid,uuid,integer,uuid,integer),public.sync_carrier_load_token(uuid,uuid,integer,uuid,integer),public.sync_carrier_authorize_recovery(uuid,uuid,integer,uuid,integer),public.sync_carrier_load_recovery_password(uuid,uuid,integer,uuid,integer),public.sync_carrier_complete(uuid,uuid,integer,uuid,integer,varchar,text,varchar,varchar,integer,text,varchar,varchar,integer,timestamptz,uuid),public.sync_carrier_fail(uuid,uuid,integer,uuid,integer,varchar),public.sync_carrier_http_reserve(uuid,uuid,integer,uuid,uuid),public.sync_carrier_http_finish(uuid,uuid,integer,uuid,uuid,integer)";
 const CARRIER_API_RATE_FUNCTIONS =
   "public.carrier_http_reserve(uuid,uuid,uuid),public.carrier_http_finish(uuid,uuid,uuid,integer)";
 const CARRIER_PRIVATE_FUNCTIONS =
-  "public._sync_carrier_context(uuid,uuid,integer,uuid),public._uniship_http_reserve(uuid,uuid,uuid),public._uniship_http_finish(uuid,uuid,uuid,integer)";
+  "public._sync_carrier_context(uuid,uuid,integer,uuid),public._sync_carrier_token_context(uuid),public._sync_carrier_recovery_context(uuid,uuid,integer,uuid,integer),public._uniship_http_reserve(uuid,uuid,uuid),public._uniship_http_finish(uuid,uuid,uuid,integer)";
 export const SYNC_GRANTS = {
   sync_job_seen_pages: ["SELECT", "INSERT", "DELETE"],
   shipments: ["SELECT"],
