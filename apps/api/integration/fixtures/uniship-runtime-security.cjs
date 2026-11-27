@@ -248,6 +248,11 @@ module.exports = async function verifyWorkerSecurity(t, { db, workerUrl }) {
             );
             assert.equal(Object.hasOwn(password, "token"), false);
             assert.ok(password.password);
+            // Ordinary lifecycle equality cannot bypass the recovery-specific proof.
+            await db.syncJob.update({
+              where: { id: f.job.id },
+              data: { lifecycle_version: claimed.version },
+            });
             await mutate(f);
             await assert.rejects(
               f.store.authorizeRecovery(f.owner.id, claimed),
