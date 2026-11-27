@@ -12,7 +12,7 @@ Compose supplies defaults and three idempotently generated database credentials 
 | NODE_ENV                | development/test/production, runtime production                                                                                                                                                                                                                                                                                                                                                             |
 | API_DOCS_ENABLED        | API, explicit true/false, defaults false                                                                                                                                                                                                                                                                                                                                                                    |
 | API_INTERNAL_URL        | Next.js server (`lib/api/config.ts`); required origin URL without path/query/fragment; supplied explicitly by Compose (`http://api:4000`) and `.env.example`; no application-level fallback; never NEXT_PUBLIC                                                                                                                                                                                              |
-| ALLOWED_HOSTS           | LOCAL Web ingress middleware: optional comma-separated host allowlist (defaults: localhost, 127.0.0.1, 0.0.0.0)                                                                                                                                                                                                                                                                                             |
+| ALLOWED_HOSTS           | LOCAL Web ingress middleware: optional comma-separated host allowlist (defaults: localhost, 127.0.0.1, 0.0.0.0); forwarded by base/release Compose and inherited by development; absent/empty preserves parser defaults                                                                                                                                                                                     |
 | ALLOWED_ORIGINS         | LOCAL API: optional comma-separated exact HTTP(S) origins. Replaces defaults; invalid values fail startup. Without it, trusted HTTP localhost/127.0.0.1 origins derive from WEB_PORT.                                                                                                                                                                                                                       |
 | UNISHIP_API_URL         | API and Sync Worker; optional base URL for shared Carrier HTTP client (not wired to authentication) (local mock provider in tests; application default remains unconfigured; `.env.example` actively supplies `https://kh.uniship.vn`). Never exposed to client. Forwarded by Compose (`"${UNISHIP_API_URL:-}"`). Empty string normalizes to `undefined` so omitted configuration never breaks API startup. |
 | UNISHIP_LIVE_AUTHORIZED | API and Sync Worker; explicit boolean flag (`true`/`false`, default `false`). External live is hard-closed in PR4 even when true; future reviewed verified authorization evidence plus runtime opt-in is required. Forwarded by Compose (`"${UNISHIP_LIVE_AUTHORIZED:-false}"`).                                                                                                                            |
@@ -157,10 +157,29 @@ SYNC_POLL_MS=1000, SYNC_MAX_ATTEMPTS=5; retention remains empty with no cleanup.
 Host-native parser semantics remain stricter: explicit empty enabled/tuning is invalid,
 while absent tuning defaults and absent/empty retention disables cleanup.
 
-Turbo remains in strict environment mode. Only @nexora/api#dev passes through
-CARRIER_KEYRING_JSON/CARRIER_ACTIVE_KEY_VERSION, UNISHIP_API_URL/
-UNISHIP_LIVE_AUTHORIZED/UNISHIP_ACTIVATION_POLICY_JSON/
-UNISHIP_RECONCILIATION_POLICY_JSON and the five Sync variables above, plus
-TSC_WATCHFILE/TSC_WATCHDIRECTORY. Shared/database dev receive only these two watch
-settings. Keys are not globalEnv, build/cache inputs, Web or SDK environment.
-Identity custody remains API/authorized CLI only; no Worker Identity key.
+Turbo remains in strict environment mode. NEXORA-065 extends @nexora/api#dev to
+exactly17 task-scoped pass-through names: IDENTITY_KEYRING_JSON,
+IDENTITY_ACTIVE_KEY_VERSION, CARRIER_KEYRING_JSON, CARRIER_ACTIVE_KEY_VERSION,
+UNISHIP_API_URL, UNISHIP_LIVE_AUTHORIZED, UNISHIP_ACTIVATION_POLICY_JSON,
+UNISHIP_RECONCILIATION_POLICY_JSON, SYNC_ENABLED, SYNC_LEASE_SECONDS, SYNC_POLL_MS,
+SYNC_MAX_ATTEMPTS, SYNC_RESOLVED_RETENTION_DAYS, WEB_PORT, ALLOWED_ORIGINS,
+TSC_WATCHFILE and TSC_WATCHDIRECTORY. Identity and Origin settings must reach the
+actual HTTP server child, not merely its container or direct CLI. Shared/database
+dev receive only the two watch settings. Keys are not globalEnv, build/cache inputs,
+Web or SDK environment. Identity custody remains API/authorized CLI only; Worker
+retains only the unchanged Carrier/Uniship/Sync settings, never Identity keys.
+
+Base/release Web forwards ALLOWED_HOSTS and development inherits it; absent/empty
+resolves to an empty ENV value and the existing LOCAL parser defaults, not an empty
+allowlist. Explicit custom hostname lists replace defaults, so include intended
+loopback hosts for health/client access. API WEB_PORT/ALLOWED_ORIGINS forwarding is
+unchanged in Compose, now retained through strict Turbo. Blank ALLOWED_ORIGINS
+uses derived loopback browser origins at WEB_PORT; an explicit list replaces those
+defaults. Internal Web3000 is never inferred as a browser Origin. PUBLIC_HTTPS still
+requires explicit approved Host/Origin settings; LOCAL defaults cannot replace them.
+
+For host-native Turbo, supply values securely in its parent environment; Turbo does
+not load .env. Restart development processes after Turbo/config changes; recreate
+Compose containers for changed environment. A container restart cannot import new
+parent ENV. Preserve DB/key material and MFA enrollment; this fix never requires
+rotation, reset or re-enrollment.

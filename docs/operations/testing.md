@@ -101,7 +101,7 @@ Required evidence remains exact-final-HEAD full Foundation CI: pinned frozen ins
 
 Admission keys are explicitly namespaced as login:<username>, mfa:<user UUID> and setup:<token hash>. A valid username resembling an MFA key cannot collide with or clear another account's verification failures. NEXORA-022 test-first regression reproduces the collision and verifies the sixth bad MFA attempt remains429 after a successful password login with such a username.
 
-The dev HMR smoke first proves a freshly CLI-provisioned but unenrolled ADMIN gets403 MFA_ENROLLMENT_REQUIRED with no cookie, then explicitly changes only that disposable fixture to OPERATOR for the preserved one-step HMR/workspace assertions. This grants no administrative bypass; actual ADMIN MFA is covered by runtime/browser smoke. Browser privacy checks cover MFA setup/recovery secrets in request URLs/Referer, login SSR, browser storage/location and captured server logs; pending/session cookies remain HttpOnly. No captured secret values are printed.
+The dev HMR smoke retains the freshly CLI-provisioned unenrolled ADMIN403 MFA_ENROLLMENT_REQUIRED/no-cookie assertion and later converts only that disposable fixture to OPERATOR for preserved HMR/workspace assertions. NEXORA-065 adds a separate CLI-provisioned/enrolled ADMIN before that conversion: actual Turbo HTTP TOTP, fresh-challenge replay and restart/assurance pass through Web proxy. This grants no administrative bypass; standard runtime/browser MFA coverage remains intact. Browser privacy checks cover MFA setup/recovery secrets in request URLs/Referer, login SSR, browser storage/location and captured server logs; pending/session cookies remain HttpOnly. No captured secret values are printed.
 
 ## Pending MFA lifecycle follow-up — NEXORA-023
 
@@ -1563,3 +1563,59 @@ Record baseline/candidate/harness/source/merge revisions and exact commands, tim
 role/environment, run/job/attempt and sanitized assertions. Historical CI is never
 new candidate proof. Canonical task table uses PASS/FAIL; unexecuted checks and
 external live gates remain adjacent limitations with concrete prerequisites.
+
+## Runtime environment and development MFA regression — NEXORA-065
+
+`scripts/runtime-environment.test.mjs` replaces the provider-only named root test,
+using JSON.parse plus actual pinned Turbo dry JSON. It checks exact17 API-dev
+names, exact watch-only tasks, strict mode/global/task/cache settings and custody.
+The independent expected constants live only in
+`scripts/helpers/runtime-environment-contract.mjs`; implementation never imports
+this test module. Existing root suffix discovery runs it through pnpm test/quality.
+
+`scripts/runtime-compose-contract.mjs` replaces the earlier provider-only verifier;
+`database-runtime-smoke.mjs` calls verifyRuntimeComposeEnvironment on the host.
+Isolated env-file/minimal parent fixtures separately cover LOCAL and public:
+default/empty/custom Host/Origin, nonempty independent Identity/Carrier values,
+unchanged four Sync cases, no keyrings in tooling/Web/build, exact dev Turbo
+command, and required public fields failing closed. Release templates are config
+proof only; no images are pulled/built/published to claim released runtime proof.
+
+`dev-runtime-environment-probe.mjs` keeps /proc socket-inode/PID/watch-supervisor
+selection and mapped-owner dev-entrypoint execution, now comparing17 API ENV names
+and the unchanged eleven Worker shared names. It verifies actual restricted DB role
+and Worker Identity absence; only field names, booleans and fixed categories escape.
+No production debug endpoint or SYS_PTRACE capability is used.
+
+`dev-smoke.sh` supplies independent CSPRNG Identity keys under umask077, owns an
+allocated nondefault loopback browser port, and retains every058 Uniship/Sync/Carrier
+assertion. `mfa-enrollment-tty-smoke.py --development <private-fixture>` selects only
+the fixed dev Compose/mapped entrypoint/compiled CLI path; the standard invocation
+and full PTY password/backspace/cancel/EOF/rollback/commit-before-codes/duplicate/
+restoration cases remain. Fixture mode0600 is set at initial exclusive open.
+
+The single independent JS TOTP implementation is extracted from browser smoke to
+`scripts/helpers/totp.mjs`; original offset behavior and standard browser checks
+remain. `dev-mfa-http-smoke.mjs` uses private fixture files and existing safe HTTP
+checks, never secret argv or output. It reads last_used_step and polls boundedly
+for a later current step; no fixed30s guess, replay-state write, recovery fallback,
+clock change or enrollment reset. Actual password challenge/cookie/no session/admin
+denial precede TOTP success, consumed pending challenge and persisted ADMIN+MFA.
+Replay uses a fresh valid pending challenge and the same successful code still in
+window, verifies no new session and unchanged replay state. API restart retains
+keys/enrollment and checks old session plus fresh TOTP/admin assurance; API ENV is
+re-probed. Explicit Origin changes recreate API and re-probe, rather than assuming
+restart imports changed ENV. Raw Host transport reuses smoke-checks hostStatus.
+
+Derived custom-port Origin and explicit replacement are separate from MFA causal
+A/B, which uses a baseline-valid Origin. Unknown/missing/null/malformed/default-old/
+internal-port origins and unlisted Host remain denied by existing guards. Existing
+unenrolled ADMIN, OPERATOR/HMR/shared/frozen-drift/data/restoration/cleanup coverage
+stays. Failure paths withhold raw service/PTY/HTTP/ENV dumps and show safe checks and
+container states; private fixtures are removed on success/failure/signals.
+
+A/B distinguishes static/resolved, actual host process, host-native real CLI/PTY/
+Web-proxy evidence, canonical Docker, hosted source/merge/attempt and production
+acceptance. Missing prerequisites never count as causal RED. Local lack of Docker
+application images/disk remains NOT RUN, not simulated canonical PASS. Existing
+Foundation runs the expanded dev smoke without workflow or suite-budget changes.

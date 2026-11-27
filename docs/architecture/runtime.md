@@ -207,8 +207,18 @@ admin credentials or uploads volume is needed. API/Worker policy and Carrier key
 versions must be deployed homogeneously after drain; configuration is frozen at boot.
 Worker stops and awaits its existing loop before runtime clients disconnect.
 
-NEXORA-058 v3 uses task-scoped strict Turbo pass-through for API development only;
-shared/database tasks receive watch settings only. Standard/dev/release Compose
+NEXORA-065 completes058's task-scoped strict Turbo API-dev pass-through: the two
+Identity keys and WEB_PORT/ALLOWED_ORIGINS join all thirteen058 variables, for17
+names. Shared/database tasks still receive only the two watch settings. Task-scoped
+pass-through controls child ENV; it is not absolute isolation from a compromised
+process, host or Docker operator. Standard/dev/release Compose
 share Carrier/Uniship and Sync settings. Actual development verification reads the
 HTTP-listening server child and Worker child process environments, not exec-shell
 environment. Identity remains API/authorized CLI only, and Web receives no keys.
+
+Development ADMIN MFA uses the same application/keyring/session assurance contract
+as standard runtime. The actual Turbo HTTP child receives Identity keys, while
+trusted CLI runs directly with API custody. Web LOCAL Host forwarding is supplied
+by base/release Compose and inherited by dev. PUBLIC_HTTPS profile behavior and
+required configuration remain unchanged. Configuration changes require relevant
+process restart/container recreation; never reset enrollment or key material.

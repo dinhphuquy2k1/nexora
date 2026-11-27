@@ -1,8 +1,8 @@
 # NEXORA-065 — Runtime environment consistency and development MFA
 
-Status: PLANNED
-Capability: PLANNED
-Verification: NOT VERIFIED
+Status: VERIFICATION PENDING
+Capability: IMPLEMENTED
+Verification: PARTIALLY VERIFIED
 
 ## Scope
 
@@ -76,8 +76,29 @@ pnpm docs:check, test:docs, preflight:check, test:preflight; raw SHA binding.
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
 | Exact baseline and scope inspection | Fetched main1cd46d191ab5373703b4245baad33d03a0b33112; PR64 merged source49dc3d2; no newer main commits or open overlapping PRs; registry max064; current13 API variables/four missing and absent Web Host forwarding inspected | 2026-11-27 | PASS   |
 
-No implementation verification yet. Baseline/main merge closure evidence belongs
+Implementation and local verification are recorded below. Baseline/main merge closure evidence belongs
 in completed058; external authorization belongs in066, never inferred from CI.
 Local Docker application gates NOT RUN initially: missing application/tooling images
 and about1GiB disk, versus documented20GiB prerequisite. Local Node24.22.1 differs
 from pinned canonical24.19.0; preserve exact labels and hosted verification.
+
+## Implementation verification
+
+[Detailed A/B, source/hash/timestamp and limitation record](../evidence/NEXORA-065/implementation-verification.md).
+The observed baseline MFA error is500 INTERNAL_ERROR; no CryptoFailure stack was
+captured. Candidate configuration-only change fixes the actual proxy/TOTP flow.
+Root/task-specific helpers consolidate existing058 implementations; all production
+application/DB/SDK/Sync/Carrier/security algorithms and workflow topology stay unchanged.
+
+| Claim                    | Evidence                                                                                                                                                                                      | Date       | Result |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Causal baseline defects  | Exact1cd46d1 runtime/config with same harness: four child ENV missing, actual CLI enrollment then valid-Origin TOTP500/no session, custom Host400 and incorrect custom/explicit Origin policy | 2026-11-27 | FAIL   |
+| Candidate runtime/config | Turbo2/2, resolved Compose expanded PASS; actual host Turbo API/proxy MFA/replay/restart/assurance and custom/explicit Origin/Host PASS; canonical Docker separately pending                  | 2026-11-27 | PASS   |
+| Quality and genuine MFA  | pnpm quality932 tests/typecheck/contracts/build PASS; native signed-owned PostgreSQL MFA22/22; test:lint, docs10, preflight24 PASS                                                            | 2026-11-27 | PASS   |
+| Independent review       | Full source/plan/A-B review: no P1/P2/P3; confirms evidence limits and unchanged production scope                                                                                             | 2026-11-27 | PASS   |
+
+Remaining verification: final-source hosted Preflight/Foundation. Sync Targeted is
+NOT RUN under unchanged path filter; its product paths are unchanged and signed
+suites remain in Foundation. Local canonical Docker NOT RUN for missing images/
+disk; host evidence is not a substitute. Final CI receipts are in the new PR
+description. No live traffic/production activation or merge; external gates stay066.
