@@ -228,10 +228,15 @@ function assertDesignSystemContracts(files) {
     files.retail,
     /\.colPickerSearchIcon\s*\{[^}]*width:\s*var\(--icon-control-default\);[^}]*height:\s*var\(--icon-control-default\);/s,
   );
-  const pickerInput = files.retail.match(/\.colPickerSearchInput\s*\{([^}]+)\}/);
+  const pickerInput = files.retail.match(
+    /\.colPickerSearchInput\s*\{([^}]+)\}/,
+  );
   assert.ok(pickerInput);
   assert.doesNotMatch(pickerInput[1], /font-size\s*:/);
-  assert.match(pickerInput[1], /padding-left:\s*calc\([^;]*--icon-control-default/s);
+  assert.match(
+    pickerInput[1],
+    /padding-left:\s*calc\([^;]*--icon-control-default/s,
+  );
 
   const segmentedItemMatch = files.selectButton.match(
     /\.segmentedItem\s*\{([^}]+)\}/,

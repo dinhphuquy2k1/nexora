@@ -107,7 +107,9 @@ export async function verifyCustomerReadRaces({
       deviceScaleFactor: 1,
       mobile: false,
     });
-    await evaluate("new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))");
+    await evaluate(
+      "new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))",
+    );
     const skeletonHeight = await evaluate(
       "document.querySelector('main tr[data-skeleton]')?.getBoundingClientRect().height ?? null",
     );

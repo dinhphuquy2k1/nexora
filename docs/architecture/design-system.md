@@ -41,16 +41,16 @@ Tests assert 36/40/48 as owner-defined acceptance values AND dynamically change 
 
 ## Typography, spacing and surfaces
 
-| Role                             | Existing scale & token mapping                                                     |
-| -------------------------------- | ---------------------------------------------------------------------------------- |
-| Page title                       | 2xl (20px) / semibold (600) / 28px (`--type-page-title-size` / `-line-height`)     |
-| Section heading                  | xl (16px) / semibold (600) / normal (24px) (`--type-section-heading-size`)         |
-| Card / drawer heading            | md (14px) / semibold (600) / 20px (`--type-card-heading-size` / `--type-card-heading-line-height`)     |
-| Body                             | md (14px) / normal (400) / normal (21px) (`--type-body-size`)                      |
-| Form label                       | md (14px) / medium (500) / 20px (`--type-label-size` / `--type-label-line-height`) |
-| Button                           | md (14px) / medium (500) / 20px (`--type-button-label-size`; large 16px/500/24px)  |
-| Table body                       | sm (12px) (`--type-table-cell-size: var(--font-size-sm)`), `tabular-nums` numeric  |
-| Caption / table heading / helper | sm (12px) or xs (11px) uppercase `th` with semibold / normal                       |
+| Role                             | Existing scale & token mapping                                                                     |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Page title                       | 2xl (20px) / semibold (600) / 28px (`--type-page-title-size` / `-line-height`)                     |
+| Section heading                  | xl (16px) / semibold (600) / normal (24px) (`--type-section-heading-size`)                         |
+| Card / drawer heading            | md (14px) / semibold (600) / 20px (`--type-card-heading-size` / `--type-card-heading-line-height`) |
+| Body                             | md (14px) / normal (400) / normal (21px) (`--type-body-size`)                                      |
+| Form label                       | md (14px) / medium (500) / 20px (`--type-label-size` / `--type-label-line-height`)                 |
+| Button                           | md (14px) / medium (500) / 20px (`--type-button-label-size`; large 16px/500/24px)                  |
+| Table body                       | sm (12px) (`--type-table-cell-size: var(--font-size-sm)`), `tabular-nums` numeric                  |
+| Caption / table heading / helper | sm (12px) or xs (11px) uppercase `th` with semibold / normal                                       |
 
 Semantic `--type-*` aliases reference the existing scale, not a second font scale. Use canonical weight and line-height variables. Controls share `--control-font-size` (`--type-button-label-size`) and `--control-font-size-large`; headings do not inherit control heights.
 
