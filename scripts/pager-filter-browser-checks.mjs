@@ -369,6 +369,46 @@ try {
       );
       if (screen === "retail") {
         await click('button[aria-label="Tùy chỉnh cột hiển thị"]');
+        const presetStyles = await evaluate(`(()=>{
+          const cs=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--control-size-default'));
+          return [...document.querySelectorAll('[aria-label="Chọn cấu hình cột"] button')].map(b=>({fs:getComputedStyle(b).fontSize,fw:getComputedStyle(b).fontWeight,h:Math.round(b.getBoundingClientRect().height),cs}));
+        })()`);
+        assert.equal(presetStyles.length, 3, "All three presets must exist");
+        for (const p of presetStyles) {
+          assert.equal(
+            p.fs,
+            "11px",
+            "text-actions SelectButton retains compact 11px exception",
+          );
+          assert.equal(
+            p.fw,
+            "500",
+            "text-actions SelectButton retains medium weight 500",
+          );
+          assert.equal(p.h, p.cs);
+        }
+        const pickerSearch = await evaluate(`(()=>{
+          const input=document.querySelector('input[aria-label="Tìm tên cột"]');
+          if(!input)return null;
+          const icon=input.parentElement.querySelector('svg');
+          if(!icon)return null;
+          const root=document.documentElement,t='--icon-control-default';
+          const saved=[root.style.getPropertyValue(t),root.style.getPropertyPriority(t)];
+          const measure=()=>({font:getComputedStyle(input).fontSize,icon:icon.getBoundingClientRect().width,clearance:input.getBoundingClientRect().left+parseFloat(getComputedStyle(input).paddingLeft)-icon.getBoundingClientRect().right});
+          try {
+            const baseline=measure();
+            root.style.setProperty(t,'24px','important');
+            return {baseline,override:measure()};
+          }finally{
+            if(saved[0])root.style.setProperty(t,...saved);else root.style.removeProperty(t);
+          }
+        })()`);
+        assert.ok(pickerSearch, "Actual column picker search required");
+        assert.equal(pickerSearch.baseline.font, "14px");
+        assert.equal(pickerSearch.baseline.icon, 16);
+        assert.equal(pickerSearch.override.icon, 24);
+        assert.ok(pickerSearch.baseline.clearance >= 0);
+        assert.ok(pickerSearch.override.clearance >= 0);
         await snap(`retail-column-picker-${width}`, "[data-retail-fixture]");
         await key("Escape", 27);
       }
@@ -380,6 +420,28 @@ try {
     deviceScaleFactor: 1,
     mobile: false,
   });
+  await visit("/components?controls");
+  const segmented = await evaluate(`(()=>{
+    const buttons=[...document.querySelectorAll('[aria-label="Standard segmented fixture"] button')];
+    const root=document.documentElement,t='--control-font-size-default';
+    const saved=[root.style.getPropertyValue(t),root.style.getPropertyPriority(t)];
+    const measure=()=>buttons.map(b=>({font:getComputedStyle(b).fontSize,weight:getComputedStyle(b).fontWeight,line:getComputedStyle(b).lineHeight}));
+    try {
+      const baseline=measure();
+      root.style.setProperty(t,'16px','important');
+      return {baseline,override:measure()};
+    }finally{
+      if(saved[0])root.style.setProperty(t,...saved);else root.style.removeProperty(t);
+    }
+  })()`);
+  assert.equal(segmented.baseline.length, 2);
+  assert.equal(segmented.override.length, 2);
+  for (const b of segmented.baseline) {
+    assert.deepEqual(b, { font: "14px", weight: "500", line: "20px" });
+  }
+  for (const b of segmented.override) {
+    assert.deepEqual(b, { font: "16px", weight: "500", line: "20px" });
+  }
   await visit("/components?unknown");
   assert.equal(
     await evaluate(

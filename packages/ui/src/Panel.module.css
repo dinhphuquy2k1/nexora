@@ -10,6 +10,7 @@
 .title {
   font-size: var(--type-section-heading-size);
   font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
   color: var(--color-primary, #172b4d);
   margin: 0;
 }

@@ -1,8 +1,8 @@
 # NEXORA-063 — Raw SQL Readability & Lint Enforcement
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope
 
@@ -81,7 +81,7 @@ Documentation Impact: REQUIRED
 - [x] Branch rebuilt cleanly from `origin/main` (`5edbcfe1609562f9eb5b6c156cf5cec68b5b71fa`); `NEXORA-062` closed per §1.7.
 - [x] All production Raw SQL formatted multiline; long/reused queries extracted to `queries/*.queries.ts` with invariant comments; zero ORM conversions or mapper additions.
 - [x] ESLint rules `nexora/no-unsafe-raw-sql` and `nexora/readable-raw-sql` added with passing `pnpm test:lint` and `pnpm lint`.
-- [ ] Normalized SQL parity evidence recorded and all host/CI checks PASS on final HEAD.
+- [x] Normalized SQL parity evidence recorded and all host/CI checks PASS on final HEAD.
 
 ## Evidence
 
@@ -94,3 +94,4 @@ Documentation Impact: REQUIRED
 | Host verification & Rule A test-double fix                                                                       | Updated 2 test doubles in `apps/api/test/sync/capability.test.cjs` (whitespace normalization + `Prisma.Sql` support for `buildAdmitSyncJobQuery`); `format:check`, `lint`, `test:lint` (70/70), `typecheck`, `contracts:check`, `docs:check`, `preflight:check`, `@nexora/api test` (278/278), `build`: PASS                                                         | 2026-11-26 | PASS   |
 | Host `pnpm quality` Linux-only root script tests                                                                 | `docs-check.test.mjs`, `preflight-policy-check.test.mjs`, `provision-cluster-smoke.test.mjs`, `public-authority.test.mjs` failed on Windows host due to `EPERM` symlink / POSIX `SIGKILL` / `bash` (runs in Linux Docker CI)                                                                                                                                         | 2026-11-26 | FAIL   |
 | Hosted CI on `2e28d33` & Rule A `shipment-child-batch.cjs` fix                                                   | `45819094752` (Preflight FAIL: PR body still referenced old task path during push event before REST PATCH), `45819094777` (Sync PG FAIL: `shipment-child-batch.cjs` `$executeRaw` proxy expected array `.join` on `Prisma.Sql` from `shipment-children.queries.ts`). Updated `shipment-child-batch.cjs` to accept `Prisma.Sql` and multiline `INSERT INTO <table> (` | 2026-11-26 | FAIL   |
+| Final green HEAD `a866cce` & PR #62 merge closure (§1.7)                                                         | PR #62 merged to `main` at `c44cf4010fe30a6a7bfe0a3d397e65fb56381e15` (`2026-11-26`); final PR HEAD `a866cce`: Preflight `45820089557` PASS, Optional HTTPS `45820090319` PASS, Sync PG `45820092569` PASS, Foundation `45820089547` PASS; `main` CI: Foundation `45835779887` (job `139964133126`) PASS, Preflight `45835779907` PASS                               | 2026-11-26 | PASS   |

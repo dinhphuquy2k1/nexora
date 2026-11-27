@@ -22,16 +22,47 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
     try{
       for(const [index,size] of ['default','medium','large'].entries()){
         elements.forEach(e=>e.setAttribute('data-size',size));
-        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[32,40,48][index]});
+        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[36,40,48][index]});
         const other=(index+1)%tokens.length;
         root.style.setProperty(tokens[other],'99px','important');
-        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[32,40,48][index]});
+        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[36,40,48][index]});
         if(saved[other][0])root.style.setProperty(tokens[other],...saved[other]);else root.style.removeProperty(tokens[other]);
-        root.style.setProperty(tokens[index],String([36,44,52][index])+'px','important');
-        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[36,44,52][index]});
+        root.style.setProperty(tokens[index],String([40,44,52][index])+'px','important');
+        rows.push({size,heights:elements.map(e=>parseFloat(getComputedStyle(e).height)),expected:[40,44,52][index]});
         if(saved[index][0])root.style.setProperty(tokens[index],...saved[index]);else root.style.removeProperty(tokens[index]);
       }
-      return {present:true,rows,textarea:textarea.rows>=3&&getComputedStyle(textarea).resize==='vertical'&&textarea.getBoundingClientRect().height>32};
+      const fontTokens=['--control-font-size-default','--control-font-size-medium','--control-font-size-large'];
+      const fontSaved=fontTokens.map(t=>[root.style.getPropertyValue(t),root.style.getPropertyPriority(t)]);
+      const typoRows=[];
+      try{
+        for(const [index,size] of ['default','medium','large'].entries()){
+          elements.forEach(e=>e.setAttribute('data-size',size));
+          typoRows.push({
+            size,
+            fonts:elements.map(e=>getComputedStyle(e).fontSize),
+            expectedFont:['14px','14px','16px'][index],
+            buttonWeight:getComputedStyle(button).fontWeight,
+            inputWeight:getComputedStyle(input).fontWeight,
+            buttonLh:getComputedStyle(button).lineHeight,
+            expectedLh:['20px','20px','24px'][index],
+          });
+          root.style.setProperty(fontTokens[index],['15px','15px','18px'][index],'important');
+          typoRows.push({
+            size,
+            fonts:elements.map(e=>getComputedStyle(e).fontSize),
+            expectedFont:['15px','15px','18px'][index],
+            buttonWeight:getComputedStyle(button).fontWeight,
+            inputWeight:getComputedStyle(input).fontWeight,
+            buttonLh:getComputedStyle(button).lineHeight,
+            expectedLh:['20px','20px','24px'][index],
+          });
+          if(fontSaved[index][0])root.style.setProperty(fontTokens[index],...fontSaved[index]);else root.style.removeProperty(fontTokens[index]);
+        }
+      }finally{
+        fontTokens.forEach((t,i)=>fontSaved[i][0]?root.style.setProperty(t,...fontSaved[i]):root.style.removeProperty(t));
+      }
+      const taBaseHeight=textarea.getBoundingClientRect().height;
+      return {present:true,rows,typoRows,textarea:textarea.rows>=3&&getComputedStyle(textarea).resize==='vertical'&&taBaseHeight>=78};
     }finally{
       elements.forEach((e,i)=>attrs[i]===null?e.removeAttribute('data-size'):e.setAttribute('data-size',attrs[i]));
       tokens.forEach((t,i)=>saved[i][0]?root.style.setProperty(t,...saved[i]):root.style.removeProperty(t));
@@ -47,7 +78,86 @@ export async function verifyCustomerControls({ send, evaluate, checks }) {
         row.expected,
         `real ${row.size} height and runtime override`,
       );
-  assert.equal(sizing.textarea, true, "multiline Textarea rows and resize");
+  for (const row of sizing.typoRows) {
+    for (const font of row.fonts)
+      assert.equal(
+        font,
+        row.expectedFont,
+        `real ${row.size} font-size and runtime override`,
+      );
+    assert.equal(row.buttonWeight, "500", "Button weight must remain 500");
+    assert.equal(row.inputWeight, "400", "Input weight must remain 400");
+    assert.equal(
+      row.buttonLh,
+      row.expectedLh,
+      `Button line-height for ${row.size}`,
+    );
+  }
+  assert.equal(
+    sizing.textarea,
+    true,
+    "multiline Textarea rows and >= 78px 3-line minimum",
+  );
+  checks.step("CUSTOMER_TEXTAREA_VARIANTS_AND_HEADING_ISOLATION");
+  const multiline = await evaluate(`(()=>{
+    const textarea=document.querySelector('dialog[open] textarea');
+    const heading=document.querySelector('dialog[open] h2');
+    if(!textarea||!heading)return null;
+    const root=document.documentElement;
+    const attrs=['data-size','rows','style'].map(t=>[t,textarea.getAttribute(t)]);
+    const tokens=['--control-line-height','--control-line-height-default','--control-line-height-medium','--control-line-height-large'];
+    const saved=tokens.map(t=>[root.style.getPropertyValue(t),root.style.getPropertyPriority(t)]);
+    const measure=()=>{
+      const s=getComputedStyle(textarea);
+      const padding=parseFloat(s.paddingTop)+parseFloat(s.paddingBottom);
+      const border=parseFloat(s.borderTopWidth)+parseFloat(s.borderBottomWidth);
+      return {height:textarea.getBoundingClientRect().height,min:parseFloat(s.minHeight),line:parseFloat(s.lineHeight),font:parseFloat(s.fontSize),padding,border};
+    };
+    try{
+      const headingBefore=getComputedStyle(heading).lineHeight;
+      root.style.setProperty(tokens[0],'23px','important');
+      const headingAfter=getComputedStyle(heading).lineHeight;
+      if(saved[0][0])root.style.setProperty(tokens[0],...saved[0]);else root.style.removeProperty(tokens[0]);
+      const results=[];
+      for(const [i,size] of ['default','medium','large'].entries()){
+        textarea.setAttribute('data-size',size);
+        for(const rows of [1,2,3,6]){
+          textarea.rows=rows;
+          textarea.style.removeProperty('height');
+          const baseline=measure();
+          textarea.style.height='0px';
+          const floor=measure();
+          root.style.setProperty(tokens[i+1],'28px','important');
+          const override=measure();
+          if(saved[i+1][0])root.style.setProperty(tokens[i+1],...saved[i+1]);else root.style.removeProperty(tokens[i+1]);
+          results.push({size,rows,baseline,floor,override});
+        }
+      }
+      return {headingBefore,headingAfter,results};
+    }finally{
+      for(const [t,v] of attrs)if(v===null)textarea.removeAttribute(t);else textarea.setAttribute(t,v);
+      tokens.forEach((t,i)=>saved[i][0]?root.style.setProperty(t,...saved[i]):root.style.removeProperty(t));
+    }
+  })()`);
+  assert.ok(multiline, "Actual Textarea and drawer heading required");
+  assert.equal(multiline.headingBefore, "20px");
+  assert.equal(multiline.headingAfter, multiline.headingBefore);
+  assert.equal(multiline.results.length, 12);
+  for (const { size, rows, baseline, floor, override } of multiline.results) {
+    assert.equal(baseline.font, size === "large" ? 16 : 14);
+    assert.equal(baseline.line, size === "large" ? 24 : 20);
+    assert.ok(baseline.height >= rows * baseline.line + baseline.padding);
+    assert.equal(override.line, 28);
+    if (rows >= 3) {
+      assert.equal(floor.min, 3 * floor.line + floor.padding + floor.border);
+      assert.ok(floor.height >= floor.min);
+      assert.equal(
+        override.min,
+        3 * override.line + override.padding + override.border,
+      );
+      assert.ok(override.height >= override.min);
+    }
+  }
   checks.step("CUSTOMER_CONTROL_STATE_PRECEDENCE");
   const states = await evaluate(`(async()=>{
     const elements=[document.querySelector('dialog[open] input[name="name"]'),document.querySelector('dialog[open] textarea')];

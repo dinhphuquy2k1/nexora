@@ -10,6 +10,7 @@ body {
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: var(--type-body-size);
+  font-weight: var(--font-weight-normal);
   line-height: var(--line-height-normal);
   -webkit-font-smoothing: antialiased;
 }
@@ -54,16 +55,17 @@ a {
 
 h1 {
   font-size: var(--type-page-title-size);
-  line-height: var(--line-height-tight);
+  line-height: var(--type-page-title-line-height);
   letter-spacing: -0.3px;
-  font-weight: 700;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-primary);
   margin: 0 0 8px;
 }
 
 h2 {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-size: var(--type-section-heading-size);
+  line-height: var(--line-height-normal);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-primary);
   margin: 0 0 10px;
 }

@@ -1,6 +1,6 @@
 # Nexora Design System
 
-This document owns shared frontend visual contracts. [Frontend architecture](frontend.md) owns routes/data/server boundaries, [Reusable Components](reusable-components.md) owns exported APIs and actual consumers, and [Project Rules](../ai/PROJECT_RULES.md) owns mandatory reuse. The design architecture is governed jointly by the approved [v3 design](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md) (governing shared controls, 32px standard sizing, typography scale, spacing, 9-column customer table layout, and 5-row skeleton) and the [v4 color policy](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-color-policy-m2-v4.md) (governing the canonical color system and palette fidelity, which supersedes prior conflicting WCAG AA contrast merge gates on Brand Orange `#F58A24` and White text while strictly preserving all non-color accessibility standards); execution and remaining verification belong to [NEXORA-031](../tasks/completed/NEXORA-031-full-frontend-migration.md).
+This document owns shared frontend visual contracts. [Frontend architecture](frontend.md) owns routes/data/server boundaries, [Reusable Components](reusable-components.md) owns exported APIs and actual consumers, and [Project Rules](../ai/PROJECT_RULES.md) owns mandatory reuse. **Current control sizing and typography contracts are governed by [NEXORA-064 Design Snapshot v2](../tasks/design-reviews/NEXORA-064-rev-2026-11-26-design-system-refinement-v2.md) as amended by [v3](../tasks/design-reviews/NEXORA-064-rev-2026-11-27-design-system-refinement-v3.md)** (which supersedes prior `NEXORA-031` `32px` default sizing, `14/16/18px` icons, `13px` control font, `600` button weight, and Login/MFA/Setup `32px` defaults while preserving `12px` table density and the v4 canonical color policy); historical provenance remains in the immutable [v3 design](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-design-system-m2-v3.md) and [v4 color policy](../tasks/design-reviews/NEXORA-031-rev-2026-10-26-color-policy-m2-v4.md) snapshots ([NEXORA-031](../tasks/completed/NEXORA-031-full-frontend-migration.md)).
 
 ## Ownership and token layers
 
@@ -12,13 +12,13 @@ Use existing Vanilla CSS Modules, local Inter and neutral @nexora/ui components.
 
 ## Controls and public APIs
 
-| size                        | Height/min-height/interactive target | Inline padding | Icon | Checkbox indicator |
-| --------------------------- | ------------------------------------ | -------------- | ---- | ------------------ |
-| default, including omission | 32px                                 | 12px           | 14px | 16px               |
-| medium                      | 40px                                 | 16px           | 16px | 18px               |
-| large                       | 48px                                 | 20px           | 18px | 20px               |
+| size                        | Height/min-height/interactive target | Inline padding | Icon | Checkbox indicator | Font size | Line height |
+| --------------------------- | ------------------------------------ | -------------- | ---- | ------------------ | --------- | ----------- |
+| default, including omission | 36px                                 | 12px           | 16px | 16px               | 14px      | 20px        |
+| medium                      | 40px                                 | 16px           | 18px | 18px               | 14px      | 20px        |
+| large                       | 48px                                 | 20px           | 20px | 20px               | 16px      | 24px        |
 
-Button, TextInput, Select, Textarea and Checkbox accept size="default"|"medium"|"large" and React19 native refs. Input/Select omit conflicting numeric native size; no current numeric-size consumer exists. All modules, including Login/MFA/Setup, use32px by default. No legacy44px fallback or Customer28px density. Decorative logos/avatars and container/navigation geometry have separate semantic roles.
+Button, TextInput, Select, Textarea and Checkbox accept size="default"|"medium"|"large" and React19 native refs. Input/Select omit conflicting numeric native size; no current numeric-size consumer exists. Login, MFA, and Setup primary form controls use `size="large"` (`48px`); standard modules use `default` (`36px`). No legacy 44px fallback or Customer 28px density. Decorative logos/avatars and container/navigation geometry have separate semantic roles.
 
 ```tsx
 <Button>Thêm khách hàng</Button>
@@ -27,29 +27,32 @@ Button, TextInput, Select, Textarea and Checkbox accept size="default"|"medium"|
 <Textarea rows={6} />
 ```
 
-Button variants primary(default), secondary, ghost and emphasis share size/state/focus/disabled behavior. Labels stay single-line within the selected fixed height; consuming action/feedback groups wrap between controls rather than wrapping a label inside32px. icon gives a square target; consumers supply an accessible name. Real navigation stays a real Link; buttonClassName shares presentation with data-size without changing link semantics.
+Button variants primary(default), secondary, ghost and emphasis share size/state/focus/disabled behavior, with button `font-weight: 500` (`--font-weight-medium`) and input/textarea `font-weight: 400` (`--font-weight-normal`). Labels stay single-line within the selected fixed height; consuming action/feedback groups wrap between controls rather than wrapping a label inside 36px. `icon` gives a square target; consumers supply an accessible name. Real navigation stays a real Link; `buttonClassName` shares presentation with `data-size` without changing link semantics (except documented `26px` Customer `.detailLink` dense-table action).
 
-Textarea shares font, padding, radius and states, defaults rows3, honors explicit rows and vertical resize, and retains a multiline minimum; it is never forced to32px tall. Checkbox's label is the interactive target; indicator dimensions are separate. One-line native Input types reuse TextInput; no speculative DatePicker, Radio, Switch, Combobox or multi-select framework. Native multiple Select remains auto-height, not a32px listbox.
+Textarea shares font, padding, radius and states, defaults rows3, honors explicit `rows` (including `rows={1}` and `rows={2}`) and vertical resize, and enforces a three-line minimum (`calc(var(--_control-line-height) * 3 + var(--_control-padding-y) * 2 + 2px)` = `78px` default / `86px` medium / `106px` large) for `.textarea:not([rows="1"]):not([rows="2"])`; it is never forced to 36px tall. Checkbox's label is the interactive target; indicator dimensions are separate. One-line native Input types reuse TextInput; no speculative DatePicker, Radio, Switch, Combobox or multi-select framework. Native multiple Select remains auto-height, not a 36px listbox.
 
 ## Runtime override and migration
 
-Authoritative public sizing points are --control-size-default/medium/large. --control-radius and --control-font-size remain public. State colors/focus tokens remain semantic public theme controls. Change a root size token to update that variant across actual compatible consumers; other variants retain their own size. Private mappings resolve at the control rather than inheriting a feature's shadowed defaults.
+Authoritative public sizing/typography points are `--control-size-default/medium/large`, `--control-radius` (`8px`), `--control-font-size(-default/-medium/-large)`, `--control-line-height(-default/-medium/-large)`, and `--icon-control-default/medium/large`. State colors/focus tokens remain semantic public theme controls. Change a root size or typography token to update that variant across actual compatible consumers; other variants retain their own size. Private `--_control-*` mappings resolve at the control rather than inheriting a feature's shadowed defaults.
 
---control-height and old generic padding aliases are retired. Migrate theme overrides to the selected size token; remove feature-local control height/font/radius/padding declarations and direct button/input/select state overrides. Use explicit shared size/variant APIs. Feature CSS may own widths, positions and icon input padding, not shared height/min-height or hover/focus/disabled rules.
+`--control-height` and old generic padding aliases are retired. Migrate theme overrides to the selected size token; remove feature-local control height/font/radius/padding declarations and direct button/input/select state overrides. Use explicit shared size/variant APIs. Feature CSS may own widths, positions and tokenized icon input padding, not shared height/min-height or hover/focus/disabled rules.
 
-Tests assert32/40/48 as owner-defined acceptance values AND dynamically change public values to different measurements. Verify actual computed styles per consumer/variant, isolation, detached-consumer negatives and restoration of exact inline values/priorities plus computed baseline. Changing only test expectations cannot repair a hidden cascade defect.
+Tests assert 36/40/48 as owner-defined acceptance values AND dynamically change public size/font/icon values to different measurements. Verify actual computed styles per consumer/variant, isolation, detached-consumer negatives and restoration of exact inline values/priorities plus computed baseline. Changing only test expectations cannot repair a hidden cascade defect.
 
 ## Typography, spacing and surfaces
 
-| Role                             | Existing scale mapping               |
-| -------------------------------- | ------------------------------------ |
-| Page title                       | xl/bold/tight                        |
-| Section heading                  | md/semibold/snug                     |
-| Body / small body                | base/normal/normal; sm/normal/normal |
-| Label / button label             | base/semibold/snug                   |
-| Caption / table heading / status | sm with medium/semibold and snug     |
+| Role                             | Existing scale & token mapping                                                                     |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Page title                       | 2xl (20px) / semibold (600) / 28px (`--type-page-title-size` / `-line-height`)                     |
+| Section heading                  | xl (16px) / semibold (600) / normal (24px) (`--type-section-heading-size`)                         |
+| Card / drawer heading            | md (14px) / semibold (600) / 20px (`--type-card-heading-size` / `--type-card-heading-line-height`) |
+| Body                             | md (14px) / normal (400) / normal (21px) (`--type-body-size`)                                      |
+| Form label                       | md (14px) / medium (500) / 20px (`--type-label-size` / `--type-label-line-height`)                 |
+| Button                           | md (14px) / medium (500) / 20px (`--type-button-label-size`; large 16px/500/24px)                  |
+| Table body                       | sm (12px) (`--type-table-cell-size: var(--font-size-sm)`), `tabular-nums` numeric                  |
+| Caption / table heading / helper | sm (12px) or xs (11px) uppercase `th` with semibold / normal                                       |
 
-Semantic --type-\*-size aliases reference the existing scale, not a second font scale. Use canonical weight and line-height variables. Controls share --control-font-size; headings do not inherit control heights.
+Semantic `--type-*` aliases reference the existing scale, not a second font scale. Use canonical weight and line-height variables. Controls share `--control-font-size` (`--type-button-label-size`) and `--control-font-size-large`; headings do not inherit control heights.
 
 Use spacing2 for control gaps/field-label separation; spacing4 for form groups; toolbar padding3/gap2; surface standard padding6, compact4; table inline3/block2; dialog header/body/footer4; pagination3. Use root radius/shadow/border tokens; focus is a distinct role from border/error. Real local coordinates are allowed; arbitrary offsets that conceal a structural defect are not.
 
@@ -65,7 +68,7 @@ The canonical project color specification is owned by this document, and the act
 - **Strict Role-Based Semantics**: Every production color has an explicit design role. Raw colors belong solely in the root foundation palette (`tokens.css`) and must never be hardcoded in feature CSS.
 - **Three-Tier Token Architecture**: Foundation (raw values) → Semantic (application roles) → Component (private consumer mappings).
 - **Prohibition of Automatic Palette Shifting**: Do not automatically darken backgrounds or change white text to navy to satisfy WCAG AA.
-- **Non-Color Accessibility Invariant**: All other accessibility requirements remain strictly enforced: semantic HTML, accessible ARIA labels and states, keyboard navigation (Tab/Shift+Tab/Arrow navigation), 32px standard click targets, visible focus rings (`:focus-visible`), modal focus traps, and screen reader announcements.
+- **Non-Color Accessibility Invariant**: All other accessibility requirements remain strictly enforced: semantic HTML, accessible ARIA labels and states, keyboard navigation (Tab/Shift+Tab/Arrow navigation), 36px standard click targets (with documented 26px Customer `.detailLink` dense-table exception), visible focus rings (`:focus-visible`), modal focus traps, and screen reader announcements.
 - **Focus Indication & Non-Interactive Layout Surfaces**: Visible focus rings (`:focus-visible`) belong strictly to interactive controls (buttons, links, inputs, selects, textareas). Non-interactive programmatic focus containers, such as `<main id="workspace-content" tabIndex={-1}>` (`.contentArea`), receive programmatic focus during route transitions and skip-navigation without rendering visual focus outlines (`.contentArea:focus { outline: none; }`). This prevents unintended rectangular border artifacts around the main workspace surface while maintaining accessibility focus management and keyboard navigation flow.
 - **Self-Contained Contract**: This specification is self-contained and independent of any external files or temporary archives.
 
@@ -110,8 +113,8 @@ The canonical project color specification is owned by this document, and the act
 | **Hover Background**   | `--color-accent-hover`         | `#E07716`                 |
 | **Hover Foreground**   | `--color-text-on-accent-hover` | `#FFFFFF`                 |
 | **Border**             | —                              | `transparent` (1px solid) |
-| **Border Radius**      | `--control-radius`             | `6px` (`--radius-sm`)     |
-| **Standard Height**    | `--control-size-default`       | `32px`                    |
+| **Border Radius**      | `--control-radius`             | `8px` (`--radius-md`)     |
+| **Standard Height**    | `--control-size-default`       | `36px`                    |
 
 #### Status Segmented Tabs (Customer)
 
@@ -253,12 +256,12 @@ The Customer table skeleton loading state is governed by a unified geometry and 
    - **Address Count (`addresses`, 104px)**: 44px × 20px pill (`var(--radius-full)`), centered horizontally (`margin-inline: auto`, gap diff 0.00px), matching the MapPin count badge.
    - **Status Badge (`status`, 156px)**: 104px × 22px chip (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, gap diff 0.00px), matching the status badge.
    - **Created Date (`created`, 128px)**: 85% width × 16px bar (`var(--radius-sm)`), centered horizontally (`margin-inline: auto`, 87.9px on 104.4px usable content box, gap diff 0.015px), matching tabular-nums date text.
-   - **Actions (`actions`, 104px)**: Two 32px × 32px button placeholders (`var(--control-radius)`) inside `.actionGroup` with 4px gap (`var(--space-1)`), centered horizontally (`vertical-align: middle`, gap diff 0.50px), matching Edit and Power controls.
+   - **Actions (`actions`, 104px)**: Two 36px × 36px button placeholders (`var(--control-radius)`) inside `.actionGroup` with 4px gap (`var(--space-1)`), centered horizontally (`vertical-align: middle`, gap diff 0.50px), matching Edit and Power controls.
 
 3. **Row Height & Layout Invariants**:
    - Both skeleton and real data rows compute to exactly 44.5px height (zero vertical row shift).
    - All 9 columns maintain balanced horizontal margins (`abs(leftGap - rightGap) <= 1px`, verified <= 0.52px in Chromium CDP) relative to the usable content box excluding cell padding.
-   - Skeleton placeholders use `margin-block: 0`, resting inside cell padding boxes (`padding: 6px var(--space-3)`, and `padding: 6px var(--space-1)` for detail).
+   - Skeleton placeholders use `margin-block: 0`, resting inside cell padding boxes (`padding: 6px var(--space-3)`, `padding: 6px var(--space-1)` for detail, and `padding-block: var(--space-1)` [4px] on `.table td.actionCell` so 36px actions preserve the 44.5px row height).
    - Centered column centers agree with real cell content centers within < 0.25px (0.00px shift on detail, addresses, actions; 0.01px on status, created).
    - Long text rows (name up to 200 characters, email up to 254 characters) wrap cleanly via `overflow-wrap: anywhere` and expand vertically as needed without clipping or horizontal column leakage.
 
@@ -277,32 +280,18 @@ remain unchanged. Selected/required labels remain primary navy; required trackin
 is bold with its amber badge. The popup uses `--radius-lg` (12px), maximum336px
 width,12px padding,8px gaps and a scrollable208px checklist.
 
-Column search composes TextInput and a ghost icon Button with the standard32px
-square target. Feature CSS owns only clear-button positioning and input accessory
-padding; shared Button owns hover/focus/disabled states. Clear preserves column
-selection, keeps the disclosure open, and returns focus to the search input. Native
-search cancel is suppressed so the two clear mechanisms do not overlap.
+Column search inherits shared TextInput typography (14px / 400 / 20px); its leading icon and padding follow the default public icon token. Column search composes TextInput and a ghost icon Button with the standard 36px (`--control-size-default`) square target. Feature CSS owns only clear-button positioning and input accessory padding; shared Button owns hover/focus/disabled states. Clear preserves column selection, keeps the disclosure open, and returns focus to the search input. Native search cancel is suppressed so the two clear mechanisms do not overlap.
 
-SelectButton's `appearance` belongs only to single/segmented props. Multiple/stacked
-rejects concrete appearance values (`appearance?: never`), preserving its existing
-DOM/default styling. This is the correction of the formerly accepted silent no-op,
-not a new multiple-selection appearance.
+SelectButton's standard segmented items inherit `Button` typography (`14px / 500 / 20px`); `.segmented.textActions` retains an intentional compact `11px` (`--font-size-xs`) exception for dense 336px popovers (`Tất cả | Cơ bản | Mặc định`). SelectButton's `appearance` belongs only to single/segmented props; multiple/stacked rejects concrete appearance values (`appearance?: never`), preserving its existing DOM/default styling.
 
 ## AppShell Account disclosure — NEXORA-032
 
 AccountMenu owns the application-specific ZIP-inspired account summary and exactly
 three entries. It composes existing shared Button/useDismissable; no shared public
-API or default control styling changes. The trigger explicitly selects medium40
-so its32px avatar fits Header56; menu rows keep default32. These deliberate size
-selections supersede historical migration inventories saying every Header control
-used default32. Mobile (<768px) hides trigger text/chevron; accessible name retains
-the real username. The summary avatar40, username14/600 and subtitle12 use actual
-session data and the neutral Tài khoản Nexora label.
+API or default control styling changes. The trigger explicitly selects medium 40px
+so its 32px decorative avatar fits Header 56px; menu rows compose shared default Buttons (36px under `--control-size-default`). These deliberate size selections supersede historical migration inventories saying every Header control used default 32px. Mobile (<768px) hides trigger text/chevron; accessible name retains the real username. The summary avatar 40, username 14/600 and subtitle 12 use actual session data and the neutral Tài khoản Nexora label.
 
-Panel geometry: width256/max viewport-32, radius12, header padding16, summary gap12,
-entry icon16, content label12/normal, inline padding12, gap10, radius8, no row border.
-Trigger is40 instead of ZIP42 to retain the existing shared size API. Account-only
-avatar/icon public tokens preserve global avatar24 and shared default icon14.
+Panel geometry: width 256/max viewport-32, radius 12, header padding 16, summary gap 12, entry icon 16, content label 12/normal, inline padding 12, gap 10, radius 8, no row border. Trigger is 40 instead of ZIP 42 to retain the existing shared size API. Account-only avatar/icon tokens preserve global avatar 24 and shared default icon 16px (`--icon-control-default`).
 
 The owner-requested menu appearance is a scoped exception for this AppShell
 component: account gray hover and rose logout roles may style shared ghost Buttons
@@ -324,9 +313,9 @@ product target. Shared focus rings remain visible and reduced motion is respecte
 
 Carrier composes existing Button, TextInput, Select, TabBar/count badge and Overlay;
 no shared API, global control defaults or Customer/Retail appearance changes. Keep
-32px default targets, native multiline/focus/disabled behavior and semantic tokens.
-ZIP28/30px targets become32px; provider-card choices explicitly use large48. The
-22px switch track sits inside a32px interactive Button with role=switch and an
+36px default targets (updated from 32px in NEXORA-064), native multiline/focus/disabled behavior and semantic tokens.
+ZIP 28/30px targets become 36px; provider-card choices explicitly use large 48px. The
+22px switch track sits inside a 36px interactive Button with role=switch and an
 accessible name/checked state. Dirty dismissal uses a nested native confirmation.
 
 Scoped source exceptions belong to carrier-connections.module.css: seven-column
@@ -350,9 +339,9 @@ the already authorized shared white-on-orange primary-action exception remain;
 this correction does not claim universal WCAG AA for that historical exception.
 
 History inspection is a whole multiline card action, not a fixed-height Button
-label. The existing Panel is non-interactive and Button's single-line32/40/48 API
+label. The existing Panel is non-interactive and Button's single-line 36/40/48 API (updated from 32/40/48 in NEXORA-064)
 is incompatible with the source row card. Use one native button spanning the full
-card (larger than32px), native Enter/Space, visible inset focus and phrasing-only
+card (larger than 36px), native Enter/Space, visible inset focus and phrasing-only
 children; no nested button or duplicated keyboard handler. This source-specific
 exception does not change shared controls. History running chips use their blue
 context/dot/Đang chạy label; live stream badges keep the orange progress context.
