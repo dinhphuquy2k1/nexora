@@ -562,10 +562,28 @@ bound lease versions, generations, failure counts, provider, scope and lease coh
 
 Fixed typed SECURITY DEFINER functions set search_path=pg_catalog and qualify every
 relation. PUBLIC and runtime direct private-table access are revoked. nexora_sync gets
-only job/worker/lease/epoch/lifecycle-scoped snapshot/claim/load/complete/fail and HTTP
+only job/worker/lease/epoch/lifecycle-scoped snapshot/claim/token-only load/recovery authorization/password-only load/complete/fail and HTTP
 permit wrappers, plus append-only audit INSERT and SELECT(id); it cannot directly
 read carrier secrets, UPDATE users, mutate audits, access Identity secrets or execute
 private helpers. API gets owner-scoped HTTP wrappers, not Worker credential functions.
 Re-provision resets table/column ACLs and grants the role-specific fixed function list.
 The narrow functions authorize scoped use by trusted runtime code, not isolation
 against a fully compromised process that already owns a valid Worker DB credential.
+
+Forward migration21 (20261127000000_carrier_credential_purposes) changes functions
+and ACL only. Shared \_sync_carrier_context reads authorization metadata only.
+Snapshot/claim explicitly add token-only projection; sync_carrier_load_token never
+queries PASSWORD. sync_carrier_authorize_recovery returns no credential and
+sync_carrier_load_recovery_password reads PASSWORD only, each requiring an exact
+private proof for connection/job/worker/lease/generation/connection version/operation
+and unexpired recovery, even if ordinary lifecycle matches. Both reuse one private
+recovery helper and the existing scope validator. Legacy sync_carrier_load is
+dropped, not kept as a callable bypass. PUBLIC/API cannot execute Worker functions;
+Worker cannot execute private helpers. Existing sync_jobs SELECT/INSERT/UPDATE and
+other explicit role grants remain unchanged. Database proof does not prove durable
+audit: trusted Vault orchestration provides audit-before-decrypt and revalidation.
+
+Staged migration tests preserve data across19→20→21, separately inspect20→21, repeat
+deploy/drift and provisioning. Drain writers and deploy matching API/Worker revision
+after migration/provisioning: old02c2d05 binary calls the removed loader and is
+incompatible. Never restore permissive capability or run that binary against21.

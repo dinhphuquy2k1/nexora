@@ -276,3 +276,22 @@ is not permission to activate live Uniship.
 ## Raw SQL Query Separation — NEXORA-063
 
 - **Query builders**: Long or reused `Prisma.Sql` builders are extracted into module-local `queries/*.queries.ts` files (`shipment/infrastructure/queries/`, `sync/infrastructure/queries/`) as pure functions accepting only the exact parameters bound in SQL. Transaction orchestration and persistence execution remain in the owning adapter or repository without introducing `GenericRepository`, `BaseRepository`, or a generic `UnitOfWork`.
+
+## Carrier purpose-specific access and pre-claim reconnect — NEXORA-058 v3
+
+AuthorizedCredentialReader separates authorizeRecovery (no secrets), loadToken
+(token only) and loadRecoveryPassword (password/login only). API metadata locks
+never hydrate secrets; read/claim query only token inside the same transaction,
+and complete reads no credential. Worker uses equivalent fixed scoped functions.
+Vault checks cancellation, authorizes, commits PASSWORD_DECRYPT independently,
+rechecks cancellation and current authorization while loading password, then
+decrypts/acquires. Audit failure yields AUDIT_UNAVAILABLE without password load.
+Normal token use never reads password or emits password-decrypt audit.
+
+Reconnect retains initial active-owner snapshot, admission, then calls a narrow
+credential application port delegating existing outbound authorization before
+claimReconnect. Manual claim checks initial generation and lifecycle version under
+existing locks, allowing ERROR/REAUTH_REQUIRED. Recovery claim retains its separate
+restrictions. No fresh-snapshot retry masks a changed/deleted/disabled connection.
+Existing outbound revalidation, identity check, atomic completion and failure audit
+remain. No HTTP/crypto/wait occurs under locks; application imports no infrastructure.

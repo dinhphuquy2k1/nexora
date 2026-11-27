@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { verifyUnishipComposeEnvironment } from "./uniship-compose-contract.mjs";
 import { dockerCommand } from "./docker-command.mjs";
 const development = process.argv.includes("--development");
 const compose = ["compose", "-f", "compose.yml"];
@@ -15,6 +16,10 @@ async function run(args) {
 }
 let step = "CONFIG_CUSTODY";
 try {
+  verifyUnishipComposeEnvironment();
+  console.log(
+    "Resolved Uniship Compose standard/dev/release/public contract PASS",
+  );
   const config = JSON.parse(
     await run([...compose, "--profile", "test", "config", "--format", "json"]),
   );

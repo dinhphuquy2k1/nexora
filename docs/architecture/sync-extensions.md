@@ -391,3 +391,11 @@ Optional reconciliation JSON delegates the existing strict Shipment policy parse
 Absent policy permits ingestion and records POLICY_NOT_CONFIGURED, without hide/
 restore. No production threshold/default is introduced. The hard-coded live contract
 gate remains false, so even configured production/live flags cannot make live traffic.
+
+NEXORA-058 v3 narrows existing Worker credential capabilities by purpose. Ordinary
+token usage never reads password. Recovery authorization/password loading require
+the existing exact job/lease/generation/lifecycle/operation proof and revalidate
+after durable audit. Immutable job provenance, stale cancellation, lease/pacing
+and recovery budgets are unchanged. API/Worker must share Carrier/Uniship and all
+Sync settings. Trusted Worker retains sync_jobs SELECT/INSERT/UPDATE; these scoped
+capabilities are not isolation from a fully compromised runtime/keyring/DB secret.

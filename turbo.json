@@ -19,6 +19,35 @@
     "@nexora/database#build": {
       "cache": false,
       "outputs": ["dist/**"]
+    },
+    "@nexora/api#dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "CARRIER_KEYRING_JSON",
+        "CARRIER_ACTIVE_KEY_VERSION",
+        "UNISHIP_API_URL",
+        "UNISHIP_LIVE_AUTHORIZED",
+        "UNISHIP_ACTIVATION_POLICY_JSON",
+        "UNISHIP_RECONCILIATION_POLICY_JSON",
+        "SYNC_ENABLED",
+        "SYNC_LEASE_SECONDS",
+        "SYNC_POLL_MS",
+        "SYNC_MAX_ATTEMPTS",
+        "SYNC_RESOLVED_RETENTION_DAYS",
+        "TSC_WATCHFILE",
+        "TSC_WATCHDIRECTORY"
+      ]
+    },
+    "@nexora/shared#dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["TSC_WATCHFILE", "TSC_WATCHDIRECTORY"]
+    },
+    "@nexora/database#dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["TSC_WATCHFILE", "TSC_WATCHDIRECTORY"]
     }
   },
   "globalEnv": [

@@ -89,7 +89,7 @@ At PR2 both roles used Nexora password sessions, independent of Carrier availabi
 
 ## Carrier key runtime — Logical PR 3
 
-Compose forwards CARRIER_KEYRING_JSON and CARRIER_ACTIVE_KEY_VERSION only into API server environment; neither is passed to Web, SDK, build arguments or migration services. Operators supply keys securely; init does not generate or rotate Carrier keys. API startup and all local identity/metadata functionality remain available without valid Carrier keys. EnvironmentKeyring snapshots configuration; restart the API to activate a new version. No new service, volume, worker or network integration is introduced. See [configuration](../operations/configuration.md) for custody and safe staged rotation.
+Compose forwards CARRIER_KEYRING_JSON and CARRIER_ACTIVE_KEY_VERSION into API and Sync Worker server environments; neither is passed to Web, SDK, build arguments or migration services. Operators supply keys securely; init does not generate or rotate Carrier keys. API startup and all local identity/metadata functionality remain available without valid Carrier keys. EnvironmentKeyring snapshots configuration; drain and restart API and Worker together to activate a new version. The existing Sync Worker shares Carrier custody but never Identity custody. See [configuration](../operations/configuration.md) for custody and safe staged rotation.
 
 ## PR4 backend lifecycle runtime
 
@@ -206,3 +206,9 @@ activation/reconciliation JSON. No STORAGE_ROOT, Identity keys, API boot/control
 admin credentials or uploads volume is needed. API/Worker policy and Carrier key
 versions must be deployed homogeneously after drain; configuration is frozen at boot.
 Worker stops and awaits its existing loop before runtime clients disconnect.
+
+NEXORA-058 v3 uses task-scoped strict Turbo pass-through for API development only;
+shared/database tasks receive watch settings only. Standard/dev/release Compose
+share Carrier/Uniship and Sync settings. Actual development verification reads the
+HTTP-listening server child and Worker child process environments, not exec-shell
+environment. Identity remains API/authorized CLI only, and Web receives no keys.

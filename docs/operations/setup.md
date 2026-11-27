@@ -188,3 +188,14 @@ Follow [Public HTTPS deployment runbook](deployment.md#public-https-runbook--own
 ## Test tooling prerequisites
 
 Use pinned Node24.19.0/pnpm10.34.6 and frozen dependencies. `pnpm test` discovers ordinary tests through native Node patterns and Turbo builds; `pnpm test:integration` is only for approved disposable integration environments. See [Testing](testing.md) for exact categories and guards. Docker, PostgreSQL tooling, Chromium/openssl and POSIX Python3 remain required for canonical runtime smoke: Python is retained for two real PTY harnesses, not general test orchestration. Windows CMD-compatible package quoting does not make POSIX shell/PTY/Docker smoke scripts native Windows programs.
+
+## Controlled runtime development ENV — NEXORA-058 v3
+
+Host-native Turbo does not load .env automatically. Supply approved configuration
+securely in the parent environment before `pnpm dev`; strict task-specific API dev
+pass-through retains only the required Carrier/Uniship/Sync and watch variables.
+Shared/database dev receive watch variables only. No loose mode or direct Node
+bypass is needed. Keep live authorization false and activation/reconciliation blank
+unless separately authorized. Recreate Compose services/restart host processes on
+configuration changes; retain PostgreSQL credentials/data and every encryption key
+version. Identity/MFA setup and CLI custody are unchanged.

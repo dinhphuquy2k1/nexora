@@ -1,5 +1,18 @@
 # Publication template only: these application images have NOT been published.
 name: nexora
+x-sync-runtime: &sync-runtime
+  SYNC_ENABLED: "${SYNC_ENABLED:-false}"
+  SYNC_LEASE_SECONDS: "${SYNC_LEASE_SECONDS:-60}"
+  SYNC_POLL_MS: "${SYNC_POLL_MS:-1000}"
+  SYNC_MAX_ATTEMPTS: "${SYNC_MAX_ATTEMPTS:-5}"
+  SYNC_RESOLVED_RETENTION_DAYS: "${SYNC_RESOLVED_RETENTION_DAYS:-}"
+x-carrier-runtime: &carrier-runtime
+  CARRIER_KEYRING_JSON: "${CARRIER_KEYRING_JSON:-}"
+  CARRIER_ACTIVE_KEY_VERSION: "${CARRIER_ACTIVE_KEY_VERSION:-}"
+  UNISHIP_API_URL: "${UNISHIP_API_URL:-}"
+  UNISHIP_LIVE_AUTHORIZED: "${UNISHIP_LIVE_AUTHORIZED:-false}"
+  UNISHIP_ACTIVATION_POLICY_JSON: "${UNISHIP_ACTIVATION_POLICY_JSON:-}"
+  UNISHIP_RECONCILIATION_POLICY_JSON: "${UNISHIP_RECONCILIATION_POLICY_JSON:-}"
 services:
   init:
     image: ghcr.io/dinhphuquy2k1/nexora-tools:0.1.0
@@ -60,15 +73,8 @@ services:
     entrypoint: [sh, /scripts/sync-worker-entrypoint.sh]
     command: [node, dist/worker/main.js]
     environment:
+      <<: [*sync-runtime, *carrier-runtime]
       NODE_ENV: production
-      UNISHIP_API_URL: "${UNISHIP_API_URL:-}"
-      UNISHIP_LIVE_AUTHORIZED: "${UNISHIP_LIVE_AUTHORIZED:-false}"
-      CARRIER_KEYRING_JSON: "${CARRIER_KEYRING_JSON:-}"
-      CARRIER_ACTIVE_KEY_VERSION: "${CARRIER_ACTIVE_KEY_VERSION:-}"
-      UNISHIP_ACTIVATION_POLICY_JSON: "${UNISHIP_ACTIVATION_POLICY_JSON:-}"
-      UNISHIP_RECONCILIATION_POLICY_JSON: "${UNISHIP_RECONCILIATION_POLICY_JSON:-}"
-      SYNC_ENABLED: "${SYNC_ENABLED:-false}"
-      SYNC_RESOLVED_RETENTION_DAYS: "${SYNC_RESOLVED_RETENTION_DAYS:-}"
     volumes:
       - sync_credentials:/sync-config:ro
     depends_on:
@@ -90,20 +96,14 @@ services:
     entrypoint: [sh, /scripts/api-entrypoint.sh]
     command: [node, dist/main.js]
     environment:
+      <<: [*sync-runtime, *carrier-runtime]
       NODE_ENV: production
-      CARRIER_KEYRING_JSON: "${CARRIER_KEYRING_JSON:-}"
-      CARRIER_ACTIVE_KEY_VERSION: "${CARRIER_ACTIVE_KEY_VERSION:-}"
-      UNISHIP_ACTIVATION_POLICY_JSON: "${UNISHIP_ACTIVATION_POLICY_JSON:-}"
-      UNISHIP_RECONCILIATION_POLICY_JSON: "${UNISHIP_RECONCILIATION_POLICY_JSON:-}"
-      SYNC_ENABLED: "${SYNC_ENABLED:-false}"
       STORAGE_ROOT: /data/uploads
       API_DOCS_ENABLED: "false"
       WEB_PORT: "${WEB_PORT:-127.0.0.1:3001}"
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-}"
-      UNISHIP_API_URL: "${UNISHIP_API_URL:-}"
       IDENTITY_KEYRING_JSON: "${IDENTITY_KEYRING_JSON:-}"
       IDENTITY_ACTIVE_KEY_VERSION: "${IDENTITY_ACTIVE_KEY_VERSION:-}"
-      UNISHIP_LIVE_AUTHORIZED: "${UNISHIP_LIVE_AUTHORIZED:-false}"
     volumes:
       - runtime_credentials:/runtime-config:ro
       - uploads:/data/uploads

@@ -1532,3 +1532,32 @@ The signed launcher keeps the original shipment-worker two-file sequence and180s
 per-suite budget.058 runtime tests run as separate uniship-runtime entry through the
 same wrapper/source mounts, also180s, with a precreated owned storage root. This
 preserves the existing capacity/observation budget and adds bounded new coverage.
+
+## NEXORA-058 hardening verification v3
+
+Credential separation tests use the same behavioral assertions against reviewed
+baseline02c2d05 and candidate: token-only reads, claim-required password, audit
+commit/revalidation/cancellation and failure prevention. Signed real nexora_sync
+tests verify proof fields, role negatives, removed combined capability, stale
+lease/generation/delete races and unchanged successor jobs. API Prisma query
+instrumentation checks purpose projections without exposing artifacts. Reconnect
+tests compare lifecycle/generation/credential digests/job scope before and after
+policy denial, plus manual status and CAS races.
+
+Root environment tests parse actual Turbo dry-run JSON in strict mode using
+synthetic values, without printing it. Host database-runtime-smoke resolves
+standard/dev/release/public Compose with an isolated env-file and minimal synthetic
+process environment; no Docker socket enters quality containers. Defaults, empty,
+explicit and invalid forwarding remain distinct; parser tests reject invalid tuning.
+Existing dev-smoke supplies synthetic runtime settings with the live gate false
+and probes actual HTTP-listener/Worker child PID environments via /proc, emitting
+boolean assertions only. Container exec ENV alone is not process propagation proof.
+It retains ADMIN enrollment denial, OPERATOR login, HMR, frozen dependency drift,
+persistence and cleanup assertions. Existing signed Nest loopback tests prove actual
+capability behavior separately. Original signed suite discovery and180000ms budgets
+remain unchanged, including the separate uniship-runtime entry.
+
+Record baseline/candidate/harness/source/merge revisions and exact commands, times,
+role/environment, run/job/attempt and sanitized assertions. Historical CI is never
+new candidate proof. Canonical task table uses PASS/FAIL; unexecuted checks and
+external live gates remain adjacent limitations with concrete prerequisites.
