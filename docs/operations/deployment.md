@@ -2,7 +2,7 @@
 
 IMPLEMENTED target: local, single-machine, loopback web exposure only (`http://127.0.0.1:3001`). Local authentication, Scrypt operator credentials, and opaque PostgreSQL sessions are implemented under [ADR-005](../decisions/authentication.md). Public TLS, remote access policy, managed key storage, scaling, rollout/rollback, or public production topology have not been selected for baseline. Do not expose this foundation on the Internet without completing the PR 7 release gates.
 Distribution template pins application tags 0.1.0, but those images are NOT PUBLISHED; `--prebuilt` cannot be promised to users. Task only builds local images. Registry publication, signed release/digests and a verified Windows/macOS distribution are future explicit release tasks.
-Local database uses persistent generated credentials, not shared committed passwords. Volume snapshot/backup is separate from image build. Restart must not rotate credentials or remove data. CI runtime smoke is evidence for local release semantics, not proof of production hosting readiness.
+Local database uses persistent generated credentials, not shared committed passwords. [Explicit owner authorization](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) is required for any backup/restore; deployment or missing backups create no authorization or blocker. Restart must not rotate credentials or remove data. CI runtime smoke is evidence for local release semantics, not proof of production hosting readiness.
 
 ## Public HTTPS Deployment & MFA Release Gates (PR 7)
 
@@ -48,11 +48,11 @@ That historical PR6 rollout implemented mandatory ADMIN MFA for LOCAL. NEXORA-02
 
 Use `compose.yml` plus `compose.public.yml`, not compose.dev.yml or the unpublished registry template. Nginx1.30.6-alpine and Certbot5.8.0 are pinned official images; application images are built from the matching reviewed source, not presumed published. Compose must support !reset/!override (2.24.4+). Only Nginx publishes80/443; Web's loopback publication is removed, API/PG never publish. The separate bootstrap service publishes80 only while obtaining the first certificate and serves ACME challenges/404, never application/authentication.
 
-The owner has not supplied a domain/host. This is an implementation/runbook, not evidence that any server is publicly deployed. Production DNS, real certificate renewal, firewall, NTP and production backup/restore remain NOT VERIFIED until performed on the actual approved host. CI does not close these gates.
+The owner has not supplied a domain/host. This is an implementation/runbook, not evidence that any server is publicly deployed. Production DNS, real certificate renewal, firewall and NTP remain NOT VERIFIED until performed on the actual approved host. Backup/restore is not a production acceptance gate. CI does not close these gates.
 
 ### Fresh deployment and first certificate
 
-1. Provision the approved maintained Linux host, Docker/Compose and pinned Node24 tooling for preflight. Record OS/Docker/Compose versions. Establish restricted administrative access, encrypted off-host backup custody and security updates. Verify network subnets against host routes/VPNs; explicitly override defaults if they conflict.
+1. Provision the approved maintained Linux host, Docker/Compose and pinned Node24 tooling for preflight. Record OS/Docker/Compose versions. Establish restricted administrative access and security updates; preserve existing credential/key custody without making copies. Verify network subnets against host routes/VPNs; explicitly override defaults if they conflict.
 2. Select and verify ownership of the FQDN and DNS A/AAAA. Publish AAAA only if IPv6 ingress/firewall is actually configured. Firewall permits only ingress80/443 plus management from approved administrator ranges. Check Docker's published-port firewall behavior; host firewall alone may not filter Docker NAT as expected. Do not expose Web3000/3001, API4000 or PG5432.
 3. Execute `sh scripts/public-host-preflight.sh` on the actual host. It runs timedatectl status and requires NTP service active and system clock synchronized. Configure chrony/systemd-timesyncd through host operations if needed; containers never alter host clocks. Save dated output; mock/CI output is insufficient.
 4. Copy `.env.public.example` to an untracked mode0600 operator file and fill approved public origin/FQDN/Host/Origin/network values. Supply independently retained Identity/Carrier keyrings securely through the operator environment; never argv/history, build args or NEXT_PUBLIC. Preserve all old versions. The public file is not a source of default keys.
@@ -89,19 +89,28 @@ Install an operator-owned systemd timer (for example twice daily) to run the sam
 
 TLS is1.2/1.3 with HTTP/2, session tickets off, HSTS31536000 (no preload/includeSubDomains), nosniff, frame denial, no-referrer and restricted frame/object/base CSP. Request bodies are limited to2MiB at ingress,15s header/body timeout and30s upstream read/send; existing API limits may be stricter. No public dashboard exists. Rate limits/forwarding assumptions are owned by [Configuration](configuration.md).
 
-### Upgrade, backup and rollback
+### Upgrade and compatible rollback
 
-Close public exposure and stop application/provisioning writers before changing profiles or taking coordinated backups. Retain all named volumes, both existing PostgreSQL credential files and every independent Identity/Carrier key version. Take a consistent PostgreSQL logical backup or a stopped-cluster volume snapshot, plus uploads and protected credential/certificate volumes; encrypt off-host copies and separately protect key custody. Never archive a running PG data directory as a consistent backup. Record restore evidence on a separate owned disposable project, including role provisioning, file/catalog bytes, encrypted-secret readability and both credential hashes. CLI/keyring custody is not reconstructed from a database dump. No custom backup API/subsystem is reintroduced.
+Close public exposure and stop application/provisioning writers before changing
+profiles or upgrading. Retain all named volumes, all three existing PostgreSQL
+credential files and every existing independent Identity/Carrier key version.
+Do not copy/archive data, volumes, credentials, keys, config or source; no backup,
+restore, clone or drill is a prerequisite. The owner2026-11-28 policy supersedes
+older mandatory backup/restore instructions, including prior public-release gates.
+Missing backups never prevent an otherwise authorized deployment/upgrade.
 
 Build matching source images, validate public settings/networks/certificates, run genuine migrate then runtime grants, verify all ACTIVE ADMIN enrollment, host NTP/firewall and external DNS/TLS. Only then start ingress. Test preserved data/sessions/files/Carrier state; do not rotate DB credentials or encryption keys as part of this upgrade. Old LOCAL cookies may be replaced with Secure cookies after public login; existing DB sessions remain subject to current assurance and revocation. Switching to a different hostname does not transfer browser cookies. A rollback to HTTP may require login again; Secure cookies cannot be relied on over HTTP.
 
-Rollback closes ingress/80/443 first, stops Web/API writers, retains volumes/keys/certificates, and restores compatible matching binaries/configuration. Use LOCAL only with loopback publishing; never expose downgraded HTTP. No destructive migration rollback or old incompatible binary against a newer schema. Restore backups into a separate validated target before any deliberate production recovery; keep original volumes until acceptance. Actual production backup/restore has not been performed by CI. The disposable HTTPS harness verifies a logical database restore and original file archive extraction in its owned test project only.
+Rollback closes ingress/80/443 first, stops Web/API writers, retains volumes/keys/certificates, and restores compatible matching binaries/configuration. Use LOCAL only with loopback publishing; never expose downgraded HTTP. No destructive migration rollback or old incompatible binary against a newer schema. Data backup/restore is outside this procedure and prohibited without a specific
+owner request; never restore data automatically as part of rollback. Existing
+HTTPS fixture tests remain unchanged and are disposable technical tests only,
+not an operational backup requirement.
 
 Before public activation, use a trusted private administrative terminal to inventory all relevant ACTIVE ADMIN rows (never expose this through readiness): `SELECT u.id,u.username,(m.user_id IS NOT NULL) AS enrolled,m.key_version FROM users u LEFT JOIN user_mfa m ON m.user_id=u.id WHERE u.role='ADMIN' AND u.status='ACTIVE';`. At least one must exist; enroll each missing administrator through the trusted CLI. Inventory key versions without exposing ciphertext/plaintext. Startup still performs actual runtime-role ciphertext authentication; SQL metadata alone is not proof of readable custody. Never reset MFA or disable accounts automatically to bypass this release prerequisite.
 
 ## Sync V1 upgrade boundary
 
-Stop API/Web/worker/provisioning writers, back up using existing custody procedures,
+Stop API/Web/worker/provisioning writers, preserve current data and custody,
 apply the forward Sync migration and repeat explicit API/worker role provisioning
 before starting the matching image. Preserve all existing volumes/key versions;
 new worker credential volume is generated once, never by deleting old custody.
@@ -129,8 +138,8 @@ provisioning, deploy matching API and Worker binaries/configuration, then restar
 and verify. Migration20 combined sync_carrier_load is removed: source02c2d05 and
 older callers are incompatible with21. Roll back only to matching compatible
 binaries/configuration; do not restore the broad loader or start an old binary
-against21. Restore approved backups to a separate validated target if needed;
-never reset user volumes. Release image tags remain unpublished templates.
+against21. No automatic data restore or backup prerequisite is permitted;
+never reset user volumes. Any backup/restore requires a specific owner request. Release image tags remain unpublished templates.
 
 ### Runtime ENV consistency — NEXORA-065
 

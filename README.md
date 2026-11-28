@@ -36,7 +36,7 @@ docker compose down
 
 Lệnh `docker compose down` (không dùng cờ `-v`) giữ nguyên toàn bộ dữ liệu trong các Docker named volumes (PostgreSQL, uploads, credentials). Không bao giờ sử dụng `docker compose down -v` trừ khi bạn chủ động muốn xóa sạch toàn bộ dữ liệu.
 
-Trong chế độ chuẩn, PostgreSQL và API không publish cổng ra ngoài host để đảm bảo an toàn mạng. Credentials local được tạo ngẫu nhiên một lần trong named volume, không in ra logs. Hạ tầng backup/restore tùy biến trước đây đã được tinh giản (xem ADR-006); dữ liệu được duy trì tự nhiên qua PostgreSQL named volumes.
+Trong chế độ chuẩn, PostgreSQL và API không publish cổng ra ngoài host để đảm bảo an toàn mạng. Credentials local được tạo ngẫu nhiên một lần trong named volume, không in ra logs. Dữ liệu được duy trì qua PostgreSQL named volumes. Backup/restore chỉ được thực hiện theo yêu cầu cụ thể của owner; thiếu backup không phải blocker ([quy tắc chính thức](docs/ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore)).
 
 `compose.release.yml` là **template phân phối chưa khả dụng**: các container image `ghcr.io/dinhphuquy2k1/nexora-*:0.1.0` chưa được publish. Lệnh mặc định luôn build từ source qua `compose.yml`; không sử dụng `compose.release.yml` khi các image chưa được phát hành.
 

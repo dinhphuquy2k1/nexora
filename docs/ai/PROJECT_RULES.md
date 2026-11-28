@@ -11,6 +11,48 @@
    - Pin exact dependency versions in `package.json`; use frozen installs (`pnpm install --frozen-lockfile`).
    - Never reset user volumes for tests.
 
+### Explicit Owner Authorization for Backup and Restore
+
+Backup and restore are prohibited by default across all Nexora environments,
+including development, testing, staging and production.
+
+Agents MUST NOT create, execute, implement, automate, schedule, recommend as required
+work, or introduce backup, restore, snapshot, recovery-drill or disaster-recovery
+tasks unless the project owner explicitly requests them.
+
+This restriction applies to all project assets, including databases, business data,
+files, uploads, Docker volumes, credentials, encryption keys, configuration,
+environment files and source code.
+
+Deployment, migration, upgrades, production activation, integration work and
+perceived operational risks do not constitute authorization to perform backups.
+
+Missing backups MUST NOT be treated as blockers, prerequisites, acceptance criteria
+or reasons to delay implementation, verification, merge or deployment.
+
+When the owner explicitly requests a backup, its scope is limited strictly to the
+assets and operations specified by the owner. Do not create deferred implementation
+tasks or automatically reintroduce backup requirements in future plans.
+
+Owner decision2026-11-28: this policy supersedes all previous mandatory backup and
+restore requirements. Existing persistence, non-destructive operations, credential
+custody and security invariants remain unchanged. Custody means retaining current
+material/access controls, not authorization to copy or archive it. Do not substitute
+exports, clones or snapshots for prohibited backups.
+
+Existing automated fixture tests are expressly retained by this owner decision;
+this does not authorize new backup work or execution on owner data. Shipment
+hide/restore, token/Worker recovery and MFA recovery codes are unrelated business/
+security mechanisms and remain unchanged. Immutable design-review records are
+architecture/governance documents, not operational asset snapshots.
+
+### Owner-requested scope
+
+Implement only owner-requested work and genuinely required technical prerequisites.
+General best practices or perceived risks do not authorize extra implementation,
+tasks, acceptance gates or delays. Briefly note relevant out-of-scope risks only
+when necessary; do not silently expand the task.
+
 ## 2. Architectural boundaries
 
 - **Application isolation**: Applications must not import one another. `apps/web` must never import `apps/api` or access `@nexora/database`.

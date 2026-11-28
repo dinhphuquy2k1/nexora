@@ -193,3 +193,7 @@ not load .env. Restart development processes after Turbo/config changes; recreat
 Compose containers for changed environment. A container restart cannot import new
 parent ENV. Preserve DB/key material and MFA enrollment; this fix never requires
 rotation, reset or re-enrollment.
+
+## Owner authorization and existing custody
+
+[Project policy](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) prohibits copying/archiving ENV, credentials or keyrings without a specific owner request. Existing custody, retained key versions, restricted secret mounts and non-rotation requirements remain mandatory; they do not authorize backup copies. Missing backups are not configuration/deployment blockers.

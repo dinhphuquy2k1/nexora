@@ -32,9 +32,13 @@ The project owner decided to deliberately reduce product scope by removing the c
 
 3. **KISS & YAGNI alignment**:
    - Do not replace custom backup scripts with another backup framework, cron job, or cloud integration.
-   - Standard host/environment database management practices apply for backups where required in operations.
+   - Historical operational-backup wording is superseded by the owner2026-11-28 amendment below; it establishes no current requirement.
 
 ## 3. Consequences
 
 - **Positive**: Removed ~1,000 lines of complex shell/Node restore orchestration, historical archive fixtures, and mock restore tests. Faster CI execution and simplified developer workflows.
 - **Preserved guarantees**: Database and upload persistence across container restarts remain fully verified by `data-smoke.sh`. Migration deploy safety remains fully verified by `test:migrations`.
+
+## Owner amendment — 2026-11-28
+
+[Explicit owner authorization for backup and restore](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) now applies to all assets and all environments. Backup/restore, substitute exports/clones/snapshots, automation, DR/drills and related tasks are prohibited unless explicitly requested, limited to named assets/operations. Missing backups are never prerequisites/blockers for verification, merge, deployment or production acceptance. Do not defer or reintroduce this work. This supersedes all older mandatory backup/restore gates, not just custom tooling. Historical decisions/evidence and immutable design records remain citable history; existing persistence/custody/security and owner-retained fixture tests stay unchanged.

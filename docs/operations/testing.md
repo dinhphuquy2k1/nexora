@@ -115,7 +115,7 @@ Test-first public-profile, cookie set/clear and Host authority matrices reproduc
 
 Actual browser ADMIN password/recovery MFA checks Secure/HttpOnly/pending scope and no workspace/session before proof. Actual remote HTTPS OPERATOR fragment setup checks canonical URL, history/referrer/SSR/storage privacy, no auto-login, token replay rejection and password login. Forged Host/Origin/forwarding and canonical redirect tests, resolved container-network/no-Web/API/PG-port assertions and marked Nginx429 under changing forged XFF verify ingress behavior. Original file archive is extracted into an owned temporary target; a real pg_dump is restored into a separate owned database while writers are stopped. Enrollment/Carrier ciphertext and catalog/counts plus both credential hashes survive profile upgrade/restart, and a real CA-validated HTTPS session remains usable after API/Web/ingress restart. No live provider traffic or user-volume reset.
 
-Run all previous canonical checks and quality/runtime/data/dev scripts as well as the new HTTPS harness. Record exact-head hosted evidence where genuine local Prisma generation is unavailable. Actual production FQDN/DNS/certificate renewal/firewall/NTP and production backup/restore remain NOT VERIFIED until real host evidence exists; the script explicitly reports this limitation. `sh scripts/public-host-preflight.sh` must be executed on that actual host, not replaced with mocked timedatectl output.
+Run all previous canonical checks and quality/runtime/data/dev scripts as well as the new HTTPS harness. Record exact-head hosted evidence where genuine local Prisma generation is unavailable. Actual production FQDN/DNS/certificate renewal/firewall/NTP remain NOT VERIFIED until real host evidence exists. Historical backup/restore limitation text in fixture output is not an active production gate; owner2026-11-28 removed that requirement. `sh scripts/public-host-preflight.sh` must be executed on that actual host, not replaced with mocked timedatectl output.
 
 The public-healthcheck regression uses a real local HTTP listener to prove the actual Host header and health path, rejection and outage behavior. It specifically guards Node24 fetch's Host rewriting; public health probes use raw node:http while LOCAL probes retain their previous contract.
 
@@ -498,7 +498,7 @@ Deleting a tracked file cleans the final tree, not historical Git objects. For a
 unmerged PR with intermediate evidence binaries, recommend owner-controlled squash
 merge when supported; merge/rebase may import those intermediate trees into main.
 Never promise remote-object purging/clone-size reduction or rewrite/force-push
-without explicit authorization and a separate assessed backup/rollback plan.
+without explicit authorization and a non-destructive assessed change plan. Backup/restore is not a prerequisite; the explicit-owner policy applies.
 
 ### Git metadata for Docker quality
 
@@ -1632,3 +1632,7 @@ Web-proxy evidence, canonical Docker, hosted source/merge/attempt and production
 acceptance. Missing prerequisites never count as causal RED. Local lack of Docker
 application images/disk remains NOT RUN, not simulated canonical PASS. Existing
 Foundation runs the expanded dev smoke without workflow or suite-budget changes.
+
+## Explicit-owner no-backup policy — 2026-11-28
+
+[Project rules](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) supersede previous operational backup/restore requirements. Do not introduce new backup verification, clones, drills, acceptance gates or follow-up tasks. Existing automated disposable fixture tests are retained exactly as explicitly directed by the owner; their execution/results do not impose a backup prerequisite on any real environment. No business hide/restore, token/Worker recovery or MFA recovery-code behavior changes.
