@@ -1,6 +1,6 @@
 # NEXORA-064 — Design System Refinement: Control Sizing, Typography & Visual Consistency
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
 Verification: PARTIALLY VERIFIED
 
@@ -65,14 +65,14 @@ Documentation Impact: REQUIRED
 
 ## Acceptance
 
-- [ ] v3 semantic heading isolation, standard/compact SelectButton, column picker search, multiline variants and loading/data row parity verified on the new HEAD.
-- [ ] Independent review and manual visual acceptance recorded or explicitly deferred under the task workflow.
+- [x] v3 semantic heading isolation, standard/compact SelectButton, column picker search, multiline variants and loading/data row parity verified on the new HEAD (PR #63 final source `9f5ef0a` and merged `main` `2b31e7e` hosted Foundation runs `45925007801` / `45928559468`).
+- [ ] Independent review and manual visual acceptance recorded or explicitly deferred under the task workflow (explicitly deferred upon closure: PR #63 recorded `reviews: []`; manual visual acceptance transferred to [NEXORA-047](../active/NEXORA-047-frontend-reference-acceptance.md)).
 
 - [x] Default control height `36px`, medium `40px`, large `48px` with `14/14/16px` font, `16/18/20px` icons, `1px` border, `8px` radius, Inter font, preserved Brand Navy/Orange palette.
 - [x] P1-01 Customer table skeleton & actual row density (`44.5px` measured in Chromium headless) preserved alongside `36px` actions (`actionCell` `padding-block: 4px`) and `26px` `.detailLink`.
 - [x] P2-01..P2-08 & P3-01 completed: semantic typography applied to actual consumers (`20px/600/28px` Page Title, `16px/600/24px` Section Heading), table density standardized (`--type-table-cell-size: var(--font-size-sm)` `12px`), `SelectButton` inherits `Button` typography (`14px/500`, compact `11px` `text-actions` exception), `Textarea` 3-line minimum (`78/86/106px`) honors `rows={1}` (`38px`) and `rows={2}` (`58px`), duplicate test removed + mutation sensitivity added, browser computed-style checks updated.
 - [x] Canonical docs synchronized and `pnpm docs:check` + `pnpm preflight:check` PASS.
-- [ ] `pnpm --filter @nexora/web test`, `pnpm --filter @nexora/web typecheck`, `pnpm quality`, Docker quality, local Chromium fixture verification PASS; hosted Foundation CI (`runtime-smoke.sh` / `browser-login-smoke.mjs` with full authenticated Customer/AccountMenu/Retail/Carrier CDP) pending on final HEAD.
+- [x] `pnpm --filter @nexora/web test`, `pnpm --filter @nexora/web typecheck`, `pnpm quality`, Docker quality, local Chromium fixture verification and hosted Foundation CI (`45925007801` / `45928559468` steps 4–10) PASS on final HEAD / merge checkout.
 
 ## Evidence
 
@@ -95,3 +95,16 @@ Documentation Impact: REQUIRED
 ### Verification provenance (v3)
 
 Prior HEAD `28b9f5e09e5e110e7e88bdf61d65182172026292`: Foundation run [45917497946](https://github.com/dinhphuquy2k1/nexora/actions/runs/45917497946), job 140240138137, PASS; Preflight run 45917497923 PASS. This evidence is historical, not proof of v3. New execution pending: local clone unavailable (DNS); targeted tests, browser checks and final-head CI NOT RUN at authoring. Manual visual acceptance and independent review not performed for v3.
+
+## Closure by NEXORA-066 — 2026-11-28
+
+PR #63 (`refactor/design-system-refinement`) merged into `main` at `2026-11-27T02:28:46Z`: merge commit `2b31e7e6ba5891fb148e263e2c9551cad0c893fe`, final PR source `9f5ef0a4307f17c3afcca9747eebf23d7e3dd5c8`.
+
+- PR #63 final-source CI (`9f5ef0a4307f17c3afcca9747eebf23d7e3dd5c8`): `Preflight Policy & Design Governance` run `45925007788` (job `140264175620`, `SUCCESS`); `Nexora foundation` run `45925007801` (job `140264175926`, steps 1–16 & 19 `SUCCESS`, steps 17–18 `SKIPPED`); `Public HTTPS actor evidence (optional)` `select` run `45925007829` (job `140264175898`, `SUCCESS`; `https-stress` and `foundation-e3` `SKIPPED`).
+- Merged `main` CI whose checkout includes `2b31e7e6ba5891fb148e263e2c9551cad0c893fe`: `Preflight Policy & Design Governance` run `45928559470` (`SUCCESS`); `Nexora foundation` run `45928559468` (job `140275618915`, steps 1–16 & 19 `SUCCESS`, steps 17–18 `SKIPPED`).
+- Limitation & follow-up transfer: `gh pr view 63 --json reviews,comments` returned `reviews: []` and `comments: []` (merge reflects owner approval only; no pre-merge formal independent review object was recorded for `v3`, and manual visual inspection did not execute in CI). Under `TASK_WORKFLOW.md §1.7`, manual visual acceptance of `v3` controls, typography isolation, column picker, segmented buttons, and Customer/Retail/Carrier layouts is moved to `PLANNED` [NEXORA-047](../active/NEXORA-047-frontend-reference-acceptance.md) (`Verification: NOT VERIFIED`), and `NEXORA-064` retains `Verification: PARTIALLY VERIFIED` and all historical `FAIL` rows and immutable snapshots unchanged.
+
+| Claim                              | Evidence                                                                                                                                                                                                                                                                                                          | Date       | Result |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged technical task closure      | PR #63 source `9f5ef0a4307f17c3afcca9747eebf23d7e3dd5c8` merged to `main` at `2b31e7e6ba5891fb148e263e2c9551cad0c893fe` (`2026-11-27T02:28:46Z`); source CI `45925007788`/`45925007801` (`140264175926`) and merged-main CI `45928559470`/`45928559468` (`140275618915`) steps 4–16 & 19 `PASS` (`17–18` skipped) | 2026-11-28 | PASS   |
+| Unverified visual acceptance moved | Manual visual acceptance (and pre-merge `reviews: []` audit limitation) explicitly deferred to `PLANNED` [NEXORA-047](../active/NEXORA-047-frontend-reference-acceptance.md) (`Verification: NOT VERIFIED`)                                                                                                       | 2026-11-28 | PASS   |

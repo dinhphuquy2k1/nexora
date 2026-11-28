@@ -6,6 +6,10 @@ performed by the agent. Owner-reported observations retain their existing confid
 mock HTTP and synthetic PostgreSQL tests do not upgrade them to live VERIFIED.
 Canonical field evidence remains in [the integration contract](../../../integrations/uniship-portal-api.md).
 
+## Current owner policy — 2026-11-28
+
+[Canonical explicit-owner policy](../../../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) supersedes all older mandatory backup/restore gates, including historical058 task text. Do not copy/archive/clone/snapshot assets, perform recovery drills or introduce related work without a specific owner request. Missing backups do not block activation review or production acceptance. Preserve current persistence, credential/key access control and security; existing disposable fixtures remain unchanged. The original evidence date/outcomes above remain historical.
+
 ## Evidence matrix
 
 | Contract                    | Existing evidence                                                                                  | Confidence                                         | Remaining gate                                                                                       | Verification method                                                                          |
@@ -22,27 +26,39 @@ Canonical field evidence remains in [the integration contract](../../../integrat
 | Complete/partial snapshots  | Existing authoritative supplied-array semantics and no-policy ingestion                            | Technical contract selection                       | External omission/deletion semantics                                                                 | Owner observes real resyncs; keep hide disabled until approved                               |
 | Counts/child maxima         | NumberOfPack declared count owner decision; itemCount23 confirmed; bounded child tests             | Confirmed selected fields; technical bounds        | UI main-count source and actual child maxima unknown                                                 | Redacted weighed/delivered samples; task separately if limits differ                         |
 | Timestamp/export precedence | UTC+7 policy retained by owner2026-11-20; explicit export preferred; conflicting MD59639 preserved | Owner decision with unresolved observation         | Mandatory comparison of three real parcels before AUTO                                               | Compare same milestones in Nexora/Uniship UI after first manual FULL; stop if7h mismatch     |
-| Rate/stop/drift             | Nexora<=1request/s completion-based safeguard, >=60min AUTO, hard-close                            | Technical local policy, no provider quota claim    | Host/TLS/NTP/backup/custody readiness and provider stop channel                                      | Owner readiness checklist and fixed-code monitoring/stop drill                               |
+| Rate/stop/drift             | Nexora<=1request/s completion-based safeguard, >=60min AUTO, hard-close                            | Technical local policy, no provider quota claim    | Host/TLS/NTP/existing-custody readiness and provider stop channel                                    | Owner readiness checklist and fixed-code monitoring/stop drill                               |
 | Reconciliation              | Existing v3 synthetic baseline/hide/restore and no-policy skip                                     | Technical only                                     | Owner approves all three thresholds and ID/query/source gates                                        | Homogeneous deployment; qualified first FULL establishes baseline; natural observations only |
 
 ## Stage 0 — safe deployment
 
-Deploy a reviewed source revision. Back up and run forward migrations before role
-re-provisioning and runtime start. Never reset volumes or rotate shared credentials
+Deploy a reviewed source revision. Run forward migrations before role
+re-provisioning and runtime start; retain current data/volumes/credentials/keys. No backup/restore prerequisite remains. Never reset volumes or rotate shared credentials
 to make verification pass. Confirm API nexora_app versus Worker nexora_sync, private
-function ACLs, Carrier key versions, restricted mounts and identical frozen settings.
-Check host, storage, TLS, time/NTP, backups and chosen deployment profile. Keep
-SYNC_ENABLED=false, blank activation and the immutable external live hard-close.
-No ENV combination can open the current hard-coded contract gate.
+function ACLs, independent Carrier key versions (`CARRIER_KEYRING_JSON`), restricted
+mounts and identical frozen settings. Keep `SYNC_ENABLED=false`, `UNISHIP_LIVE_AUTHORIZED=false`,
+blank `UNISHIP_ACTIVATION_POLICY_JSON`, blank `UNISHIP_RECONCILIATION_POLICY_JSON`, and
+the immutable external live hard-close (`UNISHIP_LIVE_CONTRACT_VERIFIED=false`).
+Check host, storage, TLS, time/NTP and chosen deployment profile: under
+`DEPLOYMENT_PROFILE=PUBLIC_HTTPS`, `verifyPublicStartup` enforces all ACTIVE ADMINs
+enrolled as a startup gate, whereas `LOCAL` Mode A startup still requires MFA enrollment
+before any interactive ADMIN login/use. No ENV combination can open the current
+hard-coded contract gate.
 
 ## Stage 1 — separately authorized manual activation
 
 Owner closes remaining pre-live gates, confirms approved account/login/connection,
-rotates exposed historical tokens/cookies if required, and authorizes a separately
+confirms Uniship account password rotation per ADR-007 (`NEXORA-054`) to invalidate
+any historically exposed DevTools tokens/cookies, and authorizes a separately
 reviewed gate-opening change for the approved HTTPS origin. This PR does not do that.
-Then set the exact activation scope to MANUAL_ONLY and deploy API/Worker together.
-Do not configure reconciliation thresholds before auto-hide acceptance. Existing
-onboarding enabled60 schedules are preserved; manual-only blocks their AUTO execution.
+Before setting `UNISHIP_LIVE_CONTRACT_VERIFIED=true`, that gate-opening PR must resolve
+the `NEXORA-066` empty-policy `PLAN ISSUE` in `UnishipSyncRuntime.authorize` so blank
+`UNISHIP_ACTIVATION_POLICY_JSON` fails closed on non-loopback origins even with
+`SYNC_ENABLED=false` (see [Configuration](../../../operations/configuration.md#controlled-activation-configuration--nexora-058)).
+Then deploy API/Worker together with the exact account-scoped `MANUAL_ONLY` JSON in
+private runtime config (omitting optional `connectionId` prior to initial UI connection
+creation; never commit real account values). Do not configure reconciliation thresholds
+before auto-hide acceptance. Existing onboarding enabled60 schedules are preserved;
+manual-only blocks their AUTO execution.
 
 ## Stage 2 — first manual FULL
 

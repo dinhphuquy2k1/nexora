@@ -12,6 +12,8 @@ Verification: NOT VERIFIED
 
 dated evidence from the actual approved environment: domain/DNS ownership and A/AAAA; trusted TLS issuance, renewal timer and safe reload; container bindings, private bypass and firewall. Starts only when a production environment exists.
 
+Owner2026-11-28 [project policy](../../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) removes all historical backup/restore production prerequisites. Do not add backup-related acceptance or follow-up; absence is not a blocker. Existing host/TLS/NTP/security requirements remain.
+
 ## Documentation Impact
 
 Documentation Impact: NONE

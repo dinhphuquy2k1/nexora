@@ -56,7 +56,7 @@ Nexora retains several justified architectural differences from Seiza. These dif
 2. **Dedicated migration service**: Nexora executes migrations via a dedicated `migrate` container target in Docker Compose, ensuring database migrations run to completion before the compiled non-root API container starts.
 3. **Local credential generation**: Local release initializes secure, uncommitted database credentials in a dedicated named volume via a one-shot `init` container.
 4. **Prisma 7 & database architecture**: Nexora uses Prisma 7.10 with PostgreSQL 17.11-bookworm, preserving Lyra's proven database configuration.
-5. **Independent volume isolation & backup**: Nexora maintains dedicated volumes (`nexora_credentials`, `nexora_postgres`, `nexora_uploads`) and automated backup/restore scripts with SHA-256 manifests.
+5. **Independent volume persistence**: Nexora maintains dedicated volumes (`nexora_credentials`, `nexora_postgres`, `nexora_uploads`). Historical custom backup scripts were retired under ADR-006. Owner2026-11-28 [policy](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) supersedes backup requirements: no backup/restore without a specific request, and absence is never a blocker.
 6. **Project & port isolation**: Nexora runs on Compose project `nexora` with default published web port `127.0.0.1:3001` (avoiding collisions with Lyra on `3000` and Seiza on `3100`/`4100`).
 7. **Local-first execution**: Nexora is configured as a local single-instance application; multi-tenant production hosting is out of scope.
 

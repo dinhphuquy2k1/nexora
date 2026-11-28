@@ -13,6 +13,7 @@ import {
   loginReadinessObserver,
 } from "./login-readiness-diagnostics.mjs";
 import { waitForInteractiveLogin } from "./browser-login-ready.mjs";
+import { waitForBrowserDevTools } from "./browser-startup-diagnostics.mjs";
 import {
   terminateChildProcess,
   cleanupBrowserProfile,
@@ -376,27 +377,31 @@ try {
       `--host-resolver-rules=MAP ${f.host} 127.0.0.1, EXCLUDE localhost`,
       "about:blank",
     ],
-    { stdio: "ignore" },
+    { stdio: ["ignore", "ignore", "pipe"] },
   );
-  let debugPort;
-  // Cold GitHub runners can initialize Chromium DevTools slowly; keep the launch gate bounded.
-  for (let i = 0; i < UNTIL_POLLS; i++) {
-    try {
-      debugPort = (
-        await readFile(join(profile, "DevToolsActivePort"), "utf8")
-      ).split("\n")[0];
-      break;
-    } catch {
-      await delay(100);
-    }
+  let startupStderr = "";
+  let collectingStartup = true;
+  chrome.stderr?.on("data", (chunk) => {
+    if (collectingStartup)
+      startupStderr = (startupStderr + chunk.toString("utf8")).slice(-16384);
+  });
+  let wsUrl;
+  try {
+    ({ wsUrl } = await waitForBrowserDevTools({
+      profileDir: profile,
+      child: chrome,
+      timeoutMs: UNTIL_POLLS * 100,
+      pollIntervalMs: 100,
+      targetsPath: "/json",
+      getStartupStderr: () => startupStderr,
+      onDiagnostic: (diagnostic) =>
+        console.error("BROWSER_STARTUP_DIAGNOSTIC", JSON.stringify(diagnostic)),
+    }));
+  } finally {
+    collectingStartup = false;
+    startupStderr = "";
   }
-  assert.ok(debugPort);
-  const targets = await (
-    await fetch(`http://127.0.0.1:${debugPort}/json`)
-  ).json();
-  socket = new WebSocket(
-    targets.find((t) => t.type === "page").webSocketDebuggerUrl,
-  );
+  socket = new WebSocket(wsUrl);
   await new Promise((resolve, reject) => {
     socket.addEventListener("open", resolve, { once: true });
     socket.addEventListener("error", reject, { once: true });

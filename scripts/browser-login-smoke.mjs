@@ -1,6 +1,6 @@
 import { verifyCarrierBrowser } from "./carrier-browser-checks.mjs";
 import { verifyAccountMenu } from "./account-menu-browser-checks.mjs";
-import { browserStartupSummary } from "./browser-startup-diagnostics.mjs";
+import { waitForBrowserDevTools } from "./browser-startup-diagnostics.mjs";
 import { verifyRetailBrowser } from "./retail-browser-checks.mjs";
 import { verifyCustomerBrowser } from "./customer-browser-checks.mjs";
 import { verifyM1Visuals } from "./m1-visual-checks.mjs";
@@ -13,7 +13,7 @@ const WebSocket = globalThis.WebSocket;
 import { createSmokeChecks } from "./smoke-checks.mjs";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -95,34 +95,24 @@ const sql = (command) => {
 };
 try {
   checks.step("BROWSER_LAUNCH");
-  let port;
-  // Cold GitHub runners can initialize Chromium DevTools slowly; keep the launch gate bounded.
-  for (let i = 0; i < 200; i++) {
-    try {
-      port = (
-        await readFile(join(profile, "DevToolsActivePort"), "utf8")
-      ).split("\n")[0];
-      break;
-    } catch {
-      await delay(100);
-    }
+  let wsUrl;
+  try {
+    ({ wsUrl } = await waitForBrowserDevTools({
+      profileDir: profile,
+      child,
+      timeoutMs: 20000,
+      pollIntervalMs: 100,
+      targetsPath: "/json/list",
+      getStartupStderr: () => startupStderr,
+      onDiagnostic: (diagnostic) =>
+        console.error("BROWSER_STARTUP_DIAGNOSTIC", JSON.stringify(diagnostic)),
+    }));
+  } finally {
+    collectingStartup = false;
+    startupStderr = "";
   }
-  collectingStartup = false;
-  if (!port) {
-    console.error(
-      "BROWSER_STARTUP_DIAGNOSTIC",
-      JSON.stringify(browserStartupSummary(startupStderr, child)),
-    );
-  }
-  startupStderr = "";
-  assert.ok(port, "Browser did not start");
   checks.step("CDP_CONNECTION");
-  const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(
-    (res) => res.json(),
-  );
-  socket = new WebSocket(
-    targets.find((target) => target.type === "page").webSocketDebuggerUrl,
-  );
+  socket = new WebSocket(wsUrl);
   await new Promise((resolve, reject) => {
     socket.addEventListener("open", resolve, { once: true });
     socket.addEventListener("error", reject, { once: true });

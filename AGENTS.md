@@ -11,3 +11,5 @@ Before working in this repository, read the mandatory AI entry point at [`docs/a
 - Nexora owns the Shipment domain. Logistics provider integration requires official API authorization review; never invent shipment data or implement provider integrations prematurely.
 - Mandatory Pre-Code Design Review: Complete read-only inspection, reuse audit, and record a scoped implementation plan before modifying code or tests (no owner approval required) ([Implementation workflow](docs/ai/IMPLEMENTATION_WORKFLOW.md), [ADR-009](docs/decisions/mandatory-pre-code-design-review.md)).
 - Follow the 4-stage task lifecycle (`PLANNED → IN PROGRESS → VERIFICATION PENDING → COMPLETED`) defined in [Task workflow](docs/ai/TASK_WORKFLOW.md). Never reset user volumes for tests.
+
+- Backup/restore is prohibited by default for all assets/environments unless explicitly requested by the owner; absence is never a blocker. Follow [the canonical policy](docs/ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore); preserve persistence, existing custody and security.

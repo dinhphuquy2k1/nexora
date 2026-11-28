@@ -183,7 +183,7 @@ Password-correct unenrolled ADMIN receives403 MFA_ENROLLMENT_REQUIRED and CLI gu
 
 Keep the default LOCAL setup above for loopback development/release. Owner-approved Nginx/Certbot public deployment uses compose.yml + compose.public.yml and untracked mode0600 .env.public populated from .env.public.example; do not combine with compose.dev.yml or assume registry publication. Public settings and independent retained Identity keys are mandatory; no automatic key/default account exists. Private CLI provisioning/enrollment precede public API startup. All relevant ACTIVE ADMIN users must be enrolled with readable ciphertext; startup checks runtime guards and restricted-role readiness before listen and never repairs users/sessions.
 
-Follow [Public HTTPS deployment runbook](deployment.md#public-https-runbook--owner-approved-topology-2026-10-17) for actual host/DNS/TLS/firewall/NTP preflight, certificate bootstrap/renewal, network exposure, remote OPERATOR setup, upgrade/backups and rollback. Preserve existing volumes, DB credentials and all key versions. Domain/host are not yet supplied, so real production gates remain NOT VERIFIED. CI's disposable CA/project and successful application checks cannot establish public production readiness.
+Follow [Public HTTPS deployment runbook](deployment.md#public-https-runbook--owner-approved-topology-2026-10-17) for actual host/DNS/TLS/firewall/NTP preflight, certificate bootstrap/renewal, network exposure, remote OPERATOR setup, upgrade and compatible rollback. Preserve existing volumes, DB credentials and all key versions. Domain/host are not yet supplied, so real production gates remain NOT VERIFIED. CI's disposable CA/project and successful application checks cannot establish public production readiness.
 
 ## Test tooling prerequisites
 
@@ -216,3 +216,7 @@ http://127.0.0.1:3101 replaces defaults and excludes localhost unless listed.
 Host-native Turbo requires these values in its parent environment, not merely an
 untracked .env file. These examples do not configure PUBLIC_HTTPS or production
 exposure; public required Host/Origin/custody gates remain separate.
+
+## Explicit owner scope for backup/restore
+
+[Project policy](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) prohibits backup/restore by default. Do not add backup, clone, snapshot or drill steps to setup, migration or deployment; missing backups are never blockers. Retain existing volumes, data, credentials and keys.

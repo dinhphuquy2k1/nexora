@@ -115,7 +115,7 @@ LOCAL remains default and keeps loopback Web publishing. Owner-approved `compose
 
 Explicit profile/Host/Origin/canonical URL and narrow proxy config are mandatory; API public startup gates global MFA enforcement and actual runtime-role enrollment/key readiness before binding. Ingress starts only after Web/API healthy, validates certificate custody, serves TLS1.2/1.3+HTTP2, canonical redirects, safe headers and instance-local rate limits. Application images do not contain TLS private keys. Certbot renewal is a separate trusted host timer/one-off with tested reload, not a Docker-socket sidecar.
 
-See [Deployment](../operations/deployment.md) for stop-writers/private CLI/bootstrap/upgrade/backup/rollback and [Configuration](../operations/configuration.md) for exact networks/variables. Real production DNS/certificate/firewall/host NTP remain NOT VERIFIED because no actual host/domain exists. Public CI uses a fresh owned project, loopback-only published test ports and disposable CA/leaf; it does not activate a public server.
+See [Deployment](../operations/deployment.md) for stop-writers/private CLI/bootstrap/upgrade/compatible rollback and [Configuration](../operations/configuration.md) for exact networks/variables. Real production DNS/certificate/firewall/host NTP remain NOT VERIFIED because no actual host/domain exists. Public CI uses a fresh owned project, loopback-only published test ports and disposable CA/leaf; it does not activate a public server.
 
 Public Web's container healthcheck uses node:http to send the canonical public Host over its private loopback listener. Node24 fetch rewrites Host overrides and therefore cannot probe this policy correctly. This does not add loopback to the public allowlist; the real HTTP request passes the same middleware validation as ingress traffic. The helper lives in Web's existing lib runtime artifacts and reports failure on non200/network errors.
 
@@ -222,3 +222,7 @@ trusted CLI runs directly with API custody. Web LOCAL Host forwarding is supplie
 by base/release Compose and inherited by dev. PUBLIC_HTTPS profile behavior and
 required configuration remain unchanged. Configuration changes require relevant
 process restart/container recreation; never reset enrollment or key material.
+
+## Operational scope — owner decision2026-11-28
+
+[Backup/restore requires a specific owner request](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) across all environments/assets. It is not a deployment, migration or production prerequisite. Preserve current volumes/data/credentials/key versions; no implicit copies, snapshots, clones or drills. Existing automated fixtures remain unchanged.

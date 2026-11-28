@@ -132,8 +132,11 @@ UNISHIP_ACTIVATION_POLICY_JSON is blank/absent-OFF, maximum4096 characters, with
 ownerUserId (UUID), externalAccountId (positive decimal string), loginIdentifier
 (nonempty, already trimmed), mode MANUAL_ONLY or AUTOMATIC, optional connectionId
 (UUID). Unknown keys/malformed values fail startup with fixed sanitized errors; never
-put passwords/tokens here. It gates scope independently of persisted schedule intent.
-No account ID or automatic production activation is shipped.
+put passwords/tokens here, and never hardcode real account values into source, fixtures,
+`.env.example`, or public docs. Account-scoped activation remains canonical (no refactor
+to provider-level activation); initial `MANUAL_ONLY` deployment omits `connectionId` until
+the owner creates the connection via the Carrier UI. It gates scope independently of
+persisted schedule intent. No account ID or automatic production activation is shipped.
 
 UNISHIP_RECONCILIATION_POLICY_JSON is optional, exact integer keys maxNewlyMissing
 (0..2147483647), maxMissingRatioBps and maxObservedDropRatioBps (0..10000). Blank means
@@ -144,7 +147,14 @@ parsers and require homogeneous values/Carrier key versions before restart.
 Compose/release Worker receives UNISHIP_API_URL, UNISHIP_LIVE_AUTHORIZED, Carrier
 keyring/version and both JSON settings, but no Identity keys/storage/admin mount.
 The immutable live contract gate remains false. Neither JSON nor live-authorized ENV
-can bypass it. Completion-spaced HTTP permits are shared in PostgreSQL; the existing
+can bypass it, and pre-live environments should retain `UNISHIP_LIVE_AUTHORIZED=false`
+until external prerequisites close. **Stage 1 gate-opening prerequisite (`NEXORA-066` `PLAN ISSUE`)**:
+before any future change flips `UNISHIP_LIVE_CONTRACT_VERIFIED` to `true`,
+`UnishipSyncRuntime.authorize` (`if (!policy) return;`) and
+`UnishipHttpClient.operationallyAvailable()` must fail closed for non-loopback URLs when
+`UNISHIP_ACTIVATION_POLICY_JSON` is blank, so interactive connect/reconnect cannot
+dispatch live requests without account-scoped policy even when `SYNC_ENABLED=false`.
+Completion-spaced HTTP permits are shared in PostgreSQL; the existing
 acquisition slots remain separate safeguards, not an official provider quota.
 
 ## Strict development environment and shared runtime settings — NEXORA-058 v3
@@ -183,3 +193,7 @@ not load .env. Restart development processes after Turbo/config changes; recreat
 Compose containers for changed environment. A container restart cannot import new
 parent ENV. Preserve DB/key material and MFA enrollment; this fix never requires
 rotation, reset or re-enrollment.
+
+## Owner authorization and existing custody
+
+[Project policy](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) prohibits copying/archiving ENV, credentials or keyrings without a specific owner request. Existing custody, retained key versions, restricted secret mounts and non-rotation requirements remain mandatory; they do not authorize backup copies. Missing backups are not configuration/deployment blockers.
