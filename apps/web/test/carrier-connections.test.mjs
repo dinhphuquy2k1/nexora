@@ -805,3 +805,306 @@ test("history component renders actual type options and exposes invalid data tim
   );
   assert.doesNotMatch(html, /data-carrier-history-id=/);
 });
+
+test("live Carrier lifecycle callbacks enable connect, edit/reconnect, disconnect and refresh while callback-less renders remain draft-only", async () => {
+  const { CarrierConnectionsPage } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionsPage.tsx",
+      import.meta.url,
+    ),
+  );
+  const { CarrierConnectionDrawer, CarrierConfirmDialog } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionDrawer.tsx",
+      import.meta.url,
+    ),
+  );
+
+  // 1. Live mode page enables refresh controls while keeping draft-only offline renders disabled
+  const livePageHtml = render(
+    React.createElement(CarrierConnectionsPage, {
+      records: rows.slice(0, 1),
+      liveSync: true,
+      onRefresh: () => {},
+      onConnect: async () => {},
+    }),
+  );
+  const refreshMatch = livePageHtml.match(
+    /<button[^>]+aria-label="Làm mới trạng thái"[^>]*>/,
+  )?.[0];
+  assert.ok(refreshMatch);
+  assert.doesNotMatch(refreshMatch, /disabled/);
+
+  // 2. Live create drawer updates help copy and allows submit once valid
+  const liveCreateHtml = render(
+    React.createElement(CarrierConnectionDrawer, {
+      onClose: () => {},
+      onSubmit: async () => {},
+    }),
+  );
+  assert.doesNotMatch(
+    liveCreateHtml,
+    /Thông tin chỉ là bản nháp, không được lưu/,
+  );
+  assert.match(liveCreateHtml, /Kích hoạt kết nối/);
+
+  // 3. Edit mode locks loginIdentifier cleanly and live disconnect enables confirmation action
+  const liveEditHtml = render(
+    React.createElement(CarrierConnectionDrawer, {
+      row: rows[1],
+      onClose: () => {},
+      onSubmit: async () => {},
+    }),
+  );
+  const loginInput = liveEditHtml.match(
+    /<input[^>]*name="loginIdentifier"[^>]*>/,
+  )?.[0];
+  assert.ok(loginInput);
+  assert.match(loginInput, /\bdisabled\b/);
+  const confirmHtml = render(
+    React.createElement(CarrierConfirmDialog, {
+      row: rows[1],
+      onClose: () => {},
+      onConfirm: async () => {},
+    }),
+  );
+  const confirmBtn = confirmHtml.match(
+    /<button[^>]*>Xác nhận ngắt kết nối<\/button>/,
+  )?.[0];
+  assert.ok(confirmBtn);
+  assert.doesNotMatch(confirmBtn, /disabled/);
+});
+
+test("CarrierConnectionDrawer live submission trims metadata, retains password raw, guards concurrent submits and clears password on success", async () => {
+  const { readFileSync } = await import("node:fs");
+  const vm = await import("node:vm");
+  const ts = await import("typescript");
+  const { validateConnectionDraft, validateEditConnectionDraft, UNAVAILABLE } =
+    model();
+  const submitted = [];
+  let release;
+  let closes = 0;
+
+  class MockSyncApiError extends Error {
+    constructor(status, message, code) {
+      super(message);
+      this.status = status;
+      this.code = code;
+    }
+  }
+
+  const slots = [];
+  let cursor = 0;
+  const hooks = {
+    useRef: (v) => (slots[cursor++] ??= { current: v }),
+    useState: (v) => {
+      const i = cursor++;
+      if (!(i in slots)) slots[i] = typeof v === "function" ? v() : v;
+      return [
+        slots[i],
+        (n) => {
+          slots[i] = typeof n === "function" ? n(slots[i]) : n;
+        },
+      ];
+    },
+    useId: () => "fixture-id",
+  };
+  const deps = {
+    "@nexora/ui": {
+      Overlay: "overlay",
+      Button: "button",
+      TextInput: "input",
+    },
+    "lucide-react": {
+      X: "x",
+      Truck: "truck",
+      KeyRound: "key",
+      Lock: "lock",
+      Activity: "activity",
+      Check: "check",
+      AlertCircle: "alert",
+      ShieldCheck: "shield",
+    },
+    "./presentation.ts": {
+      UNAVAILABLE,
+      validateConnectionDraft,
+      validateEditConnectionDraft,
+    },
+    "./sync-api.ts": { SyncApiError: MockSyncApiError },
+    "./CarrierConnectionList.tsx": {
+      CarrierLogo: "logo",
+      ConnectionBadge: "badge",
+    },
+  };
+  const mod = { exports: {} };
+  const code = ts.default.transpileModule(
+    readFileSync(
+      new URL(
+        "../features/carrier-connections/CarrierConnectionDrawer.tsx",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+    {
+      compilerOptions: {
+        module: ts.default.ModuleKind.CommonJS,
+        jsx: ts.default.JsxEmit.ReactJSX,
+        target: ts.default.ScriptTarget.ES2022,
+      },
+    },
+  ).outputText;
+  vm.default.runInNewContext(code, {
+    module: mod,
+    exports: mod.exports,
+    require(name) {
+      if (name === "react") return hooks;
+      if (name === "react/jsx-runtime")
+        return {
+          jsx: (type, props) => ({ type, props }),
+          jsxs: (type, props) => ({ type, props }),
+          Fragment: "fragment",
+        };
+      if (name.endsWith(".css")) return { default: {} };
+      if (name in deps) return deps[name];
+      throw Error("Unexpected dependency: " + name);
+    },
+  });
+  const renderDrawer = (p) => {
+    cursor = 0;
+    return mod.exports.CarrierConnectionDrawer(p);
+  };
+
+  function findByType(node, type, list = []) {
+    if (Array.isArray(node)) {
+      for (const item of node) findByType(item, type, list);
+      return list;
+    }
+    if (!node || typeof node !== "object") return list;
+    if (node.type === type) list.push(node);
+    for (const child of Object.values(node.props ?? {})) {
+      findByType(child, type, list);
+    }
+    return list;
+  }
+
+  const onSubmit = (draft) => {
+    submitted.push(draft);
+    return new Promise((resolve) => {
+      release = resolve;
+    });
+  };
+  const props = {
+    onClose: () => {
+      closes++;
+    },
+    onSubmit,
+  };
+
+  let view = renderDrawer(props);
+  let inputs = findByType(view, "input");
+  const byName = (name) => inputs.find((i) => i.props.name === name);
+  byName("displayName").props.onChange({
+    target: { value: "  Uniship Chính  " },
+  });
+  byName("loginIdentifier").props.onChange({
+    target: { value: "  synthetic  " },
+  });
+  byName("password").props.onChange({ target: { value: " pass-raw " } });
+  view = renderDrawer(props);
+
+  const submitButtons = findByType(view, "button").filter((b) =>
+    String(b.props.children).includes("Kích hoạt kết nối"),
+  );
+  assert.equal(submitButtons[0].props.disabled, false);
+
+  const form = findByType(view, "form")[0];
+  const pending = form.props.onSubmit({ preventDefault() {} });
+  await form.props.onSubmit({ preventDefault() {} });
+  assert.equal(submitted.length, 1, "concurrent double submit blocked");
+  assert.equal(
+    JSON.stringify(submitted[0]),
+    JSON.stringify({
+      displayName: "Uniship Chính",
+      loginIdentifier: "synthetic",
+      password: " pass-raw ",
+    }),
+  );
+
+  release();
+  await pending;
+  assert.equal(closes, 1);
+  view = renderDrawer(props);
+  inputs = findByType(view, "input");
+  assert.equal(inputs.find((i) => i.props.name === "password").props.value, "");
+});
+
+test("CarrierConnectionsLive hydrates sync summaries tolerantly and exposes lifecycle refresh", async () => {
+  const { componentHarness } = await import("./helpers/component-harness.mjs");
+  const { syncPresentation } = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-response.ts",
+      import.meta.url,
+    ),
+  );
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+  const api = {
+    connections: async () => [
+      {
+        id: "conn-1",
+        provider: "uniship",
+        externalAccountId: "88001",
+        loginIdentifier: "synthetic",
+        displayName: "Uniship Chính",
+        status: "CONNECTED",
+        lastVerifiedAt: "2026-11-28T00:00:00Z",
+        createdAt: "2026-11-28T00:00:00Z",
+      },
+    ],
+    configs: async () => {
+      throw new Error("summary temporary unavailable");
+    },
+    jobs: async () => ({
+      jobs: [],
+      total: 0,
+      types: [],
+      summary: { total: 0, completed: 0, running: 0, failed: 0 },
+    }),
+    connect: async () => ({ id: "conn-1" }),
+    reconnect: async () => ({ id: "conn-1" }),
+    rename: async () => ({ id: "conn-1" }),
+    remove: async () => ({ success: true }),
+  };
+
+  class MockSyncApiError extends Error {
+    constructor(status, message, code) {
+      super(message);
+      this.status = status;
+      this.code = code;
+    }
+  }
+
+  const harness = componentHarness(
+    "../features/carrier-connections/CarrierConnectionsLive.tsx",
+    {
+      "@nexora/ui": { Button: "button" },
+      "./sync-api.ts": {
+        createSyncApi: () => api,
+        SyncApiError: MockSyncApiError,
+      },
+      "./sync-response.ts": { syncPresentation },
+      "./CarrierConnectionsPage.tsx": { CarrierConnectionsPage: "page" },
+    },
+  );
+
+  harness.render({});
+  await tick();
+  await tick();
+  const tree = harness.render({});
+  const pageEl = tree.props.children.find((c) => c && c.type === "page");
+  const capturedProps = pageEl.props;
+  assert.equal(capturedProps.records.length, 1);
+  assert.equal(typeof capturedProps.onConnect, "function");
+  assert.equal(typeof capturedProps.onEditConnection, "function");
+  assert.equal(typeof capturedProps.onDisconnect, "function");
+  assert.equal(typeof capturedProps.onRefresh, "function");
+});

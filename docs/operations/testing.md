@@ -1664,3 +1664,14 @@ gate-open **GREEN** (`UNISHIP_LIVE_CONTRACT_VERIFIED=true`, `61/61` targeted and
 cleanly with production diff limited to `UNISHIP_LIVE_CONTRACT_VERIFIED = true`). Mock
 `globalThis.fetch` and PostgreSQL fixtures remain mock/fixture verification and do not
 execute real network requests to `https://kh.uniship.vn`.
+
+## NEXORA-068 Carrier Lifecycle UI Verification
+
+`apps/web/test/carrier-sync-api.test.mjs` and
+`apps/web/test/carrier-connections.test.mjs` cover live Carrier lifecycle SDK
+transport (`connect`, `reconnect`, `rename`, `remove`) with code-aware safe
+error extraction, optional callback activation versus callback-less draft-only
+parity, trimmed metadata with raw password submission and post-success clearing,
+concurrent submit fencing, and tolerant `CarrierConnectionsLive` `syncByConnection`
+hydration using synthetic `"88001"` / `"synthetic"` fixtures (zero private
+owner identifiers).

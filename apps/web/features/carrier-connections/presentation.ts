@@ -220,6 +220,16 @@ export function validateConnectionDraft(
     errors.password = "Nhập mật khẩu từ 1 đến 1024 ký tự.";
   return errors;
 }
+export function validateEditConnectionDraft(
+  draft: ConnectionDraft,
+): Partial<Record<keyof ConnectionDraft, string>> {
+  const errors: Partial<Record<keyof ConnectionDraft, string>> = {};
+  if (!draft.displayName.trim() || draft.displayName.length > 100)
+    errors.displayName = "Nhập tên gợi nhớ từ 1 đến 100 ký tự.";
+  if (draft.password.length > 1024)
+    errors.password = "Mật khẩu tối đa 1024 ký tự.";
+  return errors;
+}
 export function latestSyncSuccess(
   data: SyncPresentation | undefined,
 ): string | null {

@@ -207,3 +207,126 @@ test("Job Detail uses existing generated SDK with scoped IDs, issue page and can
   assert.equal(call.options.params.query.pageSize, JOB_ISSUE_PAGE_SIZE);
   assert.equal(call.options.signal, signal);
 });
+
+test("Carrier lifecycle SDK transport sends exact connect, reconnect, rename and remove requests with non-leaky errors", async () => {
+  const { createSyncApi, SyncApiError } = loadComponent(apiFile),
+    calls = [];
+  const client = {
+    GET: async () => ({
+      response: new globalThis.Response("{}"),
+      data: { connections: [] },
+    }),
+    POST: async (path, options) => {
+      calls.push({ method: "POST", path, options });
+      return {
+        response: new globalThis.Response("{}", { status: 201 }),
+        data: {
+          connection: {
+            id: "conn-1",
+            provider: "uniship",
+            externalAccountId: "88001",
+            loginIdentifier: "synthetic-login",
+            displayName: "Uniship chính",
+            status: "CONNECTED",
+            lastVerifiedAt: "2026-11-28T00:00:00Z",
+            createdAt: "2026-11-28T00:00:00Z",
+          },
+        },
+      };
+    },
+    PATCH: async (path, options) => {
+      calls.push({ method: "PATCH", path, options });
+      return {
+        response: new globalThis.Response("{}"),
+        data: {
+          connection: {
+            id: "conn-1",
+            provider: "uniship",
+            externalAccountId: "88001",
+            loginIdentifier: "synthetic-login",
+            displayName: "Tên mới",
+            status: "CONNECTED",
+            lastVerifiedAt: "2026-11-28T00:00:00Z",
+            createdAt: "2026-11-28T00:00:00Z",
+          },
+        },
+      };
+    },
+    DELETE: async (path, options) => {
+      calls.push({ method: "DELETE", path, options });
+      return {
+        response: new globalThis.Response("{}"),
+        data: { success: true },
+      };
+    },
+  };
+  const api = createSyncApi(client);
+  const created = await api.connect({
+    provider: "uniship",
+    loginIdentifier: "synthetic-login",
+    password: "synthetic-password",
+    displayName: "Uniship chính",
+  });
+  assert.equal(created.status, "CONNECTED");
+  assert.equal(calls[0].method, "POST");
+  assert.equal(calls[0].path, "/api/carrier-connections");
+  assert.equal(
+    JSON.stringify(calls[0].options.body),
+    JSON.stringify({
+      provider: "uniship",
+      loginIdentifier: "synthetic-login",
+      password: "synthetic-password",
+      displayName: "Uniship chính",
+    }),
+  );
+
+  await api.reconnect("conn-1", "next-password");
+  assert.equal(calls[1].path, "/api/carrier-connections/{id}/reconnect");
+  assert.equal(calls[1].options.params.path.id, "conn-1");
+  assert.equal(
+    JSON.stringify(calls[1].options.body),
+    JSON.stringify({ password: "next-password" }),
+  );
+
+  await api.rename("conn-1", "Tên mới");
+  assert.equal(calls[2].method, "PATCH");
+  assert.equal(calls[2].path, "/api/carrier-connections/{id}");
+  assert.equal(
+    JSON.stringify(calls[2].options.body),
+    JSON.stringify({ displayName: "Tên mới" }),
+  );
+
+  await api.remove("conn-1");
+  assert.equal(calls[3].method, "DELETE");
+  assert.equal(calls[3].path, "/api/carrier-connections/{id}");
+
+  for (const [status, code] of [
+    [400, "CANNOT_CONNECT_CARRIER_ACCOUNT"],
+    [400, "PROVIDER_AUTH_FAILED"],
+    [403, "FORBIDDEN"],
+    [429, "RATE_LIMITED"],
+    [503, "SERVICE_UNAVAILABLE"],
+  ]) {
+    const failing = createSyncApi({
+      ...client,
+      POST: async () => ({
+        response: new globalThis.Response("{}", { status }),
+        error: { code, message: "secret-upstream-detail" },
+      }),
+    });
+    await assert.rejects(
+      failing.connect({
+        provider: "uniship",
+        loginIdentifier: "synthetic-login",
+        password: "synthetic-password",
+        displayName: "Uniship chính",
+      }),
+      (e) =>
+        e instanceof SyncApiError &&
+        e.status === status &&
+        e.code === code &&
+        !e.message.includes("secret-upstream-detail") &&
+        e.message.length > 0,
+    );
+  }
+});
