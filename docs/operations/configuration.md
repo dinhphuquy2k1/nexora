@@ -208,3 +208,15 @@ rotation, reset or re-enrollment.
 ## Owner authorization and existing custody
 
 [Project policy](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) prohibits copying/archiving ENV, credentials or keyrings without a specific owner request. Existing custody, retained key versions, restricted secret mounts and non-rotation requirements remain mandatory; they do not authorize backup copies. Missing backups are not configuration/deployment blockers.
+
+## NEXORA-067 live-gate review — 2026-11-28
+
+See the [focused live-gate ledger](../integrations/uniship-portal-api.md#live-gate-review--nexora-067-2026-11-28).
+Existing owner account/four-route/automatic-login authorization and observed verify
+shape are accepted. The missing records are live rejection/expiry confidence,
+historical exposure invalidation and explicit gate-opening permission. No current
+ENV combination enables real UI connection while hardfalse. Only after an authorized
+reviewed gate opening may the owner use private MANUAL_ONLY scope (omit connectionId
+for first connection), live opt-in and SyncOFF with the existing Carrier UI. Enter
+the password directly there; no manual API, SQL or token handling is needed. This
+review changes no actual runtime configuration, default template, Sync or068 scope.

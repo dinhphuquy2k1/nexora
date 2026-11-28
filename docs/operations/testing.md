@@ -1656,3 +1656,14 @@ is NOT RUN while hardfalse; constructor propagation and closed zero-dispatch tes
 do not independently demonstrate the new conjunct with hardtrue. Source review
 checks the shared target condition; later authorized activation needs its own
 positive evidence. Test-only doubles never grant production live permission.
+
+Final review2026-11-28: the [eight-contract gate review](../integrations/uniship-portal-api.md#live-gate-review--nexora-067-2026-11-28)
+retains the accepted owner decisions and identifies only remaining canonical gates.
+With hardfalse, the requested external-positive authorization matrix, external
+Connect/Reconnect extensions and missing-policy mutation are NOT RUN. Removing
+activationConfigured could still leave external tests green because the separate
+hard gate denies them; constructor capture does not remove this limitation. Do not
+change the gate, rewrite source or substitute compiled constants to manufacture
+independent proof. When opening is authorized, the regression must intercept actual
+authenticate/verify/both getShipment paths and use existing admission; valid scoped
+SyncOFF Connect and denied persistence preservation must remain covered.

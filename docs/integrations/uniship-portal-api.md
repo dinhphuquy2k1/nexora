@@ -578,3 +578,37 @@ provides explicit gate-opening permission. No live call or actual provider/accou
 verification is performed. Later owner UI connection follows a separately authorized
 reviewed gate change, private scoped MANUAL_ONLY config and SyncOFF; no manual token
 handling, SQL-created connection or predeclared initial connection UUID is needed.
+
+## Live gate review — NEXORA-067 (2026-11-28)
+
+Focused review against ADR-007's Token Verification Protocol and dated amendments,
+existing source/tests and canonical058 Stage1; no new provider observation or live
+request. Confirmed owner decisions below are retained, not reopened. Captured
+transition/chinaStores fixtures establish those read envelopes, not token rejection,
+expiry or historical credential invalidation; their synthetic derivatives add no
+live evidence.
+
+| Contract                            | Existing evidence                                                                                                                                                                                     | Status                                                                                           | Remaining action                                                                                                      |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Verify request body                 | ADR-0072026-10-16 observed HTTP200: JSON {token,FirebaseToken:null}, Bearer candidate; uniship-http.client.ts verify and uniship-verify.test.cjs loopback assertions                                  | Owner-observed contract, implemented and mock-tested                                             | No repeat confirmation of the recorded shape; current live acceptance is not claimed                                  |
+| Verified user.userid identity       | Same amendment requires valid nested userid, candidate-token equality, login/verify coherence and stored-account match; existing parser/vault/lifecycle tests                                         | Accepted identity rule with owner-observed response shape; technical regressions PASS            | No new identifier request; no claim of current live verification for this PR                                          |
+| Expired/invalid token semantics     | HTTP client maps auth/verify400/401 and read401/403 to existing rejection paths; loopback/expired/midpage recovery tests are synthetic                                                                | Technical behavior verified; exact live status/error/rejection confidence NOT VERIFIED           | Owner supplies sanitized existing observation when available; no agent live probe or manufactured expiry              |
+| is_verified semantics               | ADR-0072026-10-16 explicitly ignores true/false/absent/malformed; uniship-verify.test.cjs exercises them                                                                                              | Resolved owner decision, implemented                                                             | None; do not infer authorization from the flag or require it to be re-confirmed                                       |
+| TTL/refresh behavior                | ADR-007: approximate one-year lifetime is owner information, not fixed TTL; nullable expiry scheduling, provider may reject earlier; no approved refresh endpoint; encrypted-password recovery exists | No-refresh/unknown-expiry handling accepted; exact live TTL/rejection confidence not established | Keep existing behavior; no fixed TTL or invented refresh endpoint; natural evidence only under separate authorization |
+| Owner account authorization         | ADR-0072026-11-15 confirms owner's account, approved HTTPS origin/four routes, encrypted-password automatic login and Nexora pacing                                                                   | CONFIRMED within the recorded scope                                                              | None for existing account/origin/route permission; no provider numerical-quota requirement                            |
+| Historical exposure invalidation    | ADR-0072026-11-15 requires password change to invalidate exposed DevTools tokens/cookies; no completion record in inspected evidence                                                                  | NOT VERIFIED                                                                                     | Owner confirms completion without sending password/token/cookie; agent performs no account operation                  |
+| Explicit gate-opening authorization | Current request allows opening only after canonical prerequisites and explicit owner permission; no unconditional opening authorization recorded                                                      | NOT RECORDED                                                                                     | Owner explicitly authorizes the reviewed hard-gate change after remaining conditions are resolved                     |
+
+These remaining conditions are the existing canonical gates, not new implementation
+tasks. Stage1 still requires applicable runtime readiness (existing custody, scoped
+private configuration, chosen profile/MFA and host readiness); source-level CI does
+not certify the actual owner environment. Owner runtime/data acceptance stays068,
+public-host acceptance046. No new backup prerequisite or operational work is added.
+
+UNISHIP_LIVE_CONTRACT_VERIFIED remains false. Protection is implemented; actual live
+connection capability is not enabled. The external-positive matrix and independent
+missing-policy mutation remain NOT RUN until gate opening is legitimately
+authorized. A future authorized material revision must test actual auth/verify and
+both GET paths with intercepted synthetic HTTP through existing admission, including
+approved dispatch and zero-dispatch denials. No source rewriting, flag substitution,
+external network call or fake permission can stand in for that evidence.

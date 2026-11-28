@@ -160,3 +160,62 @@ canonical full typecheck/integration evidence, separate from these host receipts
 Final-source CI and final review receipts will be recorded in the new PR description
 after push; do not create a commit merely to recite its own CI results. No merge,
 live call, owner configuration/key/DB operation, manual FULL or backup work occurs.
+
+## Final review delta — 2026-11-28
+
+Reviewed source: 3cd3bcdbc27fc3e35f6e3e2cc91277d7e6d0cb71. This follow-up is
+BOUNDED documentation/evidence/title correction within the unchanged v1 plan.
+No security behavior, test, interface or scope changes; immutable v1 stays intact.
+A gate-opening change would require a new material revision before implementation.
+
+Focused inspection: ADR-007 Token Verification Protocol, amendments2026-10-16 and
+2026-11-15; existing fixture provenance; HTTP target/verify/rejection handling;
+carrier-uniship and uniship-verify tests; shared runtime composition; canonical058
+Stage1 and existing068. Reuse the integration contract's confidence ledger rather
+than create a second authorization mechanism or task. The risk is mistaking mock
+or owner-observed evidence for live verification; retain their distinct confidence.
+
+Plan for this delta: record the eight-contract gate review in the integration
+contract; link it from configuration/testing/Stage1; correct the PR title to
+`fix(uniship): enforce activation scope for live carrier transport`; preserve all
+previous CI receipts and run required checks on the new candidate. No code/tests
+are changed while gate-opening prerequisites remain unconfirmed. No synthetic
+external-positive test or mutation may be reported as independent policy proof.
+
+### Gate and regression outcome
+
+The [focused gate review](../../integrations/uniship-portal-api.md#live-gate-review--nexora-067-2026-11-28)
+accepts the existing verify shape/identity contract, ignored is_verified decision,
+no-refresh behavior and owner account authorization without asking again. Exact
+live expired/invalid-token rejection confidence, historical exposure invalidation
+and explicit permission to open the hard gate are not established in the inspected
+records. Stage1 runtime readiness remains separate from source-level CI acceptance;
+no deployment or068 work is performed.
+
+Hard gate remains false. External-positive matrix, approved-origin dispatch through
+real admission, external lifecycle additions and missing-policy mutation are NOT
+RUN, conditional on a legitimate gate opening. Constructor propagation and current
+closed-gate zero-dispatch tests remain useful but do not independently prove the
+activationConfigured conjunct under hardtrue. This limitation is not fixed or
+waived by this documentation delta. No hard-gate substitution or new bypass.
+
+Historical green source3cd3bcdbc27fc3e35f6e3e2cc91277d7e6d0cb71:
+Preflight46137035734/job140954518072, Sync Targeted46137035738/job140954518094,
+Foundation46137035766/job140954518516, all attempt1 PASS on2026-11-28. Actual merge
+checkout81c908cfbfabf7ed4cc236145f89a6b34cd23a80. Foundation canonical typecheck
+and steps4–10 PASS; signed Sync executed six initial-connect cases and denied
+reconnect preservation. These are historical receipts, not final-candidate evidence.
+New candidate receipts will be recorded in PR67 description after push.
+
+### Follow-up local verification
+
+Node24.19.0/pnpm10.34.6: API prerequisite build PASS; six requested targeted files
+60/60 PASS; full API303/303 PASS. format:check, lint (including boundaries),
+contracts:check, docs:check, preflight:check, test:docs10/10, test:preflight24/24 and
+git diff --check PASS. No test changes, hence no new behavioral RED/GREEN claim.
+Local root typecheck NOT RUN for this documentation delta: about76MiB available,
+prior root Web build failed ENOSPC under the same constraint. Canonical hosted
+Foundation must verify the new candidate; historical green does not substitute.
+Local signed integration NOT RUN (missing application/tooling images and disk);
+required hosted signed Sync handles the PR's matching cumulative paths. No assets,
+volumes, credentials or actual runtime configuration changed to obtain a PASS.

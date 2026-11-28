@@ -115,3 +115,14 @@ DB row locks; Worker credential and runtime audit queries have short lock/statem
 bounds. On rollback drain old executions, deploy a compatible homogeneous revision,
 retain migrations/data/key history, recheck restricted grants and restart OFF. Do not
 roll back security by granting broad secrets access or substituting admin credentials.
+
+## Stage 1 clarification — NEXORA-067 final review (2026-11-28)
+
+The [focused live-gate ledger](../../../integrations/uniship-portal-api.md#live-gate-review--nexora-067-2026-11-28)
+separates accepted contract/account decisions from missing live rejection/expiry,
+historical exposure invalidation and explicit gate-opening evidence. Do not ask
+again for previously supplied account identifiers, approved endpoints, ignored
+is_verified, refresh decisions or provider numerical quotas. No new evidence here
+opens the hard gate. Runtime readiness in the existing stages is not established
+by mock tests or hosted CI; actual owner operations remain outside067. External
+positive regression remains NOT RUN until legitimate opening, with no test bypass.
