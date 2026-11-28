@@ -3,8 +3,10 @@
 Contract record: NEXORA-054,2026-11-15. Scope is the owner's own account on
 https://kh.uniship.vn, read-only Shipment integration. This documents owner-reported
 DevTools observations and selected future adapter behavior; it implements no
-adapter, production registration, schema or live calls. The external Carrier gate
-remains hard-closed. [ADR-007](../decisions/multi-carrier-architecture.md#owner-authorization-for-uniship-customer-portal-access--2026-11-15-nexora-054)
+adapter, production registration, schema or live calls. The source-level Carrier live gate
+is explicitly authorized (`UNISHIP_LIVE_CONTRACT_VERIFIED=true`, 2026-11-28) for
+owner-controlled Connect/Reconnect while preserving opt-in `UNISHIP_LIVE_AUTHORIZED=false`
+defaults and account-scoped policy protection. [ADR-007](../decisions/multi-carrier-architecture.md#owner-authorization-for-uniship-customer-portal-access--2026-11-15-nexora-054)
 owns authorization; [backend auth/verify](../architecture/backend.md#independent-uniship-transport)
 owns the existing token/custody boundary. Nexora Identity remains independent.
 
@@ -47,9 +49,10 @@ Uniship has not communicated a numerical rate/concurrency quota; these are Nexor
 limits, not a claimed provider SLA. Existing production acquisition budgets remain
 unchanged by this documentation. Provider stop request or contract drift (invalid
 envelopes, widespread unfamiliar status codes) requires capability disablement.
-All production capabilities remain unregistered now. Exposed historical tokens or
-cookies must be invalidated by changing the Uniship account password; this task
-does not perform or claim completion of that account operation.
+Historical 2026-11-15 `NEXORA-054` note: production capabilities were unregistered at
+that milestone and exposed historical tokens/cookies had a recorded password-change
+condition; on 2026-11-28 (`NEXORA-067` v2) the owner recorded explicit `owner risk acceptance`
+waiving pre-activation password rotation for the approved test account (see [Live gate review](#live-gate-review--nexora-067-2026-11-28)).
 
 ## Parcel list, filtering and pagination
 
@@ -572,43 +575,37 @@ identity verification before encrypted persistence. Interactive Carrier and Sync
 capability enablement are independent. Existing four routes/origin, query/mapping,
 UTC+7, budgets and tri-state semantics remain unchanged.
 
-UNISHIP_LIVE_CONTRACT_VERIFIED remains false. ADR007 owner point6 authorization is
-retained; no new evidence promotes remaining contract/exposure prerequisites or
-provides explicit gate-opening permission. No live call or actual provider/account
-verification is performed. Later owner UI connection follows a separately authorized
-reviewed gate change, private scoped MANUAL_ONLY config and SyncOFF; no manual token
-handling, SQL-created connection or predeclared initial connection UUID is needed.
+Following explicit owner confirmations and ADR-007 amendment (2026-11-28),
+`UNISHIP_LIVE_CONTRACT_VERIFIED` is explicitly set to `true` alongside runtime opt-in
+(`UNISHIP_LIVE_AUTHORIZED`, default `false` in templates) and parsed `activationConfigured`.
+Live network dispatch continues to fail closed unless all three conjuncts hold for
+`https://kh.uniship.vn`. Owner UI connection/reconnect uses private scoped `MANUAL_ONLY`
+config and `SYNC_ENABLED=false`; no manual token handling, SQL-created connection or
+predeclared initial connection UUID is needed.
 
 ## Live gate review — NEXORA-067 (2026-11-28)
 
-Focused review against ADR-007's Token Verification Protocol and dated amendments,
-existing source/tests and canonical058 Stage1; no new provider observation or live
-request. Confirmed owner decisions below are retained, not reopened. Captured
-transition/chinaStores fixtures establish those read envelopes, not token rejection,
-expiry or historical credential invalidation; their synthetic derivatives add no
-live evidence.
+Focused review against ADR-007's Token Verification Protocol and the 2026-11-28
+owner confirmations (`NEXORA-067` v2). No live network call was executed by the agent
+from source tests or CI; provider runtime evidence below mixes ADR-007 fixtures with
+owner-provided observations and explicit waivers:
 
-| Contract                            | Existing evidence                                                                                                                                                                                     | Status                                                                                           | Remaining action                                                                                                      |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| Verify request body                 | ADR-0072026-10-16 observed HTTP200: JSON {token,FirebaseToken:null}, Bearer candidate; uniship-http.client.ts verify and uniship-verify.test.cjs loopback assertions                                  | Owner-observed contract, implemented and mock-tested                                             | No repeat confirmation of the recorded shape; current live acceptance is not claimed                                  |
-| Verified user.userid identity       | Same amendment requires valid nested userid, candidate-token equality, login/verify coherence and stored-account match; existing parser/vault/lifecycle tests                                         | Accepted identity rule with owner-observed response shape; technical regressions PASS            | No new identifier request; no claim of current live verification for this PR                                          |
-| Expired/invalid token semantics     | HTTP client maps auth/verify400/401 and read401/403 to existing rejection paths; loopback/expired/midpage recovery tests are synthetic                                                                | Technical behavior verified; exact live status/error/rejection confidence NOT VERIFIED           | Owner supplies sanitized existing observation when available; no agent live probe or manufactured expiry              |
-| is_verified semantics               | ADR-0072026-10-16 explicitly ignores true/false/absent/malformed; uniship-verify.test.cjs exercises them                                                                                              | Resolved owner decision, implemented                                                             | None; do not infer authorization from the flag or require it to be re-confirmed                                       |
-| TTL/refresh behavior                | ADR-007: approximate one-year lifetime is owner information, not fixed TTL; nullable expiry scheduling, provider may reject earlier; no approved refresh endpoint; encrypted-password recovery exists | No-refresh/unknown-expiry handling accepted; exact live TTL/rejection confidence not established | Keep existing behavior; no fixed TTL or invented refresh endpoint; natural evidence only under separate authorization |
-| Owner account authorization         | ADR-0072026-11-15 confirms owner's account, approved HTTPS origin/four routes, encrypted-password automatic login and Nexora pacing                                                                   | CONFIRMED within the recorded scope                                                              | None for existing account/origin/route permission; no provider numerical-quota requirement                            |
-| Historical exposure invalidation    | ADR-0072026-11-15 requires password change to invalidate exposed DevTools tokens/cookies; no completion record in inspected evidence                                                                  | NOT VERIFIED                                                                                     | Owner confirms completion without sending password/token/cookie; agent performs no account operation                  |
-| Explicit gate-opening authorization | Current request allows opening only after canonical prerequisites and explicit owner permission; no unconditional opening authorization recorded                                                      | NOT RECORDED                                                                                     | Owner explicitly authorizes the reviewed hard-gate change after remaining conditions are resolved                     |
+| Contract                            | Existing evidence & owner decision (2026-11-28)                                                                                                                                                           | Status                                                                 | Remaining action / boundary                                                                                    |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Verify request body                 | ADR-007 2026-10-16 observed HTTP 200: JSON `{token, FirebaseToken: null}`, Bearer candidate; `uniship-http.client.ts` verify and `uniship-verify.test.cjs` loopback assertions                            | Owner-observed contract, implemented and mock-tested                   | Retained; no repeat confirmation needed                                                                        |
+| Verified `user.userid` identity     | Same amendment requires valid nested `userid`, candidate-token equality, login/verify coherence and stored-account match; existing parser/vault/lifecycle tests                                           | Accepted identity rule, implemented and regression-tested              | Retained without opening extra account fields                                                                  |
+| Invalid token response              | Owner Postman observation on `POST /client/api-token-verify/`: `HTTP 400 Bad Request` `{"non_field_errors":["Error decoding signature."]}`; `uniship-verify.test.cjs` asserts `400/401 -> TOKEN_REJECTED` | Owner-provided observed invalid-token evidence; implemented cleanly    | Do not generalize beyond observed `/client/api-token-verify/` invalid-token evidence or leak provider body     |
+| Expired token semantics             | No natural expired-token capture prior to live activation; existing recovery/401/403 tests are synthetic                                                                                                  | `NOT VERIFIED`; waived as pre-activation blocker by owner (2026-11-28) | Validate naturally post-activation; no fake expired branch or extra implementation task                        |
+| `is_verified` semantics             | ADR-007 2026-10-16 explicitly ignores `true`/`false`/absent/malformed; `uniship-verify.test.cjs` exercises them                                                                                           | Resolved owner decision, implemented                                   | None; do not infer authorization from `is_verified`                                                            |
+| TTL / refresh behavior              | `Token lifetime: one year, owner-confirmed` (2026-11-28); nullable `tokenExpiry()` metadata preserved; no approved refresh endpoint; encrypted-password recovery exists                                   | Confirmed owner guidance; nullable metadata preserved                  | Keep existing metadata parsing; never hardcode a fixed 1-year TTL or invent a refresh endpoint                 |
+| Owner account authorization         | ADR-007 2026-11-15 confirms owner's approved account, `https://kh.uniship.vn`, four routes, encrypted-password automatic login and Nexora pacing                                                          | CONFIRMED within recorded scope                                        | Preserve private account-scoped `MANUAL_ONLY` config (`connectionId` omitted before initial UI connect)        |
+| Historical exposure risk acceptance | Owner explicitly accepted residual risk (`owner risk acceptance`, 2026-11-28) and waived mandatory historical password rotation before gate opening for the approved test account only                    | Owner risk acceptance recorded; pre-activation rotation blocker waived | Never claim historical credentials were invalidated; never commit secrets; waiver applies only to test account |
+| Explicit gate-opening authorization | Owner explicitly authorized opening `UNISHIP_LIVE_CONTRACT_VERIFIED = true` on 2026-11-28 after docs sync and test-first regression verification                                                          | AUTHORIZED and opened (`UNISHIP_LIVE_CONTRACT_VERIFIED = true`)        | Stage 0/runtime readiness, `UNISHIP_LIVE_AUTHORIZED=true` opt-in and `NEXORA-068` real data acceptance remain  |
 
-These remaining conditions are the existing canonical gates, not new implementation
-tasks. Stage1 still requires applicable runtime readiness (existing custody, scoped
-private configuration, chosen profile/MFA and host readiness); source-level CI does
-not certify the actual owner environment. Owner runtime/data acceptance stays068,
-public-host acceptance046. No new backup prerequisite or operational work is added.
-
-UNISHIP_LIVE_CONTRACT_VERIFIED remains false. Protection is implemented; actual live
-connection capability is not enabled. The external-positive matrix and independent
-missing-policy mutation remain NOT RUN until gate opening is legitimately
-authorized. A future authorized material revision must test actual auth/verify and
-both GET paths with intercepted synthetic HTTP through existing admission, including
-approved dispatch and zero-dispatch denials. No source rewriting, flag substitution,
-external network call or fake permission can stand in for that evidence.
+With `UNISHIP_LIVE_CONTRACT_VERIFIED = true`, external-positive mock transport (intercepted
+`globalThis.fetch` on `authenticate`, `verify`, `/client/api/transition/`, and
+`/client/api/chinaStores/` through admission), API+Worker `SyncOFF` Connect/Reconnect
+composition, Postman `400 Error decoding signature.` mapping, and the independent
+`!this.activationConfigured` mutation check (`RED -> GREEN`) have executed evidence.
+Actual owner host/ENV readiness and real `kh.uniship.vn` UI acceptance remain separate
+runtime operations under `NEXORA-068` (and `NEXORA-046` for `PUBLIC_HTTPS`).

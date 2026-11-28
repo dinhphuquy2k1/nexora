@@ -144,9 +144,9 @@ export function parseProviderIdentity(payload: unknown): UnishipLoginResult {
   };
 }
 
-// Owner-scoped permission is recorded; remaining live-contract evidence, exposure handling
-// and explicit gate-opening authorization are not established by this implementation.
-const UNISHIP_LIVE_CONTRACT_VERIFIED: boolean = false;
+// Owner explicitly authorized live gate opening (2026-11-28, ADR-007 amendment) alongside
+// opt-in UNISHIP_LIVE_AUTHORIZED and parsed UNISHIP_ACTIVATION_POLICY_JSON checks.
+const UNISHIP_LIVE_CONTRACT_VERIFIED: boolean = true;
 
 @Injectable()
 export class UnishipHttpClient {

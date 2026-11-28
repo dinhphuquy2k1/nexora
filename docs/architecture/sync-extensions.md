@@ -389,8 +389,9 @@ its loop in beforeApplicationShutdown before runtime shutdown hooks close pools.
 
 Optional reconciliation JSON delegates the existing strict Shipment policy parser.
 Absent policy permits ingestion and records POLICY_NOT_CONFIGURED, without hide/
-restore. No production threshold/default is introduced. The hard-coded live contract
-gate remains false, so even configured production/live flags cannot make live traffic.
+restore. No production threshold/default is introduced. Under `NEXORA-058`, the
+code-level live contract gate remained `false` until explicitly opened by the
+2026-11-28 ADR-007 amendment (`NEXORA-067` v2).
 
 NEXORA-058 v3 narrows existing Worker credential capabilities by purpose. Ordinary
 token usage never reads password. Recovery authorization/password loading require
@@ -402,12 +403,14 @@ capabilities are not isolation from a fully compromised runtime/keyring/DB secre
 
 ## NEXORA-067 Carrier authorization versus Sync eligibility
 
-One shared API/Worker constructor derives activationConfigured from parsed policy,
-not SYNC_ENABLED. HTTP target validation defaults that internal optionfalse and
-requires it for external availability/dispatch in addition to opt-in and hard gate.
-Existing Carrier scope checks remain before provider/reconnect claim and after
-verification before candidate encryption. Blank-policy bypass survives only for
-operational nonproduction loopback fixtures. Sync capabilities remain absent under
-SyncOFF or missing scope; MANUAL_ONLY/AUTO, persisted intent, reconciliation and
-Worker fences/custody do not change. A permitted Carrier connection need not enable
-Sync. Hard gate remains false; only mock connection behavior is executed in tests.
+One shared API/Worker constructor derives `activationConfigured` from parsed policy,
+not `SYNC_ENABLED`. HTTP target validation defaults that internal option `false` and
+requires it for external availability/dispatch in addition to runtime opt-in
+(`UNISHIP_LIVE_AUTHORIZED`) and `UNISHIP_LIVE_CONTRACT_VERIFIED` (`true` per the
+2026-11-28 ADR-007 amendment). Existing Carrier scope checks remain before
+provider/reconnect claim and after verification before candidate encryption.
+Blank-policy bypass survives only for operational nonproduction loopback fixtures.
+Sync capabilities remain absent under `SYNC_ENABLED=false` or missing scope;
+`MANUAL_ONLY`/`AUTO`, persisted intent, reconciliation and Worker fences/custody do
+not change. A permitted Carrier connection works while `SYNC_ENABLED=false`, enabling
+controlled Stage 1 Connect/Reconnect without activating Shipment Sync.

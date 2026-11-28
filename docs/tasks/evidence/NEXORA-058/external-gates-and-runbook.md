@@ -12,22 +12,22 @@ Canonical field evidence remains in [the integration contract](../../../integrat
 
 ## Evidence matrix
 
-| Contract                    | Existing evidence                                                                                  | Confidence                                         | Remaining gate                                                                                       | Verification method                                                                          |
-| --------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Authorization/account       | ADR-007 owner approval for own account and four read/auth routes2026-11-15                         | Owner confirmed scope                              | Current scoped account, rotation of historically exposed tokens/cookies, separate go-live permission | Owner supplies redacted authorization/rotation record; never send credentials in evidence    |
-| Auth/verify                 | Existing Carrier contract and redacted captures; real mock HTTP tests                              | Fixture-backed technical                           | Current live schema/verified identity for the approved account                                       | Owner-controlled manual auth/verify under separate authorization                             |
-| Token rejection/expiry      | Existing single recovery, audit-before-decrypt, expired/midpage401 mock tests                      | Technical only                                     | Observe safe live rejection/expiry naturally; no manufactured live outage                            | Record sanitized counts/outcome and lifecycle/job IDs                                        |
-| Provider ID stability       | Canonical uniship-parcel-v1 and immutable raw-ID derivatives                                       | Technical identity invariant                       | Same real parcel ID stable across repeat FULL/account pages                                          | Compare owner-redacted IDs over repeated authorized FULLs                                    |
-| Cross-page consistency      | FULL100/filter/fingerprint and reconciliation v3 tests                                             | Technical consistency, no snapshot-isolation claim | Live ID uniqueness/count consistency during page traversal                                           | Owner observes first FULL and later repeat; keep anomalies, do not auto-repair               |
-| Claim lifecycle             | Selected status13/OldStatus mappings and derived fixtures                                          | Limited owner capture                              | Opening/update/ending capture still absent                                                           | Natural redacted lifecycle observations, no provider-side test edits                         |
-| OldStatus                   | Known fallback/status handling in current mapping                                                  | Partially confirmed                                | Actual business meaning across claim cases                                                           | Owner supplies corresponding UI/API observations                                             |
-| Monetary units              | Owner-confirmed ProductAmount1000→UI¥1,000 and VND suffix fees; prior samples                      | Owner confirmed listed fields                      | Alternative non-VND/null-only fee meanings remain unknown                                            | Collect naturally populated redacted alternatives before extending mapping                   |
-| Service null/false          | Four service flags/labels confirmed2026-11-20; numeric1/0/null mappings                            | Owner confirmed labels; technical tri-state        | Live complete/partial service snapshot semantics                                                     | Compare repeated real payload/UI; do not infer flags from fees                               |
-| Complete/partial snapshots  | Existing authoritative supplied-array semantics and no-policy ingestion                            | Technical contract selection                       | External omission/deletion semantics                                                                 | Owner observes real resyncs; keep hide disabled until approved                               |
-| Counts/child maxima         | NumberOfPack declared count owner decision; itemCount23 confirmed; bounded child tests             | Confirmed selected fields; technical bounds        | UI main-count source and actual child maxima unknown                                                 | Redacted weighed/delivered samples; task separately if limits differ                         |
-| Timestamp/export precedence | UTC+7 policy retained by owner2026-11-20; explicit export preferred; conflicting MD59639 preserved | Owner decision with unresolved observation         | Mandatory comparison of three real parcels before AUTO                                               | Compare same milestones in Nexora/Uniship UI after first manual FULL; stop if7h mismatch     |
-| Rate/stop/drift             | Nexora<=1request/s completion-based safeguard, >=60min AUTO, hard-close                            | Technical local policy, no provider quota claim    | Host/TLS/NTP/existing-custody readiness and provider stop channel                                    | Owner readiness checklist and fixed-code monitoring/stop drill                               |
-| Reconciliation              | Existing v3 synthetic baseline/hide/restore and no-policy skip                                     | Technical only                                     | Owner approves all three thresholds and ID/query/source gates                                        | Homogeneous deployment; qualified first FULL establishes baseline; natural observations only |
+| Contract                    | Existing evidence                                                                                                                                                  | Confidence                                                             | Remaining gate                                                                                      | Verification method                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Authorization/account       | ADR-007 owner approval for own account, four read/auth routes (2026-11-15), and `owner risk acceptance` + explicit live-gate opening authorization (2026-11-28)    | Owner confirmed scope & risk acceptance                                | Runtime config on target host (`MANUAL_ONLY`, `UNISHIP_LIVE_AUTHORIZED=true`, `SYNC_ENABLED=false`) | Apply private runtime ENV on target host; never claim historical credentials were invalidated |
+| Auth/verify                 | Existing Carrier contract, redacted captures, Postman invalid-token `HTTP 400 Error decoding signature.`, and mock/Postgres tests                                  | Fixture-backed + owner invalid-token observation                       | First real owner UI Connect/Reconnect verification (`NEXORA-068`)                                   | Owner-controlled manual UI Connect/Reconnect under `SYNC_ENABLED=false`                       |
+| Token rejection/expiry      | Owner Postman `400 Error decoding signature.` on `/client/api-token-verify/` (`TOKEN_REJECTED`); single recovery + mock expiry tests; expired token `NOT VERIFIED` | Technical + owner invalid-token observed; expiry waived pre-activation | Observe natural expiry post-activation; no manufactured outage                                      | Record sanitized counts/outcome and lifecycle/job IDs                                         |
+| Provider ID stability       | Canonical uniship-parcel-v1 and immutable raw-ID derivatives                                                                                                       | Technical identity invariant                                           | Same real parcel ID stable across repeat FULL/account pages                                         | Compare owner-redacted IDs over repeated authorized FULLs                                     |
+| Cross-page consistency      | FULL100/filter/fingerprint and reconciliation v3 tests                                                                                                             | Technical consistency, no snapshot-isolation claim                     | Live ID uniqueness/count consistency during page traversal                                          | Owner observes first FULL and later repeat; keep anomalies, do not auto-repair                |
+| Claim lifecycle             | Selected status13/OldStatus mappings and derived fixtures                                                                                                          | Limited owner capture                                                  | Opening/update/ending capture still absent                                                          | Natural redacted lifecycle observations, no provider-side test edits                          |
+| OldStatus                   | Known fallback/status handling in current mapping                                                                                                                  | Partially confirmed                                                    | Actual business meaning across claim cases                                                          | Owner supplies corresponding UI/API observations                                              |
+| Monetary units              | Owner-confirmed ProductAmount1000→UI¥1,000 and VND suffix fees; prior samples                                                                                      | Owner confirmed listed fields                                          | Alternative non-VND/null-only fee meanings remain unknown                                           | Collect naturally populated redacted alternatives before extending mapping                    |
+| Service null/false          | Four service flags/labels confirmed2026-11-20; numeric1/0/null mappings                                                                                            | Owner confirmed labels; technical tri-state                            | Live complete/partial service snapshot semantics                                                    | Compare repeated real payload/UI; do not infer flags from fees                                |
+| Complete/partial snapshots  | Existing authoritative supplied-array semantics and no-policy ingestion                                                                                            | Technical contract selection                                           | External omission/deletion semantics                                                                | Owner observes real resyncs; keep hide disabled until approved                                |
+| Counts/child maxima         | NumberOfPack declared count owner decision; itemCount23 confirmed; bounded child tests                                                                             | Confirmed selected fields; technical bounds                            | UI main-count source and actual child maxima unknown                                                | Redacted weighed/delivered samples; task separately if limits differ                          |
+| Timestamp/export precedence | UTC+7 policy retained by owner2026-11-20; explicit export preferred; conflicting MD59639 preserved                                                                 | Owner decision with unresolved observation                             | Mandatory comparison of three real parcels before AUTO                                              | Compare same milestones in Nexora/Uniship UI after first manual FULL; stop if7h mismatch      |
+| Rate/stop/drift             | Nexora<=1request/s completion-based safeguard, >=60min AUTO, hard-close                                                                                            | Technical local policy, no provider quota claim                        | Host/TLS/NTP/existing-custody readiness and provider stop channel                                   | Owner readiness checklist and fixed-code monitoring/stop drill                                |
+| Reconciliation              | Existing v3 synthetic baseline/hide/restore and no-policy skip                                                                                                     | Technical only                                                         | Owner approves all three thresholds and ID/query/source gates                                       | Homogeneous deployment; qualified first FULL establishes baseline; natural observations only  |
 
 ## Stage 0 — safe deployment
 
@@ -36,32 +36,36 @@ re-provisioning and runtime start; retain current data/volumes/credentials/keys.
 to make verification pass. Confirm API nexora_app versus Worker nexora_sync, private
 function ACLs, independent Carrier key versions (`CARRIER_KEYRING_JSON`), restricted
 mounts and identical frozen settings. Keep `SYNC_ENABLED=false`, `UNISHIP_LIVE_AUTHORIZED=false`,
-blank `UNISHIP_ACTIVATION_POLICY_JSON`, blank `UNISHIP_RECONCILIATION_POLICY_JSON`, and
-the immutable external live hard-close (`UNISHIP_LIVE_CONTRACT_VERIFIED=false`).
+blank `UNISHIP_ACTIVATION_POLICY_JSON`, and blank `UNISHIP_RECONCILIATION_POLICY_JSON` on
+Stage 0 deployments (even with `UNISHIP_LIVE_CONTRACT_VERIFIED=true` opened in source per
+the 2026-11-28 ADR-007 amendment).
 Check host, storage, TLS, time/NTP and chosen deployment profile: under
 `DEPLOYMENT_PROFILE=PUBLIC_HTTPS`, `verifyPublicStartup` enforces all ACTIVE ADMINs
 enrolled as a startup gate, whereas `LOCAL` Mode A startup still requires MFA enrollment
-before any interactive ADMIN login/use. No ENV combination can open the current
-hard-coded contract gate.
+before any interactive ADMIN login/use. Stage 0 hosts fail closed for external Carrier
+requests until `UNISHIP_LIVE_AUTHORIZED=true` and parsed `UNISHIP_ACTIVATION_POLICY_JSON`
+are configured together.
 
 ## Stage 1 — separately authorized manual activation
 
-Owner closes remaining pre-live gates, confirms approved account/login/connection,
-confirms Uniship account password rotation per ADR-007 (`NEXORA-054`) to invalidate
-any historically exposed DevTools tokens/cookies, and authorizes a separately
-reviewed gate-opening change for the approved HTTPS origin. This PR does not do that.
-NEXORA-067 implements the earlier066 empty-policy protection: parsed policy presence
-is required by the same external transport target() used for availability and
-POST/GET dispatch, independently of SyncOFF; exact context/verified scope checks stay.
-This is technical protection, not permission to open the gate. The hard gate stays
-false pending the existing live-contract/exposure and explicit operational evidence.
-After those are recorded and a reviewed gate-opening change is authorized, first
-connect uses SYNC_ENABLED=false (Carrier only; no manual FULL in067).
-Then deploy API/Worker together with the exact account-scoped `MANUAL_ONLY` JSON in
-private runtime config (omitting optional `connectionId` prior to initial UI connection
-creation; never commit real account values). Do not configure reconciliation thresholds
-before auto-hide acceptance. Existing onboarding enabled60 schedules are preserved;
-manual-only blocks their AUTO execution.
+Under the 2026-11-28 ADR-007 amendment (`NEXORA-067` v2), the owner accepted historical
+test-account token/cookie risk (`owner risk acceptance`, waiving mandatory password
+rotation before gate opening), waived pre-activation live expired-token verification (`NOT
+VERIFIED`; to be observed post-activation), supplied observed `/client/api-token-verify/`
+invalid-token evidence (`HTTP 400 Bad Request` `{"non_field_errors":["Error decoding signature."]}`),
+confirmed one-year token lifetime (nullable expiry metadata preserved), and explicitly
+authorized opening `UNISHIP_LIVE_CONTRACT_VERIFIED = true`. Parsed `UNISHIP_ACTIVATION_POLICY_JSON`
+presence (`activationConfigured`) remains required on the same external transport `target()`
+alongside `UNISHIP_LIVE_AUTHORIZED=true`, and exact context/verified scope checks stay.
+
+With the source gate opened (`UNISHIP_LIVE_CONTRACT_VERIFIED=true`), Stage 1 operator
+rollout deploys API and Worker with private account-scoped `MANUAL_ONLY` JSON (omitting
+optional `connectionId` prior to initial UI creation; never commit real account values),
+`UNISHIP_LIVE_AUTHORIZED=true`, `SYNC_ENABLED=false` (Carrier only; no manual FULL in
+`NEXORA-067`), and blank `UNISHIP_RECONCILIATION_POLICY_JSON`. Source-level gate opening
+does not certify target-host Stage 0 runtime readiness (`CARRIER_KEYRING_JSON`, active
+USER/MFA, profile host/TLS/origins) or `NEXORA-068` real data acceptance. Existing
+onboarding enabled60 schedules are preserved; `MANUAL_ONLY` blocks their AUTO execution.
 
 ## Stage 2 — first manual FULL
 
@@ -116,13 +120,16 @@ bounds. On rollback drain old executions, deploy a compatible homogeneous revisi
 retain migrations/data/key history, recheck restricted grants and restart OFF. Do not
 roll back security by granting broad secrets access or substituting admin credentials.
 
-## Stage 1 clarification — NEXORA-067 final review (2026-11-28)
+## Stage 1 clarification — NEXORA-067 final review & v2 authorization (2026-11-28)
 
 The [focused live-gate ledger](../../../integrations/uniship-portal-api.md#live-gate-review--nexora-067-2026-11-28)
-separates accepted contract/account decisions from missing live rejection/expiry,
-historical exposure invalidation and explicit gate-opening evidence. Do not ask
-again for previously supplied account identifiers, approved endpoints, ignored
-is_verified, refresh decisions or provider numerical quotas. No new evidence here
-opens the hard gate. Runtime readiness in the existing stages is not established
-by mock tests or hosted CI; actual owner operations remain outside067. External
-positive regression remains NOT RUN until legitimate opening, with no test bypass.
+records the 2026-11-28 owner confirmations (`Token lifetime: one year, owner-confirmed`,
+Postman invalid-token `HTTP 400 Error decoding signature.` on `/client/api-token-verify/`
+mapped to `TOKEN_REJECTED`, waived expired-token pre-gate `NOT VERIFIED`, `owner risk
+acceptance` waiving historical test-account password rotation prior to opening, and
+explicit authorization for `UNISHIP_LIVE_CONTRACT_VERIFIED = true`). External-positive
+transport, runtime composition, `SyncOFF` Connect/Reconnect, HTTP `400` verify, and
+isolated `!this.activationConfigured` mutation checks are executed under mocked HTTP
+boundaries (`globalThis.fetch`) without live network calls. Target-host Stage 0/Stage 1
+runtime readiness and actual live UI/Sync acceptance remain outside `NEXORA-067` under
+`NEXORA-068` (and `NEXORA-046` for `PUBLIC_HTTPS`).

@@ -10,69 +10,55 @@ Owner prompt2026-11-28: protect existing Carrier connect/reconnect through the U
 using current account-scoped activation, shared API/Worker composition and transport.
 No UI/API/schema/grant/engine/lifecycle redesign. No live request, owner deployment,
 ENV/key changes, manual FULL, AUTO, reconciliation or backup/restore work.
-Hard gate stays false until canonical prerequisites and explicit operational
-permission are recorded; code implementation is not permission to open the gate.
+`v1` held the source live hard gate closed (`false`); `v2` opens
+`UNISHIP_LIVE_CONTRACT_VERIFIED = true` per explicit 2026-11-28 ADR-007 owner
+authorization while preserving opt-in and account-scoped policy protection.
 
 ## Design Review & Reuse Decision
 
 Task ID: NEXORA-067
 Classification: SIGNIFICANT
-Plan revision: rev-2026-11-28-controlled-live-v1
+Plan revision: rev-2026-11-28-controlled-live-v2
 Reviewed baseline: f06db70e9dae50d95d724ce03f03a593315876fa
-Design Snapshot: docs/tasks/design-reviews/NEXORA-067-rev-2026-11-28-controlled-live-v1.md
-Design SHA-256: b3aa01d58c43bac0f6f00c1a82b79d2d79ec0fea90eeaf6932b4b0fc2f2ef3b6
+Design Snapshot: docs/tasks/design-reviews/NEXORA-067-rev-2026-11-28-controlled-live-v2.md
+Design SHA-256: 3716866790c1d50f72c067c612469d265524b959eed65cf6b164181174c783e2
 
-| Field                    | Transport and scope                                                                                                                                                                                                                                                                                                                                                          |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Component                | Internal parsed activation-presence gate and existing outbound scope authority                                                                                                                                                                                                                                                                                               |
-| Existing implementations | apps/api/src/carrier/infrastructure/uniship/uniship-http.client.ts; apps/api/src/carrier/infrastructure/carrier-runtime.ts; apps/api/src/sync/infrastructure/uniship-sync.runtime.ts; apps/api/src/sync/infrastructure/uniship-sync.config.ts; apps/api/src/carrier/infrastructure/carrier-credential-vault.ts; apps/api/integration/fixtures/uniship-runtime-activation.cjs |
-| Domain owner             | Carrier/Sync infrastructure; existing Carrier application owns lifecycle                                                                                                                                                                                                                                                                                                     |
-| Reuse alternatives       | New ENV/parser/URL classifier or lifecycle framework versus one derived boolean in existing composition                                                                                                                                                                                                                                                                      |
-| Selected approach        | activationConfigured defaultsfalse; derive once from parsed policy; use existing target() for availability/dispatch; retain context/verified callbacks and scoped error semantics                                                                                                                                                                                            |
-| Rationale                | Fail-closed by default without Sync coupling, cycles or duplicated business logic                                                                                                                                                                                                                                                                                            |
-| Risks                    | Vacuous hardclosed tests, stray constructor, claim/encrypt before denial, accidental external dispatch                                                                                                                                                                                                                                                                       |
-| Verification             | RED constructor-option propagation, actual denied POST/GET zero-fetch; real loopback and test doubles for scope; signed PostgreSQL preservation; required hosted gates                                                                                                                                                                                                       |
+| Field                    | Transport and scope (`v1`)                                                                                                                                                                                                                                                                                                                                                   | Controlled live gate opening & regression coverage (`v2`)                                                                                                                                                                                                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Component                | Internal parsed activation-presence gate and existing outbound scope authority                                                                                                                                                                                                                                                                                               | Source-level `UNISHIP_LIVE_CONTRACT_VERIFIED` hard gate (`true`), HTTP `400` verify token mapping, and external Connect/Reconnect regressions                                                                                                                                  |
+| Existing implementations | apps/api/src/carrier/infrastructure/uniship/uniship-http.client.ts; apps/api/src/carrier/infrastructure/carrier-runtime.ts; apps/api/src/sync/infrastructure/uniship-sync.runtime.ts; apps/api/src/sync/infrastructure/uniship-sync.config.ts; apps/api/src/carrier/infrastructure/carrier-credential-vault.ts; apps/api/integration/fixtures/uniship-runtime-activation.cjs | `apps/api/src/carrier/infrastructure/uniship/uniship-http.client.ts:147-149,437-450,515-525`, `uniship-adapter.ts:75-76`, `carrier-uniship.test.cjs`, `uniship-verify.test.cjs`, `uniship-runtime-composition.test.cjs`, `integration/fixtures/uniship-runtime-activation.cjs` |
+| Domain owner             | Carrier/Sync infrastructure; existing Carrier application owns lifecycle                                                                                                                                                                                                                                                                                                     | Carrier infrastructure & test suite (`docs/decisions/multi-carrier-architecture.md`, `docs/integrations/uniship-portal-api.md`)                                                                                                                                                |
+| Reuse alternatives       | New ENV/parser/URL classifier or lifecycle framework versus one derived boolean in existing composition                                                                                                                                                                                                                                                                      | Add ENV override or custom 400 error parser versus flipping single verified constant `true` and reusing existing `400/401 -> TOKEN_REJECTED` handling                                                                                                                          |
+| Selected approach        | activationConfigured defaultsfalse; derive once from parsed policy; use existing target() for availability/dispatch; retain context/verified callbacks and scoped error semantics                                                                                                                                                                                            | Flip `UNISHIP_LIVE_CONTRACT_VERIFIED = true`; keep `!this.liveAuthorized`, `!this.activationConfigured`, routes, origin & `400` verify mapping intact; intercept `globalThis.fetch` at boundary with real/double admission                                                     |
+| Rationale                | Fail-closed by default without Sync coupling, cycles or duplicated business logic                                                                                                                                                                                                                                                                                            | Minimal 1-constant production delta (`UNISHIP_LIVE_CONTRACT_VERIFIED = true`) backed by ADR-007 amendment without weakening runtime guards                                                                                                                                     |
+| Risks                    | Vacuous hardclosed tests, stray constructor, claim/encrypt before denial, accidental external dispatch                                                                                                                                                                                                                                                                       | Weakening `!this.activationConfigured` silently or mistaking synthetic mock PASS for actual live Uniship execution                                                                                                                                                             |
+| Verification             | RED constructor-option propagation, actual denied POST/GET zero-fetch; real loopback and test doubles for scope; signed PostgreSQL preservation; required hosted gates                                                                                                                                                                                                       | Test-first RED -> GREEN external transport matrix, HTTP `400 Error decoding signature.` test, Connect/Reconnect external tests, temporary `!this.activationConfigured` mutation check, full API + signed CI                                                                    |
 
-No new Aggregate/Value Object/application port. Transport validates permission
-presence; existing scope callback remains responsible for exact owner/login/optional
-connection/snapshot/candidate account. Reconnect precheck stays before claim and
-verified account stays before encryption/persistence. Sync eligibility remains
-independent and globalOFF does not substitute for Carrier authorization.
+No new Tactical DDD `Aggregate`, `Value Object`, or application port is added (`v2` preserves all domain boundaries and invariants). Transport validates permission presence; existing scope callback remains responsible for exact owner/login/optional connection/snapshot/candidate account. Reconnect precheck stays before claim and verified account stays before encryption/persistence. Sync eligibility remains independent and global OFF does not substitute for Carrier authorization.
 
 ## Plan
 
-1. First commit closes merged066 and transfers only existing external acceptance to
-   PLANNED068/046; link its empty-policy issue here and freeze this plan before tests.
-2. Extend existing tests, build and capture RED before minimal source edits.
-3. Thread one internal boolean through shared factory and extend existing target
-   condition; clarify missing-policy loopback invariant, no new URL validator.
-4. GREEN targeted/full API and signed integration; synchronize changed canonical docs.
-5. Independent read-only review; new PR with pinned metadata, push and exact-source
-   Preflight/Foundation/SyncTargeted. No merge or optional stress/rerun.
+1. Commit 1 (`57b9296`): Close merged `NEXORA-066` and transfer existing external acceptance to `PLANNED` `NEXORA-068` / `NEXORA-046`.
+2. Commits `3cd3bcd` & `697f452` (`v1`): Thread internal `activationConfigured` through shared factory, extend `target()`, preserve `hardfalse`, and record the eight-contract review.
+3. (`v2`) Record Design Snapshot `rev-2026-11-28-controlled-live-v2` and bind SHA-256 (`3716866790c1d50f72c067c612469d265524b959eed65cf6b164181174c783e2`) before test/source edits.
+4. Add test-first RED regressions across `carrier-uniship.test.cjs`, `uniship-verify.test.cjs`, `uniship-runtime-composition.test.cjs`, and `integration/fixtures/uniship-runtime-activation.cjs` (`globalThis.fetch` intercepted at HTTP boundary, zero live calls).
+5. Flip `UNISHIP_LIVE_CONTRACT_VERIFIED = true` in `uniship-http.client.ts`, verify targeted/full API GREEN + independent `!this.activationConfigured` mutation RED -> restored GREEN, and sync ADR-007 & canonical docs (`Documentation Impact: REQUIRED`).
+6. Run full local checks + independent read-only review, rename PR #67 to `feat(uniship): enable controlled live carrier connection`, push to PR #67, and verify `Preflight`, `Foundation`, and `Sync V1 targeted` PASS on exact final HEAD without merging or modifying actual owner runtime/ENV/data.
 
 ## Acceptance
 
-- [ ] Missing/blank policy, runtime opt-in and SyncOFF cannot bypass external denial; actual calls prove zero dispatch.
-- [ ] Wrong owner/login/optional connection/snapshot account deny before provider/claim; candidate mismatch before encryption/persistence.
-- [ ] API and Worker share the same parsed presence decision; loopback and existing Sync eligibility/security preserved.
-- [ ] Targeted/API/integration and documentation/governance gates recorded; exact final-source hosted checks.
-- [ ] Hard gate state and unmet canonical conditions reported separately; no live call or account data committed.
+- [x] Missing/blank policy, runtime opt-in and SyncOFF cannot bypass external denial; actual calls prove zero dispatch.
+- [x] Wrong owner/login/optional connection/snapshot account deny before provider/claim; candidate mismatch before encryption/persistence.
+- [x] API and Worker share the same parsed presence decision; loopback and existing Sync eligibility/security preserved.
+- [x] (`v2`) Explicit 2026-11-28 owner decisions (1y lifetime, observed HTTP `400` invalid token, waived expired-token & test-account password-rotation pre-gates, explicit live gate authorization) synchronized across ADR-007 and canonical docs without weakening `NOT VERIFIED` / confidentiality guarantees.
+- [x] (`v2`) `UNISHIP_LIVE_CONTRACT_VERIFIED = true` with untouched `!this.liveAuthorized` / `!this.activationConfigured` / scope / `UNISHIP_LIVE_AUTHORIZED=false` defaults, verified via RED->GREEN transport/composition/Connect/Reconnect/400 regressions and `!this.activationConfigured` mutation check.
+- [ ] Targeted/API/integration and documentation/governance gates recorded; exact final-source hosted checks (`Preflight`, `Foundation`, `Sync V1 targeted`) PASS without live HTTP traffic or PR auto-merge.
 
 ## Gate decision and existing prerequisites
 
-ADR007 point6 confirms owner-scoped authorization2026-11-15. It does not promote
-points1–5 (verify identity/error/is_verified/TTL evidence), establish exposed-token/
-cookie invalidation or supply explicit permission to flip the hard gate now.
-The earlier2026-10-16 amendment already records the observed verify body/token-userid
-contract, ignores is_verified by owner decision and approves no refresh endpoint;
-these facts do not need re-confirmation. Exact live expiry/rejection confidence and
-the remaining operational evidence retain their recorded status; no fixed TTL or
-provider-published numerical quota is invented as a new requirement.
-Current repository evidence does not establish all of those conditions. Keep
-UNISHIP_LIVE_CONTRACT_VERIFIED=false; no production bypass/test gate override.
-No account identifiers need re-confirmation and none is committed. Actual remaining
-runtime/data acceptance belongs to [068](NEXORA-068-uniship-owner-runtime-and-data-acceptance.md)
-and public host gates remain [046](NEXORA-046-production-https-acceptance.md).
+Historical `v1` baseline notes (`2026-11-28` earlier review): ADR007 point6 confirms owner-scoped authorization2026-11-15; exact live expiry/rejection confidence, historical exposure invalidation, and explicit permission were then open and held `UNISHIP_LIVE_CONTRACT_VERIFIED=false`.
+
+Updated **2026-11-28 Owner Decision (v2 — Authorized Gate Opening)**: Owner confirmed 1-year token lifetime (retaining nullable `tokenExpiry` without fixed TTL/refresh), supplied observed `POST /client/api-token-verify/` invalid-token `HTTP 400` (`{"non_field_errors":["Error decoding signature."]}`), waived exact natural expiry as a blocking pre-gate (`NOT VERIFIED`, validate post-activation), accepted historical token/cookie exposure risk solely for the approved test account, and explicitly authorized setting `UNISHIP_LIVE_CONTRACT_VERIFIED = true`. Actual owner runtime configuration, live Carrier UI connection, and manual FULL/Sync acceptance remain in [NEXORA-068](NEXORA-068-uniship-owner-runtime-and-data-acceptance.md) and public host gates in [NEXORA-046](NEXORA-046-production-https-acceptance.md).
 
 ## Documentation Impact
 
@@ -80,20 +66,20 @@ Documentation Impact: REQUIRED
 
 ### Changed facts
 
-Internal external activation-presence gate and shared composition, scoped test
-coverage, closed live-gate decision and066 closure/remaining acceptance ownership.
+Internal external activation-presence gate (`v1`) plus 2026-11-28 owner decisions (`v2`): 1y token lifetime confirmation, observed HTTP `400` invalid-token evidence, waived pre-live expiry/password-rotation blockers for approved test account, `UNISHIP_LIVE_CONTRACT_VERIFIED = true`, external-positive mock transport/Connect/Reconnect regressions, and safe post-merge UI runtime setup placeholders.
 
 ### Canonical owners
 
-- docs/operations/configuration.md; docs/operations/testing.md
-- docs/architecture/backend.md; docs/architecture/sync-extensions.md
-- docs/integrations/uniship-portal-api.md
-- docs/tasks/evidence/NEXORA-058/external-gates-and-runbook.md
-- This task, immutable067 snapshot and completed066/PLANNED068
+- `docs/decisions/multi-carrier-architecture.md` (dated `NEXORA-067` amendment)
+- `docs/operations/configuration.md`; `docs/operations/testing.md`
+- `docs/architecture/backend.md`; `docs/architecture/sync-extensions.md`
+- `docs/integrations/uniship-portal-api.md`
+- `docs/tasks/evidence/NEXORA-058/external-gates-and-runbook.md`
+- This task (`NEXORA-067`), immutable `v1` snapshot, `v2` snapshot, and `completed/NEXORA-066` / `PLANNED/NEXORA-068`
 
 ### Documentation verification
 
-Pinned format/docs/preflight/test:docs/test:preflight and raw snapshot binding.
+Pinned format/docs/preflight/test:docs/test:preflight and raw snapshot binding (`v2`).
 
 ## Evidence
 
@@ -219,3 +205,30 @@ Foundation must verify the new candidate; historical green does not substitute.
 Local signed integration NOT RUN (missing application/tooling images and disk);
 required hosted signed Sync handles the PR's matching cumulative paths. No assets,
 volumes, credentials or actual runtime configuration changed to obtain a PASS.
+
+## Final controlled live activation — v2 (2026-11-28)
+
+Reviewed `v2` Design Snapshot: `docs/tasks/design-reviews/NEXORA-067-rev-2026-11-28-controlled-live-v2.md`
+(`SHA-256: 3716866790c1d50f72c067c612469d265524b959eed65cf6b164181174c783e2`); immutable
+`v1` snapshot preserved unchanged (`SHA-256: b3aa01d58c43bac0f6f00c1a82b79d2d79ec0fea90eeaf6932b4b0fc2f2ef3b6`).
+
+Production source change: strictly `const UNISHIP_LIVE_CONTRACT_VERIFIED: boolean = true;`
+with owner-authorization comment in `apps/api/src/carrier/infrastructure/uniship/uniship-http.client.ts:147-149`.
+No change to `!this.liveAuthorized`, `!this.activationConfigured`, routes, origin
+`https://kh.uniship.vn`, `UNISHIP_LIVE_AUTHORIZED=false` defaults, `UnishipSyncRuntime.authorize`,
+`createCarrierRuntime`, `400/401 -> TOKEN_REJECTED` normalization, Worker custody,
+OpenAPI/SDK, UI, schemas, or `NEXORA-068` runtime scope.
+
+| Check (`v2`, host Node v24.16.0 / pnpm 10.34.6)                                        | Outcome                                                                                                                                                    | Date       |
+| -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Test-first RED (`UNISHIP_LIVE_CONTRACT_VERIFIED=false`, 3 transport/verify suites)     | `10/13` PASS, `3/13` expected external-positive FAIL (`owner-observed verify HTTP 400 Error decoding signature.` PASS)                                     | 2026-11-28 |
+| Gate-open initial GREEN (6 targeted suites / `@nexora/api test`)                       | `61/61` targeted PASS; `304/304` (`51 suites`) API PASS                                                                                                    | 2026-11-28 |
+| Isolated missing-policy mutation (`!this.activationConfigured` temporarily omitted)    | `9/13` PASS, `4/13` expected missing-policy FAIL across unit/verify/composition; restored cleanly                                                          | 2026-11-28 |
+| Final local static, typecheck, contracts & API regressions (`globalThis.Response` fix) | `lint`, `format:check`, `typecheck` (`10/10`), `contracts:check`, `docs:check`, `preflight:check`, `git diff --check`, 6 targeted PASS, `304/304` API PASS | 2026-11-28 |
+| Host Windows POSIX tests (`test:docs` / `test:preflight`)                              | `test:docs` `9/10` (`1` `.git` `EPERM`), `test:preflight` `22/24` (`2` `symlink` `EPERM`); Linux hosted `Preflight` authoritative                          | 2026-11-28 |
+| Local PostgreSQL signed integration / real live HTTP                                   | Local signed `NOT RUN` (verified by hosted `Sync V1 targeted`); zero real HTTP calls to `kh.uniship.vn`                                                    | 2026-11-28 |
+
+Execution constraints honored: zero secret/account leakage in Git/CI/logs, zero edits to
+owner `.env`/DB/volumes/keyring, zero backup/restore operations, no new PR and no merge.
+Hosted `Preflight`, `Nexora foundation`, and `Sync V1 targeted PostgreSQL verification`
+receipts will be recorded in PR #67 description on exact final HEAD without extra commits.

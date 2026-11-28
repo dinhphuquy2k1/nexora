@@ -1639,31 +1639,28 @@ Foundation runs the expanded dev smoke without workflow or suite-budget changes.
 
 ## NEXORA-067 scoped Carrier regressions
 
-Existing runtime-composition suite captures real HTTP-client constructor options to
-prove parsed presence is threaded for API/Worker independently of SyncOFF; actual
-client remains in use. This is a composition contract, not a claim that an unopened
-hard gate permits external requests. Actual auth/verify and both GET routes use a
-fail-on-unexpected-fetch boundary and require zero dispatch for denied URL/permission
-configurations. No production hard-gate substitution, test bypass or external HTTP.
+Existing runtime-composition suite captures real HTTP-client constructor options and
+verifies `activationConfigured`, `UNISHIP_LIVE_AUTHORIZED`, and `https://kh.uniship.vn`
+across both API and Worker independently of `SYNC_ENABLED`. Actual `auth`, `verify`,
+`/client/api/transition/`, and `/client/api/chinaStores/` external paths use intercepted
+`globalThis.fetch` through existing `PostgresHttpAdmission` / `UnishipHttpAdmission`
+boundaries and require zero dispatch for missing policy, disabled opt-in, or
+unapproved origins.
 
 Existing scope hooks exercise wrong owner/login/optional connection and candidate
-identity mismatches with mocked providers before encryption/persistence, plus valid
-nonproduction loopback and SyncOFF. Signed activation fixtures add real loopback
-auth/verify initial-connect cases with restricted DB persistence and compare denied
-reconnect connection/generation/secret/job/schedule state. Existing Worker security,
-fencing and lifecycle suites remain required. Production external-positive behavior
-is NOT RUN while hardfalse; constructor propagation and closed zero-dispatch tests
-do not independently demonstrate the new conjunct with hardtrue. Source review
-checks the shared target condition; later authorized activation needs its own
-positive evidence. Test-only doubles never grant production live permission.
+identity mismatches before encryption/persistence, plus Postman-observed `HTTP 400`
+`{"non_field_errors":["Error decoding signature."]}` -> `TOKEN_REJECTED` verify normalization
+without provider-body leakage. Signed activation fixtures add both loopback and external
+(`https://kh.uniship.vn`, `SYNC_ENABLED=false`) initial-connect and manual-reconnect
+PostgreSQL persistence cases (`CarrierConnection`, `CarrierConnectionSecret`, `SyncConfig`,
+`capabilities.resolve(...) === null`) and compare denied reconnect state. Existing Worker
+security, fencing, and lifecycle suites remain required.
 
-Final review2026-11-28: the [eight-contract gate review](../integrations/uniship-portal-api.md#live-gate-review--nexora-067-2026-11-28)
-retains the accepted owner decisions and identifies only remaining canonical gates.
-With hardfalse, the requested external-positive authorization matrix, external
-Connect/Reconnect extensions and missing-policy mutation are NOT RUN. Removing
-activationConfigured could still leave external tests green because the separate
-hard gate denies them; constructor capture does not remove this limitation. Do not
-change the gate, rewrite source or substitute compiled constants to manufacture
-independent proof. When opening is authorized, the regression must intercept actual
-authenticate/verify/both getShipment paths and use existing admission; valid scoped
-SyncOFF Connect and denied persistence preservation must remain covered.
+Final activation verification (2026-11-28, `NEXORA-067` v2): executed test-first
+**RED** (`10/13` pass, `3` external-positive failures with `UNISHIP_LIVE_CONTRACT_VERIFIED=false`),
+gate-open **GREEN** (`UNISHIP_LIVE_CONTRACT_VERIFIED=true`, `61/61` targeted and `304/304`
+`@nexora/api test`), and isolated missing-policy mutation **RED -> GREEN** (temporarily dropping
+`!this.activationConfigured` caused `4/13` expected missing-policy test failures, restored
+cleanly with production diff limited to `UNISHIP_LIVE_CONTRACT_VERIFIED = true`). Mock
+`globalThis.fetch` and PostgreSQL fixtures remain mock/fixture verification and do not
+execute real network requests to `https://kh.uniship.vn`.

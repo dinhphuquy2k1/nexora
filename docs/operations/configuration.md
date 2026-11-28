@@ -15,9 +15,9 @@ Compose supplies defaults and three idempotently generated database credentials 
 | ALLOWED_HOSTS           | LOCAL Web ingress middleware: optional comma-separated host allowlist (defaults: localhost, 127.0.0.1, 0.0.0.0); forwarded by base/release Compose and inherited by development; absent/empty preserves parser defaults                                                                                                                                                                                     |
 | ALLOWED_ORIGINS         | LOCAL API: optional comma-separated exact HTTP(S) origins. Replaces defaults; invalid values fail startup. Without it, trusted HTTP localhost/127.0.0.1 origins derive from WEB_PORT.                                                                                                                                                                                                                       |
 | UNISHIP_API_URL         | API and Sync Worker; optional base URL for shared Carrier HTTP client (not wired to authentication) (local mock provider in tests; application default remains unconfigured; `.env.example` actively supplies `https://kh.uniship.vn`). Never exposed to client. Forwarded by Compose (`"${UNISHIP_API_URL:-}"`). Empty string normalizes to `undefined` so omitted configuration never breaks API startup. |
-| UNISHIP_LIVE_AUTHORIZED | API and Sync Worker; explicit boolean flag (`true`/`false`, default `false`). External live is hard-closed in PR4 even when true; future reviewed verified authorization evidence plus runtime opt-in is required. Forwarded by Compose (`"${UNISHIP_LIVE_AUTHORIZED:-false}"`).                                                                                                                            |
+| UNISHIP_LIVE_AUTHORIZED | API and Sync Worker; explicit boolean flag (`true`/`false`, default `false`). PR4 held external live hard-closed; superseded for source gate opening by the 2026-11-28 ADR-007 amendment (`UNISHIP_LIVE_CONTRACT_VERIFIED=true`, see [NEXORA-067 live-gate review](#nexora-067-live-gate-review--2026-11-28)). Forwarded by Compose (`"${UNISHIP_LIVE_AUTHORIZED:-false}"`).                                |
 
-Swagger is not exposed by default. Config errors fail startup with safe JSON diagnostics. Missing or invalid `API_INTERNAL_URL` fails explicitly at build and startup time with an actionable error. Reference `.env.example` documents environment variables for local inspection. When `UNISHIP_API_URL` is omitted or empty, the API starts normally and ADMIN local login remains fully functional, and both roles use local credentials; the removed provider Login returns 404. Historical 2026-10-13 owner statements are superseded for live readiness by the 2026-10-16 amendment: observed cURL/200 is contract-shape evidence only; official integration/credential-retention/automated-login/quota permission remains UNVERIFIED. `UNISHIP_LIVE_AUTHORIZED` remains an operational enablement switch, default `false`; the flag alone cannot enable external traffic until official evidence is verified in a reviewed change. The operator is responsible for configuring the correct `UNISHIP_API_URL`; existing environment-driven URL behavior remains unchanged, with the existing exact external origin allowlist https://kh.uniship.vn; non-production loopback mocks remain test-only. Production HTTPS, timeout, redirect rejection, payload validation, safe errors and encrypted provider credential persistence still apply. Local mock-provider PASS does not prove real Uniship authentication; live verification remains deferred. Testing against local mock providers uses isolated test endpoints without granting live authorization. Carrier encryption foundation now uses the independent server keyring below; the separate PR4 backend lifecycle uses the keyring; no refresh workflow exists. Identity custody is implemented separately below for mandatory ADMIN MFA.
+Swagger is not exposed by default. Config errors fail startup with safe JSON diagnostics. Missing or invalid `API_INTERNAL_URL` fails explicitly at build and startup time with an actionable error. Reference `.env.example` documents environment variables for local inspection. When `UNISHIP_API_URL` is omitted or empty, the API starts normally and ADMIN local login remains fully functional, and both roles use local credentials; the removed provider Login returns 404. Historical 2026-10-13/10-16 baseline notes (`PR4`) are retained here and superseded for live activation by the 2026-11-15 and 2026-11-28 ADR-007 amendments (`UNISHIP_LIVE_CONTRACT_VERIFIED=true`, parsed `UNISHIP_ACTIVATION_POLICY_JSON` presence required; see [NEXORA-067 live-gate review](#nexora-067-live-gate-review--2026-11-28)). `UNISHIP_LIVE_AUTHORIZED` remains an operational opt-in switch (default `false`); external requests also require private account-scoped `UNISHIP_ACTIVATION_POLICY_JSON` and exact `https://kh.uniship.vn` origin match, while non-production loopback mocks remain test-only. Production HTTPS, timeout, redirect rejection, payload validation, safe errors and encrypted provider credential persistence still apply. Carrier encryption foundation now uses the independent server keyring below; the separate PR4 backend lifecycle uses the keyring; no refresh workflow exists. Identity custody is implemented separately below for mandatory ADMIN MFA.
 
 Browser mutation origins compare scheme, normalized hostname and effective port. Missing/null/multiple origins, credentials, whitespace, paths (including a trailing slash), queries and fragments are rejected. Configuration entries may be comma-separated with surrounding whitespace, but each entry must be an origin. In LOCAL, changing `WEB_PORT=127.0.0.1:3101` automatically trusts only the two loopback HTTP origins on port 3101; container-internal port 3000 is never implicitly trusted as a browser-facing origin. An explicit `ALLOWED_ORIGINS` replaces both defaults, so operators must include every intended browser-facing origin. API startup snapshots this policy; restart after configuration changes. LOCAL Docker and host Web use canonical user-facing port3001; PUBLIC_HTTPS publishes only approved TLS ingress. Docker API remains private.
 
@@ -146,25 +146,24 @@ parsers and require homogeneous values/Carrier key versions before restart.
 
 Compose/release Worker receives UNISHIP_API_URL, UNISHIP_LIVE_AUTHORIZED, Carrier
 keyring/version and both JSON settings, but no Identity keys/storage/admin mount.
-The immutable live contract gate remains false. Neither JSON nor live-authorized ENV
-can bypass it, and pre-live environments should retain `UNISHIP_LIVE_AUTHORIZED=false`
-until external prerequisites close. NEXORA-067 resolves the earlier066 empty-policy
-PLAN ISSUE: shared API/Worker construction derives internal activationConfigured
-only from successfully parsed activation policy. It defaultsfalse on direct HTTP
-client construction and joins live opt-in and the hard contract gate inside the
-same target() used by availability and actual POST/GET dispatch. No new ENV/parser
+Under the 2026-11-28 ADR-007 amendment (`NEXORA-067` v2), `UNISHIP_LIVE_CONTRACT_VERIFIED`
+is opened (`true`) for opt-in scoped Carrier usage, while safe templates continue to default
+`UNISHIP_LIVE_AUTHORIZED=false` and `SYNC_ENABLED=false`. Neither JSON nor live-authorized ENV
+alone can bypass the combined external target guard: shared API/Worker construction derives internal `activationConfigured`
+only from successfully parsed activation policy (defaulting `false` on direct HTTP
+client construction) and joins `liveAuthorized` and `UNISHIP_LIVE_CONTRACT_VERIFIED` inside the
+same `target()` used by availability and actual POST/GET dispatch. No new ENV/parser
 or URL classifier exists. This proves policy presence only; existing outbound
 context still checks owner/login/optional connection/stored account, and verified
 candidate account is checked before encryption/persistence. Reconnect checks before
-claim. Interactive Carrier permission is independent of SYNC_ENABLED; SyncOFF does
+claim. Interactive Carrier permission is independent of SYNC_ENABLED; Sync OFF does
 not authorize external requests or disable an otherwise permitted Carrier flow.
 
-The hard gate remains false in067 because remaining canonical live-contract,
-exposure-invalidation and explicit gate-opening evidence is not established. After
-those are satisfied in a reviewed change, first connection config uses the private
-MANUAL_ONLY account scope (no predeclared connectionId), SYNC_ENABLED=false and no
-reconciliation policy; runtime opt-in remains defaultfalse in templates. No current
-external connectivity/live verification is claimed.
+With `UNISHIP_LIVE_CONTRACT_VERIFIED=true`, actual live external Carrier Connect/Reconnect
+still requires the operator's target host runtime configuration: `UNISHIP_API_URL=https://kh.uniship.vn`,
+`UNISHIP_LIVE_AUTHORIZED=true`, private `MANUAL_ONLY` `UNISHIP_ACTIVATION_POLICY_JSON` (omitting
+optional `connectionId` prior to initial UI creation), `SYNC_ENABLED=false`, and blank
+`UNISHIP_RECONCILIATION_POLICY_JSON`.
 Completion-spaced HTTP permits are shared in PostgreSQL; the existing
 acquisition slots remain separate safeguards, not an official provider quota.
 
@@ -212,11 +211,28 @@ rotation, reset or re-enrollment.
 ## NEXORA-067 live-gate review — 2026-11-28
 
 See the [focused live-gate ledger](../integrations/uniship-portal-api.md#live-gate-review--nexora-067-2026-11-28).
-Existing owner account/four-route/automatic-login authorization and observed verify
-shape are accepted. The missing records are live rejection/expiry confidence,
-historical exposure invalidation and explicit gate-opening permission. No current
-ENV combination enables real UI connection while hardfalse. Only after an authorized
-reviewed gate opening may the owner use private MANUAL_ONLY scope (omit connectionId
-for first connection), live opt-in and SyncOFF with the existing Carrier UI. Enter
-the password directly there; no manual API, SQL or token handling is needed. This
-review changes no actual runtime configuration, default template, Sync or068 scope.
+Owner confirmed `Token lifetime: one year, owner-confirmed` (nullable `tokenExpiry()`
+preserved), supplied Postman invalid-token evidence on `POST /client/api-token-verify/`
+(`HTTP 400 Bad Request` `{"non_field_errors":["Error decoding signature."]}` -> existing
+`400/401 -> TOKEN_REJECTED`), waived live expired-token pre-verification (`NOT VERIFIED`),
+recorded `owner risk acceptance` waiving historical test-account password rotation prior
+to gate opening, and authorized `UNISHIP_LIVE_CONTRACT_VERIFIED = true`. Safe templates
+keep `UNISHIP_LIVE_AUTHORIZED=false` by default; `NEXORA-068` runtime/data acceptance
+and Stage 0 checks stay independent.
+
+### Private runtime settings for first controlled live UI Connect (`SYNC_ENABLED=false`)
+
+Do **not** commit real IDs, tokens, cookies, keys, or passwords into Git. Placeholders only
+for operator private `.env` when performing Stage 1 UI Connect/Reconnect:
+
+```dotenv
+UNISHIP_API_URL=https://kh.uniship.vn
+UNISHIP_LIVE_AUTHORIZED=true
+SYNC_ENABLED=false
+UNISHIP_ACTIVATION_POLICY_JSON={"ownerUserId":"OWNER_UUID","externalAccountId":"EXTERNAL_ACCOUNT_ID","loginIdentifier":"LOGIN_IDENTIFIER","mode":"MANUAL_ONLY"}
+UNISHIP_RECONCILIATION_POLICY_JSON=
+```
+
+Omit `connectionId` prior to initial UI connection creation; enter the password directly in
+the Carrier Connection UI (never store plaintext password in repo files, and no manual API,
+SQL, or token handling is needed).

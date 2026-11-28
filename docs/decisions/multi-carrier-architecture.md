@@ -310,3 +310,37 @@ API and Worker share one scoped declaration/configuration and actual per-dispatc
 PostgreSQL pacing. Manual-only mode blocks old AUTO jobs despite saved onboarding
 schedules. Live hard-close remains false pending external acceptance. Payload fixtures
 and mock runtime tests are technical evidence, not live contract verification.
+
+## Controlled Uniship live activation — owner decision 2026-11-28 (NEXORA-067)
+
+Based on explicit owner confirmations on 2026-11-28, this narrow ADR-007 amendment records
+authorization to open the source-level Uniship live gate (`UNISHIP_LIVE_CONTRACT_VERIFIED = true`
+in `apps/api/src/carrier/infrastructure/uniship/uniship-http.client.ts`) while keeping
+runtime opt-in (`UNISHIP_LIVE_AUTHORIZED=false` by default in templates), parsed
+`UNISHIP_ACTIVATION_POLICY_JSON` presence (`activationConfigured`), account-scoped
+`UnishipSyncRuntime.authorize`, approved routes (`POST /client/api-token-auth/`,
+`POST /client/api-token-verify/`, `GET /client/api/transition/`,
+`GET /client/api/chinaStores/`), and approved origin (`https://kh.uniship.vn`) unchanged:
+
+1. **Token lifetime (`Token lifetime: one year, owner-confirmed`)**: Owner confirmed Uniship
+   tokens carry an approximate one-year lifetime. Nexora retains nullable JWT `exp` metadata
+   parsing in `tokenExpiry()` and existing audit-backed recovery without hardcoding a 365-day
+   or fixed-millisecond TTL assumption or inventing a refresh endpoint.
+2. **Invalid token observed response**: Owner provided Postman evidence against
+   `POST /client/api-token-verify/` using an invalid token: `HTTP 400 Bad Request` with body
+   `{"non_field_errors": ["Error decoding signature."]}`. This is owner-provided observed
+   evidence for an invalid token, not natural expiry and not asserted to be uniform across all
+   endpoints. Existing `400/401 -> 401 TOKEN_REJECTED` (`LifecycleCode.TOKEN_REJECTED`)
+   normalization remains intact without leaking provider bodies.
+3. **Expired token (`NOT VERIFIED`, waived pre-activation blocker)**: Owner waived live
+   expired-token verification as a pre-activation blocker; natural expiry behavior will be
+   observed post-activation. No synthetic expiry branch or follow-up implementation task is added.
+4. **Historical token/cookie exposure (`owner risk acceptance`)**: Owner explicitly accepted the
+   residual risk for the approved test account only and waived mandatory historical password
+   rotation/invalidation prior to gate opening. Historical credentials are not claimed to be
+   invalidated, and plaintext credentials, tokens, cookies, and private identifiers remain
+   excluded from Git, fixtures, docs, and CI output.
+5. **Runtime and NEXORA-068 boundary preserved**: Stage 1 UI Connect/Reconnect continues to run
+   under private runtime configuration (`UNISHIP_LIVE_AUTHORIZED=true`, `SYNC_ENABLED=false`,
+   account-scoped `MANUAL_ONLY` JSON omitting optional `connectionId`). Source-level gate opening
+   does not certify owner runtime readiness or live Sync acceptance (`NEXORA-068`).
