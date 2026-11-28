@@ -1,5 +1,12 @@
 "use client";
-import { useId, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { Overlay, Button, TextInput } from "@nexora/ui";
 import {
   X,
@@ -16,7 +23,13 @@ import type {
   ConnectionDraft,
   CarrierProviderPresentation,
 } from "./types.ts";
-import { UNAVAILABLE, validateConnectionDraft } from "./presentation.ts";
+import {
+  UNAVAILABLE,
+  validateConnectionDraft,
+  validateEditConnectionDraft,
+} from "./presentation.ts";
+import { CarrierPartialEditError } from "./edit-error.ts";
+import { SyncApiError } from "./sync-api.ts";
 import { CarrierLogo, ConnectionBadge } from "./CarrierConnectionList.tsx";
 import styles from "./carrier-connections.module.css";
 export function CarrierDrawerFrame({
@@ -85,12 +98,23 @@ export function CarrierConnectionDrawer({
   row,
   providers,
   onClose,
+  onSubmit,
+  onReconcile,
 }: {
   row?: CarrierConnectionRow;
   providers?: readonly CarrierProviderPresentation[];
   onClose: () => void;
+  onSubmit?: (draft: ConnectionDraft) => Promise<void>;
+  onReconcile?: (signal: AbortSignal) => Promise<string | null>;
 }) {
   const id = useId(),
+    flight = useRef(false),
+    mounted = useRef(true),
+    readGeneration = useRef(0),
+    readAbort = useRef<AbortController | null>(null),
+    [confirmedName, setConfirmedName] = useState(row?.displayName ?? ""),
+    [pendingName, setPendingName] = useState<string | null>(null),
+    [sessionDenied, setSessionDenied] = useState(false),
     [draft, setDraft] = useState<ConnectionDraft>({
       displayName: row?.displayName ?? "",
       loginIdentifier: row?.loginIdentifier ?? "",
@@ -98,43 +122,196 @@ export function CarrierConnectionDrawer({
     }),
     [touched, setTouched] = useState<
       Partial<Record<keyof ConnectionDraft, boolean>>
-    >({});
-  const errors = validateConnectionDraft(draft);
+    >({}),
+    [busy, setBusy] = useState(false),
+    [submitError, setSubmitError] = useState("");
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      readGeneration.current++;
+      readAbort.current?.abort();
+    };
+  }, []);
+  const isLive = Boolean(onSubmit),
+    errors = row
+      ? validateEditConnectionDraft(draft)
+      : validateConnectionDraft(draft),
+    dirty =
+      !row ||
+      draft.displayName.trim() !== confirmedName ||
+      draft.password.length > 0,
+    canSubmit =
+      isLive &&
+      !busy &&
+      pendingName === null &&
+      Object.keys(errors).length === 0 &&
+      dirty &&
+      (!row || row.provider === "uniship");
   const title = row
     ? `Cấu hình tài khoản: ${row.displayName}`
     : "Kết nối tài khoản hãng vận chuyển mới";
   const choices = providers ?? [UNISHIP];
+  const formId = id + "-form";
+  async function reconcileName(
+    expected: string,
+    outcome: "rejected" | "unknown",
+  ) {
+    const version = ++readGeneration.current;
+    readAbort.current?.abort();
+    const abort = new AbortController();
+    readAbort.current = abort;
+    setPendingName(expected);
+    try {
+      const current = await onReconcile?.(abort.signal);
+      if (abort.signal.aborted || version !== readGeneration.current) return;
+      if (typeof current !== "string")
+        throw new Error("Unavailable connection read");
+      setConfirmedName(current);
+      setPendingName(null);
+      if (current === expected) {
+        setSubmitError(
+          "Mật khẩu kết nối đã được cập nhật. Lần đọc mới nhất xác nhận tên gợi nhớ đã được lưu.",
+        );
+      } else if (outcome === "rejected") {
+        setSubmitError(
+          "Mật khẩu kết nối đã được cập nhật, nhưng yêu cầu đổi tên bị từ chối. Bạn có thể thử lưu tên gợi nhớ.",
+        );
+      } else {
+        setSubmitError(
+          "Mật khẩu kết nối đã được cập nhật. Lần đọc mới nhất chưa thấy tên mong muốn; bạn có thể thử lưu tên gợi nhớ.",
+        );
+      }
+    } catch (error) {
+      if (abort.signal.aborted || version !== readGeneration.current) return;
+      if (error instanceof SyncApiError && error.status === 401) {
+        setSessionDenied(true);
+        setSubmitError(error.message);
+      } else {
+        setSubmitError(
+          "Mật khẩu kết nối đã được cập nhật, nhưng chưa xác định được kết quả lưu tên. Kiểm tra lại tên trước khi lưu tiếp.",
+        );
+      }
+    }
+  }
+  async function retryNameRead() {
+    if (flight.current || pendingName === null || sessionDenied) return;
+    flight.current = true;
+    setBusy(true);
+    try {
+      await reconcileName(pendingName, "unknown");
+    } finally {
+      flight.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!onSubmit || flight.current || pendingName !== null) return;
+    setTouched({
+      displayName: true,
+      loginIdentifier: !row,
+      password: !row || draft.password.length > 0,
+    });
+    if (
+      Object.keys(errors).length > 0 ||
+      (row && !dirty) ||
+      (row && row.provider !== "uniship")
+    )
+      return;
+    flight.current = true;
+    setBusy(true);
+    setSubmitError("");
+    try {
+      await onSubmit({
+        displayName: draft.displayName.trim(),
+        loginIdentifier: draft.loginIdentifier.trim(),
+        password: draft.password,
+      });
+      if (!mounted.current) return;
+      setDraft((d) => ({ ...d, password: "" }));
+      onClose();
+    } catch (error) {
+      if (!mounted.current) return;
+      if (error instanceof CarrierPartialEditError) {
+        setDraft((d) => ({ ...d, password: "" }));
+        setSubmitError(error.message);
+        if (error.sessionExpired) {
+          setSessionDenied(true);
+          setPendingName(draft.displayName.trim());
+          setSubmitError("Phiên đăng nhập đã hết hạn.");
+        } else {
+          await reconcileName(draft.displayName.trim(), error.renameOutcome);
+        }
+        return;
+      }
+      if (error instanceof SyncApiError && error.status === 401)
+        setDraft((d) => ({ ...d, password: "" }));
+      setSubmitError(
+        error instanceof SyncApiError
+          ? error.message
+          : "Không thể kết nối hoặc cập nhật tài khoản. Vui lòng thử lại.",
+      );
+    } finally {
+      flight.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }
+  const submitLabel = busy
+    ? "Đang xử lý..."
+    : row
+      ? "Lưu thay đổi"
+      : "Kích hoạt kết nối";
   return (
     <CarrierDrawerFrame
       title={title}
       subtitle="Liên kết tài khoản giữa Nexora và hệ thống hãng"
       form
-      onClose={onClose}
+      onClose={() => {
+        if (!busy) onClose();
+      }}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" disabled={busy} onClick={onClose}>
             Hủy
           </Button>
-          <Button variant="emphasis" disabled title={UNAVAILABLE}>
-            {row ? "Lưu thay đổi" : "Kích hoạt kết nối"}
+          <Button
+            type="submit"
+            form={formId}
+            variant="emphasis"
+            disabled={!canSubmit}
+            title={!isLive ? UNAVAILABLE : undefined}
+          >
+            {submitLabel}
           </Button>
         </>
       }
     >
       <form
+        id={formId}
         className={styles.drawerBody}
         noValidate
         autoComplete="off"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setTouched({
-            displayName: true,
-            loginIdentifier: true,
-            password: true,
-          });
-        }}
+        aria-busy={busy}
+        onSubmit={handleSubmit}
       >
         <div className={styles.form}>
+          {submitError && (
+            <p role="alert" className={styles.syncError}>
+              <AlertCircle size={14} />
+              <span>{submitError}</span>
+            </p>
+          )}
+          {pendingName !== null && onReconcile && !sessionDenied && (
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={busy}
+              onClick={retryNameRead}
+            >
+              Kiểm tra lại tên
+            </Button>
+          )}
           <section>
             <label>
               1. Chọn đối tác hãng vận chuyển{" "}
@@ -151,7 +328,9 @@ export function CarrierConnectionDrawer({
                   aria-pressed={p.id === (row?.provider ?? "uniship")}
                   title={
                     p.id === "uniship"
-                      ? "Biểu mẫu Uniship; chưa tích hợp"
+                      ? isLive
+                        ? "Uniship"
+                        : "Biểu mẫu Uniship; chưa tích hợp"
                       : "Chưa hỗ trợ tích hợp"
                   }
                 >
@@ -181,6 +360,7 @@ export function CarrierConnectionDrawer({
                   placeholder: "Ví dụ: Tài khoản chính, Tài khoản chi nhánh...",
                   max: 100,
                   type: "text",
+                  required: true,
                 },
                 {
                   key: "loginIdentifier",
@@ -188,57 +368,77 @@ export function CarrierConnectionDrawer({
                   placeholder: "Tên đăng nhập Uniship",
                   max: 128,
                   type: "text",
+                  required: !row,
                 },
                 {
                   key: "password",
-                  label: "4. Mật khẩu kết nối",
-                  placeholder: "Nhập mật khẩu tài khoản hãng",
+                  label: row
+                    ? "4. Mật khẩu kết nối mới (để trống nếu chỉ đổi tên)"
+                    : "4. Mật khẩu kết nối",
+                  placeholder: row
+                    ? "Nhập mật khẩu mới nếu muốn xác thực lại"
+                    : "Nhập mật khẩu tài khoản hãng",
                   max: 1024,
                   type: "password",
+                  required: !row,
                 },
               ] as const
-            ).map((f) => (
-              <section key={f.key}>
-                <label htmlFor={id + f.key}>
-                  {f.label}
-                  <span className={styles.dangerText}> *</span>
-                </label>
-                <div className={styles.fieldAccessory}>
-                  <TextInput
-                    id={id + f.key}
-                    name={f.key}
-                    type={f.type}
-                    value={draft[f.key]}
-                    placeholder={f.placeholder}
-                    maxLength={f.max}
-                    required
-                    autoComplete={
-                      f.type === "password" ? "new-password" : "off"
-                    }
-                    aria-invalid={!!touched[f.key] && !!errors[f.key]}
-                    aria-describedby={
-                      touched[f.key] && errors[f.key]
-                        ? id + f.key + "-error"
-                        : undefined
-                    }
-                    onChange={(e) =>
-                      setDraft((d) => ({ ...d, [f.key]: e.target.value }))
-                    }
-                    onBlur={() => setTouched((t) => ({ ...t, [f.key]: true }))}
-                  />
-                  {f.type === "password" && <Lock size={14} />}
-                </div>
-                {touched[f.key] && errors[f.key] && (
-                  <p
-                    role="alert"
-                    id={id + f.key + "-error"}
-                    className={styles.error}
-                  >
-                    {errors[f.key]}
-                  </p>
-                )}
-              </section>
-            ))
+            ).map((f) => {
+              const fieldDisabled =
+                busy ||
+                pendingName !== null ||
+                (f.key === "loginIdentifier" && Boolean(row));
+              const fieldError =
+                f.key === "loginIdentifier" && row ? undefined : errors[f.key];
+              return (
+                <section key={f.key}>
+                  <label htmlFor={id + f.key}>
+                    {f.label}
+                    {f.required && (
+                      <span className={styles.dangerText}> *</span>
+                    )}
+                  </label>
+                  <div className={styles.fieldAccessory}>
+                    <TextInput
+                      id={id + f.key}
+                      name={f.key}
+                      type={f.type}
+                      value={draft[f.key]}
+                      placeholder={f.placeholder}
+                      maxLength={f.max}
+                      required={f.required}
+                      disabled={fieldDisabled}
+                      autoComplete={
+                        f.type === "password" ? "new-password" : "off"
+                      }
+                      aria-invalid={!!touched[f.key] && !!fieldError}
+                      aria-describedby={
+                        touched[f.key] && fieldError
+                          ? id + f.key + "-error"
+                          : undefined
+                      }
+                      onChange={(e) => {
+                        setSubmitError("");
+                        setDraft((d) => ({ ...d, [f.key]: e.target.value }));
+                      }}
+                      onBlur={() =>
+                        setTouched((t) => ({ ...t, [f.key]: true }))
+                      }
+                    />
+                    {f.type === "password" && <Lock size={14} />}
+                  </div>
+                  {touched[f.key] && fieldError && (
+                    <p
+                      role="alert"
+                      id={id + f.key + "-error"}
+                      className={styles.error}
+                    >
+                      {fieldError}
+                    </p>
+                  )}
+                </section>
+              );
+            })
           )}
           <section>
             <label>5. Môi trường vận hành</label>
@@ -250,7 +450,10 @@ export function CarrierConnectionDrawer({
                 <div
                   className={styles.environmentCard}
                   key={env.value}
-                  data-selected={row?.preview?.environment === env.value}
+                  data-selected={
+                    row?.preview?.environment === env.value ||
+                    (isLive && env.value === "production" && !row)
+                  }
                 >
                   <span aria-hidden="true">○</span>
                   <span>
@@ -258,7 +461,9 @@ export function CarrierConnectionDrawer({
                     <small>
                       {row?.preview?.environment === env.value
                         ? "Thông tin bản xem trước"
-                        : "Chưa có thông tin tích hợp"}
+                        : isLive && env.value === "production"
+                          ? "Theo cấu hình máy chủ hiện tại"
+                          : "Chưa có thông tin tích hợp"}
                     </small>
                   </span>
                 </div>
@@ -276,8 +481,9 @@ export function CarrierConnectionDrawer({
               Kiểm tra kết nối API ngay
             </Button>
             <p className={styles.formHelp}>
-              Thông tin chỉ là bản nháp, không được lưu. Xác minh và lưu kết nối
-              chưa khả dụng.
+              {isLive
+                ? "Thông tin đăng nhập được mã hóa và xác minh trực tiếp với hệ thống hãng trên máy chủ."
+                : "Thông tin chỉ là bản nháp, không được lưu. Xác minh và lưu kết nối chưa khả dụng."}
             </p>
           </section>
         </div>
@@ -361,14 +567,41 @@ export function CarrierConnectionDetails({
 export function CarrierConfirmDialog({
   row,
   onClose,
+  onConfirm,
 }: {
   row: CarrierConnectionRow;
   onClose: () => void;
+  onConfirm?: () => Promise<void>;
 }) {
+  const flight = useRef(false),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(""),
+    isLive = Boolean(onConfirm);
+  async function handleConfirm() {
+    if (!onConfirm || flight.current) return;
+    flight.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      await onConfirm();
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof SyncApiError
+          ? err.message
+          : "Không thể ngắt kết nối tài khoản. Vui lòng thử lại.",
+      );
+    } finally {
+      flight.current = false;
+      setBusy(false);
+    }
+  }
   return (
     <Overlay
       open
-      onDismiss={onClose}
+      onDismiss={() => {
+        if (!busy) onClose();
+      }}
       label="Xác nhận ngắt kết nối"
       className={styles.confirmModal}
     >
@@ -379,15 +612,27 @@ export function CarrierConfirmDialog({
       <p>
         Bạn có chắc chắn muốn ngắt kết nối tài khoản{" "}
         <strong>{row.displayName}</strong> thuộc hãng{" "}
-        <strong>{row.providerName}</strong>? Thao tác hiện chưa khả dụng; tài
-        khoản không bị thay đổi.
+        <strong>{row.providerName}</strong>?
+        {!isLive &&
+          " Thao tác hiện chưa khả dụng; tài khoản không bị thay đổi."}
       </p>
+      {error && (
+        <p role="alert" className={styles.syncError}>
+          <AlertCircle size={14} />
+          <span>{error}</span>
+        </p>
+      )}
       <div className={styles.confirmActions}>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="secondary" disabled={busy} onClick={onClose}>
           Hủy bỏ
         </Button>
-        <Button disabled className={styles.dangerAction} title={UNAVAILABLE}>
-          Xác nhận ngắt kết nối
+        <Button
+          disabled={!isLive || busy}
+          className={styles.dangerAction}
+          title={!isLive ? UNAVAILABLE : undefined}
+          onClick={handleConfirm}
+        >
+          {busy ? "Đang ngắt..." : "Xác nhận ngắt kết nối"}
         </Button>
       </div>
     </Overlay>

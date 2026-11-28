@@ -81,11 +81,29 @@ export function CarrierConnectionsPage({
   syncByConnection = {},
   previewProviders,
   liveSync = false,
+  refreshing = false,
+  onRefresh,
+  onConnect,
+  onEditConnection,
+  onDisconnect,
+  onReadConnection,
 }: {
   liveSync?: boolean;
+  refreshing?: boolean;
   records?: readonly CarrierConnectionRow[];
   syncByConnection?: Readonly<Record<string, SyncPresentation>>;
   previewProviders?: readonly CarrierProviderPresentation[];
+  onRefresh?: () => void;
+  onConnect?: (draft: import("./types.ts").ConnectionDraft) => Promise<void>;
+  onEditConnection?: (
+    row: CarrierConnectionRow,
+    draft: import("./types.ts").ConnectionDraft,
+  ) => Promise<void>;
+  onDisconnect?: (row: CarrierConnectionRow) => Promise<void>;
+  onReadConnection?: (
+    row: CarrierConnectionRow,
+    signal: AbortSignal,
+  ) => Promise<CarrierConnectionRow | null>;
 }) {
   const rows = records ?? [],
     known = records !== undefined;
@@ -152,9 +170,10 @@ export function CarrierConnectionsPage({
             </Button>
             <Button
               variant="secondary"
-              disabled
-              title={UNAVAILABLE}
+              disabled={!onRefresh || refreshing}
+              title={onRefresh ? undefined : UNAVAILABLE}
               aria-label="Làm mới trạng thái"
+              onClick={onRefresh}
             >
               <RefreshCw size={14} />
               <span>Làm mới</span>
@@ -196,6 +215,8 @@ export function CarrierConnectionsPage({
           query={query}
           providers={providers}
           allowEnvironment={known}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
           onChange={change}
           onAdd={(filter) => {
             const next = addCarrierFilter(query.conditions, filter);
@@ -225,12 +246,36 @@ export function CarrierConnectionsPage({
         />
       </div>
       {surface?.type === "create" && (
-        <CarrierConnectionDrawer providers={previewProviders} onClose={close} />
+        <CarrierConnectionDrawer
+          providers={previewProviders}
+          onSubmit={onConnect}
+          onClose={close}
+        />
       )}{" "}
       {surface?.type === "edit" && (
         <CarrierConnectionDrawer
           row={surface.row}
           providers={previewProviders}
+          onReconcile={
+            onReadConnection
+              ? async (signal) => {
+                  const current = await onReadConnection(surface.row, signal);
+                  if (signal.aborted) return null;
+                  if (!current || current.id !== surface.row.id) return null;
+                  setSurface((previous) =>
+                    previous?.type === "edit" && previous.row.id === current.id
+                      ? { ...previous, row: current }
+                      : previous,
+                  );
+                  return current.displayName;
+                }
+              : undefined
+          }
+          onSubmit={
+            onEditConnection
+              ? (draft) => onEditConnection(surface.row, draft)
+              : undefined
+          }
           onClose={close}
         />
       )}{" "}
@@ -242,13 +287,20 @@ export function CarrierConnectionsPage({
         />
       )}{" "}
       {surface?.type === "disconnect" && (
-        <CarrierConfirmDialog row={surface.row} onClose={close} />
+        <CarrierConfirmDialog
+          row={surface.row}
+          onConfirm={onDisconnect ? () => onDisconnect(surface.row) : undefined}
+          onClose={close}
+        />
       )}{" "}
       {surface?.type === "sync" && liveSync && (
         <CarrierLiveSyncDrawer
           key={surface.row.id}
           row={surface.row}
-          onClose={close}
+          onClose={() => {
+            close();
+            onRefresh?.();
+          }}
         />
       )}
       {surface?.type === "sync" && !liveSync && (

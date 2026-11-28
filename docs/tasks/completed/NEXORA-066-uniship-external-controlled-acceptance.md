@@ -310,7 +310,7 @@ All prior statements/checklists/results above are historical. Existing external
 owner/runtime/data acceptance transfers to PLANNED
 [068](../active/NEXORA-068-uniship-owner-runtime-and-data-acceptance.md);
 public host prerequisites stay[046](../active/NEXORA-046-production-https-acceptance.md).
-The existing empty-policy issue belongs to[067](../active/NEXORA-067-controlled-uniship-live-activation.md).
+The existing empty-policy issue belongs to [067](NEXORA-067-controlled-uniship-live-activation.md).
 No external acceptance is marked PASS. No backup requirement or task is transferred.
 No old FAIL row or immutable snapshot is changed.
 

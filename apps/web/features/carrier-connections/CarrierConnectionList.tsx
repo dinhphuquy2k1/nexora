@@ -72,6 +72,8 @@ export function CarrierConnectionToolbar({
   allowEnvironment,
   onChange,
   onAdd,
+  onRefresh,
+  refreshing = false,
 }: {
   query: CarrierQuery;
   providers: readonly CarrierProviderPresentation[];
@@ -80,6 +82,8 @@ export function CarrierConnectionToolbar({
   allowEnvironment: boolean;
   onChange: (q: Partial<CarrierQuery>) => void;
   onAdd: (f: CarrierFilterCondition) => boolean;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }) {
   const label = (f: CarrierFilterCondition) => {
     if (f.field === "carrier")
@@ -125,8 +129,9 @@ export function CarrierConnectionToolbar({
           <Button
             variant="secondary"
             aria-label="Làm mới danh sách"
-            disabled
-            title={UNAVAILABLE}
+            disabled={!onRefresh || refreshing}
+            title={onRefresh ? undefined : UNAVAILABLE}
+            onClick={onRefresh}
           >
             <RefreshCw size={14} />
             Làm mới

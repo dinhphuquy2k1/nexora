@@ -805,3 +805,714 @@ test("history component renders actual type options and exposes invalid data tim
   );
   assert.doesNotMatch(html, /data-carrier-history-id=/);
 });
+
+test("live Carrier lifecycle callbacks enable connect, edit/reconnect, disconnect and refresh while callback-less renders remain draft-only", async () => {
+  const { CarrierConnectionsPage } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionsPage.tsx",
+      import.meta.url,
+    ),
+  );
+  const { CarrierConnectionDrawer, CarrierConfirmDialog } = loadComponent(
+    new URL(
+      "../features/carrier-connections/CarrierConnectionDrawer.tsx",
+      import.meta.url,
+    ),
+  );
+
+  // 1. Live mode page enables refresh controls while keeping draft-only offline renders disabled
+  const livePageHtml = render(
+    React.createElement(CarrierConnectionsPage, {
+      records: rows.slice(0, 1),
+      liveSync: true,
+      onRefresh: () => {},
+      onConnect: async () => {},
+    }),
+  );
+  const refreshMatch = livePageHtml.match(
+    /<button[^>]+aria-label="Làm mới trạng thái"[^>]*>/,
+  )?.[0];
+  assert.ok(refreshMatch);
+  assert.doesNotMatch(refreshMatch, /disabled/);
+
+  // 2. Live create drawer updates help copy and allows submit once valid
+  const liveCreateHtml = render(
+    React.createElement(CarrierConnectionDrawer, {
+      onClose: () => {},
+      onSubmit: async () => {},
+    }),
+  );
+  assert.doesNotMatch(
+    liveCreateHtml,
+    /Thông tin chỉ là bản nháp, không được lưu/,
+  );
+  assert.match(liveCreateHtml, /Kích hoạt kết nối/);
+
+  // 3. Edit mode locks loginIdentifier cleanly and live disconnect enables confirmation action
+  const liveEditHtml = render(
+    React.createElement(CarrierConnectionDrawer, {
+      row: rows[1],
+      onClose: () => {},
+      onSubmit: async () => {},
+    }),
+  );
+  const loginInput = liveEditHtml.match(
+    /<input[^>]*name="loginIdentifier"[^>]*>/,
+  )?.[0];
+  assert.ok(loginInput);
+  assert.match(loginInput, /\bdisabled\b/);
+  const confirmHtml = render(
+    React.createElement(CarrierConfirmDialog, {
+      row: rows[1],
+      onClose: () => {},
+      onConfirm: async () => {},
+    }),
+  );
+  const confirmBtn = confirmHtml.match(
+    /<button[^>]*>Xác nhận ngắt kết nối<\/button>/,
+  )?.[0];
+  assert.ok(confirmBtn);
+  assert.doesNotMatch(confirmBtn, /disabled/);
+});
+
+test("CarrierConnectionDrawer live submission trims metadata, retains password raw, guards concurrent submits and clears password on success", async () => {
+  const r = lifecycleRig();
+  await r.open("create");
+  r.fill("displayName", "  Uniship Chính  ");
+  r.fill("loginIdentifier", "  synthetic  ");
+  r.fill("password", " pass-raw ");
+  let release;
+  r.state.writeWait = new Promise((resolve) => {
+    release = resolve;
+  });
+  const first = r.submit();
+  await r.submit();
+  const writes = r.requests.filter((x) => x.method === "POST");
+  assert.equal(writes.length, 1, "concurrent double submit blocked");
+  assert.deepEqual(JSON.parse(JSON.stringify(writes[0].options.body)), {
+    provider: "uniship",
+    displayName: "Uniship Chính",
+    loginIdentifier: "synthetic",
+    password: " pass-raw ",
+  });
+  release();
+  await first;
+  assert.equal(r.closes, 1);
+  const retained = r.drawer.render({ onClose() {}, onSubmit: async () => {} });
+  assert.equal(
+    nodes(retained, (n) => n.type === "input" && n.props.name === "password")[0]
+      .props.value,
+    "",
+  );
+});
+
+test("CarrierConnectionsLive hydrates sync summaries tolerantly and exposes lifecycle refresh", async () => {
+  const { componentHarness } = await import("./helpers/component-harness.mjs");
+  const { syncPresentation } = loadComponent(
+    new URL(
+      "../features/carrier-connections/sync-response.ts",
+      import.meta.url,
+    ),
+  );
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+  const api = {
+    connections: async () => [
+      {
+        id: "conn-1",
+        provider: "uniship",
+        externalAccountId: "88001",
+        loginIdentifier: "synthetic",
+        displayName: "Uniship Chính",
+        status: "CONNECTED",
+        lastVerifiedAt: "2026-11-28T00:00:00Z",
+        createdAt: "2026-11-28T00:00:00Z",
+      },
+    ],
+    configs: async () => {
+      throw new Error("summary temporary unavailable");
+    },
+    jobs: async () => ({
+      jobs: [],
+      total: 0,
+      types: [],
+      summary: { total: 0, completed: 0, running: 0, failed: 0 },
+    }),
+    connect: async () => ({ id: "conn-1" }),
+    reconnect: async () => ({ id: "conn-1" }),
+    rename: async () => ({ id: "conn-1" }),
+    remove: async () => ({ success: true }),
+  };
+
+  class MockSyncApiError extends Error {
+    constructor(status, message, code) {
+      super(message);
+      this.status = status;
+      this.code = code;
+    }
+  }
+
+  const harness = componentHarness(
+    "../features/carrier-connections/CarrierConnectionsLive.tsx",
+    {
+      "@nexora/ui": { Button: "button" },
+      "./sync-api.ts": {
+        createSyncApi: () => api,
+        SyncApiError: MockSyncApiError,
+      },
+      "./edit-error.ts": editErrorDependency,
+      "./sync-response.ts": { syncPresentation },
+      "./CarrierConnectionsPage.tsx": { CarrierConnectionsPage: "page" },
+    },
+  );
+
+  harness.render({});
+  await tick();
+  await tick();
+  const tree = harness.render({});
+  const pageEl = tree.props.children.find((c) => c && c.type === "page");
+  const capturedProps = pageEl.props;
+  assert.equal(capturedProps.records.length, 1);
+  assert.equal(typeof capturedProps.onConnect, "function");
+  assert.equal(typeof capturedProps.onEditConnection, "function");
+  assert.equal(typeof capturedProps.onDisconnect, "function");
+  assert.equal(typeof capturedProps.onRefresh, "function");
+});
+
+// Stateful lifecycle regressions run actual Live/Page/Drawer closures, never a provider.
+const { componentHarness } = await import("./helpers/component-harness.mjs");
+const { createSyncApi, SyncApiError: LifecycleApiError } = loadComponent(
+  new URL("../features/carrier-connections/sync-api.ts", import.meta.url),
+);
+const editErrorDependency = loadComponent(
+  new URL("../features/carrier-connections/edit-error.ts", import.meta.url),
+);
+function nodes(node, predicate, result = []) {
+  if (Array.isArray(node)) {
+    for (const child of node) nodes(child, predicate, result);
+  } else if (node && typeof node === "object") {
+    if (predicate(node)) result.push(node);
+    for (const child of Object.values(node.props ?? {}))
+      nodes(child, predicate, result);
+  }
+  return result;
+}
+const one = (tree, type) => nodes(tree, (n) => n.type === type)[0];
+const tickLifecycle = () => new Promise((resolve) => setTimeout(resolve, 0));
+const syntheticRow = {
+  ...rows[1],
+  id: "synthetic-connection",
+  status: "CONNECTED",
+  displayName: "Original",
+};
+function lifecycleRig() {
+  const requests = [];
+  const state = {
+    name: "Original",
+    rename: "ok",
+    reconnect: "ok",
+    remove: "ok",
+    connect: "ok",
+    readFailure: false,
+  };
+  const client = Object.fromEntries(
+    ["GET", "POST", "PATCH", "DELETE"].map((method) => [
+      method,
+      async (path, options = {}) => {
+        requests.push({ method, path, options });
+        if (method === "GET") {
+          if (state.readWait) await state.readWait;
+          if (state.readFailure) throw Error("synthetic read unavailable");
+          if (path === "/api/carrier-connections")
+            return {
+              response: { ok: true },
+              data: {
+                connections: [{ ...syntheticRow, displayName: state.name }],
+              },
+            };
+          if (path.endsWith("sync-configs"))
+            return { response: { ok: true }, data: { configs: [] } };
+          return {
+            response: { ok: true },
+            data: {
+              jobs: [],
+              total: 0,
+              types: [],
+              summary: { total: 0, completed: 0, running: 0, failed: 0 },
+            },
+          };
+        }
+        if (state.writeWait) await state.writeWait;
+        const mode =
+          method === "PATCH"
+            ? state.rename
+            : method === "DELETE"
+              ? state.remove
+              : path.endsWith("reconnect")
+                ? state.reconnect
+                : state.connect;
+        if (method === "PATCH" && (mode === "ok" || mode === "commit-error"))
+          state.name = options.body.displayName;
+        if (mode === "network") throw Error("synthetic transport unavailable");
+        if (mode === "malformed") return { response: { ok: true } };
+        if (mode === "malformed-nested")
+          return { response: { ok: true }, data: {} };
+        if (typeof mode === "number" || mode === "commit-error")
+          return {
+            response: {
+              ok: false,
+              status: typeof mode === "number" ? mode : 503,
+            },
+            error: { code: "FORBIDDEN" },
+          };
+        return {
+          response: { ok: true },
+          data: {
+            connection: { ...syntheticRow, displayName: state.name },
+            success: true,
+          },
+        };
+      },
+    ]),
+  );
+  const api = createSyncApi(client);
+  const live = componentHarness(
+    "../features/carrier-connections/CarrierConnectionsLive.tsx",
+    {
+      "@nexora/ui": { Button: "button" },
+      "./sync-api.ts": {
+        createSyncApi: () => api,
+        SyncApiError: LifecycleApiError,
+      },
+      "./edit-error.ts": editErrorDependency,
+      "./sync-response.ts": loadComponent(
+        new URL(
+          "../features/carrier-connections/sync-response.ts",
+          import.meta.url,
+        ),
+      ),
+      "./CarrierConnectionsPage.tsx": { CarrierConnectionsPage: "page" },
+    },
+  );
+  const drawerDeps = {
+    "@nexora/ui": { Overlay: "overlay", Button: "button", TextInput: "input" },
+    "lucide-react": Object.fromEntries(
+      [
+        "X",
+        "Truck",
+        "KeyRound",
+        "Lock",
+        "Activity",
+        "Check",
+        "AlertCircle",
+        "ShieldCheck",
+      ].map((x) => [x, x]),
+    ),
+    "./presentation.ts": model(),
+    "./sync-api.ts": { SyncApiError: LifecycleApiError },
+    "./edit-error.ts": editErrorDependency,
+    "./CarrierConnectionList.tsx": {
+      CarrierLogo: "logo",
+      ConnectionBadge: "badge",
+    },
+  };
+  const page = componentHarness(
+    "../features/carrier-connections/CarrierConnectionsPage.tsx",
+    {
+      "next/link": { default: "a" },
+      "@nexora/ui": {
+        Button: "button",
+        TabBar: "tabs",
+        TabCountBadge: "count",
+        buttonClassName: () => "",
+      },
+      "lucide-react": Object.fromEntries(
+        [
+          "Truck",
+          "Plus",
+          "RefreshCw",
+          "Layers",
+          "ShieldCheck",
+          "AlertTriangle",
+          "Link2",
+          "ArrowLeft",
+          "FileSpreadsheet",
+        ].map((x) => [x, x]),
+      ),
+      "./presentation.ts": model(),
+      "./CarrierConnectionList.tsx": {
+        CarrierConnectionToolbar: "toolbar",
+        CarrierConnectionTable: "table",
+        CarrierConnectionPagination: "pager",
+      },
+      "./CarrierConnectionDrawer.tsx": {
+        CarrierConnectionDrawer: "drawer",
+        CarrierConnectionDetails: "details",
+        CarrierConfirmDialog: "confirm",
+      },
+      "./CarrierDataSyncDrawer.tsx": { CarrierDataSyncDrawer: "sync" },
+      "./CarrierLiveSyncDrawer.tsx": { CarrierLiveSyncDrawer: "live-sync" },
+    },
+  );
+  const drawer = componentHarness(
+    "../features/carrier-connections/CarrierConnectionDrawer.tsx",
+    drawerDeps,
+    "CarrierConnectionDrawer",
+  );
+  const confirm = componentHarness(
+    "../features/carrier-connections/CarrierConnectionDrawer.tsx",
+    drawerDeps,
+    "CarrierConfirmDialog",
+  );
+  const pageProps = () => one(live.render({}), "page").props;
+  const renderPage = () => page.render(pageProps());
+  let mode = "edit",
+    closes = 0;
+  const props = () => {
+    const n = one(renderPage(), mode === "disconnect" ? "confirm" : "drawer");
+    assert.ok(n, "surface remains mounted");
+    return {
+      ...n.props,
+      onClose() {
+        closes++;
+        n.props.onClose();
+      },
+    };
+  };
+  const view = () => (mode === "disconnect" ? confirm : drawer).render(props());
+  return {
+    state,
+    requests,
+    live,
+    drawer,
+    get closes() {
+      return closes;
+    },
+    async open(action = "edit") {
+      mode = action;
+      live.render({});
+      await tickLifecycle();
+      await tickLifecycle();
+      if (action === "create")
+        nodes(
+          renderPage(),
+          (n) =>
+            n.type === "button" &&
+            JSON.stringify(n.props.children).includes("Kết nối hãng mới"),
+        )[0].props.onClick();
+      else one(renderPage(), "table").props.onAction(action, syntheticRow);
+      return view();
+    },
+    view,
+    pageProps,
+    fill(name, value) {
+      nodes(
+        view(),
+        (n) => n.type === "input" && n.props.name === name,
+      )[0].props.onChange({ target: { value } });
+    },
+    value(name) {
+      return nodes(
+        view(),
+        (n) => n.type === "input" && n.props.name === name,
+      )[0].props.value;
+    },
+    submit() {
+      return one(view(), "form").props.onSubmit({ preventDefault() {} });
+    },
+    confirm() {
+      return nodes(
+        view(),
+        (n) =>
+          n.type === "button" &&
+          ["Xác nhận ngắt kết nối", "Đang ngắt..."].includes(n.props.children),
+      )[0].props.onClick();
+    },
+    count(method, reconnect = false) {
+      return requests.filter(
+        (r) =>
+          r.method === method &&
+          (method !== "POST" || r.path.endsWith("reconnect") === reconnect),
+      ).length;
+    },
+    retryRead() {
+      const b = nodes(
+        view(),
+        (n) => n.type === "button" && n.props.children === "Kiểm tra lại tên",
+      )[0];
+      assert.ok(b, "read-only retry available");
+      return b.props.onClick();
+    },
+    submitDisabled() {
+      return nodes(
+        view(),
+        (n) => n.type === "button" && n.props.type === "submit",
+      )[0].props.disabled;
+    },
+  };
+}
+
+test("lifecycle callbacks execute create/delete payloads and refresh only after confirmed success", async () => {
+  for (const action of ["create", "disconnect"])
+    for (const rejected of [false, true]) {
+      const r = lifecycleRig();
+      r.state[action === "create" ? "connect" : "remove"] = rejected
+        ? 403
+        : "ok";
+      await r.open(action);
+      const before = r.live.writes;
+      if (action === "create") {
+        r.fill("displayName", "  New account  ");
+        r.fill("loginIdentifier", "  synthetic  ");
+        r.fill("password", " raw-password ");
+        await r.submit();
+        const write = r.requests.find((x) => x.method === "POST");
+        assert.equal(write.path, "/api/carrier-connections");
+        assert.deepEqual(JSON.parse(JSON.stringify(write.options.body)), {
+          provider: "uniship",
+          displayName: "New account",
+          loginIdentifier: "synthetic",
+          password: " raw-password ",
+        });
+      } else {
+        await r.confirm();
+        assert.equal(r.count("DELETE"), 1);
+      }
+      assert.equal(r.closes, rejected ? 0 : 1);
+      assert.equal(
+        r.live.writes > before,
+        !rejected,
+        "only a confirmed write triggers refresh",
+      );
+    }
+});
+
+test("edit callbacks distinguish rename-only, reconnect-only, ordered combined, rejection and unchanged drafts", async () => {
+  for (const scenario of ["name", "password", "both", "rejected", "none"]) {
+    const r = lifecycleRig();
+    await r.open();
+    if (["name", "both", "rejected"].includes(scenario))
+      r.fill("displayName", "Requested");
+    if (["password", "both", "rejected"].includes(scenario))
+      r.fill("password", "synthetic-password");
+    if (scenario === "rejected") r.state.reconnect = 400;
+    await r.submit();
+    const writes = r.requests.filter((x) => x.method !== "GET");
+    assert.deepEqual(
+      writes.map((x) => x.method),
+      {
+        name: ["PATCH"],
+        password: ["POST"],
+        both: ["POST", "PATCH"],
+        rejected: ["POST"],
+        none: [],
+      }[scenario],
+    );
+    assert.equal(r.closes, ["none", "rejected"].includes(scenario) ? 0 : 1);
+  }
+});
+
+test("confirmed reconnect plus rejected rename clears password and retry never reconnects twice", async () => {
+  const r = lifecycleRig();
+  await r.open();
+  r.fill("displayName", "Requested");
+  r.fill("password", "synthetic-password");
+  r.state.rename = 400;
+  await r.submit();
+  assert.equal(
+    r.value("password"),
+    "",
+    "confirmed reconnect password must be cleared",
+  );
+  assert.equal(r.value("displayName"), "Requested");
+  assert.equal(r.closes, 0);
+  assert.match(JSON.stringify(r.view()), /Mật khẩu.*đã được cập nhật/);
+  assert.equal(r.count("POST", true), 1);
+  assert.equal(r.count("PATCH"), 1);
+  r.state.rename = "ok";
+  await r.submit();
+  assert.equal(r.count("POST", true), 1, "retry only renames");
+  assert.equal(r.count("PATCH"), 2);
+  assert.equal(r.closes, 1);
+});
+
+for (const outcome of [
+  503,
+  "network",
+  "malformed",
+  "malformed-nested",
+  "commit-error",
+])
+  test(`unknown rename ${outcome} reconciles without auto retry`, async () => {
+    const r = lifecycleRig();
+    await r.open();
+    r.fill("displayName", "Requested");
+    r.fill("password", "synthetic-password");
+    r.state.rename = outcome;
+    const reads = r.count("GET");
+    await r.submit();
+    assert.equal(r.value("password"), "");
+    assert.equal(r.closes, 0);
+    assert.ok(r.count("GET") > reads, "authoritative connection read required");
+    assert.equal(r.count("POST", true), 1);
+    assert.equal(r.count("PATCH"), 1);
+    if (outcome === "commit-error") {
+      assert.equal(r.submitDisabled(), true);
+      await r.submit();
+      assert.equal(r.count("PATCH"), 1);
+    } else {
+      r.state.rename = "ok";
+      await r.submit();
+      assert.equal(r.count("PATCH"), 2);
+      assert.equal(r.count("POST", true), 1);
+    }
+  });
+
+test("failed reconciliation blocks writes and GET-only recovery uses fresh selected row baseline", async () => {
+  const r = lifecycleRig();
+  await r.open();
+  r.fill("displayName", "Requested");
+  r.fill("password", "synthetic-password");
+  r.state.rename = 503;
+  r.state.readFailure = true;
+  await r.submit();
+  assert.equal(r.value("password"), "");
+  assert.equal(r.submitDisabled(), true);
+  await r.submit();
+  assert.equal(r.count("POST", true), 1);
+  assert.equal(r.count("PATCH"), 1);
+  r.state.readFailure = false;
+  r.state.name = "Concurrent name";
+  await r.retryRead();
+  assert.equal(r.count("PATCH"), 1);
+  assert.equal(r.submitDisabled(), false);
+  r.fill("displayName", "Original");
+  r.state.rename = "ok";
+  await r.submit();
+  assert.equal(
+    r.count("PATCH"),
+    2,
+    "fresh baseline must allow restoring original name",
+  );
+  assert.equal(r.count("POST", true), 1);
+});
+
+test("partial recovery permits a deliberately entered new password and preserves session401 boundary", async () => {
+  for (const expired of [false, true]) {
+    const r = lifecycleRig();
+    await r.open();
+    r.fill("displayName", "Requested");
+    r.fill("password", "first-synthetic");
+    r.state.rename = expired ? 401 : 400;
+    const reads = r.count("GET");
+    await r.submit();
+    if (expired)
+      assert.equal(
+        r.count("GET"),
+        reads,
+        "no reconciliation after session denial (confirmed refresh remains independent)",
+      );
+    assert.equal(r.value("password"), "");
+    if (expired) {
+      assert.match(JSON.stringify(r.view()), /Phiên đăng nhập/);
+    } else {
+      r.state.rename = "ok";
+      r.fill("password", "second-synthetic");
+      await r.submit();
+      assert.equal(r.count("POST", true), 2);
+    }
+  }
+});
+
+test("lifecycle forms and disconnect synchronously fence double-submit callbacks", async () => {
+  for (const action of ["create", "edit", "disconnect"]) {
+    const r = lifecycleRig();
+    await r.open(action);
+    if (action !== "disconnect") {
+      r.fill("password", "synthetic-password");
+      if (action === "create") {
+        r.fill("displayName", "New");
+        r.fill("loginIdentifier", "synthetic");
+      }
+    }
+    let release;
+    r.state.writeWait = new Promise((resolve) => {
+      release = resolve;
+    });
+    const first = action === "disconnect" ? r.confirm() : r.submit();
+    const second = action === "disconnect" ? r.confirm() : r.submit();
+    await second;
+    assert.equal(r.requests.filter((x) => x.method !== "GET").length, 1);
+    release();
+    await first;
+    assert.equal(r.closes, 1);
+  }
+});
+
+test("unmounted reconciliation aborts and ignores delayed authoritative read", async () => {
+  const r = lifecycleRig();
+  await r.open();
+  r.fill("displayName", "Requested");
+  r.fill("password", "synthetic-password");
+  r.state.rename = 503;
+  let release;
+  r.state.readWait = new Promise((resolve) => {
+    release = resolve;
+  });
+  const submission = r.submit();
+  await tickLifecycle();
+  const read = r.requests.filter((x) => x.method === "GET").at(-1);
+  assert.equal(read.path, "/api/carrier-connections");
+  assert.equal(r.value("password"), "", "clear before read completes");
+  r.drawer.unmount();
+  r.live.unmount();
+  const writes = r.drawer.writes;
+  assert.equal(read.options.signal.aborted, true);
+  release();
+  await submission;
+  assert.equal(r.drawer.writes, writes, "stale read cannot write drawer state");
+  assert.equal(r.count("POST", true), 1);
+  assert.equal(r.count("PATCH"), 1);
+});
+
+test("callback-less drawer submit remains a draft without any write or close", async () => {
+  const r = lifecycleRig();
+  let closes = 0;
+  const props = {
+    onClose() {
+      closes++;
+    },
+  };
+  const view = r.drawer.render(props);
+  const button = nodes(
+    view,
+    (n) => n.type === "button" && n.props.type === "submit",
+  )[0];
+  assert.equal(button.props.disabled, true);
+  await one(view, "form").props.onSubmit({ preventDefault() {} });
+  assert.equal(r.requests.length, 0);
+  assert.equal(closes, 0);
+});
+
+test("malformed reconnect success never counts as confirmed or proceeds to Rename", async () => {
+  const r = lifecycleRig();
+  await r.open();
+  r.fill("displayName", "Requested");
+  r.fill("password", "synthetic-password");
+  r.state.reconnect = "malformed-nested";
+  await r.submit();
+  assert.equal(
+    r.count("PATCH"),
+    0,
+    "unconfirmed reconnect cannot admit Rename",
+  );
+  assert.equal(r.closes, 0);
+  assert.equal(
+    r.value("password"),
+    "synthetic-password",
+    "do not falsely report a confirmed reconnect",
+  );
+  assert.doesNotMatch(
+    JSON.stringify(r.view()),
+    /Mật khẩu kết nối đã được cập nhật/,
+  );
+});
