@@ -1,6 +1,6 @@
 # NEXORA-065 — Runtime environment consistency and development MFA
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
 Verification: PARTIALLY VERIFIED
 
@@ -97,8 +97,21 @@ application/DB/SDK/Sync/Carrier/security algorithms and workflow topology stay u
 | Quality and genuine MFA  | pnpm quality932 tests/typecheck/contracts/build PASS; native signed-owned PostgreSQL MFA22/22; test:lint, docs10, preflight24 PASS                                                            | 2026-11-27 | PASS   |
 | Independent review       | Full source/plan/A-B review: no P1/P2/P3; confirms evidence limits and unchanged production scope                                                                                             | 2026-11-27 | PASS   |
 
-Remaining verification: final-source hosted Preflight/Foundation. Sync Targeted is
+Remaining verification at PR authoring: final-source hosted Preflight/Foundation (satisfied at merge/main; see Closure below). Sync Targeted is
 NOT RUN under unchanged path filter; its product paths are unchanged and signed
 suites remain in Foundation. Local canonical Docker NOT RUN for missing images/
-disk; host evidence is not a substitute. Final CI receipts are in the new PR
+disk; host evidence is not a substitute. Final CI receipts are in PR #65
 description. No live traffic/production activation or merge; external gates stay066.
+
+## Closure by NEXORA-066 — 2026-11-28
+
+PR #65 (`fix/runtime-environment-consistency`) merged into `main` at `2026-11-28T04:17:48Z`: merge commit `a4ccfaf4cd54fd2a848e263e2c9551cad0c893fe`, final PR source `75ed54f6a635660e3c65de752e00665201279903`.
+
+- PR #65 final-source CI (`75ed54f6a635660e3c65de752e00665201279903`): `Preflight Policy & Design Governance` run `46033538458` (job `140623093872`, `SUCCESS`); `Nexora foundation` run `46033539071` (job `140623097229`, steps 1–16 & 19 `SUCCESS`, steps 17–18 `SKIPPED`).
+- Merged `main` CI whose checkout includes `a4ccfaf4cd54fd2a848e263e2c9551cad0c893fe`: `Preflight Policy & Design Governance` run `46106872377` (`SUCCESS`); `Nexora foundation` run `46106872352` (job `140861483473`, steps 1–16 & 19 `SUCCESS`, steps 17–18 `SKIPPED`).
+- Notes & follow-up transfer: Pre-merge independent review is recorded in [implementation-verification.md](../evidence/NEXORA-065/implementation-verification.md); `gh pr view 65 --json reviews,comments` returned `reviews: []` and `comments: []` (merge reflects owner approval). `Sync Targeted` remains `NOT RUN` under the workflow's unchanged path filter (latest product `Sync V1 targeted` run on `1cd46d1` PR #64 was `46018303745` / job `140571044096` `SUCCESS`), and external Uniship / host HTTPS acceptance remain tracked in `PLANNED` [NEXORA-066](../active/NEXORA-066-uniship-external-controlled-acceptance.md) and [NEXORA-046](../active/NEXORA-046-production-https-acceptance.md).
+
+| Claim                              | Evidence                                                                                                                                                                                                                                                                                                          | Date       | Result |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged technical task closure      | PR #65 source `75ed54f6a635660e3c65de752e00665201279903` merged to `main` at `a4ccfaf4cd54fd2a848e263e2c9551cad0c893fe` (`2026-11-28T04:17:48Z`); source CI `46033538458`/`46033539071` (`140623097229`) and merged-main CI `46106872377`/`46106872352` (`140861483473`) steps 4–16 & 19 `PASS` (`17–18` skipped) | 2026-11-28 | PASS   |
+| Unverified external scope retained | External Uniship acceptance and host HTTPS readiness remain tracked in active [NEXORA-066](../active/NEXORA-066-uniship-external-controlled-acceptance.md) and [NEXORA-046](../active/NEXORA-046-production-https-acceptance.md); no external acceptance marked `PASS`                                            | 2026-11-28 | PASS   |

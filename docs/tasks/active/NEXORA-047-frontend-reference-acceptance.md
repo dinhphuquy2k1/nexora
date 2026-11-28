@@ -33,3 +33,7 @@ RETAIL_SERVICE_CATALOG_PRESENTATION redesign prerequisite as PLANNED/NOT VERIFIE
 Owner-confirmed packing-service meanings are already implemented; this follow-up
 does not reopen their mappings or certify visual acceptance. See
 [NEXORA-055](../completed/NEXORA-055-shipment-services.md) closure evidence.
+
+## NEXORA-064 closure follow-up
+
+Retain manual visual acceptance for `NEXORA-064` `v3` design-system refinement (`36/40/48px` controls, `12px` table density, semantic heading/body typography isolation, `RetailColumnPicker` search accessory/typography, rendered segmented controls, `Textarea` `rows=1/2/3/6`, and `44.5px` Customer loading/data row parity) as `PLANNED` / `NOT VERIFIED`. PR #63 (`refactor/design-system-refinement`) merged with `reviews: []` and `comments: []` (pre-merge formal independent review object not recorded; CI Foundation runs `45925007801` and `45928559468` verified automated DOM/CDP assertions only). See [NEXORA-064](../completed/NEXORA-064-design-system-refinement.md) closure evidence.
