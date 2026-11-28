@@ -40,9 +40,15 @@ No ENV combination can open the current hard-coded contract gate.
 Owner closes remaining pre-live gates, confirms approved account/login/connection,
 rotates exposed historical tokens/cookies if required, and authorizes a separately
 reviewed gate-opening change for the approved HTTPS origin. This PR does not do that.
-Then set the exact activation scope to MANUAL_ONLY and deploy API/Worker together.
-Do not configure reconciliation thresholds before auto-hide acceptance. Existing
-onboarding enabled60 schedules are preserved; manual-only blocks their AUTO execution.
+Before setting `UNISHIP_LIVE_CONTRACT_VERIFIED=true`, that gate-opening PR must resolve
+the `NEXORA-066` empty-policy `PLAN ISSUE` in `UnishipSyncRuntime.authorize` so blank
+`UNISHIP_ACTIVATION_POLICY_JSON` fails closed on non-loopback origins even with
+`SYNC_ENABLED=false` (see [Configuration](../../../operations/configuration.md#controlled-activation-configuration--nexora-058)).
+Then deploy API/Worker together with the exact account-scoped `MANUAL_ONLY` JSON in
+private runtime config (omitting optional `connectionId` prior to initial UI connection
+creation; never commit real account values). Do not configure reconciliation thresholds
+before auto-hide acceptance. Existing onboarding enabled60 schedules are preserved;
+manual-only blocks their AUTO execution.
 
 ## Stage 2 — first manual FULL
 
