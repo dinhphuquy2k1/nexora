@@ -30,15 +30,21 @@ Canonical field evidence remains in [the integration contract](../../../integrat
 Deploy a reviewed source revision. Back up and run forward migrations before role
 re-provisioning and runtime start. Never reset volumes or rotate shared credentials
 to make verification pass. Confirm API nexora_app versus Worker nexora_sync, private
-function ACLs, Carrier key versions, restricted mounts and identical frozen settings.
-Check host, storage, TLS, time/NTP, backups and chosen deployment profile. Keep
-SYNC_ENABLED=false, blank activation and the immutable external live hard-close.
-No ENV combination can open the current hard-coded contract gate.
+function ACLs, independent Carrier key versions (`CARRIER_KEYRING_JSON`), restricted
+mounts and identical frozen settings. Keep `SYNC_ENABLED=false`, `UNISHIP_LIVE_AUTHORIZED=false`,
+blank `UNISHIP_ACTIVATION_POLICY_JSON`, blank `UNISHIP_RECONCILIATION_POLICY_JSON`, and
+the immutable external live hard-close (`UNISHIP_LIVE_CONTRACT_VERIFIED=false`).
+Check host, storage, TLS, time/NTP, backups and chosen deployment profile: under
+`DEPLOYMENT_PROFILE=PUBLIC_HTTPS`, `verifyPublicStartup` enforces all ACTIVE ADMINs
+enrolled as a startup gate, whereas `LOCAL` Mode A startup still requires MFA enrollment
+before any interactive ADMIN login/use. No ENV combination can open the current
+hard-coded contract gate.
 
 ## Stage 1 — separately authorized manual activation
 
 Owner closes remaining pre-live gates, confirms approved account/login/connection,
-rotates exposed historical tokens/cookies if required, and authorizes a separately
+confirms Uniship account password rotation per ADR-007 (`NEXORA-054`) to invalidate
+any historically exposed DevTools tokens/cookies, and authorizes a separately
 reviewed gate-opening change for the approved HTTPS origin. This PR does not do that.
 Before setting `UNISHIP_LIVE_CONTRACT_VERIFIED=true`, that gate-opening PR must resolve
 the `NEXORA-066` empty-policy `PLAN ISSUE` in `UnishipSyncRuntime.authorize` so blank

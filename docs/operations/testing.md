@@ -766,7 +766,7 @@ they do not prove hydration, identify a cause by themselves or replace actual
 Login/MFA/HTTPS security assertions. The real visibility transition remains the
 readiness requirement with its existing deadline.
 
-The Chromium DevTools launch gate and post-login browser conditions in scripts/public-https-browser.mjs poll for up to 20 s (200 × 100 ms), matching the launch gate in scripts/browser-login-smoke.mjs; login readiness (waitForInteractiveLogin) keeps its original 100 × 100 ms deadline. CDP command timeouts are reported as REQUEST_TIMEOUT. Failure output adds `Error type` (AbortError, AssertionError, Error, RangeError, SyntaxError, TimeoutError, TypeError or OTHER) and `Step elapsed ms`; no message text is printed. A failure close to the 20 s budget indicates runner slowness; a short elapsed time indicates a functional failure.
+The Chromium DevTools launch gate and post-login browser conditions in scripts/public-https-browser.mjs poll for up to 20 s (200 × 100 ms), matching the launch gate in scripts/browser-login-smoke.mjs and scripts/pager-filter-browser-checks.mjs via the shared `waitForBrowserDevTools` helper in `scripts/browser-startup-diagnostics.mjs` (reusing `isProcessExited` and `browserStartupSummary`); login readiness (waitForInteractiveLogin) keeps its original 100 × 100 ms deadline. Empty, incomplete, or non-`1..65535` `DevToolsActivePort` files no longer break polling early; early Chromium exit fails immediately without waiting out the 20 s budget and captures bounded startup stderr hints (`BROWSER_STARTUP_DIAGNOSTIC`) while `/json` or `/json/list` discovery validates a `page` WebSocket target under a bounded abort timeout. CDP command timeouts are reported as REQUEST_TIMEOUT. Failure output adds `Error type` (AbortError, AssertionError, Error, RangeError, SyntaxError, TimeoutError, TypeError or OTHER) and `Step elapsed ms`; no message text is printed. A failure close to the 20 s budget indicates runner slowness; a short elapsed time indicates a functional failure. Deterministic 8-case regression coverage lives in `scripts/browser-startup-diagnostics.test.mjs`.
 
 ## Sync Phase A extension verification — NEXORA-042
 
@@ -1583,12 +1583,25 @@ proof only; no images are pulled/built/published to claim released runtime proof
 
 `dev-runtime-environment-probe.mjs` keeps /proc socket-inode/PID/watch-supervisor
 selection and mapped-owner dev-entrypoint execution, now comparing17 API ENV names
-and the unchanged eleven Worker shared names. It verifies actual restricted DB role
-and Worker Identity absence; only field names, booleans and fixed categories escape.
-No production debug endpoint or SYS_PTRACE capability is used.
+and the unchanged eleven Worker shared names, verifying post-`/environ` PID/listener
+consistency across snapshots (`verifyDevelopmentEnvironment`) and boundedly waiting
+for transient watch-restart gaps (`waitForDevelopmentEnvironment`) while failing closed
+immediately (`attempts === 1`) on `DEV_ENV_PROPAGATION_MISMATCH`, worker identity
+exposure, missing API identity, or wrong database role. Persistent `0`/`>1` candidates
+emit sanitized `DEV_ENV_PROBE_DIAGNOSTIC` telemetry (counts, listeners, phase, elapsedMs,
+deadlineReached) with no raw cmdlines, URLs, keys, or ENV values; 12-case mock-`/proc`
+regression coverage lives in `scripts/dev-runtime-environment-probe.test.mjs`. It verifies
+actual restricted DB role and Worker Identity absence; only field names, booleans and
+fixed categories escape. No production debug endpoint or SYS_PTRACE capability is used.
 
 `dev-smoke.sh` supplies independent CSPRNG Identity keys under umask077, owns an
-allocated nondefault loopback browser port, and retains every058 Uniship/Sync/Carrier
+allocated nondefault loopback browser port, stops `sync-worker` alongside `api web` before
+rebuilding `dependencies`, verifies `postgres`/`dependencies`/`migrate`/`db-runtime`
+readiness via `verifyDevSmokeDependenciesReady` (`scripts/smoke-checks.mjs`) before running
+`compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout 180 api` (preventing
+shared `dist` volume churn while watchers run), uses `waitForDevelopmentEnvironment` in
+`probe_runtime`, emits sanitized `DEV_SMOKE_DIAGNOSTIC` failure telemetry (`formatDevSmokeFailure` /
+`summarizeComposeServices`) without raw logs or fixtures, and retains every058 Uniship/Sync/Carrier
 assertion. `mfa-enrollment-tty-smoke.py --development <private-fixture>` selects only
 the fixed dev Compose/mapped entrypoint/compiled CLI path; the standard invocation
 and full PTY password/backspace/cancel/EOF/rollback/commit-before-codes/duplicate/
