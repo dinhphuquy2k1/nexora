@@ -29,6 +29,7 @@ export function createCarrierRuntime(
   env: Readonly<Record<string, string | undefined>>,
   config: ReturnType<typeof readCarrierRuntimeConfig>,
   authorize: (scope: CarrierRuntimeScope) => void,
+  activationConfigured = false,
 ) {
   const store =
     authority === "worker"
@@ -39,7 +40,11 @@ export function createCarrierRuntime(
   const audit = new PostgresSecurityAudit(store.client, true),
     budget = new PostgresProviderBudget(url),
     admission = new PostgresHttpAdmission(url, authority);
-  const client = new UnishipHttpClient({ ...config, admission });
+  const client = new UnishipHttpClient({
+    ...config,
+    admission,
+    activationConfigured,
+  });
   const context = (
     userId: string,
     id: string,

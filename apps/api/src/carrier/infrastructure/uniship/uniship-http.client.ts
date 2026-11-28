@@ -33,6 +33,8 @@ export interface UnishipLoginResult {
 export interface UnishipHttpClientOptions {
   apiUrl?: string;
   liveAuthorized?: boolean;
+  /** Derived only from the shared runtime's successfully parsed activation policy. */
+  activationConfigured?: boolean;
   isProduction?: boolean;
   timeoutMs?: number;
   admission?: UnishipHttpAdmission;
@@ -142,14 +144,15 @@ export function parseProviderIdentity(payload: unknown): UnishipLoginResult {
   };
 }
 
-// Official permission, credential retention and automated re-login terms remain UNVERIFIED.
-// Runtime opt-in alone cannot open live traffic in this mock-only implementation.
+// Owner-scoped permission is recorded; remaining live-contract evidence, exposure handling
+// and explicit gate-opening authorization are not established by this implementation.
 const UNISHIP_LIVE_CONTRACT_VERIFIED: boolean = false;
 
 @Injectable()
 export class UnishipHttpClient {
   private readonly apiUrl?: string;
   private readonly liveAuthorized: boolean;
+  private readonly activationConfigured: boolean;
   private readonly isProduction: boolean;
   private readonly timeoutMs: number;
   private readonly admission?: UnishipHttpAdmission;
@@ -158,6 +161,7 @@ export class UnishipHttpClient {
     this.admission = options.admission;
     this.apiUrl = options.apiUrl;
     this.liveAuthorized = options.liveAuthorized ?? false;
+    this.activationConfigured = options.activationConfigured ?? false;
     this.isProduction = options.isProduction ?? false;
     this.timeoutMs = options.timeoutMs ?? 5000;
   }
@@ -432,7 +436,9 @@ export class UnishipHttpClient {
     // Require explicit operational authorization before permitting external/live network requests
     if (
       !isLoopback &&
-      (!this.liveAuthorized || !UNISHIP_LIVE_CONTRACT_VERIFIED)
+      (!this.liveAuthorized ||
+        !UNISHIP_LIVE_CONTRACT_VERIFIED ||
+        !this.activationConfigured)
     ) {
       throw new HttpException(
         {

@@ -1636,3 +1636,23 @@ Foundation runs the expanded dev smoke without workflow or suite-budget changes.
 ## Explicit-owner no-backup policy — 2026-11-28
 
 [Project rules](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) supersede previous operational backup/restore requirements. Do not introduce new backup verification, clones, drills, acceptance gates or follow-up tasks. Existing automated disposable fixture tests are retained exactly as explicitly directed by the owner; their execution/results do not impose a backup prerequisite on any real environment. No business hide/restore, token/Worker recovery or MFA recovery-code behavior changes.
+
+## NEXORA-067 scoped Carrier regressions
+
+Existing runtime-composition suite captures real HTTP-client constructor options to
+prove parsed presence is threaded for API/Worker independently of SyncOFF; actual
+client remains in use. This is a composition contract, not a claim that an unopened
+hard gate permits external requests. Actual auth/verify and both GET routes use a
+fail-on-unexpected-fetch boundary and require zero dispatch for denied URL/permission
+configurations. No production hard-gate substitution, test bypass or external HTTP.
+
+Existing scope hooks exercise wrong owner/login/optional connection and candidate
+identity mismatches with mocked providers before encryption/persistence, plus valid
+nonproduction loopback and SyncOFF. Signed activation fixtures add real loopback
+auth/verify initial-connect cases with restricted DB persistence and compare denied
+reconnect connection/generation/secret/job/schedule state. Existing Worker security,
+fencing and lifecycle suites remain required. Production external-positive behavior
+is NOT RUN while hardfalse; constructor propagation and closed zero-dispatch tests
+do not independently demonstrate the new conjunct with hardtrue. Source review
+checks the shared target condition; later authorized activation needs its own
+positive evidence. Test-only doubles never grant production live permission.

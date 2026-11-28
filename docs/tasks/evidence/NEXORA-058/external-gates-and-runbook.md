@@ -50,10 +50,13 @@ Owner closes remaining pre-live gates, confirms approved account/login/connectio
 confirms Uniship account password rotation per ADR-007 (`NEXORA-054`) to invalidate
 any historically exposed DevTools tokens/cookies, and authorizes a separately
 reviewed gate-opening change for the approved HTTPS origin. This PR does not do that.
-Before setting `UNISHIP_LIVE_CONTRACT_VERIFIED=true`, that gate-opening PR must resolve
-the `NEXORA-066` empty-policy `PLAN ISSUE` in `UnishipSyncRuntime.authorize` so blank
-`UNISHIP_ACTIVATION_POLICY_JSON` fails closed on non-loopback origins even with
-`SYNC_ENABLED=false` (see [Configuration](../../../operations/configuration.md#controlled-activation-configuration--nexora-058)).
+NEXORA-067 implements the earlier066 empty-policy protection: parsed policy presence
+is required by the same external transport target() used for availability and
+POST/GET dispatch, independently of SyncOFF; exact context/verified scope checks stay.
+This is technical protection, not permission to open the gate. The hard gate stays
+false pending the existing live-contract/exposure and explicit operational evidence.
+After those are recorded and a reviewed gate-opening change is authorized, first
+connect uses SYNC_ENABLED=false (Carrier only; no manual FULL in067).
 Then deploy API/Worker together with the exact account-scoped `MANUAL_ONLY` JSON in
 private runtime config (omitting optional `connectionId` prior to initial UI connection
 creation; never commit real account values). Do not configure reconciliation thresholds

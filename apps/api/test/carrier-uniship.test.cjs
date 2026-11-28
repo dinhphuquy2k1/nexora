@@ -459,3 +459,70 @@ test("UnishipHttpClient handles mock HTTP provider contracts, errors, timeouts, 
     await mockServer.close();
   }
 });
+
+test("closed external transport denies actual auth verify and both read routes with zero fetch", async (t) => {
+  let dispatches = 0;
+  t.mock.method(globalThis, "fetch", async () => {
+    dispatches++;
+    throw Error("Unexpected external fetch");
+  });
+  for (const options of [
+    {
+      apiUrl: "https://kh.uniship.vn",
+      liveAuthorized: false,
+      activationConfigured: true,
+    },
+    { apiUrl: "https://kh.uniship.vn", liveAuthorized: true },
+    {
+      apiUrl: "https://kh.uniship.vn",
+      liveAuthorized: true,
+      activationConfigured: false,
+    },
+    // Valid configuration still cannot open the unverified hard gate.
+    {
+      apiUrl: "https://kh.uniship.vn",
+      liveAuthorized: true,
+      activationConfigured: true,
+    },
+    {
+      apiUrl: "https://other.invalid",
+      liveAuthorized: true,
+      activationConfigured: true,
+    },
+    {
+      apiUrl: "http://kh.uniship.vn",
+      liveAuthorized: true,
+      activationConfigured: true,
+    },
+    {
+      apiUrl: "https://synthetic:secret@kh.uniship.vn",
+      liveAuthorized: true,
+      activationConfigured: true,
+    },
+    { apiUrl: "http://127.0.0.1:9", isProduction: true },
+  ]) {
+    const client = new UnishipHttpClient(options);
+    assert.equal(client.operationallyAvailable(), false);
+    await assert.rejects(
+      client.authenticate({
+        username: "synthetic",
+        password: "synthetic-password",
+      }),
+      (e) => e.getStatus?.() === 503,
+    );
+    await assert.rejects(
+      client.verify("synthetic-token"),
+      (e) => e.getStatus?.() === 503,
+    );
+    for (const route of ["/client/api/transition/", "/client/api/chinaStores/"])
+      await assert.rejects(
+        client.getShipment(
+          route,
+          "synthetic-token",
+          new globalThis.AbortController().signal,
+        ),
+        { code: "SERVICE_UNAVAILABLE" },
+      );
+  }
+  assert.equal(dispatches, 0);
+});

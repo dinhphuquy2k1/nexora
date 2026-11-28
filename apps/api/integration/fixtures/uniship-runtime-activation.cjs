@@ -97,6 +97,10 @@ module.exports = async function verifyActivation(t, { db, apiUrl, workerUrl }) {
             orderBy: { secretType: "asc" },
           }),
         ),
+        schedules: await db.syncConfig.findMany({
+          where: { carrier_connection_id: f.connection.id },
+          orderBy: { id: "asc" },
+        }),
         jobs: await db.syncJob.findMany({
           where: { carrier_connection_id: f.connection.id },
           orderBy: { id: "asc" },
@@ -121,11 +125,107 @@ module.exports = async function verifyActivation(t, { db, apiUrl, workerUrl }) {
         "api",
       );
     }
+    for (const scenario of [
+      { label: "owner denied", patch: { ownerUserId: randomUUID() }, calls: 0 },
+      { label: "login denied", login: "other-synthetic", calls: 0 },
+      {
+        label: "optional connection denied",
+        patch: { connectionId: randomUUID() },
+        calls: 0,
+      },
+      { label: "verified account denied", wrongAccount: true, calls: 2 },
+      { label: "auth verify incoherent", incoherent: true, calls: 2 },
+      { label: "approved scoped connect", calls: 2, success: true },
+    ])
+      await t.test(
+        `Sync OFF scoped initial connect: ${scenario.label}`,
+        async () => {
+          const { createServer } = require("node:http");
+          const f = await seed();
+          // Initial UI connection has no existing row or predeclared connection UUID.
+          await db.carrierConnection.delete({ where: { id: f.connection.id } });
+          let requests = 0;
+          const server = createServer(async (req, res) => {
+            requests++;
+            for await (const chunk of req) void chunk;
+            const account =
+              scenario.wrongAccount || (scenario.incoherent && requests === 2)
+                ? "999"
+                : f.policy.externalAccountId;
+            res.setHeader("content-type", "application/json");
+            res.end(
+              JSON.stringify({
+                token: "synthetic-connect-token",
+                user: { userid: account },
+              }),
+            );
+          });
+          await new Promise((resolve) =>
+            server.listen(0, "127.0.0.1", resolve),
+          );
+          const runtime = carrier(f, scenario.patch, {
+            SYNC_ENABLED: "false",
+            UNISHIP_API_URL: `http://127.0.0.1:${server.address().port}`,
+          });
+          try {
+            const operation = runtime.carrier.lifecycle.connect(f.owner.id, {
+              loginIdentifier: scenario.login ?? "synthetic",
+              password: "synthetic-password",
+              displayName: "Synthetic scoped connection",
+            });
+            if (scenario.success)
+              assert.equal((await operation).status, "CONNECTED");
+            else
+              await assert.rejects(operation, {
+                code: scenario.calls
+                  ? "CANDIDATE_IDENTITY_MISMATCH"
+                  : "SERVICE_UNAVAILABLE",
+              });
+            assert.equal(requests, scenario.calls);
+            assert.equal(
+              await db.carrierConnection.count({
+                where: { userId: f.owner.id },
+              }),
+              scenario.success ? 1 : 0,
+            );
+            assert.equal(
+              await db.carrierConnectionSecret.count({
+                where: { connection: { userId: f.owner.id } },
+              }),
+              scenario.success ? 2 : 0,
+            );
+            assert.equal(
+              await db.syncConfig.count({
+                where: { connection: { userId: f.owner.id } },
+              }),
+              scenario.success ? 1 : 0,
+            );
+            assert.equal(
+              runtime.capabilities.resolve("uniship", "SHIPMENT"),
+              null,
+            );
+          } finally {
+            await runtime.onApplicationShutdown();
+            await new Promise((resolve) => server.close(resolve));
+            await db.user.delete({ where: { id: f.owner.id } });
+          }
+        },
+      );
     for (const [label, patch, environment] of [
       ["owner", { ownerUserId: randomUUID() }, {}],
       ["login", { loginIdentifier: "other-synthetic" }, {}],
       ["account", { externalAccountId: "999" }, {}],
       ["optional connection", { connectionId: randomUUID() }, {}],
+      [
+        "missing external scope with Sync OFF",
+        {},
+        {
+          SYNC_ENABLED: "false",
+          UNISHIP_API_URL: "https://kh.uniship.vn",
+          UNISHIP_LIVE_AUTHORIZED: "true",
+          UNISHIP_ACTIVATION_POLICY_JSON: "",
+        },
+      ],
       [
         "operational gate",
         {},

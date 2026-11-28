@@ -41,7 +41,7 @@ export class UnishipSyncRuntime {
       if (!this.carrier.client.operationallyAvailable())
         throw new LifecycleFailure(LifecycleCode.SERVICE_UNAVAILABLE);
       const policy = settings.activation;
-      // Legacy loopback Carrier fixtures remain independent of Sync activation; live targets never bypass the gate.
+      // target() rejects external requests without parsed activation; availability also excludes production loopback.
       if (!policy) return;
       if (
         scope.userId !== policy.ownerUserId ||
@@ -59,7 +59,14 @@ export class UnishipSyncRuntime {
       )
         throw new LifecycleFailure(LifecycleCode.CANDIDATE_IDENTITY_MISMATCH);
     };
-    this.carrier = createCarrierRuntime(url, authority, env, config, authorize);
+    this.carrier = createCarrierRuntime(
+      url,
+      authority,
+      env,
+      config,
+      authorize,
+      settings.activation !== undefined,
+    );
     const ready =
       sync.enabled &&
       settings.activation !== undefined &&

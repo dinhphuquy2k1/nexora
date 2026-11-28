@@ -148,12 +148,23 @@ Compose/release Worker receives UNISHIP_API_URL, UNISHIP_LIVE_AUTHORIZED, Carrie
 keyring/version and both JSON settings, but no Identity keys/storage/admin mount.
 The immutable live contract gate remains false. Neither JSON nor live-authorized ENV
 can bypass it, and pre-live environments should retain `UNISHIP_LIVE_AUTHORIZED=false`
-until external prerequisites close. **Stage 1 gate-opening prerequisite (`NEXORA-066` `PLAN ISSUE`)**:
-before any future change flips `UNISHIP_LIVE_CONTRACT_VERIFIED` to `true`,
-`UnishipSyncRuntime.authorize` (`if (!policy) return;`) and
-`UnishipHttpClient.operationallyAvailable()` must fail closed for non-loopback URLs when
-`UNISHIP_ACTIVATION_POLICY_JSON` is blank, so interactive connect/reconnect cannot
-dispatch live requests without account-scoped policy even when `SYNC_ENABLED=false`.
+until external prerequisites close. NEXORA-067 resolves the earlier066 empty-policy
+PLAN ISSUE: shared API/Worker construction derives internal activationConfigured
+only from successfully parsed activation policy. It defaultsfalse on direct HTTP
+client construction and joins live opt-in and the hard contract gate inside the
+same target() used by availability and actual POST/GET dispatch. No new ENV/parser
+or URL classifier exists. This proves policy presence only; existing outbound
+context still checks owner/login/optional connection/stored account, and verified
+candidate account is checked before encryption/persistence. Reconnect checks before
+claim. Interactive Carrier permission is independent of SYNC_ENABLED; SyncOFF does
+not authorize external requests or disable an otherwise permitted Carrier flow.
+
+The hard gate remains false in067 because remaining canonical live-contract,
+exposure-invalidation and explicit gate-opening evidence is not established. After
+those are satisfied in a reviewed change, first connection config uses the private
+MANUAL_ONLY account scope (no predeclared connectionId), SYNC_ENABLED=false and no
+reconciliation policy; runtime opt-in remains defaultfalse in templates. No current
+external connectivity/live verification is claimed.
 Completion-spaced HTTP permits are shared in PostgreSQL; the existing
 acquisition slots remain separate safeguards, not an official provider quota.
 

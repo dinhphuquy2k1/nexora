@@ -399,3 +399,15 @@ after durable audit. Immutable job provenance, stale cancellation, lease/pacing
 and recovery budgets are unchanged. API/Worker must share Carrier/Uniship and all
 Sync settings. Trusted Worker retains sync_jobs SELECT/INSERT/UPDATE; these scoped
 capabilities are not isolation from a fully compromised runtime/keyring/DB secret.
+
+## NEXORA-067 Carrier authorization versus Sync eligibility
+
+One shared API/Worker constructor derives activationConfigured from parsed policy,
+not SYNC_ENABLED. HTTP target validation defaults that internal optionfalse and
+requires it for external availability/dispatch in addition to opt-in and hard gate.
+Existing Carrier scope checks remain before provider/reconnect claim and after
+verification before candidate encryption. Blank-policy bypass survives only for
+operational nonproduction loopback fixtures. Sync capabilities remain absent under
+SyncOFF or missing scope; MANUAL_ONLY/AUTO, persisted intent, reconciliation and
+Worker fences/custody do not change. A permitted Carrier connection need not enable
+Sync. Hard gate remains false; only mock connection behavior is executed in tests.

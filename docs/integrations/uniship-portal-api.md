@@ -561,3 +561,20 @@ semantics. [External gates and staged runbook](../tasks/evidence/NEXORA-058/exte
 record unresolved field/claim/ID/query/timezone/source prerequisites without asking
 for already sufficient facts to be re-confirmed. Per-dispatch PostgreSQL completion
 spacing enforces the agreed Nexora safeguard; no official provider quota is claimed.
+
+## Scoped Carrier transport protection — NEXORA-067
+
+External transport additionally requires the shared runtime's successfully parsed
+Activation Policy presence; direct HTTP clients default closed. The same validated
+target gate covers availability and actual auth/verify/Shipment/warehouse dispatch.
+Presence does not substitute for existing exact account-scope checks or candidate
+identity verification before encrypted persistence. Interactive Carrier and Sync
+capability enablement are independent. Existing four routes/origin, query/mapping,
+UTC+7, budgets and tri-state semantics remain unchanged.
+
+UNISHIP_LIVE_CONTRACT_VERIFIED remains false. ADR007 owner point6 authorization is
+retained; no new evidence promotes remaining contract/exposure prerequisites or
+provides explicit gate-opening permission. No live call or actual provider/account
+verification is performed. Later owner UI connection follows a separately authorized
+reviewed gate change, private scoped MANUAL_ONLY config and SyncOFF; no manual token
+handling, SQL-created connection or predeclared initial connection UUID is needed.
