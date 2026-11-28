@@ -1636,3 +1636,31 @@ Foundation runs the expanded dev smoke without workflow or suite-budget changes.
 ## Explicit-owner no-backup policy — 2026-11-28
 
 [Project rules](../ai/PROJECT_RULES.md#explicit-owner-authorization-for-backup-and-restore) supersede previous operational backup/restore requirements. Do not introduce new backup verification, clones, drills, acceptance gates or follow-up tasks. Existing automated disposable fixture tests are retained exactly as explicitly directed by the owner; their execution/results do not impose a backup prerequisite on any real environment. No business hide/restore, token/Worker recovery or MFA recovery-code behavior changes.
+
+## NEXORA-067 scoped Carrier regressions
+
+Existing runtime-composition suite captures real HTTP-client constructor options and
+verifies `activationConfigured`, `UNISHIP_LIVE_AUTHORIZED`, and `https://kh.uniship.vn`
+across both API and Worker independently of `SYNC_ENABLED`. Actual `auth`, `verify`,
+`/client/api/transition/`, and `/client/api/chinaStores/` external paths use intercepted
+`globalThis.fetch` through existing `PostgresHttpAdmission` / `UnishipHttpAdmission`
+boundaries and require zero dispatch for missing policy, disabled opt-in, or
+unapproved origins.
+
+Existing scope hooks exercise wrong owner/login/optional connection and candidate
+identity mismatches before encryption/persistence, plus Postman-observed `HTTP 400`
+`{"non_field_errors":["Error decoding signature."]}` -> `TOKEN_REJECTED` verify normalization
+without provider-body leakage. Signed activation fixtures add both loopback and external
+(`https://kh.uniship.vn`, `SYNC_ENABLED=false`) initial-connect and manual-reconnect
+PostgreSQL persistence cases (`CarrierConnection`, `CarrierConnectionSecret`, `SyncConfig`,
+`capabilities.resolve(...) === null`) and compare denied reconnect state. Existing Worker
+security, fencing, and lifecycle suites remain required.
+
+Final activation verification (2026-11-28, `NEXORA-067` v2): executed test-first
+**RED** (`10/13` pass, `3` external-positive failures with `UNISHIP_LIVE_CONTRACT_VERIFIED=false`),
+gate-open **GREEN** (`UNISHIP_LIVE_CONTRACT_VERIFIED=true`, `61/61` targeted and `304/304`
+`@nexora/api test`), and isolated missing-policy mutation **RED -> GREEN** (temporarily dropping
+`!this.activationConfigured` caused `4/13` expected missing-policy test failures, restored
+cleanly with production diff limited to `UNISHIP_LIVE_CONTRACT_VERIFIED = true`). Mock
+`globalThis.fetch` and PostgreSQL fixtures remain mock/fixture verification and do not
+execute real network requests to `https://kh.uniship.vn`.

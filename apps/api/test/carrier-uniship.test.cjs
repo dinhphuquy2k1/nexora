@@ -459,3 +459,201 @@ test("UnishipHttpClient handles mock HTTP provider contracts, errors, timeouts, 
     await mockServer.close();
   }
 });
+
+test("external transport denies missing opt-in, missing activation, or unapproved targets with zero fetch and permits approved scoped paths through admission", async (t) => {
+  let dispatches = 0;
+  let routeHandler = null;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    dispatches++;
+    if (!routeHandler) throw Error("Unexpected external fetch");
+    return routeHandler(String(url), init);
+  });
+
+  // Matrix rows 1-4, 6-8: all non-approved / missing-gate configurations fail closed with zero fetch
+  for (const options of [
+    {
+      apiUrl: "https://kh.uniship.vn",
+      liveAuthorized: false,
+      activationConfigured: false,
+    },
+    {
+      apiUrl: "https://kh.uniship.vn",
+      liveAuthorized: false,
+      activationConfigured: true,
+    },
+    {
+      apiUrl: "https://kh.uniship.vn",
+      liveAuthorized: true,
+      activationConfigured: false,
+    },
+    {
+      apiUrl: "https://kh.uniship.vn",
+      liveAuthorized: true,
+    },
+    {
+      apiUrl: "https://other.invalid",
+      liveAuthorized: true,
+      activationConfigured: true,
+    },
+    {
+      apiUrl: "http://kh.uniship.vn",
+      liveAuthorized: true,
+      activationConfigured: true,
+    },
+    {
+      apiUrl: "https://synthetic:secret@kh.uniship.vn",
+      liveAuthorized: true,
+      activationConfigured: true,
+    },
+    { apiUrl: "http://127.0.0.1:9", isProduction: true },
+  ]) {
+    const client = new UnishipHttpClient(options);
+    assert.equal(client.operationallyAvailable(), false);
+    await assert.rejects(
+      client.authenticate({
+        username: "synthetic",
+        password: "synthetic-password",
+      }),
+      (e) => e.getStatus?.() === 503,
+    );
+    await assert.rejects(
+      client.verify("synthetic-token"),
+      (e) => e.getStatus?.() === 503,
+    );
+    for (const route of ["/client/api/transition/", "/client/api/chinaStores/"])
+      await assert.rejects(
+        client.getShipment(
+          route,
+          "synthetic-token",
+          new globalThis.AbortController().signal,
+        ),
+        { code: "SERVICE_UNAVAILABLE" },
+      );
+  }
+  assert.equal(dispatches, 0);
+
+  // Even when operational external flags pass, production/external transport requires boundary admission
+  const noAdmissionClient = new UnishipHttpClient({
+    apiUrl: "https://kh.uniship.vn",
+    liveAuthorized: true,
+    activationConfigured: true,
+  });
+  assert.equal(noAdmissionClient.operationallyAvailable(), true);
+  await assert.rejects(
+    noAdmissionClient.authenticate({
+      username: "synthetic",
+      password: "synthetic-password",
+    }),
+    { code: "SERVICE_UNAVAILABLE" },
+  );
+  assert.equal(dispatches, 0);
+
+  // Approved external case: intercept all 4 allowed routes through injected boundary admission
+  const admittedContexts = [];
+  const admissionDouble = {
+    run(context, signal, operation) {
+      admittedContexts.push(context);
+      return operation(signal ?? new globalThis.AbortController().signal);
+    },
+  };
+  const approvedClient = new UnishipHttpClient({
+    apiUrl: "https://kh.uniship.vn",
+    liveAuthorized: true,
+    activationConfigured: true,
+    admission: admissionDouble,
+  });
+  assert.equal(approvedClient.operationallyAvailable(), true);
+
+  const observed = [];
+  routeHandler = async (url, init) => {
+    observed.push({ url, method: init?.method });
+    if (
+      url === "https://kh.uniship.vn/client/api-token-auth/" &&
+      init?.method === "POST"
+    ) {
+      return new globalThis.Response(
+        JSON.stringify({
+          token: "synthetic-ext-token",
+          user: { userid: "88001" },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }
+    if (
+      url === "https://kh.uniship.vn/client/api-token-verify/" &&
+      init?.method === "POST"
+    ) {
+      return new globalThis.Response(
+        JSON.stringify({
+          token: "synthetic-ext-token",
+          user: { userid: 88001 },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }
+    if (
+      url.startsWith("https://kh.uniship.vn/client/api/transition/") &&
+      init?.method === "GET"
+    ) {
+      return new globalThis.Response(
+        JSON.stringify({ status: 200, data: [] }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      );
+    }
+    if (
+      url.startsWith("https://kh.uniship.vn/client/api/chinaStores/") &&
+      init?.method === "GET"
+    ) {
+      return new globalThis.Response(
+        JSON.stringify({ status: 200, data: [] }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      );
+    }
+    throw Error(`Unexpected route ${init?.method} ${url}`);
+  };
+
+  const ctx = {
+    ownerUserId: "00000000-0000-4000-8000-000000000001",
+    connectionId: null,
+  };
+  const auth = await approvedClient.authenticate(
+    { username: "synthetic", password: "synthetic-password" },
+    undefined,
+    ctx,
+  );
+  assert.deepEqual(auth, {
+    externalAccountId: "88001",
+    candidateToken: "synthetic-ext-token",
+  });
+  const verified = await approvedClient.verify(
+    "synthetic-ext-token",
+    undefined,
+    ctx,
+  );
+  assert.equal(verified.externalAccountId, "88001");
+  const transition = await approvedClient.getShipment(
+    "/client/api/transition/",
+    "synthetic-ext-token",
+    new globalThis.AbortController().signal,
+    undefined,
+    ctx,
+  );
+  assert.equal(JSON.parse(transition).status, 200);
+  const stores = await approvedClient.getShipment(
+    "/client/api/chinaStores/",
+    "synthetic-ext-token",
+    new globalThis.AbortController().signal,
+    undefined,
+    ctx,
+  );
+  assert.equal(JSON.parse(stores).status, 200);
+  assert.equal(admittedContexts.length, 4);
+  assert.equal(observed.length, 4);
+  assert.equal(dispatches, 4);
+});

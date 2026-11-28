@@ -114,7 +114,59 @@ test(
   },
 );
 
-test("external live remains closed even with runtime opt-in until official authorization", async () => {
+test("owner-observed verify HTTP 400 Error decoding signature. maps to sanitized TOKEN_REJECTED", async () => {
+  const {
+    UnishipAdapter,
+  } = require("../dist/carrier/infrastructure/uniship/uniship-adapter");
+  const { LifecycleCode } = require("../dist/carrier/domain/lifecycle");
+  let route = "verify-400";
+  const server = http.createServer(async (req, res) => {
+    for await (const chunk of req) void chunk;
+    if (
+      route === "auth-then-verify-400" &&
+      req.url === "/client/api-token-auth/"
+    ) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(
+        JSON.stringify({
+          token: "synthetic-candidate",
+          user: { userid: 12345 },
+        }),
+      );
+    }
+    res.writeHead(400, { "Content-Type": "application/json" });
+    return res.end(
+      JSON.stringify({ non_field_errors: ["Error decoding signature."] }),
+    );
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const client = new UnishipHttpClient({
+    apiUrl: `http://127.0.0.1:${server.address().port}`,
+  });
+  try {
+    await assert.rejects(client.verify("synthetic-invalid-token"), (err) => {
+      assert.equal(err.getStatus?.(), 401);
+      assert.equal(err.getResponse?.().code, "TOKEN_REJECTED");
+      assert.equal(
+        JSON.stringify(err.getResponse?.()).includes(
+          "Error decoding signature",
+        ),
+        false,
+      );
+      return true;
+    });
+    route = "auth-then-verify-400";
+    const adapter = new UnishipAdapter(client, { run: (op) => op() });
+    await assert.rejects(adapter.acquire("synthetic", "synthetic-password"), {
+      code: LifecycleCode.TOKEN_REJECTED,
+    });
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("external transport fails closed without approved origin, live opt-in, or parsed activation policy", async () => {
   const originalFetch = globalThis.fetch;
   let attempted = 0;
   globalThis.fetch = async () => {
@@ -123,6 +175,7 @@ test("external live remains closed even with runtime opt-in until official autho
   };
   try {
     for (const apiUrl of [
+      "https://kh.uniship.vn",
       "https://provider.invalid",
       "https://user:secret@provider.invalid",
       "https://provider.invalid/?token=synthetic",

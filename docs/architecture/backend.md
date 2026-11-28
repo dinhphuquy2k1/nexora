@@ -295,3 +295,18 @@ existing locks, allowing ERROR/REAUTH_REQUIRED. Recovery claim retains its separ
 restrictions. No fresh-snapshot retry masks a changed/deleted/disabled connection.
 Existing outbound revalidation, identity check, atomic completion and failure audit
 remain. No HTTP/crypto/wait occurs under locks; application imports no infrastructure.
+
+## NEXORA-067 external Carrier scope presence
+
+Shared `UnishipSyncRuntime` parses activation once and passes only its presence boolean
+(`activationConfigured`) to `createCarrierRuntime`/`UnishipHttpClient` (default `false`).
+Existing `target()` requires that flag plus runtime opt-in (`UNISHIP_LIVE_AUTHORIZED`) and
+`UNISHIP_LIVE_CONTRACT_VERIFIED` (`true` per the 2026-11-28 ADR-007 amendment) for external
+`https://kh.uniship.vn` traffic; operational availability and actual dispatch share validation.
+After availability, existing context/verified hooks retain owner/login/optional
+connection/snapshot/candidate identity checks before provider, reconnect claim and
+candidate encryption respectively. No parser/URL/lifecycle duplicate or Sync flag
+substitute exists, and `400/401` on `POST /client/api-token-verify/` continues mapping to
+sanitized `TOKEN_REJECTED`. Nonproduction loopback stays compatible; production loopback
+composition remains unavailable. No API/DTO/SDK/schema/grant, Worker authority, or
+rate/backoff rules change.

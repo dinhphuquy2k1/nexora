@@ -322,7 +322,7 @@ External authorization/identity/host/TLS/NTP/backup/custody, first authorized ma
 FULL, live parcel/cross-page/snapshot/claim/OldStatus/monetary/service observations,
 three-parcel timezone comparison, reconciliation thresholds/baseline and AUTO
 acceptance move to named PLANNED
-[NEXORA-066](../active/NEXORA-066-uniship-external-controlled-acceptance.md).
+[NEXORA-066](../completed/NEXORA-066-uniship-external-controlled-acceptance.md).
 They remain NOT RUN, never PASS. Existing canonical matrix/runbook remains authority.
 No open technical PLAN ISSUE is hidden; new four-variable Identity/Origin/Host
 configuration work is owned by065, not retroactively claimed as058 acceptance.

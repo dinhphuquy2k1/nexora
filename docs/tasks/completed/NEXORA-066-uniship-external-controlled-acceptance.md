@@ -1,8 +1,8 @@
 # NEXORA-066 — Uniship external controlled acceptance
 
-Status: VERIFICATION PENDING
-Capability: PLANNED
-Verification: PARTIALLY VERIFIED
+Status: COMPLETED
+Capability: IMPLEMENTED
+Verification: VERIFIED
 
 ## Origin and current scope
 
@@ -300,3 +300,20 @@ not actual owner deployment/MFA or a fix for the prior unknown dev-smoke failure
 | Claim                                 | Evidence                                                                                                                                                        | Date       | Result |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
 | Policy and scope consistency reviewed | Global active-doc search; existing15 evidence rows and v1–v3 bytes unchanged; no app/DB/scripts/Compose/workflow diff; independent read-only review no P1/P2/P3 | 2026-11-28 | PASS   |
+
+## Closure by NEXORA-067 — 2026-11-28
+
+PR66 merged37981a142de23a443ae14f4f7ac677bffbc22757 as
+f06db70e9dae50d95d724ce03f03a593315876fa at2026-11-28T10:27:57Z.
+Pre-live documentation/CI-harness deliverable is complete, not live activation.
+All prior statements/checklists/results above are historical. Existing external
+owner/runtime/data acceptance transfers to PLANNED
+[068](../active/NEXORA-068-uniship-owner-runtime-and-data-acceptance.md);
+public host prerequisites stay[046](../active/NEXORA-046-production-https-acceptance.md).
+The existing empty-policy issue belongs to[067](../active/NEXORA-067-controlled-uniship-live-activation.md).
+No external acceptance is marked PASS. No backup requirement or task is transferred.
+No old FAIL row or immutable snapshot is changed.
+
+| Claim                                            | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Date       | Result |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| Merged pre-live readiness and policy deliverable | PR66 mergef06db70 on2026-11-28T10:27:57Z; exact source37981a1; Preflight46133226944/job140942794014 attempt1 PASS; Foundation46133226931/job140942793943 attempt1 PASS2026-11-28T10:02:05Z–10:22:54Z, actual checkout451ea696ff1642d46aa1ff16f91eb7d5a5bce160, steps4–10 and cleanup PASS. Raw checkout/MFA/replay/restart/Origin/Host/HMR receipt in PR66; independent review no P1/P2/P3. Optional46133226907 selector only, stress/E3 SKIPPED. MainPreflight46135305493 PASS; mainFoundation46135305465 not yet complete at closure inspection, no main PASS inferred | 2026-11-28 | PASS   |
