@@ -1,17 +1,9 @@
 import { readdirSync, readFileSync, readlinkSync } from "node:fs";
-const shared = [
-  "CARRIER_KEYRING_JSON",
-  "CARRIER_ACTIVE_KEY_VERSION",
-  "UNISHIP_API_URL",
-  "UNISHIP_LIVE_AUTHORIZED",
-  "UNISHIP_ACTIVATION_POLICY_JSON",
-  "UNISHIP_RECONCILIATION_POLICY_JSON",
-  "SYNC_ENABLED",
-  "SYNC_LEASE_SECONDS",
-  "SYNC_POLL_MS",
-  "SYNC_MAX_ATTEMPTS",
-  "SYNC_RESOLVED_RETENTION_DAYS",
-];
+import {
+  SHARED_RUNTIME_ENV,
+  API_DEV_PASSTHROUGH_ENV,
+  IDENTITY_ENV,
+} from "./helpers/runtime-environment-contract.mjs";
 /** Read only the real server/worker process, never the exec shell or watch supervisor. */
 export function verifyDevelopmentEnvironment(kind, expected = process.env) {
   if (!["api", "sync-worker"].includes(kind)) throw Error("DEV_ENV_PROBE_KIND");
@@ -80,29 +72,33 @@ export function verifyDevelopmentEnvironment(kind, expected = process.env) {
         return [entry.slice(0, offset), entry.slice(offset + 1)];
       }),
   );
-  const keys =
-    kind === "api"
-      ? [...shared, "TSC_WATCHFILE", "TSC_WATCHDIRECTORY"]
-      : shared;
+  const keys = kind === "api" ? API_DEV_PASSTHROUGH_ENV : SHARED_RUNTIME_ENV;
+  const mismatched = keys.filter(
+    (key) => expected[key] === undefined || env[key] !== expected[key],
+  );
+  if (mismatched.length)
+    throw Error("DEV_ENV_PROPAGATION_MISMATCH:" + mismatched.join(","));
   if (
-    !keys.every(
-      (key) => expected[key] !== undefined && env[key] === expected[key],
-    )
+    kind === "sync-worker" &&
+    IDENTITY_ENV.some((key) => env[key] !== undefined)
   )
-    throw Error("DEV_ENV_PROPAGATION_MISMATCH");
-  if (kind === "sync-worker") {
-    if (
-      ["IDENTITY_KEYRING_JSON", "IDENTITY_ACTIVE_KEY_VERSION"].some(
-        (key) => env[key] !== undefined,
-      )
-    )
-      throw Error("DEV_ENV_WORKER_IDENTITY_EXPOSURE");
-    if (new URL(env.DATABASE_URL).username !== "nexora_sync")
-      throw Error("DEV_ENV_WORKER_ROLE");
+    throw Error("DEV_ENV_WORKER_IDENTITY_EXPOSURE");
+  if (kind === "api" && IDENTITY_ENV.some((key) => !env[key]))
+    throw Error("DEV_ENV_API_IDENTITY_MISSING");
+  let roleMatches = false;
+  try {
+    roleMatches =
+      new URL(env.DATABASE_URL).username ===
+      (kind === "api" ? "nexora_app" : "nexora_sync");
+  } catch {
+    /* Never include URL in diagnostics. */
   }
+  if (!roleMatches) throw Error("DEV_ENV_DATABASE_ROLE");
   return {
     actualProcess: true,
     runtimeEnvironmentEqual: true,
     workerIdentityAbsent: kind === "sync-worker",
+    apiIdentityPresent: kind === "api",
+    databaseRoleMatches: true,
   };
 }

@@ -741,7 +741,7 @@ Historical failures, local NOT RUN limitations and frozen snapshots remain intac
 Original intermittent HTTPS/MFA root cause remains UNKNOWN, not repaired by the
 Origin diagnostic correction. Transfer its operational follow-up/recurrence
 condition and remaining real-environment custody/activation gates to
-[NEXORA-058](../active/NEXORA-058-uniship-controlled-activation.md). Resume causal
+[NEXORA-058](NEXORA-058-uniship-controlled-activation.md). Resume causal
 investigation only on actual recurrence with bounded diagnostics or a separately
 planned reproducer with a concrete hypothesis/discriminant; no blind retries.
 Adapter field semantics and claim captures remain

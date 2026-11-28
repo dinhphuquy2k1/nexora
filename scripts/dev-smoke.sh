@@ -1,6 +1,7 @@
 #!/bin/sh
 export MSYS_NO_PATHCONV=1
 set -eu
+umask 077
 cd "$(dirname "$0")/.."
 project="nexora-dev-smoke-$$"
 export COMPOSE_PROJECT_NAME="$project"
@@ -8,10 +9,38 @@ work=$(mktemp -d)
 cp packages/shared/src/index.ts "$work/shared.ts"
 cp "apps/web/app/(workspace)/page.tsx" "$work/page.tsx"
 cp package.json "$work/package.json"
+compose(){
+ if [ -n "${NEXORA_COMPOSE_OVERRIDE:-}" ]; then
+  docker compose -f compose.yml -f compose.dev.yml -f "$NEXORA_COMPOSE_OVERRIDE" "$@"
+ else
+  docker compose -f compose.yml -f compose.dev.yml "$@"
+ fi
+}
 cleanup(){
-  status=$?; if [ "$status" -ne 0 ]; then docker compose -f compose.yml -f compose.dev.yml logs --no-color --tail 60 >&2; fi;  cp "$work/shared.ts" packages/shared/src/index.ts; cp "$work/page.tsx" "apps/web/app/(workspace)/page.tsx"; cp "$work/package.json" package.json; docker compose -f compose.yml -f compose.dev.yml down -v --remove-orphans >/dev/null; rm -rf "$work"; }
-trap cleanup EXIT HUP INT TERM
-compose(){ docker compose -f compose.yml -f compose.dev.yml "$@"; }
+  status=$?
+  trap - EXIT HUP INT TERM
+  if [ "$status" -ne 0 ]; then
+    echo 'DEV_SMOKE_FAILED (private fixture and raw service logs withheld)' >&2
+    compose ps -a --format '{{.Service}} {{.State}} {{.Health}}' >&2 || true
+  fi
+  cp "$work/shared.ts" packages/shared/src/index.ts
+  cp "$work/page.tsx" "apps/web/app/(workspace)/page.tsx"
+  cp "$work/package.json" package.json
+  compose down -v --remove-orphans >/dev/null || status=1
+  rm -rf "$work"
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+# Reuse the owned loopback allocation convention; never stop another listener.
+dev_port=$(node --input-type=module -e 'import {createServer} from "node:net";const server=createServer();server.on("error",()=>process.exitCode=1);server.listen(0,"127.0.0.1",()=>{console.log(server.address().port);server.close();});')
+export WEB_PORT="127.0.0.1:$dev_port" ALLOWED_ORIGINS=
+export ALLOWED_HOSTS=localhost,127.0.0.1,nexora-dev.fixture
+dev_origin="http://127.0.0.1:$dev_port"
+IDENTITY_KEYRING_JSON=$(node -e 'console.log(JSON.stringify({1:require("node:crypto").randomBytes(32).toString("base64")}))')
+export IDENTITY_KEYRING_JSON IDENTITY_ACTIVE_KEY_VERSION=1
 # Synthetic runtime configuration only; live authorization remains closed.
 export CARRIER_KEYRING_JSON='{"1":"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="}'
 export CARRIER_ACTIVE_KEY_VERSION=1
@@ -28,27 +57,43 @@ compose run --rm --no-deps -T dependencies dependencies
 compose up -d --no-build --wait --wait-timeout 180
 # Inspect actual Turbo-launched HTTP listener and worker child, not container ENV.
 # Reuse the service owner mapping: container root cannot ptrace another UID.
+probe_runtime(){
 for runtime_service in api sync-worker; do
   compose exec -T "$runtime_service" sh /workspace/scripts/dev-entrypoint.sh node --input-type=module -e 'import {verifyDevelopmentEnvironment} from "./scripts/dev-runtime-environment-probe.mjs"; console.log(JSON.stringify(verifyDevelopmentEnvironment(process.argv[1])))' "$runtime_service"
 done
+ }
+probe_runtime
 printf '%s' 'DevSmokePass123!' | compose exec -T api sh /workspace/scripts/api-entrypoint.sh node scripts/user-create.mjs --username dev_smoke_user --password-stdin
 # Explicit new security assertion: trusted provisioning alone never enables ADMIN login.
-compose exec -T web node <<'JS'
-(async()=>{const r=await fetch('http://127.0.0.1:3000/api/auth/login',{method:'POST',headers:{'content-type':'application/json',origin:'http://127.0.0.1:3001'},body:JSON.stringify({username:'dev_smoke_user',password:'DevSmokePass123!'})});const b=await r.json();if(r.status!==403||b.code!=='MFA_ENROLLMENT_REQUIRED'||r.headers.get('set-cookie'))throw Error('ADMIN enrollment gate failed');console.log('Dev unenrolled ADMIN password-only denial PASS');})().catch(()=>process.exitCode=1);
+compose exec -T -e DEV_SMOKE_ORIGIN="$dev_origin" web node <<'JS'
+(async()=>{const r=await fetch('http://127.0.0.1:3000/api/auth/login',{method:'POST',headers:{'content-type':'application/json',origin:process.env.DEV_SMOKE_ORIGIN},body:JSON.stringify({username:'dev_smoke_user',password:'DevSmokePass123!'})});const b=await r.json();if(r.status!==403||b.code!=='MFA_ENROLLMENT_REQUIRED'||r.headers.get('set-cookie'))throw Error('ADMIN enrollment gate failed');console.log('Dev unenrolled ADMIN password-only denial PASS');})().catch(()=>process.exitCode=1);
 JS
-# This owned disposable fixture tests unchanged OPERATOR HMR; real ADMIN MFA
-# enrollment/browser/restart is exercised separately by runtime-smoke.sh.
+# Keep the existing unenrolled fixture separate from actual enrolled ADMIN coverage.
+printf '%s' 'BrowserTestPass123!' | compose exec -T api sh /workspace/scripts/dev-entrypoint.sh sh /workspace/scripts/api-entrypoint.sh node apps/api/dist/cli/user-create.js --username browser_user --password-stdin
+python3 scripts/mfa-enrollment-tty-smoke.py --development "$work/fixture.json"
+node scripts/dev-mfa-http-smoke.mjs "$work/fixture.json" --origin-derived
+node scripts/dev-mfa-http-smoke.mjs "$work/fixture.json"
+compose restart api
+compose up -d --no-build --wait --wait-timeout 180 api
+probe_runtime
+node scripts/dev-mfa-http-smoke.mjs "$work/fixture.json" --after-restart
+# Compose ENV changes require recreation; a process restart alone is insufficient.
+export ALLOWED_ORIGINS="$dev_origin"
+compose up -d --no-build --force-recreate --wait --wait-timeout 180 api
+probe_runtime
+node scripts/dev-mfa-http-smoke.mjs "$work/fixture.json" --origin-explicit
+# Preserve the original OPERATOR HMR/workspace/drift/data fixture and assertions.
 compose exec -T postgres psql -U nexora -d nexora -v ON_ERROR_STOP=1 -c "UPDATE users SET role='OPERATOR' WHERE username='dev_smoke_user';" >/dev/null
 
 compose run --rm --no-deps -T api node -e "const f=require('fs');const p='packages/shared/src/index.ts';f.writeFileSync(p,f.readFileSync(p,'utf8').replace('Nexora','Nexora workspace propagation'));const q='apps/web/app/(workspace)/page.tsx';f.writeFileSync(q,f.readFileSync(q,'utf8').replace('Quản lý vận đơn,','HMR source verified,'));"
-compose exec -T web node <<'JS'
+compose exec -T -e DEV_SMOKE_ORIGIN="$dev_origin" web node <<'JS'
 (async()=>{
   let cookie = '';
   for(let i=0;i<30;i++){
     try{
       const lr=await fetch('http://127.0.0.1:3000/api/auth/login',{
         method:'POST',
-        headers:{'content-type':'application/json',origin:'http://127.0.0.1:3001'},
+        headers:{'content-type':'application/json',origin:process.env.DEV_SMOKE_ORIGIN},
         body:JSON.stringify({username:'dev_smoke_user',password:'DevSmokePass123!'})
       });
       if(lr.ok){

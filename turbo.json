@@ -24,6 +24,8 @@
       "cache": false,
       "persistent": true,
       "passThroughEnv": [
+        "IDENTITY_KEYRING_JSON",
+        "IDENTITY_ACTIVE_KEY_VERSION",
         "CARRIER_KEYRING_JSON",
         "CARRIER_ACTIVE_KEY_VERSION",
         "UNISHIP_API_URL",
@@ -35,6 +37,8 @@
         "SYNC_POLL_MS",
         "SYNC_MAX_ATTEMPTS",
         "SYNC_RESOLVED_RETENTION_DAYS",
+        "WEB_PORT",
+        "ALLOWED_ORIGINS",
         "TSC_WATCHFILE",
         "TSC_WATCHDIRECTORY"
       ]

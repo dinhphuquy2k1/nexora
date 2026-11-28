@@ -526,7 +526,7 @@ No GitHub review objects were returned; merge proves the owner decision only.
 
 External prerequisites are not promoted to PASS: [NEXORA-057](NEXORA-057-uniship-http-adapter.md)
 PLANNED owns fixture-backed field/claim semantics and independent adapter/service
-contract review; [NEXORA-058](../active/NEXORA-058-uniship-controlled-activation.md)
+contract review; [NEXORA-058](NEXORA-058-uniship-controlled-activation.md)
 PLANNED owns UNISHIP_LIVE_ACTIVATION and remaining operational gates.
 [NEXORA-047](../active/NEXORA-047-frontend-reference-acceptance.md) PLANNED owns
 manual visual acceptance and RETAIL_SERVICE_CATALOG_PRESENTATION. The optional

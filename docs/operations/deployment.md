@@ -131,3 +131,12 @@ older callers are incompatible with21. Roll back only to matching compatible
 binaries/configuration; do not restore the broad loader or start an old binary
 against21. Restore approved backups to a separate validated target if needed;
 never reset user volumes. Release image tags remain unpublished templates.
+
+### Runtime ENV consistency — NEXORA-065
+
+Identity custody remains API/trusted CLI, Carrier custody API/Worker. For LOCAL
+Host/Origin/key configuration changes, retain all existing data/DB credentials/key
+versions and recreate affected API/Web containers; restart alone retains old ENV.
+Host-native Turbo requires secure parent ENV and process restart after task config
+changes. No migration/grant/MFA reset, public profile gate or external production
+acceptance change belongs to this environment fix.

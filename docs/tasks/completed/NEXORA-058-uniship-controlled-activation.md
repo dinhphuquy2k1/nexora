@@ -1,8 +1,8 @@
 # NEXORA-058 — Uniship controlled activation
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Origin
 
@@ -303,3 +303,34 @@ This failure remains FAIL; corrected final source requires fresh hosted CI.
 | First candidate Preflight/Sync       | Source4013e52, merge082ec63, runs46014406078/46014405914, attempt1                                             | 2026-11-27 | PASS   |
 | First candidate Foundation dev probe | Run46014406009, attempt1, exact new probe diagnostic and controlled owner-UID reproduction retained            | 2026-11-27 | FAIL   |
 | Final scoped negative coverage       | Original token scope negatives restored with positive precondition; signed runtime64/64,0skip after correction | 2026-11-27 | PASS   |
+
+## Closure by NEXORA-065 — 2026-11-27
+
+PR64 merged2026-11-27T15:07:40Z: merge
+1cd46d191ab5373703b4245baad33d03a0b33112, source
+49dc3d2a0f3474a5ee5aeea1328d0abda38239e2. Source hosted Preflight46018303922/
+job140571044246, Sync46018303745/job140571044096, Foundation46018303750/
+job140571043867 PASS attempt1 on actual merge049121c932f71ee09c33ca522e71e7fae362b77f.
+
+Merged-main Preflight46022092706/job140584017315 and Foundation46022092668/
+job140584017010 PASS attempt1. Downloaded Foundation checkout contains exact
+1cd46d191ab5373703b4245baad33d03a0b33112; canonical steps4–10 PASS, including
+actual API/Worker dev probes. Sync Targeted has no main-push trigger; source receipt
+above is its executed evidence, not a fabricated merged-main run.
+
+External authorization/identity/host/TLS/NTP/backup/custody, first authorized manual
+FULL, live parcel/cross-page/snapshot/claim/OldStatus/monetary/service observations,
+three-parcel timezone comparison, reconciliation thresholds/baseline and AUTO
+acceptance move to named PLANNED
+[NEXORA-066](../active/NEXORA-066-uniship-external-controlled-acceptance.md).
+They remain NOT RUN, never PASS. Existing canonical matrix/runbook remains authority.
+No open technical PLAN ISSUE is hidden; new four-variable Identity/Origin/Host
+configuration work is owned by065, not retroactively claimed as058 acceptance.
+All historical FAIL rows, decisions and immutable snapshots above remain unchanged;
+earlier pending-status language is historical execution chronology. No live request,
+production activation or gate opening occurred.
+
+| Claim                             | Evidence                                                                                                                                                                                                                            | Date       | Result |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Merged technical task closure     | PR64 source49dc3d2, merge1cd46d191ab5373703b4245baad33d03a0b33112, merge date2026-11-27; later main Preflight46022092706/job140584017315 and Foundation46022092668/job140584017010, attempt1, checkout exact1cd46d1, steps4–10 PASS | 2026-11-27 | PASS   |
+| Unverified acceptance transferred | Named PLANNED NEXORA-066 retains canonical058 matrix and046 production host prerequisites; no external acceptance marked PASS                                                                                                       | 2026-11-27 | PASS   |

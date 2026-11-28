@@ -193,9 +193,26 @@ Use pinned Node24.19.0/pnpm10.34.6 and frozen dependencies. `pnpm test` discover
 
 Host-native Turbo does not load .env automatically. Supply approved configuration
 securely in the parent environment before `pnpm dev`; strict task-specific API dev
-pass-through retains only the required Carrier/Uniship/Sync and watch variables.
+pass-through retains the17 required Identity/Carrier/Uniship/Sync/Origin/watch
+variables described in [Configuration](configuration.md).
 Shared/database dev receive watch variables only. No loose mode or direct Node
 bypass is needed. Keep live authorization false and activation/reconciliation blank
 unless separately authorized. Recreate Compose services/restart host processes on
 configuration changes; retain PostgreSQL credentials/data and every encryption key
 version. Identity/MFA setup and CLI custody are unchanged.
+
+NEXORA-065 verifies enrolled ADMIN TOTP through the actual Turbo-launched API and
+Web proxy, including replay and restart. Development uses the same trusted CLI
+provision/enroll contract as standard; never repair a missing ENV by resetting MFA
+or changing existing key bytes. Restart the API dev task after Turbo changes and
+recreate API/Web containers for changed Compose ENV. A restart retains the
+container's previous ENV. Keep both independent Identity/Carrier keyrings and DB
+credentials unchanged across rebuild/recreate.
+
+For LOCAL custom browser port/Host, use an approved free loopback WEB_PORT such as
+127.0.0.1:3101 and ALLOWED_HOSTS=localhost,127.0.0.1,nexora-dev.fixture. Blank
+ALLOWED_ORIGINS derives the two loopback origins at3101; an explicit
+http://127.0.0.1:3101 replaces defaults and excludes localhost unless listed.
+Host-native Turbo requires these values in its parent environment, not merely an
+untracked .env file. These examples do not configure PUBLIC_HTTPS or production
+exposure; public required Host/Origin/custody gates remain separate.
