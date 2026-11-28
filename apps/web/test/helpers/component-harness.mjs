@@ -4,7 +4,7 @@ import ts from "typescript";
 import { setTimeout, clearTimeout } from "node:timers";
 // Execute the actual component closures with deterministic hooks and controlled I/O.
 // Child markup is opaque here; actual browser geometry remains in the CDP suite.
-export function componentHarness(file, dependencies) {
+export function componentHarness(file, dependencies, exportName) {
   const slots = [],
     effects = [];
   let cursor = 0,
@@ -94,7 +94,11 @@ export function componentHarness(file, dependencies) {
     },
     render(props) {
       cursor = 0;
-      const result = Object.values(module.exports)[0](props);
+      const result = (
+        exportName
+          ? module.exports[exportName]
+          : Object.values(module.exports)[0]
+      )(props);
       for (const effect of effects.splice(0)) effect();
       return result;
     },

@@ -432,6 +432,25 @@ their draft-only / fixture presentation unchanged, and single-flight guards,
 raw password preservation (cleared on success or `401`), and safe
 `SyncApiError` handling without leaking raw provider payloads remain enforced.
 
+PR68 review v2 separates a confirmed Reconnect from a subsequent Rename failure.
+CarrierPartialEditError carries only confirmed-reconnect, rejected/unknown rename
+and session-expiry state, never credentials or provider response/cause. The Drawer
+clears password immediately, preserves the requested name and stays open. It uses
+an optional owner-scoped connection-list read through Live/Page to reconcile the
+current name; Page also updates its selected row so retries compare the fresh
+baseline. A matching name blocks unnecessary Rename; a differing name permits
+user-driven retry without repeating Reconnect. A deliberately entered new password
+still requests Reconnect after settlement.
+
+Transport/malformed/5xx Rename outcomes remain unknown; explicit4xx is a rejection.
+The Reconnect wrapper requires the expected connection ID and CONNECTED status;
+the Rename wrapper validates returned connection ID/name before confirming success.
+Failed/missing reconciliation retains a write block and offers GET-only retry.
+No mutation is retried automatically. Abort/generation and unmount fences protect
+read settlement; synchronous flight and centralized workspace401 handling remain.
+Confirmed mutation refresh is independent from the read-reconciliation outcome.
+No backend/SDK/session/Sync contract or callback-less fixture presentation changes.
+
 ## Frontend asset and stylesheet ownership
 
 `apps/web/app/` owns App Router routes and layouts. Root Layout imports

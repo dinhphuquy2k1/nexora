@@ -62,20 +62,38 @@ export function createSyncApi(client = createWorkspaceApiClient()) {
     connect: async (body: ConnectCarrierInput) =>
       result(await client.POST("/api/carrier-connections", { body }))
         .connection,
-    reconnect: async (id: string, password: string) =>
-      result(
+    reconnect: async (id: string, password: string) => {
+      const connection = result(
         await client.POST("/api/carrier-connections/{id}/reconnect", {
           params: { path: { id } },
           body: { password },
         }),
-      ).connection,
-    rename: async (id: string, displayName: string) =>
-      result(
+      ).connection;
+      // Only the expected successful connection can confirm this credential write.
+      if (
+        !connection ||
+        connection.id !== id ||
+        connection.status !== "CONNECTED"
+      )
+        throw new SyncApiError(500);
+      return connection;
+    },
+    rename: async (id: string, displayName: string) => {
+      const connection = result(
         await client.PATCH("/api/carrier-connections/{id}", {
           params: { path: { id } },
           body: { displayName },
         }),
-      ).connection,
+      ).connection;
+      // A malformed success body cannot confirm the requested rename committed.
+      if (
+        !connection ||
+        connection.id !== id ||
+        connection.displayName !== displayName
+      )
+        throw new SyncApiError(500);
+      return connection;
+    },
     remove: async (id: string) =>
       result(
         await client.DELETE("/api/carrier-connections/{id}", {

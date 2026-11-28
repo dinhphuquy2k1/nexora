@@ -86,6 +86,7 @@ export function CarrierConnectionsPage({
   onConnect,
   onEditConnection,
   onDisconnect,
+  onReadConnection,
 }: {
   liveSync?: boolean;
   refreshing?: boolean;
@@ -99,6 +100,10 @@ export function CarrierConnectionsPage({
     draft: import("./types.ts").ConnectionDraft,
   ) => Promise<void>;
   onDisconnect?: (row: CarrierConnectionRow) => Promise<void>;
+  onReadConnection?: (
+    row: CarrierConnectionRow,
+    signal: AbortSignal,
+  ) => Promise<CarrierConnectionRow | null>;
 }) {
   const rows = records ?? [],
     known = records !== undefined;
@@ -251,6 +256,21 @@ export function CarrierConnectionsPage({
         <CarrierConnectionDrawer
           row={surface.row}
           providers={previewProviders}
+          onReconcile={
+            onReadConnection
+              ? async (signal) => {
+                  const current = await onReadConnection(surface.row, signal);
+                  if (signal.aborted) return null;
+                  if (!current || current.id !== surface.row.id) return null;
+                  setSurface((previous) =>
+                    previous?.type === "edit" && previous.row.id === current.id
+                      ? { ...previous, row: current }
+                      : previous,
+                  );
+                  return current.displayName;
+                }
+              : undefined
+          }
           onSubmit={
             onEditConnection
               ? (draft) => onEditConnection(surface.row, draft)

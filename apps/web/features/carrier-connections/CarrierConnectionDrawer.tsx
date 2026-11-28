@@ -1,5 +1,12 @@
 "use client";
-import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { Overlay, Button, TextInput } from "@nexora/ui";
 import {
   X,
@@ -21,6 +28,7 @@ import {
   validateConnectionDraft,
   validateEditConnectionDraft,
 } from "./presentation.ts";
+import { CarrierPartialEditError } from "./edit-error.ts";
 import { SyncApiError } from "./sync-api.ts";
 import { CarrierLogo, ConnectionBadge } from "./CarrierConnectionList.tsx";
 import styles from "./carrier-connections.module.css";
@@ -91,14 +99,22 @@ export function CarrierConnectionDrawer({
   providers,
   onClose,
   onSubmit,
+  onReconcile,
 }: {
   row?: CarrierConnectionRow;
   providers?: readonly CarrierProviderPresentation[];
   onClose: () => void;
   onSubmit?: (draft: ConnectionDraft) => Promise<void>;
+  onReconcile?: (signal: AbortSignal) => Promise<string | null>;
 }) {
   const id = useId(),
     flight = useRef(false),
+    mounted = useRef(true),
+    readGeneration = useRef(0),
+    readAbort = useRef<AbortController | null>(null),
+    [confirmedName, setConfirmedName] = useState(row?.displayName ?? ""),
+    [pendingName, setPendingName] = useState<string | null>(null),
+    [sessionDenied, setSessionDenied] = useState(false),
     [draft, setDraft] = useState<ConnectionDraft>({
       displayName: row?.displayName ?? "",
       loginIdentifier: row?.loginIdentifier ?? "",
@@ -109,17 +125,26 @@ export function CarrierConnectionDrawer({
     >({}),
     [busy, setBusy] = useState(false),
     [submitError, setSubmitError] = useState("");
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      readGeneration.current++;
+      readAbort.current?.abort();
+    };
+  }, []);
   const isLive = Boolean(onSubmit),
     errors = row
       ? validateEditConnectionDraft(draft)
       : validateConnectionDraft(draft),
     dirty =
       !row ||
-      draft.displayName.trim() !== row.displayName ||
+      draft.displayName.trim() !== confirmedName ||
       draft.password.length > 0,
     canSubmit =
       isLive &&
       !busy &&
+      pendingName === null &&
       Object.keys(errors).length === 0 &&
       dirty &&
       (!row || row.provider === "uniship");
@@ -128,9 +153,61 @@ export function CarrierConnectionDrawer({
     : "Kết nối tài khoản hãng vận chuyển mới";
   const choices = providers ?? [UNISHIP];
   const formId = id + "-form";
+  async function reconcileName(
+    expected: string,
+    outcome: "rejected" | "unknown",
+  ) {
+    const version = ++readGeneration.current;
+    readAbort.current?.abort();
+    const abort = new AbortController();
+    readAbort.current = abort;
+    setPendingName(expected);
+    try {
+      const current = await onReconcile?.(abort.signal);
+      if (abort.signal.aborted || version !== readGeneration.current) return;
+      if (typeof current !== "string")
+        throw new Error("Unavailable connection read");
+      setConfirmedName(current);
+      setPendingName(null);
+      if (current === expected) {
+        setSubmitError(
+          "Mật khẩu kết nối đã được cập nhật. Lần đọc mới nhất xác nhận tên gợi nhớ đã được lưu.",
+        );
+      } else if (outcome === "rejected") {
+        setSubmitError(
+          "Mật khẩu kết nối đã được cập nhật, nhưng yêu cầu đổi tên bị từ chối. Bạn có thể thử lưu tên gợi nhớ.",
+        );
+      } else {
+        setSubmitError(
+          "Mật khẩu kết nối đã được cập nhật. Lần đọc mới nhất chưa thấy tên mong muốn; bạn có thể thử lưu tên gợi nhớ.",
+        );
+      }
+    } catch (error) {
+      if (abort.signal.aborted || version !== readGeneration.current) return;
+      if (error instanceof SyncApiError && error.status === 401) {
+        setSessionDenied(true);
+        setSubmitError(error.message);
+      } else {
+        setSubmitError(
+          "Mật khẩu kết nối đã được cập nhật, nhưng chưa xác định được kết quả lưu tên. Kiểm tra lại tên trước khi lưu tiếp.",
+        );
+      }
+    }
+  }
+  async function retryNameRead() {
+    if (flight.current || pendingName === null || sessionDenied) return;
+    flight.current = true;
+    setBusy(true);
+    try {
+      await reconcileName(pendingName, "unknown");
+    } finally {
+      flight.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!onSubmit || flight.current) return;
+    if (!onSubmit || flight.current || pendingName !== null) return;
     setTouched({
       displayName: true,
       loginIdentifier: !row,
@@ -151,9 +228,23 @@ export function CarrierConnectionDrawer({
         loginIdentifier: draft.loginIdentifier.trim(),
         password: draft.password,
       });
+      if (!mounted.current) return;
       setDraft((d) => ({ ...d, password: "" }));
       onClose();
     } catch (error) {
+      if (!mounted.current) return;
+      if (error instanceof CarrierPartialEditError) {
+        setDraft((d) => ({ ...d, password: "" }));
+        setSubmitError(error.message);
+        if (error.sessionExpired) {
+          setSessionDenied(true);
+          setPendingName(draft.displayName.trim());
+          setSubmitError("Phiên đăng nhập đã hết hạn.");
+        } else {
+          await reconcileName(draft.displayName.trim(), error.renameOutcome);
+        }
+        return;
+      }
       if (error instanceof SyncApiError && error.status === 401)
         setDraft((d) => ({ ...d, password: "" }));
       setSubmitError(
@@ -163,7 +254,7 @@ export function CarrierConnectionDrawer({
       );
     } finally {
       flight.current = false;
-      setBusy(false);
+      if (mounted.current) setBusy(false);
     }
   }
   const submitLabel = busy
@@ -210,6 +301,16 @@ export function CarrierConnectionDrawer({
               <AlertCircle size={14} />
               <span>{submitError}</span>
             </p>
+          )}
+          {pendingName !== null && onReconcile && !sessionDenied && (
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={busy}
+              onClick={retryNameRead}
+            >
+              Kiểm tra lại tên
+            </Button>
           )}
           <section>
             <label>
@@ -284,7 +385,9 @@ export function CarrierConnectionDrawer({
               ] as const
             ).map((f) => {
               const fieldDisabled =
-                busy || (f.key === "loginIdentifier" && Boolean(row));
+                busy ||
+                pendingName !== null ||
+                (f.key === "loginIdentifier" && Boolean(row));
               const fieldError =
                 f.key === "loginIdentifier" && row ? undefined : errors[f.key];
               return (

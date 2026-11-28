@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@nexora/ui";
 import { CarrierConnectionsPage } from "./CarrierConnectionsPage.tsx";
 import { createSyncApi, SyncApiError } from "./sync-api.ts";
+import { CarrierPartialEditError } from "./edit-error.ts";
 import { syncPresentation } from "./sync-response.ts";
 import type {
   CarrierConnectionRow,
@@ -109,12 +110,34 @@ export function CarrierConnectionsLive() {
               mutated = true;
             }
             if (draft.displayName !== row.displayName) {
-              await api.rename(row.id, draft.displayName);
-              mutated = true;
+              try {
+                await api.rename(row.id, draft.displayName);
+                mutated = true;
+              } catch (error) {
+                if (!mutated) throw error;
+                const rejected =
+                  error instanceof SyncApiError &&
+                  error.status >= 400 &&
+                  error.status < 500;
+                throw new CarrierPartialEditError(
+                  rejected ? "rejected" : "unknown",
+                  error instanceof SyncApiError && error.status === 401,
+                );
+              }
             }
           } finally {
             if (mutated) triggerRefresh();
           }
+        }}
+        onReadConnection={async (row, signal) => {
+          const records = await api.connections(signal);
+          const current = records.find((record) => record.id === row.id);
+          if (!current || typeof current.displayName !== "string") return null;
+          return {
+            ...current,
+            providerName:
+              current.provider === "uniship" ? "Uniship" : current.provider,
+          };
         }}
         onDisconnect={async (row: CarrierConnectionRow) => {
           await api.remove(row.id);

@@ -1675,3 +1675,19 @@ parity, trimmed metadata with raw password submission and post-success clearing,
 concurrent submit fencing, and tolerant `CarrierConnectionsLive` `syncByConnection`
 hydration using synthetic `"88001"` / `"synthetic"` fixtures (zero private
 owner identifiers).
+
+PR68 review v2 executes actual Live/Page/Drawer callbacks with synthetic generated-SDK
+responses via the existing componentHarness (optional named-export selection only).
+The prior ad-hoc Drawer test now uses that same helper. Coverage includes actual
+POST payload and refresh/close admission; Rename-only, Reconnect-only and ordered
+combined edit; Reconnect rejection forbidding Rename; confirmed Reconnect plus
+failed Rename clearing password before a second submit; unknown503/network/malformed
+and committed-but-response-lost outcomes; GET-only recovery after failed read;
+authoritative selected-row baseline; explicit session401 versus credential400;
+new-password opt-in; create/edit/disconnect double-submit; stale unmounted reads;
+and callback-less draft behavior. Assertions inspect password/name/open state and
+actual SDK call counts/order, not just error text or callback presence.
+
+Causal RED and GREEN, complete Web and project-gate results are recorded in task068
+and exact-source hosted receipts in PR68. All new I/O is synthetic; no real Carrier
+Connect/Reconnect/Disconnect, provider calls, extra Sync Job or owner-runtime changes.

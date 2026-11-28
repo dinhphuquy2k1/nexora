@@ -330,3 +330,33 @@ test("Carrier lifecycle SDK transport sends exact connect, reconnect, rename and
     );
   }
 });
+
+test("Carrier edit confirmation rejects missing or mismatched successful response bodies", async () => {
+  const { createSyncApi, SyncApiError } = loadComponent(apiFile);
+  for (const connection of [
+    undefined,
+    { id: "other", status: "CONNECTED" },
+    { id: "conn-1", status: "ERROR" },
+  ]) {
+    const api = createSyncApi({
+      POST: async () => ({ response: { ok: true }, data: { connection } }),
+    });
+    await assert.rejects(
+      api.reconnect("conn-1", "synthetic"),
+      (error) => error instanceof SyncApiError && error.status === 500,
+    );
+  }
+  for (const connection of [
+    undefined,
+    { id: "other", displayName: "Requested" },
+    { id: "conn-1", displayName: "Unexpected" },
+  ]) {
+    const api = createSyncApi({
+      PATCH: async () => ({ response: { ok: true }, data: { connection } }),
+    });
+    await assert.rejects(
+      api.rename("conn-1", "Requested"),
+      (error) => error instanceof SyncApiError && error.status === 500,
+    );
+  }
+});
