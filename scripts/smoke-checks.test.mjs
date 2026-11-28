@@ -1,7 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { createSmokeChecks, untrustedHostStatus } from "./smoke-checks.mjs";
+import {
+  createSmokeChecks,
+  formatDevSmokeFailure,
+  summarizeComposeServices,
+  untrustedHostStatus,
+  verifyDevSmokeDependenciesReady,
+} from "./smoke-checks.mjs";
 
 test("Host-negative transport sends the actual forged Host through HTTP ingress", async () => {
   let observed;
@@ -168,4 +175,130 @@ test("custom Host acceptance uses the supplied raw authority without fetch rewri
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+test("summarizeComposeServices projects only allowlisted service fields without secrets or raw command text", () => {
+  const secret = "postgresql://nexora:top-secret@postgres/nexora";
+  const psLines = [
+    JSON.stringify({
+      Service: "postgres",
+      State: "running",
+      Health: "healthy",
+      ExitCode: 0,
+      Command: `postgres -c ${secret}`,
+      Labels: "secret=value",
+      Status: `Up 10s ${secret}`,
+    }),
+    JSON.stringify({
+      Service: "dependencies",
+      State: "exited",
+      Health: "",
+      ExitCode: 0,
+    }),
+    JSON.stringify({
+      Service: "api",
+      State: "running",
+      Health: "unhealthy",
+      ExitCode: 0,
+    }),
+  ].join("\n");
+
+  const summary = summarizeComposeServices(psLines);
+  assert.equal(summary.available, true);
+  assert.deepEqual(summary.services, [
+    { service: "postgres", state: "running", health: "healthy", exitCode: 0 },
+    {
+      service: "dependencies",
+      state: "exited",
+      health: "unknown",
+      exitCode: 0,
+    },
+    { service: "api", state: "running", health: "unhealthy", exitCode: 0 },
+  ]);
+  assert.equal(JSON.stringify(summary).includes(secret), false);
+  assert.equal(JSON.stringify(summary).includes("secret=value"), false);
+  assert.equal(summarizeComposeServices("not-json").available, false);
+});
+
+test("verifyDevSmokeDependenciesReady fails closed when dependencies or postgres are unready", () => {
+  const readyPs = [
+    { Service: "postgres", State: "running", Health: "healthy", ExitCode: 0 },
+    { Service: "dependencies", State: "exited", Health: "", ExitCode: 0 },
+    { Service: "migrate", State: "exited", Health: "", ExitCode: 0 },
+    { Service: "db-runtime", State: "exited", Health: "", ExitCode: 0 },
+    { Service: "sync-worker", State: "running", Health: "", ExitCode: 0 },
+  ]
+    .map((r) => JSON.stringify(r))
+    .join("\n");
+  assert.equal(verifyDevSmokeDependenciesReady(readyPs).ready, true);
+
+  const unhealthyPg = readyPs.replace('"healthy"', '"unhealthy"');
+  const unhealthyRes = verifyDevSmokeDependenciesReady(unhealthyPg);
+  assert.equal(unhealthyRes.ready, false);
+  assert.deepEqual(unhealthyRes.failedServices, ["postgres"]);
+
+  const failedDepsRes = verifyDevSmokeDependenciesReady(
+    [
+      { Service: "postgres", State: "running", Health: "healthy", ExitCode: 0 },
+      { Service: "dependencies", State: "exited", Health: "", ExitCode: 1 },
+      { Service: "migrate", State: "exited", Health: "", ExitCode: 0 },
+      { Service: "db-runtime", State: "exited", Health: "", ExitCode: 0 },
+    ]
+      .map((r) => JSON.stringify(r))
+      .join("\n"),
+  );
+  assert.equal(failedDepsRes.ready, false);
+  assert.ok(failedDepsRes.failedServices.includes("dependencies"));
+});
+
+test("formatDevSmokeFailure emits bounded sanitized telemetry without raw logs or credentials", () => {
+  const secret = "super-secret-password-marker";
+  const output = formatDevSmokeFailure({
+    phase: `RECREATE_API_WITH_EXPLICIT_ORIGIN ${secret}`,
+    phaseElapsedMs: 102345,
+    servicesSummary: summarizeComposeServices(
+      JSON.stringify({
+        Service: "api",
+        State: "running",
+        Health: "unhealthy",
+        ExitCode: 0,
+      }),
+    ),
+    apiListenerPresent: false,
+    liveStatus: 200,
+    readyChecks: { status: 503, database: false, storage: true },
+  });
+  assert.equal(output.phase, "UNKNOWN");
+  assert.equal(output.phaseElapsedMs, 102345);
+  assert.equal(output.apiListenerPresent, false);
+  assert.equal(output.liveStatus, 200);
+  assert.equal(output.readyStatus, 503);
+  assert.equal(output.databaseReady, false);
+  assert.equal(output.storageReady, true);
+  assert.equal(JSON.stringify(output).includes(secret), false);
+
+  const valid = formatDevSmokeFailure({
+    phase: "RECREATE_API_WITH_EXPLICIT_ORIGIN",
+    phaseElapsedMs: 123,
+    servicesSummary: { available: true, services: [] },
+    apiListenerPresent: true,
+    liveStatus: 200,
+    readyChecks: { status: 200, database: true, storage: true },
+  });
+  assert.equal(valid.phase, "RECREATE_API_WITH_EXPLICIT_ORIGIN");
+});
+
+test("dev-smoke.sh recreates api with --no-deps after prerequisite verification and checks sync-worker stop around dependencies rebuild", async () => {
+  const script = await readFile(
+    new URL("./dev-smoke.sh", import.meta.url),
+    "utf8",
+  );
+  assert.match(script, /compose stop api sync-worker web/);
+  assert.match(script, /verifyDevSmokeDependenciesReady/);
+  assert.match(
+    script,
+    /compose up -d --no-deps --no-build --force-recreate --wait --wait-timeout 180 api/,
+  );
+  assert.match(script, /waitForDevelopmentEnvironment/);
+  assert.match(script, /formatDevSmokeFailure/);
 });
