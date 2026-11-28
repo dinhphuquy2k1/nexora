@@ -1,8 +1,8 @@
 # NEXORA-067 — Controlled Uniship Carrier live authorization
 
-Status: VERIFICATION PENDING
+Status: COMPLETED
 Capability: IMPLEMENTED
-Verification: PARTIALLY VERIFIED
+Verification: VERIFIED
 
 ## Scope and boundaries
 
@@ -52,13 +52,13 @@ No new Tactical DDD `Aggregate`, `Value Object`, or application port is added (`
 - [x] API and Worker share the same parsed presence decision; loopback and existing Sync eligibility/security preserved.
 - [x] (`v2`) Explicit 2026-11-28 owner decisions (1y lifetime, observed HTTP `400` invalid token, waived expired-token & test-account password-rotation pre-gates, explicit live gate authorization) synchronized across ADR-007 and canonical docs without weakening `NOT VERIFIED` / confidentiality guarantees.
 - [x] (`v2`) `UNISHIP_LIVE_CONTRACT_VERIFIED = true` with untouched `!this.liveAuthorized` / `!this.activationConfigured` / scope / `UNISHIP_LIVE_AUTHORIZED=false` defaults, verified via RED->GREEN transport/composition/Connect/Reconnect/400 regressions and `!this.activationConfigured` mutation check.
-- [ ] Targeted/API/integration and documentation/governance gates recorded; exact final-source hosted checks (`Preflight`, `Foundation`, `Sync V1 targeted`) PASS without live HTTP traffic or PR auto-merge.
+- [x] Targeted/API/integration and documentation/governance gates recorded; exact final-source hosted checks (`Preflight`, `Foundation`, `Sync V1 targeted`) PASS without live HTTP traffic or PR auto-merge.
 
 ## Gate decision and existing prerequisites
 
 Historical `v1` baseline notes (`2026-11-28` earlier review): ADR007 point6 confirms owner-scoped authorization2026-11-15; exact live expiry/rejection confidence, historical exposure invalidation, and explicit permission were then open and held `UNISHIP_LIVE_CONTRACT_VERIFIED=false`.
 
-Updated **2026-11-28 Owner Decision (v2 — Authorized Gate Opening)**: Owner confirmed 1-year token lifetime (retaining nullable `tokenExpiry` without fixed TTL/refresh), supplied observed `POST /client/api-token-verify/` invalid-token `HTTP 400` (`{"non_field_errors":["Error decoding signature."]}`), waived exact natural expiry as a blocking pre-gate (`NOT VERIFIED`, validate post-activation), accepted historical token/cookie exposure risk solely for the approved test account, and explicitly authorized setting `UNISHIP_LIVE_CONTRACT_VERIFIED = true`. Actual owner runtime configuration, live Carrier UI connection, and manual FULL/Sync acceptance remain in [NEXORA-068](NEXORA-068-uniship-owner-runtime-and-data-acceptance.md) and public host gates in [NEXORA-046](NEXORA-046-production-https-acceptance.md).
+Updated **2026-11-28 Owner Decision (v2 — Authorized Gate Opening)**: Owner confirmed 1-year token lifetime (retaining nullable `tokenExpiry` without fixed TTL/refresh), supplied observed `POST /client/api-token-verify/` invalid-token `HTTP 400` (`{"non_field_errors":["Error decoding signature."]}`), waived exact natural expiry as a blocking pre-gate (`NOT VERIFIED`, validate post-activation), accepted historical token/cookie exposure risk solely for the approved test account, and explicitly authorized setting `UNISHIP_LIVE_CONTRACT_VERIFIED = true`. Actual owner runtime configuration, live Carrier UI connection, and manual FULL/Sync acceptance remain in [NEXORA-068](../active/NEXORA-068-uniship-owner-runtime-and-data-acceptance.md) and public host gates in [NEXORA-046](../active/NEXORA-046-production-https-acceptance.md).
 
 ## Documentation Impact
 
@@ -232,3 +232,20 @@ Execution constraints honored: zero secret/account leakage in Git/CI/logs, zero 
 owner `.env`/DB/volumes/keyring, zero backup/restore operations, no new PR and no merge.
 Hosted `Preflight`, `Nexora foundation`, and `Sync V1 targeted PostgreSQL verification`
 receipts will be recorded in PR #67 description on exact final HEAD without extra commits.
+
+## Closure by NEXORA-068 — 2026-11-28
+
+PR #67 (`44731c3e39f1d10e463b977fa898bd685fc9b231`) merged into `main` at
+`f6219f2cbcc4d78de1cdc41825c2c5fcee0715e9` on `2026-11-28T13:40:00Z` (actual PR merge
+checkout `a728ea124fadc072cf1d80191831f47cf44a5f2b`). The source-level Live Gate
+(`UNISHIP_LIVE_CONTRACT_VERIFIED = true`) is open and existing account-scoped activation
+protection is verified. Actual owner Development runtime upgrade, live Uniship UI Connect,
+Manual FULL Sync execution, and Retail/timezone data acceptance remain in
+[NEXORA-068](../active/NEXORA-068-uniship-owner-runtime-and-data-acceptance.md) (never
+claimed PASS in `NEXORA-067`); public host acceptance stays in
+[NEXORA-046](../active/NEXORA-046-production-https-acceptance.md). Historical evidence,
+FAIL rows, and immutable `v1`/`v2` design snapshots remain unchanged.
+
+| Claim                                               | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Date       | Result |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
+| PR #67 merged and final hosted CI receipts recorded | Merged PR #67 into `main` (`f6219f2cbcc4d78de1cdc41825c2c5fcee0715e9`, `2026-11-28T13:40:00Z`, source `44731c3e39f1d10e463b977fa898bd685fc9b231`, merge checkout `a728ea124fadc072cf1d80191831f47cf44a5f2b`); hosted checks on `44731c3e` attempt 1 PASS: Preflight `46147300242`/job `140986070625`, Foundation `46147300273`/job `140986070871`, Sync Targeted `46147300312`/job `140986070811` (optional selector `46147300300`/job `140986070855` PASS); main Preflight `46150741395` PASS (`46150741263` Foundation `in_progress` at closure time); Live Gate opened and activation protection verified | 2026-11-28 | PASS   |
