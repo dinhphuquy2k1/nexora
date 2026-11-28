@@ -24,6 +24,16 @@ independent-cluster restore, private backup/key custody, explicit native failure
 checks, R1/R2 comparisons and Standard Runtime acceptance. Reuse audit and twelve-section
 plan are frozen in the v3 snapshot before checklist edits. No v2 harness changes.
 
+### Final corrections within v3 — reviewed648b848
+
+Non-material correction: retain v3 scope/reuse/ownership and immutable snapshots.
+Replace the unsupported create option with verified --no-build (containers remain
+stopped), and enforce the already-designed pre-start boundary using existing step7
+read-only checks plus an explicit source-bound operator checkpoint. No new runtime
+policy, framework, canonical fact or authorization. Verify CLI help/reference,
+focused PowerShell ordering/context statically, documentation gates and exact-source
+CI. PowerShell/synthetic resource execution remains unverified when unavailable.
+
 ### Reuse Audit
 
 | Component                                    | Existing implementations                                                                                                                                                                                        | Domain owner                   | Reuse alternatives                                                                                                               | Selected approach                                                                                                                                                                                                                                                                                | Rationale                                                                                                                          | Risks                                                                                                           | Verification                                                                                                                                                                                                                                                      |
@@ -392,7 +402,7 @@ foreach ($v in $rc.volumes.PSObject.Properties) {
     Require (-not (Invoke-Native docker @('volume','ls','-q','--filter',"name=^$($v.Value.name)$")).Trim()) 'Restore volume name exists'
 }
 # Create containers/networks/volumes only; DO NOT run init before restoring secrets.
-$null = Invoke-Native docker ($Restore + @('create','--no-deps','builder','init','postgres','migrate','db-runtime','api','sync-worker','web'))
+$null = Invoke-Native docker ($Restore + @('create','--no-build','builder','init','postgres','migrate','db-runtime','api','sync-worker','web'))
 $RestoreCreatedThisSession = $true
 $RestoreIds = (Invoke-Native docker ($Restore + @('ps','-aq'))) -split '\s+' | Where-Object { $_ }
 $RestoreContainers = (Invoke-Native docker (@('inspect') + $RestoreIds)) | ConvertFrom-Json
@@ -462,7 +472,8 @@ row/sequence fingerprints excluding `_prisma_migrations`, which intentionally ga
 records. These two migrations add capability tables/functions, not business-row
 rewrites. Verify new tables separately and require no unresolved migration failure.
 Compare schema inventory to checked-in migrations and canonical ACL, not old R1
-function definitions. Do not start API/Worker before R2 completes. Perform the migration/business/ACL subsection of step 7 on restore first, then:
+function definitions. Do not start API/Worker before R2 completes. Set `$Check = $Restore` explicitly and perform the migration/business/ACL
+subsection of step7 on restore first, then:
 
 ```powershell
 $null = Invoke-Native docker ($Restore + @('up','-d','--wait','api','sync-worker','web'))
@@ -582,12 +593,16 @@ or copy secret values through chat. Failure leaves the original file untouched.
 
 #### 6. Upgrade source only after isolated restore passes
 
+**6A — Migration and provisioning only.** This block cannot start application writers.
+
 Owner confirms R1/R2, protected off-machine recovery, custody, OFF controls and the
 maintenance window. Confirm fresh source inventory still equals backup; otherwise
 stop and re-backup. Retain volumes and matching compatible rollback binaries/config;
 source02c2d05/combined-loader callers must never run against migration21.
 
 ```powershell
+$SourcePreStartReceipt = $null # Invalidate any previous startup authorization.
+$PreStartChecks = $null
 $null = Invoke-Native docker ($Source + @('stop','api','web','sync-worker'))
 # Confirm external provisioning/schema writers remain stopped.
 $null = Invoke-Native docker ($Source + @('down')) # NO volume removal
@@ -595,9 +610,60 @@ $null = Invoke-Native docker ($Standard + @('build'))
 $null = Invoke-Native docker ($Standard + @('up','-d','--wait','postgres'))
 $null = Invoke-Native docker ($Standard + @('run','--rm','--no-deps','-T','migrate'))
 $null = Invoke-Native docker ($Standard + @('run','--rm','--no-deps','-T','db-runtime'))
-# Perform migration/business/grant checks in step 7 BEFORE admitting writers.
+
+```
+
+**6B — Mandatory source pre-start checkpoint.** Set the source context explicitly,
+then execute only step7's migration/business/sequence/checksum/legacy-loader block
+and read-only ACL capture/review, stopping before its running-process probe. Do not
+run the restore-context initializer again. All automatic assertions must pass;
+privately review the complete ACL against the canonical provisioner, and matching
+image IDs/source revision against the accepted R2 images. Any mismatch or missing
+review stops here with writers down; do not confirm a check that was not performed.
+
+```powershell
+$Check = $Standard
+$PreStartChecks = $null
+$SourcePreStartReceipt = $null
+# Execute step7 PRE-START checks below with this context; return here afterwards.
+```
+
+Only after those checks have actually completed, run this separate confirmation
+block. It validates source OFF config in memory and requires a distinct manual
+attestation for ACL, matching images/revision and configuration review. Changing
+project, revision, configuration or backup invalidates the resulting receipt.
+
+```powershell
+Require ($null -ne $PreStartChecks -and $PreStartChecks.Project -ceq $SourceProject -and $PreStartChecks.ChecksumCount -eq $ExpectedMigrations.Count) 'Source pre-start checks missing'
+Require (($Check -join "`0") -ceq ($Standard -join "`0")) 'Wrong verification context'
+$cfg = (Invoke-Native docker ($Standard + @('config','--format','json'))) | ConvertFrom-Json
+Require ($cfg.name -ceq $SourceProject) 'Source project mismatch'
+foreach ($service in @('api','sync-worker')) {
+    $e = $cfg.services.$service.environment
+    Require ($e.SYNC_ENABLED -ceq 'false' -and $e.UNISHIP_LIVE_AUTHORIZED -ceq 'false' -and [string]::IsNullOrEmpty($e.UNISHIP_ACTIVATION_POLICY_JSON) -and [string]::IsNullOrEmpty($e.UNISHIP_RECONCILIATION_POLICY_JSON)) 'Source runtime must remain OFF'
+}
+Require ($PreStartChecks.Config -ceq ($cfg | ConvertTo-Json -Depth 100 -Compress)) 'Configuration changed since checks'
+$confirmation = Read-Host ('After successful ACL, matching images/revision and runtime configuration review, type VERIFIED ' + $SourceProject + ' ' + $Revision)
+Require ($confirmation -ceq ('VERIFIED ' + $SourceProject + ' ' + $Revision)) 'Manual pre-start review not confirmed'
+$SourcePreStartReceipt = @{ Project=$SourceProject; Revision=$Revision; Backup=$BackupId; Config=$PreStartChecks.Config; Confirmation=$confirmation }
+```
+
+**6C — Start matching runtime only after 6B.** This standalone block fails closed
+for an absent receipt, failed/unexecuted checks, unconfirmed review or changed context.
+It consumes the receipt before starting; a failed start does not authorize a retry.
+
+```powershell
+Require ($null -ne $SourcePreStartReceipt -and $null -ne $PreStartChecks) 'Pre-start verification NOT RUN or failed'
+Require ($SourcePreStartReceipt.Project -ceq $SourceProject -and $SourcePreStartReceipt.Backup -ceq $BackupId -and $SourcePreStartReceipt.Revision -ceq (Invoke-Native git @('rev-parse','HEAD'))) 'Stale source pre-start receipt'
+Require ($SourcePreStartReceipt.Confirmation -ceq ('VERIFIED ' + $SourceProject + ' ' + $Revision)) 'Manual review missing'
+$currentConfig = (Invoke-Native docker ($Standard + @('config','--format','json'))) | ConvertFrom-Json
+Require ($SourcePreStartReceipt.Config -ceq ($currentConfig | ConvertTo-Json -Depth 100 -Compress)) 'Source configuration changed'
+$SourcePreStartReceipt = $null
 $null = Invoke-Native docker ($Standard + @('up','-d','--wait','api','sync-worker','web'))
 ```
+
+Now continue step7's post-start health/process/role/key/file/credential/MFA checks.
+Never require running-process acceptance before this startup boundary.
 
 `--no-deps` one-offs are safe here only because builder/init, healthy PostgreSQL,
 matching images and preceding migration were explicitly verified. Final `up` may
@@ -609,13 +675,17 @@ old backup overwrite of current user data.
 
 #### 7. R2 and source post-upgrade acceptance (actual, not configured only)
 
-Use `$Check = $Restore` on isolated restore first, then `$Check = $Standard` on
-source after authorized upgrade. Capture all private output; do not run
+PRE-START: explicitly select `$Check = $Restore` for R2 or keep
+`$Check = $Standard` from step6B for source; do not overwrite the selected context.
+The first block and ACL review run before application startup. POST-START begins
+at the compiled-process probe and includes health/role/key/files/credentials/MFA.
+Return to step6B after source pre-start review; run post-start checks only after6C. Capture all private output; do not run
 `database-runtime-smoke.mjs` here: it includes mutating negative probes. Reuse its
 contracts through these read-only inspections instead.
 
 ```powershell
-$Check = $Restore # Later explicitly select $Standard for the source phase.
+Require ($null -ne $Check -and (($Check -join "`0") -ceq ($Restore -join "`0") -or ($Check -join "`0") -ceq ($Standard -join "`0"))) 'Select explicit restore/source context first'
+$PreStartChecks = $null
 $cfg = (Invoke-Native docker ($Check + @('config','--format','json'))) | ConvertFrom-Json
 $MigrationAfter = Invoke-Native docker ($Check + @('exec','-T','postgres','psql','-X','-U','nexora','-d','nexora','-v','ON_ERROR_STOP=1','-Atc','SELECT migration_name,finished_at,rolled_back_at FROM _prisma_migrations ORDER BY started_at;'))
 $ExpectedMigrations = Get-ChildItem -LiteralPath 'packages/database/prisma/migrations' -Directory | Sort-Object Name | Select-Object -ExpandProperty Name
@@ -629,7 +699,17 @@ $MigrationNames = Invoke-Native docker ($Check + @('exec','-T','postgres','psql'
 Require (-not (Compare-Object @($ExpectedMigrations) @($MigrationNames -split "`n" | Where-Object { $_ }))) 'Migration inventory differs from reviewed directory'
 $Unresolved = Invoke-Native docker ($Check + @('exec','-T','postgres','psql','-X','-U','nexora','-d','nexora','-v','ON_ERROR_STOP=1','-Atc','SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL;'))
 Require ($Unresolved -ceq '0') 'Unresolved migration failure'
-# Independently compare recorded migration checksums to each migration.sql SHA256.
+$MigrationRows = (Invoke-Native docker ($Check + @('exec','-T','postgres','psql','-X','-U','nexora','-d','nexora','-v','ON_ERROR_STOP=1','-Atc',"SELECT coalesce(json_agg(json_build_object('name',migration_name,'checksum',checksum) ORDER BY migration_name),'[]'::json) FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL;"))) | ConvertFrom-Json
+Require (@($MigrationRows).Count -eq $ExpectedMigrations.Count) 'Migration checksum inventory mismatch'
+foreach ($migration in $MigrationRows) {
+    Require ($migration.name -cin $ExpectedMigrations) 'Unexpected migration path'
+    $file = Join-Path (Join-Path 'packages/database/prisma/migrations' $migration.name) 'migration.sql'
+    Require ($migration.checksum -ieq (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash) 'Migration checksum mismatch'
+}
+$LegacyAbsent = Invoke-Native docker ($Check + @('exec','-T','postgres','psql','-X','-U','nexora','-d','nexora','-v','ON_ERROR_STOP=1','-Atc',"SELECT to_regprocedure('public.sync_carrier_load(uuid,uuid,integer,uuid,integer)') IS NULL;"))
+Require ($LegacyAbsent -ceq 't') 'Legacy combined loader still exists'
+$PreStartChecks = @{ Project=$cfg.name; ChecksumCount=@($MigrationRows).Count; Config=($cfg | ConvertTo-Json -Depth 100 -Compress) }
+# Only automated checks completed here; ACL and image/config review still required.
 # Inspect new capability tables/schema/functions against migrations20/21 before start.
 ```
 
@@ -1105,3 +1185,28 @@ credential backup directory. Final independent disposition belongs to PR receipt
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------- | ------ |
 | v3 documentation and syntax checks   | Pinned local format/docs/preflight plus test:docs10/10 and test:preflight24/24; node --check both embedded snippets; diff whitespace check | 2026-11-28 | PASS   |
 | Synthetic SQL execution prerequisite | docker run PostgreSQL17.11 failed before container creation: no space left on device; no SQL executed, no remaining owned container        | 2026-11-28 | FAIL   |
+
+### Final two corrections within v3 — 2026-11-28
+
+Reviewed source648b848264e3917f51ceb236ec5a9589dd6d9e43. Historical v3 hosted
+receipt remains PASS: Preflight46122957689; Foundation46122957678,
+job140911232021, attempt1; actual checkout135e392ba3b5548f4b269eb4d0401024a4e9417a.
+That receipt is not verification of this later candidate. No snapshot or design
+scope changed: these corrections enforce the original create-only/bootstrap and
+pre-start verification ordering; v1/v2/v3 bytes remain immutable.
+
+Executed `docker compose create --help` on Compose2.40.3 and fetched the official
+[create CLI reference](https://docs.docker.com/reference/cli/docker/compose/create/):
+--no-build supported, --no-deps absent. Focused static checks verify no application
+startup in6A, explicit source context in6B, fail-closed/consumed receipt in6C.
+Pinned Node24.19.0/pnpm10.34.6 format/docs/preflight and test:docs10/10,
+test:preflight24/24 PASS; git diff --check PASS.
+PowerShell parsing/execution and PASS/FAIL/NOT RUN guard execution NOT RUN because
+pwsh is unavailable. Synthetic Compose resource creation NOT RUN: matching runtime
+images unavailable and approximately75MiB free disk. CLI reference/static checks
+do not prove resources were actually created/stopped. No owner environment touched.
+Final-source hosted receipt is recorded in PR66 after push, without another commit.
+
+| Claim                                       | Evidence                                                                                                                                                             | Date       | Result |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------ |
+| Two final documentation corrections checked | Compose2.40.3 help plus official reference; focused static option/order/context/guard checks; pinned format/docs/preflight, docs10/10, preflight24/24 and diff check | 2026-11-28 | PASS   |
